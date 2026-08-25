@@ -1,0 +1,29 @@
+candidateId: knorm_b8ed0f5a53e19bf02a5ac1f3
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3b2dc80906262a11813c54bf
+outputLanguage: en
+outputs:
+  - byteCount: 4716
+    contentHash: sha256:0fb2ab204a45b47cf30b967e8764c38a954079cd9391007bbd8b7fc071b1601d
+    path: docs/roadmap/knowledge/development-pattern-promotion.md
+    userRegionHash: sha256:0fb2ab204a45b47cf30b967e8764c38a954079cd9391007bbd8b7fc071b1601d
+profile: roadmap_document
+recordId: knormdoc_2c086ac2ae517516f8a89863
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:c47efade164fe9f4819c3096b800cf0dcd94d80946bed9ed6cccd265836196f9
+sourcePath: docs/roadmap/knowledge/development-pattern-promotion.md
+sourceUnitVersionIds:
+  - uv_3e277686c10277f6d14843ae
+  - uv_6caa0e9480d3c0ee7b56e5dd
+  - uv_86215c1ffe9ce7c927816ac0
+  - uv_9558fd2bd98d69560752fa9a
+  - uv_dbaeda9e28279f822479e5ea
+  - uv_df07db84f35d9867bffeb242
+  - uv_e02ce8583b761ed7f405f3e7

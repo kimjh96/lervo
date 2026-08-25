@@ -11,6 +11,7 @@ import {
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { runKnowledgeCompilationCommand } from "./knowledge-compilation-command.js";
 import { runDocumentNormalizationCommand } from "./document-normalization-command.js";
+import { runDevelopmentPatternCommand } from "./development-pattern-command.js";
 import type { CliIo } from "./types.js";
 import { runKnowledgeInstruction } from "./knowledge-instruction-command.js";
 import { runKnowledgeSemanticMaterialize } from "./knowledge-materialization-command.js";
@@ -102,6 +103,7 @@ export async function runKnowledgeCommand(args: string[], io: CliIo): Promise<nu
     });
   }
   if (subcommand === "normalize") return runDocumentNormalizationCommand(args.slice(1), io);
+  if (subcommand === "pattern") return runDevelopmentPatternCommand(args.slice(1), io);
   if (subcommand === "review-policy") return runKnowledgeReviewPolicy(args.slice(1), io);
   if (subcommand === "review") return runKnowledgeReview(args.slice(1), io);
   if (subcommand === "materialize") return runKnowledgeSemanticMaterialize(args.slice(1), io);

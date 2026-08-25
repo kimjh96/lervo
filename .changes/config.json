@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "tool": "lervo-release-intent",
+  "toolVersion": 1,
+  "publicPackages": ["@lervo/cli"],
+  "preOneCompatibility": {
+    "patch": "patch",
+    "minor": "minor",
+    "major": "minor"
+  },
+  "changelog": "CHANGELOG.md",
+  "generatedOwners": [
+    "pnpm install --lockfile-only --frozen-lockfile",
+    "pnpm build",
+    "pnpm release:manifest:update",
+    "pnpm release:sbom:update"
+  ]
+}

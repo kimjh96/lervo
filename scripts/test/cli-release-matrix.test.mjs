@@ -77,10 +77,10 @@ describe("CLI release matrix workflow", () => {
     ]);
   });
 
-  it("signs exact release subjects only for a manually selected tag", async () => {
+  it("signs exact release subjects for an exact pushed or manually selected tag", async () => {
     const workflow = await readWorkflow();
     const job = workflow.jobs["attested-cli"];
-    assert.equal(job.if, "github.event_name == 'workflow_dispatch' && github.ref_type == 'tag'");
+    assert.equal(job.if, "github.ref_type == 'tag' && startsWith(github.ref_name, 'v')");
     assert.equal(job.needs, "packed-cli");
     assert.equal(job["runs-on"], "ubuntu-latest");
     assert.deepEqual(job.permissions, {

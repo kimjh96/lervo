@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_5fdad9ec5a51a9d7374bee90
+freshness: current
+ownership: user
+path: docs/roadmap/knowledge/development-pattern-promotion.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_6b3488437fb7bb1714b08b09
+title: Evidence-bound development-pattern promotion
+type: concept

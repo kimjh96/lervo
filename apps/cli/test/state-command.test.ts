@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -61,4 +61,40 @@ it("resets only rebuildable state and preserves durable CAS data", async () => {
     "durable state boundary",
   );
   await reopened.close();
+});
+
+it("plans and applies selective pruning with path-private durable evidence", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-state-prune-"));
+  roots.push(root);
+  const quiet = { cwd: root, stdout: () => undefined, stderr: () => undefined };
+  expect(await runCli(["init", "--minimal"], quiet)).toBe(0);
+  const cache = resolve(root, ".lervo/state/knowledge/normalization-shards/old.json");
+  const current = resolve(root, ".lervo/state/knowledge/current/inventory.json");
+  await mkdir(resolve(cache, ".."), { recursive: true });
+  await mkdir(resolve(current, ".."), { recursive: true });
+  await writeFile(cache, '{"cache":true}\n');
+  await writeFile(current, '{"current":true}\n');
+  await utimes(cache, new Date(0), new Date(0));
+
+  const output: string[] = [];
+  expect(
+    await runCli(["state", "prune", "--json"], {
+      ...quiet,
+      stdout: (message) => output.push(message),
+    }),
+  ).toBe(0);
+  const planSource = output.splice(0).join("");
+  const plan = JSON.parse(planSource) as { planId: string; operations: unknown[] };
+  expect(plan.operations).toHaveLength(1);
+  expect(planSource).not.toContain("normalization-shards");
+
+  expect(await runCli(["state", "prune", "--apply", "--approval", plan.planId], quiet)).toBe(0);
+  await expect(readFile(cache, "utf8")).rejects.toThrow();
+  expect(await readFile(current, "utf8")).toContain("current");
+
+  const storage = await openProjectStorage(root);
+  const event = storage.events.list({ limit: 100 }).find((item) => item.type === "state.pruned");
+  expect(event?.payload).toMatchObject({ planId: plan.planId, removedFiles: 1 });
+  expect(JSON.stringify(event?.payload)).not.toContain("normalization-shards");
+  await storage.close();
 });

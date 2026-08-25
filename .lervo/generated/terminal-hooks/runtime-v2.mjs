@@ -2991,7 +2991,7 @@ var require_compile = __commonJS({
       const schOrFunc = root2.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve34.call(this, root2, ref);
+      let _sch = resolve35.call(this, root2, ref);
       if (_sch === void 0) {
         const schema = (_a = root2.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3018,7 +3018,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve34(root2, ref) {
+    function resolve35(root2, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3649,7 +3649,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve34(baseURI, relativeURI, options) {
+    function resolve35(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const { parsed: baseParsed, malformedAuthorityOrPort: baseMalformed } = parseWithStatus(baseURI, schemelessOptions);
       const { parsed: relativeParsed, malformedAuthorityOrPort: relativeMalformed } = parseWithStatus(relativeURI, schemelessOptions);
@@ -3933,7 +3933,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve: resolve34,
+      resolve: resolve35,
       resolveComponent,
       equal,
       serialize,
@@ -32955,7 +32955,7 @@ var require_input = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/input.js"(exports, module) {
     "use strict";
     var { nanoid } = require_non_secure();
-    var { isAbsolute: isAbsolute4, resolve: resolve34 } = __require("path");
+    var { isAbsolute: isAbsolute4, resolve: resolve35 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     var { fileURLToPath: fileURLToPath2, pathToFileURL } = __require("url");
     var CssSyntaxError2 = require_css_syntax_error();
@@ -32963,7 +32963,7 @@ var require_input = __commonJS({
     var terminalHighlight = require_terminal_highlight();
     var lineToIndexCache = /* @__PURE__ */ Symbol("lineToIndexCache");
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(resolve34 && isAbsolute4);
+    var pathAvailable = Boolean(resolve35 && isAbsolute4);
     function getLineToIndex(input) {
       if (input[lineToIndexCache]) return input[lineToIndexCache];
       let lines = input.css.split("\n");
@@ -32997,7 +32997,7 @@ var require_input = __commonJS({
           if (!pathAvailable || /^\w+:\/\//.test(opts.from) || isAbsolute4(opts.from)) {
             this.file = opts.from;
           } else {
-            this.file = resolve34(opts.from);
+            this.file = resolve35(opts.from);
           }
         }
         if (pathAvailable && sourceMapAvailable) {
@@ -33118,7 +33118,7 @@ var require_input = __commonJS({
         if (/^\w+:\/\//.test(file)) {
           return file;
         }
-        return resolve34(this.map.consumer().sourceRoot || this.map.root || ".", file);
+        return resolve35(this.map.consumer().sourceRoot || this.map.root || ".", file);
       }
       origin(line, column, endLine, endColumn) {
         if (!this.map) return false;
@@ -33428,12 +33428,12 @@ var require_fromJSON = __commonJS({
 var require_map_generator = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/map-generator.js"(exports, module) {
     "use strict";
-    var { dirname: dirname8, relative: relative13, resolve: resolve34, sep: sep13 } = __require("path");
+    var { dirname: dirname8, relative: relative13, resolve: resolve35, sep: sep13 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     var { pathToFileURL } = __require("url");
     var Input2 = require_input();
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(dirname8 && resolve34 && relative13 && sep13);
+    var pathAvailable = Boolean(dirname8 && resolve35 && relative13 && sep13);
     var MapGenerator = class {
       constructor(stringify15, root2, opts, cssString) {
         this.stringify = stringify15;
@@ -33662,7 +33662,7 @@ var require_map_generator = __commonJS({
         if (cached) return cached;
         let from = this.opts.to ? dirname8(this.opts.to) : ".";
         if (typeof this.mapOpts.annotation === "string") {
-          from = dirname8(resolve34(from, this.mapOpts.annotation));
+          from = dirname8(resolve35(from, this.mapOpts.annotation));
         }
         let path = relative13(from, file);
         this.memoizedPaths.set(file, path);
@@ -35209,14 +35209,14 @@ var require_postcss = __commonJS({
 // apps/cli/src/terminal-hook-bin.ts
 import { createHash as createHash9 } from "node:crypto";
 import { readFile as readFile12 } from "node:fs/promises";
-import { dirname as dirname7, resolve as resolve33 } from "node:path";
+import { dirname as dirname7, resolve as resolve34 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // apps/cli/src/terminal-command-runtime.ts
 import { constants as constants13 } from "node:fs";
 import { randomUUID as randomUUID2 } from "node:crypto";
-import { lstat as lstat23, mkdir as mkdir8, open as open15, readFile as readFile11, rename as rename4, rm as rm5 } from "node:fs/promises";
-import { dirname as dirname6, relative as relative12, resolve as resolve32, sep as sep12 } from "node:path";
+import { lstat as lstat24, mkdir as mkdir8, open as open15, readFile as readFile11, rename as rename4, rm as rm5 } from "node:fs/promises";
+import { dirname as dirname6, relative as relative12, resolve as resolve33, sep as sep12 } from "node:path";
 import { parseArgs } from "node:util";
 
 // packages/diagnostics/dist/recovery-guidance-environment.js
@@ -38418,6 +38418,87 @@ var deliberationWorkflowSourceSchema = {
   additionalProperties: false
 };
 
+// packages/schemas/dist/development-pattern-event.js
+var patternIdSchema = { type: "string", pattern: "^pattern_[a-f0-9]{24}$" };
+var developmentPatternObservedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/development-pattern-observed-event-payload.schema.json",
+  type: "object",
+  properties: {
+    patternId: patternIdSchema,
+    observationId: { type: "string", pattern: "^dpobs_[a-f0-9]{24}$" },
+    provider: { type: "string", enum: ["codex", "claude"] },
+    sourceSnapshotId: { type: "string", pattern: "^ksnap_[a-f0-9]{24}$" },
+    sourceSnapshotHash: sha256Schema,
+    evidenceDigest: sha256Schema,
+    occurrenceCount: { type: "integer", minimum: 2, maximum: 64 },
+    observedAt: timestampSchema
+  },
+  required: [
+    "patternId",
+    "observationId",
+    "provider",
+    "sourceSnapshotId",
+    "sourceSnapshotHash",
+    "evidenceDigest",
+    "occurrenceCount",
+    "observedAt"
+  ],
+  additionalProperties: false
+};
+var developmentPatternTransitionedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/development-pattern-transitioned-event-payload.schema.json",
+  type: "object",
+  properties: {
+    transitionId: { type: "string", pattern: "^dptr_[a-f0-9]{24}$" },
+    patternId: patternIdSchema,
+    fromState: {
+      anyOf: [
+        {
+          type: "string",
+          enum: ["observed", "candidate", "reviewed", "promoted", "rejected", "deferred"]
+        },
+        { type: "null" }
+      ]
+    },
+    toState: {
+      type: "string",
+      enum: ["candidate", "reviewed", "promoted", "rejected", "deferred", "superseded"]
+    },
+    candidateArtifactId: { anyOf: [artifactIdSchema, { type: "null" }] },
+    candidateContentHash: { anyOf: [sha256Schema, { type: "null" }] },
+    reviewArtifactId: { anyOf: [artifactIdSchema, { type: "null" }] },
+    reviewContentHash: { anyOf: [sha256Schema, { type: "null" }] },
+    targetKind: {
+      type: "string",
+      enum: [
+        "repository_instruction",
+        "scoped_instruction",
+        "portable_skill",
+        "decision",
+        "automated_check"
+      ]
+    },
+    approvalHash: { anyOf: [sha256Schema, { type: "null" }] },
+    occurredAt: timestampSchema
+  },
+  required: [
+    "transitionId",
+    "patternId",
+    "fromState",
+    "toState",
+    "candidateArtifactId",
+    "candidateContentHash",
+    "reviewArtifactId",
+    "reviewContentHash",
+    "targetKind",
+    "approvalHash",
+    "occurredAt"
+  ],
+  additionalProperties: false
+};
+
 // packages/schemas/dist/document-registry.js
 var generatedInputSchema = {
   type: "object",
@@ -39512,12 +39593,15 @@ var eventTypes = [
   "deliberation.started",
   "deliberation.artifact.recorded",
   "deliberation.completed",
+  "development.pattern.observed",
+  "development.pattern.transitioned",
   "knowledge.candidate.created",
   "knowledge.candidate.reviewed",
   "knowledge.reconciliation.reviewed",
   "knowledge.verified",
   "knowledge.stale.detected",
   "knowledge.materialization.applied",
+  "state.pruned",
   "terminal.integration.applied",
   "terminal.context.prepared",
   "terminal.turn.declared",
@@ -42397,6 +42481,46 @@ var handoffBundleSchema = {
   additionalProperties: false
 };
 
+// packages/schemas/dist/state-pruned-event.js
+var classCountSchema = {
+  type: "object",
+  properties: {
+    retentionClass: {
+      type: "string",
+      enum: ["rebuildable_cache", "completed_workspace", "bounded_observation"]
+    },
+    artifacts: { type: "integer", minimum: 0 },
+    files: { type: "integer", minimum: 0 },
+    bytes: { type: "integer", minimum: 0 }
+  },
+  required: ["retentionClass", "artifacts", "files", "bytes"],
+  additionalProperties: false
+};
+var statePrunedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/state-pruned-event-payload.schema.json",
+  type: "object",
+  properties: {
+    planId: { type: "string", pattern: "^kstateprune_[a-f0-9]{24}$" },
+    policyHash: sha256Schema,
+    inventoryDigest: sha256Schema,
+    removedFiles: { type: "integer", minimum: 0 },
+    removedBytes: { type: "integer", minimum: 0 },
+    classCounts: { type: "array", items: classCountSchema, maxItems: 3 },
+    appliedAt: timestampSchema
+  },
+  required: [
+    "planId",
+    "policyHash",
+    "inventoryDigest",
+    "removedFiles",
+    "removedBytes",
+    "classCounts",
+    "appliedAt"
+  ],
+  additionalProperties: false
+};
+
 // packages/schemas/dist/skill.js
 var providerCompatibilitySchema2 = {
   oneOf: [
@@ -43921,12 +44045,15 @@ var validators = {
   deliberationStartedEventPayload: ajv.compile(deliberationStartedEventPayloadSchema),
   deliberationArtifactRecordedEventPayload: ajv.compile(deliberationArtifactRecordedEventPayloadSchema),
   deliberationCompletedEventPayload: ajv.compile(deliberationCompletedEventPayloadSchema),
+  developmentPatternObservedEventPayload: ajv.compile(developmentPatternObservedEventPayloadSchema),
+  developmentPatternTransitionedEventPayload: ajv.compile(developmentPatternTransitionedEventPayloadSchema),
   adapter: ajv.compile(adapterContractMessageSchema),
   role: ajv.compile(roleProfileSchema),
   roleEvaluationBundle: ajv.compile(roleEvaluationBundleSchema),
   roleEvaluationResult: ajv.compile(roleEvaluationResultSchema),
   highRiskRoleWorkflow: ajv.compile(highRiskRoleWorkflowSchema),
   runCompletedEventPayload: ajv.compile(runCompletedEventPayloadSchema),
+  statePrunedEventPayload: ajv.compile(statePrunedEventPayloadSchema),
   sharedContext: ajv.compile(sharedContextPublicationSchema),
   handoffBundle: ajv.compile(handoffBundleSchema),
   skill: ajv.compile(skillManifestSchema),
@@ -44329,6 +44456,29 @@ var eventPayloadAllowlists = {
     "failurePhase",
     "failureCode"
   ],
+  "development.pattern.observed": [
+    "patternId",
+    "observationId",
+    "provider",
+    "sourceSnapshotId",
+    "sourceSnapshotHash",
+    "evidenceDigest",
+    "occurrenceCount",
+    "observedAt"
+  ],
+  "development.pattern.transitioned": [
+    "transitionId",
+    "patternId",
+    "fromState",
+    "toState",
+    "candidateArtifactId",
+    "candidateContentHash",
+    "reviewArtifactId",
+    "reviewContentHash",
+    "targetKind",
+    "approvalHash",
+    "occurredAt"
+  ],
   "knowledge.candidate.created": [
     "candidateId",
     "claimDigest",
@@ -44422,6 +44572,15 @@ var eventPayloadAllowlists = {
     "afterRegistryDigest",
     "validationReportId",
     "validationReportHash",
+    "appliedAt"
+  ],
+  "state.pruned": [
+    "planId",
+    "policyHash",
+    "inventoryDigest",
+    "removedFiles",
+    "removedBytes",
+    "classCounts",
     "appliedAt"
   ],
   "terminal.integration.applied": [
@@ -44650,6 +44809,8 @@ var eventPayloadSchemas = {
   "deliberation.started": "deliberationStartedEventPayload",
   "deliberation.artifact.recorded": "deliberationArtifactRecordedEventPayload",
   "deliberation.completed": "deliberationCompletedEventPayload",
+  "development.pattern.observed": "developmentPatternObservedEventPayload",
+  "development.pattern.transitioned": "developmentPatternTransitionedEventPayload",
   "knowledge.candidate.created": "knowledgeCandidateCreatedEventPayload",
   "knowledge.candidate.reviewed": "knowledgeCandidateReviewedEventPayload",
   "knowledge.reconciliation.reviewed": "knowledgeReconciliationReviewedEventPayload",
@@ -44658,6 +44819,7 @@ var eventPayloadSchemas = {
   "verification.started": "verificationStartedEventPayload",
   "verification.completed": "verificationCompletedEventPayload",
   "project.identity.migrated": "projectIdentityMigratedEventPayload",
+  "state.pruned": "statePrunedEventPayload",
   "terminal.context.prepared": "terminalContextPreparedEventPayload",
   "terminal.turn.declared": "terminalTurnDeclaredEventPayload",
   "terminal.reference.observed": "terminalReferenceObservedEventPayload",
@@ -45089,8 +45251,8 @@ async function inspectPath(root2, path) {
   }
   return { absolutePath: current, kind: "file" };
 }
-async function readRepositoryFile(root2, path, maximumBytes = Number.MAX_SAFE_INTEGER) {
-  if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1) {
+async function readRepositoryFile(root2, path, maximumBytes2 = Number.MAX_SAFE_INTEGER) {
+  if (!Number.isSafeInteger(maximumBytes2) || maximumBytes2 < 1) {
     throw new ContextPreparationError("document_read_failed", "The document byte limit is invalid.");
   }
   const inspected = await inspectPath(root2, path);
@@ -45102,13 +45264,13 @@ async function readRepositoryFile(root2, path, maximumBytes = Number.MAX_SAFE_IN
   try {
     handle = await open(inspected.absolutePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     const beforeStats = await handle.stat({ bigint: true });
-    if (!beforeStats.isFile() || beforeStats.size > BigInt(maximumBytes)) {
+    if (!beforeStats.isFile() || beforeStats.size > BigInt(maximumBytes2)) {
       throw new ContextPreparationError(beforeStats.isFile() ? "document_read_failed" : "unsafe_document_path", beforeStats.isFile() ? `The selected document exceeds the byte limit: ${normalized2}` : `The selected document must be a real file: ${normalized2}`);
     }
     const before = identity(beforeStats);
     let bytes;
     let boundedBytesRead;
-    if (maximumBytes === Number.MAX_SAFE_INTEGER) {
+    if (maximumBytes2 === Number.MAX_SAFE_INTEGER) {
       bytes = await handle.readFile();
     } else {
       const buffer = Buffer.alloc(Number(beforeStats.size) + 1);
@@ -45119,7 +45281,7 @@ async function readRepositoryFile(root2, path, maximumBytes = Number.MAX_SAFE_IN
     const after = identity(await handle.stat({ bigint: true }));
     const pathStats = await lstat(inspected.absolutePath, { bigint: true });
     const resolvedPath = await realpath(inspected.absolutePath);
-    if (!sameIdentity(before, after) || boundedBytesRead !== void 0 && boundedBytesRead !== Number(before.size) || after.size > BigInt(maximumBytes) || pathStats.isSymbolicLink() || pathStats.dev !== after.dev || pathStats.ino !== after.ino || resolvedPath !== inspected.absolutePath) {
+    if (!sameIdentity(before, after) || boundedBytesRead !== void 0 && boundedBytesRead !== Number(before.size) || after.size > BigInt(maximumBytes2) || pathStats.isSymbolicLink() || pathStats.dev !== after.dev || pathStats.ino !== after.ino || resolvedPath !== inspected.absolutePath) {
       throw new ContextPreparationError("document_changed_during_read", `The document path or content changed while it was being read: ${normalized2}`);
     }
     return bytes;
@@ -46540,6 +46702,28 @@ var MAX_DOCUMENT_MANIFEST_BYTES = 64 * 1024;
 // packages/project/dist/init-plan.js
 var import_yaml3 = __toESM(require_dist(), 1);
 var managedDirectories = [lervoRelativePaths.root, lervoRelativePaths.knowledge];
+
+// packages/project/dist/state-retention-types.js
+var defaultStateRetentionPolicy = {
+  rebuildable_cache: {
+    maxAgeMs: 14 * 24 * 60 * 60 * 1e3,
+    maxCount: 128,
+    maxBytes: 256 * 1024 * 1024
+  },
+  completed_workspace: {
+    maxAgeMs: 7 * 24 * 60 * 60 * 1e3,
+    maxCount: 8,
+    maxBytes: 128 * 1024 * 1024
+  },
+  bounded_observation: {
+    maxAgeMs: 30 * 24 * 60 * 60 * 1e3,
+    maxCount: 32,
+    maxBytes: 32 * 1024 * 1024
+  }
+};
+
+// packages/project/dist/state-retention-plan.js
+var maximumBytes = 8 * 1024 * 1024 * 1024;
 
 // packages/project-storage/dist/layout.js
 import { lstat as lstat7 } from "node:fs/promises";
@@ -49263,9 +49447,9 @@ function assertWithin(root2, path) {
     throw new SkillResolutionError("unsafe_skill_package", "The skill package path points outside the discovery root.");
   }
 }
-async function regularFile(path, maximumBytes = MAX_PACKAGE_BYTES) {
+async function regularFile(path, maximumBytes2 = MAX_PACKAGE_BYTES) {
   const before = await lstat10(path);
-  if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes) {
+  if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes2) {
     throw new SkillResolutionError("unsafe_skill_package", "A skill package file must be a regular file within the size limit.");
   }
   let handle;
@@ -49277,7 +49461,7 @@ async function regularFile(path, maximumBytes = MAX_PACKAGE_BYTES) {
     }
     const bytes = await handle.readFile();
     const after = await handle.stat();
-    if (!after.isFile() || after.size > maximumBytes || before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs) {
+    if (!after.isFile() || after.size > maximumBytes2 || before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs) {
       throw new SkillResolutionError("unsafe_skill_package", "The skill package file changed while it was being read.");
     }
     return bytes;
@@ -50623,7 +50807,7 @@ function safeTarget(root2, path) {
 }
 function validJournal(value) {
   const item = value;
-  return item !== null && typeof item === "object" && item.schemaVersion === 1 && item.transactionType === "knowledge_materialization" && /^(?:ksmat|kstruct|kbridgeplan|klayout|knormplan|kwstreamplan)_[a-f0-9]{24}$/.test(item.planId) && typeof item.projectId === "string" && Number.isSafeInteger(item.ownerPid) && item.ownerPid > 0 && ["preparing", "staged", "publishing", "event_recording", "committed"].includes(item.phase) && Number.isSafeInteger(item.publishedCount) && item.publishedCount >= 0 && (item.activeIndex === null || Number.isSafeInteger(item.activeIndex) && item.activeIndex >= 0) && Array.isArray(item.operations) && item.operations.length > 0 && item.operations.length <= 2e4 && new Set(item.operations.flatMap((operation) => [
+  return item !== null && typeof item === "object" && item.schemaVersion === 1 && item.transactionType === "knowledge_materialization" && /^(?:ksmat|kstruct|kbridgeplan|kinstbootplan|klayout|knormplan|kwstreamplan|kpatternplan)_[a-f0-9]{24}$/.test(item.planId) && typeof item.projectId === "string" && Number.isSafeInteger(item.ownerPid) && item.ownerPid > 0 && ["preparing", "staged", "publishing", "event_recording", "committed"].includes(item.phase) && Number.isSafeInteger(item.publishedCount) && item.publishedCount >= 0 && (item.activeIndex === null || Number.isSafeInteger(item.activeIndex) && item.activeIndex >= 0) && Array.isArray(item.operations) && item.operations.length > 0 && item.operations.length <= 2e4 && new Set(item.operations.flatMap((operation) => [
     operation.path,
     ...operation.destinationPath === void 0 ? [] : [operation.destinationPath]
   ])).size === item.operations.reduce((count, operation) => count + (operation.destinationPath === void 0 ? 1 : 2), 0) && item.operations.every((operation) => typeof operation.path === "string" && (operation.action === "create" || operation.action === "update" || operation.action === "delete" || operation.action === "move" || operation.action === "move_update") && (operation.beforeHash === null || /^sha256:[a-f0-9]{64}$/.test(operation.beforeHash)) && (operation.afterHash === null || /^sha256:[a-f0-9]{64}$/.test(operation.afterHash)) && (operation.action === "delete" ? operation.destinationPath === void 0 && operation.beforeHash !== null && operation.afterHash === null : operation.action === "move" || operation.action === "move_update" ? typeof operation.destinationPath === "string" && operation.destinationPath !== operation.path && operation.beforeHash !== null && operation.afterHash !== null && (operation.action === "move_update" || operation.afterHash === operation.beforeHash) : operation.destinationPath === void 0 && operation.afterHash !== null));
@@ -54271,10 +54455,10 @@ function resolveAll(constructs2, events, context) {
   const called = [];
   let index2 = -1;
   while (++index2 < constructs2.length) {
-    const resolve34 = constructs2[index2].resolveAll;
-    if (resolve34 && !called.includes(resolve34)) {
-      events = resolve34(events, context);
-      called.push(resolve34);
+    const resolve35 = constructs2[index2].resolveAll;
+    if (resolve35 && !called.includes(resolve35)) {
+      events = resolve35(events, context);
+      called.push(resolve35);
     }
   }
   return events;
@@ -58934,172 +59118,6 @@ function inspectGroupedDecisionPaths(paths, taxonomy) {
   return blockers;
 }
 
-// packages/storage-contract/dist/event-reader.js
-var maximumPageSize = 1e3;
-var EventReadError = class extends Error {
-  code;
-  constructor(code, message) {
-    super(message);
-    this.code = code;
-    this.name = "EventReadError";
-  }
-};
-function assertPositiveSafeInteger(value, label) {
-  if (!Number.isSafeInteger(value) || value < 1) {
-    throw new TypeError(`${label} must be a safe integer of at least 1.`);
-  }
-}
-function assertForwardPage(page, afterSeq, expectedRunId) {
-  let previousSeq = afterSeq;
-  for (const event of page) {
-    if (event.seq <= previousSeq || expectedRunId !== void 0 && event.runId !== expectedRunId) {
-      throw new EventReadError("event_sequence_invalid", "The event store did not return a forward page matching the requested coordinates.");
-    }
-    previousSeq = event.seq;
-  }
-}
-function visitEventSnapshot(input) {
-  if (!Number.isSafeInteger(input.throughSeq) || input.throughSeq < 0) {
-    throw new TypeError("throughSeq must be a safe integer of at least 0.");
-  }
-  const pageSize = input.pageSize ?? maximumPageSize;
-  assertPositiveSafeInteger(pageSize, "pageSize");
-  if (pageSize > maximumPageSize)
-    throw new TypeError("pageSize must not exceed 1,000.");
-  let afterSeq = 0;
-  while (afterSeq < input.throughSeq) {
-    const page = input.events.list({ afterSeq, limit: pageSize });
-    const snapshotPage = page.filter((event) => event.seq <= input.throughSeq);
-    assertForwardPage(snapshotPage, afterSeq);
-    const next = snapshotPage.at(-1)?.seq;
-    if (next === void 0) {
-      throw new EventReadError("event_sequence_invalid", "The event snapshot could not be read through the requested sequence.");
-    }
-    snapshotPage.forEach(input.visit);
-    afterSeq = next;
-  }
-}
-
-// packages/repository-knowledge/dist/execution-event-source.js
-var EXECUTION_EVENT_SOURCE_ADAPTER = "execution-event-v1+event-chain";
-var MAX_EVENT_SEQUENCE = 1e5;
-var MAX_EVENTS = 4096;
-var MAX_EVENT_BYTES = 256 * 1024;
-var MAX_TOTAL_EVENT_BYTES = 16 * 1024 * 1024;
-var executionEventTypes = /* @__PURE__ */ new Set([
-  "run.requested",
-  "run.resolved",
-  "run.completed",
-  "run.failed",
-  "context.recommended",
-  "context.selected",
-  "document.loaded",
-  "context.injected",
-  "context.invalidated",
-  "context.published",
-  "handoff.created",
-  "adapter.started",
-  "adapter.stopped",
-  "capability.requested",
-  "capability.decided",
-  "capability.activated",
-  "capability.recommended",
-  "capability.selected",
-  "capability.loaded",
-  "capability.invoked",
-  "capability.completed",
-  "tool.called",
-  "command.executed",
-  "file.changed",
-  "skill.resolved",
-  "skill.invoked",
-  "skill.completed",
-  "verification.started",
-  "deliberation.started",
-  "deliberation.artifact.recorded",
-  "deliberation.completed",
-  "unmanaged_change.detected"
-]);
-function fail6() {
-  throw new RepositoryKnowledgeError("knowledge_evidence_source_invalid", "The execution event evidence source cannot be verified safely and completely.");
-}
-function canonicalEvent(event) {
-  if (!validateSchema("event", event).valid)
-    return fail6();
-  if (computeEventHash(eventWithoutHash(event)) !== event.eventHash)
-    return fail6();
-  let sanitized;
-  try {
-    sanitized = sanitizeEventPayload(event.type, event.payload);
-  } catch {
-    return fail6();
-  }
-  if (sanitized.redactions.length !== 0 || canonicalJson(sanitized.payload) !== canonicalJson(event.payload))
-    return fail6();
-  try {
-    return `${canonicalJson(event)}
-`;
-  } catch {
-    return fail6();
-  }
-}
-function collectExecutionEventSources(input) {
-  let latest;
-  try {
-    if (!input.events.verifyIntegrity().valid)
-      return fail6();
-    latest = input.events.latest();
-  } catch {
-    return fail6();
-  }
-  if (latest === null)
-    return [];
-  if (!Number.isSafeInteger(latest.seq) || latest.seq < 1 || latest.seq > MAX_EVENT_SEQUENCE)
-    return fail6();
-  const sources = [];
-  const eventIds = /* @__PURE__ */ new Set();
-  let totalBytes = 0;
-  try {
-    visitEventSnapshot({
-      events: input.events,
-      throughSeq: latest.seq,
-      visit: (event) => {
-        if (!executionEventTypes.has(event.type))
-          return;
-        if (eventIds.has(event.eventId) || sources.length >= MAX_EVENTS)
-          return fail6();
-        const content3 = canonicalEvent(event);
-        const byteCount = Buffer.byteLength(content3);
-        totalBytes += byteCount;
-        if (byteCount > MAX_EVENT_BYTES || totalBytes > MAX_TOTAL_EVENT_BYTES)
-          return fail6();
-        eventIds.add(event.eventId);
-        sources.push({
-          path: `@event/${event.eventId}`,
-          kind: "execution_event",
-          classification: "ordinary",
-          content: content3,
-          origin: "execution_event_store",
-          unitKind: "event",
-          locator: `event:${event.eventId}`,
-          title: `${event.type} event`,
-          adapter: EXECUTION_EVENT_SOURCE_ADAPTER
-        });
-      }
-    });
-    if (!input.events.verifyIntegrity().valid)
-      return fail6();
-  } catch {
-    return fail6();
-  }
-  return sources.sort((left, right) => left.path.localeCompare(right.path));
-}
-
-// packages/repository-knowledge/dist/instruction-bridge.js
-import { constants as constants7 } from "node:fs";
-import { lstat as lstat16, open as open9 } from "node:fs/promises";
-import { resolve as resolve24 } from "node:path";
-
 // packages/documents/dist/hash.js
 import { createHash as createHash8 } from "node:crypto";
 function sha2565(bytes) {
@@ -59600,11 +59618,264 @@ var defaultDocumentScanLimits = {
   maximumTotalBytes: 64 * 1024 * 1024
 };
 
+// packages/storage-contract/dist/event-reader.js
+var maximumPageSize = 1e3;
+var EventReadError = class extends Error {
+  code;
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+    this.name = "EventReadError";
+  }
+};
+function assertPositiveSafeInteger(value, label) {
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new TypeError(`${label} must be a safe integer of at least 1.`);
+  }
+}
+function assertForwardPage(page, afterSeq, expectedRunId) {
+  let previousSeq = afterSeq;
+  for (const event of page) {
+    if (event.seq <= previousSeq || expectedRunId !== void 0 && event.runId !== expectedRunId) {
+      throw new EventReadError("event_sequence_invalid", "The event store did not return a forward page matching the requested coordinates.");
+    }
+    previousSeq = event.seq;
+  }
+}
+function visitEventSnapshot(input) {
+  if (!Number.isSafeInteger(input.throughSeq) || input.throughSeq < 0) {
+    throw new TypeError("throughSeq must be a safe integer of at least 0.");
+  }
+  const pageSize = input.pageSize ?? maximumPageSize;
+  assertPositiveSafeInteger(pageSize, "pageSize");
+  if (pageSize > maximumPageSize)
+    throw new TypeError("pageSize must not exceed 1,000.");
+  let afterSeq = 0;
+  while (afterSeq < input.throughSeq) {
+    const page = input.events.list({ afterSeq, limit: pageSize });
+    const snapshotPage = page.filter((event) => event.seq <= input.throughSeq);
+    assertForwardPage(snapshotPage, afterSeq);
+    const next = snapshotPage.at(-1)?.seq;
+    if (next === void 0) {
+      throw new EventReadError("event_sequence_invalid", "The event snapshot could not be read through the requested sequence.");
+    }
+    snapshotPage.forEach(input.visit);
+    afterSeq = next;
+  }
+}
+
+// packages/repository-knowledge/dist/execution-event-source.js
+var EXECUTION_EVENT_SOURCE_ADAPTER = "execution-event-v1+event-chain";
+var MAX_EVENT_SEQUENCE = 1e5;
+var MAX_EVENTS = 4096;
+var MAX_EVENT_BYTES = 256 * 1024;
+var MAX_TOTAL_EVENT_BYTES = 16 * 1024 * 1024;
+var executionEventTypes = /* @__PURE__ */ new Set([
+  "run.requested",
+  "run.resolved",
+  "run.completed",
+  "run.failed",
+  "context.recommended",
+  "context.selected",
+  "document.loaded",
+  "context.injected",
+  "context.invalidated",
+  "context.published",
+  "handoff.created",
+  "adapter.started",
+  "adapter.stopped",
+  "capability.requested",
+  "capability.decided",
+  "capability.activated",
+  "capability.recommended",
+  "capability.selected",
+  "capability.loaded",
+  "capability.invoked",
+  "capability.completed",
+  "tool.called",
+  "command.executed",
+  "file.changed",
+  "skill.resolved",
+  "skill.invoked",
+  "skill.completed",
+  "verification.started",
+  "deliberation.started",
+  "deliberation.artifact.recorded",
+  "deliberation.completed",
+  "unmanaged_change.detected"
+]);
+function fail6() {
+  throw new RepositoryKnowledgeError("knowledge_evidence_source_invalid", "The execution event evidence source cannot be verified safely and completely.");
+}
+function canonicalEvent(event) {
+  if (!validateSchema("event", event).valid)
+    return fail6();
+  if (computeEventHash(eventWithoutHash(event)) !== event.eventHash)
+    return fail6();
+  let sanitized;
+  try {
+    sanitized = sanitizeEventPayload(event.type, event.payload);
+  } catch {
+    return fail6();
+  }
+  if (sanitized.redactions.length !== 0 || canonicalJson(sanitized.payload) !== canonicalJson(event.payload))
+    return fail6();
+  try {
+    return `${canonicalJson(event)}
+`;
+  } catch {
+    return fail6();
+  }
+}
+function collectExecutionEventSources(input) {
+  let latest;
+  try {
+    if (!input.events.verifyIntegrity().valid)
+      return fail6();
+    latest = input.events.latest();
+  } catch {
+    return fail6();
+  }
+  if (latest === null)
+    return [];
+  if (!Number.isSafeInteger(latest.seq) || latest.seq < 1 || latest.seq > MAX_EVENT_SEQUENCE)
+    return fail6();
+  const sources = [];
+  const eventIds = /* @__PURE__ */ new Set();
+  let totalBytes = 0;
+  try {
+    visitEventSnapshot({
+      events: input.events,
+      throughSeq: latest.seq,
+      visit: (event) => {
+        if (!executionEventTypes.has(event.type))
+          return;
+        if (eventIds.has(event.eventId) || sources.length >= MAX_EVENTS)
+          return fail6();
+        const content3 = canonicalEvent(event);
+        const byteCount = Buffer.byteLength(content3);
+        totalBytes += byteCount;
+        if (byteCount > MAX_EVENT_BYTES || totalBytes > MAX_TOTAL_EVENT_BYTES)
+          return fail6();
+        eventIds.add(event.eventId);
+        sources.push({
+          path: `@event/${event.eventId}`,
+          kind: "execution_event",
+          classification: "ordinary",
+          content: content3,
+          origin: "execution_event_store",
+          unitKind: "event",
+          locator: `event:${event.eventId}`,
+          title: `${event.type} event`,
+          adapter: EXECUTION_EVENT_SOURCE_ADAPTER
+        });
+      }
+    });
+    if (!input.events.verifyIntegrity().valid)
+      return fail6();
+  } catch {
+    return fail6();
+  }
+  return sources.sort((left, right) => left.path.localeCompare(right.path));
+}
+
 // packages/repository-knowledge/dist/instruction-bridge.js
 var import_yaml19 = __toESM(require_dist(), 1);
-var HASH3 = /^sha256:[a-f0-9]{64}$/;
+import { constants as constants7 } from "node:fs";
+import { lstat as lstat16, open as open9 } from "node:fs/promises";
+import { resolve as resolve24 } from "node:path";
+
+// packages/repository-knowledge/dist/instruction-bridge-target.js
 var encoder = new TextEncoder();
 var decoder = new TextDecoder("utf-8", { fatal: true });
+function managedContent(profile2) {
+  return `@${profile2.canonicalPath}
+`;
+}
+function completeTarget(profile2) {
+  return [
+    `<!-- lervo:begin block=${profile2.blockId} schema=1 -->`,
+    `@${profile2.canonicalPath}`,
+    `<!-- lervo:end block=${profile2.blockId} -->`,
+    ""
+  ].join("\n");
+}
+function separatorFor(content3) {
+  if (content3.length === 0 || content3.endsWith("\n\n"))
+    return "";
+  return content3.endsWith("\n") ? "\n" : "\n\n";
+}
+function isExactAdoptedDuplicate(input) {
+  if (input.canonicalRouteBlock === null)
+    return false;
+  return `${input.targetContent}${separatorFor(input.targetContent)}${input.canonicalRouteBlock}` === input.canonicalContent;
+}
+function createInstructionBridgeTarget(input) {
+  const replacement = managedContent(input.profile);
+  const managedContentHash = sha2564(replacement);
+  if (input.existing === null) {
+    return {
+      content: completeTarget(input.profile),
+      action: "create",
+      classification: "missing",
+      managedContentHash
+    };
+  }
+  const sourceBytes = encoder.encode(input.existing.content);
+  const parsed = parseManagedMarkdownBlocks(sourceBytes);
+  if (parsed.status !== "valid")
+    throw new Error("invalid_managed_block_structure");
+  const block = parsed.blocks.find((item) => item.blockId === input.profile.blockId);
+  if (block === void 0) {
+    if (isExactAdoptedDuplicate({
+      canonicalContent: input.canonicalContent,
+      targetContent: input.existing.content,
+      canonicalRouteBlock: input.canonicalRouteBlock
+    })) {
+      return {
+        content: completeTarget(input.profile),
+        action: "update",
+        classification: "exact_adopted_duplicate",
+        managedContentHash
+      };
+    }
+    return {
+      content: `${input.existing.content}${separatorFor(input.existing.content)}${completeTarget(input.profile)}`,
+      action: "update",
+      classification: "unresolved_mixed_user_content",
+      managedContentHash
+    };
+  }
+  const current = sourceBytes.slice(block.contentRange.start, block.contentRange.end);
+  if (sha2564(current) === managedContentHash && decoder.decode(current) === replacement) {
+    return {
+      content: input.existing.content,
+      action: "unchanged",
+      classification: "managed_bridge",
+      managedContentHash
+    };
+  }
+  const patched = createManagedBlockPatchCandidate({
+    source: {
+      path: input.profile.targetPath,
+      contentHash: input.existing.contentHash,
+      byteCount: input.existing.byteCount,
+      bytes: sourceBytes
+    },
+    blockId: input.profile.blockId,
+    replacementBytes: encoder.encode(replacement)
+  });
+  return {
+    content: decoder.decode(patched.outputBytes),
+    action: "update",
+    classification: "managed_bridge",
+    managedContentHash
+  };
+}
+
+// packages/repository-knowledge/dist/instruction-bridge.js
+var HASH3 = /^sha256:[a-f0-9]{64}$/;
+var decoder2 = new TextDecoder("utf-8", { fatal: true });
 var profiles = {
   claude: {
     profileId: "claude_agents_import_v1",
@@ -59619,18 +59890,6 @@ var profiles = {
 function instructionBridgeProfile(provider) {
   return profiles[provider];
 }
-function managedContent(profile2) {
-  return `@${profile2.canonicalPath}
-`;
-}
-function completeTarget(profile2) {
-  return [
-    `<!-- lervo:begin block=${profile2.blockId} schema=1 -->`,
-    `@${profile2.canonicalPath}`,
-    `<!-- lervo:end block=${profile2.blockId} -->`,
-    ""
-  ].join("\n");
-}
 function validExistingBridgeRecord(bytes, profile2, bridgeId) {
   try {
     const value = (0, import_yaml19.parse)(bytes.toString("utf8"));
@@ -59639,12 +59898,12 @@ function validExistingBridgeRecord(bytes, profile2, bridgeId) {
     return false;
   }
 }
-async function safeOptionalFile(path, maximumBytes) {
+async function safeOptionalFile(path, maximumBytes2) {
   let handle;
   try {
     try {
       const stats = await lstat16(path);
-      if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes)
+      if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes2)
         throw new Error("unsafe file");
     } catch (error) {
       if (error.code === "ENOENT")
@@ -59655,7 +59914,7 @@ async function safeOptionalFile(path, maximumBytes) {
     const before = await handle.stat();
     const bytes = await handle.readFile();
     const after = await handle.stat();
-    if (!before.isFile() || before.size > maximumBytes || before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size)
+    if (!before.isFile() || before.size > maximumBytes2 || before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size)
       throw new Error("file changed");
     return bytes;
   } catch {
@@ -59663,41 +59922,6 @@ async function safeOptionalFile(path, maximumBytes) {
   } finally {
     await handle?.close();
   }
-}
-function targetOutput(input) {
-  const replacement = managedContent(input.profile);
-  const managedContentHash = sha2564(replacement);
-  if (input.existing === null)
-    return { content: completeTarget(input.profile), action: "create", managedContentHash };
-  const sourceBytes = encoder.encode(input.existing.content);
-  const parsed = parseManagedMarkdownBlocks(sourceBytes);
-  if (parsed.status !== "valid") {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The provider instruction target has an invalid managed-block structure.");
-  }
-  const block = parsed.blocks.find((item) => item.blockId === input.profile.blockId);
-  if (block === void 0) {
-    const separator = input.existing.content.length === 0 || input.existing.content.endsWith("\n\n") ? "" : input.existing.content.endsWith("\n") ? "\n" : "\n\n";
-    return {
-      content: `${input.existing.content}${separator}${completeTarget(input.profile)}`,
-      action: "update",
-      managedContentHash
-    };
-  }
-  const current = sourceBytes.slice(block.contentRange.start, block.contentRange.end);
-  if (sha2564(current) === managedContentHash && decoder.decode(current) === replacement) {
-    return { content: input.existing.content, action: "unchanged", managedContentHash };
-  }
-  const patched = createManagedBlockPatchCandidate({
-    source: {
-      path: input.profile.targetPath,
-      contentHash: input.existing.contentHash,
-      byteCount: input.existing.byteCount,
-      bytes: sourceBytes
-    },
-    blockId: input.profile.blockId,
-    replacementBytes: encoder.encode(replacement)
-  });
-  return { content: decoder.decode(patched.outputBytes), action: "update", managedContentHash };
 }
 async function registryDigest(root2) {
   const stored = await loadStoredConcepts(root2);
@@ -59736,7 +59960,7 @@ async function createKnowledgeInstructionBridgePlan(input) {
     }
     canonical2 = {
       contentHash: generatedHash,
-      content: decoder.decode(generatedBytes),
+      content: decoder2.decode(generatedBytes),
       byteCount: generatedBytes.byteLength
     };
   }
@@ -59749,14 +59973,24 @@ async function createKnowledgeInstructionBridgePlan(input) {
     if (existing !== null)
       throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The provider instruction target does not match the scan.");
   }
-  const target = targetOutput({
-    profile: profile2,
-    existing: targetSource === void 0 ? null : {
-      content: targetSource.content,
-      contentHash: targetSource.contentHash,
-      byteCount: targetSource.byteCount
+  let target;
+  try {
+    target = createInstructionBridgeTarget({
+      profile: profile2,
+      canonicalContent: canonical2.content,
+      canonicalRouteBlock: /<!-- lervo:begin block=repository_instruction_routes schema=1 -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n/u.exec(canonical2.content)?.[0] ?? null,
+      existing: targetSource === void 0 ? null : {
+        content: targetSource.content,
+        contentHash: targetSource.contentHash,
+        byteCount: targetSource.byteCount
+      }
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "invalid_managed_block_structure") {
+      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The provider instruction target has an invalid managed-block structure.");
     }
-  });
+    throw error;
+  }
   if (Buffer.byteLength(target.content) > policy.limits.maxFileBytes) {
     throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "The instruction bridge output exceeds the file-size limit.");
   }
@@ -59867,6 +60101,7 @@ async function createKnowledgeInstructionBridgePlan(input) {
     target: {
       path: profile2.targetPath,
       action: target.action,
+      classification: target.classification,
       beforeHash: targetSource?.contentHash ?? null,
       afterHash: targetAfterHash
     },
@@ -59913,6 +60148,7 @@ async function createKnowledgeInstructionBridgePlan(input) {
       afterHash: targetAfterHash,
       beforeByteCount: targetSource?.byteCount ?? null,
       afterByteCount: Buffer.byteLength(target.content),
+      classification: target.classification,
       managedContentHash: target.managedContentHash
     },
     bridgeId,
@@ -59924,15 +60160,154 @@ async function createKnowledgeInstructionBridgePlan(input) {
   };
 }
 
+// packages/repository-knowledge/dist/instruction-bootstrap.js
+import { lstat as lstat17 } from "node:fs/promises";
+import { resolve as resolve25 } from "node:path";
+function includedSource(sources, path) {
+  const source = sources.find((item) => item.path === path);
+  if (source === void 0)
+    return null;
+  if (source.status !== "included" || source.kind !== "instruction" || source.content === void 0 || source.contentHash === null) {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", `The ${path} bootstrap source is not a safe included instruction.`);
+  }
+  return source;
+}
+function hasProviderImportOrManagedBlock(content3) {
+  return /^@AGENTS\.md\s*$/mu.test(content3) || /<!--\s*lervo:(?:begin|end)\s+block=/u.test(content3);
+}
+async function safeFilePresent(path) {
+  try {
+    const stats = await lstat17(path);
+    if (!stats.isFile() || stats.isSymbolicLink()) {
+      throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonical instruction bootstrap target is not a safe regular file.");
+    }
+    return true;
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return false;
+    throw error;
+  }
+}
+function routeBlock(sources) {
+  return repositoryInstructionRouteBlock({
+    instructions: sources.flatMap((source) => source.status === "included" && source.content !== void 0 && source.path.startsWith("docs/instructions/") && source.path.endsWith(".md") ? [{ path: source.path, instructionPaths: repositoryInstructionPaths(source.content) }] : []),
+    skills: sources.flatMap((source) => source.status === "included" && source.path.startsWith(".agents/skills/") && source.path.endsWith("/SKILL.md") ? [{ path: source.path }] : [])
+  });
+}
+function appendBlock(content3, block) {
+  const separator = content3.length === 0 || content3.endsWith("\n\n") ? "" : content3.endsWith("\n") ? "\n" : "\n\n";
+  return `${content3}${separator}${block}`;
+}
+async function createKnowledgeInstructionBootstrapPlan(input) {
+  const root2 = resolve25(input.repositoryRoot);
+  const { policy, scan } = await scanConfiguredRepositoryKnowledge(root2, input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources });
+  const agents = includedSource(scan.sources, "AGENTS.md");
+  const claude = includedSource(scan.sources, "CLAUDE.md");
+  const agentsPresent = agents !== null || await safeFilePresent(resolve25(root2, "AGENTS.md"));
+  const policyHash = sha2564(canonicalJson2(policy));
+  const base = {
+    schemaVersion: 1,
+    planKind: "instruction_canonical_bootstrap",
+    projectId: scan.projectId,
+    repositoryRoot: root2,
+    sourceSnapshotId: scan.snapshotId,
+    policyHash,
+    coverage: scan.coverage
+  };
+  if (agentsPresent || claude === null) {
+    const state2 = {
+      ...base,
+      operationId: null,
+      approvalHash: null,
+      status: "not_applicable",
+      canonical: {
+        path: "AGENTS.md",
+        state: agentsPresent ? "present" : "missing",
+        afterHash: agents?.contentHash ?? null
+      },
+      source: {
+        path: "CLAUDE.md",
+        state: claude === null ? "missing" : "shared_candidate",
+        contentHash: claude?.contentHash ?? null
+      },
+      disposition: "defer",
+      blocker: null,
+      operations: []
+    };
+    return { ...state2, planId: stableId("kinstbootplan", state2) };
+  }
+  if (hasProviderImportOrManagedBlock(claude.content)) {
+    const state2 = {
+      ...base,
+      operationId: null,
+      approvalHash: null,
+      status: "blocked",
+      canonical: { path: "AGENTS.md", state: "missing", afterHash: null },
+      source: {
+        path: "CLAUDE.md",
+        state: "unresolved_mixed",
+        contentHash: claude.contentHash
+      },
+      disposition: "defer",
+      blocker: "claude_source_contains_provider_import_or_managed_blocks",
+      operations: []
+    };
+    return { ...state2, planId: stableId("kinstbootplan", state2) };
+  }
+  const content3 = appendBlock(claude.content, routeBlock(scan.sources));
+  const canonicalHash2 = sha2564(content3);
+  const operationId = stableId("kinstbootop", {
+    projectId: scan.projectId,
+    sourcePath: claude.path,
+    sourceContentHash: claude.contentHash,
+    canonicalPath: "AGENTS.md",
+    canonicalHash: canonicalHash2
+  });
+  const operation = {
+    path: "AGENTS.md",
+    action: "create",
+    ownership: "user",
+    mediaType: "text/markdown",
+    content: content3,
+    desiredHash: canonicalHash2
+  };
+  const approvalHash = sha2564(canonicalJson2({
+    operationId,
+    disposition: "accept",
+    source: { path: claude.path, contentHash: claude.contentHash },
+    canonical: { path: operation.path, contentHash: canonicalHash2 }
+  }));
+  const state = {
+    ...base,
+    operationId,
+    approvalHash,
+    status: "review_required",
+    canonical: {
+      path: "AGENTS.md",
+      state: "missing",
+      afterHash: canonicalHash2
+    },
+    source: {
+      path: "CLAUDE.md",
+      state: "shared_candidate",
+      contentHash: claude.contentHash
+    },
+    disposition: "accept",
+    blocker: null,
+    operations: [operation]
+  };
+  return { ...state, planId: stableId("kinstbootplan", state) };
+}
+
 // packages/repository-knowledge/dist/lint-query.js
-import { lstat as lstat18, readFile as readFile10, readdir as readdir7 } from "node:fs/promises";
-import { relative as relative10, resolve as resolve26, sep as sep10 } from "node:path";
+import { lstat as lstat19, readFile as readFile10, readdir as readdir7 } from "node:fs/promises";
+import { relative as relative10, resolve as resolve27, sep as sep10 } from "node:path";
 var import_yaml20 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-publication-files.js
 import { constants as constants8 } from "node:fs";
-import { lstat as lstat17, open as open10, readFile as readFile9 } from "node:fs/promises";
-import { relative as relative9, resolve as resolve25, sep as sep9 } from "node:path";
+import { lstat as lstat18, open as open10, readFile as readFile9 } from "node:fs/promises";
+import { relative as relative9, resolve as resolve26, sep as sep9 } from "node:path";
 async function generatedKnowledgePaths(root2) {
   const result = /* @__PURE__ */ new Set();
   for (const directory of [".lervo/generated/manifests", ".lervo/generated/semantic-manifests"]) {
@@ -59944,7 +60319,7 @@ async function generatedKnowledgePaths(root2) {
     });
     for (const path of paths) {
       try {
-        const value = JSON.parse(await readFile9(resolve25(root2, path), "utf8"));
+        const value = JSON.parse(await readFile9(resolve26(root2, path), "utf8"));
         for (const output of value.outputs ?? [])
           if (typeof output.path === "string")
             result.add(output.path);
@@ -59955,23 +60330,23 @@ async function generatedKnowledgePaths(root2) {
   return result;
 }
 function safePublicationPath(root2, path) {
-  const target = resolve25(root2, path);
+  const target = resolve26(root2, path);
   const fromRoot = relative9(root2, target);
   return fromRoot === ".." || fromRoot.startsWith(`..${sep9}`) ? null : target;
 }
-async function readSafePublication(root2, path, maximumBytes) {
+async function readSafePublication(root2, path, maximumBytes2) {
   const target = safePublicationPath(root2, path);
   if (target === null)
     return null;
   let current = root2;
   try {
-    const rootStats = await lstat17(root2);
+    const rootStats = await lstat18(root2);
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink())
       return null;
     const segments = relative9(root2, target).split(sep9);
     for (const [index2, segment] of segments.entries()) {
-      current = resolve25(current, segment);
-      const stats = await lstat17(current);
+      current = resolve26(current, segment);
+      const stats = await lstat18(current);
       if (stats.isSymbolicLink())
         return null;
       if (index2 === segments.length - 1 ? !stats.isFile() : !stats.isDirectory())
@@ -59980,7 +60355,7 @@ async function readSafePublication(root2, path, maximumBytes) {
     const handle = await open10(target, constants8.O_RDONLY | (constants8.O_NOFOLLOW ?? 0));
     try {
       const before = await handle.stat();
-      if (!before.isFile() || before.size > maximumBytes)
+      if (!before.isFile() || before.size > maximumBytes2)
         return null;
       const bytes = await handle.readFile();
       const after = await handle.stat();
@@ -60012,7 +60387,7 @@ async function lintSemanticManifests(root2, issues) {
   for (const path of paths) {
     let outputs;
     try {
-      const value = JSON.parse(await readFile10(resolve26(root2, path), "utf8"));
+      const value = JSON.parse(await readFile10(resolve27(root2, path), "utf8"));
       if (value.kind !== "semantic" || !Array.isArray(value.outputs) || !value.outputs.every((item) => typeof item?.path === "string" && typeof item.contentHash === "string"))
         throw new Error();
       outputs = value.outputs;
@@ -60030,7 +60405,7 @@ async function lintSemanticManifests(root2, issues) {
       try {
         if (target === null)
           throw new Error();
-        const stats = await lstat18(target);
+        const stats = await lstat19(target);
         if (!stats.isFile() || stats.isSymbolicLink() || sha2564(await readFile10(target)) !== output.contentHash)
           throw new Error();
       } catch {
@@ -60125,14 +60500,14 @@ async function lintRepositoryLayout(root2, issues) {
   const decisionPaths = [];
   for (const directory of [taxonomy.decisionRoot, ...taxonomy.legacyRoots]) {
     try {
-      const entries = await readdir7(resolve26(root2, directory), {
+      const entries = await readdir7(resolve27(root2, directory), {
         withFileTypes: true,
         recursive: true
       });
       for (const entry of entries) {
         if (!entry.isFile() || !/^\d{4}-.+\.md$/u.test(entry.name))
           continue;
-        decisionPaths.push(relative10(root2, resolve26(entry.parentPath, entry.name)).split(sep10).join("/"));
+        decisionPaths.push(relative10(root2, resolve27(entry.parentPath, entry.name)).split(sep10).join("/"));
       }
     } catch {
     }
@@ -60187,7 +60562,7 @@ async function lintRepositoryLayout(root2, issues) {
   }
 }
 async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
-  const root2 = resolve26(repositoryRoot);
+  const root2 = resolve27(repositoryRoot);
   await assertNoKnowledgeMaterializationTransaction({
     repositoryRoot: root2,
     ...options?.allowTransactionPlanId === void 0 ? {} : { allowedPlanId: options.allowTransactionPlanId }
@@ -60195,12 +60570,12 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
   const issues = [];
   await lintRepositoryLayout(root2, issues);
   await lintSemanticManifests(root2, issues);
-  const manifestDirectory = resolve26(root2, ".lervo/generated/manifests");
+  const manifestDirectory = resolve27(root2, ".lervo/generated/manifests");
   const manifests = [];
   try {
     for (const name2 of (await readdir7(manifestDirectory)).filter((item) => item.endsWith(".json")).sort()) {
       try {
-        const value = JSON.parse(await readFile10(resolve26(manifestDirectory, name2), "utf8"));
+        const value = JSON.parse(await readFile10(resolve27(manifestDirectory, name2), "utf8"));
         if (typeof value.sourceSnapshotId !== "string" || !Array.isArray(value.outputs) || !value.outputs.every((item) => typeof item?.path === "string" && typeof item.contentHash === "string"))
           throw new Error();
         manifests.push(value);
@@ -60275,7 +60650,7 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
         continue;
       }
       try {
-        const stats = await lstat18(target);
+        const stats = await lstat19(target);
         const bytes = await readFile10(target);
         if (!stats.isFile() || stats.isSymbolicLink() || sha2564(bytes) !== output.contentHash)
           throw new Error();
@@ -60350,7 +60725,7 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
       continue;
     }
     try {
-      const stats = await lstat18(publication);
+      const stats = await lstat19(publication);
       if (!stats.isFile() || stats.isSymbolicLink())
         throw new Error();
     } catch {
@@ -60448,7 +60823,7 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
 }
 
 // packages/repository-knowledge/dist/query.js
-import { resolve as resolve27 } from "node:path";
+import { resolve as resolve28 } from "node:path";
 
 // packages/repository-knowledge/dist/relation-query.js
 var KNOWLEDGE_RELATION_LIMITS = {
@@ -60556,7 +60931,7 @@ function hasLexicalTerm(values, term) {
   return /^[\uAC00-\uD7A3]{2,}$/u.test(term) && [...values].some((value) => value.startsWith(term));
 }
 async function queryRepositoryKnowledge(input) {
-  const root2 = resolve27(input.repositoryRoot);
+  const root2 = resolve28(input.repositoryRoot);
   await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root2 });
   const project = await loadProjectManifest(root2);
   const policy = await loadRepositoryKnowledgePolicy(root2);
@@ -60667,8 +61042,8 @@ var import_yaml21 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-layout-migration.js
 import { constants as constants9 } from "node:fs";
-import { lstat as lstat19, open as open11 } from "node:fs/promises";
-import { basename as basename8, posix as posix5, resolve as resolve28 } from "node:path";
+import { lstat as lstat20, open as open11 } from "node:fs/promises";
+import { basename as basename8, posix as posix5, resolve as resolve29 } from "node:path";
 var import_yaml22 = __toESM(require_dist(), 1);
 var ROOT_ENTRYPOINTS = /* @__PURE__ */ new Set([
   "README.md",
@@ -60730,12 +61105,12 @@ function classifiedRootDestination(path, content3) {
     };
   return null;
 }
-async function safeFile(path, maximumBytes = 256 * 1024) {
+async function safeFile(path, maximumBytes2 = 256 * 1024) {
   let handle;
   try {
     handle = await open11(path, constants9.O_RDONLY | (constants9.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
-    if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes)
+    if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes2)
       throw new Error("unsafe registry item");
     const bytes = await handle.readFile();
     const after = await handle.stat();
@@ -60817,7 +61192,7 @@ async function machineArtifactMoves(root2) {
       const name2 = fromPath.split("/").at(-1);
       const id = name2.slice(0, -(item.extension.length + 1));
       const toPath = shardedKnowledgeArtifactPath(item.directory, id, item.extension);
-      const file = await safeFile(resolve28(root2, fromPath), item.maximumBytes);
+      const file = await safeFile(resolve29(root2, fromPath), item.maximumBytes);
       moves.push({ fromPath, toPath, ...file, registry: item.registry });
     }
   }
@@ -60825,7 +61200,7 @@ async function machineArtifactMoves(root2) {
 }
 async function exists2(path) {
   try {
-    await lstat19(path);
+    await lstat20(path);
     return true;
   } catch (error) {
     if (error.code === "ENOENT")
@@ -60839,7 +61214,7 @@ function replaceAllLiteral(content3, from, to) {
   const parts = content3.split(from);
   return parts.length === 1 ? { content: content3, count: 0 } : { content: parts.join(to), count: parts.length - 1 };
 }
-function rewriteReferences(sourcePath, content3, moves, normalizedSurfaces) {
+function rewriteReferences(sourcePath, content3, moves) {
   let output = content3;
   let count = 0;
   const sourceDirectory = posix5.dirname(sourcePath);
@@ -60859,22 +61234,6 @@ function rewriteReferences(sourcePath, content3, moves, normalizedSurfaces) {
       output = replaced.content;
       count += replaced.count;
     }
-  }
-  if (normalizedSurfaces.instructions) {
-    const replaced = replaceAllLiteral(output, ".claude/rules/", "docs/instructions/");
-    output = replaced.content;
-    count += replaced.count;
-    const directory = replaceAllLiteral(output, ".claude/rules", "docs/instructions");
-    output = directory.content;
-    count += directory.count;
-  }
-  if (normalizedSurfaces.skills) {
-    const replaced = replaceAllLiteral(output, ".claude/skills/", ".agents/skills/");
-    output = replaced.content;
-    count += replaced.count;
-    const directory = replaceAllLiteral(output, ".claude/skills", ".agents/skills");
-    output = directory.content;
-    count += directory.count;
   }
   return { content: output, count };
 }
@@ -60923,7 +61282,7 @@ function withoutContent(operation) {
   return operation.action === "move" ? operation : (({ content: _content, ...item }) => item)(operation);
 }
 async function createRepositoryLayoutMigrationPlan(input) {
-  const root2 = resolve28(input.repositoryRoot);
+  const root2 = resolve29(input.repositoryRoot);
   const [{ policy, scan }, storedConcepts, generatedPaths, taxonomy] = await Promise.all([
     scanConfiguredRepositoryKnowledge(root2, input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources }),
     loadStoredConcepts(root2),
@@ -60936,12 +61295,12 @@ async function createRepositoryLayoutMigrationPlan(input) {
   const candidates = scan.sources.flatMap((source) => {
     if (source.status !== "included" || source.contentHash === null || source.content === void 0)
       return [];
-    const includedSource = source;
+    const includedSource2 = source;
     const claudeSkill = /^(?:.*\/)?\.claude\/skills\/([^/]+)\/(.+)$/u.exec(source.path);
     if (claudeSkill !== null)
       return [
         {
-          source: includedSource,
+          source: includedSource2,
           toPath: `.agents/skills/${claudeSkill[1]}/${claudeSkill[2]}`,
           classification: "skill",
           reason: "normalized_portable_skill"
@@ -60958,7 +61317,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
     if (instruction.kind === "classified")
       return [
         {
-          source: includedSource,
+          source: includedSource2,
           ...instruction.route.destination,
           instructionPaths: instruction.route.paths,
           classification: "instruction",
@@ -60978,7 +61337,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
     if (decision.kind === "classified")
       return [
         {
-          source: includedSource,
+          source: includedSource2,
           ...decision.destination,
           classification: "decision",
           reason: "recognized_decision_document"
@@ -60986,7 +61345,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
       ];
     const classification = classifiedRootDestination(source.path, source.content);
     if (classification !== null)
-      return [{ source: includedSource, ...classification }];
+      return [{ source: includedSource2, ...classification }];
     const document4 = classifyRepositoryDocument(source.path, source.content, taxonomy);
     if (document4.kind === "blocked") {
       classificationBlockers.push({
@@ -60997,7 +61356,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
     }
     return document4.kind === "classified" ? [
       {
-        source: includedSource,
+        source: includedSource2,
         ...document4.destination,
         classification: "document",
         reason: "classified_repository_document"
@@ -61055,7 +61414,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
     if ((destinationCounts.get(item.toPath) ?? 0) > 1) {
       blockers.push({ code: "ambiguous_destination", pathDigest: sha2564(item.toPath) });
       blockedDestinations.add(item.toPath);
-    } else if (scan.sources.some((source) => source.path === item.toPath) || generatedPaths.has(item.toPath) || await exists2(resolve28(root2, item.toPath))) {
+    } else if (scan.sources.some((source) => source.path === item.toPath) || generatedPaths.has(item.toPath) || await exists2(resolve29(root2, item.toPath))) {
       blockers.push({ code: "destination_exists", pathDigest: sha2564(item.toPath) });
       blockedDestinations.add(item.toPath);
     } else if (!repositoryPathCanRemainIncluded(item.toPath, policy)) {
@@ -61068,10 +61427,6 @@ async function createRepositoryLayoutMigrationPlan(input) {
     fromPath: source.path,
     toPath
   }));
-  const normalizedSurfaces = {
-    instructions: executableCandidates.some((item) => item.classification === "instruction") || scan.sources.some((source) => source.path.startsWith("docs/instructions/")),
-    skills: executableCandidates.some((item) => item.classification === "skill") || scan.sources.some((source) => source.path.startsWith(".agents/skills/"))
-  };
   const referenceChanges = /* @__PURE__ */ new Map();
   const movedContentChanges = /* @__PURE__ */ new Map();
   for (const source of scan.sources) {
@@ -61079,7 +61434,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
       continue;
     const move = movePaths.find((item) => item.fromPath === source.path);
     const rebased = move === void 0 ? { content: source.content, count: 0 } : rebaseMarkdownLinks(source.content, source.path, move.toPath);
-    const rewritten = rewriteReferences(move?.toPath ?? source.path, rebased.content, movePaths, normalizedSurfaces);
+    const rewritten = rewriteReferences(move?.toPath ?? source.path, rebased.content, movePaths);
     rewritten.count += rebased.count;
     if (rewritten.count === 0)
       continue;
@@ -61125,7 +61480,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
   }
   const registryMaterials = await Promise.all(storedConcepts.map(async (item) => ({
     file: item.file,
-    contentHash: (await safeFile(resolve28(root2, item.file))).contentHash
+    contentHash: (await safeFile(resolve29(root2, item.file))).contentHash
   })));
   registryMaterials.sort((left, right) => left.file.localeCompare(right.file));
   const registryDigest2 = sha2564(canonicalJson2(registryMaterials));
@@ -61286,7 +61641,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
     extension: "yaml",
     maximumFiles: 64
   });
-  if (canonicalInstructionChange !== void 0 && existingInstructionBridgeRecords.length > 0 && await exists2(resolve28(root2, "CLAUDE.md"))) {
+  if (canonicalInstructionChange !== void 0 && existingInstructionBridgeRecords.length > 0 && await exists2(resolve29(root2, "CLAUDE.md"))) {
     const bridge = await createKnowledgeInstructionBridgePlan({
       repositoryRoot: root2,
       provider: "claude",
@@ -61331,7 +61686,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
   const structuralPaths = new Set((structural?.operations ?? []).map((operation) => operation.path));
   const machineMoves = (await machineArtifactMoves(root2)).filter((move) => !structuralPaths.has(move.fromPath) && !structuralPaths.has(move.toPath));
   for (const move of machineMoves) {
-    if (await exists2(resolve28(root2, move.toPath)))
+    if (await exists2(resolve29(root2, move.toPath)))
       blockers.push({ code: "destination_exists", pathDigest: sha2564(move.toPath) });
   }
   const machineMoveOperations = machineMoves.map((move) => ({
@@ -61411,8 +61766,8 @@ var import_yaml23 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/terminal-integration.js
 import { constants as constants10 } from "node:fs";
-import { lstat as lstat20, open as open12 } from "node:fs/promises";
-import { resolve as resolve29 } from "node:path";
+import { lstat as lstat21, open as open12 } from "node:fs/promises";
+import { resolve as resolve30 } from "node:path";
 var MAXIMUM_CONFIG_BYTES = 256 * 1024;
 var MAXIMUM_RUNTIME_BYTES = 4 * 1024 * 1024;
 var FORMAT = { insertSpaces: true, tabSize: 2, eol: "\n", insertFinalNewline: true };
@@ -61442,12 +61797,12 @@ function hookEntry(provider) {
     ]
   };
 }
-async function safeOptionalText(path, maximumBytes = MAXIMUM_CONFIG_BYTES) {
+async function safeOptionalText(path, maximumBytes2 = MAXIMUM_CONFIG_BYTES) {
   let handle;
   try {
     try {
-      const stats = await lstat20(path);
-      if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes)
+      const stats = await lstat21(path);
+      if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes2)
         throw new Error("unsafe");
     } catch (error) {
       if (error.code === "ENOENT")
@@ -61627,11 +61982,11 @@ function validRuntimeContent(content3) {
   return bytes > 0 && bytes <= MAXIMUM_RUNTIME_BYTES && content3.startsWith("#!/usr/bin/env node\n");
 }
 async function inspectTerminalIntegration(repositoryRoot) {
-  const root2 = resolve29(repositoryRoot);
-  const existing = await Promise.all(PROVIDERS.map(async (provider) => [provider, await safeOptionalText(resolve29(root2, configurationPath(provider)))]));
+  const root2 = resolve30(repositoryRoot);
+  const existing = await Promise.all(PROVIDERS.map(async (provider) => [provider, await safeOptionalText(resolve30(root2, configurationPath(provider)))]));
   const blockers = [];
   try {
-    const config = await safeOptionalText(resolve29(root2, ".codex/config.toml"));
+    const config = await safeOptionalText(resolve30(root2, ".codex/config.toml"));
     if (config !== null && codexHooksDisabled(config.content))
       blockers.push({ provider: "codex", path: ".codex/config.toml", code: "hooks_disabled" });
   } catch (error) {
@@ -61647,8 +62002,8 @@ async function inspectTerminalIntegration(repositoryRoot) {
   let runtime;
   try {
     const [artifact2, manifestFile] = await Promise.all([
-      safeOptionalText(resolve29(root2, RUNTIME_PATH), MAXIMUM_RUNTIME_BYTES),
-      safeOptionalText(resolve29(root2, RUNTIME_MANIFEST_PATH))
+      safeOptionalText(resolve30(root2, RUNTIME_PATH), MAXIMUM_RUNTIME_BYTES),
+      safeOptionalText(resolve30(root2, RUNTIME_MANIFEST_PATH))
     ]);
     let valid = false;
     if (artifact2 !== null && manifestFile !== null && validRuntimeContent(artifact2.content)) {
@@ -61788,26 +62143,26 @@ async function collectVerificationResultSources(input) {
 
 // packages/repository-knowledge/dist/workstream.js
 import { constants as constants11 } from "node:fs";
-import { lstat as lstat21, mkdir as mkdir7, open as open13, rename as rename3, rm as rm4 } from "node:fs/promises";
-import { basename as basename9, dirname as dirname5, posix as posix6, relative as relative11, resolve as resolve30, sep as sep11 } from "node:path";
+import { lstat as lstat22, mkdir as mkdir7, open as open13, rename as rename3, rm as rm4 } from "node:fs/promises";
+import { basename as basename9, dirname as dirname5, posix as posix6, relative as relative11, resolve as resolve31, sep as sep11 } from "node:path";
 var import_yaml24 = __toESM(require_dist(), 1);
 var CURRENT_WORKSTREAM_PATH = ".lervo/state/workstreams/current.json";
 var MAX_HANDOFF_BYTES = 128 * 1024;
 function insideRoot(root2, path) {
-  const target = resolve30(root2, path);
+  const target = resolve31(root2, path);
   const child = relative11(root2, target);
   if (child === ".." || child.startsWith(`..${sep11}`)) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream path escapes the repository.");
   }
   return target;
 }
-async function safeTextFile(root2, path, maximumBytes) {
+async function safeTextFile(root2, path, maximumBytes2) {
   const target = insideRoot(root2, path);
   let handle;
   try {
     handle = await open13(target, constants11.O_RDONLY | (constants11.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
-    if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes) {
+    if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes2) {
       throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream source is not a bounded regular file.");
     }
     const bytes = await handle.readFile();
@@ -61833,7 +62188,7 @@ async function safeTextFile(root2, path, maximumBytes) {
   }
 }
 async function readCurrentWorkstreamState(repositoryRoot) {
-  const source = await safeTextFile(resolve30(repositoryRoot), CURRENT_WORKSTREAM_PATH, 64 * 1024);
+  const source = await safeTextFile(resolve31(repositoryRoot), CURRENT_WORKSTREAM_PATH, 64 * 1024);
   if (source === null)
     return null;
   let value;
@@ -61852,7 +62207,7 @@ async function readCurrentWorkstreamState(repositoryRoot) {
   };
 }
 async function restoreCurrentWorkstreamState(input) {
-  const root2 = resolve30(input.repositoryRoot);
+  const root2 = resolve31(input.repositoryRoot);
   const content3 = Buffer.from(input.content).toString("utf8");
   if (input.content.byteLength > 64 * 1024 || sha2564(input.content) !== input.expectedHash) {
     throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact is invalid.");
@@ -61867,13 +62222,13 @@ async function restoreCurrentWorkstreamState(input) {
 ` !== content3 || !validateSchema("workstreamSnapshot", value).valid || !pendingCoordinatesValid(value)) {
     throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact does not satisfy the v1 contract.");
   }
-  const directory = resolve30(root2, dirname5(CURRENT_WORKSTREAM_PATH));
+  const directory = resolve31(root2, dirname5(CURRENT_WORKSTREAM_PATH));
   await mkdir7(directory, { recursive: true, mode: 448 });
-  const stats = await lstat21(directory);
+  const stats = await lstat22(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink()) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The workstream projection directory is unsafe.");
   }
-  const target = resolve30(root2, CURRENT_WORKSTREAM_PATH);
+  const target = resolve31(root2, CURRENT_WORKSTREAM_PATH);
   const temporary = `${target}.restore-${process.pid}`;
   await rm4(temporary, { force: true });
   const handle = await open13(temporary, constants11.O_WRONLY | constants11.O_CREAT | constants11.O_EXCL | (constants11.O_NOFOLLOW ?? 0), 384);
@@ -61929,29 +62284,29 @@ function pendingCoordinatesValid(snapshot) {
 // packages/verification/dist/suite-loader.js
 var import_yaml25 = __toESM(require_dist(), 1);
 import { constants as constants12 } from "node:fs";
-import { lstat as lstat22, open as open14, realpath as realpath2 } from "node:fs/promises";
-import { resolve as resolve31 } from "node:path";
+import { lstat as lstat23, open as open14, realpath as realpath2 } from "node:fs/promises";
+import { resolve as resolve32 } from "node:path";
 var MAXIMUM_SUITE_BYTES = 64 * 1024;
 var SUITE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
 async function loadVerificationSuite(repositoryRoot, suiteId) {
   if (!SUITE_ID.test(suiteId) || suiteId.length > 150) {
     throw new VerificationError("invalid_verification_suite", "The verification suite ID is invalid.");
   }
-  const root2 = resolve31(repositoryRoot);
-  const directory = resolve31(root2, ".lervo/verifications");
+  const root2 = resolve32(repositoryRoot);
+  const directory = resolve32(root2, ".lervo/verifications");
   try {
-    const stats = await lstat22(directory);
-    const expectedDirectory = resolve31(await realpath2(root2), ".lervo/verifications");
+    const stats = await lstat23(directory);
+    const expectedDirectory = resolve32(await realpath2(root2), ".lervo/verifications");
     if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath2(directory) !== expectedDirectory) {
       throw new Error("unsafe directory");
     }
   } catch (error) {
     throw new VerificationError("verification_layout_invalid", "The verification suite directory is not a safe real directory.", { cause: error });
   }
-  const path = resolve31(directory, `${suiteId}.yaml`);
+  const path = resolve32(directory, `${suiteId}.yaml`);
   let handle;
   try {
-    const before = await lstat22(path, { bigint: true });
+    const before = await lstat23(path, { bigint: true });
     if (!before.isFile() || before.isSymbolicLink() || before.size > MAXIMUM_SUITE_BYTES) {
       throw new VerificationError("verification_layout_invalid", "The verification suite file is not a safe regular file or exceeds the size limit.");
     }
@@ -62095,10 +62450,10 @@ function evidenceMarker(document4) {
   return `<!-- lervo-ref:${document4.conceptId}:${document4.contentHash} -->`;
 }
 async function repositoryRootFrom(start) {
-  let current = resolve32(start);
+  let current = resolve33(start);
   while (true) {
     try {
-      const manifest = await lstat23(resolve32(current, ".lervo/project.yaml"));
+      const manifest = await lstat24(resolve33(current, ".lervo/project.yaml"));
       if (manifest.isFile() && !manifest.isSymbolicLink()) return current;
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
@@ -62109,21 +62464,21 @@ async function repositoryRootFrom(start) {
     current = parent;
   }
 }
-function truncateUtf8(value, maximumBytes) {
-  if (maximumBytes <= 0) return "";
-  if (Buffer.byteLength(value) <= maximumBytes) return value;
+function truncateUtf8(value, maximumBytes2) {
+  if (maximumBytes2 <= 0) return "";
+  if (Buffer.byteLength(value) <= maximumBytes2) return value;
   let bytes = 0;
   let end = 0;
   for (const character of value) {
     const characterBytes = Buffer.byteLength(character);
-    if (bytes + characterBytes > maximumBytes) break;
+    if (bytes + characterBytes > maximumBytes2) break;
     bytes += characterBytes;
     end += character.length;
   }
   return value.slice(0, end);
 }
 async function loadHit(root2, hit, remainingBytes) {
-  const target = resolve32(root2, hit.path);
+  const target = resolve33(root2, hit.path);
   const child = relative12(root2, target);
   if (child === ".." || child.startsWith(`..${sep12}`) || remainingBytes <= 0) return null;
   let handle;
@@ -62240,24 +62595,24 @@ async function promptContext(root2, prompt, provider, observationId) {
   };
 }
 function activationPath(root2, provider, event) {
-  return resolve32(
+  return resolve33(
     root2,
     ".lervo/state/terminal-integration",
     `${provider}-${event === "UserPromptSubmit" ? "user-prompt-submit" : "stop"}.json`
   );
 }
 async function writeActivationReceipt(root2, receipt) {
-  const directory = resolve32(root2, ".lervo/state/terminal-integration");
+  const directory = resolve33(root2, ".lervo/state/terminal-integration");
   try {
     await mkdir8(directory, { mode: 448 });
   } catch (error) {
     if (error.code !== "EEXIST") throw error;
   }
-  const stats = await lstat23(directory);
+  const stats = await lstat24(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe terminal activation state directory.");
   const target = activationPath(root2, receipt.provider, receipt.hookEvent);
-  const temporary = resolve32(directory, `.activation-${randomUUID2()}.tmp`);
+  const temporary = resolve33(directory, `.activation-${randomUUID2()}.tmp`);
   let handle;
   try {
     handle = await open15(
@@ -62282,7 +62637,7 @@ async function readActivationReceipts(root2) {
     for (const event of ["UserPromptSubmit", "Stop"]) {
       try {
         const path = activationPath(root2, provider, event);
-        const stats = await lstat23(path);
+        const stats = await lstat24(path);
         if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 16 * 1024) continue;
         const value = JSON.parse(await readFile11(path, "utf8"));
         if (value.schemaVersion === 1 && value.contractId === "lervo_terminal_hooks_v2" && value.provider === provider && value.hookEvent === event && typeof value.occurredAt === "string")
@@ -62390,7 +62745,7 @@ async function inspectLifecycle(root2, expected) {
   };
   const issues = [];
   try {
-    const handoff = await lstat23(resolve32(root2, "HANDOFF.md"));
+    const handoff = await lstat24(resolve33(root2, "HANDOFF.md"));
     if (handoff.isFile() && !handoff.isSymbolicLink())
       issues.push({ code: "legacy_root_handoff_pending", command: "lervo migrate knowledge" });
     else
@@ -62475,13 +62830,22 @@ async function inspectLifecycle(root2, expected) {
       code: terminal.status === "blocked" ? "terminal_integration_blocked" : "terminal_integration_stale",
       command: "lervo migrate knowledge"
     });
-  const layout = await createRepositoryLayoutMigrationPlan({
+  const instructionBootstrap = await createKnowledgeInstructionBootstrapPlan({
     repositoryRoot: root2,
     supplementalSources
   });
-  if (layout.status !== "current")
+  if (instructionBootstrap.status !== "not_applicable")
+    issues.push({
+      code: `instruction_canonical_bootstrap_${instructionBootstrap.status}`,
+      command: "lervo migrate knowledge"
+    });
+  const layout = instructionBootstrap.status === "not_applicable" ? await createRepositoryLayoutMigrationPlan({
+    repositoryRoot: root2,
+    supplementalSources
+  }) : null;
+  if (layout !== null && layout.status !== "current")
     issues.push({ code: `repository_layout_${layout.status}`, command: "lervo migrate knowledge" });
-  if (layout.status === "current") {
+  if (layout?.status === "current") {
     const bridge = await createKnowledgeInstructionBridgePlan({
       repositoryRoot: root2,
       provider: "claude",
@@ -62493,7 +62857,7 @@ async function inspectLifecycle(root2, expected) {
         command: "lervo migrate knowledge"
       });
   }
-  if (layout.status === "current" && issues.every((item) => !item.code.startsWith("claude_instruction_bridge_"))) {
+  if (layout?.status === "current" && issues.every((item) => !item.code.startsWith("claude_instruction_bridge_"))) {
     const structural = await createKnowledgeMigrationPlan({
       repositoryRoot: root2,
       mode: "migrate",
@@ -62826,7 +63190,7 @@ async function runDeclare(args, io) {
     if (!parsed.values.stdin || io.stdin === void 0)
       throw new Error("The declaration must be supplied through --stdin.");
     const draft = parseTurnDeclarationDraft(await io.stdin());
-    const root2 = await repositoryRootFrom(resolve32(io.cwd, parsed.values.root ?? "."));
+    const root2 = await repositoryRootFrom(resolve33(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const context = allEvents(storage.events).filter(
       (event) => event.type === "terminal.context.prepared" && event.actor.kind === "provider" && event.actor.provider === parsed.values.provider && event.payload.observationId === parsed.values.observation
@@ -63035,7 +63399,7 @@ async function runCoverage(args, io) {
     const limit = parsed.values.limit === void 0 ? 20 : Number(parsed.values.limit);
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
       throw new Error("--limit must be an integer between 1 and 100.");
-    const root2 = await repositoryRootFrom(resolve32(io.cwd, parsed.values.root ?? "."));
+    const root2 = await repositoryRootFrom(resolve33(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const report = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,
@@ -63082,7 +63446,7 @@ async function runTerminalCommand(args, io) {
         allowPositionals: false,
         options: { root: { type: "string" }, json: { type: "boolean" } }
       });
-      const root2 = await repositoryRootFrom(resolve32(io.cwd, parsed.values.root ?? "."));
+      const root2 = await repositoryRootFrom(resolve33(io.cwd, parsed.values.root ?? "."));
       const result = await inspectLifecycle(root2);
       io.stdout(
         parsed.values.json ? `${JSON.stringify(result, null, 2)}
@@ -63116,7 +63480,7 @@ async function verifiedRuntime() {
   try {
     const runtimePath = fileURLToPath(import.meta.url);
     const manifest = JSON.parse(
-      await readFile12(resolve33(dirname7(runtimePath), "runtime-v2.json"), "utf8")
+      await readFile12(resolve34(dirname7(runtimePath), "runtime-v2.json"), "utf8")
     );
     const content3 = await readFile12(runtimePath);
     return manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === "lervo_terminal_hooks_v2" && manifest.runtimePath === ".lervo/generated/terminal-hooks/runtime-v2.mjs" && manifest.byteCount === content3.byteLength && manifest.contentHash === `sha256:${createHash9("sha256").update(content3).digest("hex")}`;

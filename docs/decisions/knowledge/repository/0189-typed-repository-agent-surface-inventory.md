@@ -13,15 +13,15 @@ Migration must discover more than AGENTS.md, CLAUDE.md, and SKILL.md without tre
 
 Under profile v1, the scanner assigns exact, case-sensitive path profiles containing provider, role, scope, documented discovery, migration disposition, and content handling.
 
-Behavior instructions include AGENTS.md, AGENTS.override.md, CLAUDE.md, .claude/CLAUDE.md, and .claude/rules/**/*.md. Agent Skills entries and resources are `skill_contract`; Claude legacy commands are `agent_workflow`; subagents are `agent_definition`; Codex command rules are `execution_policy`; and hooks, clients, and tool surfaces are `agent_configuration`.
+Behavior instructions include AGENTS.md, AGENTS.override.md, CLAUDE.md, .claude/CLAUDE.md, and .claude/rules/**/*.md. Agent Skills entries and resources are `skill_contract`; Claude legacy commands are `agent_workflow`; subagents are `agent_definition`; Codex command rules are `execution_policy`; hooks, clients, and tool surfaces are `agent_configuration`.
 
-.agents/skills/<name>/SKILL.md is a documented Codex project skill and Agent Skills entry. .claude/skills is inventoried as a Claude project skill requiring compatibility review. Dedicated Lervo units still require a validated lervo-skill.json.
+.agents/skills/<name>/SKILL.md is a documented Codex project skill and Agent Skills entry. Inventory .claude/skills as a Claude project skill requiring compatibility review. Dedicated Lervo units still require a validated lervo-skill.json.
 
-.agents/rules/** is not a current Codex, Claude, or Agent Skills standard. Preserve it as `unknown/not_standard/nonstandard_preserve`; never claim it as discovered behavior. Codex execution policy uses .codex/rules/_.rules, while Claude behavioral rules use .claude/rules/\**/_.md, with distinct enforcement.
+.agents/rules/** is not a current Codex, Claude, or Agent Skills standard. Preserve it as `unknown/not_standard/nonstandard_preserve`; never claim it as discovered behavior. Codex execution policy uses .codex/rules/_.rules, while Claude behavioral rules use .claude/rules/\**/_.md; their enforcement is distinct.
 
-Execution policies, hooks, client and tool configuration, subagents, local memory, and unknown .agents content are `local_inventory_only`. Their bounded hashes may enter local inventory, but their bytes never enter external semantic compiler envelopes, structural publication snapshots, or manifests. Plans expose only paths and typed metadata.
+Execution policies, hooks, client and tool configuration, subagents, local memory, and unknown .agents content are `local_inventory_only`. Their bounded hashes may enter local inventory, but their bytes must never enter external semantic compiler envelopes, structural publication snapshots, or manifests. Plans expose only paths and typed metadata.
 
-Behavior instructions, portable skills, and legacy workflows may be `semantic_source`. This indicates analysis eligibility, not evidence of loading, injection, or use. Provider-specific semantics at risk of loss require review and are never automatically merged into AGENTS.md. Static hierarchy, conditions, fallback, and trust are only documented-discovery possibilities; actual application requires provider-adapter evidence.
+Behavior instructions, portable skills, and legacy workflows may be `semantic_source`, indicating analysis eligibility rather than loading, injection, or use. Provider-specific semantics at risk of loss require review and must never be automatically merged into AGENTS.md. Static hierarchy, conditions, fallback, and trust are only documented-discovery possibilities; actual application requires provider-adapter evidence.
 
 All existing paths and bytes remain user-owned. The only automatic write is ADR-0185's managed root AGENTS.md-to-CLAUDE.md import bridge. Inventory creates no event or durable state and exposes no content, absolute path, secret, or provider value.
 

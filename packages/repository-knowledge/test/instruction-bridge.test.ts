@@ -208,6 +208,7 @@ describe("provider instruction bridge", () => {
       provider: "claude",
     });
     expect(plan).toMatchObject({ status: "review_required", target: { action: "update" } });
+    expect(plan.target.classification).toBe("unresolved_mixed_user_content");
     await applyKnowledgeInstructionBridgePlan({
       plan,
       approvedOperationId: plan.operationId,

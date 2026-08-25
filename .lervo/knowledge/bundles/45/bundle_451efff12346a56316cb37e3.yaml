@@ -131,6 +131,8 @@ conceptIds:
   - concept_1c1ab49f871084747b59fb72
   - concept_98b760e9d56ef0e716111d89
   - concept_85a5bdb2ec2a7d087b07f753
+  - concept_5081dd4b907bc07d8154cf1f
+  - concept_5fd0ee386b704b430e443473
   - concept_9304fa8997c2b471ce1bf733
   - concept_066f624cb9b93ec9d66b001d
   - concept_7525cbbb49fc4b3069956fe3
@@ -151,6 +153,7 @@ conceptIds:
   - concept_7326545a62acc8b0acc39156
   - concept_c64c8bff551c925b6a74d2d0
   - concept_335306e22c604a6450950ca8
+  - concept_304097cebe01b9138b316b53
   - concept_5ce43e13480e75ed2ae11270
   - concept_cccfeac0a3be7dd31170a4f0
   - concept_014942d292aed60b1a9fbdeb
@@ -194,6 +197,7 @@ conceptIds:
   - concept_98798c5afa3eb89885ee45d9
   - concept_71ad92dc90ed5046f6609e92
   - concept_1b4b6414d4a7646f5988f198
+  - concept_f7c8b1654f95cce20f83684c
   - concept_f1521fd615fa84cc58688ffe
   - concept_984348c45824a29438fddd03
   - concept_e63ff328de55fd6f63ac0f35
@@ -228,6 +232,7 @@ conceptIds:
   - concept_f267327856d061018a1fa03c
   - concept_fe6a2ebccaed1676dbcd1525
   - concept_259e60f99896a7eb16ae0434
+  - concept_886380a9a9c57c613252b2c8
   - concept_212946d748510264695a3e0e
   - concept_f1f58b982eb120b7c830d7d8
   - concept_448c92361d3fa573ffad38d0
@@ -238,15 +243,20 @@ conceptIds:
   - concept_27605354dd8282c085d71308
   - concept_7816e384607982e32d2dbfc2
   - concept_8e6d95a0da9a93e240f7494f
+  - concept_4ab0762d262756774ef120ac
   - concept_3fdbc2a0544c1da918a67f20
   - concept_06a1a6c7c1bee51428422108
   - concept_b2c3d6175aacb8a0b8bab95f
   - concept_42db2be7a36ae6aeb12fc1d7
   - concept_87f0bca4f55cedbc10f7fd4e
+  - concept_5fdad9ec5a51a9d7374bee90
   - concept_edbfa7cb206aacd7c29c5569
   - concept_482fd3194473fd5e247c10a8
   - concept_6d4bc9bf166d68e8aaca358f
+  - concept_d3ab13c0f00c02a976735cf1
   - concept_6b8f7e8d517550390f875ccb
+  - concept_d52d185e11c97ee0894e7852
+  - concept_55b99167260ec32940796cad
   - concept_0958a131af9dbe7ee0191703
   - concept_817451fcd1cb028b44a543e7
   - concept_61cca6dc890774adfedb32c0
@@ -259,5 +269,5 @@ entryPath: docs/knowledge/index.md
 publicationLanguage: en
 publicationRoot: docs/knowledge
 schemaVersion: 1
-sourceSnapshotId: ksnap_4defece554cff4924f72e577
+sourceSnapshotId: ksnap_f9828c174a5676d0354457f5
 title: Repository knowledge

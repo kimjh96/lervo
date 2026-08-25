@@ -3,8 +3,13 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0067: Policy-bound search-rollout review](../../decisions/search/0067-policy-bound-search-rollout-review.md) — `docs/decisions/search/0067-policy-bound-search-rollout-review.md`
+- [ADR-0068: Explicit search-rollout actions and atomic rollback](../../decisions/search/0068-explicit-search-rollout-actions.md) — `docs/decisions/search/0068-explicit-search-rollout-actions.md`
+- [ADR-0069: Bounded search-rollout action status](../../decisions/search/0069-bounded-search-rollout-action-status.md) — `docs/decisions/search/0069-bounded-search-rollout-action-status.md`
+- [ADR-0070: Write-free search-rollout action preflight](../../decisions/search/0070-read-only-search-rollout-action-preflight.md) — `docs/decisions/search/0070-read-only-search-rollout-action-preflight.md`
 - [ADR-0071: Doctor checks for search-rollout operational sources](../../decisions/search/0071-search-rollout-operational-doctor.md) — `docs/decisions/search/0071-search-rollout-operational-doctor.md`
 - [ADR-0217: Local hybrid search and reviewed relation context](../../decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md) — `docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md`
+- [CLI version and release management](../../distribution/cli-version-management.md) — `docs/distribution/cli-version-management.md`
 - [Lervo Hub standalone distribution](../../distribution/hub-runtime-distribution.md) — `docs/distribution/hub-runtime-distribution.md`
 - [Lervo Node standalone distribution](../../distribution/node-runtime-distribution.md) — `docs/distribution/node-runtime-distribution.md`
 - [Managed context grounding acceptance pilot](../../evidence/pilots/managed-context-grounding.md) — `docs/evidence/pilots/managed-context-grounding.md`
@@ -19,11 +24,6 @@
 - [Repository knowledge systems research](../../research/repository-knowledge-systems.md) — `docs/research/repository-knowledge-systems.md`
 - [Managed Context Grounding and Coverage](../../roadmap/context-grounding-coverage.md) — `docs/roadmap/context-grounding-coverage.md`
 - [Repository Node fleet and automatic Hub replication](../../roadmap/coordination/repository-node-fleet.md) — `docs/roadmap/coordination/repository-node-fleet.md`
+- [Evidence-bound development-pattern promotion](../../roadmap/knowledge/development-pattern-promotion.md) — `docs/roadmap/knowledge/development-pattern-promotion.md`
 - [Public README migration](../../roadmap/knowledge/public-readme-migration.md) — `docs/roadmap/knowledge/public-readme-migration.md`
 - [Natural-language terminal development flow](../../roadmap/natural-language-terminal-flow.md) — `docs/roadmap/natural-language-terminal-flow.md`
-- [Repository onboarding and agent workforce](../../roadmap/onboarding/agent-workforce.md) — `docs/roadmap/onboarding/agent-workforce.md`
-- [Repository upgrade orchestration](../../roadmap/onboarding/repository-upgrade.md) — `docs/roadmap/onboarding/repository-upgrade.md`
-- [Lervo v0 roadmap](../../roadmap/v0.md) — `docs/roadmap/v0.md`
-- [Hub and Node coordination specification](../../specifications/coordination/hub-and-node.md) — `docs/specifications/coordination/hub-and-node.md`
-- [Lervo Execution and Evidence Specification](../../specifications/execution.md) — `docs/specifications/execution.md`
-- [Capability package supply chain](../../specifications/execution/capabilities.md) — `docs/specifications/execution/capabilities.md`

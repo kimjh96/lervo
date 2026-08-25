@@ -1,7 +1,7 @@
 # Repository Knowledge Compilation Specification
 
 Status: `active`
-As of: 2026-08-23
+As of: 2026-08-26
 
 ## 1. Purpose
 
@@ -11,11 +11,11 @@ Lervo compiles bounded repository evidence whether or not `docs/` exists. Portab
 
 The scanner walks repository files outside explicit VCS, dependency, generated, state, secret, size, and count exclusions. It classifies documentation, instructions, code, configuration, schemas, tests, automation, skills, workflows, agents, policies, hooks, client and tool configuration, revision identity, verified artifacts, allowlisted events, sensitive logs and traces, and unsupported binaries.
 
-Ordinary bytes may enter structural extraction. Sensitive log bytes never enter publication or external compilation. Secret candidates are excluded before reading. Presence proves discovery only—not loading, trust, injection, or use.
+Ordinary bytes may enter structural extraction. Sensitive log bytes never enter publication or external compilation. Secret candidates are excluded before reading. Presence proves discovery only, not loading, trust, injection, or use.
 
 ## 3. Source units
 
-Sources have stable IDs and content-bound versions. Adapters may emit bounded Markdown sections; JSON or YAML keys; JavaScript or TypeScript declarations and members; CSS rules, named at-rules, and custom properties; Git `HEAD`; verification; privacy-valid events; and validated skill contracts. Parser failure rejects affected extraction rather than claiming fine-grained completeness; otherwise the file is the baseline unit.
+Sources have stable IDs and content-bound versions. Adapters may emit bounded Markdown sections; JSON or YAML keys; JavaScript or TypeScript declarations and members; CSS rules, named at-rules, and custom properties; Git `HEAD`; verification; privacy-valid events; and validated skill contracts. Parser failure rejects affected extraction rather than claiming fine-grained completeness; otherwise, the file is the baseline unit.
 
 ## 4. Policy
 
@@ -42,7 +42,7 @@ lervo:
 ---
 ```
 
-The taxonomy and route must exist; invalid or stale metadata blocks planning.
+The taxonomy and route must exist. Invalid or stale metadata blocks planning.
 
 ## 5. Structural compilation
 
@@ -52,13 +52,15 @@ Inventory displays the structural publication-input snapshot, excluding revision
 
 ## 6. Entrypoints
 
-Initialization invents no root documents. First migration creates short English README and AGENTS files only when missing. Existing README, AGENTS, and CLAUDE remain user-owned until reviewed normalization. `knowledge instruction bridge --provider claude` handles missing or stale CLAUDE and accepts AGENTS only from a bounded included instruction or structural-generation hash. Structural migration never translates existing bytes. Normalization uses human README, provider-neutral AGENTS, and thin CLAUDE bridge profiles while preserving the managed import.
+Initialization invents no root documents. Before structural publication, canonical instruction bootstrap inspects exact AGENTS and CLAUDE bytes. If AGENTS is absent and CLAUDE is a safe shared candidate, one exact-approved stage creates AGENTS from unchanged CLAUDE bytes plus a separate managed route; CLAUDE stays unchanged. Provider imports or managed blocks make adoption unresolved. Otherwise, first migration creates short English README and AGENTS only when missing. Existing entrypoints remain user-owned until dedicated review.
+
+`knowledge instruction bridge --provider claude` accepts AGENTS only from a bounded instruction or structural hash. An adopted exact duplicate may become the approved thin bridge; mixed user content keeps its bytes around one managed import. Structural migration never translates existing bytes.
 
 An active continuation document is not a permanent entrypoint. Before layout migration, a repository-wide bounded scan scores safely included Markdown using name, title, current objective, next action, blocker, state, and active-language signals. Name and location alone never establish the role. One unambiguous or explicitly selected source enters an exact-approved stage that preserves its bytes in CAS, creates `.lervo/state/workstreams/current.json`, and updates resolvable Markdown references. Only the dedicated root legacy `HANDOFF.md` is deleted with its owned normalization records. An arbitrary source may contain durable knowledge, so its user bytes remain for reviewed normalization and splitting. Multiple candidates block without merging or deletion. With no source, the working agent creates the first snapshot during its terminal turn. The structured snapshot remains outside structural publication; lasting facts belong in routed Markdown.
 
 ## 7. Bounded publication lifecycle
 
-Navigation obeys entry and UTF-8 byte limits. New topics create files; empty categories create no paths. Refresh computes the complete desired set and deletes obsolete output only when prior generation records its current hash. Edited or unrecorded output conflicts. Cleanup removes empty generated parents.
+Navigation obeys entry and UTF-8 byte limits. New topics create files; empty categories create no paths. Refresh computes the complete desired set and deletes obsolete output only when the prior generation records its current hash. Edited or unrecorded output conflicts. Cleanup removes empty generated parents.
 
 `.lervo/generated/manifests/current.json` records structural ownership. Refresh replaces it and deletes older valid ID-named structural manifests, but not semantic manifests or immutable review and evidence.
 
@@ -70,7 +72,7 @@ The provider returns schema-valid concepts, claims, and within-response relation
 
 ### Document content normalization
 
-After layout and bridges are current, `migrate knowledge --provider codex|claude` uses the same boundary to return bounded Markdown candidates.
+After canonical bootstrap, layout, and bridges are current, `migrate knowledge --provider codex|claude` uses the same boundary to return bounded Markdown candidates. Canonical adoption and bridge disposition are independent from every normalization candidate; rejecting or deferring unrelated prose cannot stale an unchanged reviewed entrypoint stage.
 
 V1 covers ordinary `.md` files outside generated navigation and distinguishes README, agent instruction, bridge, portable skill or reference, decision, product, architecture, specification, roadmap, instruction, and general profiles. Output follows `publication.language`; v1 accepts `en`.
 
@@ -85,6 +87,14 @@ Records bind output hashes and a user-region hash excluding managed blocks, prev
 ## 9. Reconciliation and review
 
 Reconciliation yields create, register-existing, add-relation, managed-block patch, conflict, or skip. Duplicate or contradiction resolution requires policy authorization and an exact hash. Human review is an immutable local CAS artifact. Events retain bounded IDs, hashes, counts, policy coordinates, and decision metadata. User-byte patches require separate exact output-hash approval and never enter `accept-all-safe`.
+
+### Development-pattern lifecycle
+
+`knowledge pattern propose` binds at least two independently grouped current source units, exceptions, invariants, reasons, verification, and one responsibility-owned target. Provider identity is observation metadata; equivalent Codex and Claude proposals converge without increasing assurance.
+
+Candidates move through `observed -> candidate -> reviewed -> promoted|rejected|deferred -> superseded`. Exact-hash review and separate promotion bind target hashes, verification, and both agent routes. Promotion creates a missing target or accepts identical bytes; different existing bytes block. Non-check targets extend only the managed AGENTS route consumed by Claude's import.
+
+Candidate and review bodies are immutable CAS artifacts; bounded events rebuild current state. Changed source makes unpromoted work stale and blocks apply, but never rewrites a promoted canonical target.
 
 ## 10. Durable materialization
 

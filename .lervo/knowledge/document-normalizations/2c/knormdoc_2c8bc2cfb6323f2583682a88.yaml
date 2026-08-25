@@ -1,0 +1,29 @@
+candidateId: knorm_b8ed0f5a53e19bf02a5ac1f3
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a7412247416f626930cd3649
+outputLanguage: en
+outputs:
+  - byteCount: 4175
+    contentHash: sha256:58b8ae0a8c497bbd0a0c0a30dbaeadc2ab66f904cfb190148c834d34b29bd4fd
+    path: docs/roadmap/operations/state-retention.md
+    userRegionHash: sha256:58b8ae0a8c497bbd0a0c0a30dbaeadc2ab66f904cfb190148c834d34b29bd4fd
+profile: roadmap_document
+recordId: knormdoc_2c8bc2cfb6323f2583682a88
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:22600fc8db7aced0dce3a00a0f70e4aa859403c8466f5179e95b4937018a1509
+sourcePath: docs/roadmap/operations/state-retention.md
+sourceUnitVersionIds:
+  - uv_2775cc24dbe12327b758ea61
+  - uv_468697b4072ca9c3933b4b6f
+  - uv_5f9a215d8ce08ba4bc5cb041
+  - uv_78eed689a9c57fa0c394671c
+  - uv_90531e204687571327d0264d
+  - uv_a6ef61a129ec67a4d84db57a
+  - uv_ac486ffcff454adef1cfdeb1

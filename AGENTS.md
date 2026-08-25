@@ -14,9 +14,9 @@ Do not load the entire ADR history by default.
 
 Before committing, follow [the repository commit convention](docs/foundation/commit-convention.md). An optional scope must exactly match the workspace package name without `@lervo/`; omit it for repository-wide changes.
 
-Follow [the repository code convention](docs/foundation/code-convention.md) as the completion contract. Before editing source, identify its responsibility and dependency boundary. Apply the module-split signals to every touched source file, complete the review checklist, and resolve structural violations before finishing. Passing lint or formatting is insufficient. If a required split would materially increase delivery risk, record one bounded follow-up naming the exact responsibility and verification.
+Follow [the repository code convention](docs/foundation/code-convention.md) as the completion contract. Before editing source, identify its responsibility and dependency boundary. Apply the module-split signals to every touched source file, complete the review checklist, and resolve structural violations before finishing. Passing lint or formatting is insufficient.
 
-Never refresh a long-module review hash without repeating the structural review. The registry records cohesive modules, not exceptions for unresolved violations.
+If a required split would materially increase delivery risk, record one bounded follow-up naming the exact responsibility and verification. Never refresh a long-module review hash without repeating the structural review; the registry records cohesive modules, not exceptions for unresolved violations.
 
 ESLint owns automatable code quality; Prettier owns formatting. For source or configuration changes, run `pnpm quality:check` and limit broad automatic-fix diffs to the task.
 
@@ -58,4 +58,11 @@ If a fresh clone has no local or Hub-imported current workstream, recover the ne
 - Translate explicit natural-language requests to hire, assign, inspect, resolve, hand off, or retire repository agents into `lervo agent`, `lervo assignment`, and workstream operations yourself; when authority or scope is ambiguous, record one bounded pending decision instead of guessing or asking for a bookkeeping command.
 - Resolve roles with `lervo role list|show|validate`; treat the six built-ins as templates, author a lazy `.lervo/roles/<role-id>.json` source when a requested repository role does not exist, and never bypass version, hash, capability, verification, or ancestry validation.
 - Register every subagent with its parent and apply the same durable identity, scoped lease, path-conflict, evidence, verification, and finalization contracts used for root agents.
+- For all repository work, read [evidence-bound-repository-changes](docs/instructions/evidence-bound-repository-changes.md).
 <!-- lervo:end block=repository_instruction_routes -->
+
+<!-- lervo:begin block=development_pattern_routes schema=1 -->
+## Promoted development patterns
+
+- [Evidence-bound repository changes](docs/instructions/evidence-bound-repository-changes.md)
+<!-- lervo:end block=development_pattern_routes -->

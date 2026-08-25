@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_c4250335e5f62f284b51a2f1
+  - uv_83a718debab3d75cfc838183
 title: "ADR-0193: Semantic Repository and Agent-Surface Migration"
 type: decision

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_f7c8b1654f95cce20f83684c
+freshness: current
+ownership: user
+path: docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_0a7425fcdec046515c570b1f
+title: "ADR-0221: Reviewed CLI release preparation"
+type: decision

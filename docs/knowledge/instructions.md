@@ -5,3 +5,4 @@
 
 - [Lervo Agent Instructions](../../AGENTS.md) — `AGENTS.md`
 - [Claude Compatibility Entry](../../CLAUDE.md) — `CLAUDE.md`
+- [Evidence-bound repository changes](../instructions/evidence-bound-repository-changes.md) — `docs/instructions/evidence-bound-repository-changes.md`

@@ -1,0 +1,28 @@
+candidateId: knorm_ba2e70b4c10487ee260f047e
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3f87d8d65fdd84cca7378e64
+outputLanguage: en
+outputs:
+  - byteCount: 5556
+    contentHash: sha256:b8954013a64971dd699d4ab587736c8b5ebe284f182e85de6732749783b0b00f
+    path: docs/decisions/knowledge/repository/0193-semantic-repository-and-agent-surface-migration.md
+    userRegionHash: sha256:b8954013a64971dd699d4ab587736c8b5ebe284f182e85de6732749783b0b00f
+profile: decision_record
+recordId: knormdoc_7068803cbb86230494526a8c
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:b8954013a64971dd699d4ab587736c8b5ebe284f182e85de6732749783b0b00f
+sourcePath: docs/decisions/knowledge/repository/0193-semantic-repository-and-agent-surface-migration.md
+sourceUnitVersionIds:
+  - uv_0808a5a871f2aa5606d90950
+  - uv_6d3520fd7c1887aa70b126d4
+  - uv_810c80e710f9f32fe1e8ee75
+  - uv_bcddee01016acdb5919327e2
+  - uv_c6b0d8f1cf351d77a90cb70c
+  - uv_d5934ffa146f430df14c2e81

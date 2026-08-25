@@ -3,6 +3,9 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0105: CLI first-publication metadata decision and write-free preview](../../decisions/release/bootstrap/0105-cli-first-publication-metadata-preview.md) — `docs/decisions/release/bootstrap/0105-cli-first-publication-metadata-preview.md`
+- [ADR-0106: CLI first-publication package-metadata patch candidate](../../decisions/release/bootstrap/0106-cli-first-publication-package-metadata-candidate.md) — `docs/decisions/release/bootstrap/0106-cli-first-publication-package-metadata-candidate.md`
+- [ADR-0107: CLI first-publication package-metadata apply permit](../../decisions/release/bootstrap/0107-cli-first-publication-package-metadata-apply-permit.md) — `docs/decisions/release/bootstrap/0107-cli-first-publication-package-metadata-apply-permit.md`
 - [ADR-0108: CLI first-publication package-metadata apply transaction](../../decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md) — `docs/decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md`
 - [ADR-0109: Post-apply verification of CLI first-publication package metadata](../../decisions/release/bootstrap/0109-cli-first-publication-package-metadata-post-apply-verification.md) — `docs/decisions/release/bootstrap/0109-cli-first-publication-package-metadata-post-apply-verification.md`
 - [ADR-0110: CLI first-publication external-requirement evidence report](../../decisions/release/bootstrap/0110-cli-first-publication-external-requirement-evidence-report.md) — `docs/decisions/release/bootstrap/0110-cli-first-publication-external-requirement-evidence-report.md`
@@ -19,11 +22,8 @@
 - [ADR-0089: CLI multi-platform release matrix](../../decisions/release/packaging/0089-cli-multi-platform-release-matrix.md) — `docs/decisions/release/packaging/0089-cli-multi-platform-release-matrix.md`
 - [ADR-0090: CLI package usage-guide contract](../../decisions/release/packaging/0090-cli-package-usage-guide.md) — `docs/decisions/release/packaging/0090-cli-package-usage-guide.md`
 - [ADR-0215: Supported-runtime release portability](../../decisions/release/packaging/0215-supported-runtime-release-portability.md) — `docs/decisions/release/packaging/0215-supported-runtime-release-portability.md`
+- [ADR-0221: Reviewed CLI release preparation](../../decisions/release/packaging/0221-reviewed-cli-release-preparation.md) — `docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md`
 - [ADR-0117: CLI First-Publication Stage-Only Workflow Candidate](../../decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md) — `docs/decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md`
 - [ADR-0118: CLI Stage-Publication Command Boundary](../../decisions/release/staging/0118-cli-stage-publication-command-boundary.md) — `docs/decisions/release/staging/0118-cli-stage-publication-command-boundary.md`
 - [ADR-0119: Stage-Only Workflow Activation Permit and Transaction](../../decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md) — `docs/decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md`
 - [ADR-0120: Post-Apply Verification for the Stage-Only Workflow](../../decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md) — `docs/decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md`
-- [ADR-0121: Remote Deployment Evidence for the Stage-Only Workflow](../../decisions/release/staging/0121-cli-stage-only-workflow-remote-deployment-evidence.md) — `docs/decisions/release/staging/0121-cli-stage-only-workflow-remote-deployment-evidence.md`
-- [ADR-0122: Stage-Only Workflow Ref-Reachability Evidence](../../decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md) — `docs/decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md`
-- [ADR-0123: Stage-Only Workflow Execution Evidence](../../decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md) — `docs/decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md`
-- [ADR-0124: npm Stage-Result Artifact Evidence](../../decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md) — `docs/decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md`

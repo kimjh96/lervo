@@ -4,9 +4,9 @@
   "reviews": [
     {
       "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:19a5f402505aa81345496d4cdf8c9ce5f244d3d89d950cfc11a08dc2d9b4d64d",
+      "contentHash": "sha256:fc09b2b624cdcd11645906d206b0b63f19571168cc69132d41462e0a1f28ab15",
       "responsibility": "Knowledge migration plan/apply orchestration",
-      "rationale": "The module sequences one knowledge migration lifecycle; pure formatting and top-level dispatch were extracted, while the remaining effects share one plan, approval, rollback, and event contract.",
+      "rationale": "The module sequences one knowledge migration lifecycle; formatting, bootstrap application, and top-level dispatch are extracted, while the remaining effects share ordered plan, approval, rollback, and event contracts.",
       "disposition": "cohesive"
     },
     {
@@ -39,7 +39,7 @@
     },
     {
       "path": "apps/cli/src/terminal-command-runtime.ts",
-      "contentHash": "sha256:c8fdd6032e181e3b8a3f87b8f080b61ce2054b70528a99f77cacdac429c08fc6",
+      "contentHash": "sha256:750da11f0b2c9b199bf095087ff9a694115c923f22c9bb59c4a34661eaab56e4",
       "responsibility": "Direct terminal-integration command runtime",
       "rationale": "The stable terminal command is now a one-line facade; this implementation owns the single unmanaged terminal hook lifecycle from preparation through declaration, coverage, and completion gating.",
       "disposition": "cohesive"
@@ -95,7 +95,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:0ccaea4568b650dd8209804ab63dec79cc0de0f34d6f6c0eac5b8ab6997a4aa6",
+      "contentHash": "sha256:23d9340f2c981190ce48b89b779025be99c17668a474e151ce2ea6e144c79ac8",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
       "disposition": "cohesive"
@@ -186,16 +186,16 @@
     },
     {
       "path": "packages/repository-knowledge/src/durable-apply.ts",
-      "contentHash": "sha256:93880b908d8920be9e6f6dcff26b00b94ac7d821044c566b0081a2f70c96ec64",
+      "contentHash": "sha256:96a364c5126f3517ea442a2b67dabe7323bc2e8b8eee7075da399f47d374c641",
       "responsibility": "Durable knowledge filesystem transaction",
       "rationale": "Journal creation, binding checks, safe writes, rollback, recovery, and cleanup implement one atomic filesystem transaction protocol.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/instruction-bridge.ts",
-      "contentHash": "sha256:b83f29973ac47ace4dc1a510c8ceaa546eba42864d11987f72a48c044b708577",
+      "contentHash": "sha256:9f6ac432e5eada5ecfc842e0744e921cb9e6f3b70be913ab58525f60e1f9342c",
       "responsibility": "Provider instruction bridge lifecycle",
-      "rationale": "Profile resolution, managed content construction, target validation, plan creation, and exact-approved apply share one instruction-bridge contract.",
+      "rationale": "Profile resolution, registry binding, structural refresh, plan creation, and exact-approved apply share one instruction-bridge lifecycle; target construction and classification are extracted.",
       "disposition": "cohesive"
     },
     {
@@ -228,7 +228,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:5bb7787e51b97a16a4f6eb240e7dfe5597bd1b8925ef5263918f8963edc4207f",
+      "contentHash": "sha256:b3e24a7abc713a29794930e9ef4460b3b33047bf61cf6124f9958b37552154a4",
       "responsibility": "Repository document-layout migration",
       "rationale": "Classification, link rebasing, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction.",
       "disposition": "cohesive"

@@ -2,7 +2,6 @@ import { constants } from "node:fs";
 import { lstat, open } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { createManagedBlockPatchCandidate, parseManagedMarkdownBlocks } from "@lervo/documents";
 import { parse, stringify } from "yaml";
 
 import { shardedKnowledgeArtifactPath } from "./artifact-paths.js";
@@ -17,6 +16,10 @@ import {
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
+import {
+  createInstructionBridgeTarget,
+  type InstructionBridgeTargetClassification,
+} from "./instruction-bridge-target.js";
 import { upsertRepositoryKnowledgeScanSource } from "./scanner.js";
 import { loadStoredConcepts } from "./store-reader.js";
 import {
@@ -66,6 +69,7 @@ export interface KnowledgeInstructionBridgePlan {
     afterHash: string;
     beforeByteCount: number | null;
     afterByteCount: number;
+    classification: InstructionBridgeTargetClassification;
     managedContentHash: string;
   };
   bridgeId: string;
@@ -96,7 +100,6 @@ export interface KnowledgeInstructionBridgeReceipt {
 }
 
 const HASH = /^sha256:[a-f0-9]{64}$/;
-const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
 
 const profiles: Readonly<Record<InstructionBridgeProvider, InstructionBridgeProfile>> = {
@@ -115,19 +118,6 @@ export function instructionBridgeProfile(
   provider: InstructionBridgeProvider,
 ): InstructionBridgeProfile {
   return profiles[provider];
-}
-
-function managedContent(profile: InstructionBridgeProfile): string {
-  return `@${profile.canonicalPath}\n`;
-}
-
-function completeTarget(profile: InstructionBridgeProfile): string {
-  return [
-    `<!-- lervo:begin block=${profile.blockId} schema=1 -->`,
-    `@${profile.canonicalPath}`,
-    `<!-- lervo:end block=${profile.blockId} -->`,
-    "",
-  ].join("\n");
 }
 
 function validExistingBridgeRecord(
@@ -211,53 +201,6 @@ async function safeOptionalFile(path: string, maximumBytes: number): Promise<Buf
   } finally {
     await handle?.close();
   }
-}
-
-function targetOutput(input: {
-  profile: InstructionBridgeProfile;
-  existing: { content: string; contentHash: string; byteCount: number } | null;
-}): { content: string; action: "create" | "update" | "unchanged"; managedContentHash: string } {
-  const replacement = managedContent(input.profile);
-  const managedContentHash = sha256(replacement);
-  if (input.existing === null)
-    return { content: completeTarget(input.profile), action: "create", managedContentHash };
-  const sourceBytes = encoder.encode(input.existing.content);
-  const parsed = parseManagedMarkdownBlocks(sourceBytes);
-  if (parsed.status !== "valid") {
-    throw new RepositoryKnowledgeError(
-      "knowledge_reconciliation_conflict",
-      "The provider instruction target has an invalid managed-block structure.",
-    );
-  }
-  const block = parsed.blocks.find((item) => item.blockId === input.profile.blockId);
-  if (block === undefined) {
-    const separator =
-      input.existing.content.length === 0 || input.existing.content.endsWith("\n\n")
-        ? ""
-        : input.existing.content.endsWith("\n")
-          ? "\n"
-          : "\n\n";
-    return {
-      content: `${input.existing.content}${separator}${completeTarget(input.profile)}`,
-      action: "update",
-      managedContentHash,
-    };
-  }
-  const current = sourceBytes.slice(block.contentRange.start, block.contentRange.end);
-  if (sha256(current) === managedContentHash && decoder.decode(current) === replacement) {
-    return { content: input.existing.content, action: "unchanged", managedContentHash };
-  }
-  const patched = createManagedBlockPatchCandidate({
-    source: {
-      path: input.profile.targetPath,
-      contentHash: input.existing.contentHash,
-      byteCount: input.existing.byteCount,
-      bytes: sourceBytes,
-    },
-    blockId: input.profile.blockId,
-    replacementBytes: encoder.encode(replacement),
-  });
-  return { content: decoder.decode(patched.outputBytes), action: "update", managedContentHash };
 }
 
 async function registryDigest(
@@ -371,17 +314,33 @@ export async function createKnowledgeInstructionBridgePlan(input: {
         "The provider instruction target does not match the scan.",
       );
   }
-  const target = targetOutput({
-    profile,
-    existing:
-      targetSource === undefined
-        ? null
-        : {
-            content: targetSource.content!,
-            contentHash: targetSource.contentHash!,
-            byteCount: targetSource.byteCount,
-          },
-  });
+  let target;
+  try {
+    target = createInstructionBridgeTarget({
+      profile,
+      canonicalContent: canonical.content,
+      canonicalRouteBlock:
+        /<!-- lervo:begin block=repository_instruction_routes schema=1 -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n/u.exec(
+          canonical.content,
+        )?.[0] ?? null,
+      existing:
+        targetSource === undefined
+          ? null
+          : {
+              content: targetSource.content!,
+              contentHash: targetSource.contentHash!,
+              byteCount: targetSource.byteCount,
+            },
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "invalid_managed_block_structure") {
+      throw new RepositoryKnowledgeError(
+        "knowledge_reconciliation_conflict",
+        "The provider instruction target has an invalid managed-block structure.",
+      );
+    }
+    throw error;
+  }
   if (Buffer.byteLength(target.content) > policy.limits.maxFileBytes) {
     throw new RepositoryKnowledgeError(
       "knowledge_source_limit_exceeded",
@@ -540,6 +499,7 @@ export async function createKnowledgeInstructionBridgePlan(input: {
       target: {
         path: profile.targetPath,
         action: target.action,
+        classification: target.classification,
         beforeHash: targetSource?.contentHash ?? null,
         afterHash: targetAfterHash,
       },
@@ -587,6 +547,7 @@ export async function createKnowledgeInstructionBridgePlan(input: {
       afterHash: targetAfterHash,
       beforeByteCount: targetSource?.byteCount ?? null,
       afterByteCount: Buffer.byteLength(target.content),
+      classification: target.classification,
       managedContentHash: target.managedContentHash,
     },
     bridgeId,

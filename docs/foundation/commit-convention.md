@@ -9,11 +9,11 @@ Lervo follows [Conventional Commits 1.0.0](https://www.conventionalcommits.org/e
 <type>[optional scope][optional !]: <description>
 ```
 
-Use `feat` for features and `fix` for bug fixes. Accepted types also include `build`, `chore`, `ci`, `docs`, `perf`, `refactor`, `revert`, `style`, and `test`. Use a short, lowercase description and keep the full header within 100 characters. Put an optional body after one blank line and Git-trailer-style footers after another blank line.
+Use `feat` for features and `fix` for bug fixes. Other accepted types are `build`, `chore`, `ci`, `docs`, `perf`, `refactor`, `revert`, `style`, and `test`. Use a short, lowercase description and keep the full header within 100 characters. An optional body follows one blank line; Git-trailer-style footers follow another blank line.
 
 ## Package scopes
 
-Scope is optional. For a commit belonging to one workspace package, use its exact unscoped name:
+Scopes are optional. For a commit belonging to one workspace package, use its exact unscoped name:
 
 ```text
 feat(cli): orchestrate repository upgrades
@@ -32,6 +32,8 @@ feat(execution-contract)!: require capability activation receipts
 
 BREAKING CHANGE: managed provider adapters must return an activation receipt.
 ```
+
+For changes in `@lervo/cli` or its packed private-package closure, the marker is evidence that CI reconciles with reviewed release intent. It requires a `major` `.changes/relint_*.yaml` record but does not create or modify that record. Before 1.0, reviewed `major` intent advances the minor version while retaining its breaking-change meaning. See [CLI version and release management](../distribution/cli-version-management.md).
 
 ## Verification
 

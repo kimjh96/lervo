@@ -1,0 +1,5 @@
+schemaVersion: 1
+intentId: relint_d17226fd913e3795ede287c9
+package: "@lervo/cli"
+impact: minor
+summary: Add exact provider-entrypoint bootstrap, typed state pruning, reviewed development-pattern promotion, and automated release preparation.

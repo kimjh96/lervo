@@ -5,4 +5,7 @@ export * from "./document-validation.js";
 export * from "./init-apply.js";
 export * from "./init-plan.js";
 export * from "./layout.js";
+export * from "./state-retention-apply.js";
+export * from "./state-retention-plan.js";
+export * from "./state-retention-types.js";
 export * from "./types.js";

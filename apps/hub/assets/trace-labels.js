@@ -39,6 +39,8 @@ const eventLabels = {
   "knowledge.verified": "Knowledge verified",
   "knowledge.stale.detected": "Stale knowledge detected",
   "knowledge.materialization.applied": "Knowledge materialization applied",
+  "development.pattern.observed": "Development pattern observed",
+  "development.pattern.transitioned": "Development pattern transitioned",
   "terminal.integration.applied": "Terminal integration applied",
   "terminal.context.prepared": "Terminal context prepared",
   "terminal.turn.declared": "Terminal turn declared",
@@ -56,6 +58,7 @@ const eventLabels = {
   "document.stale.detected": "Stale document detected",
   "document.migration.applied": "Document migration applied",
   "project.identity.migrated": "Project identity migrated",
+  "state.pruned": "Derived state pruned",
   "unmanaged_change.detected": "Unmanaged change detected",
   "sync.acknowledged": "Synchronization acknowledged",
 };

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_5fd0ee386b704b430e443473
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/repository/0220-evidence-bound-development-pattern-promotion.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_153a64a4e3e49d4474ec08f8
+title: "ADR-0220: Evidence-bound development-pattern promotion"
+type: decision

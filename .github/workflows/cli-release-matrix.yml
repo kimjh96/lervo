@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -51,7 +52,7 @@ jobs:
 
   attested-cli:
     name: Attested CLI release
-    if: github.event_name == 'workflow_dispatch' && github.ref_type == 'tag'
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
     needs: packed-cli
     runs-on: ubuntu-latest
     timeout-minutes: 20

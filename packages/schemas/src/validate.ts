@@ -29,6 +29,10 @@ import {
 import { deliberationOutcomeSchema } from "./deliberation-outcome.js";
 import { deliberationPolicySchema } from "./deliberation-policy.js";
 import { deliberationWorkflowSourceSchema } from "./deliberation-workflow.js";
+import {
+  developmentPatternObservedEventPayloadSchema,
+  developmentPatternTransitionedEventPayloadSchema,
+} from "./development-pattern-event.js";
 import { documentManifestSchema } from "./document-manifest.js";
 import {
   documentMigrationAppliedEventPayloadSchema,
@@ -112,6 +116,7 @@ import { roleEvaluationBundleSchema, roleEvaluationResultSchema } from "./role-e
 import { highRiskRoleWorkflowSchema } from "./high-risk-role-workflow.js";
 import { runCompletedEventPayloadSchema } from "./run-event.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
+import { statePrunedEventPayloadSchema } from "./state-pruned-event.js";
 import { skillManifestSchema } from "./skill.js";
 import { skillLockSchema } from "./skill-lock.js";
 import { traceReportSchema } from "./trace-report.js";
@@ -219,12 +224,17 @@ const validators = {
     deliberationArtifactRecordedEventPayloadSchema,
   ),
   deliberationCompletedEventPayload: ajv.compile(deliberationCompletedEventPayloadSchema),
+  developmentPatternObservedEventPayload: ajv.compile(developmentPatternObservedEventPayloadSchema),
+  developmentPatternTransitionedEventPayload: ajv.compile(
+    developmentPatternTransitionedEventPayloadSchema,
+  ),
   adapter: ajv.compile(adapterContractMessageSchema),
   role: ajv.compile(roleProfileSchema),
   roleEvaluationBundle: ajv.compile(roleEvaluationBundleSchema),
   roleEvaluationResult: ajv.compile(roleEvaluationResultSchema),
   highRiskRoleWorkflow: ajv.compile(highRiskRoleWorkflowSchema),
   runCompletedEventPayload: ajv.compile(runCompletedEventPayloadSchema),
+  statePrunedEventPayload: ajv.compile(statePrunedEventPayloadSchema),
   sharedContext: ajv.compile(sharedContextPublicationSchema),
   handoffBundle: ajv.compile(handoffBundleSchema),
   skill: ajv.compile(skillManifestSchema),

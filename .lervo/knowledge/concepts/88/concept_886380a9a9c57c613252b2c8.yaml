@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_886380a9a9c57c613252b2c8
+freshness: current
+ownership: user
+path: docs/distribution/cli-version-management.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_f58b212ce440ae248d68ee71
+title: CLI version and release management
+type: concept

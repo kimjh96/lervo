@@ -1,0 +1,27 @@
+candidateId: knorm_b8ed0f5a53e19bf02a5ac1f3
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1cff95d7d180b6cb2edabd03
+outputLanguage: en
+outputs:
+  - byteCount: 3111
+    contentHash: sha256:83794581257b0e18fc9d8200b5ffeb855084c49c38489dd2f4bc17c4071cc486
+    path: docs/decisions/operations/storage/0219-typed-derived-state-retention.md
+    userRegionHash: sha256:83794581257b0e18fc9d8200b5ffeb855084c49c38489dd2f4bc17c4071cc486
+profile: decision_record
+recordId: knormdoc_391f9c3849a131edbc6b8be8
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:6b2972f89c7727a31dfac9459be8c7eabf039075d642e0bd067526e275dab833
+sourcePath: docs/decisions/operations/storage/0219-typed-derived-state-retention.md
+sourceUnitVersionIds:
+  - uv_3a865e73a05ee80a9139f06b
+  - uv_984f6f2d255ba5b878e278d6
+  - uv_cac62bff241b7b3ebae665a6
+  - uv_d597a59908ffa5b6cb66747c
+  - uv_ea5c71074f915acfaaf0008e

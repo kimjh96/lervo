@@ -1,16 +1,26 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { lstat, readdir, rename, rm } from "node:fs/promises";
+import { lstat, readFile, readdir, rename, rm } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 
-import { resolveProjectPaths } from "@lervo/project";
+import {
+  applyStatePrune,
+  planStatePrune,
+  publicStatePrunePlan,
+  recoverInterruptedStatePrune,
+  resolveProjectPaths,
+  type StatePruneReceipt,
+} from "@lervo/project";
+import { openProjectStorage } from "@lervo/project-storage";
 import { assertNoKnowledgeMaterializationTransaction } from "@lervo/repository-knowledge";
+import { visitEventSnapshot } from "@lervo/storage-contract";
 
+import { inspectStateRetentionEvidence } from "./state-retention-evidence.js";
 import type { CliIo } from "./types.js";
 
 export const stateUsage =
-  "  lervo state status [--root <path>] [--json]\n  lervo state reset [--apply --approval <plan-id>] [--root <path>] [--json]";
+  "  lervo state status [--root <path>] [--json]\n  lervo state prune [--apply --approval <plan-id> | --recover <plan-id>] [--root <path>] [--json]\n  lervo state reset [--apply --approval <plan-id>] [--root <path>] [--json]";
 
 interface StatePlan {
   schemaVersion: 1;
@@ -35,9 +45,19 @@ interface StateStatus {
   durableDataPath: ".lervo/data";
   durableDataDisposition: "preserved";
   resetPlanDisposition: "run_state_reset_to_create_content_bound_plan";
+  retention: {
+    policyMode: "manual_plan_apply";
+    unattendedCleanup: "disabled" | "eligible";
+    pruneStatus: "ready" | "current" | "blocked";
+    protectedFiles: number;
+    protectedBytes: number;
+    reclaimableFiles: number;
+    reclaimableBytes: number;
+    blockers: readonly string[];
+  };
 }
 
-function statusFromPlan(current: StatePlan): StateStatus {
+function statusFromPlan(current: StatePlan, retention: StateStatus["retention"]): StateStatus {
   return {
     schemaVersion: 1,
     inspectionKind: "derived_state_status",
@@ -48,7 +68,148 @@ function statusFromPlan(current: StatePlan): StateStatus {
     durableDataPath: current.durableDataPath,
     durableDataDisposition: current.durableDataDisposition,
     resetPlanDisposition: "run_state_reset_to_create_content_bound_plan",
+    retention,
   };
+}
+
+async function existingPruneTombstones(repositoryRoot: string): Promise<string[]> {
+  try {
+    return (await readdir(resolve(repositoryRoot, ".lervo")))
+      .filter((name) => name.startsWith(".state-prune-kstateprune_"))
+      .map((name) => name.slice(".state-prune-".length))
+      .toSorted();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+}
+
+async function retentionBlockers(repositoryRoot: string): Promise<string[]> {
+  const blockers = (await existingPruneTombstones(repositoryRoot)).map(
+    (id) => `interrupted_prune:${id}`,
+  );
+  try {
+    await assertNoKnowledgeMaterializationTransaction({ repositoryRoot });
+  } catch {
+    blockers.push("knowledge_materialization_recovery_required");
+  }
+  return blockers;
+}
+
+async function nodeRuntimeEligible(repositoryRoot: string): Promise<boolean> {
+  try {
+    const value = JSON.parse(
+      await readFile(resolve(repositoryRoot, ".lervo/state/node-runtime-health.json"), "utf8"),
+    ) as { status?: unknown };
+    return value.status === "ready";
+  } catch {
+    return false;
+  }
+}
+
+function statePruneEventExists(
+  storage: Awaited<ReturnType<typeof openProjectStorage>>,
+  planId: string,
+): boolean {
+  let found = false;
+  const latest = storage.events.latest();
+  if (latest === null) return false;
+  visitEventSnapshot({
+    events: storage.events,
+    throughSeq: latest.seq,
+    visit: (event) => {
+      if (event.type === "state.pruned" && event.payload.planId === planId) found = true;
+    },
+  });
+  return found;
+}
+
+function appendStatePrunedEvent(
+  storage: Awaited<ReturnType<typeof openProjectStorage>>,
+  receipt: StatePruneReceipt,
+): void {
+  const identity = randomUUID().replaceAll("-", "");
+  storage.events.append({
+    eventId: `evt_${identity}`,
+    projectId: storage.manifest.projectId,
+    runId: `run_${identity}`,
+    sessionId: `ses_${identity}`,
+    type: "state.pruned",
+    occurredAt: receipt.appliedAt,
+    actor: { kind: "system" },
+    schemaVersion: 1,
+    policyVersion: receipt.policyHash,
+    payload: {
+      planId: receipt.planId,
+      policyHash: receipt.policyHash,
+      inventoryDigest: receipt.inventoryDigest,
+      removedFiles: receipt.removedFiles,
+      removedBytes: receipt.removedBytes,
+      classCounts: Object.entries(receipt.removedByClass).map(([retentionClass, counts]) => ({
+        retentionClass,
+        ...counts,
+      })),
+      appliedAt: receipt.appliedAt,
+    },
+  });
+}
+
+async function runPrune(input: {
+  repositoryRoot: string;
+  apply: boolean;
+  approval?: string;
+  recover?: string;
+  json: boolean;
+  io: CliIo;
+}): Promise<number> {
+  const storage = await openProjectStorage(input.repositoryRoot);
+  try {
+    if (input.recover !== undefined) {
+      const disposition = await recoverInterruptedStatePrune({
+        repositoryRoot: input.repositoryRoot,
+        planId: input.recover,
+        eventExists: statePruneEventExists(storage, input.recover),
+      });
+      input.io.stdout(
+        input.json
+          ? `${JSON.stringify({ planId: input.recover, disposition }, null, 2)}\n`
+          : `Recovered state prune ${input.recover}: ${disposition}.\n`,
+      );
+      return 0;
+    }
+    const evidence = await inspectStateRetentionEvidence({
+      repositoryRoot: input.repositoryRoot,
+      storage,
+    });
+    const current = await planStatePrune({
+      repositoryRoot: input.repositoryRoot,
+      evidence,
+      blockers: await retentionBlockers(input.repositoryRoot),
+    });
+    if (!input.apply) {
+      const output = publicStatePrunePlan(current);
+      input.io.stdout(
+        input.json
+          ? `${JSON.stringify(output, null, 2)}\n`
+          : `State prune: ${current.status}; ${current.operations.reduce((sum, item) => sum + item.fileCount, 0)} files and ${current.operations.reduce((sum, item) => sum + item.byteCount, 0)} bytes reclaimable.${current.status === "ready" ? ` Re-run with --apply --approval ${current.planId}.` : ""}\n`,
+      );
+      return current.status === "blocked" ? 1 : 0;
+    }
+    const receipt = await applyStatePrune({
+      plan: current,
+      approval: input.approval ?? "",
+      evidence,
+      recordEvent: (value) => appendStatePrunedEvent(storage, value),
+    });
+    input.io.stdout(
+      input.json
+        ? `${JSON.stringify(receipt, null, 2)}\n`
+        : `Pruned ${receipt.removedFiles} derived-state files (${receipt.removedBytes} bytes). Durable .lervo/data was preserved.\n`,
+    );
+    return 0;
+  } finally {
+    await storage.close();
+  }
 }
 
 async function fileHash(path: string): Promise<string> {
@@ -86,7 +247,7 @@ async function inventory(
 
 async function plan(repositoryRoot: string, bindContent: boolean): Promise<StatePlan> {
   const root = resolve(repositoryRoot);
-  await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root });
+  if (bindContent) await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root });
   const state = resolveProjectPaths(root).state;
   const files: Array<{ path: string; bytes: number; hash: string | null }> = [];
   try {
@@ -123,6 +284,7 @@ export async function runStateCommand(args: string[], io: CliIo): Promise<number
         json: { type: "boolean" },
         apply: { type: "boolean" },
         approval: { type: "string" },
+        recover: { type: "string" },
         help: { type: "boolean", short: "h" },
       },
     });
@@ -130,12 +292,56 @@ export async function runStateCommand(args: string[], io: CliIo): Promise<number
       io.stdout(`${stateUsage}\n`);
       return 0;
     }
-    if (parsed.positionals.length !== 1 || !["status", "reset"].includes(parsed.positionals[0]!))
-      throw new Error("Specify state status or reset.");
+    if (
+      parsed.positionals.length !== 1 ||
+      !["status", "prune", "reset"].includes(parsed.positionals[0]!)
+    )
+      throw new Error("Specify state status, prune, or reset.");
     const action = parsed.positionals[0]!;
-    const current = await plan(resolve(io.cwd, parsed.values.root ?? "."), action === "reset");
+    const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    if (action === "prune") {
+      if (parsed.values.recover !== undefined && (parsed.values.apply || parsed.values.approval))
+        throw new Error("--recover cannot be combined with --apply or --approval.");
+      return await runPrune({
+        repositoryRoot,
+        apply: parsed.values.apply ?? false,
+        ...(parsed.values.approval === undefined ? {} : { approval: parsed.values.approval }),
+        ...(parsed.values.recover === undefined ? {} : { recover: parsed.values.recover }),
+        json: parsed.values.json ?? false,
+        io,
+      });
+    }
+    const current = await plan(repositoryRoot, action === "reset");
     if (parsed.positionals[0] === "status") {
-      const status = statusFromPlan(current);
+      const storage = await openProjectStorage(repositoryRoot);
+      let evidence;
+      try {
+        evidence = await inspectStateRetentionEvidence({ repositoryRoot, storage });
+      } finally {
+        await storage.close();
+      }
+      const prune = await planStatePrune({
+        repositoryRoot,
+        evidence,
+        blockers: await retentionBlockers(repositoryRoot),
+      });
+      const reclaimable = prune.summaries.reduce(
+        (totals, item) => ({
+          files: totals.files + item.reclaimableFileCount,
+          bytes: totals.bytes + item.reclaimableBytes,
+        }),
+        { files: 0, bytes: 0 },
+      );
+      const status = statusFromPlan(current, {
+        policyMode: "manual_plan_apply",
+        unattendedCleanup: (await nodeRuntimeEligible(repositoryRoot)) ? "eligible" : "disabled",
+        pruneStatus: prune.status,
+        protectedFiles: current.fileCount - reclaimable.files,
+        protectedBytes: current.totalBytes - reclaimable.bytes,
+        reclaimableFiles: reclaimable.files,
+        reclaimableBytes: reclaimable.bytes,
+        blockers: prune.blockers,
+      });
       io.stdout(
         parsed.values.json
           ? `${JSON.stringify(status, null, 2)}\n`

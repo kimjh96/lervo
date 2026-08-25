@@ -392,7 +392,6 @@ function rewriteReferences(
   sourcePath: string,
   content: string,
   moves: Array<{ fromPath: string; toPath: string }>,
-  normalizedSurfaces: { instructions: boolean; skills: boolean },
 ): { content: string; count: number } {
   let output = content;
   let count = 0;
@@ -414,22 +413,6 @@ function rewriteReferences(
       output = replaced.content;
       count += replaced.count;
     }
-  }
-  if (normalizedSurfaces.instructions) {
-    const replaced = replaceAllLiteral(output, ".claude/rules/", "docs/instructions/");
-    output = replaced.content;
-    count += replaced.count;
-    const directory = replaceAllLiteral(output, ".claude/rules", "docs/instructions");
-    output = directory.content;
-    count += directory.count;
-  }
-  if (normalizedSurfaces.skills) {
-    const replaced = replaceAllLiteral(output, ".claude/skills/", ".agents/skills/");
-    output = replaced.content;
-    count += replaced.count;
-    const directory = replaceAllLiteral(output, ".claude/skills", ".agents/skills");
-    output = directory.content;
-    count += directory.count;
   }
   return { content: output, count };
 }
@@ -700,14 +683,6 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     fromPath: source.path,
     toPath,
   }));
-  const normalizedSurfaces = {
-    instructions:
-      executableCandidates.some((item) => item.classification === "instruction") ||
-      scan.sources.some((source) => source.path.startsWith("docs/instructions/")),
-    skills:
-      executableCandidates.some((item) => item.classification === "skill") ||
-      scan.sources.some((source) => source.path.startsWith(".agents/skills/")),
-  };
   const referenceChanges = new Map<
     string,
     {
@@ -732,12 +707,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       move === undefined
         ? { content: source.content, count: 0 }
         : rebaseMarkdownLinks(source.content, source.path, move.toPath);
-    const rewritten = rewriteReferences(
-      move?.toPath ?? source.path,
-      rebased.content,
-      movePaths,
-      normalizedSurfaces,
-    );
+    const rewritten = rewriteReferences(move?.toPath ?? source.path, rebased.content, movePaths);
     rewritten.count += rebased.count;
     if (rewritten.count === 0) continue;
     if (move !== undefined) movedContentChanges.set(source.path, rewritten);

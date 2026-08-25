@@ -33,3 +33,6 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Check code quality
         run: pnpm quality:check
+      - name: Check reviewed CLI release intent
+        if: github.event_name == 'pull_request'
+        run: pnpm release:intent:check --base "${{ github.event.pull_request.base.sha }}"

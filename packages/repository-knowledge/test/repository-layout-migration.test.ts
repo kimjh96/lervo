@@ -274,6 +274,14 @@ describe("repository layout migration", () => {
         "",
       ].join("\n"),
     );
+    await writeFile(
+      resolve(root, "check.mjs"),
+      [
+        "const legacyDirectory = '.claude/rules';",
+        "const exactRule = '.claude/rules/api.md';",
+        "",
+      ].join("\n"),
+    );
 
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
 
@@ -306,6 +314,9 @@ describe("repository layout migration", () => {
     expect(agents).toContain("`apps/api/**/*.{ts,tsx}`");
     expect(agents).toContain("`packages/api/**/*.ts`");
     expect(agents).toContain("docs/instructions/architecture/api.md");
+    const references = await readFile(resolve(root, "check.mjs"), "utf8");
+    expect(references).toContain("'.claude/rules'");
+    expect(references).toContain("'docs/instructions/architecture/api.md'");
     expect((await createRepositoryLayoutMigrationPlan({ repositoryRoot: root })).status).toBe(
       "current",
     );

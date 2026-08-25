@@ -318,7 +318,7 @@ function validJournal(value: unknown): value is KnowledgeMaterializationJournal 
     typeof item === "object" &&
     item.schemaVersion === 1 &&
     item.transactionType === "knowledge_materialization" &&
-    /^(?:ksmat|kstruct|kbridgeplan|klayout|knormplan|kwstreamplan)_[a-f0-9]{24}$/.test(
+    /^(?:ksmat|kstruct|kbridgeplan|kinstbootplan|klayout|knormplan|kwstreamplan|kpatternplan)_[a-f0-9]{24}$/.test(
       item.planId,
     ) &&
     typeof item.projectId === "string" &&

@@ -13,6 +13,99 @@ afterEach(async () => {
 });
 
 describe("repository layout migration CLI", () => {
+  it("bootstraps a Claude-only repository before independently converging the bridge", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-claude-bootstrap-"));
+    roots.push(root);
+    const original = "# Flemo instructions\n\nKeep provider-neutral policy canonical.\n";
+    await writeFile(resolve(root, "CLAUDE.md"), original);
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
+    expect(await runCli(["init"], io)).toBe(0);
+
+    messages.length = 0;
+    expect(await runCli(["terminal", "status", "--json"], io)).toBe(1);
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      status: "action_required",
+      issues: expect.arrayContaining([
+        expect.objectContaining({ code: "instruction_canonical_bootstrap_review_required" }),
+      ]),
+    });
+
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io), errors.join("")).toBe(0);
+    const adoption = JSON.parse(messages.join("")) as {
+      planKind: string;
+      planId: string;
+      operationId: string;
+      approvalHash: string;
+      status: string;
+    };
+    expect(adoption).toMatchObject({
+      planKind: "instruction_canonical_bootstrap",
+      status: "review_required",
+    });
+    messages.length = 0;
+    expect(
+      await runCli(
+        [
+          "migrate",
+          "knowledge",
+          "--apply",
+          adoption.planId,
+          "--approve-item",
+          `${adoption.operationId}=${adoption.approvalHash}`,
+          "--json",
+        ],
+        io,
+      ),
+      errors.join(""),
+    ).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      operation: "instruction_canonical_adoption",
+    });
+    expect(await readFile(resolve(root, "CLAUDE.md"), "utf8")).toBe(original);
+    expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toContain(original.trimEnd());
+
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const bridge = JSON.parse(messages.join("")) as {
+      planId: string;
+      operationId: string;
+      approvalHash: string;
+      status: string;
+      target: { classification: string };
+    };
+    expect(bridge).toMatchObject({
+      status: "review_required",
+      target: { classification: "exact_adopted_duplicate" },
+    });
+    messages.length = 0;
+    expect(
+      await runCli(
+        [
+          "migrate",
+          "knowledge",
+          "--apply",
+          bridge.planId,
+          "--approve-item",
+          `${bridge.operationId}=${bridge.approvalHash}`,
+          "--json",
+        ],
+        io,
+      ),
+      errors.join(""),
+    ).toBe(0);
+    expect(await readFile(resolve(root, "CLAUDE.md"), "utf8")).toBe(
+      "<!-- lervo:begin block=provider_entry schema=1 -->\n@AGENTS.md\n<!-- lervo:end block=provider_entry -->\n",
+    );
+    expect(errors).toEqual([]);
+  });
+
   it("completes plan, approved apply, lint, and idempotent rerun through migrate knowledge", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-layout-migration-"));
     roots.push(root);
@@ -81,7 +174,9 @@ describe("repository layout migration CLI", () => {
     ).toBe(0);
     expect(JSON.parse(messages.join(""))).toMatchObject({ operation: "instruction_bridge_update" });
     messages.length = 0;
-    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const terminalPlanCode = await runCli(["migrate", "knowledge", "--json"], io);
+    if (terminalPlanCode !== 0)
+      throw new Error(`terminal plan failed: ${errors.join("")} ${messages.join("")}`);
     const terminal = JSON.parse(messages.join("")) as {
       planKind: string;
       planId: string;

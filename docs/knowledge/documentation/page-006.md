@@ -4,6 +4,8 @@
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
 - [ADR-0199: Structured workstream continuation state](../../decisions/knowledge/repository/0199-structured-workstream-continuation-state.md) — `docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md`
+- [ADR-0218: Content-bound provider-entrypoint bootstrap](../../decisions/knowledge/repository/0218-content-bound-provider-entrypoint-bootstrap.md) — `docs/decisions/knowledge/repository/0218-content-bound-provider-entrypoint-bootstrap.md`
+- [ADR-0220: Evidence-bound development-pattern promotion](../../decisions/knowledge/repository/0220-evidence-bound-development-pattern-promotion.md) — `docs/decisions/knowledge/repository/0220-evidence-bound-development-pattern-promotion.md`
 - [ADR-0052: Rebuildable explicit knowledge graph](../../decisions/knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md) — `docs/decisions/knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md`
 - [ADR-0180: Hash-Bound Human Duplicate and Contradiction Resolution](../../decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md) — `docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md`
 - [ADR-0186: Content-Bound Codex–Claude Compilation Comparison](../../decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md) — `docs/decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md`
@@ -24,6 +26,4 @@
 - [ADR-0003: Local Event Store, Outbox, and Content-Addressed Storage](../../decisions/operations/storage/0003-local-event-store-and-cas.md) — `docs/decisions/operations/storage/0003-local-event-store-and-cas.md`
 - [ADR-0004: Project Storage Bootstrap](../../decisions/operations/storage/0004-project-storage-bootstrap.md) — `docs/decisions/operations/storage/0004-project-storage-bootstrap.md`
 - [ADR-0213: Deletable Derived State Boundary](../../decisions/operations/storage/0213-deletable-derived-state-boundary.md) — `docs/decisions/operations/storage/0213-deletable-derived-state-boundary.md`
-- [ADR-0039: Authenticate and Scope Projects Before Trace HTTP Reads](../../decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md) — `docs/decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md`
-- [ADR-0040: Read-Only Trace Web View Without Accumulated Pages](../../decisions/operations/trace/0040-bounded-trace-web-view.md) — `docs/decisions/operations/trace/0040-bounded-trace-web-view.md`
-- [ADR-0076: Versioned Trace-Report Compatibility Contract](../../decisions/operations/trace/0076-versioned-trace-report-contract.md) — `docs/decisions/operations/trace/0076-versioned-trace-report-contract.md`
+- [ADR-0219: Typed derived-state retention](../../decisions/operations/storage/0219-typed-derived-state-retention.md) — `docs/decisions/operations/storage/0219-typed-derived-state-retention.md`

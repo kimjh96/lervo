@@ -5,7 +5,7 @@ As of: 2026-08-23
 
 ## Question
 
-Lervo keeps repository knowledge provider-neutral, but coding agents discover different files. The design must distinguish canonical policy, provider discovery bridges, and evidence that a run loaded or used instructions.
+Lervo keeps repository knowledge provider-neutral, but coding agents discover different files. Its design must distinguish canonical policy, provider discovery bridges, and evidence that a run loaded or used instructions.
 
 ## Entrypoint comparison
 

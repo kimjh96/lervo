@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_d3ab13c0f00c02a976735cf1
+freshness: current
+ownership: user
+path: docs/roadmap/onboarding/provider-entrypoint-bootstrap.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_65419f15c22418b4dc3f66aa
+title: Provider-entrypoint bootstrap convergence
+type: concept

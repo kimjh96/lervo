@@ -21,10 +21,10 @@ The pilot ran the built Lervo CLI against the existing dirty Shiflo monorepo wit
 
 ## Managed providers
 
-- Codex run `run_84498e142dc1414ca7c7dfbee03576a0` created only the declared pilot file. Suite `lervo.pilot.codex`, the separate Codex semantic evaluation, and the CLI all passed.
+- Codex run `run_84498e142dc1414ca7c7dfbee03576a0` created only the declared pilot file. Suite `lervo.pilot.codex`, the separate Codex semantic evaluation, and the CLI passed.
 - Claude first omitted one required period. Suite `lervo.pilot.claude` failed, and Lervo emitted no successful completion for that attempt.
 - Claude run `run_78c5431bea1d43da9ca80845dedde591` corrected only the declared pilot file. The suite, separate Claude semantic evaluation, publication permit, and CLI exit passed.
-- The pilot file was removed after verification. Both suite definitions remain because historical verification events bind to their exact hashes and cannot be revalidated safely without them.
+- The pilot file was removed after verification. Both suite definitions remain because historical verification events bind to their exact hashes and cannot be safely revalidated without them.
 
 ## Defects closed
 

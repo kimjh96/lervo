@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_55b99167260ec32940796cad
+freshness: current
+ownership: user
+path: docs/roadmap/release/version-management-automation.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_fd342a726640dd7aa7990c4d
+title: Automated version and release preparation
+type: concept

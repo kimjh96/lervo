@@ -15,6 +15,7 @@ import {
 } from "@lervo/schemas";
 import {
   canonicalJson,
+  createKnowledgeInstructionBootstrapPlan,
   createKnowledgeInstructionBridgePlan,
   createKnowledgeMigrationPlan,
   createRepositoryLayoutMigrationPlan,
@@ -625,13 +626,25 @@ async function inspectLifecycle(
           : "terminal_integration_stale",
       command: "lervo migrate knowledge",
     });
-  const layout = await createRepositoryLayoutMigrationPlan({
+  const instructionBootstrap = await createKnowledgeInstructionBootstrapPlan({
     repositoryRoot: root,
     supplementalSources,
   });
-  if (layout.status !== "current")
+  if (instructionBootstrap.status !== "not_applicable")
+    issues.push({
+      code: `instruction_canonical_bootstrap_${instructionBootstrap.status}`,
+      command: "lervo migrate knowledge",
+    });
+  const layout =
+    instructionBootstrap.status === "not_applicable"
+      ? await createRepositoryLayoutMigrationPlan({
+          repositoryRoot: root,
+          supplementalSources,
+        })
+      : null;
+  if (layout !== null && layout.status !== "current")
     issues.push({ code: `repository_layout_${layout.status}`, command: "lervo migrate knowledge" });
-  if (layout.status === "current") {
+  if (layout?.status === "current") {
     const bridge = await createKnowledgeInstructionBridgePlan({
       repositoryRoot: root,
       provider: "claude",
@@ -644,7 +657,7 @@ async function inspectLifecycle(
       });
   }
   if (
-    layout.status === "current" &&
+    layout?.status === "current" &&
     issues.every((item) => !item.code.startsWith("claude_instruction_bridge_"))
   ) {
     const structural = await createKnowledgeMigrationPlan({

@@ -25,6 +25,7 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { runDocumentNormalizationCommand } from "./document-normalization-command.js";
 import { loadTerminalHookRuntime } from "./terminal-runtime.js";
+import { runInstructionBootstrapStage } from "./instruction-bootstrap-command.js";
 import type { CliIo } from "./types.js";
 import { runKnowledgeInstruction } from "./knowledge-instruction-command.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
@@ -212,6 +213,15 @@ export async function runKnowledgeMigration(input: {
         return 0;
       }
     }
+    const instructionBootstrapResult = await runInstructionBootstrapStage({
+      repositoryRoot,
+      supplementalSources,
+      ...(values.apply === undefined ? {} : { applyPlanId: values.apply }),
+      approvalItems: values["approve-item"] ?? [],
+      json: values.json ?? false,
+      io: input.io,
+    });
+    if (instructionBootstrapResult !== null) return instructionBootstrapResult;
     // The generated canonical AGENTS.md entrypoint is materialized by the base
     // knowledge stage. Defer agent-surface routing until that source exists so
     // a fresh repository containing portable skills can bootstrap safely.
