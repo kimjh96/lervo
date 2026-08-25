@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_2e4c798bc94da6f2a5882f7e
+  - uv_0a33c66b351dc4fcbd68d538
 title: "ADR-0216: Managed provider terminal-hook isolation"
 type: decision

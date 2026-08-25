@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_7f1f4bfe5f978b04cf68af1d
+  - uv_a7a2ad3d3857f2edea34f3ec
 title: "ADR-0217: Local hybrid search and reviewed relation context"
 type: decision
