@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_300649b634e4ea5eff5384ba
+  - uv_74965384320d87f3ce9d45c9
 title: "ADR-0215: Supported-runtime release portability"
 type: decision

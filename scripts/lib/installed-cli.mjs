@@ -38,8 +38,8 @@ export async function runPnpm(args, options = {}) {
   return execFileAsync("pnpm", args, commandOptions);
 }
 
-export function pnpmDeployCompatibilityArgs(platform = process.platform) {
-  return platform === "win32" ? ["--legacy", "--config.minimum-release-age=0"] : [];
+export function pnpmDeployFetchArgs(platform = process.platform) {
+  return platform === "win32" ? ["--prefer-offline"] : ["--offline"];
 }
 
 async function readOptionalWorkspaceState() {
@@ -63,13 +63,12 @@ export async function runPnpmDeploy(args, options = {}) {
 
 export async function deployBuiltCli(target) {
   await runPnpmDeploy([
-    "--offline",
+    ...pnpmDeployFetchArgs(),
     "--config.inject-workspace-packages=true",
     "--config.package-import-method=copy",
     "--filter",
     "@lervo/cli",
     "deploy",
-    ...pnpmDeployCompatibilityArgs(),
     "--prod",
     target,
   ]);

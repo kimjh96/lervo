@@ -15,7 +15,7 @@ import { basename, dirname, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import {
-  pnpmDeployCompatibilityArgs,
+  pnpmDeployFetchArgs,
   readJson,
   repositoryRoot,
   runPnpmDeploy,
@@ -115,13 +115,12 @@ async function buildDistribution(outputArgument) {
   const stagedArchive = resolve(staging, basename(output));
   try {
     await runPnpmDeploy([
-      "--offline",
+      ...pnpmDeployFetchArgs(),
       "--config.inject-workspace-packages=true",
       "--config.package-import-method=copy",
       "--filter",
       "@lervo/node-runtime-dependencies",
       "deploy",
-      ...pnpmDeployCompatibilityArgs(),
       "--prod",
       payloadRoot,
     ]);

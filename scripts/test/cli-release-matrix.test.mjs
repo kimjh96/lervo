@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { describe, it } from "vitest";
 import { parse } from "yaml";
 
-import { pnpmDeployCompatibilityArgs } from "../lib/installed-cli.mjs";
+import { pnpmDeployFetchArgs } from "../lib/installed-cli.mjs";
 
 const workflowPath = resolve(import.meta.dirname, "../../.github/workflows/cli-release-matrix.yml");
 
@@ -13,13 +13,10 @@ async function readWorkflow() {
 }
 
 describe("CLI release matrix workflow", () => {
-  it("uses pnpm's installed-closure deploy fallback only on Windows", () => {
-    assert.deepEqual(pnpmDeployCompatibilityArgs("win32"), [
-      "--legacy",
-      "--config.minimum-release-age=0",
-    ]);
-    assert.deepEqual(pnpmDeployCompatibilityArgs("darwin"), []);
-    assert.deepEqual(pnpmDeployCompatibilityArgs("linux"), []);
+  it("allows only Windows to fetch an exact locked tarball missing from its local store", () => {
+    assert.deepEqual(pnpmDeployFetchArgs("win32"), ["--prefer-offline"]);
+    assert.deepEqual(pnpmDeployFetchArgs("darwin"), ["--offline"]);
+    assert.deepEqual(pnpmDeployFetchArgs("linux"), ["--offline"]);
   });
 
   it("runs the packed CLI contract on all supported desktop platforms", async () => {
