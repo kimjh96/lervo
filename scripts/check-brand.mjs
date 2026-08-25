@@ -70,7 +70,9 @@ for (const path of packagePaths) {
   if (typeof manifest.name !== "string" || !manifest.name.startsWith("@lervo/")) {
     failures.push(`${path}: the package name is outside the @lervo scope.`);
   }
-  if (manifest.version !== rootPackage.version) {
+  if (manifest.name === "@lervo/cli" && !/^\d+\.\d+\.\d+$/.test(manifest.version ?? "")) {
+    failures.push(`${path}: the public CLI version must be a valid semantic version.`);
+  } else if (manifest.name !== "@lervo/cli" && manifest.version !== rootPackage.version) {
     failures.push(`${path}: the package version differs from root ${rootPackage.version}.`);
   }
 }
