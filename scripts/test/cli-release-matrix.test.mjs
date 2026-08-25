@@ -7,12 +7,17 @@ import { parse } from "yaml";
 import { pnpmDeployFetchArgs } from "../lib/installed-cli.mjs";
 
 const workflowPath = resolve(import.meta.dirname, "../../.github/workflows/cli-release-matrix.yml");
+const gitAttributesPath = resolve(import.meta.dirname, "../../.gitattributes");
 
 async function readWorkflow() {
   return parse(await readFile(workflowPath, "utf8"));
 }
 
 describe("CLI release matrix workflow", () => {
+  it("checks out release inputs with platform-independent line endings", async () => {
+    assert.equal(await readFile(gitAttributesPath, "utf8"), "* text=auto eol=lf\n");
+  });
+
   it("allows only Windows to fetch an exact locked tarball missing from its local store", () => {
     assert.deepEqual(pnpmDeployFetchArgs("win32"), ["--prefer-offline"]);
     assert.deepEqual(pnpmDeployFetchArgs("darwin"), ["--offline"]);

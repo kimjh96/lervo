@@ -1,4 +1,4 @@
-candidateId: knorm_f3c4da16e83a8078f72b9bf8
+candidateId: knorm_03f5e2790ed0e7f2ca967773
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
   compilerId: lervo.codex.document-normalizer
@@ -6,21 +6,21 @@ compiler:
   isolation: external_no_capabilities
   provider: codex
 formatVersion: lervo.document.v1
-operationId: knormop_d1dd33c7ca3972644bc67d75
+operationId: knormop_3ec3273696c5a4d4976171c5
 outputLanguage: en
 outputs:
-  - byteCount: 2524
-    contentHash: sha256:98cf25ae12b6ce6c1729cdf06c0ddd719fd7b0e7a64d083c40cf85238dd6e3eb
+  - byteCount: 2721
+    contentHash: sha256:1c96eb6d6bfd884775cf1f2b588cd86add846e3170ebbbdd5d0362769e889afe
     path: docs/decisions/release/packaging/0215-supported-runtime-release-portability.md
-    userRegionHash: sha256:98cf25ae12b6ce6c1729cdf06c0ddd719fd7b0e7a64d083c40cf85238dd6e3eb
+    userRegionHash: sha256:1c96eb6d6bfd884775cf1f2b588cd86add846e3170ebbbdd5d0362769e889afe
 profile: decision_record
-recordId: knormdoc_5ac41b57592b14f36b0948f2
+recordId: knormdoc_7bfb7d3917b5da0b61b91275
 resourceBindings: []
 schemaVersion: 1
-sourceContentHash: sha256:64df4d22513213a5279347088a0de6e62b5665265924d8eb7cb006d32832f4f9
+sourceContentHash: sha256:66cb89b5bc331bd85c10967087184222f3a567e2c0b831ad297c2380a47f3432
 sourcePath: docs/decisions/release/packaging/0215-supported-runtime-release-portability.md
 sourceUnitVersionIds:
-  - uv_095c165363386d78e6940cbf
-  - uv_2b195454af2fffdccdf972b2
-  - uv_614ac1bb4b22043fc93ec784
-  - uv_756882a09737fff989b9b02e
+  - uv_31e81c2a85dd57560a889af2
+  - uv_992dc179dc97aebcc43edac8
+  - uv_cb6846ea2e067314f3cfe233
+  - uv_e610d57de935db8368a6ad58
