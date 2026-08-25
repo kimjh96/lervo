@@ -14,7 +14,10 @@ async function readWorkflow() {
 
 describe("CLI release matrix workflow", () => {
   it("uses pnpm's installed-closure deploy fallback only on Windows", () => {
-    assert.deepEqual(pnpmDeployCompatibilityArgs("win32"), ["--legacy"]);
+    assert.deepEqual(pnpmDeployCompatibilityArgs("win32"), [
+      "--legacy",
+      "--config.minimum-release-age=0",
+    ]);
     assert.deepEqual(pnpmDeployCompatibilityArgs("darwin"), []);
     assert.deepEqual(pnpmDeployCompatibilityArgs("linux"), []);
   });

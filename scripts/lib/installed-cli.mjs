@@ -39,7 +39,7 @@ export async function runPnpm(args, options = {}) {
 }
 
 export function pnpmDeployCompatibilityArgs(platform = process.platform) {
-  return platform === "win32" ? ["--legacy"] : [];
+  return platform === "win32" ? ["--legacy", "--config.minimum-release-age=0"] : [];
 }
 
 async function readOptionalWorkspaceState() {
