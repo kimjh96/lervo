@@ -2991,7 +2991,7 @@ var require_compile = __commonJS({
       const schOrFunc = root2.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve32.call(this, root2, ref);
+      let _sch = resolve34.call(this, root2, ref);
       if (_sch === void 0) {
         const schema = (_a = root2.localRefs) === null || _a === void 0 ? void 0 : _a[ref];
         const { schemaId } = this.opts;
@@ -3018,7 +3018,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve32(root2, ref) {
+    function resolve34(root2, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3649,7 +3649,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve32(baseURI, relativeURI, options) {
+    function resolve34(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const { parsed: baseParsed, malformedAuthorityOrPort: baseMalformed } = parseWithStatus(baseURI, schemelessOptions);
       const { parsed: relativeParsed, malformedAuthorityOrPort: relativeMalformed } = parseWithStatus(relativeURI, schemelessOptions);
@@ -3660,49 +3660,49 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative12, options, skipNormalization) {
+    function resolveComponent(base, relative13, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
         base = parse25(serialize(base, options), options);
-        relative12 = parse25(serialize(relative12, options), options);
+        relative13 = parse25(serialize(relative13, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative12.scheme) {
-        target.scheme = relative12.scheme;
-        target.userinfo = relative12.userinfo;
-        target.host = relative12.host;
-        target.port = relative12.port;
-        target.path = removeDotSegments(relative12.path || "");
-        target.query = relative12.query;
+      if (!options.tolerant && relative13.scheme) {
+        target.scheme = relative13.scheme;
+        target.userinfo = relative13.userinfo;
+        target.host = relative13.host;
+        target.port = relative13.port;
+        target.path = removeDotSegments(relative13.path || "");
+        target.query = relative13.query;
       } else {
-        if (relative12.userinfo !== void 0 || relative12.host !== void 0 || relative12.port !== void 0) {
-          target.userinfo = relative12.userinfo;
-          target.host = relative12.host;
-          target.port = relative12.port;
-          target.path = removeDotSegments(relative12.path || "");
-          target.query = relative12.query;
+        if (relative13.userinfo !== void 0 || relative13.host !== void 0 || relative13.port !== void 0) {
+          target.userinfo = relative13.userinfo;
+          target.host = relative13.host;
+          target.port = relative13.port;
+          target.path = removeDotSegments(relative13.path || "");
+          target.query = relative13.query;
         } else {
-          if (!relative12.path) {
+          if (!relative13.path) {
             target.path = base.path;
-            if (relative12.query !== void 0) {
-              target.query = relative12.query;
+            if (relative13.query !== void 0) {
+              target.query = relative13.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative12.path[0] === "/") {
-              target.path = removeDotSegments(relative12.path);
+            if (relative13.path[0] === "/") {
+              target.path = removeDotSegments(relative13.path);
             } else {
               if ((base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0) && !base.path) {
-                target.path = "/" + relative12.path;
+                target.path = "/" + relative13.path;
               } else if (!base.path) {
-                target.path = relative12.path;
+                target.path = relative13.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative12.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative13.path;
               }
               target.path = removeDotSegments(target.path);
             }
-            target.query = relative12.query;
+            target.query = relative13.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -3710,7 +3710,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative12.fragment;
+      target.fragment = relative13.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -3933,7 +3933,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve: resolve32,
+      resolve: resolve34,
       resolveComponent,
       equal,
       serialize,
@@ -11141,10 +11141,10 @@ var require_resolve_block_map = __commonJS({
       let offset = bm.offset;
       let commentEnd = null;
       for (const collItem of bm.items) {
-        const { start, key, sep: sep12, value } = collItem;
+        const { start, key, sep: sep13, value } = collItem;
         const keyProps = resolveProps.resolveProps(start, {
           indicator: "explicit-key-ind",
-          next: key ?? sep12?.[0],
+          next: key ?? sep13?.[0],
           offset,
           onError,
           parentIndent: bm.indent,
@@ -11158,7 +11158,7 @@ var require_resolve_block_map = __commonJS({
             else if ("indent" in key && key.indent !== bm.indent)
               onError(offset, "BAD_INDENT", startColMsg);
           }
-          if (!keyProps.anchor && !keyProps.tag && !sep12) {
+          if (!keyProps.anchor && !keyProps.tag && !sep13) {
             commentEnd = keyProps.end;
             if (keyProps.comment) {
               if (map.comment)
@@ -11182,7 +11182,7 @@ var require_resolve_block_map = __commonJS({
         ctx.atKey = false;
         if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
           onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-        const valueProps = resolveProps.resolveProps(sep12 ?? [], {
+        const valueProps = resolveProps.resolveProps(sep13 ?? [], {
           indicator: "map-value-ind",
           next: value,
           offset: keyNode.range[2],
@@ -11198,7 +11198,7 @@ var require_resolve_block_map = __commonJS({
             if (ctx.options.strict && keyProps.start < valueProps.found.offset - 1024)
               onError(keyNode.range, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit block mapping key");
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep12, null, valueProps, onError);
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep13, null, valueProps, onError);
           if (ctx.schema.compat)
             utilFlowIndentCheck.flowIndentCheck(bm.indent, value, onError);
           offset = valueNode.range[2];
@@ -11289,7 +11289,7 @@ var require_resolve_end = __commonJS({
       let comment2 = "";
       if (end) {
         let hasSpace = false;
-        let sep12 = "";
+        let sep13 = "";
         for (const token of end) {
           const { source, type } = token;
           switch (type) {
@@ -11303,13 +11303,13 @@ var require_resolve_end = __commonJS({
               if (!comment2)
                 comment2 = cb;
               else
-                comment2 += sep12 + cb;
-              sep12 = "";
+                comment2 += sep13 + cb;
+              sep13 = "";
               break;
             }
             case "newline":
               if (comment2)
-                sep12 += source;
+                sep13 += source;
               hasSpace = true;
               break;
             default:
@@ -11352,18 +11352,18 @@ var require_resolve_flow_collection = __commonJS({
       let offset = fc.offset + fc.start.source.length;
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
-        const { start, key, sep: sep12, value } = collItem;
+        const { start, key, sep: sep13, value } = collItem;
         const props = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
-          next: key ?? sep12?.[0],
+          next: key ?? sep13?.[0],
           offset,
           onError,
           parentIndent: fc.indent,
           startOnNewline: false
         });
         if (!props.found) {
-          if (!props.anchor && !props.tag && !sep12 && !value) {
+          if (!props.anchor && !props.tag && !sep13 && !value) {
             if (i === 0 && props.comma)
               onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
             else if (i < fc.items.length - 1)
@@ -11417,8 +11417,8 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap2 && !sep12 && !props.found) {
-          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep12, null, props, onError);
+        if (!isMap2 && !sep13 && !props.found) {
+          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep13, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
           if (isBlock(value))
@@ -11430,7 +11430,7 @@ var require_resolve_flow_collection = __commonJS({
           if (isBlock(key))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
-          const valueProps = resolveProps.resolveProps(sep12 ?? [], {
+          const valueProps = resolveProps.resolveProps(sep13 ?? [], {
             flow: fcName,
             indicator: "map-value-ind",
             next: value,
@@ -11441,8 +11441,8 @@ var require_resolve_flow_collection = __commonJS({
           });
           if (valueProps.found) {
             if (!isMap2 && !props.found && ctx.options.strict) {
-              if (sep12)
-                for (const st of sep12) {
+              if (sep13)
+                for (const st of sep13) {
                   if (st === valueProps.found)
                     break;
                   if (st.type === "newline") {
@@ -11459,7 +11459,7 @@ var require_resolve_flow_collection = __commonJS({
             else
               onError(valueProps.start, "MISSING_CHAR", `Missing , or : between ${fcName} items`);
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep12, null, valueProps, onError) : null;
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep13, null, valueProps, onError) : null;
           if (valueNode) {
             if (isBlock(value))
               onError(valueNode.range, "BLOCK_IN_FLOW", blockMsg);
@@ -11639,7 +11639,7 @@ var require_resolve_block_scalar = __commonJS({
           chompStart = i + 1;
       }
       let value = "";
-      let sep12 = "";
+      let sep13 = "";
       let prevMoreIndented = false;
       for (let i = 0; i < contentStart; ++i)
         value += lines[i][0].slice(trimIndent) + "\n";
@@ -11656,24 +11656,24 @@ var require_resolve_block_scalar = __commonJS({
           indent = "";
         }
         if (type === Scalar.Scalar.BLOCK_LITERAL) {
-          value += sep12 + indent.slice(trimIndent) + content3;
-          sep12 = "\n";
+          value += sep13 + indent.slice(trimIndent) + content3;
+          sep13 = "\n";
         } else if (indent.length > trimIndent || content3[0] === "	") {
-          if (sep12 === " ")
-            sep12 = "\n";
-          else if (!prevMoreIndented && sep12 === "\n")
-            sep12 = "\n\n";
-          value += sep12 + indent.slice(trimIndent) + content3;
-          sep12 = "\n";
+          if (sep13 === " ")
+            sep13 = "\n";
+          else if (!prevMoreIndented && sep13 === "\n")
+            sep13 = "\n\n";
+          value += sep13 + indent.slice(trimIndent) + content3;
+          sep13 = "\n";
           prevMoreIndented = true;
         } else if (content3 === "") {
-          if (sep12 === "\n")
+          if (sep13 === "\n")
             value += "\n";
           else
-            sep12 = "\n";
+            sep13 = "\n";
         } else {
-          value += sep12 + content3;
-          sep12 = " ";
+          value += sep13 + content3;
+          sep13 = " ";
           prevMoreIndented = false;
         }
       }
@@ -11855,25 +11855,25 @@ var require_resolve_flow_scalar = __commonJS({
       if (!match)
         return source;
       let res = match[1];
-      let sep12 = " ";
+      let sep13 = " ";
       let pos = first.lastIndex;
       line.lastIndex = pos;
       while (match = line.exec(source)) {
         if (match[1] === "") {
-          if (sep12 === "\n")
-            res += sep12;
+          if (sep13 === "\n")
+            res += sep13;
           else
-            sep12 = "\n";
+            sep13 = "\n";
         } else {
-          res += sep12 + match[1];
-          sep12 = " ";
+          res += sep13 + match[1];
+          sep13 = " ";
         }
         pos = line.lastIndex;
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
       match = last.exec(source);
-      return res + sep12 + (match?.[1] ?? "");
+      return res + sep13 + (match?.[1] ?? "");
     }
     function doubleQuotedValue(source, onError) {
       let res = "";
@@ -12683,14 +12683,14 @@ var require_cst_stringify = __commonJS({
         }
       }
     }
-    function stringifyItem({ start, key, sep: sep12, value }) {
+    function stringifyItem({ start, key, sep: sep13, value }) {
       let res = "";
       for (const st of start)
         res += st.source;
       if (key)
         res += stringifyToken(key);
-      if (sep12)
-        for (const st of sep12)
+      if (sep13)
+        for (const st of sep13)
           res += st.source;
       if (value)
         res += stringifyToken(value);
@@ -13857,18 +13857,18 @@ var require_parser = __commonJS({
         if (this.type === "map-value-ind") {
           const prev = getPrevProps(this.peek(2));
           const start = getFirstKeyStartProps(prev);
-          let sep12;
+          let sep13;
           if (scalar.end) {
-            sep12 = scalar.end;
-            sep12.push(this.sourceToken);
+            sep13 = scalar.end;
+            sep13.push(this.sourceToken);
             delete scalar.end;
           } else
-            sep12 = [this.sourceToken];
+            sep13 = [this.sourceToken];
           const map = {
             type: "block-map",
             offset: scalar.offset,
             indent: scalar.indent,
-            items: [{ start, key: scalar, sep: sep12 }]
+            items: [{ start, key: scalar, sep: sep13 }]
           };
           this.onKeyLine = true;
           this.stack[this.stack.length - 1] = map;
@@ -14021,15 +14021,15 @@ var require_parser = __commonJS({
                 } else if (isFlowToken(it.key) && !includesToken(it.sep, "newline")) {
                   const start2 = getFirstKeyStartProps(it.start);
                   const key = it.key;
-                  const sep12 = it.sep;
-                  sep12.push(this.sourceToken);
+                  const sep13 = it.sep;
+                  sep13.push(this.sourceToken);
                   delete it.key;
                   delete it.sep;
                   this.stack.push({
                     type: "block-map",
                     offset: this.offset,
                     indent: this.indent,
-                    items: [{ start: start2, key, sep: sep12 }]
+                    items: [{ start: start2, key, sep: sep13 }]
                   });
                 } else if (start.length > 0) {
                   it.sep = it.sep.concat(start, this.sourceToken);
@@ -14223,13 +14223,13 @@ var require_parser = __commonJS({
             const prev = getPrevProps(parent);
             const start = getFirstKeyStartProps(prev);
             fixFlowSeqItems(fc);
-            const sep12 = fc.end.splice(1, fc.end.length);
-            sep12.push(this.sourceToken);
+            const sep13 = fc.end.splice(1, fc.end.length);
+            sep13.push(this.sourceToken);
             const map = {
               type: "block-map",
               offset: fc.offset,
               indent: fc.indent,
-              items: [{ start, key: fc, sep: sep12 }]
+              items: [{ start, key: fc, sep: sep13 }]
             };
             this.onKeyLine = true;
             this.stack[this.stack.length - 1] = map;
@@ -31159,7 +31159,7 @@ var require_util2 = __commonJS({
     exports.isAbsolute = function(aPath) {
       return aPath.charAt(0) === "/" || urlRegexp.test(aPath);
     };
-    function relative12(aRoot, aPath) {
+    function relative13(aRoot, aPath) {
       if (aRoot === "") {
         aRoot = ".";
       }
@@ -31178,7 +31178,7 @@ var require_util2 = __commonJS({
       }
       return Array(level + 1).join("../") + aPath.substr(aRoot.length + 1);
     }
-    exports.relative = relative12;
+    exports.relative = relative13;
     var supportsNullProto = (function() {
       var obj = /* @__PURE__ */ Object.create(null);
       return !("__proto__" in obj);
@@ -32810,7 +32810,7 @@ var require_previous_map = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/previous-map.js"(exports, module) {
     "use strict";
     var { existsSync, readFileSync, realpathSync } = __require("fs");
-    var { dirname: dirname8, isAbsolute: isAbsolute4, join, relative: relative12, sep: sep12 } = __require("path");
+    var { dirname: dirname8, isAbsolute: isAbsolute4, join, relative: relative13, sep: sep13 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     function realPath(path) {
       try {
@@ -32883,8 +32883,8 @@ var require_previous_map = __commonJS({
         if (!trusted && !this.unsafeMap) {
           if (!/\.map$/i.test(path)) return void 0;
           if (!cssFile) return void 0;
-          let rel = relative12(realPath(dirname8(cssFile)), realPath(path));
-          if (rel === ".." || rel.startsWith(".." + sep12) || isAbsolute4(rel)) {
+          let rel = relative13(realPath(dirname8(cssFile)), realPath(path));
+          if (rel === ".." || rel.startsWith(".." + sep13) || isAbsolute4(rel)) {
             return void 0;
           }
         }
@@ -32955,7 +32955,7 @@ var require_input = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/input.js"(exports, module) {
     "use strict";
     var { nanoid } = require_non_secure();
-    var { isAbsolute: isAbsolute4, resolve: resolve32 } = __require("path");
+    var { isAbsolute: isAbsolute4, resolve: resolve34 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     var { fileURLToPath: fileURLToPath2, pathToFileURL } = __require("url");
     var CssSyntaxError2 = require_css_syntax_error();
@@ -32963,7 +32963,7 @@ var require_input = __commonJS({
     var terminalHighlight = require_terminal_highlight();
     var lineToIndexCache = /* @__PURE__ */ Symbol("lineToIndexCache");
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(resolve32 && isAbsolute4);
+    var pathAvailable = Boolean(resolve34 && isAbsolute4);
     function getLineToIndex(input) {
       if (input[lineToIndexCache]) return input[lineToIndexCache];
       let lines = input.css.split("\n");
@@ -32997,7 +32997,7 @@ var require_input = __commonJS({
           if (!pathAvailable || /^\w+:\/\//.test(opts.from) || isAbsolute4(opts.from)) {
             this.file = opts.from;
           } else {
-            this.file = resolve32(opts.from);
+            this.file = resolve34(opts.from);
           }
         }
         if (pathAvailable && sourceMapAvailable) {
@@ -33118,7 +33118,7 @@ var require_input = __commonJS({
         if (/^\w+:\/\//.test(file)) {
           return file;
         }
-        return resolve32(this.map.consumer().sourceRoot || this.map.root || ".", file);
+        return resolve34(this.map.consumer().sourceRoot || this.map.root || ".", file);
       }
       origin(line, column, endLine, endColumn) {
         if (!this.map) return false;
@@ -33315,8 +33315,8 @@ var require_rule = __commonJS({
       }
       set selectors(values) {
         let match = this.selector ? this.selector.match(/,\s*/) : null;
-        let sep12 = match ? match[0] : "," + this.raw("between", "beforeOpen");
-        this.selector = values.join(sep12);
+        let sep13 = match ? match[0] : "," + this.raw("between", "beforeOpen");
+        this.selector = values.join(sep13);
       }
       constructor(defaults) {
         super(defaults);
@@ -33428,12 +33428,12 @@ var require_fromJSON = __commonJS({
 var require_map_generator = __commonJS({
   "node_modules/.pnpm/postcss@8.5.26/node_modules/postcss/lib/map-generator.js"(exports, module) {
     "use strict";
-    var { dirname: dirname8, relative: relative12, resolve: resolve32, sep: sep12 } = __require("path");
+    var { dirname: dirname8, relative: relative13, resolve: resolve34, sep: sep13 } = __require("path");
     var { SourceMapConsumer, SourceMapGenerator } = require_source_map();
     var { pathToFileURL } = __require("url");
     var Input2 = require_input();
     var sourceMapAvailable = Boolean(SourceMapConsumer && SourceMapGenerator);
-    var pathAvailable = Boolean(dirname8 && resolve32 && relative12 && sep12);
+    var pathAvailable = Boolean(dirname8 && resolve34 && relative13 && sep13);
     var MapGenerator = class {
       constructor(stringify15, root2, opts, cssString) {
         this.stringify = stringify15;
@@ -33662,9 +33662,9 @@ var require_map_generator = __commonJS({
         if (cached) return cached;
         let from = this.opts.to ? dirname8(this.opts.to) : ".";
         if (typeof this.mapOpts.annotation === "string") {
-          from = dirname8(resolve32(from, this.mapOpts.annotation));
+          from = dirname8(resolve34(from, this.mapOpts.annotation));
         }
-        let path = relative12(from, file);
+        let path = relative13(from, file);
         this.memoizedPaths.set(file, path);
         return path;
       }
@@ -33737,7 +33737,7 @@ var require_map_generator = __commonJS({
       toUrl(path) {
         let cached = this.memoizedURLs.get(path);
         if (cached) return cached;
-        if (sep12 === "\\") {
+        if (sep13 === "\\") {
           path = path.replace(/\\/g, "/");
         }
         let url = encodeURI(path).replace(/[#?]/g, encodeURIComponent);
@@ -35208,15 +35208,15 @@ var require_postcss = __commonJS({
 
 // apps/cli/src/terminal-hook-bin.ts
 import { createHash as createHash9 } from "node:crypto";
-import { readFile as readFile11 } from "node:fs/promises";
-import { dirname as dirname7, resolve as resolve31 } from "node:path";
+import { readFile as readFile12 } from "node:fs/promises";
+import { dirname as dirname7, resolve as resolve33 } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// apps/cli/src/terminal-command.ts
+// apps/cli/src/terminal-command-runtime.ts
 import { constants as constants13 } from "node:fs";
 import { randomUUID as randomUUID2 } from "node:crypto";
-import { lstat as lstat22, mkdir as mkdir8, open as open15, readFile as readFile10, rename as rename4, rm as rm5 } from "node:fs/promises";
-import { dirname as dirname6, relative as relative11, resolve as resolve30, sep as sep11 } from "node:path";
+import { lstat as lstat23, mkdir as mkdir8, open as open15, readFile as readFile11, rename as rename4, rm as rm5 } from "node:fs/promises";
+import { dirname as dirname6, relative as relative12, resolve as resolve32, sep as sep12 } from "node:path";
 import { parseArgs } from "node:util";
 
 // packages/diagnostics/dist/recovery-guidance-environment.js
@@ -48477,11 +48477,11 @@ function parseTree(text3, errors = [], options = ParseOptions.DEFAULT) {
       onValue({ type: getNodeType(value), offset, length, parent: currentParent, value });
       ensurePropertyComplete(offset + length);
     },
-    onSeparator: (sep12, offset, length) => {
+    onSeparator: (sep13, offset, length) => {
       if (currentParent.type === "property") {
-        if (sep12 === ":") {
+        if (sep13 === ":") {
           currentParent.colonOffset = offset;
-        } else if (sep12 === ",") {
+        } else if (sep13 === ",") {
           ensurePropertyComplete(offset);
         }
       }
@@ -54271,10 +54271,10 @@ function resolveAll(constructs2, events, context) {
   const called = [];
   let index2 = -1;
   while (++index2 < constructs2.length) {
-    const resolve32 = constructs2[index2].resolveAll;
-    if (resolve32 && !called.includes(resolve32)) {
-      events = resolve32(events, context);
-      called.push(resolve32);
+    const resolve34 = constructs2[index2].resolveAll;
+    if (resolve34 && !called.includes(resolve34)) {
+      events = resolve34(events, context);
+      called.push(resolve34);
     }
   }
   return events;
@@ -59925,104 +59925,15 @@ async function createKnowledgeInstructionBridgePlan(input) {
 }
 
 // packages/repository-knowledge/dist/lint-query.js
-import { constants as constants8 } from "node:fs";
-import { lstat as lstat17, open as open10, readFile as readFile9, readdir as readdir7 } from "node:fs/promises";
-import { relative as relative9, resolve as resolve25, sep as sep9 } from "node:path";
+import { lstat as lstat18, readFile as readFile10, readdir as readdir7 } from "node:fs/promises";
+import { relative as relative10, resolve as resolve26, sep as sep10 } from "node:path";
 var import_yaml20 = __toESM(require_dist(), 1);
 
-// packages/repository-knowledge/dist/relation-query.js
-var KNOWLEDGE_RELATION_LIMITS = {
-  maximumSeeds: 5,
-  maximumExaminedRelations: 64,
-  maximumRecommendations: 5,
-  maximumSelections: 2,
-  hops: 1
-};
-function compareText4(left, right) {
-  return left < right ? -1 : left > right ? 1 : 0;
-}
-function projectKnowledgeRelations(input) {
-  const conceptsById = new Map(input.concepts.map((concept) => [concept.conceptId, concept]));
-  const seedConceptIds = [...new Set(input.seedConceptIds)].slice(0, KNOWLEDGE_RELATION_LIMITS.maximumSeeds).filter((conceptId) => {
-    const concept = conceptsById.get(conceptId);
-    return concept !== void 0 && !concept.deprecated && concept.assurance === "human_reviewed" && concept.freshness === "current";
-  });
-  const seeds = new Map(seedConceptIds.map((conceptId, rank) => [conceptId, rank + 1]));
-  const conceptsByPath = /* @__PURE__ */ new Map();
-  for (const concept of input.concepts) {
-    const values = conceptsByPath.get(concept.path) ?? [];
-    values.push(concept);
-    conceptsByPath.set(concept.path, values);
-  }
-  const documentsByPath = /* @__PURE__ */ new Map();
-  for (const [documentId, document4] of Object.entries(input.documentRegistry?.documents ?? {})) {
-    const values = documentsByPath.get(document4.path) ?? [];
-    values.push(documentId);
-    documentsByPath.set(document4.path, values);
-  }
-  const incident = input.relations.filter((relation) => seeds.has(relation.from.id) || seeds.has(relation.to.id)).sort((left, right) => compareText4(left.relationId, right.relationId));
-  const examined = incident.slice(0, KNOWLEDGE_RELATION_LIMITS.maximumExaminedRelations);
-  const candidates = [];
-  for (const relation of examined) {
-    const fromSeedRank = seeds.get(relation.from.id);
-    const toSeedRank = seeds.get(relation.to.id);
-    const seedRank = Math.min(fromSeedRank ?? Number.MAX_SAFE_INTEGER, toSeedRank ?? Number.MAX_SAFE_INTEGER);
-    const seedConceptId = fromSeedRank === seedRank ? relation.from.id : relation.to.id;
-    const targetConceptId = seedConceptId === relation.from.id ? relation.to.id : relation.from.id;
-    const target = conceptsById.get(targetConceptId);
-    if (target === void 0 || target.deprecated || target.assurance !== "human_reviewed" || target.freshness !== "current" || conceptsByPath.get(target.path)?.length !== 1) {
-      continue;
-    }
-    const documentIds = documentsByPath.get(target.path) ?? [];
-    if (documentIds.length !== 1)
-      continue;
-    candidates.push({
-      schemaVersion: 1,
-      recommendationId: stableId("krelrec", {
-        sourceSnapshotId: input.sourceSnapshotId,
-        relationId: relation.relationId,
-        seedConceptId,
-        targetConceptId,
-        documentId: documentIds[0],
-        contentHash: target.contentHash
-      }),
-      relationId: relation.relationId,
-      relationType: relation.type,
-      direction: seedConceptId === relation.from.id ? "outgoing" : "incoming",
-      seedConceptId,
-      targetConceptId,
-      documentId: documentIds[0],
-      path: target.path,
-      sourceContentHash: target.contentHash,
-      sourceSnapshotId: input.sourceSnapshotId,
-      impactReportId: input.impactReportId,
-      seedRank
-    });
-  }
-  const seenDocuments = /* @__PURE__ */ new Set();
-  const recommendations = candidates.sort((left, right) => left.seedRank - right.seedRank || compareText4(left.relationType, right.relationType) || compareText4(left.direction, right.direction) || compareText4(left.relationId, right.relationId) || compareText4(left.documentId, right.documentId)).filter((recommendation) => {
-    if (seenDocuments.has(recommendation.documentId))
-      return false;
-    seenDocuments.add(recommendation.documentId);
-    return true;
-  }).slice(0, KNOWLEDGE_RELATION_LIMITS.maximumRecommendations).map(({ seedRank: _seedRank, ...recommendation }) => recommendation);
-  const core = {
-    schemaVersion: 1,
-    sourceSnapshotId: input.sourceSnapshotId,
-    impactReportId: input.impactReportId,
-    conceptSidecarSetHash: input.conceptSidecarSetHash,
-    relationSidecarSetHash: input.relationSidecarSetHash,
-    seedConceptIds,
-    limits: KNOWLEDGE_RELATION_LIMITS,
-    examinedRelationCount: examined.length,
-    truncated: incident.length > examined.length,
-    recommendations
-  };
-  return { ...core, projectionId: stableId("krelproj", core) };
-}
-
-// packages/repository-knowledge/dist/lint-query.js
-async function generatedPaths(root2) {
+// packages/repository-knowledge/dist/repository-publication-files.js
+import { constants as constants8 } from "node:fs";
+import { lstat as lstat17, open as open10, readFile as readFile9 } from "node:fs/promises";
+import { relative as relative9, resolve as resolve25, sep as sep9 } from "node:path";
+async function generatedKnowledgePaths(root2) {
   const result = /* @__PURE__ */ new Set();
   for (const directory of [".lervo/generated/manifests", ".lervo/generated/semantic-manifests"]) {
     const paths = directory === ".lervo/generated/manifests" ? [".lervo/generated/manifests/current.json"] : await listKnowledgeArtifactPaths({
@@ -60043,6 +59954,48 @@ async function generatedPaths(root2) {
   }
   return result;
 }
+function safePublicationPath(root2, path) {
+  const target = resolve25(root2, path);
+  const fromRoot = relative9(root2, target);
+  return fromRoot === ".." || fromRoot.startsWith(`..${sep9}`) ? null : target;
+}
+async function readSafePublication(root2, path, maximumBytes) {
+  const target = safePublicationPath(root2, path);
+  if (target === null)
+    return null;
+  let current = root2;
+  try {
+    const rootStats = await lstat17(root2);
+    if (!rootStats.isDirectory() || rootStats.isSymbolicLink())
+      return null;
+    const segments = relative9(root2, target).split(sep9);
+    for (const [index2, segment] of segments.entries()) {
+      current = resolve25(current, segment);
+      const stats = await lstat17(current);
+      if (stats.isSymbolicLink())
+        return null;
+      if (index2 === segments.length - 1 ? !stats.isFile() : !stats.isDirectory())
+        return null;
+    }
+    const handle = await open10(target, constants8.O_RDONLY | (constants8.O_NOFOLLOW ?? 0));
+    try {
+      const before = await handle.stat();
+      if (!before.isFile() || before.size > maximumBytes)
+        return null;
+      const bytes = await handle.readFile();
+      const after = await handle.stat();
+      if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs || bytes.byteLength !== before.size)
+        return null;
+      return bytes;
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    return null;
+  }
+}
+
+// packages/repository-knowledge/dist/lint-query.js
 async function lintSemanticManifests(root2, issues) {
   const directoryPath = ".lervo/generated/semantic-manifests";
   let paths;
@@ -60059,7 +60012,7 @@ async function lintSemanticManifests(root2, issues) {
   for (const path of paths) {
     let outputs;
     try {
-      const value = JSON.parse(await readFile9(resolve25(root2, path), "utf8"));
+      const value = JSON.parse(await readFile10(resolve26(root2, path), "utf8"));
       if (value.kind !== "semantic" || !Array.isArray(value.outputs) || !value.outputs.every((item) => typeof item?.path === "string" && typeof item.contentHash === "string"))
         throw new Error();
       outputs = value.outputs;
@@ -60077,8 +60030,8 @@ async function lintSemanticManifests(root2, issues) {
       try {
         if (target === null)
           throw new Error();
-        const stats = await lstat17(target);
-        if (!stats.isFile() || stats.isSymbolicLink() || sha2564(await readFile9(target)) !== output.contentHash)
+        const stats = await lstat18(target);
+        if (!stats.isFile() || stats.isSymbolicLink() || sha2564(await readFile10(target)) !== output.contentHash)
           throw new Error();
       } catch {
         issues.push({
@@ -60172,14 +60125,14 @@ async function lintRepositoryLayout(root2, issues) {
   const decisionPaths = [];
   for (const directory of [taxonomy.decisionRoot, ...taxonomy.legacyRoots]) {
     try {
-      const entries = await readdir7(resolve25(root2, directory), {
+      const entries = await readdir7(resolve26(root2, directory), {
         withFileTypes: true,
         recursive: true
       });
       for (const entry of entries) {
         if (!entry.isFile() || !/^\d{4}-.+\.md$/u.test(entry.name))
           continue;
-        decisionPaths.push(relative9(root2, resolve25(entry.parentPath, entry.name)).split(sep9).join("/"));
+        decisionPaths.push(relative10(root2, resolve26(entry.parentPath, entry.name)).split(sep10).join("/"));
       }
     } catch {
     }
@@ -60233,48 +60186,8 @@ async function lintRepositoryLayout(root2, issues) {
     }
   }
 }
-function safePublicationPath(root2, path) {
-  const target = resolve25(root2, path);
-  const fromRoot = relative9(root2, target);
-  return fromRoot === ".." || fromRoot.startsWith(`..${sep9}`) ? null : target;
-}
-async function readSafePublication(root2, path, maximumBytes) {
-  const target = safePublicationPath(root2, path);
-  if (target === null)
-    return null;
-  let current = root2;
-  try {
-    const rootStats = await lstat17(root2);
-    if (!rootStats.isDirectory() || rootStats.isSymbolicLink())
-      return null;
-    const segments = relative9(root2, target).split(sep9);
-    for (const [index2, segment] of segments.entries()) {
-      current = resolve25(current, segment);
-      const stats = await lstat17(current);
-      if (stats.isSymbolicLink())
-        return null;
-      if (index2 === segments.length - 1 ? !stats.isFile() : !stats.isDirectory())
-        return null;
-    }
-    const handle = await open10(target, constants8.O_RDONLY | (constants8.O_NOFOLLOW ?? 0));
-    try {
-      const before = await handle.stat();
-      if (!before.isFile() || before.size > maximumBytes)
-        return null;
-      const bytes = await handle.readFile();
-      const after = await handle.stat();
-      if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs || bytes.byteLength !== before.size)
-        return null;
-      return bytes;
-    } finally {
-      await handle.close();
-    }
-  } catch {
-    return null;
-  }
-}
 async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
-  const root2 = resolve25(repositoryRoot);
+  const root2 = resolve26(repositoryRoot);
   await assertNoKnowledgeMaterializationTransaction({
     repositoryRoot: root2,
     ...options?.allowTransactionPlanId === void 0 ? {} : { allowedPlanId: options.allowTransactionPlanId }
@@ -60282,12 +60195,12 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
   const issues = [];
   await lintRepositoryLayout(root2, issues);
   await lintSemanticManifests(root2, issues);
-  const manifestDirectory = resolve25(root2, ".lervo/generated/manifests");
+  const manifestDirectory = resolve26(root2, ".lervo/generated/manifests");
   const manifests = [];
   try {
     for (const name2 of (await readdir7(manifestDirectory)).filter((item) => item.endsWith(".json")).sort()) {
       try {
-        const value = JSON.parse(await readFile9(resolve25(manifestDirectory, name2), "utf8"));
+        const value = JSON.parse(await readFile10(resolve26(manifestDirectory, name2), "utf8"));
         if (typeof value.sourceSnapshotId !== "string" || !Array.isArray(value.outputs) || !value.outputs.every((item) => typeof item?.path === "string" && typeof item.contentHash === "string"))
           throw new Error();
         manifests.push(value);
@@ -60333,7 +60246,7 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
       });
   }
   const policy = await loadRepositoryKnowledgePolicy(root2);
-  const generated = await generatedPaths(root2);
+  const generated = await generatedKnowledgePaths(root2);
   const scan = await scanRepositoryKnowledge({
     repositoryRoot: root2,
     projectId: project.projectId,
@@ -60362,8 +60275,8 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
         continue;
       }
       try {
-        const stats = await lstat17(target);
-        const bytes = await readFile9(target);
+        const stats = await lstat18(target);
+        const bytes = await readFile10(target);
         if (!stats.isFile() || stats.isSymbolicLink() || sha2564(bytes) !== output.contentHash)
           throw new Error();
         const publicationPrefix = `${policy.publicationRoot.replace(/\/$/u, "")}/`;
@@ -60437,7 +60350,7 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
       continue;
     }
     try {
-      const stats = await lstat17(publication);
+      const stats = await lstat18(publication);
       if (!stats.isFile() || stats.isSymbolicLink())
         throw new Error();
     } catch {
@@ -60533,6 +60446,102 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
     issues
   };
 }
+
+// packages/repository-knowledge/dist/query.js
+import { resolve as resolve27 } from "node:path";
+
+// packages/repository-knowledge/dist/relation-query.js
+var KNOWLEDGE_RELATION_LIMITS = {
+  maximumSeeds: 5,
+  maximumExaminedRelations: 64,
+  maximumRecommendations: 5,
+  maximumSelections: 2,
+  hops: 1
+};
+function compareText4(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+function projectKnowledgeRelations(input) {
+  const conceptsById = new Map(input.concepts.map((concept) => [concept.conceptId, concept]));
+  const seedConceptIds = [...new Set(input.seedConceptIds)].slice(0, KNOWLEDGE_RELATION_LIMITS.maximumSeeds).filter((conceptId) => {
+    const concept = conceptsById.get(conceptId);
+    return concept !== void 0 && !concept.deprecated && concept.assurance === "human_reviewed" && concept.freshness === "current";
+  });
+  const seeds = new Map(seedConceptIds.map((conceptId, rank) => [conceptId, rank + 1]));
+  const conceptsByPath = /* @__PURE__ */ new Map();
+  for (const concept of input.concepts) {
+    const values = conceptsByPath.get(concept.path) ?? [];
+    values.push(concept);
+    conceptsByPath.set(concept.path, values);
+  }
+  const documentsByPath = /* @__PURE__ */ new Map();
+  for (const [documentId, document4] of Object.entries(input.documentRegistry?.documents ?? {})) {
+    const values = documentsByPath.get(document4.path) ?? [];
+    values.push(documentId);
+    documentsByPath.set(document4.path, values);
+  }
+  const incident = input.relations.filter((relation) => seeds.has(relation.from.id) || seeds.has(relation.to.id)).sort((left, right) => compareText4(left.relationId, right.relationId));
+  const examined = incident.slice(0, KNOWLEDGE_RELATION_LIMITS.maximumExaminedRelations);
+  const candidates = [];
+  for (const relation of examined) {
+    const fromSeedRank = seeds.get(relation.from.id);
+    const toSeedRank = seeds.get(relation.to.id);
+    const seedRank = Math.min(fromSeedRank ?? Number.MAX_SAFE_INTEGER, toSeedRank ?? Number.MAX_SAFE_INTEGER);
+    const seedConceptId = fromSeedRank === seedRank ? relation.from.id : relation.to.id;
+    const targetConceptId = seedConceptId === relation.from.id ? relation.to.id : relation.from.id;
+    const target = conceptsById.get(targetConceptId);
+    if (target === void 0 || target.deprecated || target.assurance !== "human_reviewed" || target.freshness !== "current" || conceptsByPath.get(target.path)?.length !== 1) {
+      continue;
+    }
+    const documentIds = documentsByPath.get(target.path) ?? [];
+    if (documentIds.length !== 1)
+      continue;
+    candidates.push({
+      schemaVersion: 1,
+      recommendationId: stableId("krelrec", {
+        sourceSnapshotId: input.sourceSnapshotId,
+        relationId: relation.relationId,
+        seedConceptId,
+        targetConceptId,
+        documentId: documentIds[0],
+        contentHash: target.contentHash
+      }),
+      relationId: relation.relationId,
+      relationType: relation.type,
+      direction: seedConceptId === relation.from.id ? "outgoing" : "incoming",
+      seedConceptId,
+      targetConceptId,
+      documentId: documentIds[0],
+      path: target.path,
+      sourceContentHash: target.contentHash,
+      sourceSnapshotId: input.sourceSnapshotId,
+      impactReportId: input.impactReportId,
+      seedRank
+    });
+  }
+  const seenDocuments = /* @__PURE__ */ new Set();
+  const recommendations = candidates.sort((left, right) => left.seedRank - right.seedRank || compareText4(left.relationType, right.relationType) || compareText4(left.direction, right.direction) || compareText4(left.relationId, right.relationId) || compareText4(left.documentId, right.documentId)).filter((recommendation) => {
+    if (seenDocuments.has(recommendation.documentId))
+      return false;
+    seenDocuments.add(recommendation.documentId);
+    return true;
+  }).slice(0, KNOWLEDGE_RELATION_LIMITS.maximumRecommendations).map(({ seedRank: _seedRank, ...recommendation }) => recommendation);
+  const core = {
+    schemaVersion: 1,
+    sourceSnapshotId: input.sourceSnapshotId,
+    impactReportId: input.impactReportId,
+    conceptSidecarSetHash: input.conceptSidecarSetHash,
+    relationSidecarSetHash: input.relationSidecarSetHash,
+    seedConceptIds,
+    limits: KNOWLEDGE_RELATION_LIMITS,
+    examinedRelationCount: examined.length,
+    truncated: incident.length > examined.length,
+    recommendations
+  };
+  return { ...core, projectionId: stableId("krelproj", core) };
+}
+
+// packages/repository-knowledge/dist/query.js
 function terms(value) {
   return [
     ...new Set(value.normalize("NFKC").toLocaleLowerCase().match(/[\p{L}\p{N}]{2,}/gu) ?? [])
@@ -60547,11 +60556,11 @@ function hasLexicalTerm(values, term) {
   return /^[\uAC00-\uD7A3]{2,}$/u.test(term) && [...values].some((value) => value.startsWith(term));
 }
 async function queryRepositoryKnowledge(input) {
-  const root2 = resolve25(input.repositoryRoot);
+  const root2 = resolve27(input.repositoryRoot);
   await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root2 });
   const project = await loadProjectManifest(root2);
   const policy = await loadRepositoryKnowledgePolicy(root2);
-  const generated = await generatedPaths(root2);
+  const generated = await generatedKnowledgePaths(root2);
   const scan = await scanRepositoryKnowledge({
     repositoryRoot: root2,
     projectId: project.projectId,
@@ -60658,8 +60667,8 @@ var import_yaml21 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-layout-migration.js
 import { constants as constants9 } from "node:fs";
-import { lstat as lstat18, open as open11 } from "node:fs/promises";
-import { basename as basename8, posix as posix5, resolve as resolve26 } from "node:path";
+import { lstat as lstat19, open as open11 } from "node:fs/promises";
+import { basename as basename8, posix as posix5, resolve as resolve28 } from "node:path";
 var import_yaml22 = __toESM(require_dist(), 1);
 var ROOT_ENTRYPOINTS = /* @__PURE__ */ new Set([
   "README.md",
@@ -60808,7 +60817,7 @@ async function machineArtifactMoves(root2) {
       const name2 = fromPath.split("/").at(-1);
       const id = name2.slice(0, -(item.extension.length + 1));
       const toPath = shardedKnowledgeArtifactPath(item.directory, id, item.extension);
-      const file = await safeFile(resolve26(root2, fromPath), item.maximumBytes);
+      const file = await safeFile(resolve28(root2, fromPath), item.maximumBytes);
       moves.push({ fromPath, toPath, ...file, registry: item.registry });
     }
   }
@@ -60816,7 +60825,7 @@ async function machineArtifactMoves(root2) {
 }
 async function exists2(path) {
   try {
-    await lstat18(path);
+    await lstat19(path);
     return true;
   } catch (error) {
     if (error.code === "ENOENT")
@@ -60914,8 +60923,8 @@ function withoutContent(operation) {
   return operation.action === "move" ? operation : (({ content: _content, ...item }) => item)(operation);
 }
 async function createRepositoryLayoutMigrationPlan(input) {
-  const root2 = resolve26(input.repositoryRoot);
-  const [{ policy, scan }, storedConcepts, generatedPaths2, taxonomy] = await Promise.all([
+  const root2 = resolve28(input.repositoryRoot);
+  const [{ policy, scan }, storedConcepts, generatedPaths, taxonomy] = await Promise.all([
     scanConfiguredRepositoryKnowledge(root2, input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources }),
     loadStoredConcepts(root2),
     recordedGeneratedKnowledgePaths(root2),
@@ -61046,7 +61055,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
     if ((destinationCounts.get(item.toPath) ?? 0) > 1) {
       blockers.push({ code: "ambiguous_destination", pathDigest: sha2564(item.toPath) });
       blockedDestinations.add(item.toPath);
-    } else if (scan.sources.some((source) => source.path === item.toPath) || generatedPaths2.has(item.toPath) || await exists2(resolve26(root2, item.toPath))) {
+    } else if (scan.sources.some((source) => source.path === item.toPath) || generatedPaths.has(item.toPath) || await exists2(resolve28(root2, item.toPath))) {
       blockers.push({ code: "destination_exists", pathDigest: sha2564(item.toPath) });
       blockedDestinations.add(item.toPath);
     } else if (!repositoryPathCanRemainIncluded(item.toPath, policy)) {
@@ -61066,7 +61075,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
   const referenceChanges = /* @__PURE__ */ new Map();
   const movedContentChanges = /* @__PURE__ */ new Map();
   for (const source of scan.sources) {
-    if (source.status !== "included" || source.content === void 0 || source.contentHash === null || generatedPaths2.has(source.path) || source.path.startsWith(".lervo/") || source.path.startsWith("knowledge/"))
+    if (source.status !== "included" || source.content === void 0 || source.contentHash === null || generatedPaths.has(source.path) || source.path.startsWith(".lervo/") || source.path.startsWith("knowledge/"))
       continue;
     const move = movePaths.find((item) => item.fromPath === source.path);
     const rebased = move === void 0 ? { content: source.content, count: 0 } : rebaseMarkdownLinks(source.content, source.path, move.toPath);
@@ -61116,7 +61125,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
   }
   const registryMaterials = await Promise.all(storedConcepts.map(async (item) => ({
     file: item.file,
-    contentHash: (await safeFile(resolve26(root2, item.file))).contentHash
+    contentHash: (await safeFile(resolve28(root2, item.file))).contentHash
   })));
   registryMaterials.sort((left, right) => left.file.localeCompare(right.file));
   const registryDigest2 = sha2564(canonicalJson2(registryMaterials));
@@ -61277,7 +61286,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
     extension: "yaml",
     maximumFiles: 64
   });
-  if (canonicalInstructionChange !== void 0 && existingInstructionBridgeRecords.length > 0 && await exists2(resolve26(root2, "CLAUDE.md"))) {
+  if (canonicalInstructionChange !== void 0 && existingInstructionBridgeRecords.length > 0 && await exists2(resolve28(root2, "CLAUDE.md"))) {
     const bridge = await createKnowledgeInstructionBridgePlan({
       repositoryRoot: root2,
       provider: "claude",
@@ -61322,7 +61331,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
   const structuralPaths = new Set((structural?.operations ?? []).map((operation) => operation.path));
   const machineMoves = (await machineArtifactMoves(root2)).filter((move) => !structuralPaths.has(move.fromPath) && !structuralPaths.has(move.toPath));
   for (const move of machineMoves) {
-    if (await exists2(resolve26(root2, move.toPath)))
+    if (await exists2(resolve28(root2, move.toPath)))
       blockers.push({ code: "destination_exists", pathDigest: sha2564(move.toPath) });
   }
   const machineMoveOperations = machineMoves.map((move) => ({
@@ -61402,8 +61411,8 @@ var import_yaml23 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/terminal-integration.js
 import { constants as constants10 } from "node:fs";
-import { lstat as lstat19, open as open12 } from "node:fs/promises";
-import { resolve as resolve27 } from "node:path";
+import { lstat as lstat20, open as open12 } from "node:fs/promises";
+import { resolve as resolve29 } from "node:path";
 var MAXIMUM_CONFIG_BYTES = 256 * 1024;
 var MAXIMUM_RUNTIME_BYTES = 4 * 1024 * 1024;
 var FORMAT = { insertSpaces: true, tabSize: 2, eol: "\n", insertFinalNewline: true };
@@ -61437,7 +61446,7 @@ async function safeOptionalText(path, maximumBytes = MAXIMUM_CONFIG_BYTES) {
   let handle;
   try {
     try {
-      const stats = await lstat19(path);
+      const stats = await lstat20(path);
       if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes)
         throw new Error("unsafe");
     } catch (error) {
@@ -61618,11 +61627,11 @@ function validRuntimeContent(content3) {
   return bytes > 0 && bytes <= MAXIMUM_RUNTIME_BYTES && content3.startsWith("#!/usr/bin/env node\n");
 }
 async function inspectTerminalIntegration(repositoryRoot) {
-  const root2 = resolve27(repositoryRoot);
-  const existing = await Promise.all(PROVIDERS.map(async (provider) => [provider, await safeOptionalText(resolve27(root2, configurationPath(provider)))]));
+  const root2 = resolve29(repositoryRoot);
+  const existing = await Promise.all(PROVIDERS.map(async (provider) => [provider, await safeOptionalText(resolve29(root2, configurationPath(provider)))]));
   const blockers = [];
   try {
-    const config = await safeOptionalText(resolve27(root2, ".codex/config.toml"));
+    const config = await safeOptionalText(resolve29(root2, ".codex/config.toml"));
     if (config !== null && codexHooksDisabled(config.content))
       blockers.push({ provider: "codex", path: ".codex/config.toml", code: "hooks_disabled" });
   } catch (error) {
@@ -61638,8 +61647,8 @@ async function inspectTerminalIntegration(repositoryRoot) {
   let runtime;
   try {
     const [artifact2, manifestFile] = await Promise.all([
-      safeOptionalText(resolve27(root2, RUNTIME_PATH), MAXIMUM_RUNTIME_BYTES),
-      safeOptionalText(resolve27(root2, RUNTIME_MANIFEST_PATH))
+      safeOptionalText(resolve29(root2, RUNTIME_PATH), MAXIMUM_RUNTIME_BYTES),
+      safeOptionalText(resolve29(root2, RUNTIME_MANIFEST_PATH))
     ]);
     let valid = false;
     if (artifact2 !== null && manifestFile !== null && validRuntimeContent(artifact2.content)) {
@@ -61779,15 +61788,15 @@ async function collectVerificationResultSources(input) {
 
 // packages/repository-knowledge/dist/workstream.js
 import { constants as constants11 } from "node:fs";
-import { lstat as lstat20, mkdir as mkdir7, open as open13, rename as rename3, rm as rm4 } from "node:fs/promises";
-import { basename as basename9, dirname as dirname5, posix as posix6, relative as relative10, resolve as resolve28, sep as sep10 } from "node:path";
+import { lstat as lstat21, mkdir as mkdir7, open as open13, rename as rename3, rm as rm4 } from "node:fs/promises";
+import { basename as basename9, dirname as dirname5, posix as posix6, relative as relative11, resolve as resolve30, sep as sep11 } from "node:path";
 var import_yaml24 = __toESM(require_dist(), 1);
 var CURRENT_WORKSTREAM_PATH = ".lervo/state/workstreams/current.json";
 var MAX_HANDOFF_BYTES = 128 * 1024;
 function insideRoot(root2, path) {
-  const target = resolve28(root2, path);
-  const child = relative10(root2, target);
-  if (child === ".." || child.startsWith(`..${sep10}`)) {
+  const target = resolve30(root2, path);
+  const child = relative11(root2, target);
+  if (child === ".." || child.startsWith(`..${sep11}`)) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream path escapes the repository.");
   }
   return target;
@@ -61824,7 +61833,7 @@ async function safeTextFile(root2, path, maximumBytes) {
   }
 }
 async function readCurrentWorkstreamState(repositoryRoot) {
-  const source = await safeTextFile(resolve28(repositoryRoot), CURRENT_WORKSTREAM_PATH, 64 * 1024);
+  const source = await safeTextFile(resolve30(repositoryRoot), CURRENT_WORKSTREAM_PATH, 64 * 1024);
   if (source === null)
     return null;
   let value;
@@ -61843,7 +61852,7 @@ async function readCurrentWorkstreamState(repositoryRoot) {
   };
 }
 async function restoreCurrentWorkstreamState(input) {
-  const root2 = resolve28(input.repositoryRoot);
+  const root2 = resolve30(input.repositoryRoot);
   const content3 = Buffer.from(input.content).toString("utf8");
   if (input.content.byteLength > 64 * 1024 || sha2564(input.content) !== input.expectedHash) {
     throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact is invalid.");
@@ -61858,13 +61867,13 @@ async function restoreCurrentWorkstreamState(input) {
 ` !== content3 || !validateSchema("workstreamSnapshot", value).valid || !pendingCoordinatesValid(value)) {
     throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact does not satisfy the v1 contract.");
   }
-  const directory = resolve28(root2, dirname5(CURRENT_WORKSTREAM_PATH));
+  const directory = resolve30(root2, dirname5(CURRENT_WORKSTREAM_PATH));
   await mkdir7(directory, { recursive: true, mode: 448 });
-  const stats = await lstat20(directory);
+  const stats = await lstat21(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink()) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The workstream projection directory is unsafe.");
   }
-  const target = resolve28(root2, CURRENT_WORKSTREAM_PATH);
+  const target = resolve30(root2, CURRENT_WORKSTREAM_PATH);
   const temporary = `${target}.restore-${process.pid}`;
   await rm4(temporary, { force: true });
   const handle = await open13(temporary, constants11.O_WRONLY | constants11.O_CREAT | constants11.O_EXCL | (constants11.O_NOFOLLOW ?? 0), 384);
@@ -61920,29 +61929,29 @@ function pendingCoordinatesValid(snapshot) {
 // packages/verification/dist/suite-loader.js
 var import_yaml25 = __toESM(require_dist(), 1);
 import { constants as constants12 } from "node:fs";
-import { lstat as lstat21, open as open14, realpath as realpath2 } from "node:fs/promises";
-import { resolve as resolve29 } from "node:path";
+import { lstat as lstat22, open as open14, realpath as realpath2 } from "node:fs/promises";
+import { resolve as resolve31 } from "node:path";
 var MAXIMUM_SUITE_BYTES = 64 * 1024;
 var SUITE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
 async function loadVerificationSuite(repositoryRoot, suiteId) {
   if (!SUITE_ID.test(suiteId) || suiteId.length > 150) {
     throw new VerificationError("invalid_verification_suite", "The verification suite ID is invalid.");
   }
-  const root2 = resolve29(repositoryRoot);
-  const directory = resolve29(root2, ".lervo/verifications");
+  const root2 = resolve31(repositoryRoot);
+  const directory = resolve31(root2, ".lervo/verifications");
   try {
-    const stats = await lstat21(directory);
-    const expectedDirectory = resolve29(await realpath2(root2), ".lervo/verifications");
+    const stats = await lstat22(directory);
+    const expectedDirectory = resolve31(await realpath2(root2), ".lervo/verifications");
     if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath2(directory) !== expectedDirectory) {
       throw new Error("unsafe directory");
     }
   } catch (error) {
     throw new VerificationError("verification_layout_invalid", "The verification suite directory is not a safe real directory.", { cause: error });
   }
-  const path = resolve29(directory, `${suiteId}.yaml`);
+  const path = resolve31(directory, `${suiteId}.yaml`);
   let handle;
   try {
-    const before = await lstat21(path, { bigint: true });
+    const before = await lstat22(path, { bigint: true });
     if (!before.isFile() || before.isSymbolicLink() || before.size > MAXIMUM_SUITE_BYTES) {
       throw new VerificationError("verification_layout_invalid", "The verification suite file is not a safe regular file or exceeds the size limit.");
     }
@@ -62074,7 +62083,7 @@ async function verifiedCurrentWorkstream(storage) {
   return state.snapshot;
 }
 
-// apps/cli/src/terminal-command.ts
+// apps/cli/src/terminal-command-runtime.ts
 var terminalUsage = "  lervo terminal status [--root <path>] [--json]\n  lervo terminal coverage [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--json]\n  lervo terminal declare --provider <codex|claude> --observation <observation-id> --stdin [--root <path>] [--json]\n  lervo terminal hook --provider <codex|claude> --contract <1|2>";
 var MAXIMUM_CONTEXT_BYTES = 28 * 1024;
 var MAXIMUM_DOCUMENT_CONTEXT_BYTES = 12 * 1024;
@@ -62086,10 +62095,10 @@ function evidenceMarker(document4) {
   return `<!-- lervo-ref:${document4.conceptId}:${document4.contentHash} -->`;
 }
 async function repositoryRootFrom(start) {
-  let current = resolve30(start);
+  let current = resolve32(start);
   while (true) {
     try {
-      const manifest = await lstat22(resolve30(current, ".lervo/project.yaml"));
+      const manifest = await lstat23(resolve32(current, ".lervo/project.yaml"));
       if (manifest.isFile() && !manifest.isSymbolicLink()) return current;
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
@@ -62114,9 +62123,9 @@ function truncateUtf8(value, maximumBytes) {
   return value.slice(0, end);
 }
 async function loadHit(root2, hit, remainingBytes) {
-  const target = resolve30(root2, hit.path);
-  const child = relative11(root2, target);
-  if (child === ".." || child.startsWith(`..${sep11}`) || remainingBytes <= 0) return null;
+  const target = resolve32(root2, hit.path);
+  const child = relative12(root2, target);
+  if (child === ".." || child.startsWith(`..${sep12}`) || remainingBytes <= 0) return null;
   let handle;
   try {
     handle = await open15(target, constants13.O_RDONLY | (constants13.O_NOFOLLOW ?? 0));
@@ -62231,24 +62240,24 @@ async function promptContext(root2, prompt, provider, observationId) {
   };
 }
 function activationPath(root2, provider, event) {
-  return resolve30(
+  return resolve32(
     root2,
     ".lervo/state/terminal-integration",
     `${provider}-${event === "UserPromptSubmit" ? "user-prompt-submit" : "stop"}.json`
   );
 }
 async function writeActivationReceipt(root2, receipt) {
-  const directory = resolve30(root2, ".lervo/state/terminal-integration");
+  const directory = resolve32(root2, ".lervo/state/terminal-integration");
   try {
     await mkdir8(directory, { mode: 448 });
   } catch (error) {
     if (error.code !== "EEXIST") throw error;
   }
-  const stats = await lstat22(directory);
+  const stats = await lstat23(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe terminal activation state directory.");
   const target = activationPath(root2, receipt.provider, receipt.hookEvent);
-  const temporary = resolve30(directory, `.activation-${randomUUID2()}.tmp`);
+  const temporary = resolve32(directory, `.activation-${randomUUID2()}.tmp`);
   let handle;
   try {
     handle = await open15(
@@ -62273,9 +62282,9 @@ async function readActivationReceipts(root2) {
     for (const event of ["UserPromptSubmit", "Stop"]) {
       try {
         const path = activationPath(root2, provider, event);
-        const stats = await lstat22(path);
+        const stats = await lstat23(path);
         if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 16 * 1024) continue;
-        const value = JSON.parse(await readFile10(path, "utf8"));
+        const value = JSON.parse(await readFile11(path, "utf8"));
         if (value.schemaVersion === 1 && value.contractId === "lervo_terminal_hooks_v2" && value.provider === provider && value.hookEvent === event && typeof value.occurredAt === "string")
           receipts.push(value);
       } catch (error) {
@@ -62381,7 +62390,7 @@ async function inspectLifecycle(root2, expected) {
   };
   const issues = [];
   try {
-    const handoff = await lstat22(resolve30(root2, "HANDOFF.md"));
+    const handoff = await lstat23(resolve32(root2, "HANDOFF.md"));
     if (handoff.isFile() && !handoff.isSymbolicLink())
       issues.push({ code: "legacy_root_handoff_pending", command: "lervo migrate knowledge" });
     else
@@ -62817,7 +62826,7 @@ async function runDeclare(args, io) {
     if (!parsed.values.stdin || io.stdin === void 0)
       throw new Error("The declaration must be supplied through --stdin.");
     const draft = parseTurnDeclarationDraft(await io.stdin());
-    const root2 = await repositoryRootFrom(resolve30(io.cwd, parsed.values.root ?? "."));
+    const root2 = await repositoryRootFrom(resolve32(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const context = allEvents(storage.events).filter(
       (event) => event.type === "terminal.context.prepared" && event.actor.kind === "provider" && event.actor.provider === parsed.values.provider && event.payload.observationId === parsed.values.observation
@@ -63026,7 +63035,7 @@ async function runCoverage(args, io) {
     const limit = parsed.values.limit === void 0 ? 20 : Number(parsed.values.limit);
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
       throw new Error("--limit must be an integer between 1 and 100.");
-    const root2 = await repositoryRootFrom(resolve30(io.cwd, parsed.values.root ?? "."));
+    const root2 = await repositoryRootFrom(resolve32(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const report = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,
@@ -63073,7 +63082,7 @@ async function runTerminalCommand(args, io) {
         allowPositionals: false,
         options: { root: { type: "string" }, json: { type: "boolean" } }
       });
-      const root2 = await repositoryRootFrom(resolve30(io.cwd, parsed.values.root ?? "."));
+      const root2 = await repositoryRootFrom(resolve32(io.cwd, parsed.values.root ?? "."));
       const result = await inspectLifecycle(root2);
       io.stdout(
         parsed.values.json ? `${JSON.stringify(result, null, 2)}
@@ -63107,9 +63116,9 @@ async function verifiedRuntime() {
   try {
     const runtimePath = fileURLToPath(import.meta.url);
     const manifest = JSON.parse(
-      await readFile11(resolve31(dirname7(runtimePath), "runtime-v2.json"), "utf8")
+      await readFile12(resolve33(dirname7(runtimePath), "runtime-v2.json"), "utf8")
     );
-    const content3 = await readFile11(runtimePath);
+    const content3 = await readFile12(runtimePath);
     return manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === "lervo_terminal_hooks_v2" && manifest.runtimePath === ".lervo/generated/terminal-hooks/runtime-v2.mjs" && manifest.byteCount === content3.byteLength && manifest.contentHash === `sha256:${createHash9("sha256").update(content3).digest("hex")}`;
   } catch {
     return false;

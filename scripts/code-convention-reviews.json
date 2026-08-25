@@ -1,0 +1,342 @@
+{
+  "schemaVersion": 1,
+  "reviewLineThreshold": 400,
+  "reviews": [
+    {
+      "path": "apps/cli/src/knowledge-migration-command.ts",
+      "contentHash": "sha256:19a5f402505aa81345496d4cdf8c9ce5f244d3d89d950cfc11a08dc2d9b4d64d",
+      "responsibility": "Knowledge migration plan/apply orchestration",
+      "rationale": "The module sequences one knowledge migration lifecycle; pure formatting and top-level dispatch were extracted, while the remaining effects share one plan, approval, rollback, and event contract.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/cli/src/knowledge-structure-command.ts",
+      "contentHash": "sha256:68e42d51eeefa0930abdfb427bf8624ca55911ed3d35c08bd3146f3a6475b9de",
+      "responsibility": "User document structure command adapter",
+      "rationale": "Move, merge, split, and delete are variants of one exact-approved document-structure command contract and share the same validation, materialization event, and rollback boundary.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/cli/src/managed-deliberation.ts",
+      "contentHash": "sha256:49bdc8f7393062ecb27747315ffb46f8451e5906e35882ff78f65216cc9b3e7e",
+      "responsibility": "Managed deliberation execution orchestration",
+      "rationale": "All functions validate or execute one managed deliberation lifecycle and share the same provider plan, writing contract, checkpoint, and interruption semantics.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/cli/src/managed-run.ts",
+      "contentHash": "sha256:d631fab3222c36aa64191c972711d7b3a02ef7f84d047c83813a6a3bec63eec4",
+      "responsibility": "Managed provider run command orchestration",
+      "rationale": "The module composes one managed provider-run boundary; provider differences remain injected dependencies and no unrelated CLI subcommand or persistence policy is owned here.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/cli/src/node-fleet-apply.ts",
+      "contentHash": "sha256:89dd691a89e407b578daa99a23e2a3091c008485b005ef086dfd02fb1ea04722",
+      "responsibility": "Repository Node fleet onboarding transaction",
+      "rationale": "Status inspection, readiness observation, installation, and legacy transition are phases of one transactional fleet-apply contract with shared compensation and health evidence.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/cli/src/terminal-command-runtime.ts",
+      "contentHash": "sha256:c8fdd6032e181e3b8a3f87b8f080b61ce2054b70528a99f77cacdac429c08fc6",
+      "responsibility": "Direct terminal-integration command runtime",
+      "rationale": "The stable terminal command is now a one-line facade; this implementation owns the single unmanaged terminal hook lifecycle from preparation through declaration, coverage, and completion gating.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/cli/src/upgrade-command.ts",
+      "contentHash": "sha256:f0cc9f9a91fd161617247da9677abb82eaf3d30f04234b2c18d072f39ff96426",
+      "responsibility": "Repository upgrade plan/apply command",
+      "rationale": "Inspection, planning, stage application, lint, and receipt formatting all describe one bounded repository-upgrade lifecycle and share a single plan identity.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/cli/src/workforce-command.ts",
+      "contentHash": "sha256:ff623c89ff3c11986980bf1046887e5ef761c9bbcad67e7c43ab98be2bbebaf2",
+      "responsibility": "Repository workforce CLI adapter",
+      "rationale": "The command parses and translates one workforce lifecycle surface; durable agent, assignment, lease, and handoff policy remains in the workforce package rather than this adapter.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/hub-runtime/src/deployment.ts",
+      "contentHash": "sha256:025afa8f08822b58b1f3ca3a1925daf41889ab8cadcda579452574ae43081a5b",
+      "responsibility": "Hub runtime deployment composition",
+      "rationale": "TLS loading, server composition, shutdown, and health wiring are phases of one Hub deployment boundary; domain policy remains in injected packages.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/adapter-claude/src/claude-adapter.ts",
+      "contentHash": "sha256:32ec984e679117d6ca7e82438dfc9e87c40c77618a8eaf6207005d757dc1f722",
+      "responsibility": "Claude managed-provider adapter",
+      "rationale": "The class owns one external Claude protocol boundary and translates native session, tool, telemetry, stop, and result behavior into common adapter contracts.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/adapter-codex/src/codex-adapter.ts",
+      "contentHash": "sha256:23f864ac5f4075818a7fc746d9eabc3919e629fdbfe276d05f07a78368976bfd",
+      "responsibility": "Codex managed-provider adapter",
+      "rationale": "The class owns one external Codex protocol boundary and translates native thread, turn, telemetry, stop, and result behavior into common adapter contracts.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/agent-workforce/src/store.ts",
+      "contentHash": "sha256:2cccc6ebc109403391d528cdbde5820a49f7d9bec6eac46fa1c0198b6b3935ff",
+      "responsibility": "Durable repository workforce aggregate",
+      "rationale": "Agent, assignment, lease, and handoff transitions share one locked workforce state aggregate, validation model, atomic write protocol, and concurrency retry boundary.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/conversation-platform-sqlite/src/binding-repository.ts",
+      "contentHash": "sha256:440dccbd5b5a810ad0526137acf177ad201189d7e560fbcf48805cefdd13983d",
+      "responsibility": "Conversation-platform binding persistence",
+      "rationale": "The repository class owns one SQLite persistence boundary for platform bindings, including validation, reads, writes, and transaction-safe state changes.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/event-contract/src/redaction.ts",
+      "contentHash": "sha256:0ccaea4568b650dd8209804ab63dec79cc0de0f34d6f6c0eac5b8ab6997a4aa6",
+      "responsibility": "Canonical event payload privacy enforcement",
+      "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/hub-sync-sqlite/src/migrations.ts",
+      "contentHash": "sha256:e601c4864440feb65a4a8905d2e6486c8f131dfadbfd9a6da0c6bf9dc3c6c0cb",
+      "responsibility": "Hub synchronization SQLite schema migration",
+      "rationale": "The declarative migration catalog and migration runner own one versioned SQLite schema boundary; length is driven by schema history rather than mixed runtime policy.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/hub-sync-sqlite/src/store.ts",
+      "contentHash": "sha256:c0b105ea087625a0983314e94a3391890436d267abbbb9e306f128aeaebaff1a",
+      "responsibility": "Hub synchronization SQLite store",
+      "rationale": "The store class is one persistence adapter that composes repositories under a shared database, transaction, and schema lifecycle.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/knowledge-okf/src/okf.ts",
+      "contentHash": "sha256:5128bf340c207ea2d4f2d1c2abd72c717e1c1fce6cddc68165eb7859ab993af0",
+      "responsibility": "OKF v0.2 exchange adapter",
+      "rationale": "Read, lint, query, export, import, and re-export are operations over one external OKF format boundary with shared safety, trust, and byte-preservation rules.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/orchestrator/src/managed-provider-run.ts",
+      "contentHash": "sha256:34a4c1fbfcc6cf06be3a62a40861d7570c7dce2b39f53354bfefc5a0029205dd",
+      "responsibility": "Managed provider-run coordinator",
+      "rationale": "Snapshotting, abort handling, context delivery, turn execution, validation, and stop are phases of one provider-neutral managed-run state machine.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/policy-sqlite/src/store.ts",
+      "contentHash": "sha256:5e6e9a01e5084ea11e73a380f74136518597242ddf6b34dd7efc9479a2434d3c",
+      "responsibility": "Policy state SQLite adapter",
+      "rationale": "The class owns one SQLite policy persistence boundary and its approval, verification, transaction, and query operations.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
+      "contentHash": "sha256:5bc827ac14a241fff692f9f06166a7001d8125a07e5e7f706b3e72f5628267a6",
+      "responsibility": "Isolated provider compiler process adapter",
+      "rationale": "Process control and Codex or Claude response parsing are contained within one capability-free compiler adapter boundary that returns provider-neutral compiler contracts.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/candidate-store.ts",
+      "contentHash": "sha256:1cdc0f4dbbe707104674a59cac361535bdc2b4986dcc9cdc5977d368463ecc16",
+      "responsibility": "Knowledge compilation candidate storage",
+      "rationale": "Validation, safe directory handling, content-addressed persistence, and loading serve one candidate-store contract with no domain decision outside candidate integrity.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/compiler.ts",
+      "contentHash": "sha256:e21c4cab3d63e513a8300e0d9fa0e66e4211b55e8e69facc5af179f45a02ffa4",
+      "responsibility": "Deterministic structural knowledge compiler",
+      "rationale": "Publication rendering, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/document-normalization.ts",
+      "contentHash": "sha256:d600dc60c2027eb50251df18dbe2242cae98afac19711e632bbec81069683d76",
+      "responsibility": "Reviewed document normalization lifecycle",
+      "rationale": "Profiles, envelopes, candidate validation, compiler invocation, storage, inspection, plan, and exact-approved apply all share one content-bound normalization contract.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/document-structure-merge.ts",
+      "contentHash": "sha256:dccaba2b9cffa3f2d9b37052e1d4c205b94d6979f32a53e4454788a83a0337a5",
+      "responsibility": "Exact-approved document merge operation",
+      "rationale": "Plan serialization, safe source inspection, merge planning, lineage updates, and apply are one atomic document-merge responsibility.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/document-structure-move.ts",
+      "contentHash": "sha256:1b83fed3ea2e22ab15ffe00142ecdedaa76353f28539ab21d87b33e6628a1ff3",
+      "responsibility": "Exact-approved document move operation",
+      "rationale": "Destination safety, plan serialization, lineage preservation, plan creation, and apply are one atomic document-move responsibility.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/document-structure-split.ts",
+      "contentHash": "sha256:36a05d7c03eb63be58e791d3e65a168119e11b07a591fbf8145ce18e0873fefa",
+      "responsibility": "Exact-approved document split operation",
+      "rationale": "Heading extraction, destination safety, plan serialization, lineage preservation, and apply are one atomic document-split responsibility.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/durable-apply.ts",
+      "contentHash": "sha256:93880b908d8920be9e6f6dcff26b00b94ac7d821044c566b0081a2f70c96ec64",
+      "responsibility": "Durable knowledge filesystem transaction",
+      "rationale": "Journal creation, binding checks, safe writes, rollback, recovery, and cleanup implement one atomic filesystem transaction protocol.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/instruction-bridge.ts",
+      "contentHash": "sha256:b83f29973ac47ace4dc1a510c8ceaa546eba42864d11987f72a48c044b708577",
+      "responsibility": "Provider instruction bridge lifecycle",
+      "rationale": "Profile resolution, managed content construction, target validation, plan creation, and exact-approved apply share one instruction-bridge contract.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/lint-query.ts",
+      "contentHash": "sha256:44c093df999f3f9d9d2bc7f93b4cf8742a987d6e7cbd833e71b1bf136b7139e1",
+      "responsibility": "Repository knowledge lifecycle lint",
+      "rationale": "Query behavior and safe publication access were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/public-readme.ts",
+      "contentHash": "sha256:af92127212304016a0aedbf00d2d3fd3819153931ccb3b0caac477ea561b56ed",
+      "responsibility": "Public README improvement lifecycle",
+      "rationale": "Coordinate extraction, candidate validation, protected-change review, plan creation, and apply implement one byte-safe README improvement contract.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/reconciliation-review.ts",
+      "contentHash": "sha256:67e061aadbd9d3cab68a97c9783cd3f74ef5f9844e3cc2ba70a3b9b5bd43db21",
+      "responsibility": "Semantic reconciliation review lifecycle",
+      "rationale": "Policy validation, review identity, disposition validation, artifact persistence, and event recording form one exact-review responsibility.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/reconciliation.ts",
+      "contentHash": "sha256:a356eecd7f7eda46a3823268cae8f6048b84a2d6fd9153bbc4ee9ae5da68467a",
+      "responsibility": "Semantic candidate reconciliation planning",
+      "rationale": "Existing registry inspection, candidate signatures, conflict options, and dispositions jointly produce one read-only reconciliation plan.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
+      "contentHash": "sha256:5bb7787e51b97a16a4f6eb240e7dfe5597bd1b8925ef5263918f8963edc4207f",
+      "responsibility": "Repository document-layout migration",
+      "rationale": "Classification, link rebasing, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/scanner.ts",
+      "contentHash": "sha256:d130a37ebcf8619f00e047b88bfa2ffebc5505b849147fa425396e15273039dd",
+      "responsibility": "Bounded repository knowledge scanner",
+      "rationale": "Classification, safe reads, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/semantic-compiler.ts",
+      "contentHash": "sha256:b48b9ef14d6777aff8bd19cf033ef67c19ae2e93c328f689993f6b3384cfe6f2",
+      "responsibility": "Semantic knowledge candidate compiler",
+      "rationale": "Compilation identity, bounded sharding, provider response validation, and candidate assembly are phases of one semantic compiler contract.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/semantic-materialization.ts",
+      "contentHash": "sha256:8d155abc63e13fc08cd4748a1b55e579cef212fca31c1c0f0b38ec8fd914e528",
+      "responsibility": "Reviewed semantic materialization transaction",
+      "rationale": "Review loading, operation derivation, publication generation, plan creation, and apply share one review-bound materialization contract.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/source-lineage.ts",
+      "contentHash": "sha256:a85674d34c51cc458630b1cab2b9d99326c855bc9073566e8895705fc9db6289",
+      "responsibility": "Document-structure lineage registry",
+      "rationale": "Move, split, and merge lineage creation and validation operate on one lineage schema and safe registry-loading boundary.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/terminal-integration.ts",
+      "contentHash": "sha256:89219694080afcee126af7904c63be67ff49a46f23577c31892a4623750aa12d",
+      "responsibility": "Provider terminal-hook installation lifecycle",
+      "rationale": "Provider configuration merge, runtime integrity, inspection, plan creation, and apply form one fail-closed terminal integration contract.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/workstream.ts",
+      "contentHash": "sha256:8c3498d0c8810b8627ebd10a9b0ec5b0f3fde159652aac46c87bf5b3820cf8b0",
+      "responsibility": "Revisioned workstream snapshot lifecycle",
+      "rationale": "Current state, continuation import, start, update, and replicated import all preserve one WorkstreamSnapshot aggregate, origin invariant, CAS binding, and durable apply protocol.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-registry/src/node-fleet.ts",
+      "contentHash": "sha256:65be7ba7933d2818a6a98176163838ba1f8343d988076ea7b73f29c1e6d6dcac",
+      "responsibility": "Repository Node fleet registry",
+      "rationale": "Identity calculation, registry validation, service-file inspection, onboarding planning, listing, and registration share one owner-only fleet registry contract.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/roles/src/repository.ts",
+      "contentHash": "sha256:3195855ecab301838717199ceb7199aa326ac32df9c35cd748f5be9ff8269a43",
+      "responsibility": "Versioned repository role resolution",
+      "rationale": "Source validation, built-in and custom contract construction, conservative composition, listing, resolution, and binding all own one role-contract aggregate.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/schemas/src/adapter.ts",
+      "contentHash": "sha256:b16e4b35ff43028a0c907e7386ecb7ebf32eae1f19922c7d303bd469c1e870fb",
+      "responsibility": "Managed provider adapter schema catalog",
+      "rationale": "The file is a declarative schema catalog for one adapter protocol; its length is data-shaped and contains no independent executable workflow.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/search-adapter-local-hybrid/src/indexer.ts",
+      "contentHash": "sha256:b33a87619b3a1148af9da9f186791c0b9deb28e054f47711e947a261a8913bde",
+      "responsibility": "Local hybrid search index",
+      "rationale": "Feature hashing, sparse embedding, postings construction, ranking, response hashing, and evaluation adapter implement one deterministic search-index boundary.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/search/src/performance-benchmark.ts",
+      "contentHash": "sha256:d73e3bb3f80a88155c7ff08baa343345d6e31cd32436c226cdb271ed30956f13",
+      "responsibility": "Search quality and latency benchmark",
+      "rationale": "Case validation, paired timing, quality aggregation, latency statistics, environment capture, and reporting form one reproducible benchmark protocol.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "scripts/lib/hub-runtime-distribution.mjs",
+      "contentHash": "sha256:5ddac245c28da023a79994bfd1425e8f43a4b577c61777a9f3d79b9d59408382",
+      "responsibility": "Hub runtime distribution builder",
+      "rationale": "Manifest, SBOM, archive, validation, installation safety, and smoke verification are phases of one Hub distribution artifact contract.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "scripts/lib/node-runtime-distribution.mjs",
+      "contentHash": "sha256:3e1d5d601464a129f26d279c296848bf3f1b4056eec19a1092c2f6c4443eee23",
+      "responsibility": "Node runtime distribution builder",
+      "rationale": "Dependency inventory, manifest, SBOM, archive, platform validation, and verification are phases of one Node distribution artifact contract.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "scripts/manage-runtime-service.mjs",
+      "contentHash": "sha256:30674fa0a7b486e5d749157694a257c5d8d68266d50012fec7c9567f1f715360",
+      "responsibility": "Runtime service lifecycle manager",
+      "rationale": "Parsing, definition validation, status stabilization, install, compensate, remove, activate, and upgrade operate on one service transaction boundary.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "scripts/run-real-managed-provider-https-pilot.mjs",
+      "contentHash": "sha256:fc578150a196e28321a2fa6a97209982dca175a6e9c6476718c8b7dbd8813135",
+      "responsibility": "Managed-provider HTTPS acceptance pilot",
+      "rationale": "Temporary project setup, process control, HTTPS calls, event observation, assertions, and cleanup compose one end-to-end acceptance scenario.",
+      "disposition": "cohesive"
+    }
+  ]
+}

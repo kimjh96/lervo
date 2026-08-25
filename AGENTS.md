@@ -14,24 +14,28 @@ Do not load the entire ADR history by default.
 
 Before committing, follow [the repository commit convention](docs/foundation/commit-convention.md). An optional scope must exactly match the workspace package name without `@lervo/`; omit it for repository-wide changes.
 
-Follow [the repository code convention](docs/foundation/code-convention.md). ESLint owns code quality and Prettier owns formatting. Run `pnpm quality:check` for source or configuration changes, keeping broad automatic-fix diffs within the task.
+Follow [the repository code convention](docs/foundation/code-convention.md) as the completion contract. Before editing source, identify its responsibility and dependency boundary. Apply the module-split signals to every touched source file, complete the review checklist, and resolve structural violations before finishing. Passing lint or formatting is insufficient. If a required split would materially increase delivery risk, record one bounded follow-up naming the exact responsibility and verification.
+
+Never refresh a long-module review hash without repeating the structural review. The registry records cohesive modules, not exceptions for unresolved violations.
+
+ESLint owns automatable code quality; Prettier owns formatting. For source or configuration changes, run `pnpm quality:check` and limit broad automatic-fix diffs to the task.
 
 ## Invariants
 
-1. Local execution must work without a Hub.
-2. Keep provider behavior behind adapters. Core execution and evidence contracts must not depend on Codex or Claude.
-3. Keep `selected`, `loaded`, `injected`, and `used` distinct. Claim only what telemetry proves.
+1. Local execution works without a Hub.
+2. Provider behavior stays behind adapters; core execution and evidence contracts do not depend on Codex or Claude.
+3. Keep `selected`, `loaded`, `injected`, and `used` distinct; claim only what telemetry proves.
 4. Markdown, repository state, skill definitions, verification results, and execution events are canonical. Graphs, search indexes, and embeddings are rebuildable projections.
-5. Keep Lervo-managed and user-owned blocks separate. Never overwrite user-owned content automatically.
+5. Keep Lervo-managed and user-owned blocks separate; never overwrite user-owned content automatically.
 6. Mark unobservable direct provider work as `unmanaged`.
-7. Keep entrypoints short; move independent concerns into linked files.
+7. Keep entrypoints short and move independent concerns into linked files.
 8. Generate English documentation through a versioned language boundary by default.
 9. Create feature directories only with their first artifact.
 
 ## Change contract
 
 - Update affected documentation and roadmap completion criteria when a design decision changes.
-- For each new event or state, define its name, required fields, privacy handling, and failure meaning.
+- For every new event or state, define its name, required fields, privacy handling, and failure meaning.
 - Run common contract tests for provider adapters.
 - Run relevant tests and document lifecycle checks before finishing implementation.
 - For repository-wide knowledge lifecycle changes, run `lervo migrate knowledge`, then `lervo knowledge lint`.

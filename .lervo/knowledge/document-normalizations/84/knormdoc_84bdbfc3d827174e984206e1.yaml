@@ -1,0 +1,27 @@
+candidateId: knorm_d6eb312cb5b2e00862bb38f7
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_69dc07ddb5b7d4ca59957a2b
+outputLanguage: en
+outputs:
+  - byteCount: 3721
+    contentHash: sha256:1752913739b842c421b613e4890f941730a6d6ff9aef98f535a1dc44265a1c3a
+    path: docs/evidence/quality/repository-code-convention-audit.md
+    userRegionHash: sha256:1752913739b842c421b613e4890f941730a6d6ff9aef98f535a1dc44265a1c3a
+profile: repository_document
+recordId: knormdoc_84bdbfc3d827174e984206e1
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:615f87d3d0db8f39c6dc8993c5a18618bbce52370621417449f15cded93a940b
+sourcePath: docs/evidence/quality/repository-code-convention-audit.md
+sourceUnitVersionIds:
+  - uv_2e693f874392cedd16126d4d
+  - uv_422f47f41976add1892a1345
+  - uv_60e227d5758813832bb7ddcd
+  - uv_9114e7a544939caa75e10a24
+  - uv_f641b4e80826eae59497fda3

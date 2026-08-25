@@ -1,0 +1,26 @@
+export const knowledgeUsage = `  lervo knowledge refresh [--root <path>] [--apply <plan-id>] [--json]
+  lervo knowledge impact [--root <path>] [--json]
+  lervo knowledge refresh-candidate [--root <path>] [--json]
+  lervo knowledge compile --provider <codex|claude> [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--json]
+  lervo knowledge compare --codex <compilation-id> --claude <compilation-id> [--root <path>] [--json]
+  lervo knowledge stability --provider <codex|claude> [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--json]
+  lervo knowledge stability --baseline <compilation-id> --candidate <compilation-id> [--root <path>] [--json]
+  lervo knowledge merge-candidate --comparison <comparison-id> --codex <compilation-id> --claude <compilation-id> [--root <path>] [--json]
+  lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]
+  lervo knowledge reconcile [--root <path>] [--json] <compilation-id>
+  lervo knowledge review-policy --reviewer <id> [--policy-id <id>] [--allow-conflict-resolution] [--root <path>] [--write] [--json]
+  lervo knowledge review --plan <plan-id> --policy <relative-path> --reviewer <id> (--accept-all-safe|--approve-item <disposition-id>=<output-hash>|--resolve-item <disposition-id>=<resolution-hash>|--reject) [--approve-item ...] [--resolve-item ...] [--root <path>] [--json] <compilation-id>
+  lervo knowledge materialize [--root <path>] [--apply <plan-id>] [--json] <review-id>
+  lervo knowledge materialize --recover [--root <path>] [--json]
+  lervo knowledge structure delete <relative-markdown-path> [--root <path>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]
+  lervo knowledge structure move <from-relative-markdown-path> <to-relative-markdown-path> [--root <path>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]
+  lervo knowledge structure merge <source-relative-markdown-path> <destination-relative-markdown-path> [--root <path>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]
+  lervo knowledge structure split <source-relative-markdown-path> <destination-relative-markdown-path> --at-heading <heading-locator> [--root <path>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]
+  lervo knowledge instruction bridge --provider claude [--root <path>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]
+  lervo knowledge export okf --output <new-path> [--root <path>] [--json]
+  lervo knowledge import okf <bundle-path> [--root <path>] [--apply <plan-id>] [--json]
+  lervo knowledge okf lint <bundle-path> [--json]
+  lervo knowledge okf query <bundle-path> <query> [--json]
+  lervo knowledge okf re-export <candidate-id> --output <new-path> [--root <path>] [--json]
+  lervo knowledge lint [--root <path>] [--json]
+  lervo knowledge query [--root <path>] [--json] <query>`;

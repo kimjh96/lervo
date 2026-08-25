@@ -23,6 +23,7 @@ export * from "./impact.js";
 export * from "./instruction-bridge.js";
 export * from "./agent-artifact-profile.js";
 export * from "./lint-query.js";
+export * from "./query.js";
 export * from "./markdown-split.js";
 export * from "./policy.js";
 export * from "./publication-snapshot.js";
