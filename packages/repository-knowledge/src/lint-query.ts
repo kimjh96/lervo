@@ -5,6 +5,7 @@ import { relative, resolve, sep } from "node:path";
 import { loadDecisionTaxonomy, loadProjectManifest } from "@lervo/project";
 import { parseManagedMarkdownBlocks } from "@lervo/documents";
 import { parse } from "yaml";
+import type { DocumentRegistry } from "@lervo/schemas";
 import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
 import { sha256, stableId } from "./integrity.js";
 import { analyzeRepositoryKnowledgeImpact } from "./impact.js";
@@ -18,6 +19,7 @@ import {
   loadStoredRelations,
   type StoredClaim,
 } from "./store-reader.js";
+import { projectKnowledgeRelations, type RelationConceptCoordinate } from "./relation-query.js";
 import { inspectGroupedDecisionPaths } from "./decision-layout.js";
 import { inspectConfiguredDocumentNormalization } from "./document-normalization.js";
 import type {
@@ -698,6 +700,7 @@ export async function queryRepositoryKnowledge(input: {
   query: string;
   limit?: number;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
+  documentRegistry?: DocumentRegistry;
 }): Promise<KnowledgeQueryResult> {
   const root = resolve(input.repositoryRoot);
   await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root });
@@ -722,6 +725,7 @@ export async function queryRepositoryKnowledge(input: {
   );
   const queryTerms = terms(input.query);
   const hits: KnowledgeQueryHit[] = [];
+  const resolvedConcepts: RelationConceptCoordinate[] = [];
   const claimsByConcept = new Map<string, StoredClaim[]>();
   for (const stored of await loadStoredClaims(root)) {
     if (stored.value === null) continue;
@@ -729,7 +733,9 @@ export async function queryRepositoryKnowledge(input: {
     values.push(stored.value);
     claimsByConcept.set(stored.value.conceptId, values);
   }
-  for (const stored of await loadStoredConcepts(root)) {
+  const storedConcepts = await loadStoredConcepts(root);
+  const storedRelations = await loadStoredRelations(root);
+  for (const stored of storedConcepts) {
     const concept = stored.value;
     if (concept === null) continue;
     if (concept.publicationStatus === "deprecated") continue;
@@ -753,6 +759,25 @@ export async function queryRepositoryKnowledge(input: {
     const bodyTerms = textTerms(
       `${content}\n${linkedClaims.map((claim) => claim.statement).join("\n")}`,
     );
+    const assurance =
+      linkedClaims.length > 0 || concept.assurance === "human_reviewed"
+        ? "human_reviewed"
+        : "unreviewed";
+    const freshness =
+      conceptImpact.get(concept.conceptId) ??
+      (concept.sourceUnitVersionIds.length === 0
+        ? "unknown"
+        : concept.sourceUnitVersionIds.every((id) => currentUnits.has(id))
+          ? "current"
+          : "stale");
+    resolvedConcepts.push({
+      conceptId: concept.conceptId,
+      path: concept.path,
+      contentHash,
+      assurance,
+      freshness,
+      deprecated: false,
+    });
     const matchedTerms = queryTerms.filter(
       (term) =>
         hasLexicalTerm(titleTerms, term) ||
@@ -775,27 +800,49 @@ export async function queryRepositoryKnowledge(input: {
       ownership: concept.ownership,
       score,
       matchedTerms,
-      assurance:
-        linkedClaims.length > 0 || concept.assurance === "human_reviewed"
-          ? "human_reviewed"
-          : "unreviewed",
-      freshness:
-        conceptImpact.get(concept.conceptId) ??
-        (concept.sourceUnitVersionIds.length === 0
-          ? "unknown"
-          : concept.sourceUnitVersionIds.every((id) => currentUnits.has(id))
-            ? "current"
-            : "stale"),
+      assurance,
+      freshness,
       contentHash,
     });
   }
   hits.sort((left, right) => right.score - left.score || left.path.localeCompare(right.path));
+  const conceptSidecarSetHash = sha256(
+    JSON.stringify(
+      await Promise.all(
+        storedConcepts.map(async (stored) => {
+          const bytes = await readSafePublication(root, stored.file, 256 * 1024);
+          return [stored.file, bytes === null ? "unreadable" : sha256(bytes)] as const;
+        }),
+      ),
+    ),
+  );
+  const relationSidecarSetHash = sha256(
+    JSON.stringify(
+      await Promise.all(
+        storedRelations.map(async (stored) => {
+          const bytes = await readSafePublication(root, stored.file, 256 * 1024);
+          return [stored.file, bytes === null ? "unreadable" : sha256(bytes)] as const;
+        }),
+      ),
+    ),
+  );
+  const selectedHits = hits.slice(0, input.limit ?? 20);
   return {
     schemaVersion: 1,
     query: input.query,
     semantics: "recommended",
     sourceSnapshotId: scan.snapshotId,
     impactReportId: impact.reportId,
-    hits: hits.slice(0, input.limit ?? 20),
+    hits: selectedHits,
+    relationProjection: projectKnowledgeRelations({
+      sourceSnapshotId: scan.snapshotId,
+      impactReportId: impact.reportId,
+      conceptSidecarSetHash,
+      relationSidecarSetHash,
+      seedConceptIds: selectedHits.map((hit) => hit.conceptId),
+      concepts: resolvedConcepts,
+      relations: storedRelations.flatMap((stored) => (stored.value === null ? [] : [stored.value])),
+      ...(input.documentRegistry === undefined ? {} : { documentRegistry: input.documentRegistry }),
+    }),
   };
 }

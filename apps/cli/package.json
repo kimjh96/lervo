@@ -63,6 +63,7 @@
     "@lervo/roles": "workspace:*",
     "@lervo/search": "workspace:*",
     "@lervo/search-adapter-bm25f": "workspace:*",
+    "@lervo/search-adapter-local-hybrid": "workspace:*",
     "@lervo/search-local": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/skills": "workspace:*",

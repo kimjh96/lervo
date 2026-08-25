@@ -16,6 +16,7 @@ const reasonOrder: Record<SelectionReasonCode, number> = {
   explicit_link: 4,
   handoff: 5,
   search_recommendation: 6,
+  graph_recommendation: 7,
 };
 
 interface MutablePlannedDocument {

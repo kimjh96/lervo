@@ -35,6 +35,7 @@ export const selectionReasonCodes = [
   "explicit_link",
   "handoff",
   "search_recommendation",
+  "graph_recommendation",
 ] as const;
 
 const commonProperties = {

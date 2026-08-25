@@ -92,6 +92,8 @@ Validate the plan, stage outputs, back up originals, publish exact bytes and del
 
 ## 11. Concepts, claims, and relations
 
+Knowledge query ranks direct concepts lexically and may derive a separate reviewed relation projection for managed context. The projection follows exactly one current human-reviewed relation from a direct concept, examines at most 64 edges, returns at most five distinct targets, and permits at most two graph selections. Each target path must resolve to one concept and one registered document. Its current bytes are hashed at query time and bound to the source snapshot and impact report; concept records do not pretend to store a document content hash. Exact concept and relation sidecar set hashes make the projection rebuildable, while graph coordinates remain outside search-engine scoring and index identity.
+
 Concept sidecars record title, language, type, path, ownership, lifecycle, source versions, assurance, and freshness. Bundle sidecars record language. Claims cite evidence versions. Relations include `depends_on`, `constrains`, `related_to`, `supersedes`, and `contradicts`. Markdown and sidecars are canonical; graph and lexical indexes are rebuildable.
 
 ## 12. Impact and query

@@ -15,6 +15,7 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { applyInitPlan, createInitPlan } from "@lervo/project";
+import type { DocumentRegistry } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse, stringify } from "yaml";
 
@@ -57,6 +58,117 @@ afterEach(async () => {
 });
 
 describe("repository knowledge migration", () => {
+  it("projects a reviewed one-hop relation onto one registered current document", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs"));
+    await writeFile(resolve(root, "README.md"), "# Seed\n\nseed-only-keyword\n");
+    await writeFile(resolve(root, "docs/target.md"), "# Target\n\nRelated operational detail.\n");
+    await initialize(root);
+    await applyKnowledgeMigrationPlan(
+      await createKnowledgeMigrationPlan({ repositoryRoot: root }),
+      new Date("2026-08-25T00:00:00Z"),
+      () => undefined,
+    );
+    const conceptFiles = await listKnowledgeArtifactPaths({
+      root,
+      directory: ".lervo/knowledge/concepts",
+      extension: "yaml",
+      maximumFiles: 20_000,
+    });
+    const concepts = await Promise.all(
+      conceptFiles.map(async (path) => ({
+        path,
+        value: parse(await readFile(resolve(root, path), "utf8")) as {
+          conceptId: string;
+          path: string;
+          [key: string]: unknown;
+        },
+      })),
+    );
+    const seed = concepts.find((item) => item.value.path === "README.md")!;
+    const target = concepts.find((item) => item.value.path === "docs/target.md")!;
+    const currentScan = await scanConfiguredRepositoryKnowledge(root);
+    for (const concept of [seed, target]) {
+      const sourceUnitVersionIds = currentScan.scan.units
+        .filter((unit) => unit.path === concept.value.path)
+        .map((unit) => unit.unitVersionId);
+      await writeFile(
+        resolve(root, concept.path),
+        stringify(
+          {
+            ...concept.value,
+            sourceUnitVersionIds,
+            assurance: "human_reviewed",
+            freshness: "current",
+          },
+          { lineWidth: 0, sortMapEntries: true },
+        ),
+      );
+    }
+    const relationId = "relation_aaaaaaaaaaaaaaaaaaaaaaaa";
+    const relationEvidence = currentScan.scan.units.find(
+      (unit) => unit.path === "README.md" && unit.unitKind === "markdown_section",
+    )!;
+    const relationPath = shardedKnowledgeArtifactPath(
+      ".lervo/knowledge/relations",
+      relationId,
+      "yaml",
+    );
+    await mkdir(resolve(root, relationPath, ".."), { recursive: true });
+    await writeFile(
+      resolve(root, relationPath),
+      stringify(
+        {
+          schemaVersion: 1,
+          relationId,
+          from: { kind: "concept", id: seed.value.conceptId },
+          to: { kind: "concept", id: target.value.conceptId },
+          type: "related_to",
+          evidenceUnitVersionIds: [relationEvidence.unitVersionId],
+          evidenceUnitIds: [relationEvidence.unitId],
+          assurance: "human_reviewed",
+          freshness: "current",
+          reviewId: "review_fixture",
+        },
+        { lineWidth: 0, sortMapEntries: true },
+      ),
+    );
+    const documentRegistry: DocumentRegistry = {
+      schemaVersion: 1,
+      documents: {
+        doc_relation_target: {
+          path: "docs/target.md",
+          kind: "canonical",
+          responsibleParty: { kind: "team", id: "platform" },
+          connectedPaths: ["src/**"],
+          verifiedRevision: "fixture-v1",
+          verifiedAt: "2026-08-25T00:00:00Z",
+          reviewIntervalDays: 30,
+          ownership: { mode: "user" },
+        },
+      },
+    };
+
+    const query = await queryRepositoryKnowledge({
+      repositoryRoot: root,
+      query: "seed-only-keyword",
+      documentRegistry,
+    });
+
+    expect(query.hits[0]?.conceptId).toBe(seed.value.conceptId);
+    expect(query.hits[0]).toMatchObject({ assurance: "human_reviewed", freshness: "current" });
+    expect(query.relationProjection.seedConceptIds).toEqual([seed.value.conceptId]);
+    expect(query.relationProjection.recommendations).toEqual([
+      expect.objectContaining({
+        relationId,
+        targetConceptId: target.value.conceptId,
+        documentId: "doc_relation_target",
+        path: "docs/target.md",
+        sourceContentHash: sha256("# Target\n\nRelated operational detail.\n"),
+      }),
+    ]);
+  });
+
   it("excludes generated mobile dependency and build trees without hiding native source", async () => {
     const root = await repository();
     await mkdir(resolve(root, "apps/app/ios/Pods/dependency"), { recursive: true });

@@ -319,6 +319,7 @@ export function createManagedRunExecutor(
           publications: [],
           handoffs: [],
           recommendationBatches: searchContext.recommendationBatches,
+          graphRecommendations: searchContext.graphRecommendations,
           documentRules:
             currentWorkstream === null ? {} : { "repository.workstream": [workstreamDocumentId] },
           additionalCandidates: [
@@ -409,6 +410,7 @@ export function createManagedRunExecutor(
           searchContext.attempt.attemptId,
           searchContext.knowledgeAttempt.attemptId,
           result.contextEvidence,
+          searchContext.graphRecommendations,
         ),
       };
       if (request.workforce !== undefined) {

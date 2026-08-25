@@ -62,7 +62,7 @@ export const defaultEnglishWritingContract = {
       {
         checkId: "plain_audience_language",
         requirement:
-          "Use language the intended reader can understand before internal implementation terms, and explain necessary technical terms when they first appear.",
+          "Judge clarity for the supplied audience and prose register. A technical specification may use standard software terms, but it must explain repository-specific terms, uncommon abbreviations, and machine identifiers at first use or in a Terms section.",
         required: true,
       },
       {

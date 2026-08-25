@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0199: Structured workstream continuation state](../../decisions/knowledge/repository/0199-structured-workstream-continuation-state.md) — `docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md`
 - [ADR-0052: Rebuildable explicit knowledge graph](../../decisions/knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md) — `docs/decisions/knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md`
 - [ADR-0180: Hash-Bound Human Duplicate and Contradiction Resolution](../../decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md) — `docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md`
 - [ADR-0186: Content-Bound Codex–Claude Compilation Comparison](../../decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md) — `docs/decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md`
@@ -26,4 +27,3 @@
 - [ADR-0039: Authenticate and Scope Projects Before Trace HTTP Reads](../../decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md) — `docs/decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md`
 - [ADR-0040: Read-Only Trace Web View Without Accumulated Pages](../../decisions/operations/trace/0040-bounded-trace-web-view.md) — `docs/decisions/operations/trace/0040-bounded-trace-web-view.md`
 - [ADR-0076: Versioned Trace-Report Compatibility Contract](../../decisions/operations/trace/0076-versioned-trace-report-contract.md) — `docs/decisions/operations/trace/0076-versioned-trace-report-contract.md`
-- [ADR-0077: Bounded trace source reads that expose truncation](../../decisions/operations/trace/0077-bounded-trace-source-reads.md) — `docs/decisions/operations/trace/0077-bounded-trace-source-reads.md`

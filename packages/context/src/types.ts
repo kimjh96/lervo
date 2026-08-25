@@ -25,6 +25,21 @@ export interface ContextDocumentCandidate {
   knowledgeContext?: KnowledgeContextMetadata;
 }
 
+export interface GraphDocumentRecommendation {
+  schemaVersion: 1;
+  projectionId: string;
+  recommendationId: string;
+  relationId: string;
+  targetConceptId: string;
+  documentId: string;
+  path: string;
+  sourceContentHash: string;
+  sourceSnapshotId: string;
+  impactReportId: string;
+  rank: number;
+  selected: boolean;
+}
+
 export interface ContextSelectionReason {
   reasonCode: SelectionReasonCode;
   ruleId: string;
@@ -65,6 +80,7 @@ export interface CreateContextPlanInput {
   publications: readonly SharedContextPublication[];
   handoffs: readonly ContextHandoffInput[];
   recommendationBatches?: readonly SearchRecommendationBatch[];
+  graphRecommendations?: readonly GraphDocumentRecommendation[];
   additionalCandidates?: readonly ContextDocumentCandidate[];
   policyVersion: string;
   recordedAt: Date;
@@ -131,6 +147,7 @@ export type ContextPreparationErrorCode =
   | "invalid_context_plan"
   | "invalid_path_rule"
   | "invalid_search_recommendation"
+  | "invalid_graph_recommendation"
   | "receipt_id_conflict"
   | "required_rule_unresolved"
   | "shared_context_document_missing"

@@ -37,6 +37,7 @@ export * from "./semantic-materialization.js";
 export * from "./source-lineage.js";
 export * from "./skill-contract-source-units.js";
 export * from "./store-reader.js";
+export * from "./relation-query.js";
 export * from "./state-projections.js";
 export * from "./terminal-integration.js";
 export * from "./public-readme.js";

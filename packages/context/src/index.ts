@@ -3,6 +3,7 @@ export * from "./collections.js";
 export * from "./evidence.js";
 export * from "./filesystem.js";
 export * from "./freshness.js";
+export * from "./graph-recommendations.js";
 export * from "./loading.js";
 export * from "./loaded-validation.js";
 export * from "./paths.js";

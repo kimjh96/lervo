@@ -166,6 +166,8 @@ export class ManagedDeliberationRunner {
         writingPolicyId: request.writingPolicyId,
         locale: request.locale,
         surface: request.surface,
+        audience: request.audience,
+        register: request.register,
         artifactId: request.artifactId,
         contentHash: request.contentHash,
         content: request.content,

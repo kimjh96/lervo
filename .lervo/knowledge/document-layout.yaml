@@ -182,6 +182,14 @@ routes:
       - session
       - codex
       - claude
+  - id: execution.provider-hooks
+    path: execution/providers/hooks
+    priority: 54
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - terminal hook
+      - hook isolation
+      - provider hook
   - id: execution.verification
     path: execution/verification
     priority: 52

@@ -5,24 +5,25 @@
 
 ## Inventory
 
-Publication input snapshot: `ksnap_9f86f0c27ef3f31a9583d4e5`. Included 2033 publishable sources (9808980 bytes), excluded 5, unsupported 0. This coordinate binds the structural source set and intentionally omits revision metadata, verification results, execution events, and local-inventory-only agent surfaces. A full query snapshot may differ while this publication remains current; use `lervo migrate knowledge` to determine currency.
+Publication input snapshot: `ksnap_acfa36acaabb6a01c5118a96`. Included 2698 publishable sources (10418020 bytes), excluded 5, unsupported 0. This coordinate binds the structural source set and intentionally omits revision metadata, verification results, execution events, and local-inventory-only agent surfaces. A full query snapshot may differ while this publication remains current; use `lervo migrate knowledge` to determine currency.
 
-- build_definition: 74
-- code: 868
-- configuration: 85
-- documentation: 243
+- build_definition: 75
+- code: 872
+- configuration: 86
+- documentation: 245
+- execution_event: 653
 - instruction: 2
 - other: 292
 - revision_metadata: 1
 - schema: 66
-- test: 402
+- test: 406
 
 ## Knowledge map
 
 - [Agent instructions](instructions.md) — 2 concepts
 - [Architecture and vision](architecture.md) — 3 concepts
 - [Specifications and reference](specifications.md) — 1 concept
-- [Documentation](documentation.md) — 239 concepts
+- [Documentation](documentation.md) — 241 concepts
 
 ## Evidence semantics
 

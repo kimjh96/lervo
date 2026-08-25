@@ -71,6 +71,7 @@
       "@lervo/runtime-security": ["packages/runtime-security/src/index.ts"],
       "@lervo/search": ["packages/search/src/index.ts"],
       "@lervo/search-adapter-bm25f": ["packages/search-adapter-bm25f/src/index.ts"],
+      "@lervo/search-adapter-local-hybrid": ["packages/search-adapter-local-hybrid/src/index.ts"],
       "@lervo/search-local": ["packages/search-local/src/index.ts"],
       "@lervo/schemas": ["packages/schemas/src/index.ts"],
       "@lervo/skills": ["packages/skills/src/index.ts"],

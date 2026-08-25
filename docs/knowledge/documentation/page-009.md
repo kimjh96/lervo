@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0125: npm Staged-Package Review Evidence](../../decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md) — `docs/decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md`
 - [ADR-0126: npm Stage-Approval Authorization](../../decisions/release/staging/0126-cli-npm-stage-approval-authorization.md) — `docs/decisions/release/staging/0126-cli-npm-stage-approval-authorization.md`
 - [ADR-0127: Durable npm Stage-Approval Records](../../decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md) — `docs/decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md`
 - [ADR-0128: Interactive npm Stage-Approval Execution](../../decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md) — `docs/decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md`
@@ -26,4 +27,3 @@
 - [ADR-0068: Explicit search-rollout actions and atomic rollback](../../decisions/search/0068-explicit-search-rollout-actions.md) — `docs/decisions/search/0068-explicit-search-rollout-actions.md`
 - [ADR-0069: Bounded search-rollout action status](../../decisions/search/0069-bounded-search-rollout-action-status.md) — `docs/decisions/search/0069-bounded-search-rollout-action-status.md`
 - [ADR-0070: Write-free search-rollout action preflight](../../decisions/search/0070-read-only-search-rollout-action-preflight.md) — `docs/decisions/search/0070-read-only-search-rollout-action-preflight.md`
-- [ADR-0071: Doctor checks for search-rollout operational sources](../../decisions/search/0071-search-rollout-operational-doctor.md) — `docs/decisions/search/0071-search-rollout-operational-doctor.md`

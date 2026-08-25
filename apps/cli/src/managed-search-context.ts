@@ -5,6 +5,7 @@ import {
   instructionPathsFor,
   readRepositoryFile,
   type ContextDocumentCandidate,
+  type GraphDocumentRecommendation,
 } from "@lervo/context";
 import { queryRepositoryKnowledge } from "@lervo/repository-knowledge";
 import {
@@ -32,6 +33,8 @@ export interface ManagedSearchContextSummary {
   recommendedKnowledgeConcepts: number;
   selectedKnowledgeConcepts: number;
   selectedKnowledgeConceptIds: string[];
+  recommendedGraphDocuments: number;
+  selectedGraphDocuments: number;
 }
 
 export interface PreparedManagedSearchContext {
@@ -40,6 +43,7 @@ export interface PreparedManagedSearchContext {
   attempts: readonly SearchAttempt[];
   recommendationBatches: readonly SearchRecommendationBatch[];
   additionalCandidates: readonly ContextDocumentCandidate[];
+  graphRecommendations: readonly GraphDocumentRecommendation[];
   knowledgeAttempt: SearchAttempt;
 }
 
@@ -116,6 +120,7 @@ export async function prepareManagedSearchContext(input: {
     query,
     limit: 20,
     supplementalSources,
+    ...(input.documentRegistry === undefined ? {} : { documentRegistry: input.documentRegistry }),
   });
   const documentIdByPath = new Map(
     Object.entries(input.documentRegistry?.documents ?? {}).map(([documentId, document]) => [
@@ -177,6 +182,56 @@ export async function prepareManagedSearchContext(input: {
     recommendationLimit: 5,
     maximumSelections: 3,
   });
+  const graphRecommendations: GraphDocumentRecommendation[] = [];
+  for (const [index, recommendation] of knowledge.relationProjection.recommendations.entries()) {
+    const bytes = await readRepositoryFile(input.repositoryRoot, recommendation.path, 131_072);
+    if (digestBytes(bytes) !== recommendation.sourceContentHash) {
+      throw new TypeError(
+        `Publication bytes changed after relation projection: ${recommendation.path}`,
+      );
+    }
+    const existing = additionalCandidates.find(
+      (candidate) => candidate.documentId === recommendation.documentId,
+    );
+    if (
+      existing !== undefined &&
+      (existing.path !== recommendation.path ||
+        existing.knowledgeContext?.conceptId !== recommendation.targetConceptId)
+    ) {
+      throw new TypeError(
+        `A relation target conflicts with an existing knowledge document: ${recommendation.documentId}`,
+      );
+    }
+    if (existing === undefined) {
+      additionalCandidates.push({
+        documentId: recommendation.documentId,
+        path: recommendation.path,
+        connectedPaths: [],
+        source: "knowledge",
+        knowledgeContext: {
+          conceptId: recommendation.targetConceptId,
+          assurance: "human_reviewed",
+          freshness: "current",
+          sourceSnapshotId: recommendation.sourceSnapshotId,
+          impactReportId: recommendation.impactReportId,
+        },
+      });
+    }
+    graphRecommendations.push({
+      schemaVersion: 1,
+      projectionId: knowledge.relationProjection.projectionId,
+      recommendationId: recommendation.recommendationId,
+      relationId: recommendation.relationId,
+      targetConceptId: recommendation.targetConceptId,
+      documentId: recommendation.documentId,
+      path: recommendation.path,
+      sourceContentHash: recommendation.sourceContentHash,
+      sourceSnapshotId: recommendation.sourceSnapshotId,
+      impactReportId: recommendation.impactReportId,
+      rank: index + 1,
+      selected: index < knowledge.relationProjection.limits.maximumSelections,
+    });
+  }
   return {
     attempt,
     recommendationBatch,
@@ -185,6 +240,7 @@ export async function prepareManagedSearchContext(input: {
     additionalCandidates: additionalCandidates.sort((left, right) =>
       left.path.localeCompare(right.path),
     ),
+    graphRecommendations,
     knowledgeAttempt,
   };
 }
@@ -193,6 +249,7 @@ export function summarizeManagedSearchContext(
   attemptId: string,
   knowledgeAttemptId: string,
   evidence: readonly ContextEvidence[],
+  graphRecommendations: readonly GraphDocumentRecommendation[] = [],
 ): ManagedSearchContextSummary {
   const recommendedDocumentIds = new Set(
     evidence.filter((item) => item.state === "recommended").map((item) => item.documentId),
@@ -229,5 +286,7 @@ export function summarizeManagedSearchContext(
     recommendedKnowledgeConcepts: recommendedKnowledgeConceptIds.size,
     selectedKnowledgeConcepts: selectedKnowledgeConceptIds.length,
     selectedKnowledgeConceptIds,
+    recommendedGraphDocuments: graphRecommendations.length,
+    selectedGraphDocuments: graphRecommendations.filter((item) => item.selected).length,
   };
 }

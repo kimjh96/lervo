@@ -161,7 +161,10 @@ describe("same-provider independent role deliberation runtime", () => {
 
     const reviewerAdapter = new FixtureProviderAdapter(
       "codex-session-reviewer",
-      "The review requests changes. Evidence for the prior artifact must be linked to actual injection records to verify role independence.",
+      [
+        "The review requests changes. Evidence for the prior artifact must be linked to actual injection records to verify role independence.",
+        `<!-- lervo-e4:${proposalDocumentId}:${proposal.artifact.content.contentHash} -->`,
+      ].join("\n"),
     );
     const reviewerRun = coordinator({
       fixture,
@@ -238,6 +241,12 @@ describe("same-provider independent role deliberation runtime", () => {
       ]),
     );
     expect(review.artifact.inputContext.sharedContextIds).toEqual([publication.sharedContextId]);
+    expect(review.content).not.toContain("lervo-e4:");
+    expect(
+      fixture.events
+        .list({ runId: "run_reviewer_0001" })
+        .some((event) => event.type === "context.referenced"),
+    ).toBe(true);
     const proposalReceipts = new Set([
       ...proposal.artifact.inputContext.loadedReceiptIds,
       ...proposal.artifact.inputContext.injectedReceiptIds,

@@ -3,6 +3,8 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0071: Doctor checks for search-rollout operational sources](../../decisions/search/0071-search-rollout-operational-doctor.md) — `docs/decisions/search/0071-search-rollout-operational-doctor.md`
+- [ADR-0217: Local hybrid search and reviewed relation context](../../decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md) — `docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md`
 - [Lervo Hub standalone distribution](../../distribution/hub-runtime-distribution.md) — `docs/distribution/hub-runtime-distribution.md`
 - [Lervo Node standalone distribution](../../distribution/node-runtime-distribution.md) — `docs/distribution/node-runtime-distribution.md`
 - [Managed context grounding acceptance pilot](../../evidence/pilots/managed-context-grounding.md) — `docs/evidence/pilots/managed-context-grounding.md`
@@ -25,4 +27,3 @@
 - [Capability package supply chain](../../specifications/execution/capabilities.md) — `docs/specifications/execution/capabilities.md`
 - [Execution events and privacy](../../specifications/execution/events-and-privacy.md) — `docs/specifications/execution/events-and-privacy.md`
 - [Local data and state lifecycle](../../specifications/execution/state-lifecycle.md) — `docs/specifications/execution/state-lifecycle.md`
-- [Lervo](../../../README.md) — `README.md`

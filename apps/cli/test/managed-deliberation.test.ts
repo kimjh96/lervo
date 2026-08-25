@@ -26,6 +26,8 @@ describe("managed CLI deliberation convergence", () => {
       writingPolicyId: defaultEnglishWritingContract.writingPolicyId,
       locale: "ko-KR",
       surface: "chat" as const,
+      audience: defaultEnglishWritingContract.audience,
+      register: defaultEnglishWritingContract.prose.register,
       artifactId: "art_semantic_input_0001",
       contentHash: `sha256:${"1".repeat(64)}`,
       content: "This English sentence is ready for review.",

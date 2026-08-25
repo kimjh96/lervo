@@ -299,6 +299,10 @@ describe("Codex managed adapter", () => {
       expectedResultContent: "super-secret-result",
     });
     expect(report).toEqual({ passed: true, violations: [] });
+    expect(client.calls[0]).toMatchObject({
+      method: "startThread",
+      value: { config: { features: { hooks: false } } },
+    });
     expect(client.closed).toBe(true);
   });
 
@@ -359,6 +363,7 @@ describe("Codex managed adapter", () => {
       method: "startThread",
       value: {
         config: {
+          features: { hooks: false },
           mcp_servers: {
             "research-search": { command: "node", args: ["/immutable/server.mjs"], env: {} },
           },

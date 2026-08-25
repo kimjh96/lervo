@@ -5,7 +5,11 @@ import type { DeliberationPolicy } from "@lervo/schemas";
 import { createConvergedOutcome, createNoConsensusOutcome } from "./deliberation-contract.js";
 import { decisionPrompt, verificationPrompt } from "./deliberation-prompts.js";
 import type { DeliberationExecutionPlan, DeliberationParticipant } from "./deliberation-roles.js";
-import { presentDeliberationOutcome, recordDeliberationTurn } from "./deliberation-turn.js";
+import {
+  executeWithPublicationRepair,
+  presentDeliberationOutcome,
+  recordDeliberationTurn,
+} from "./deliberation-turn.js";
 import type { DeliberationWorkspace } from "./deliberation-workspace.js";
 import type {
   ManagedDeliberationOutcome,
@@ -37,54 +41,67 @@ export async function completeApprovedDeliberation(input: {
   const verificationTurns: DeliberationTurnResult[] = [];
   let allPassed = true;
   for (const suiteId of input.policy.requiredVerificationSuiteIds) {
-    const verificationRun = await input.runner.execute({
-      provider: input.verifier.provider,
-      role: input.verifier.role,
-      instructions: verificationPrompt(
-        input.request.topic.trim(),
-        suiteId,
-        input.verifier.role,
-        input.workspace.writingContract.locale,
-      ),
-      documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
-      verificationSuiteId: suiteId,
-    });
-    const verification = verificationRun.run.verifications[0];
-    if (verification === undefined || verification.result.suiteId !== suiteId) {
-      throw new Error("The deliberation verification result does not match the requested suite.");
-    }
-    if (verificationRun.verificationSuite?.suiteId !== suiteId) {
-      throw new Error("The deliberation verification suite source does not match the run result.");
-    }
-    const evidence: DeliberationVerificationEvidence = {
-      suite: verificationRun.verificationSuite,
-      result: verification.result,
-      resultArtifact: verification.resultArtifact,
-    };
-    const turn = await recordDeliberationTurn({
-      runtime: input.runtime,
-      runner: input.runner,
-      workspace: input.workspace,
-      producerRole: input.verifier.role,
-      provider: input.verifier.provider,
-      run: verificationRun,
-      kind: "verification",
-      round: input.approvedReviews.at(-1)!.artifact.round,
-      details: {
-        verificationId: verification.result.verificationId,
-        suiteId,
-        resultArtifactId: verification.resultArtifact.artifactId,
-        resultHash: verification.resultArtifact.contentHash,
-        status: verification.result.status,
-        targetClaims: [input.currentClaim],
+    const verificationInstructions = verificationPrompt(
+      input.request.topic.trim(),
+      suiteId,
+      input.verifier.role,
+      input.workspace.writingContract.locale,
+    );
+    const verificationAttempt = await executeWithPublicationRepair({
+      instructions: verificationInstructions,
+      execute: (instructions) =>
+        input.runner.execute({
+          provider: input.verifier.provider,
+          role: input.verifier.role,
+          instructions,
+          documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
+          verificationSuiteId: suiteId,
+        }),
+      record: async (run) => {
+        const verification = run.run.verifications[0];
+        if (verification === undefined || verification.result.suiteId !== suiteId) {
+          throw new Error(
+            "The deliberation verification result does not match the requested suite.",
+          );
+        }
+        if (run.verificationSuite?.suiteId !== suiteId) {
+          throw new Error(
+            "The deliberation verification suite source does not match the run result.",
+          );
+        }
+        const evidence: DeliberationVerificationEvidence = {
+          suite: run.verificationSuite,
+          result: verification.result,
+          resultArtifact: verification.resultArtifact,
+        };
+        const turn = await recordDeliberationTurn({
+          runtime: input.runtime,
+          runner: input.runner,
+          workspace: input.workspace,
+          producerRole: input.verifier.role,
+          provider: input.verifier.provider,
+          run,
+          kind: "verification",
+          round: input.approvedReviews.at(-1)!.artifact.round,
+          details: {
+            verificationId: verification.result.verificationId,
+            suiteId,
+            resultArtifactId: verification.resultArtifact.artifactId,
+            resultHash: verification.resultArtifact.contentHash,
+            status: verification.result.status,
+            targetClaims: [input.currentClaim],
+          },
+          previousArtifactIds: [
+            input.latestClaimArtifact.artifact.deliberationArtifactId,
+            ...input.approvedReviews.map((review) => review.artifact.deliberationArtifactId),
+          ],
+          verificationEvidence: evidence,
+          recipientRoleIds: input.recipientRoleIds,
+        });
+        return { turn, verification };
       },
-      previousArtifactIds: [
-        input.latestClaimArtifact.artifact.deliberationArtifactId,
-        ...input.approvedReviews.map((review) => review.artifact.deliberationArtifactId),
-      ],
-      verificationEvidence: evidence,
-      recipientRoleIds: input.recipientRoleIds,
     });
+    const { turn, verification } = verificationAttempt.recorded;
     verificationTurns.push(turn);
     allPassed &&= verification.result.status === "passed";
   }
@@ -106,40 +123,46 @@ export async function completeApprovedDeliberation(input: {
     );
   }
 
-  const decisionRun = await input.runner.execute({
-    provider: input.proposer.provider,
-    role: input.proposer.role,
+  const decisionAttempt = await executeWithPublicationRepair({
     instructions: decisionPrompt(
       input.request.topic.trim(),
       input.proposer.role,
       input.workspace.writingContract.locale,
     ),
-    documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
+    execute: (instructions) =>
+      input.runner.execute({
+        provider: input.proposer.provider,
+        role: input.proposer.role,
+        instructions,
+        documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
+      }),
+    record: (run) =>
+      recordDeliberationTurn({
+        runtime: input.runtime,
+        runner: input.runner,
+        workspace: input.workspace,
+        producerRole: input.proposer.role,
+        provider: input.proposer.provider,
+        run,
+        kind: "decision",
+        round: input.approvedReviews.at(-1)!.artifact.round,
+        details: {
+          decisionOwnerRoleId: input.proposer.role.roleId,
+          adoptedClaimIds: [input.currentClaim.claimId],
+          verificationArtifactIds: verificationTurns.map(
+            (turn) => turn.artifact.deliberationArtifactId,
+          ),
+          unresolvedObjectionIds: [],
+        },
+        previousArtifactIds: [
+          input.latestClaimArtifact.artifact.deliberationArtifactId,
+          ...input.approvedReviews.map((review) => review.artifact.deliberationArtifactId),
+          ...verificationTurns.map((turn) => turn.artifact.deliberationArtifactId),
+        ],
+        recipientRoleIds: input.recipientRoleIds,
+      }),
   });
-  const decision = await recordDeliberationTurn({
-    runtime: input.runtime,
-    runner: input.runner,
-    workspace: input.workspace,
-    producerRole: input.proposer.role,
-    provider: input.proposer.provider,
-    run: decisionRun,
-    kind: "decision",
-    round: input.approvedReviews.at(-1)!.artifact.round,
-    details: {
-      decisionOwnerRoleId: input.proposer.role.roleId,
-      adoptedClaimIds: [input.currentClaim.claimId],
-      verificationArtifactIds: verificationTurns.map(
-        (turn) => turn.artifact.deliberationArtifactId,
-      ),
-      unresolvedObjectionIds: [],
-    },
-    previousArtifactIds: [
-      input.latestClaimArtifact.artifact.deliberationArtifactId,
-      ...input.approvedReviews.map((review) => review.artifact.deliberationArtifactId),
-      ...verificationTurns.map((turn) => turn.artifact.deliberationArtifactId),
-    ],
-    recipientRoleIds: input.recipientRoleIds,
-  });
+  const decision = decisionAttempt.recorded;
   const outcome = createConvergedOutcome({
     deliberationId: input.deliberationId,
     policy: input.policy,

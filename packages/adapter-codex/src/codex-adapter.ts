@@ -150,7 +150,10 @@ export class CodexAdapter implements ProviderAdapter {
         approvalPolicy,
         sandbox,
         ...(this.options.model === undefined ? {} : { model: this.options.model }),
-        ...(Object.keys(mcpServers).length === 0 ? {} : { config: { mcp_servers: mcpServers } }),
+        config: {
+          features: { hooks: false },
+          ...(Object.keys(mcpServers).length === 0 ? {} : { mcp_servers: mcpServers }),
+        },
         ...(selectedCapabilityRoots.length === 0 ? {} : { selectedCapabilityRoots }),
       });
       const session: AdapterSession = {

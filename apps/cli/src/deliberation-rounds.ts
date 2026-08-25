@@ -8,7 +8,11 @@ import {
 } from "./deliberation-contract.js";
 import { proposalPrompt, revisionPrompt, reviewPrompt } from "./deliberation-prompts.js";
 import type { DeliberationExecutionPlan } from "./deliberation-roles.js";
-import { presentDeliberationOutcome, recordDeliberationTurn } from "./deliberation-turn.js";
+import {
+  executeWithPublicationRepair,
+  presentDeliberationOutcome,
+  recordDeliberationTurn,
+} from "./deliberation-turn.js";
 import type { DeliberationWorkspace } from "./deliberation-workspace.js";
 import type {
   ManagedDeliberationOutcome,
@@ -43,73 +47,89 @@ export async function executeDeliberationRounds(input: {
   now(): Date;
   setOpenBlockingObjectionIds(ids: readonly string[]): void;
 }): Promise<DeliberationRoundsResult> {
-  const proposalRun = await input.runner.execute({
-    provider: input.plan.proposer.provider,
-    role: input.plan.proposer.role,
+  const claimId = initialClaimId(input.deliberationId);
+  const proposalAttempt = await executeWithPublicationRepair({
     instructions: proposalPrompt(
       input.request.topic.trim(),
       input.plan.proposer.role,
       input.workspace.writingContract.locale,
     ),
-    documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
+    execute: (instructions) =>
+      input.runner.execute({
+        provider: input.plan.proposer.provider,
+        role: input.plan.proposer.role,
+        instructions,
+        documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
+      }),
+    record: (run) =>
+      recordDeliberationTurn({
+        runtime: input.runtime,
+        runner: input.runner,
+        workspace: input.workspace,
+        producerRole: input.plan.proposer.role,
+        provider: input.plan.proposer.provider,
+        run,
+        kind: "proposal",
+        round: 1,
+        details: {
+          claims: [{ claimId, claimDigest: run.run.resultArtifact.contentHash }],
+        },
+        previousArtifactIds: [],
+        recipientRoleIds: input.recipientRoleIds,
+      }),
   });
-  const claimId = initialClaimId(input.deliberationId);
   let currentClaim = {
     claimId,
-    claimDigest: proposalRun.run.resultArtifact.contentHash,
+    claimDigest: proposalAttempt.run.run.resultArtifact.contentHash,
   };
-  let latestClaimArtifact = await recordDeliberationTurn({
-    runtime: input.runtime,
-    runner: input.runner,
-    workspace: input.workspace,
-    producerRole: input.plan.proposer.role,
-    provider: input.plan.proposer.provider,
-    run: proposalRun,
-    kind: "proposal",
-    round: 1,
-    details: { claims: [currentClaim] },
-    previousArtifactIds: [],
-    recipientRoleIds: input.recipientRoleIds,
-  });
+  let latestClaimArtifact = proposalAttempt.recorded;
 
   for (let round = 1; round <= input.policy.maxRounds; round += 1) {
     const roundReviews: DeliberationTurnResult[] = [];
     const openBlockingObjectionIds: string[] = [];
     for (const reviewer of input.plan.reviewers) {
-      const reviewRun = await input.runner.execute({
-        provider: reviewer.provider,
-        role: reviewer.role,
+      const reviewAttempt = await executeWithPublicationRepair({
         instructions: reviewPrompt(
           input.request.topic.trim(),
           round,
           reviewer.role,
           input.workspace.writingContract.locale,
         ),
-        documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
+        execute: (instructions) =>
+          input.runner.execute({
+            provider: reviewer.provider,
+            role: reviewer.role,
+            instructions,
+            documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
+          }),
+        record: async (run) => {
+          const details = reviewDetails({
+            content: run.content,
+            contentHash: run.run.resultArtifact.contentHash,
+            claimId,
+            roleId: reviewer.role.roleId,
+            locale: input.workspace.writingContract.locale,
+          });
+          const turn = await recordDeliberationTurn({
+            runtime: input.runtime,
+            runner: input.runner,
+            workspace: input.workspace,
+            producerRole: reviewer.role,
+            provider: reviewer.provider,
+            run,
+            kind: "objection",
+            round,
+            details,
+            previousArtifactIds: [
+              latestClaimArtifact.artifact.deliberationArtifactId,
+              ...roundReviews.map((item) => item.artifact.deliberationArtifactId),
+            ],
+            recipientRoleIds: input.recipientRoleIds,
+          });
+          return { turn, details };
+        },
       });
-      const details = reviewDetails({
-        content: reviewRun.content,
-        contentHash: reviewRun.run.resultArtifact.contentHash,
-        claimId,
-        roleId: reviewer.role.roleId,
-        locale: input.workspace.writingContract.locale,
-      });
-      const review = await recordDeliberationTurn({
-        runtime: input.runtime,
-        runner: input.runner,
-        workspace: input.workspace,
-        producerRole: reviewer.role,
-        provider: reviewer.provider,
-        run: reviewRun,
-        kind: "objection",
-        round,
-        details,
-        previousArtifactIds: [
-          latestClaimArtifact.artifact.deliberationArtifactId,
-          ...roundReviews.map((item) => item.artifact.deliberationArtifactId),
-        ],
-        recipientRoleIds: input.recipientRoleIds,
-      });
+      const { turn: review, details } = reviewAttempt.recorded;
       roundReviews.push(review);
       openBlockingObjectionIds.push(...details.objections.map((item) => item.objectionId));
       input.setOpenBlockingObjectionIds(openBlockingObjectionIds);
@@ -143,40 +163,51 @@ export async function executeDeliberationRounds(input: {
         openBlockingObjectionIds,
       };
     }
-    const revisionRun = await input.runner.execute({
-      provider: input.plan.proposer.provider,
-      role: input.plan.proposer.role,
+    const revisionAttempt = await executeWithPublicationRepair({
       instructions: revisionPrompt(
         input.request.topic.trim(),
         input.plan.proposer.role,
         input.workspace.writingContract.locale,
       ),
-      documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
+      execute: (instructions) =>
+        input.runner.execute({
+          provider: input.plan.proposer.provider,
+          role: input.plan.proposer.role,
+          instructions,
+          documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
+        }),
+      record: (run) => {
+        const nextClaim = {
+          claimId,
+          claimDigest: run.run.resultArtifact.contentHash,
+        };
+        return recordDeliberationTurn({
+          runtime: input.runtime,
+          runner: input.runner,
+          workspace: input.workspace,
+          producerRole: input.plan.proposer.role,
+          provider: input.plan.proposer.provider,
+          run,
+          kind: "revision",
+          round: round + 1,
+          details: {
+            revisesArtifactId: latestClaimArtifact.artifact.deliberationArtifactId,
+            claims: [nextClaim],
+            resolvesObjectionIds: openBlockingObjectionIds,
+          },
+          previousArtifactIds: [
+            latestClaimArtifact.artifact.deliberationArtifactId,
+            ...roundReviews.map((item) => item.artifact.deliberationArtifactId),
+          ],
+          recipientRoleIds: input.recipientRoleIds,
+        });
+      },
     });
     currentClaim = {
       claimId,
-      claimDigest: revisionRun.run.resultArtifact.contentHash,
+      claimDigest: revisionAttempt.run.run.resultArtifact.contentHash,
     };
-    latestClaimArtifact = await recordDeliberationTurn({
-      runtime: input.runtime,
-      runner: input.runner,
-      workspace: input.workspace,
-      producerRole: input.plan.proposer.role,
-      provider: input.plan.proposer.provider,
-      run: revisionRun,
-      kind: "revision",
-      round: round + 1,
-      details: {
-        revisesArtifactId: latestClaimArtifact.artifact.deliberationArtifactId,
-        claims: [currentClaim],
-        resolvesObjectionIds: openBlockingObjectionIds,
-      },
-      previousArtifactIds: [
-        latestClaimArtifact.artifact.deliberationArtifactId,
-        ...roundReviews.map((item) => item.artifact.deliberationArtifactId),
-      ],
-      recipientRoleIds: input.recipientRoleIds,
-    });
+    latestClaimArtifact = revisionAttempt.recorded;
     input.setOpenBlockingObjectionIds([]);
   }
   throw new Error("Deliberation rounds ended without a terminal outcome.");

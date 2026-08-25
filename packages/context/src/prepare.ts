@@ -24,6 +24,9 @@ export async function prepareContext(input: PrepareContextInput): Promise<Loaded
     ...(input.recommendationBatches === undefined
       ? {}
       : { recommendationBatches: input.recommendationBatches }),
+    ...(input.graphRecommendations === undefined
+      ? {}
+      : { graphRecommendations: input.graphRecommendations }),
     policyVersion: input.policyVersion,
     recordedAt: input.recordedAt,
     ...(input.createReceiptId === undefined ? {} : { createReceiptId: input.createReceiptId }),

@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0077: Bounded trace source reads that expose truncation](../../decisions/operations/trace/0077-bounded-trace-source-reads.md) — `docs/decisions/operations/trace/0077-bounded-trace-source-reads.md`
 - [ADR-0078: Snapshot-bound local trace cursor pages](../../decisions/operations/trace/0078-snapshot-bound-local-trace-pages.md) — `docs/decisions/operations/trace/0078-snapshot-bound-local-trace-pages.md`
 - [ADR-0079: Explicit trace-page event-type filters](../../decisions/operations/trace/0079-explicit-trace-page-event-filter.md) — `docs/decisions/operations/trace/0079-explicit-trace-page-event-filter.md`
 - [ADR-0081: Trace default-output transition contract](../../decisions/operations/trace/0081-trace-output-mode-deprecation.md) — `docs/decisions/operations/trace/0081-trace-output-mode-deprecation.md`
@@ -26,4 +27,3 @@
 - [ADR-0105: CLI first-publication metadata decision and write-free preview](../../decisions/release/bootstrap/0105-cli-first-publication-metadata-preview.md) — `docs/decisions/release/bootstrap/0105-cli-first-publication-metadata-preview.md`
 - [ADR-0106: CLI first-publication package-metadata patch candidate](../../decisions/release/bootstrap/0106-cli-first-publication-package-metadata-candidate.md) — `docs/decisions/release/bootstrap/0106-cli-first-publication-package-metadata-candidate.md`
 - [ADR-0107: CLI first-publication package-metadata apply permit](../../decisions/release/bootstrap/0107-cli-first-publication-package-metadata-apply-permit.md) — `docs/decisions/release/bootstrap/0107-cli-first-publication-package-metadata-apply-permit.md`
-- [ADR-0108: CLI first-publication package-metadata apply transaction](../../decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md) — `docs/decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md`

@@ -81,6 +81,8 @@ export async function runSemanticEvaluation(input: {
       writingPolicyId: input.contract.writingPolicyId,
       locale: input.contract.locale,
       surface: input.surface,
+      audience: input.contract.audience,
+      register: input.contract.prose.register,
       artifactId: input.artifact.artifactId,
       contentHash: input.artifact.contentHash,
       content: input.content,

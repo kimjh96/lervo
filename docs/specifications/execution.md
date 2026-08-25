@@ -24,6 +24,8 @@ A current workstream must match its latest `workstream.snapshot.recorded` event 
 
 Managed search records operational and repository-knowledge recommendations separately. If an AGENTS instruction or registered document appears in both, injection discovery must resolve one canonical document ID with identical metadata; unproven same-path identity fails before the turn.
 
+Managed sessions suppress native project hooks. Graph-selected registered documents use bounded post-search projections and ordinary E1-E3 evidence (ADR-0216, ADR-0217).
+
 ## 3. Context evidence
 
 | Level | Meaning |

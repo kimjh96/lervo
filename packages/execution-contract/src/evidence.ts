@@ -123,16 +123,21 @@ export function validateManagedProviderRunEvidence(input: {
   if (resultEvents.length !== 1)
     fail("The managed run must have exactly one captured adapter result event.");
   const resultEvent = resultEvents[0]!;
+  const publicationChanged = referenced.length > 0;
   if (
     resultEvent.actor.provider !== run.session.provider ||
     resultEvent.payload.adapterId !== run.session.adapterId ||
     resultEvent.payload.providerSessionId !== run.session.providerSessionId ||
     resultEvent.payload.targetTurnId !== run.turn.targetTurnId ||
     resultEvent.payload.providerTurnId !== run.turn.providerTurnId ||
-    resultEvent.payload.resultDigest !== run.resultArtifact.contentHash ||
-    resultEvent.payload.byteCount !== run.resultArtifact.byteCount ||
     resultEvent.payload.mediaType !== run.resultArtifact.mediaType ||
-    resultEvent.payload.referenceTelemetry !== "supported"
+    resultEvent.payload.referenceTelemetry !== "supported" ||
+    (publicationChanged
+      ? resultEvent.payload.resultDigest === run.resultArtifact.contentHash ||
+        typeof resultEvent.payload.byteCount !== "number" ||
+        resultEvent.payload.byteCount <= run.resultArtifact.byteCount
+      : resultEvent.payload.resultDigest !== run.resultArtifact.contentHash ||
+        resultEvent.payload.byteCount !== run.resultArtifact.byteCount)
   )
     fail("The captured adapter result differs from the managed result artifact or turn.");
   eventIds.push(resultEvent.eventId);

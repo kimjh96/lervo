@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0022: Byte-preserving managed-block patch candidates](../../decisions/knowledge/documents/0022-byte-preserving-managed-block-patch-candidate.md) — `docs/decisions/knowledge/documents/0022-byte-preserving-managed-block-patch-candidate.md`
 - [ADR-0023: Evidence-based document staleness](../../decisions/knowledge/documents/0023-evidence-based-document-staleness.md) — `docs/decisions/knowledge/documents/0023-evidence-based-document-staleness.md`
 - [ADR-0031: Human-reviewed knowledge promotion and path-based staleness](../../decisions/knowledge/documents/0031-reviewed-verified-knowledge-lifecycle.md) — `docs/decisions/knowledge/documents/0031-reviewed-verified-knowledge-lifecycle.md`
 - [ADR-0181: Durable, Hash-Bound User Document Deletion](../../decisions/knowledge/documents/0181-durable-hash-bound-user-document-deletion.md) — `docs/decisions/knowledge/documents/0181-durable-hash-bound-user-document-deletion.md`
@@ -26,4 +27,3 @@
 - [ADR-0192: Repository-scoped fail-closed decision taxonomy](../../decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md) — `docs/decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md`
 - [ADR-0193: Semantic Repository and Agent-Surface Migration](../../decisions/knowledge/repository/0193-semantic-repository-and-agent-surface-migration.md) — `docs/decisions/knowledge/repository/0193-semantic-repository-and-agent-surface-migration.md`
 - [ADR-0195: Reviewed document content normalization](../../decisions/knowledge/repository/0195-reviewed-document-content-normalization.md) — `docs/decisions/knowledge/repository/0195-reviewed-document-content-normalization.md`
-- [ADR-0199: Structured workstream continuation state](../../decisions/knowledge/repository/0199-structured-workstream-continuation-state.md) — `docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md`

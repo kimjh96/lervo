@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_259e60f99896a7eb16ae0434
+freshness: current
+ownership: user
+path: docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_7f1f4bfe5f978b04cf68af1d
+title: "ADR-0217: Local hybrid search and reviewed relation context"
+type: decision

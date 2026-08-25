@@ -36971,7 +36971,8 @@ var selectionReasonCodes = [
   "parent_instruction",
   "explicit_link",
   "handoff",
-  "search_recommendation"
+  "search_recommendation",
+  "graph_recommendation"
 ];
 var commonProperties = {
   receiptId: receiptIdSchema,
@@ -46262,7 +46263,7 @@ import { constants as constants3 } from "node:fs";
 import { lstat as lstat6, open as open3 } from "node:fs/promises";
 async function readEntry(path, maximumFileBytes = 4 * 1024 * 1024) {
   try {
-    const stats = await lstat6(path);
+    const stats = await lstat6(path, { bigint: true });
     if (stats.isSymbolicLink()) {
       return { kind: "unsupported", description: "symbolic link" };
     }
@@ -46270,20 +46271,30 @@ async function readEntry(path, maximumFileBytes = 4 * 1024 * 1024) {
       return { kind: "directory" };
     }
     if (stats.isFile()) {
-      if (stats.size > maximumFileBytes) {
+      if (stats.size > BigInt(maximumFileBytes)) {
         return { kind: "unsupported", description: "file exceeding the size limit" };
       }
       let handle;
+      let verifier;
       try {
         handle = await open3(path, constants3.O_RDONLY | (constants3.O_NOFOLLOW ?? 0));
-        const opened = await handle.stat();
-        if (stats.dev !== opened.dev || stats.ino !== opened.ino) {
+        const opened = await handle.stat({ bigint: true });
+        if (!opened.isFile() || opened.size > BigInt(maximumFileBytes)) {
           return { kind: "unsupported", description: "file path changed before reading" };
         }
         const bytes = await handle.readFile();
-        const after = await handle.stat();
-        if (!after.isFile() || after.size > maximumFileBytes || stats.dev !== after.dev || stats.ino !== after.ino || stats.size !== after.size || stats.mtimeMs !== after.mtimeMs) {
+        const after = await handle.stat({ bigint: true });
+        if (!after.isFile() || after.size > BigInt(maximumFileBytes) || opened.dev !== after.dev || opened.ino !== after.ino || opened.size !== after.size || opened.mtimeNs !== after.mtimeNs) {
           return { kind: "unsupported", description: "file changed while being read" };
+        }
+        const pathAfter = await lstat6(path, { bigint: true });
+        if (pathAfter.isSymbolicLink() || !pathAfter.isFile()) {
+          return { kind: "unsupported", description: "file path changed after reading" };
+        }
+        verifier = await open3(path, constants3.O_RDONLY | (constants3.O_NOFOLLOW ?? 0));
+        const verified = await verifier.stat({ bigint: true });
+        if (!verified.isFile() || opened.dev !== verified.dev || opened.ino !== verified.ino || after.size !== verified.size || after.mtimeNs !== verified.mtimeNs) {
+          return { kind: "unsupported", description: "file path changed after reading" };
         }
         try {
           return {
@@ -46296,6 +46307,7 @@ async function readEntry(path, maximumFileBytes = 4 * 1024 * 1024) {
       } catch {
         return { kind: "unsupported", description: "file that cannot be opened safely" };
       } finally {
+        await verifier?.close();
         await handle?.close();
       }
     }
@@ -46459,7 +46471,8 @@ async function loadProjectManifest(root2) {
     throw new LervoProjectError("not_initialized", `${paths.projectManifest} does not exist. Run lervo init first.`);
   }
   if (entry.kind !== "file") {
-    throw new LervoProjectError("unsafe_path", `${paths.projectManifest} must be a regular file and cannot be a symbolic link.`);
+    const detail = entry.kind === "unsupported" ? ` (${entry.description})` : "";
+    throw new LervoProjectError("unsafe_path", `${paths.projectManifest} must be a regular file and cannot be a symbolic link${detail}.`);
   }
   return parseAndValidateYaml("project", entry.content);
 }
@@ -59901,6 +59914,99 @@ import { constants as constants8 } from "node:fs";
 import { lstat as lstat17, open as open10, readFile as readFile9, readdir as readdir7 } from "node:fs/promises";
 import { relative as relative9, resolve as resolve25, sep as sep9 } from "node:path";
 var import_yaml20 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/relation-query.js
+var KNOWLEDGE_RELATION_LIMITS = {
+  maximumSeeds: 5,
+  maximumExaminedRelations: 64,
+  maximumRecommendations: 5,
+  maximumSelections: 2,
+  hops: 1
+};
+function compareText4(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+function projectKnowledgeRelations(input) {
+  const conceptsById = new Map(input.concepts.map((concept) => [concept.conceptId, concept]));
+  const seedConceptIds = [...new Set(input.seedConceptIds)].slice(0, KNOWLEDGE_RELATION_LIMITS.maximumSeeds).filter((conceptId) => {
+    const concept = conceptsById.get(conceptId);
+    return concept !== void 0 && !concept.deprecated && concept.assurance === "human_reviewed" && concept.freshness === "current";
+  });
+  const seeds = new Map(seedConceptIds.map((conceptId, rank) => [conceptId, rank + 1]));
+  const conceptsByPath = /* @__PURE__ */ new Map();
+  for (const concept of input.concepts) {
+    const values = conceptsByPath.get(concept.path) ?? [];
+    values.push(concept);
+    conceptsByPath.set(concept.path, values);
+  }
+  const documentsByPath = /* @__PURE__ */ new Map();
+  for (const [documentId, document4] of Object.entries(input.documentRegistry?.documents ?? {})) {
+    const values = documentsByPath.get(document4.path) ?? [];
+    values.push(documentId);
+    documentsByPath.set(document4.path, values);
+  }
+  const incident = input.relations.filter((relation) => seeds.has(relation.from.id) || seeds.has(relation.to.id)).sort((left, right) => compareText4(left.relationId, right.relationId));
+  const examined = incident.slice(0, KNOWLEDGE_RELATION_LIMITS.maximumExaminedRelations);
+  const candidates = [];
+  for (const relation of examined) {
+    const fromSeedRank = seeds.get(relation.from.id);
+    const toSeedRank = seeds.get(relation.to.id);
+    const seedRank = Math.min(fromSeedRank ?? Number.MAX_SAFE_INTEGER, toSeedRank ?? Number.MAX_SAFE_INTEGER);
+    const seedConceptId = fromSeedRank === seedRank ? relation.from.id : relation.to.id;
+    const targetConceptId = seedConceptId === relation.from.id ? relation.to.id : relation.from.id;
+    const target = conceptsById.get(targetConceptId);
+    if (target === void 0 || target.deprecated || target.assurance !== "human_reviewed" || target.freshness !== "current" || conceptsByPath.get(target.path)?.length !== 1) {
+      continue;
+    }
+    const documentIds = documentsByPath.get(target.path) ?? [];
+    if (documentIds.length !== 1)
+      continue;
+    candidates.push({
+      schemaVersion: 1,
+      recommendationId: stableId("krelrec", {
+        sourceSnapshotId: input.sourceSnapshotId,
+        relationId: relation.relationId,
+        seedConceptId,
+        targetConceptId,
+        documentId: documentIds[0],
+        contentHash: target.contentHash
+      }),
+      relationId: relation.relationId,
+      relationType: relation.type,
+      direction: seedConceptId === relation.from.id ? "outgoing" : "incoming",
+      seedConceptId,
+      targetConceptId,
+      documentId: documentIds[0],
+      path: target.path,
+      sourceContentHash: target.contentHash,
+      sourceSnapshotId: input.sourceSnapshotId,
+      impactReportId: input.impactReportId,
+      seedRank
+    });
+  }
+  const seenDocuments = /* @__PURE__ */ new Set();
+  const recommendations = candidates.sort((left, right) => left.seedRank - right.seedRank || compareText4(left.relationType, right.relationType) || compareText4(left.direction, right.direction) || compareText4(left.relationId, right.relationId) || compareText4(left.documentId, right.documentId)).filter((recommendation) => {
+    if (seenDocuments.has(recommendation.documentId))
+      return false;
+    seenDocuments.add(recommendation.documentId);
+    return true;
+  }).slice(0, KNOWLEDGE_RELATION_LIMITS.maximumRecommendations).map(({ seedRank: _seedRank, ...recommendation }) => recommendation);
+  const core = {
+    schemaVersion: 1,
+    sourceSnapshotId: input.sourceSnapshotId,
+    impactReportId: input.impactReportId,
+    conceptSidecarSetHash: input.conceptSidecarSetHash,
+    relationSidecarSetHash: input.relationSidecarSetHash,
+    seedConceptIds,
+    limits: KNOWLEDGE_RELATION_LIMITS,
+    examinedRelationCount: examined.length,
+    truncated: incident.length > examined.length,
+    recommendations
+  };
+  return { ...core, projectionId: stableId("krelproj", core) };
+}
+
+// packages/repository-knowledge/dist/lint-query.js
 async function generatedPaths(root2) {
   const result = /* @__PURE__ */ new Set();
   for (const directory of [".lervo/generated/manifests", ".lervo/generated/semantic-manifests"]) {
@@ -60443,6 +60549,7 @@ async function queryRepositoryKnowledge(input) {
   const conceptImpact = new Map(impact.items.filter((item) => item.subjectKind === "concept").map((item) => [item.subjectId, item.freshness]));
   const queryTerms = terms(input.query);
   const hits = [];
+  const resolvedConcepts = [];
   const claimsByConcept = /* @__PURE__ */ new Map();
   for (const stored of await loadStoredClaims(root2)) {
     if (stored.value === null)
@@ -60451,7 +60558,9 @@ async function queryRepositoryKnowledge(input) {
     values.push(stored.value);
     claimsByConcept.set(stored.value.conceptId, values);
   }
-  for (const stored of await loadStoredConcepts(root2)) {
+  const storedConcepts = await loadStoredConcepts(root2);
+  const storedRelations = await loadStoredRelations(root2);
+  for (const stored of storedConcepts) {
     const concept = stored.value;
     if (concept === null)
       continue;
@@ -60473,6 +60582,16 @@ async function queryRepositoryKnowledge(input) {
     const pathTerms = textTerms(concept.path);
     const bodyTerms = textTerms(`${content3}
 ${linkedClaims.map((claim) => claim.statement).join("\n")}`);
+    const assurance = linkedClaims.length > 0 || concept.assurance === "human_reviewed" ? "human_reviewed" : "unreviewed";
+    const freshness = conceptImpact.get(concept.conceptId) ?? (concept.sourceUnitVersionIds.length === 0 ? "unknown" : concept.sourceUnitVersionIds.every((id) => currentUnits.has(id)) ? "current" : "stale");
+    resolvedConcepts.push({
+      conceptId: concept.conceptId,
+      path: concept.path,
+      contentHash: contentHash2,
+      assurance,
+      freshness,
+      deprecated: false
+    });
     const matchedTerms = queryTerms.filter((term) => hasLexicalTerm(titleTerms, term) || hasLexicalTerm(pathTerms, term) || hasLexicalTerm(bodyTerms, term));
     if (matchedTerms.length === 0)
       continue;
@@ -60484,19 +60603,38 @@ ${linkedClaims.map((claim) => claim.statement).join("\n")}`);
       ownership: concept.ownership,
       score,
       matchedTerms,
-      assurance: linkedClaims.length > 0 || concept.assurance === "human_reviewed" ? "human_reviewed" : "unreviewed",
-      freshness: conceptImpact.get(concept.conceptId) ?? (concept.sourceUnitVersionIds.length === 0 ? "unknown" : concept.sourceUnitVersionIds.every((id) => currentUnits.has(id)) ? "current" : "stale"),
+      assurance,
+      freshness,
       contentHash: contentHash2
     });
   }
   hits.sort((left, right) => right.score - left.score || left.path.localeCompare(right.path));
+  const conceptSidecarSetHash = sha2564(JSON.stringify(await Promise.all(storedConcepts.map(async (stored) => {
+    const bytes = await readSafePublication(root2, stored.file, 256 * 1024);
+    return [stored.file, bytes === null ? "unreadable" : sha2564(bytes)];
+  }))));
+  const relationSidecarSetHash = sha2564(JSON.stringify(await Promise.all(storedRelations.map(async (stored) => {
+    const bytes = await readSafePublication(root2, stored.file, 256 * 1024);
+    return [stored.file, bytes === null ? "unreadable" : sha2564(bytes)];
+  }))));
+  const selectedHits = hits.slice(0, input.limit ?? 20);
   return {
     schemaVersion: 1,
     query: input.query,
     semantics: "recommended",
     sourceSnapshotId: scan.snapshotId,
     impactReportId: impact.reportId,
-    hits: hits.slice(0, input.limit ?? 20)
+    hits: selectedHits,
+    relationProjection: projectKnowledgeRelations({
+      sourceSnapshotId: scan.snapshotId,
+      impactReportId: impact.reportId,
+      conceptSidecarSetHash,
+      relationSidecarSetHash,
+      seedConceptIds: selectedHits.map((hit) => hit.conceptId),
+      concepts: resolvedConcepts,
+      relations: storedRelations.flatMap((stored) => stored.value === null ? [] : [stored.value]),
+      ...input.documentRegistry === void 0 ? {} : { documentRegistry: input.documentRegistry }
+    })
   };
 }
 

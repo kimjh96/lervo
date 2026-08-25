@@ -31,6 +31,8 @@ export interface SemanticWritingEvaluationRequest {
   writingPolicyId: string;
   locale: string;
   surface: WritingSurface;
+  audience: WritingContract["audience"];
+  register: WritingContract["prose"]["register"];
   artifactId: string;
   contentHash: string;
   content: string;

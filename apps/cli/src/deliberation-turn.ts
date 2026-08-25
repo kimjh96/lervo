@@ -1,5 +1,6 @@
 import type { DeliberationVerificationEvidence } from "@lervo/deliberation";
 import {
+  DeliberationRuntimeError,
   type DeliberationArtifactDetails,
   DeliberationRuntime,
   type DeliberationTurnResult,
@@ -14,9 +15,32 @@ import type {
 import type { DeliberationExecutionPlan } from "./deliberation-roles.js";
 import type { ManagedDeliberationOutcome } from "./managed-deliberation.js";
 import type { RunProvider } from "./managed-run.js";
+import { publicationRepairPrompt } from "./deliberation-prompts.js";
 
 function opposite(provider: RunProvider): RunProvider {
   return provider === "codex" ? "claude" : "codex";
+}
+
+export async function executeWithPublicationRepair<T, R>(input: {
+  instructions: string;
+  execute(instructions: string): Promise<R>;
+  record(run: R): Promise<T>;
+}): Promise<{ run: R; recorded: T }> {
+  let instructions = input.instructions;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const run = await input.execute(instructions);
+    try {
+      return { run, recorded: await input.record(run) };
+    } catch (error) {
+      const repairable =
+        error instanceof DeliberationRuntimeError &&
+        error.code === "artifact_publication_failed" &&
+        error.reason === "writing_publication_blocked";
+      if (!repairable || attempt === 2) throw error;
+      instructions = publicationRepairPrompt(input.instructions);
+    }
+  }
+  throw new Error("The bounded writing publication repair loop did not terminate.");
 }
 
 export async function recordDeliberationTurn<K extends DeliberationArtifact["kind"]>(input: {

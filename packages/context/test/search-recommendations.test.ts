@@ -208,4 +208,83 @@ describe("search recommendations in context preparation", () => {
       prepareContext({ ...input, sourceRevision: "fixture-search-v2" }),
     ).rejects.toMatchObject({ code: "content_hash_mismatch" });
   });
+
+  it("selects a bounded graph recommendation through the ordinary E1 and E2 path", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-context-graph-"));
+    roots.push(root);
+    await mkdir(resolve(root, "docs"));
+    const text = "# Related design\n\nReviewed relation target.\n";
+    await Promise.all([
+      writeFile(resolve(root, "AGENTS.md"), "Repository instructions.\n"),
+      writeFile(resolve(root, "docs/related.md"), text),
+    ]);
+    const registry: DocumentRegistry = {
+      schemaVersion: 1,
+      documents: { doc_related_1: record("docs/related.md") },
+    };
+    const knowledgeContext = {
+      conceptId: `concept_${"a".repeat(24)}`,
+      assurance: "human_reviewed" as const,
+      freshness: "current" as const,
+      sourceSnapshotId: `ksnap_${"b".repeat(24)}`,
+      impactReportId: `kimpact_${"c".repeat(24)}`,
+    };
+    const loaded = await prepareContext({
+      repositoryRoot: root,
+      sourceRevision: "fixture-graph-v1",
+      coordinates: {
+        projectId,
+        runId: "run_graph_01",
+        sessionId: "ses_graph_01",
+        roleId: role.roleId,
+      },
+      registry,
+      role,
+      expectedPaths: ["src/result.ts"],
+      documentRules: {},
+      publications: [],
+      handoffs: [],
+      additionalCandidates: [
+        {
+          documentId: "doc_related_1",
+          path: "docs/related.md",
+          connectedPaths: [],
+          source: "knowledge",
+          knowledgeContext,
+        },
+      ],
+      graphRecommendations: [
+        {
+          schemaVersion: 1,
+          projectionId: `krelproj_${"1".repeat(24)}`,
+          recommendationId: `krelrec_${"2".repeat(24)}`,
+          relationId: "relation_fixture",
+          targetConceptId: knowledgeContext.conceptId,
+          documentId: "doc_related_1",
+          path: "docs/related.md",
+          sourceContentHash: hash(text),
+          sourceSnapshotId: knowledgeContext.sourceSnapshotId,
+          impactReportId: knowledgeContext.impactReportId,
+          rank: 1,
+          selected: true,
+        },
+      ],
+      policyVersion,
+      recordedAt: new Date("2026-08-20T01:00:00Z"),
+    });
+
+    expect(
+      loaded.plan.documents.find((item) => item.documentId === "doc_related_1")?.reasons,
+    ).toContainEqual(expect.objectContaining({ reasonCode: "graph_recommendation" }));
+    expect(loaded.evidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          documentId: "doc_related_1",
+          state: "selected",
+          reasonCode: "graph_recommendation",
+        }),
+        expect.objectContaining({ documentId: "doc_related_1", state: "loaded" }),
+      ]),
+    );
+  });
 });

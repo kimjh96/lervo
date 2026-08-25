@@ -60,6 +60,7 @@ afterEach(async () => {
 describe("writing publication boundary", () => {
   it("publishes only after separate semantic checks and revalidates the stored permit", async () => {
     const store = await openCas();
+    const evaluate = vi.fn(passingEvaluator().evaluate);
     const artifact = await storeWriting(
       store,
       "The task is complete. The change scope and verification result were checked together.",
@@ -70,7 +71,7 @@ describe("writing publication boundary", () => {
         contract: defaultEnglishWritingContract,
         surface: "chat",
         artifactStore: store,
-        semanticEvaluator: passingEvaluator(),
+        semanticEvaluator: { evaluate },
       },
       { now: () => checkedAt },
     );
@@ -84,6 +85,9 @@ describe("writing publication boundary", () => {
       evaluatorId: "fixture.korean-review.v1",
       phase: "separate_pass",
     });
+    expect(evaluate).toHaveBeenCalledWith(
+      expect.objectContaining({ audience: "mixed", register: "plain_spec" }),
+    );
     expect(await store.has(result.evaluationArtifact.uri)).toBe(true);
     await expect(
       readPublishableWritingArtifact({

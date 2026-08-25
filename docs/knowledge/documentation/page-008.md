@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0108: CLI first-publication package-metadata apply transaction](../../decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md) — `docs/decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md`
 - [ADR-0109: Post-apply verification of CLI first-publication package metadata](../../decisions/release/bootstrap/0109-cli-first-publication-package-metadata-post-apply-verification.md) — `docs/decisions/release/bootstrap/0109-cli-first-publication-package-metadata-post-apply-verification.md`
 - [ADR-0110: CLI first-publication external-requirement evidence report](../../decisions/release/bootstrap/0110-cli-first-publication-external-requirement-evidence-report.md) — `docs/decisions/release/bootstrap/0110-cli-first-publication-external-requirement-evidence-report.md`
 - [ADR-0111: CLI first-publication bootstrap v2 evidence binding](../../decisions/release/bootstrap/0111-cli-first-publication-bootstrap-v2-evidence-integration.md) — `docs/decisions/release/bootstrap/0111-cli-first-publication-bootstrap-v2-evidence-integration.md`
@@ -26,4 +27,3 @@
 - [ADR-0122: Stage-Only Workflow Ref-Reachability Evidence](../../decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md) — `docs/decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md`
 - [ADR-0123: Stage-Only Workflow Execution Evidence](../../decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md) — `docs/decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md`
 - [ADR-0124: npm Stage-Result Artifact Evidence](../../decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md) — `docs/decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md`
-- [ADR-0125: npm Staged-Package Review Evidence](../../decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md) — `docs/decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md`
