@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -11,7 +12,12 @@ import { workflowActivationRepository } from "./first-publication-workflow-activ
 import { sha256 } from "../../lib/release-artifact-manifest.mjs";
 import { remoteCliPackagePath } from "../../lib/first-publication-workflow-reachability-contract.mjs";
 
-export const workflowReleaseTag = "v0.1.0";
+const repositoryRoot = resolve(import.meta.dirname, "../../..");
+const currentCliPackage = JSON.parse(
+  readFileSync(resolve(repositoryRoot, "apps/cli/package.json"), "utf8"),
+);
+
+export const workflowReleaseTag = `v${currentCliPackage.version}`;
 
 export async function createWorkflowReachabilityFixture() {
   const fixture = await createWorkflowRemoteDeploymentFixture();
