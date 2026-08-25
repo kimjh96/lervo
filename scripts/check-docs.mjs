@@ -59,10 +59,27 @@ const knowledgeDesignDocuments = (
 )
   .flat()
   .sort();
+const approvedRootMarkdown = new Set([
+  "README.md",
+  "AGENTS.md",
+  "CLAUDE.md",
+  "CONTRIBUTING.md",
+  "SECURITY.md",
+  "CHANGELOG.md",
+  "CODE_OF_CONDUCT.md",
+]);
+const rootMarkdown = (await readdir(repositoryRoot, { withFileTypes: true }))
+  .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+  .map((entry) => entry.name)
+  .sort();
 const markdownDocuments = [
   "README.md",
   "AGENTS.md",
   "CLAUDE.md",
+  ...rootMarkdown.filter(
+    (path) =>
+      approvedRootMarkdown.has(path) && !["README.md", "AGENTS.md", "CLAUDE.md"].includes(path),
+  ),
   ...lifecycleDocuments,
   ...adrDocuments,
   ...migrationDocuments,
@@ -105,12 +122,8 @@ const documentBounds = new Map([
 ]);
 const defaultBounds = { bytes: 16_384, lines: 240 };
 
-const rootMarkdown = (await readdir(repositoryRoot, { withFileTypes: true }))
-  .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
-  .map((entry) => entry.name)
-  .sort();
 for (const path of rootMarkdown) {
-  if (!["README.md", "AGENTS.md", "CLAUDE.md"].includes(path)) {
+  if (!approvedRootMarkdown.has(path)) {
     failures.push(
       `${path}: root Markdown is not an approved short entrypoint; move the concern to docs/.`,
     );
