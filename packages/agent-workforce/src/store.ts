@@ -3,7 +3,7 @@ import { resolveCapabilities } from "@lervo/capabilities";
 import { constants } from "node:fs";
 import { chmod, lstat, mkdir, open, readFile, readdir, rename, rm } from "node:fs/promises";
 import { hostname } from "node:os";
-import { posix, resolve } from "node:path";
+import { basename, dirname, posix, resolve } from "node:path";
 
 import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
 import { assertRoleContractBinding, resolveRoleContract, roleProfileHash } from "@lervo/roles";
@@ -298,10 +298,7 @@ async function acquireLock(path: string, now: Date): Promise<() => Promise<void>
 }
 
 async function atomicWrite(path: string, content: string): Promise<void> {
-  const temporary = resolve(
-    path,
-    `../.${path.split("/").at(-1)}.${process.pid}.${randomUUID()}.tmp`,
-  );
+  const temporary = resolve(dirname(path), `.${basename(path)}.${process.pid}.${randomUUID()}.tmp`);
   const handle = await open(temporary, "wx", 0o600);
   try {
     await handle.writeFile(content);
