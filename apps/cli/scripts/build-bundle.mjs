@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 
 import { build } from "esbuild";
 
+import { nodeSqliteBundlePlugin } from "../../../scripts/lib/node-sqlite-bundle.mjs";
+
 const cliRoot = resolve(import.meta.dirname, "..");
 const repositoryRoot = resolve(cliRoot, "../..");
 const outputDirectory = resolve(cliRoot, "dist");
@@ -24,6 +26,7 @@ const result = await build({
   mainFields: ["module", "main"],
   metafile: true,
   platform: "node",
+  plugins: [nodeSqliteBundlePlugin],
   target: "node22.13",
 });
 
@@ -40,6 +43,7 @@ await build({
   logLevel: "silent",
   mainFields: ["module", "main"],
   platform: "node",
+  plugins: [nodeSqliteBundlePlugin],
   target: "node22.13",
 });
 
@@ -56,6 +60,7 @@ await build({
   logLevel: "silent",
   mainFields: ["module", "main"],
   platform: "node",
+  plugins: [nodeSqliteBundlePlugin],
   target: "node22.13",
 });
 

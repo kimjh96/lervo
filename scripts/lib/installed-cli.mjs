@@ -38,6 +38,7 @@ export async function deployBuiltCli(target) {
   await runPnpm([
     "--offline",
     "--config.inject-workspace-packages=true",
+    "--config.package-import-method=copy",
     "--filter",
     "@lervo/cli",
     "deploy",

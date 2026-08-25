@@ -1,5 +1,4 @@
 import { execFile } from "node:child_process";
-import { builtinModules } from "node:module";
 import {
   chmod,
   copyFile,
@@ -16,6 +15,7 @@ import { basename, dirname, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { readJson, repositoryRoot, runPnpm } from "./lib/installed-cli.mjs";
+import { isBuiltinModuleSpecifier } from "./lib/node-module-specifier.mjs";
 import {
   canonicalJson,
   collectDistributionEntries,
@@ -36,8 +36,6 @@ import {
 import { sha256 } from "./lib/release-artifact-manifest.mjs";
 
 const execFileAsync = promisify(execFile);
-const nodeBuiltins = new Set(builtinModules.flatMap((name) => [name, `node:${name}`]));
-
 function parse(args) {
   const normalized = args[0] === "--" ? args.slice(1) : args;
   if (normalized.length !== 3 || normalized[0] !== "--output" || normalized[2] !== "--write") {
@@ -72,7 +70,7 @@ async function assertBundle(bundlePath, metafilePath) {
   }
   const externalImports = Object.values(metafile.outputs ?? {})
     .flatMap((output) => output.imports ?? [])
-    .filter((entry) => entry.external && !nodeBuiltins.has(entry.path))
+    .filter((entry) => entry.external && !isBuiltinModuleSpecifier(entry.path))
     .map((entry) => entry.path)
     .sort()
     .filter((path, index, paths) => index === 0 || paths[index - 1] !== path);
@@ -114,6 +112,7 @@ async function buildDistribution(outputArgument) {
     await runPnpm([
       "--offline",
       "--config.inject-workspace-packages=true",
+      "--config.package-import-method=copy",
       "--filter",
       "@lervo/node-runtime-dependencies",
       "deploy",

@@ -60,6 +60,9 @@ try {
     if (error instanceof Error) {
       const code = typeof error.code === "string" ? ` (${error.code})` : "";
       console.error(`${error.name}${code}: ${error.message}`);
+      for (const output of [error.stdout, error.stderr]) {
+        if (typeof output === "string" && output.trim() !== "") console.error(output.trim());
+      }
     }
   }
   process.exitCode = 1;

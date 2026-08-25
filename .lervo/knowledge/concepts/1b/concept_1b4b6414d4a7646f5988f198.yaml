@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_1b4b6414d4a7646f5988f198
+freshness: current
+ownership: user
+path: docs/decisions/release/packaging/0215-supported-runtime-release-portability.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_b9bb1e95d70cada90c8f6cb1
+title: "ADR-0215: Supported-runtime release portability"
+type: decision

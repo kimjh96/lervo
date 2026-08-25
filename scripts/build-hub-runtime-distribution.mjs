@@ -1,5 +1,4 @@
 import { execFile } from "node:child_process";
-import { builtinModules } from "node:module";
 import {
   chmod,
   copyFile,
@@ -16,6 +15,7 @@ import { basename, dirname, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { readJson, repositoryRoot } from "./lib/installed-cli.mjs";
+import { isBuiltinModuleSpecifier } from "./lib/node-module-specifier.mjs";
 import {
   createHubDistributionArtifact,
   createHubDistributionManifest,
@@ -36,8 +36,6 @@ import {
 import { sha256 } from "./lib/release-artifact-manifest.mjs";
 
 const execFileAsync = promisify(execFile);
-const nodeBuiltins = new Set(builtinModules.flatMap((name) => [name, `node:${name}`]));
-
 function targetPlatform(value) {
   if (value === undefined) return currentDistributionPlatform();
   const match = /^(darwin|linux|win32)-(arm64|x64)-(none|glibc|musl)$/u.exec(value);
@@ -101,7 +99,7 @@ async function assertBundle(bundlePath, metafilePath) {
   }
   const externalImports = Object.values(metafile.outputs ?? {})
     .flatMap((output) => output.imports ?? [])
-    .filter((entry) => entry.external && !nodeBuiltins.has(entry.path))
+    .filter((entry) => entry.external && !isBuiltinModuleSpecifier(entry.path))
     .map((entry) => entry.path)
     .sort()
     .filter((path, index, paths) => index === 0 || paths[index - 1] !== path);

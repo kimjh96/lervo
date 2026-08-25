@@ -1,0 +1,32 @@
+candidateId: knorm_4241395fcb88776bf63a7f59
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_dc80dab7143b6cb1787657ae
+outputLanguage: en
+outputs:
+  - byteCount: 13711
+    contentHash: sha256:a4315146dc3502b6455aead2dffa844a970e6ab7c794c724ae8329f89f33687b
+    path: docs/roadmap/v0.md
+    userRegionHash: sha256:a4315146dc3502b6455aead2dffa844a970e6ab7c794c724ae8329f89f33687b
+profile: roadmap_document
+recordId: knormdoc_3310a720811eee9556d13693
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:1b2facaa24b6fe2e740da6018d8b505236962d82b373dcfcfd18f020fcf5cdd9
+sourcePath: docs/roadmap/v0.md
+sourceUnitVersionIds:
+  - uv_037f515ad8d804f36200a025
+  - uv_22f62651d1e2ed4f0fb1ef27
+  - uv_2ac22bbb9cd6717342882d4b
+  - uv_2b6e030f818fa2bf8bcb0831
+  - uv_2e0e035f1b0fed784ccfcbfd
+  - uv_5c5de245bef1e5df30e34a37
+  - uv_67ae80179571ad59752a44bf
+  - uv_86e077285a037b30adffe155
+  - uv_8e31d1d94d88128170c5e28c
+  - uv_d7a343be801f85d5f4485ab9

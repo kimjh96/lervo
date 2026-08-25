@@ -1,5 +1,4 @@
 import { readFile } from "node:fs/promises";
-import { builtinModules } from "node:module";
 import { resolve } from "node:path";
 
 import {
@@ -10,6 +9,9 @@ import {
 } from "./release-artifact-manifest.mjs";
 import { collectInstalledPackages, classifyDependencies } from "./release-dependency-closure.mjs";
 import { readJson, repositoryRoot, runPnpm } from "./installed-cli.mjs";
+import { isBuiltinModuleSpecifier } from "./node-module-specifier.mjs";
+
+export { isBuiltinModuleSpecifier } from "./node-module-specifier.mjs";
 
 const cliRoot = resolve(repositoryRoot, "apps/cli");
 const cliManifestPath = resolve(cliRoot, "package.json");
@@ -21,15 +23,6 @@ const publicContentPaths = new Set([
   "dist/node-runtime.js",
   "dist/terminal-hook.js",
 ]);
-const builtinModuleNames = new Set([
-  ...builtinModules,
-  ...builtinModules.map((name) => `node:${name}`),
-]);
-
-export function isBuiltinModuleSpecifier(specifier, knownBuiltinModules = builtinModuleNames) {
-  return specifier.startsWith("node:") || knownBuiltinModules.has(specifier);
-}
-
 export function normalizeBundleMetadataPath(path) {
   return path.replaceAll("\\", "/");
 }

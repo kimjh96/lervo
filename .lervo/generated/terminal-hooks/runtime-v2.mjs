@@ -417,11 +417,11 @@ var require_codegen = __commonJS({
         const rhs = this.rhs === void 0 ? "" : ` = ${this.rhs}`;
         return `${varKind} ${this.name}${rhs};` + _n;
       }
-      optimizeNames(names, constants13) {
+      optimizeNames(names, constants14) {
         if (!names[this.name.str])
           return;
         if (this.rhs)
-          this.rhs = optimizeExpr(this.rhs, names, constants13);
+          this.rhs = optimizeExpr(this.rhs, names, constants14);
         return this;
       }
       get names() {
@@ -438,10 +438,10 @@ var require_codegen = __commonJS({
       render({ _n }) {
         return `${this.lhs} = ${this.rhs};` + _n;
       }
-      optimizeNames(names, constants13) {
+      optimizeNames(names, constants14) {
         if (this.lhs instanceof code_1.Name && !names[this.lhs.str] && !this.sideEffects)
           return;
-        this.rhs = optimizeExpr(this.rhs, names, constants13);
+        this.rhs = optimizeExpr(this.rhs, names, constants14);
         return this;
       }
       get names() {
@@ -502,8 +502,8 @@ var require_codegen = __commonJS({
       optimizeNodes() {
         return `${this.code}` ? this : void 0;
       }
-      optimizeNames(names, constants13) {
-        this.code = optimizeExpr(this.code, names, constants13);
+      optimizeNames(names, constants14) {
+        this.code = optimizeExpr(this.code, names, constants14);
         return this;
       }
       get names() {
@@ -532,12 +532,12 @@ var require_codegen = __commonJS({
         }
         return nodes.length > 0 ? this : void 0;
       }
-      optimizeNames(names, constants13) {
+      optimizeNames(names, constants14) {
         const { nodes } = this;
         let i = nodes.length;
         while (i--) {
           const n = nodes[i];
-          if (n.optimizeNames(names, constants13))
+          if (n.optimizeNames(names, constants14))
             continue;
           subtractNames(names, n.names);
           nodes.splice(i, 1);
@@ -590,12 +590,12 @@ var require_codegen = __commonJS({
           return void 0;
         return this;
       }
-      optimizeNames(names, constants13) {
+      optimizeNames(names, constants14) {
         var _a;
-        this.else = (_a = this.else) === null || _a === void 0 ? void 0 : _a.optimizeNames(names, constants13);
-        if (!(super.optimizeNames(names, constants13) || this.else))
+        this.else = (_a = this.else) === null || _a === void 0 ? void 0 : _a.optimizeNames(names, constants14);
+        if (!(super.optimizeNames(names, constants14) || this.else))
           return;
-        this.condition = optimizeExpr(this.condition, names, constants13);
+        this.condition = optimizeExpr(this.condition, names, constants14);
         return this;
       }
       get names() {
@@ -618,10 +618,10 @@ var require_codegen = __commonJS({
       render(opts) {
         return `for(${this.iteration})` + super.render(opts);
       }
-      optimizeNames(names, constants13) {
-        if (!super.optimizeNames(names, constants13))
+      optimizeNames(names, constants14) {
+        if (!super.optimizeNames(names, constants14))
           return;
-        this.iteration = optimizeExpr(this.iteration, names, constants13);
+        this.iteration = optimizeExpr(this.iteration, names, constants14);
         return this;
       }
       get names() {
@@ -657,10 +657,10 @@ var require_codegen = __commonJS({
       render(opts) {
         return `for(${this.varKind} ${this.name} ${this.loop} ${this.iterable})` + super.render(opts);
       }
-      optimizeNames(names, constants13) {
-        if (!super.optimizeNames(names, constants13))
+      optimizeNames(names, constants14) {
+        if (!super.optimizeNames(names, constants14))
           return;
-        this.iterable = optimizeExpr(this.iterable, names, constants13);
+        this.iterable = optimizeExpr(this.iterable, names, constants14);
         return this;
       }
       get names() {
@@ -702,11 +702,11 @@ var require_codegen = __commonJS({
         (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNodes();
         return this;
       }
-      optimizeNames(names, constants13) {
+      optimizeNames(names, constants14) {
         var _a, _b;
-        super.optimizeNames(names, constants13);
-        (_a = this.catch) === null || _a === void 0 ? void 0 : _a.optimizeNames(names, constants13);
-        (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNames(names, constants13);
+        super.optimizeNames(names, constants14);
+        (_a = this.catch) === null || _a === void 0 ? void 0 : _a.optimizeNames(names, constants14);
+        (_b = this.finally) === null || _b === void 0 ? void 0 : _b.optimizeNames(names, constants14);
         return this;
       }
       get names() {
@@ -1007,7 +1007,7 @@ var require_codegen = __commonJS({
     function addExprNames(names, from) {
       return from instanceof code_1._CodeOrName ? addNames(names, from.names) : names;
     }
-    function optimizeExpr(expr, names, constants13) {
+    function optimizeExpr(expr, names, constants14) {
       if (expr instanceof code_1.Name)
         return replaceName(expr);
       if (!canOptimize(expr))
@@ -1022,14 +1022,14 @@ var require_codegen = __commonJS({
         return items;
       }, []));
       function replaceName(n) {
-        const c = constants13[n.str];
+        const c = constants14[n.str];
         if (c === void 0 || names[n.str] !== 1)
           return n;
         delete names[n.str];
         return c;
       }
       function canOptimize(e) {
-        return e instanceof code_1._Code && e._items.some((c) => c instanceof code_1.Name && names[c.str] === 1 && constants13[c.str] !== void 0);
+        return e instanceof code_1._Code && e._items.some((c) => c instanceof code_1.Name && names[c.str] === 1 && constants14[c.str] !== void 0);
       }
     }
     function subtractNames(names, from) {
@@ -35213,7 +35213,7 @@ import { dirname as dirname7, resolve as resolve31 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // apps/cli/src/terminal-command.ts
-import { constants as constants12 } from "node:fs";
+import { constants as constants13 } from "node:fs";
 import { randomUUID as randomUUID2 } from "node:crypto";
 import { lstat as lstat22, mkdir as mkdir8, open as open15, readFile as readFile10, rename as rename4, rm as rm5 } from "node:fs/promises";
 import { dirname as dirname6, relative as relative11, resolve as resolve30, sep as sep11 } from "node:path";
@@ -45418,8 +45418,22 @@ var FileSystemCas = class _FileSystemCas {
 // packages/project-storage/dist/bootstrap.js
 import { mkdir as mkdir4 } from "node:fs/promises";
 
-// packages/event-store-sqlite/dist/event-store.js
-import { DatabaseSync } from "node:sqlite";
+// lervo-node-sqlite:node:sqlite
+var __lervoOriginalEmitWarning = process.emitWarning;
+var __lervoSqlite;
+try {
+  process.emitWarning = function(warning, type, ...details) {
+    if (String(warning) === "SQLite is an experimental feature and might change at any time" && type === "ExperimentalWarning") return;
+    return __lervoOriginalEmitWarning.call(process, warning, type, ...details);
+  };
+  __lervoSqlite = __require("node:sqlite");
+} finally {
+  process.emitWarning = __lervoOriginalEmitWarning;
+}
+var DatabaseSync = __lervoSqlite.DatabaseSync;
+var StatementSync = __lervoSqlite.StatementSync;
+var constants2 = __lervoSqlite.constants;
+var backup = __lervoSqlite.backup;
 
 // packages/event-store-sqlite/dist/database-lifecycle.js
 import { lstat as lstat4, mkdir as mkdir2 } from "node:fs/promises";
@@ -46177,7 +46191,6 @@ var SQLiteEventStore = class _SQLiteEventStore {
 import { copyFile, lstat as lstat5, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve as resolve6 } from "node:path";
-import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
 async function inspectExistingEventStore(input) {
   const path = resolve6(input.path);
   const stats = await lstat5(path);
@@ -46198,7 +46211,7 @@ async function inspectExistingEventStore(input) {
   let database;
   try {
     await copyFile(path, inspectionPath);
-    database = new DatabaseSync2(inspectionPath, { readOnly: true, allowExtension: false });
+    database = new DatabaseSync(inspectionPath, { readOnly: true, allowExtension: false });
     const quickCheck = database.prepare("PRAGMA quick_check;").get()?.quick_check;
     if (quickCheck !== "ok") {
       throw new EventStoreError("integrity_failed", "SQLite quick_check failed.");
@@ -46245,7 +46258,7 @@ async function inspectExistingEventStore(input) {
 var import_yaml = __toESM(require_dist(), 1);
 
 // packages/project/dist/filesystem.js
-import { constants as constants2 } from "node:fs";
+import { constants as constants3 } from "node:fs";
 import { lstat as lstat6, open as open3 } from "node:fs/promises";
 async function readEntry(path, maximumFileBytes = 4 * 1024 * 1024) {
   try {
@@ -46262,7 +46275,7 @@ async function readEntry(path, maximumFileBytes = 4 * 1024 * 1024) {
       }
       let handle;
       try {
-        handle = await open3(path, constants2.O_RDONLY | (constants2.O_NOFOLLOW ?? 0));
+        handle = await open3(path, constants3.O_RDONLY | (constants3.O_NOFOLLOW ?? 0));
         const opened = await handle.stat();
         if (stats.dev !== opened.dev || stats.ino !== opened.ino) {
           return { kind: "unsupported", description: "file path changed before reading" };
@@ -47155,13 +47168,13 @@ async function loadRepositoryKnowledgePolicy(root2) {
 }
 
 // packages/repository-knowledge/dist/scanner.js
-import { constants as constants5 } from "node:fs";
+import { constants as constants6 } from "node:fs";
 import { lstat as lstat11, open as open6, readdir as readdir5 } from "node:fs/promises";
 import { basename as basename3, extname as extname2, relative as relative5, resolve as resolve18, sep as sep5 } from "node:path";
 
 // packages/repository-knowledge/dist/source-lineage.js
 var import_yaml6 = __toESM(require_dist(), 1);
-import { constants as constants3 } from "node:fs";
+import { constants as constants4 } from "node:fs";
 import { open as open4 } from "node:fs/promises";
 import { relative as relative3, resolve as resolve15, sep as sep3 } from "node:path";
 var LINEAGE_DIRECTORY = ".lervo/knowledge/source-lineage";
@@ -47206,7 +47219,7 @@ function createDocumentMoveLineage(input) {
 async function safeRead(path) {
   let handle;
   try {
-    handle = await open4(path, constants3.O_RDONLY | (constants3.O_NOFOLLOW ?? 0));
+    handle = await open4(path, constants4.O_RDONLY | (constants4.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     if (!before.isFile() || before.size > MAX_LINEAGE_BYTES)
       throw new Error("unsafe lineage");
@@ -49203,7 +49216,7 @@ var MAX_LOCK_BYTES = 4 * 1024 * 1024;
 
 // packages/skills/dist/package-reader.js
 import { createHash as createHash6 } from "node:crypto";
-import { constants as constants4 } from "node:fs";
+import { constants as constants5 } from "node:fs";
 import { lstat as lstat10, open as open5, readdir as readdir4 } from "node:fs/promises";
 import { basename as basename2, relative as relative4, resolve as resolve16, sep as sep4 } from "node:path";
 var MANIFEST_NAME = "lervo-skill.json";
@@ -49229,7 +49242,7 @@ async function regularFile(path, maximumBytes = MAX_PACKAGE_BYTES) {
   }
   let handle;
   try {
-    handle = await open5(path, constants4.O_RDONLY | constants4.O_NOFOLLOW);
+    handle = await open5(path, constants5.O_RDONLY | constants5.O_NOFOLLOW);
     const opened = await handle.stat();
     if (before.dev !== opened.dev || before.ino !== opened.ino) {
       throw new SkillResolutionError("unsafe_skill_package", "The skill package file path changed before it was read.");
@@ -49854,7 +49867,7 @@ function agentArtifactFields(path) {
 async function safeReadFile(path, expectedSize) {
   let handle;
   try {
-    handle = await open6(path, constants5.O_RDONLY | (constants5.O_NOFOLLOW ?? 0));
+    handle = await open6(path, constants6.O_RDONLY | (constants6.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     if (!before.isFile() || before.size !== expectedSize) {
       throw new RepositoryKnowledgeError("knowledge_source_unsafe", `${path} changed during the scan.`);
@@ -59055,7 +59068,7 @@ function collectExecutionEventSources(input) {
 }
 
 // packages/repository-knowledge/dist/instruction-bridge.js
-import { constants as constants6 } from "node:fs";
+import { constants as constants7 } from "node:fs";
 import { lstat as lstat16, open as open9 } from "node:fs/promises";
 import { resolve as resolve24 } from "node:path";
 
@@ -59610,7 +59623,7 @@ async function safeOptionalFile(path, maximumBytes) {
         return null;
       throw error;
     }
-    handle = await open9(path, constants6.O_RDONLY | (constants6.O_NOFOLLOW ?? 0));
+    handle = await open9(path, constants7.O_RDONLY | (constants7.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     const bytes = await handle.readFile();
     const after = await handle.stat();
@@ -59884,7 +59897,7 @@ async function createKnowledgeInstructionBridgePlan(input) {
 }
 
 // packages/repository-knowledge/dist/lint-query.js
-import { constants as constants7 } from "node:fs";
+import { constants as constants8 } from "node:fs";
 import { lstat as lstat17, open as open10, readFile as readFile9, readdir as readdir7 } from "node:fs/promises";
 import { relative as relative9, resolve as resolve25, sep as sep9 } from "node:path";
 var import_yaml20 = __toESM(require_dist(), 1);
@@ -60122,7 +60135,7 @@ async function readSafePublication(root2, path, maximumBytes) {
       if (index2 === segments.length - 1 ? !stats.isFile() : !stats.isDirectory())
         return null;
     }
-    const handle = await open10(target, constants7.O_RDONLY | (constants7.O_NOFOLLOW ?? 0));
+    const handle = await open10(target, constants8.O_RDONLY | (constants8.O_NOFOLLOW ?? 0));
     try {
       const before = await handle.stat();
       if (!before.isFile() || before.size > maximumBytes)
@@ -60491,7 +60504,7 @@ ${linkedClaims.map((claim) => claim.statement).join("\n")}`);
 var import_yaml21 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-layout-migration.js
-import { constants as constants8 } from "node:fs";
+import { constants as constants9 } from "node:fs";
 import { lstat as lstat18, open as open11 } from "node:fs/promises";
 import { basename as basename8, posix as posix5, resolve as resolve26 } from "node:path";
 var import_yaml22 = __toESM(require_dist(), 1);
@@ -60558,7 +60571,7 @@ function classifiedRootDestination(path, content3) {
 async function safeFile(path, maximumBytes = 256 * 1024) {
   let handle;
   try {
-    handle = await open11(path, constants8.O_RDONLY | (constants8.O_NOFOLLOW ?? 0));
+    handle = await open11(path, constants9.O_RDONLY | (constants9.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes)
       throw new Error("unsafe registry item");
@@ -61235,7 +61248,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
 var import_yaml23 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/terminal-integration.js
-import { constants as constants9 } from "node:fs";
+import { constants as constants10 } from "node:fs";
 import { lstat as lstat19, open as open12 } from "node:fs/promises";
 import { resolve as resolve27 } from "node:path";
 var MAXIMUM_CONFIG_BYTES = 256 * 1024;
@@ -61279,7 +61292,7 @@ async function safeOptionalText(path, maximumBytes = MAXIMUM_CONFIG_BYTES) {
         return null;
       throw error;
     }
-    handle = await open12(path, constants9.O_RDONLY | (constants9.O_NOFOLLOW ?? 0));
+    handle = await open12(path, constants10.O_RDONLY | (constants10.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     const bytes = await handle.readFile();
     const after = await handle.stat();
@@ -61612,7 +61625,7 @@ async function collectVerificationResultSources(input) {
 }
 
 // packages/repository-knowledge/dist/workstream.js
-import { constants as constants10 } from "node:fs";
+import { constants as constants11 } from "node:fs";
 import { lstat as lstat20, mkdir as mkdir7, open as open13, rename as rename3, rm as rm4 } from "node:fs/promises";
 import { basename as basename9, dirname as dirname5, posix as posix6, relative as relative10, resolve as resolve28, sep as sep10 } from "node:path";
 var import_yaml24 = __toESM(require_dist(), 1);
@@ -61630,7 +61643,7 @@ async function safeTextFile(root2, path, maximumBytes) {
   const target = insideRoot(root2, path);
   let handle;
   try {
-    handle = await open13(target, constants10.O_RDONLY | (constants10.O_NOFOLLOW ?? 0));
+    handle = await open13(target, constants11.O_RDONLY | (constants11.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes) {
       throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream source is not a bounded regular file.");
@@ -61701,7 +61714,7 @@ async function restoreCurrentWorkstreamState(input) {
   const target = resolve28(root2, CURRENT_WORKSTREAM_PATH);
   const temporary = `${target}.restore-${process.pid}`;
   await rm4(temporary, { force: true });
-  const handle = await open13(temporary, constants10.O_WRONLY | constants10.O_CREAT | constants10.O_EXCL | (constants10.O_NOFOLLOW ?? 0), 384);
+  const handle = await open13(temporary, constants11.O_WRONLY | constants11.O_CREAT | constants11.O_EXCL | (constants11.O_NOFOLLOW ?? 0), 384);
   try {
     await handle.writeFile(input.content);
     await handle.sync();
@@ -61753,7 +61766,7 @@ function pendingCoordinatesValid(snapshot) {
 
 // packages/verification/dist/suite-loader.js
 var import_yaml25 = __toESM(require_dist(), 1);
-import { constants as constants11 } from "node:fs";
+import { constants as constants12 } from "node:fs";
 import { lstat as lstat21, open as open14, realpath as realpath2 } from "node:fs/promises";
 import { resolve as resolve29 } from "node:path";
 var MAXIMUM_SUITE_BYTES = 64 * 1024;
@@ -61780,7 +61793,7 @@ async function loadVerificationSuite(repositoryRoot, suiteId) {
     if (!before.isFile() || before.isSymbolicLink() || before.size > MAXIMUM_SUITE_BYTES) {
       throw new VerificationError("verification_layout_invalid", "The verification suite file is not a safe regular file or exceeds the size limit.");
     }
-    handle = await open14(path, constants11.O_RDONLY | (constants11.O_NOFOLLOW ?? 0));
+    handle = await open14(path, constants12.O_RDONLY | (constants12.O_NOFOLLOW ?? 0));
     const bytes = await handle.readFile();
     const after = await handle.stat({ bigint: true });
     if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs) {
@@ -61953,7 +61966,7 @@ async function loadHit(root2, hit, remainingBytes) {
   if (child === ".." || child.startsWith(`..${sep11}`) || remainingBytes <= 0) return null;
   let handle;
   try {
-    handle = await open15(target, constants12.O_RDONLY | (constants12.O_NOFOLLOW ?? 0));
+    handle = await open15(target, constants13.O_RDONLY | (constants13.O_NOFOLLOW ?? 0));
     const before = await handle.stat();
     if (!before.isFile() || before.isSymbolicLink() || before.size > 131072) return null;
     const bytes = await handle.readFile();
@@ -62087,7 +62100,7 @@ async function writeActivationReceipt(root2, receipt) {
   try {
     handle = await open15(
       temporary,
-      constants12.O_WRONLY | constants12.O_CREAT | constants12.O_EXCL | (constants12.O_NOFOLLOW ?? 0),
+      constants13.O_WRONLY | constants13.O_CREAT | constants13.O_EXCL | (constants13.O_NOFOLLOW ?? 0),
       384
     );
     await handle.writeFile(`${JSON.stringify(receipt)}

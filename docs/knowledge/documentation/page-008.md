@@ -17,6 +17,7 @@
 - [ADR-0086: Canonical CLI release artifact manifest](../../decisions/release/packaging/0086-canonical-cli-release-artifact-manifest.md) — `docs/decisions/release/packaging/0086-canonical-cli-release-artifact-manifest.md`
 - [ADR-0089: CLI multi-platform release matrix](../../decisions/release/packaging/0089-cli-multi-platform-release-matrix.md) — `docs/decisions/release/packaging/0089-cli-multi-platform-release-matrix.md`
 - [ADR-0090: CLI package usage-guide contract](../../decisions/release/packaging/0090-cli-package-usage-guide.md) — `docs/decisions/release/packaging/0090-cli-package-usage-guide.md`
+- [ADR-0215: Supported-runtime release portability](../../decisions/release/packaging/0215-supported-runtime-release-portability.md) — `docs/decisions/release/packaging/0215-supported-runtime-release-portability.md`
 - [ADR-0117: CLI First-Publication Stage-Only Workflow Candidate](../../decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md) — `docs/decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md`
 - [ADR-0118: CLI Stage-Publication Command Boundary](../../decisions/release/staging/0118-cli-stage-publication-command-boundary.md) — `docs/decisions/release/staging/0118-cli-stage-publication-command-boundary.md`
 - [ADR-0119: Stage-Only Workflow Activation Permit and Transaction](../../decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md) — `docs/decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md`
@@ -26,4 +27,3 @@
 - [ADR-0123: Stage-Only Workflow Execution Evidence](../../decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md) — `docs/decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md`
 - [ADR-0124: npm Stage-Result Artifact Evidence](../../decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md) — `docs/decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md`
 - [ADR-0125: npm Staged-Package Review Evidence](../../decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md) — `docs/decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md`
-- [ADR-0126: npm Stage-Approval Authorization](../../decisions/release/staging/0126-cli-npm-stage-approval-authorization.md) — `docs/decisions/release/staging/0126-cli-npm-stage-approval-authorization.md`
