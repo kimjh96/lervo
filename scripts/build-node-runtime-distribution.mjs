@@ -14,7 +14,12 @@ import {
 import { basename, dirname, resolve } from "node:path";
 import { promisify } from "node:util";
 
-import { readJson, repositoryRoot, runPnpm } from "./lib/installed-cli.mjs";
+import {
+  pnpmDeployCompatibilityArgs,
+  readJson,
+  repositoryRoot,
+  runPnpmDeploy,
+} from "./lib/installed-cli.mjs";
 import { isBuiltinModuleSpecifier } from "./lib/node-module-specifier.mjs";
 import {
   canonicalJson,
@@ -109,13 +114,14 @@ async function buildDistribution(outputArgument) {
   const payloadRoot = resolve(staging, "payload");
   const stagedArchive = resolve(staging, basename(output));
   try {
-    await runPnpm([
+    await runPnpmDeploy([
       "--offline",
       "--config.inject-workspace-packages=true",
       "--config.package-import-method=copy",
       "--filter",
       "@lervo/node-runtime-dependencies",
       "deploy",
+      ...pnpmDeployCompatibilityArgs(),
       "--prod",
       payloadRoot,
     ]);

@@ -12,7 +12,7 @@ Lervo supports Node.js 22.13 and later, but release checks must not infer that b
 - Treat every `node:` specifier as a Node built-in independently of the current runtime's `builtinModules` inventory. Use one shared classifier for CLI, Hub, and Node release validation.
 - Bundle a provider-neutral SQLite compatibility module into every executable. It temporarily intercepts only the exact Node `ExperimentalWarning` for loading `node:sqlite`, restores `process.emitWarning` synchronously, and forwards every other warning unchanged.
 - Keep `node:sqlite` external at the final runtime boundary. The compatibility module must not recursively resolve itself. Packed-consumer smoke must execute `lervo init` on Node 22.13 with empty stderr.
-- Force pnpm's `copy` package import method for temporary CLI and standalone Node deployments so release verification works across Windows volumes without hardlinks.
+- Force the `copy` package import method for temporary CLI and standalone Node deployments. On Windows, use pnpm's legacy deploy implementation against the installed closure and restore pnpm's rebuildable workspace-state cache afterward; other platforms retain shared-lockfile deploy. This works offline across Windows volumes without hardlinks or a second registry tarball.
 - Normalize bundle metadata paths. On unexpected release-check failures, expose bounded child-process stdout and stderr. Diagnostics may contain build output but must not include prompts, credentials, provider configuration, or user documents.
 
 No execution event or persistent runtime state is added. Release manifests and SBOMs continue to bind the changed executable bytes.

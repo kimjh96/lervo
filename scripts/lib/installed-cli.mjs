@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
@@ -7,6 +7,10 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 
 export const repositoryRoot = resolve(import.meta.dirname, "../..");
+const pnpmWorkspaceStatePath = resolve(
+  repositoryRoot,
+  "node_modules/.pnpm-workspace-state-v1.json",
+);
 
 export async function readJson(path) {
   return JSON.parse(await readFile(path, "utf8"));
@@ -34,14 +38,38 @@ export async function runPnpm(args, options = {}) {
   return execFileAsync("pnpm", args, commandOptions);
 }
 
+export function pnpmDeployCompatibilityArgs(platform = process.platform) {
+  return platform === "win32" ? ["--legacy"] : [];
+}
+
+async function readOptionalWorkspaceState() {
+  try {
+    return await readFile(pnpmWorkspaceStatePath);
+  } catch (error) {
+    if (error && typeof error === "object" && error.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+export async function runPnpmDeploy(args, options = {}) {
+  const workspaceState = await readOptionalWorkspaceState();
+  try {
+    return await runPnpm(args, options);
+  } finally {
+    if (workspaceState === null) await rm(pnpmWorkspaceStatePath, { force: true });
+    else await writeFile(pnpmWorkspaceStatePath, workspaceState);
+  }
+}
+
 export async function deployBuiltCli(target) {
-  await runPnpm([
+  await runPnpmDeploy([
     "--offline",
     "--config.inject-workspace-packages=true",
     "--config.package-import-method=copy",
     "--filter",
     "@lervo/cli",
     "deploy",
+    ...pnpmDeployCompatibilityArgs(),
     "--prod",
     target,
   ]);

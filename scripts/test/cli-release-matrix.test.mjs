@@ -4,6 +4,8 @@ import { resolve } from "node:path";
 import { describe, it } from "vitest";
 import { parse } from "yaml";
 
+import { pnpmDeployCompatibilityArgs } from "../lib/installed-cli.mjs";
+
 const workflowPath = resolve(import.meta.dirname, "../../.github/workflows/cli-release-matrix.yml");
 
 async function readWorkflow() {
@@ -11,6 +13,12 @@ async function readWorkflow() {
 }
 
 describe("CLI release matrix workflow", () => {
+  it("uses pnpm's installed-closure deploy fallback only on Windows", () => {
+    assert.deepEqual(pnpmDeployCompatibilityArgs("win32"), ["--legacy"]);
+    assert.deepEqual(pnpmDeployCompatibilityArgs("darwin"), []);
+    assert.deepEqual(pnpmDeployCompatibilityArgs("linux"), []);
+  });
+
   it("runs the packed CLI contract on all supported desktop platforms", async () => {
     const workflow = await readWorkflow();
     assert.deepEqual(Object.keys(workflow.on).sort(), [
