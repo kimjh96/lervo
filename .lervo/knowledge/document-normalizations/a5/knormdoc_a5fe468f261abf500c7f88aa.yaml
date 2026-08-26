@@ -1,0 +1,29 @@
+candidateId: knorm_20afb83cd8b5c07aaf9b73df
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2f1ed8492b69cbde4e5f57ce
+outputLanguage: en
+outputs:
+  - byteCount: 5537
+    contentHash: sha256:8bbe8ad93d36ae7b5e17b6b37c926074a0f7e3eeb1f71c1e5255b89d9a352d49
+    path: docs/roadmap/onboarding/agent-workspace-lifecycle.md
+    userRegionHash: sha256:8bbe8ad93d36ae7b5e17b6b37c926074a0f7e3eeb1f71c1e5255b89d9a352d49
+profile: roadmap_document
+recordId: knormdoc_a5fe468f261abf500c7f88aa
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:cbdf12b13acfef76c06c99502a34e140ba10aca6f7db7ec074012c69c8472249
+sourcePath: docs/roadmap/onboarding/agent-workspace-lifecycle.md
+sourceUnitVersionIds:
+  - uv_110c26f423c8fb48b9044c80
+  - uv_22aadbd5734468e713688991
+  - uv_258868c6213182e52810990a
+  - uv_8536763bf333cb13a340298d
+  - uv_ad9f02e168e7353a4d6f65d8
+  - uv_cd78927ac7771d611ab8630d
+  - uv_d5bceb62b4eff079734afcc3

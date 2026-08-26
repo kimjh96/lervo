@@ -1,0 +1,36 @@
+candidateId: knorm_20afb83cd8b5c07aaf9b73df
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9f0ae96c19ca918bb89262fd
+outputLanguage: en
+outputs:
+  - byteCount: 14903
+    contentHash: sha256:43724df1bc7fb48358c061875d4ecfc48fbb75e4d823356f041f9f52a3e9ea32
+    path: docs/decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md
+    userRegionHash: sha256:43724df1bc7fb48358c061875d4ecfc48fbb75e4d823356f041f9f52a3e9ea32
+profile: decision_record
+recordId: knormdoc_980cb24878b6787589f61229
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:36a1d9a87c052d4490a72fce97eaf8f0ea9917424d2c4048932d33b5e4f06f4b
+sourcePath: docs/decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md
+sourceUnitVersionIds:
+  - uv_1840eb879c53c0d79db0bf3f
+  - uv_2049737a5d2fbd2c09f8b899
+  - uv_2c7cb6a07cac7657b56fa8e7
+  - uv_354a7385d88611dac96fc413
+  - uv_381db5d118d9f86c30fe9852
+  - uv_8056fd7f9aede44336d4ccce
+  - uv_81d46fa5c985f90d1137b50d
+  - uv_96f1daa7b2d8e9247918b13b
+  - uv_986907fc84ca2b2c8310152e
+  - uv_a4e9db74da9f5a6e36b9dec6
+  - uv_c14b32f035f9faf77480e805
+  - uv_d2f0b9e57961e599e38a5236
+  - uv_eabd345cb94ab6d4031c079c
+  - uv_ee0db731c8f99aa4b780c7cc

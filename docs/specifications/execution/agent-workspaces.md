@@ -12,29 +12,39 @@ This planned execution-space contract refines, without replacing, assignment pat
 3. Sibling worktrees in one Git repository instance share local coordination without requiring a Hub.
 4. Workers own only their assignment-scoped diff and workspace checkpoint; the integrator owns repository-wide convergence and the current workstream.
 5. Removal requires exact local evidence that the result was integrated or explicitly discarded and no live owner remains.
-6. Host products such as Orca stay behind an adapter. Git, provider, and Hub details stay outside the lifecycle domain contract.
+6. Host products such as Orca remain behind an adapter. Git, provider, and Hub details remain outside the lifecycle domain contract.
 
 ## Implementation status
 
-Implemented foundations include a Git-common-directory, owner-only coordination home shared by sibling worktrees; conflict-safe legacy migration; content-hash compare-and-swap workspace records and allowlisted events; pure transition, scoped-path, deterministic-ordering, and cleanup-eligibility decisions; a provider-neutral host port; and a native Git adapter supporting idempotent detached-worktree provisioning, exact base-relative result inspection, stable native-instance identity, marker validation, dirty-worktree protection, and non-force removal. Assignment orchestration provides read-only provision planning and exact apply with stale-lease rejection and recovery state.
+Implemented foundations include:
 
-Direct terminal preparation activates one writer only for an exact ready workspace. Worker Stop rechecks marker, workspace revision, writer, assignment lease, and base-relative path partition, then records a path-private checkpoint without requiring foreign global workstream or knowledge updates. Integrator and unattached Stop retain repository-wide finalization. `lervo workspace inspect` reads the current local binding without mutation. Direct provider execution remains telemetry-limited and is not managed provider execution.
+- a Git-common-directory, owner-only coordination home shared by sibling worktrees;
+- conflict-safe legacy migration;
+- content-hash compare-and-swap workspace records and allowlisted events;
+- pure transition, scoped-path, deterministic-ordering, and cleanup-eligibility decisions;
+- a provider-neutral host port;
+- a native Git adapter supporting idempotent detached-worktree provisioning, exact base-relative result inspection, stable native-instance identity, marker validation, dirty-worktree protection, and non-force removal; and
+- assignment orchestration with read-only provision planning, exact apply, stale-lease rejection, and recovery state.
 
-Immutable sealing uses a read-only, content-bound plan and an exact apply recheck. It freezes the writer, accepts only clean committed in-scope bytes with a reachable base, binds ordered commits, result and verification artifacts, approval and recovery status, and publishes a deterministic queue entry. Orphaned or stale queue records are projected only when the exact workspace generation reached `integration_pending`.
+Direct terminal preparation activates one writer only for an exact ready workspace. Worker Stop rechecks the marker, workspace revision, writer, assignment lease, and base-relative path partition, then records a path-private checkpoint without requiring foreign global workstream or knowledge updates. Integrator and unattached Stop retain repository-wide finalization. `lervo workspace inspect` reads the current local binding without mutation. Direct provider execution remains telemetry-limited and is not managed provider execution.
 
-Candidate-only exact Git integration is implemented behind the provider-neutral integration-host port. A read-only plan binds the integrator assignment and writer, target ref and generation, target-before commit, ordered immutable sources, strategies, changed-path union, and path-private collision report. Apply acquires one exclusive target-generation lease, operates only in the isolated integration worktree, leaves the target ref unchanged, records a durable candidate, or aborts a Git conflict back to the exact target-before commit. Stale targets acquire no lease, competing plans cannot reuse a target generation, and lost-response retry rechecks or resets only the isolated candidate.
+Immutable sealing uses a read-only, content-bound plan and an exact apply recheck. It freezes the writer; accepts only clean, committed, in-scope bytes with a reachable base; binds ordered commits, result and verification artifacts, approval and recovery status; and publishes a deterministic queue entry. Orphaned or stale queue records are projected only when the exact workspace generation reached `integration_pending`.
 
-Target advancement and successful `assignment.integration.recorded` emission remain disabled until repository-wide verification, durable success commit, and rollback gates pass. Automatic cleanup policy, the Orca production adapter, and Hub reservations also remain disabled until their gates pass.
+Candidate-only exact Git integration is implemented behind the provider-neutral integration-host port. A read-only plan binds the integrator assignment and writer, target ref and generation, target-before commit, ordered immutable sources, strategies, changed-path union, and path-private collision report. Apply acquires one exclusive target-generation lease, operates only in the isolated integration worktree, and leaves the target ref unchanged. It records a durable candidate or aborts a Git conflict back to the exact target-before commit. Stale targets acquire no lease; competing plans cannot reuse a target generation; lost-response retry rechecks or resets only the isolated candidate.
+
+The Git host port can advance a non-checked-out local target ref with an exact compare-and-swap after rechecking the candidate commit, tree, ancestry, marker, cleanliness, and Git-operation state. The inverse compare-and-swap provides idempotent rollback while retaining the isolated candidate.
+
+Orchestrated target advancement and successful `assignment.integration.recorded` emission remain disabled until repository-wide verification and the durable success transaction compose with the implemented host rollback gate. Checked-out target refs are ineligible for automatic advancement. Automatic cleanup policy, the Orca production adapter, and Hub reservations also remain disabled until their gates pass.
 
 ## Identities and storage
 
-Opaque identities separately represent project, repository instance, assignment, agent, assignment lease generation, workspace, workspace generation, writer session, integration attempt, cleanup plan, Node, and optional Hub reservation. They cannot be reconstructed from paths, branches, provider sessions, or conversations.
+Opaque identities separately represent project, repository instance, assignment, agent, assignment lease generation, workspace, workspace generation, writer session, integration attempt, cleanup plan, Node, and optional Hub reservation. Paths, branches, provider sessions, and conversations cannot reconstruct them.
 
-The Git common directory anchors the lazy owner-only coordination home containing workforce state, workspace registry, integration queue, scheduler locks, cleanup journals, and canonical coordination events; repository snapshots exclude it. Workspace records may retain a local absolute path and native host instance ID, but public plans, events, Hub envelopes, and diagnostics expose only opaque IDs or domain-separated digests.
+The Git common directory anchors the lazy owner-only coordination home containing workforce state, workspace registry, integration queue, scheduler locks, cleanup journals, and canonical coordination events; repository snapshots exclude it. Workspace records may retain a local absolute path and native host instance ID. Public plans, events, Hub envelopes, and diagnostics expose only opaque IDs or domain-separated digests.
 
-A Lervo ownership marker contains workspace ID and generation, repository-instance ID, adapter kind and version, creation-plan ID, and path digest. Planning and cleanup reject symbolic or changed markers, mismatched Git common directories, and paths other than the exact registered worktree.
+A Lervo ownership marker contains workspace ID and generation, repository-instance ID, adapter kind and version, creation-plan ID, and path digest. Planning and cleanup reject symbolic or changed markers, mismatched Git common directories, and any path other than the exact registered worktree.
 
-The coordination event chain is transactionally serialized with the workforce transition it proves; sibling worktrees never append competing per-checkout chains. Node synchronization treats the repository-instance producer as its own destination coordinate, while per-worktree execution events keep their producer identity. Import and migration preserve this distinction and never merge histories by timestamp.
+The coordination event chain is transactionally serialized with the workforce transition it proves; sibling worktrees never append competing per-checkout chains. Node synchronization treats the repository-instance producer as its own destination coordinate, while per-worktree execution events retain their producer identity. Import and migration preserve this distinction and never merge histories by timestamp.
 
 ## End-to-end operating flow
 
@@ -44,7 +54,7 @@ The coordination event chain is transactionally serialized with the workforce tr
 4. The worker changes only expected paths. Terminal finalization updates assignment and workspace state, not the repository-wide current workstream.
 5. Completion freezes writes, verifies, seals committed bytes, and queues the immutable result after dependencies complete.
 6. An integration assignment selects exact sealed generations in a separate worktree, incorporates them, runs focused and repository-wide verification, refreshes canonical knowledge, and advances the current workstream.
-7. Integrated source workspaces become cleanup candidates; an exact local plan removes only clean, quiescent, Lervo-owned worktrees while preserving branches and durable evidence.
+7. Integrated source workspaces become cleanup candidates. An exact local plan removes only clean, quiescent, Lervo-owned worktrees while preserving branches and durable evidence.
 
 Agents perform lifecycle bookkeeping from natural-language requests. Planned inspection and recovery surfaces are:
 
@@ -52,7 +62,7 @@ Agents perform lifecycle bookkeeping from natural-language requests. Planned ins
 - `lervo workspace seal|cleanup|recover`, with read-only plan and exact apply
 - `lervo integration queue|plan|apply|resolve`
 
-Users need not relay commands between agents. Provisioning normally occurs during assignment claim; any direct provision command uses the same assignment and exact-plan contract and cannot create an unassigned writer.
+Users need not relay commands between agents. Provisioning normally occurs during assignment claim. Any direct provision command uses the same assignment and exact-plan contract and cannot create an unassigned writer.
 
 ## Lifecycle transition table
 
@@ -77,7 +87,15 @@ Users need not relay commands between agents. Provisioning normally occurs durin
 
 ## Provisioning contract
 
-The read-only creation plan binds repository-instance and project identities; exact base commit and integration-target digest; assignment, agent, role contract, expected paths, and lease generation; adapter kind, version, and capabilities; desired worktree-name digest, ownership-marker hash, and setup policy; expected tracked and untracked cleanliness; and verification required for `ready`.
+The read-only creation plan binds:
+
+- repository-instance and project identities;
+- exact base commit and integration-target digest;
+- assignment, agent, role contract, expected paths, and lease generation;
+- adapter kind, version, and capabilities;
+- desired worktree-name digest, ownership-marker hash, and setup policy;
+- expected tracked and untracked cleanliness; and
+- verification required for `ready`.
 
 Apply rechecks every binding, reserves the local workspace ID, and calls the adapter once with an idempotency key. A lost response triggers inspection, never blind recreation. The adapter returns exact discovered repository identity, worktree-path digest, native-instance digest, base commit, and cleanliness. Success is recorded only when marker and Git metadata agree.
 
@@ -85,7 +103,7 @@ An Orca adapter uses Orca-managed worktree creation and locally retains its comp
 
 ## Writer and Stop contract
 
-Before each managed mutation, revalidate agent, assignment, local lease, workspace generation, writer session, and expected-path scope. The prepared terminal observation binds those coordinates, base commit, and exact workspace revision.
+Before each managed mutation, revalidate the agent, assignment, local lease, workspace generation, writer session, and expected-path scope. The prepared terminal observation binds those coordinates, the base commit, and the exact workspace revision.
 
 At `Stop`, a worker diffs against its prepared revision and partitions coordinates into expected, outside-scope, and runtime-excluded. Only expected changes enter its checkpoint. Outside-scope repository-authored paths, marker drift, a second writer, or unrecognized checkout movement block with:
 
@@ -99,7 +117,15 @@ The hook does not require advancing a foreign repository-wide workstream or repa
 
 ## Sealed result contract
 
-An immutable seal contains workspace and generation, assignment, agent, and lease generation; base and head commits, tree hash, changed-path-set digest and count; ordered commit IDs or explicit no-change disposition; result artifact ID and hash; verification suite IDs, policy hashes, result artifact IDs and hashes, and completion times; outstanding approval or recovery status; and the source workstream ID, revision, and snapshot hash observed during provisioning.
+An immutable seal contains:
+
+- workspace and generation, assignment, agent, and lease generation;
+- base and head commits, tree hash, changed-path-set digest and count;
+- ordered commit IDs or an explicit no-change disposition;
+- result artifact ID and hash;
+- verification suite IDs, policy hashes, result artifact IDs and hashes, and completion times;
+- outstanding approval or recovery status; and
+- the source workstream ID, revision, and snapshot hash observed during provisioning.
 
 The checkout and index must be clean. Untracked files, an in-progress Git operation, missing commits, failed required verification, unresolved approval, or expired writer ownership prevents sealing. Lervo never auto-commits; the user or authorized agent commits under repository policy.
 
@@ -107,17 +133,33 @@ The checkout and index must be clean. Untracked files, an in-progress Git operat
 
 The bounded integration queue is a replace-current projection of durable seal and integration events. It orders completed dependencies, assignment priority, seal time, then workspace ID. Queue order grants no write authority.
 
-A plan selects bounded sealed generations and binds the exclusive integration assignment, integrator agent and workspace, target ref and generation; target-before commit and repository snapshot; source workspace IDs, generations, heads, trees, and dependency edges; exact per-source strategy and deterministic order; expected changed-path union and collision report; required focused and repository-wide verification; and desired target commit or deterministic validation rule.
+A plan selects bounded sealed generations and binds:
 
-Apply uses an isolated integration worktree; any changed binding requires a new plan. Text or tree conflict aborts Git and records no success; sources remain sealed. After exact incorporation and verification, `assignment.integration.recorded` commits with the assignment transition. Only then may the integrator refresh canonical documentation, advance the workstream, and make sources cleanup candidates.
+- the exclusive integration assignment, integrator agent and workspace, and target ref and generation;
+- target-before commit and repository snapshot;
+- source workspace IDs, generations, heads, trees, and dependency edges;
+- exact per-source strategy and deterministic order;
+- expected changed-path union and collision report;
+- required focused and repository-wide verification; and
+- desired target commit or deterministic validation rule.
 
-Candidate preparation is a distinct non-success phase. Its local attempt state is `leased`, `candidate`, or `conflict`; it never advances the target ref or marks a source `integrated`. The target-generation lease is deterministic for repository instance, target digest, and generation, while its attempt record separately binds target-before. Candidate and conflict retries require the same plan hash and re-inspect marker, cleanliness, Git-operation absence, target ref, and isolated-worktree head. A collision report contains only path digests and opaque workspace IDs.
+Apply uses an isolated integration worktree; any changed binding requires a new plan. A text or tree conflict aborts Git and records no success; sources remain sealed. After exact incorporation and verification, `assignment.integration.recorded` commits with the assignment transition. Only then may the integrator refresh canonical documentation, advance the workstream, and make sources cleanup candidates.
+
+Candidate preparation is a distinct non-success phase. Its local attempt state is `leased`, `candidate`, or `conflict`; it never advances the target ref or marks a source `integrated`. The target-generation lease is deterministic for repository instance, target digest, and generation, while its attempt record separately binds target-before. Candidate and conflict retries require the same plan hash and re-inspect the marker, cleanliness, absence of Git operations, target ref, and isolated-worktree head. A collision report contains only path digests and opaque workspace IDs.
+
+The target-advance host operation is separate from candidate success. It accepts only the recorded target-before commit and candidate commit/tree, rejects a target ref checked out by any registered worktree, proves target-before ancestry, and uses Git's old-value-bound `update-ref` compare-and-swap. Retry accepts only the exact already-advanced candidate. Rollback accepts only target-before or that candidate and performs the inverse compare-and-swap. Concurrent ref movement fails closed and is never overwritten. The orchestrator must not call either operation until full verification and durable success recovery are composed.
 
 ## Cleanup contract
 
 Policy may automatically plan integrated workspaces, but apply remains content-bound. A plan includes workspace and generation, marker and path digests, sealed head and tree, integrated-event ID, target-reachability proof, Git metadata hash, adapter coordinates, process observation, dependent-reference count, and exact removal operations.
 
-A plan is `ready` only when the workspace is Lervo-owned, `cleanup_eligible`, clean, and unchanged since sealing; its exact head is reachable from the durable integration target; no lease, writer, terminal, child workspace, Git operation, review linkage, transaction, approval, or recovery marker remains; the adapter positively proves quiescence; and non-force worktree removal is supported.
+A plan is `ready` only when all of these conditions hold:
+
+- the workspace is Lervo-owned, `cleanup_eligible`, clean, and unchanged since sealing;
+- its exact head is reachable from the durable integration target;
+- no lease, writer, terminal, child workspace, Git operation, review linkage, transaction, approval, or recovery marker remains;
+- the adapter positively proves quiescence; and
+- non-force worktree removal is supported.
 
 Apply durably journals before the host effect, invokes only adapter non-force removal, confirms directory and Git metadata absence, records removal, then clears the journal. It never recursively deletes an unresolved path. Ref deletion, CAS pruning, assignment retirement, and Hub-record retention have separate lifecycles.
 
@@ -125,11 +167,11 @@ Orca cannot report quiescence with a live or uncertain terminal. Native Git with
 
 ## Hub-coordinated mode
 
-`local_first` is the default and needs no Hub. `hub_coordinated` explicitly enables cross-Node scheduling; before provisioning or writer renewal, a Node obtains a Hub reservation and then the shared local lease.
+`local_first` is the default and requires no Hub. `hub_coordinated` explicitly enables cross-Node scheduling. Before provisioning or writer renewal, a Node obtains a Hub reservation and then the shared local lease.
 
 Reservation scopes use local path normalization and transport hashes; exact and ancestor overlaps conflict. Fencing binds repository identity, scope, target digest, lease generation, and bounded expiry. Same-content retries are idempotent; changed content under one idempotency key conflicts. Reservations grant no repository write, merge, approval, provider, or cleanup capability.
 
-V1 allows at most 128 normalized expected paths and leases from 5 seconds through 30 minutes. Hub reservations use the same expiry and cannot outlive the local lease. Versioned, tested capacity policy bounds active reservations per project and retained terminal summaries before rollout; capacity rejection never evicts an active reservation and values are not inferred from database capacity.
+V1 allows at most 128 normalized expected paths and leases from 5 seconds through 30 minutes. Hub reservations use the same expiry and cannot outlive the local lease. Versioned, tested capacity policy bounds active reservations per project and retained terminal summaries before rollout; capacity rejection never evicts an active reservation, and values are not inferred from database capacity.
 
 Hub loss behavior:
 
@@ -154,7 +196,7 @@ Claims mean only:
 - sealed: an immutable verified integration candidate exists;
 - integrated: exact source heads entered the verified target;
 - cleanup eligible: current predicates passed inspection;
-- removed: registered checkout and Git metadata were absent after non-force removal;
+- removed: registered checkout and Git metadata were absent after non-force removal; and
 - Hub reserved: one Hub scheduler granted bounded coordination.
 
 Claims do not prove provider understanding, semantic correctness, deployment, branch deletion, remote publication, or absence of unmanaged processes beyond adapter evidence.
@@ -167,9 +209,9 @@ Claims do not prove provider understanding, semantic correctness, deployment, br
 - `@lervo/schemas` and `@lervo/event-contract`: additive contracts and redaction allowlists.
 - CLI entrypoints: parsing, plan rendering, and exit codes; no Git or cleanup policy.
 - Git and Orca: one host adapter each under the common contract; introduce Orca only with its first production caller.
-- `@lervo/node-runtime`: optional reservations plus local claims and separate health; Hub HTTP, authentication, and persistence stay within Hub boundaries.
+- `@lervo/node-runtime`: optional reservations plus local claims and separate health; Hub HTTP, authentication, and persistence remain within Hub boundaries.
 
-These boundaries keep lifecycle provider-neutral and prevent CLI, Node, or Orca from becoming the source of assignment or cleanup policy.
+These boundaries keep the lifecycle provider-neutral and prevent CLI, Node, or Orca from becoming the source of assignment or cleanup policy.
 
 ## Required verification
 

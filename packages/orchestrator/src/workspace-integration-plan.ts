@@ -93,8 +93,7 @@ export async function planWorkspaceIntegrationCandidate(input: {
     !Number.isSafeInteger(input.targetGeneration) ||
     input.targetGeneration < 1 ||
     input.integrationHost.capabilities.exactIntegration !== true ||
-    input.integrationHost.capabilities.conflictAbort !== true ||
-    input.integrationHost.capabilities.targetAdvance !== false
+    input.integrationHost.capabilities.conflictAbort !== true
   )
     throw new WorkspaceHostError(
       "host_coordinate_invalid",

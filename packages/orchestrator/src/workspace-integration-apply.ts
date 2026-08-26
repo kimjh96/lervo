@@ -70,8 +70,7 @@ async function assertPlanBindings(input: {
     input.integrationHost.kind !== plan.integrationMarker.adapterKind ||
     input.integrationHost.version !== plan.integrationMarker.adapterVersion ||
     input.integrationHost.capabilities.exactIntegration !== true ||
-    input.integrationHost.capabilities.conflictAbort !== true ||
-    input.integrationHost.capabilities.targetAdvance !== false
+    input.integrationHost.capabilities.conflictAbort !== true
   )
     throw new WorkspaceHostError(
       "host_coordinate_invalid",

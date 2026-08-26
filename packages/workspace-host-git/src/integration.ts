@@ -4,14 +4,19 @@ import { promisify } from "node:util";
 import {
   WorkspaceHostError,
   type WorkspaceHostAdapter,
+  type WorkspaceIntegrationAdvanceRequest,
+  type WorkspaceIntegrationAdvanceResult,
   type WorkspaceIntegrationApplyRequest,
   type WorkspaceIntegrationApplyResult,
   type WorkspaceIntegrationHostAdapter,
   type WorkspaceIntegrationResetRequest,
+  type WorkspaceIntegrationRollbackRequest,
   type WorkspaceIntegrationSource,
   type WorkspaceIntegrationTargetInspection,
   type WorkspaceIntegrationTargetRequest,
 } from "@lervo/workspace-host";
+
+import { advanceExactTargetRef, exactTargetCommit, rollbackExactTargetRef } from "./target-ref.js";
 
 const execute = promisify(execFile);
 const COMMIT = /^[a-f0-9]{40,64}$/u;
@@ -81,27 +86,6 @@ function validSource(source: WorkspaceIntegrationSource): boolean {
   );
 }
 
-async function exactTargetCommit(
-  repositoryRoot: string,
-  targetRef: string,
-): Promise<string | null> {
-  try {
-    const { stdout } = await execute(
-      "git",
-      ["-C", repositoryRoot, "rev-parse", "--verify", targetRef],
-      {
-        encoding: "utf8",
-        maxBuffer: 2 * 1024 * 1024,
-      },
-    );
-    return stdout.trim();
-  } catch (error) {
-    const code = (error as { code?: unknown }).code;
-    if (code === 128) return null;
-    fail("host_git_failed", "The Git integration target could not be inspected.", error);
-  }
-}
-
 async function resetToTarget(request: WorkspaceIntegrationTargetRequest): Promise<boolean> {
   await tryGit(request.integrationWorkspacePath, ["cherry-pick", "--abort"]);
   await tryGit(request.integrationWorkspacePath, ["merge", "--abort"]);
@@ -154,7 +138,7 @@ export class GitWorkspaceIntegrationAdapter implements WorkspaceIntegrationHostA
   readonly capabilities = {
     exactIntegration: true,
     conflictAbort: true,
-    targetAdvance: false,
+    targetAdvance: true,
   } as const;
 
   constructor(private readonly workspaceHost: WorkspaceHostAdapter) {}
@@ -245,6 +229,77 @@ export class GitWorkspaceIntegrationAdapter implements WorkspaceIntegrationHostA
       operationAborted: false,
       targetUnchanged: true,
     };
+  }
+
+  async advanceTarget(
+    request: WorkspaceIntegrationAdvanceRequest,
+  ): Promise<WorkspaceIntegrationAdvanceResult> {
+    if (
+      !validRequest(request) ||
+      !COMMIT.test(request.candidateCommit) ||
+      !COMMIT.test(request.candidateTreeHash) ||
+      !/^idk_[A-Za-z0-9_-]{8,128}$/u.test(request.idempotencyKey)
+    )
+      fail("host_coordinate_invalid", "The Git integration advance request is invalid.");
+    const before = await this.inspectTarget(request);
+    if (
+      (before.targetCommit !== request.targetBeforeCommit &&
+        before.targetCommit !== request.candidateCommit) ||
+      before.workspace.status !== "present" ||
+      before.workspace.headCommit !== request.candidateCommit ||
+      before.workspace.treeHash !== request.candidateTreeHash ||
+      !before.workspace.markerMatched ||
+      !before.workspace.clean ||
+      before.workspace.gitOperationInProgress !== false
+    )
+      fail("host_effect_uncertain", "The Git integration candidate changed before advancement.");
+    const status = await advanceExactTargetRef(request);
+    const after = await this.inspectTarget(request);
+    if (
+      after.targetCommit !== request.candidateCommit ||
+      after.workspace.headCommit !== request.candidateCommit ||
+      after.workspace.treeHash !== request.candidateTreeHash ||
+      !after.workspace.clean ||
+      after.workspace.gitOperationInProgress !== false
+    )
+      fail("host_effect_uncertain", "The Git integration target advancement is uncertain.");
+    return {
+      status,
+      targetBeforeCommit: request.targetBeforeCommit,
+      targetAfterCommit: request.candidateCommit,
+      candidateCommit: request.candidateCommit,
+    };
+  }
+
+  async rollbackTarget(request: WorkspaceIntegrationRollbackRequest): Promise<boolean> {
+    if (
+      !validRequest(request) ||
+      !COMMIT.test(request.candidateCommit) ||
+      !COMMIT.test(request.candidateTreeHash) ||
+      !/^idk_[A-Za-z0-9_-]{8,128}$/u.test(request.idempotencyKey)
+    )
+      fail("host_coordinate_invalid", "The Git integration rollback request is invalid.");
+    const before = await this.inspectTarget(request);
+    if (
+      (before.targetCommit !== request.targetBeforeCommit &&
+        before.targetCommit !== request.candidateCommit) ||
+      before.workspace.status !== "present" ||
+      before.workspace.headCommit !== request.candidateCommit ||
+      before.workspace.treeHash !== request.candidateTreeHash ||
+      !before.workspace.markerMatched ||
+      !before.workspace.clean ||
+      before.workspace.gitOperationInProgress !== false
+    )
+      fail("host_effect_uncertain", "The Git integration candidate changed before rollback.");
+    if (!(await rollbackExactTargetRef(request))) return false;
+    const after = await this.inspectTarget(request);
+    return (
+      after.targetCommit === request.targetBeforeCommit &&
+      after.workspace.headCommit === request.candidateCommit &&
+      after.workspace.treeHash === request.candidateTreeHash &&
+      after.workspace.clean === true &&
+      after.workspace.gitOperationInProgress === false
+    );
   }
 
   async resetCandidate(request: WorkspaceIntegrationResetRequest): Promise<boolean> {

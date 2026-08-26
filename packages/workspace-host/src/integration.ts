@@ -47,6 +47,21 @@ export interface WorkspaceIntegrationResetRequest extends WorkspaceIntegrationTa
   idempotencyKey: string;
 }
 
+export interface WorkspaceIntegrationAdvanceRequest extends WorkspaceIntegrationTargetRequest {
+  candidateCommit: string;
+  candidateTreeHash: string;
+  idempotencyKey: string;
+}
+
+export interface WorkspaceIntegrationAdvanceResult {
+  status: "advanced" | "already_advanced";
+  targetBeforeCommit: string;
+  targetAfterCommit: string;
+  candidateCommit: string;
+}
+
+export type WorkspaceIntegrationRollbackRequest = WorkspaceIntegrationAdvanceRequest;
+
 export interface WorkspaceIntegrationHostAdapter {
   readonly kind: "git" | "orca";
   readonly version: string;
@@ -61,5 +76,9 @@ export interface WorkspaceIntegrationHostAdapter {
   applyIntegration(
     request: WorkspaceIntegrationApplyRequest,
   ): Promise<WorkspaceIntegrationApplyResult>;
+  advanceTarget(
+    request: WorkspaceIntegrationAdvanceRequest,
+  ): Promise<WorkspaceIntegrationAdvanceResult>;
+  rollbackTarget(request: WorkspaceIntegrationRollbackRequest): Promise<boolean>;
   resetCandidate(request: WorkspaceIntegrationResetRequest): Promise<boolean>;
 }

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_5e61f4eaea504b60687352d4
+  - uv_cc30db19f423697268b21645
 title: Isolated agent workspace lifecycle
 type: concept

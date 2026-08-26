@@ -86,7 +86,7 @@ afterEach(async () => {
 });
 
 describe("Git workspace integration", () => {
-  it("prepares and resets an exact candidate without advancing the target ref", async () => {
+  it("advances and rolls back an exact candidate with idempotent compare-and-swap", async () => {
     const current = await fixture(false);
     const request = {
       repositoryRoot: current.root,
@@ -119,6 +119,46 @@ describe("Git workspace integration", () => {
     expect(await git(current.root, ["rev-parse", "refs/heads/integration-target"])).toBe(
       current.targetBeforeCommit,
     );
+    const targetRequest = {
+      ...request,
+      candidateCommit: result.candidateCommit!,
+      candidateTreeHash: result.candidateTreeHash!,
+    };
+    await expect(
+      current.integrationHost.advanceTarget({
+        ...targetRequest,
+        idempotencyKey: "idk_integration_advance_0001",
+      }),
+    ).resolves.toEqual({
+      status: "advanced",
+      targetBeforeCommit: current.targetBeforeCommit,
+      targetAfterCommit: result.candidateCommit,
+      candidateCommit: result.candidateCommit,
+    });
+    await expect(
+      current.integrationHost.advanceTarget({
+        ...targetRequest,
+        idempotencyKey: "idk_integration_advance_replay_0001",
+      }),
+    ).resolves.toMatchObject({ status: "already_advanced" });
+    expect(await git(current.root, ["rev-parse", "refs/heads/integration-target"])).toBe(
+      result.candidateCommit,
+    );
+    await expect(
+      current.integrationHost.rollbackTarget({
+        ...targetRequest,
+        idempotencyKey: "idk_integration_rollback_0001",
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      current.integrationHost.rollbackTarget({
+        ...targetRequest,
+        idempotencyKey: "idk_integration_rollback_replay_0001",
+      }),
+    ).resolves.toBe(true);
+    expect(await git(current.root, ["rev-parse", "refs/heads/integration-target"])).toBe(
+      current.targetBeforeCommit,
+    );
     await expect(
       current.integrationHost.resetCandidate({
         ...request,
@@ -128,6 +168,128 @@ describe("Git workspace integration", () => {
     ).resolves.toBe(true);
     expect(await git(current.integrationWorkspacePath, ["rev-parse", "HEAD"])).toBe(
       current.targetBeforeCommit,
+    );
+  });
+
+  it("refuses to advance a target ref checked out by any registered worktree", async () => {
+    const current = await fixture(false);
+    const checkedOutRef = await git(current.root, ["symbolic-ref", "HEAD"]);
+    const request = {
+      repositoryRoot: current.root,
+      integrationWorkspacePath: current.integrationWorkspacePath,
+      integrationBaseCommit: current.targetBeforeCommit,
+      integrationMarker: current.integrationMarker,
+      targetRef: "refs/heads/integration-target",
+      targetBeforeCommit: current.targetBeforeCommit,
+      attemptId: "int_333333333333333333333333",
+      idempotencyKey: "idk_integration_apply_0003",
+      sources: [
+        {
+          workspaceId: "wsp_333333333333333333333333",
+          generation: 1,
+          headCommit: current.sourceHead,
+          commitIds: [current.sourceHead],
+          strategy: "cherry_pick" as const,
+        },
+      ],
+      commitTime: "2026-08-26T00:00:00Z",
+    };
+    const result = await current.integrationHost.applyIntegration(request);
+    await expect(
+      current.integrationHost.advanceTarget({
+        ...request,
+        targetRef: checkedOutRef,
+        candidateCommit: result.candidateCommit!,
+        candidateTreeHash: result.candidateTreeHash!,
+        idempotencyKey: "idk_integration_advance_0003",
+      }),
+    ).rejects.toMatchObject({ code: "host_coordinate_invalid" });
+    expect(await git(current.root, ["rev-parse", checkedOutRef])).toBe(current.targetBeforeCommit);
+  });
+
+  it("rejects a changed candidate tree and leaves the target ref unchanged", async () => {
+    const current = await fixture(false);
+    const request = {
+      repositoryRoot: current.root,
+      integrationWorkspacePath: current.integrationWorkspacePath,
+      integrationBaseCommit: current.targetBeforeCommit,
+      integrationMarker: current.integrationMarker,
+      targetRef: "refs/heads/integration-target",
+      targetBeforeCommit: current.targetBeforeCommit,
+      attemptId: "int_444444444444444444444444",
+      idempotencyKey: "idk_integration_apply_0004",
+      sources: [
+        {
+          workspaceId: "wsp_444444444444444444444444",
+          generation: 1,
+          headCommit: current.sourceHead,
+          commitIds: [current.sourceHead],
+          strategy: "cherry_pick" as const,
+        },
+      ],
+      commitTime: "2026-08-26T00:00:00Z",
+    };
+    const result = await current.integrationHost.applyIntegration(request);
+    await expect(
+      current.integrationHost.advanceTarget({
+        ...request,
+        candidateCommit: result.candidateCommit!,
+        candidateTreeHash: "0".repeat(40),
+        idempotencyKey: "idk_integration_advance_0004",
+      }),
+    ).rejects.toMatchObject({ code: "host_effect_uncertain" });
+    expect(await git(current.root, ["rev-parse", "refs/heads/integration-target"])).toBe(
+      current.targetBeforeCommit,
+    );
+  });
+
+  it("rejects target drift without overwriting the concurrent ref", async () => {
+    const current = await fixture(false);
+    const request = {
+      repositoryRoot: current.root,
+      integrationWorkspacePath: current.integrationWorkspacePath,
+      integrationBaseCommit: current.targetBeforeCommit,
+      integrationMarker: current.integrationMarker,
+      targetRef: "refs/heads/integration-target",
+      targetBeforeCommit: current.targetBeforeCommit,
+      attemptId: "int_555555555555555555555555",
+      idempotencyKey: "idk_integration_apply_0005",
+      sources: [
+        {
+          workspaceId: "wsp_555555555555555555555555",
+          generation: 1,
+          headCommit: current.sourceHead,
+          commitIds: [current.sourceHead],
+          strategy: "cherry_pick" as const,
+        },
+      ],
+      commitTime: "2026-08-26T00:00:00Z",
+    };
+    const result = await current.integrationHost.applyIntegration(request);
+    const concurrentCommit = await git(current.root, [
+      "commit-tree",
+      `${current.sourceHead}^{tree}`,
+      "-p",
+      current.targetBeforeCommit,
+      "-m",
+      "concurrent target movement",
+    ]);
+    await git(current.root, [
+      "update-ref",
+      "refs/heads/integration-target",
+      concurrentCommit,
+      current.targetBeforeCommit,
+    ]);
+    await expect(
+      current.integrationHost.advanceTarget({
+        ...request,
+        candidateCommit: result.candidateCommit!,
+        candidateTreeHash: result.candidateTreeHash!,
+        idempotencyKey: "idk_integration_advance_0005",
+      }),
+    ).rejects.toMatchObject({ code: "host_effect_uncertain" });
+    expect(await git(current.root, ["rev-parse", "refs/heads/integration-target"])).toBe(
+      concurrentCommit,
     );
   });
 
