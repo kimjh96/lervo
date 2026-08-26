@@ -40,6 +40,7 @@ describe("CLI release matrix workflow", () => {
       "push",
       "workflow_dispatch",
     ]);
+    assert.deepEqual(workflow.on.push, { tags: ["v*"] });
     assert.deepEqual(workflow.permissions, { contents: "read" });
     const job = workflow.jobs["packed-cli"];
     assert.equal(
