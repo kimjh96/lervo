@@ -47318,6 +47318,7 @@ var defaultRepositoryKnowledgePolicy = {
   exclude: [
     ".git/**",
     ".lervo/**",
+    ".changes/**",
     "node_modules/**",
     "**/node_modules/**",
     "dist/**",
@@ -51874,16 +51875,19 @@ var CROSS_PROVIDER_MERGE_BUILD = sha2564(canonicalJson2({
 }));
 
 // packages/repository-knowledge/dist/document-structure-delete.js
+var import_yaml11 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-normalization-record-retirement.js
 var import_yaml10 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/document-structure-move.js
-var import_yaml11 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/document-structure-merge.js
 var import_yaml12 = __toESM(require_dist(), 1);
 
-// packages/repository-knowledge/dist/document-structure-split.js
+// packages/repository-knowledge/dist/document-structure-merge.js
 var import_yaml13 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-structure-split.js
+var import_yaml14 = __toESM(require_dist(), 1);
 
 // node_modules/.pnpm/mdast-util-to-string@4.0.0/node_modules/mdast-util-to-string/lib/index.js
 var emptyOptions = {};
@@ -57954,7 +57958,7 @@ function serializeChunks(chunks, expandTabs) {
 }
 
 // node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/parse.js
-function parse15(options) {
+function parse16(options) {
   const settings = options || {};
   const constructs2 = (
     /** @type {FullNormalizedExtension} */
@@ -58116,7 +58120,7 @@ function fromMarkdown(value, encoding, options) {
     options = encoding;
     encoding = void 0;
   }
-  return compiler(options)(postprocess(parse15(options).document().write(preprocess()(value, encoding, true))));
+  return compiler(options)(postprocess(parse16(options).document().write(preprocess()(value, encoding, true))));
 }
 function compiler(options) {
   const config = {
@@ -58819,7 +58823,7 @@ function defaultOnError(left, right) {
 }
 
 // packages/repository-knowledge/dist/document-normalization.js
-var import_yaml14 = __toESM(require_dist(), 1);
+var import_yaml15 = __toESM(require_dist(), 1);
 import { lstat as lstat15, mkdir as mkdir6, open as open8, readFile as readFile8 } from "node:fs/promises";
 import { basename as basename7, dirname as dirname4, posix as posix3, resolve as resolve22 } from "node:path";
 var MAX_ENVELOPE_BYTES = 32 * 1024;
@@ -58934,7 +58938,7 @@ async function inspectConfiguredDocumentNormalization(input) {
   for (const path of paths) {
     let record = null;
     try {
-      record = (0, import_yaml14.parse)(await readFile8(resolve22(root2, path), "utf8"));
+      record = (0, import_yaml15.parse)(await readFile8(resolve22(root2, path), "utf8"));
     } catch {
     }
     if (record === null || record.schemaVersion !== 1 || !/^knormdoc_[a-f0-9]{24}$/u.test(record.recordId) || path !== shardedKnowledgeArtifactPath(".lervo/knowledge/document-normalizations", record.recordId, "yaml") || record.outputLanguage !== policy.publication.language || record.formatVersion !== "lervo.document.v1" || !Array.isArray(record.outputs) || record.outputs.length < 1 || record.outputs.some((output) => !HASH2.test(output.contentHash) || output.userRegionHash !== void 0 && !HASH2.test(output.userRegionHash)) || !Array.isArray(record.resourceBindings) || record.resourceBindings.some((resource) => typeof resource.path !== "string" || !HASH2.test(resource.contentHash))) {
@@ -58974,7 +58978,7 @@ async function inspectConfiguredDocumentNormalization(input) {
 }
 
 // packages/repository-knowledge/dist/decision-layout.js
-var import_yaml15 = __toESM(require_dist(), 1);
+var import_yaml16 = __toESM(require_dist(), 1);
 function normalizedWords2(value) {
   return value.normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/gu, " ");
 }
@@ -59003,7 +59007,7 @@ function explicitRoute2(content3) {
     return { state: "absent" };
   let value;
   try {
-    value = (0, import_yaml15.parse)(content3.slice(content3.indexOf("\n") + 1, match.index));
+    value = (0, import_yaml16.parse)(content3.slice(content3.indexOf("\n") + 1, match.index));
   } catch {
     return { state: "invalid" };
   }
@@ -59143,7 +59147,7 @@ function canonicalJsonBytes(value) {
 }
 
 // packages/documents/dist/legacy-registry.js
-var import_yaml16 = __toESM(require_dist(), 1);
+var import_yaml17 = __toESM(require_dist(), 1);
 
 // packages/documents/dist/managed-block-parser.js
 var MAXIMUM_DOCUMENT_BYTES = 4 * 1024 * 1024;
@@ -59446,7 +59450,7 @@ function normalizeScanPath(path) {
 }
 
 // packages/documents/dist/apply-validation.js
-var import_yaml17 = __toESM(require_dist(), 1);
+var import_yaml18 = __toESM(require_dist(), 1);
 
 // packages/documents/dist/integrity.js
 function managedBlockPatchCandidateBytes(candidate) {
@@ -59460,7 +59464,7 @@ function calculateManagedBlockPatchCandidateId(candidate) {
 }
 
 // packages/documents/dist/legacy-registry-apply-validation.js
-var import_yaml18 = __toESM(require_dist(), 1);
+var import_yaml19 = __toESM(require_dist(), 1);
 
 // packages/documents/dist/managed-block-patch-types.js
 var ManagedBlockPatchError = class extends Error {
@@ -59780,7 +59784,7 @@ function collectExecutionEventSources(input) {
 }
 
 // packages/repository-knowledge/dist/instruction-bridge.js
-var import_yaml19 = __toESM(require_dist(), 1);
+var import_yaml20 = __toESM(require_dist(), 1);
 import { constants as constants7 } from "node:fs";
 import { lstat as lstat16, open as open9 } from "node:fs/promises";
 import { resolve as resolve24 } from "node:path";
@@ -59892,7 +59896,7 @@ function instructionBridgeProfile(provider) {
 }
 function validExistingBridgeRecord(bytes, profile2, bridgeId) {
   try {
-    const value = (0, import_yaml19.parse)(bytes.toString("utf8"));
+    const value = (0, import_yaml20.parse)(bytes.toString("utf8"));
     return value !== null && typeof value === "object" && value.schemaVersion === 1 && value.bridgeId === bridgeId && value.profile?.id === profile2.profileId && value.profile.version === profile2.profileVersion && value.profile.provider === profile2.provider && value.profile.discoveryContract === profile2.discoveryContract && value.canonical?.path === profile2.canonicalPath && typeof value.canonical.contentHash === "string" && HASH3.test(value.canonical.contentHash) && value.target?.path === profile2.targetPath && value.target.blockId === profile2.blockId && typeof value.target.contentHash === "string" && HASH3.test(value.target.contentHash) && typeof value.target.managedContentHash === "string" && HASH3.test(value.target.managedContentHash);
   } catch {
     return false;
@@ -60015,7 +60019,7 @@ async function createKnowledgeInstructionBridgePlan(input) {
     targetPath: profile2.targetPath
   });
   const bridgeRecordPath = shardedKnowledgeArtifactPath(".lervo/knowledge/instruction-bridges", bridgeId, "yaml");
-  const bridgeRecordContent = (0, import_yaml19.stringify)({
+  const bridgeRecordContent = (0, import_yaml20.stringify)({
     schemaVersion: 1,
     bridgeId,
     profile: {
@@ -60302,7 +60306,7 @@ async function createKnowledgeInstructionBootstrapPlan(input) {
 // packages/repository-knowledge/dist/lint-query.js
 import { lstat as lstat19, readFile as readFile10, readdir as readdir7 } from "node:fs/promises";
 import { relative as relative10, resolve as resolve27, sep as sep10 } from "node:path";
-var import_yaml20 = __toESM(require_dist(), 1);
+var import_yaml21 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-publication-files.js
 import { constants as constants8 } from "node:fs";
@@ -60453,7 +60457,7 @@ async function lintInstructionBridgeRecords(root2, projectId, issues) {
     }
     let value;
     try {
-      value = (0, import_yaml20.parse)(new TextDecoder("utf-8", { fatal: true }).decode(recordBytes));
+      value = (0, import_yaml21.parse)(new TextDecoder("utf-8", { fatal: true }).decode(recordBytes));
       const expectedId = stableId("kbridge", {
         projectId,
         provider: "claude",
@@ -61038,13 +61042,13 @@ ${linkedClaims.map((claim) => claim.statement).join("\n")}`);
 }
 
 // packages/repository-knowledge/dist/reconciliation-review.js
-var import_yaml21 = __toESM(require_dist(), 1);
+var import_yaml22 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/repository-layout-migration.js
 import { constants as constants9 } from "node:fs";
 import { lstat as lstat20, open as open11 } from "node:fs/promises";
 import { basename as basename8, posix as posix5, resolve as resolve29 } from "node:path";
-var import_yaml22 = __toESM(require_dist(), 1);
+var import_yaml23 = __toESM(require_dist(), 1);
 var ROOT_ENTRYPOINTS = /* @__PURE__ */ new Set([
   "README.md",
   "AGENTS.md",
@@ -61652,7 +61656,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
     const currentRecord = bridge.operations.find((operation) => operation.path === bridge.bridgeRecordPath && operation.ownership !== "user");
     if (currentRecord === void 0 || currentRecord.action === "conflict")
       throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The instruction bridge record cannot be bound to the layout migration.");
-    const content3 = (0, import_yaml22.stringify)({
+    const content3 = (0, import_yaml23.stringify)({
       schemaVersion: 1,
       bridgeId: bridge.bridgeId,
       profile: {
@@ -61762,7 +61766,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
 }
 
 // packages/repository-knowledge/dist/semantic-materialization.js
-var import_yaml23 = __toESM(require_dist(), 1);
+var import_yaml24 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/terminal-integration.js
 import { constants as constants10 } from "node:fs";
@@ -62145,7 +62149,6 @@ async function collectVerificationResultSources(input) {
 import { constants as constants11 } from "node:fs";
 import { lstat as lstat22, mkdir as mkdir7, open as open13, rename as rename3, rm as rm4 } from "node:fs/promises";
 import { basename as basename9, dirname as dirname5, posix as posix6, relative as relative11, resolve as resolve31, sep as sep11 } from "node:path";
-var import_yaml24 = __toESM(require_dist(), 1);
 var CURRENT_WORKSTREAM_PATH = ".lervo/state/workstreams/current.json";
 var MAX_HANDOFF_BYTES = 128 * 1024;
 function insideRoot(root2, path) {

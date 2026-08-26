@@ -207,6 +207,7 @@ export async function createInitPlan(options: CreateInitPlanOptions): Promise<In
         "exclude:",
         "  - .git/**",
         "  - .lervo/**",
+        "  - .changes/**",
         "  - node_modules/**",
         "  - '**/node_modules/**'",
         "  - dist/**",

@@ -1,0 +1,26 @@
+candidateId: knorm_fc58b905ca60d623aa0fa5ba
+compiler:
+  compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3aecd1984eb7ed51f4fc48fb
+outputLanguage: en
+outputs:
+  - byteCount: 2281
+    contentHash: sha256:b84a2ab3de59b61fe1cc77ca3d0771af23cb32769787fe92f343f5463f6dcb86
+    path: docs/decisions/knowledge/documents/0181-durable-hash-bound-user-document-deletion.md
+    userRegionHash: sha256:b84a2ab3de59b61fe1cc77ca3d0771af23cb32769787fe92f343f5463f6dcb86
+profile: decision_record
+recordId: knormdoc_617f0d5ad61ed175d24f8618
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:00e47b387c939b53a159b56506afd407c6d9cffe96d236074a2d01f35ddb672c
+sourcePath: docs/decisions/knowledge/documents/0181-durable-hash-bound-user-document-deletion.md
+sourceUnitVersionIds:
+  - uv_4bf8a387ce73cea028056aad
+  - uv_7be85a90ae65921772181383
+  - uv_bfe924b26dbe7ac0fc1f2257
+  - uv_c3b18e617df706261ecd6d7a

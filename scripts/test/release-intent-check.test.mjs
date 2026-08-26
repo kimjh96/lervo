@@ -108,6 +108,18 @@ describe("release intent change classification", () => {
     ).rejects.toThrowError(expect.objectContaining({ code: "release_intent_invalid" }));
   });
 
+  it("fails closed before a pending-intent directory can grow without bound", async () => {
+    const root = await fixture(false);
+    await Promise.all(
+      Array.from({ length: 129 }, (_, index) =>
+        writeFile(resolve(root, `.changes/pending-${index.toString().padStart(3, "0")}.yaml`), ""),
+      ),
+    );
+    await expect(
+      inspectReleaseIntent({ repositoryRoot: root, changedPaths: ["apps/cli/src/main.ts"] }),
+    ).rejects.toThrowError(expect.objectContaining({ code: "release_intent_limit_exceeded" }));
+  });
+
   it("requires reviewed major intent for Conventional Commit breaking evidence", async () => {
     const root = await fixture(true);
     await mkdir(resolve(root, "apps/cli/src"), { recursive: true });

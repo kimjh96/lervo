@@ -12,7 +12,6 @@ try {
     args: process.argv.slice(2),
     strict: true,
     options: {
-      date: { type: "string" },
       apply: { type: "boolean" },
       approval: { type: "string" },
       root: { type: "string" },
@@ -20,10 +19,7 @@ try {
     },
   });
   const repositoryRoot = resolve(parsed.values.root ?? ".");
-  const plan = await createReleasePreparationPlan({
-    repositoryRoot,
-    releaseDate: parsed.values.date,
-  });
+  const plan = await createReleasePreparationPlan({ repositoryRoot });
   const result = parsed.values.apply
     ? await applyReleasePreparation({ plan, approval: parsed.values.approval ?? "" })
     : publicReleasePreparationPlan(plan);

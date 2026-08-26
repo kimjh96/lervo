@@ -12,6 +12,7 @@ import {
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
+import { normalizationRecordRetirementOperations } from "./document-normalization-record-retirement.js";
 import { loadStoredConcepts } from "./store-reader.js";
 import { loadDocumentMoveLineages, normalizeKnowledgeDocumentPath } from "./source-lineage.js";
 import {
@@ -41,6 +42,7 @@ export interface KnowledgeDocumentDeletionPlan {
   afterRegistryDigest: string;
   document: { path: string; contentHash: string; byteCount: number };
   deprecatedConceptIds: string[];
+  removedNormalizationRecords: string[];
   operations: Array<KnowledgeFileOperation | DurableKnowledgeDeleteOperation>;
 }
 
@@ -55,6 +57,7 @@ export interface KnowledgeDocumentDeletionReceipt {
   approvalHash: string;
   deletedPathDigest: string;
   deprecatedConceptIds: string[];
+  removedNormalizationRecords: string[];
   updatedSidecars: string[];
   appliedAt: string;
 }
@@ -238,6 +241,7 @@ export async function createKnowledgeDocumentDeletionPlan(input: {
             },
           ];
         })();
+  const normalizationRecords = await normalizationRecordRetirementOperations(root, path);
   const nextHashByPath = new Map(
     sidecarOperations.map((operation) => [operation.path, operation.desiredHash]),
   );
@@ -255,6 +259,7 @@ export async function createKnowledgeDocumentDeletionPlan(input: {
     ...[...sidecarOperations, ...lineageClosureOperation].map(
       ({ content: _content, ...operation }) => operation,
     ),
+    ...normalizationRecords.operations,
     deleteOperation,
   ];
   const approvalHash = sha256(
@@ -291,7 +296,13 @@ export async function createKnowledgeDocumentDeletionPlan(input: {
     afterRegistryDigest,
     document: { path, contentHash: source.contentHash, byteCount: source.byteCount },
     deprecatedConceptIds: related.map((item) => item.value!.conceptId).sort(),
-    operations: [...sidecarOperations, ...lineageClosureOperation, deleteOperation],
+    removedNormalizationRecords: normalizationRecords.paths,
+    operations: [
+      ...sidecarOperations,
+      ...lineageClosureOperation,
+      ...normalizationRecords.operations,
+      deleteOperation,
+    ],
   };
 }
 
@@ -339,6 +350,7 @@ export async function applyKnowledgeDocumentDeletionPlan(input: {
     approvalHash: current.approvalHash,
     deletedPathDigest: sha256(current.document.path),
     deprecatedConceptIds: current.deprecatedConceptIds,
+    removedNormalizationRecords: current.removedNormalizationRecords,
     updatedSidecars: current.operations
       .filter(
         (operation) =>

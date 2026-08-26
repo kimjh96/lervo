@@ -6,6 +6,7 @@ import { parse, stringify } from "yaml";
 
 const intentIdPattern = /^relint_[a-f0-9]{24}$/u;
 const summaryPattern = /^(?=.*[A-Za-z])[\x20-\x7E]{20,280}$/u;
+const maximumPendingIntents = 128;
 
 export class ReleaseIntentError extends Error {
   constructor(code, message) {
@@ -64,6 +65,11 @@ export async function loadReleaseIntents(repositoryRoot) {
     if (error?.code === "ENOENT") return [];
     throw error;
   }
+  if (filenames.length > maximumPendingIntents)
+    throw new ReleaseIntentError(
+      "release_intent_limit_exceeded",
+      `Pending release intent exceeds the bounded limit of ${maximumPendingIntents}.`,
+    );
   const intents = [];
   const seen = new Set();
   for (const filename of filenames) {
@@ -106,6 +112,12 @@ export async function createReleaseIntent(repositoryRoot, input) {
   } catch (error) {
     if (error?.code !== "ENOENT") throw error;
   }
+  const pendingCount = (await readdir(directory)).filter((name) => name.endsWith(".yaml")).length;
+  if (pendingCount >= maximumPendingIntents)
+    throw new ReleaseIntentError(
+      "release_intent_limit_exceeded",
+      `Pending release intent reached the bounded limit of ${maximumPendingIntents}.`,
+    );
   await writeFile(path, content, { flag: "wx" });
   return { created: true, intent, path: `.changes/${intentId}.yaml` };
 }

@@ -3,13 +3,13 @@
 Status: `active`
 As of: 2026-08-25
 
-This convention governs implementation and review. Before editing and completion, assess touched modules against its responsibility and split rules. Automated quality, architecture, type, and test gates support but do not replace structural review.
+This convention governs implementation and review. Before editing and completion, assess touched modules against its responsibility and splitting rules. Automated quality, architecture, type, and test gates support but do not replace structural review.
 
 Production modules of at least 400 lines require exact-content review in `scripts/code-convention-reviews.json`. A new, changed, or no-longer-large module fails `pnpm code-convention:check` until reviewed again. The registry is not a debt allowlist: fix confirmed responsibility violations before recording a cohesive module, and never update a content hash without repeating the review.
 
 ## Design priorities
 
-Apply in order:
+Apply these priorities in order:
 
 1. Preserve domain, evidence, privacy, and failure contracts.
 2. Clarify responsibilities and dependency direction.
@@ -23,8 +23,8 @@ Prefer explicit names and data flow over abbreviations, hidden conventions, or r
 
 Each module needs one cohesive responsibility and primary reason to change. Separate behavior with independently changing policy owners, failure meanings, data lifecycles, or external systems.
 
-- Entrypoints parse input, invoke application behavior, translate results, and select exit status. Put validation, domain decisions, persistence, rendering, and provider behavior in dedicated modules.
-- Domain code owns invariants and decisions and must not depend on CLI, HTTP, filesystem, database, Codex, or Claude details.
+- Entrypoints parse input, invoke application behavior, translate results, and select exit status. Dedicated modules own validation, domain decisions, persistence, rendering, and provider behavior.
+- Domain code owns invariants and decisions. It must not depend on CLI, HTTP, filesystem, database, Codex, or Claude details.
 - Orchestration composes domain behavior and ports. It may sequence effects but must not duplicate adapter policy or hide domain decisions in callbacks.
 - Each adapter owns one external boundary and translates native inputs, outputs, and failures into common contracts. Provider-specific behavior ends at provider adapters.
 - Persistence owns storage mechanics, not product policy. Rendering owns representation, not mutation or authorization.
@@ -63,6 +63,8 @@ Split by responsibility, not line ranges. Preserve a stable facade when callers 
 ## Extension and maintenance
 
 Prefer bounded implementations behind existing ports or strategies over provider, storage, or transport branches in core logic. Add abstractions only for a current variation or contract.
+
+Repository-authored state must have bounded growth and retention. Do not append indefinitely to one file or replace that pattern with one file per event, run, release, date, or version in a single directory. When the working tree needs a current projection, keep it bounded. Store durable history in an existing canonical system such as Git, an event store, or an explicitly retained external release record. Define compaction or pruning before introducing any collection whose cardinality can grow with operation count. Tests and fixtures may use bounded collections owned by their test lifecycle.
 
 - Dependencies flow from applications and adapters toward domain contracts. Core packages never import provider adapters or application entrypoints.
 - Pass dependencies explicitly at composition boundaries. Avoid mutable process-wide singletons and helpers that invisibly read time, randomness, environment, filesystem, or network state.
@@ -106,15 +108,15 @@ Before completing a source change, confirm:
 
 ## Automated quality and formatting
 
-ESLint owns code-quality defects and Prettier owns deterministic formatting. `eslint-config-prettier` disables overlapping formatting rules; ESLint does not run Prettier.
+ESLint owns code-quality defects, and Prettier owns deterministic formatting. `eslint-config-prettier` disables overlapping formatting rules; ESLint does not run Prettier.
 
 - ESLint applies upstream recommended JavaScript and TypeScript rules to repository JavaScript, MJS, CJS, and TypeScript.
 - TypeScript remains strict. `pnpm typecheck` is authoritative for type analysis; fast lint does not repeat project-wide typed analysis.
 - Prettier uses two-space indentation, semicolons, double quotes, supported trailing commas, a 100-column target, LF endings, and final newlines for code and configuration.
 - Browser globals apply only to `apps/hub/assets/**/*.js`; other JavaScript uses Node globals.
-- Markdown is excluded because Lervo's reviewed document lifecycle owns those bytes and normalization would create a provider-normalization loop.
+- Markdown with an active Lervo normalization record is excluded dynamically because the reviewed document lifecycle owns those exact bytes and external formatting would create a provider-normalization loop. Unregistered, user-owned Markdown remains under Prettier.
 - Dependencies, build output, coverage, Lervo durable or rebuildable stores, generated knowledge registries and publications, generated release manifests, the generated SBOM, the pnpm lockfile, and provider instruction bridges are also excluded. Their owning checks verify documents, generated artifacts, and managed instruction blocks.
-- Disposable ESLint and Prettier caches live under ignored `node_modules/.cache/lervo/`.
+- The formatter wrapper derives lifecycle-owned paths from tracked normalization records and fails closed on malformed ownership coordinates. Static generated, durable, rebuildable, and provider-managed roots remain in `.prettierignore`.
 
 Never disable a rule repository-wide to bypass a finding. Fix the code when possible. If an exception is necessary, add a narrow inline disable beside its reason. Unused disable directives fail lint.
 

@@ -11,4 +11,3 @@ apps/cli/release-sbom.cdx.json
 pnpm-lock.yaml
 AGENTS.md
 CLAUDE.md
-**/*.md

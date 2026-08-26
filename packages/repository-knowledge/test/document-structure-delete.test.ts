@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -19,6 +19,7 @@ async function repository(): Promise<{
   root: string;
   documentPath: string;
   documentBytes: string;
+  normalizationPath: string;
 }> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-document-structure-delete-"));
   roots.push(root);
@@ -38,7 +39,14 @@ async function repository(): Promise<{
     new Date("2026-08-23T00:01:00.000Z"),
     () => undefined,
   );
-  return { root, documentPath, documentBytes };
+  const normalizationPath =
+    ".lervo/knowledge/document-normalizations/aa/knormdoc_aaaaaaaaaaaaaaaaaaaaaaaa.yaml";
+  await mkdir(resolve(root, ".lervo/knowledge/document-normalizations/aa"), { recursive: true });
+  await writeFile(
+    resolve(root, normalizationPath),
+    `schemaVersion: 1\nrecordId: knormdoc_aaaaaaaaaaaaaaaaaaaaaaaa\nsourcePath: ${documentPath}\n`,
+  );
+  return { root, documentPath, documentBytes, normalizationPath };
 }
 
 afterEach(async () => {
@@ -47,10 +55,11 @@ afterEach(async () => {
 
 describe("user document structure deletion", () => {
   it("restores the document and sidecar byte-for-byte after an interrupted delete", async () => {
-    const { root, documentPath, documentBytes } = await repository();
+    const { root, documentPath, documentBytes, normalizationPath } = await repository();
     const plan = await createKnowledgeDocumentDeletionPlan({ repositoryRoot: root, documentPath });
     const sidecar = plan.operations.find((operation) => operation.action === "update")!.path;
     const sidecarBefore = await readFile(resolve(root, sidecar));
+    const normalizationBefore = await readFile(resolve(root, normalizationPath));
     const last = plan.operations.length - 1;
     await expect(
       applyKnowledgeDocumentDeletionPlan({
@@ -71,9 +80,29 @@ describe("user document structure deletion", () => {
     expect(recovered).toMatchObject({ planId: plan.planId, disposition: "rolled_back" });
     expect(await readFile(resolve(root, documentPath), "utf8")).toBe(documentBytes);
     expect(await readFile(resolve(root, sidecar))).toEqual(sidecarBefore);
+    expect(await readFile(resolve(root, normalizationPath))).toEqual(normalizationBefore);
     expect(
       (await createKnowledgeDocumentDeletionPlan({ repositoryRoot: root, documentPath })).planId,
     ).toBe(plan.planId);
+  });
+
+  it("retires source-owned normalization records with a successful document deletion", async () => {
+    const { root, documentPath, normalizationPath } = await repository();
+    const plan = await createKnowledgeDocumentDeletionPlan({ repositoryRoot: root, documentPath });
+    expect(plan.removedNormalizationRecords).toEqual([normalizationPath]);
+
+    const receipt = await applyKnowledgeDocumentDeletionPlan({
+      plan,
+      approvedOperationId: plan.operationId,
+      approvedHash: plan.approvalHash,
+      now: new Date("2026-08-23T00:02:00.000Z"),
+      recordApplied: () => undefined,
+    });
+
+    expect(receipt.removedNormalizationRecords).toEqual([normalizationPath]);
+    await expect(access(resolve(root, normalizationPath))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 
   it("rolls back every byte when the required event recorder fails", async () => {

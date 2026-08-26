@@ -8,7 +8,9 @@
     "minor": "minor",
     "major": "minor"
   },
-  "changelog": "CHANGELOG.md",
+  "releaseNotes": ".changes/current-release.md",
+  "releaseHistory": "git-tags-and-github-releases",
+  "maxPendingIntents": 128,
   "generatedOwners": [
     "pnpm install --lockfile-only --frozen-lockfile",
     "pnpm build",

@@ -28,8 +28,8 @@ async function fixture() {
     `${JSON.stringify({ name: "@lervo/cli", version: "0.2.0", private: false }, null, 2)}\n`,
   );
   await writeFile(
-    resolve(root, "CHANGELOG.md"),
-    "# Changelog\n\n## 0.2.0 - 2026-08-26\n\n- Release.\n",
+    resolve(root, ".changes/current-release.md"),
+    '<!-- lervo-release package="@lervo/cli" version="0.2.0" schema="1" -->\n\n## What\'s changed\n\n- Release.\n',
   );
   await writeFile(
     resolve(root, "apps/cli/release-artifact-manifest.json"),
@@ -82,6 +82,13 @@ describe("exact CLI release tag", () => {
     );
     expect((await createReleaseTagPlan({ repositoryRoot: root })).blockers).toContain(
       "release_manifest_version_mismatch",
+    );
+    await writeFile(
+      resolve(root, ".changes/current-release.md"),
+      '<!-- lervo-release package="@lervo/cli" version="0.1.9" schema="1" -->\n\n## What\'s changed\n\n- Stale.\n',
+    );
+    expect((await createReleaseTagPlan({ repositoryRoot: root })).blockers).toContain(
+      "release_notes_version_missing",
     );
     await git(root, "add", ".");
     await git(root, "commit", "-m", "test: change release metadata");

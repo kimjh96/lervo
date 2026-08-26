@@ -19,6 +19,7 @@ export const defaultRepositoryKnowledgePolicy: RepositoryKnowledgePolicy = {
   exclude: [
     ".git/**",
     ".lervo/**",
+    ".changes/**",
     "node_modules/**",
     "**/node_modules/**",
     "dist/**",

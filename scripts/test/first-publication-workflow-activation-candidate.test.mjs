@@ -131,7 +131,7 @@ describe("first-publication stage-only workflow activation candidate", () => {
     delete input.workflow.jobs["attested-cli"];
     const text = input.workflowSnapshot.contents
       .toString("utf8")
-      .replace(/\n {2}attested-cli:[\s\S]*$/u, "\n");
+      .replace(/\n {2}attested-cli:[\s\S]*?(?=\n {2}github-release:)/u, "");
     input.workflowSnapshot = sourceSnapshot(Buffer.from(text));
     assert.throws(() => createFirstPublicationWorkflowActivationCandidate(input), {
       code: "first_publication_workflow_activation_candidate_invalid",

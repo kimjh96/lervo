@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { loadReleaseIntents, releaseDigest } from "./release-intent.mjs";
+import { readCurrentReleaseNotes } from "./release-notes.mjs";
 
 const execFile = promisify(execFileCallback);
 
@@ -51,8 +52,9 @@ export async function createReleaseTagPlan(input) {
   const version = packageManifest.version;
   if (!/^\d+\.\d+\.\d+$/u.test(version)) blockers.push("package_version_invalid");
   const tag = `v${version}`;
-  const changelog = await readFile(resolve(repositoryRoot, "CHANGELOG.md"), "utf8").catch(() => "");
-  if (!changelog.includes(`## ${version} - `)) blockers.push("changelog_version_missing");
+  const releaseNotes = await readCurrentReleaseNotes(repositoryRoot).catch(() => null);
+  if (releaseNotes?.package !== "@lervo/cli" || releaseNotes.version !== version)
+    blockers.push("release_notes_version_missing");
   const manifest = JSON.parse(
     await readFile(resolve(repositoryRoot, "apps/cli/release-artifact-manifest.json"), "utf8"),
   );
@@ -75,7 +77,7 @@ export async function createReleaseTagPlan(input) {
     version,
     tag,
     tagDisposition,
-    changelogHash: releaseDigest(changelog),
+    releaseNotesHash: releaseDigest(releaseNotes?.content ?? ""),
     manifestHash: releaseDigest(manifest),
     sbomHash: releaseDigest(sbom),
     blockers,

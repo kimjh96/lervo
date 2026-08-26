@@ -3,7 +3,6 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
-- [ADR-0104: CLI first-publication activation blocker report](../../decisions/release/bootstrap/0104-cli-first-publication-activation-blocker-report.md) — `docs/decisions/release/bootstrap/0104-cli-first-publication-activation-blocker-report.md`
 - [ADR-0105: CLI first-publication metadata decision and write-free preview](../../decisions/release/bootstrap/0105-cli-first-publication-metadata-preview.md) — `docs/decisions/release/bootstrap/0105-cli-first-publication-metadata-preview.md`
 - [ADR-0106: CLI first-publication package-metadata patch candidate](../../decisions/release/bootstrap/0106-cli-first-publication-package-metadata-candidate.md) — `docs/decisions/release/bootstrap/0106-cli-first-publication-package-metadata-candidate.md`
 - [ADR-0107: CLI first-publication package-metadata apply permit](../../decisions/release/bootstrap/0107-cli-first-publication-package-metadata-apply-permit.md) — `docs/decisions/release/bootstrap/0107-cli-first-publication-package-metadata-apply-permit.md`
@@ -27,3 +26,4 @@
 - [ADR-0117: CLI First-Publication Stage-Only Workflow Candidate](../../decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md) — `docs/decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md`
 - [ADR-0118: CLI Stage-Publication Command Boundary](../../decisions/release/staging/0118-cli-stage-publication-command-boundary.md) — `docs/decisions/release/staging/0118-cli-stage-publication-command-boundary.md`
 - [ADR-0119: Stage-Only Workflow Activation Permit and Transaction](../../decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md) — `docs/decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md`
+- [ADR-0120: Post-Apply Verification for the Stage-Only Workflow](../../decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md) — `docs/decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md`

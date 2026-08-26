@@ -3,7 +3,6 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
-- [ADR-0120: Post-Apply Verification for the Stage-Only Workflow](../../decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md) — `docs/decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md`
 - [ADR-0121: Remote Deployment Evidence for the Stage-Only Workflow](../../decisions/release/staging/0121-cli-stage-only-workflow-remote-deployment-evidence.md) — `docs/decisions/release/staging/0121-cli-stage-only-workflow-remote-deployment-evidence.md`
 - [ADR-0122: Stage-Only Workflow Ref-Reachability Evidence](../../decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md) — `docs/decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md`
 - [ADR-0123: Stage-Only Workflow Execution Evidence](../../decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md) — `docs/decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md`
@@ -27,3 +26,4 @@
 - [ADR-0063: Search-adapter build identity and rebuildable replay receipts](../../decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md) — `docs/decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md`
 - [ADR-0064: Selection-bound operational search quality observations](../../decisions/search/0064-selection-bound-operational-search-quality.md) — `docs/decisions/search/0064-selection-bound-operational-search-quality.md`
 - [ADR-0065: Human search-rollout review and execution boundary](../../decisions/search/0065-human-search-rollout-review.md) — `docs/decisions/search/0065-human-search-rollout-review.md`
+- [ADR-0066: Bounded search-rollout review status](../../decisions/search/0066-bounded-search-rollout-review-status.md) — `docs/decisions/search/0066-bounded-search-rollout-review-status.md`

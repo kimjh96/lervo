@@ -62,6 +62,7 @@ describe("Lervo project initialization", () => {
     await expect(access(resolve(root, ".lervo/state"))).rejects.toThrow();
     expect(await loadProjectManifest(root)).toEqual(plan.projectManifest);
     const knowledgePolicy = await readFile(resolve(root, ".lervo/knowledge/policy.yaml"), "utf8");
+    expect(knowledgePolicy).toContain("  - .changes/**\n");
     expect(knowledgePolicy).toContain("  - '**/Pods/**'\n");
     expect(knowledgePolicy).toContain("  - '**/.cxx/**'\n");
     expect(knowledgePolicy).toContain("  - '**/build-device/**'\n");

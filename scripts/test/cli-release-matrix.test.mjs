@@ -80,7 +80,10 @@ describe("CLI release matrix workflow", () => {
   it("signs exact release subjects for an exact pushed or manually selected tag", async () => {
     const workflow = await readWorkflow();
     const job = workflow.jobs["attested-cli"];
-    assert.equal(job.if, "github.ref_type == 'tag' && startsWith(github.ref_name, 'v')");
+    assert.equal(
+      job.if,
+      "github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && (github.event.repository.private != true || github.event.repository.owner.type != 'User')",
+    );
     assert.equal(job.needs, "packed-cli");
     assert.equal(job["runs-on"], "ubuntu-latest");
     assert.deepEqual(job.permissions, {
@@ -136,5 +139,25 @@ describe("CLI release matrix workflow", () => {
       "${{ runner.temp }}/lervo-release",
       "${{ runner.temp }}/lervo-publication-authorization.json",
     ]);
+  });
+
+  it("publishes one idempotent GitHub Release from the bounded current note", async () => {
+    const workflow = await readWorkflow();
+    const job = workflow.jobs["github-release"];
+    assert.deepEqual(job.needs, ["packed-cli", "attested-cli"]);
+    assert.deepEqual(job.permissions, { contents: "write" });
+    assert.match(job.if, /needs\.packed-cli\.result == 'success'/u);
+    assert.match(job.if, /needs\.attested-cli\.result == 'skipped'/u);
+    const verify = job.steps.find(({ name }) => name === "Verify exact current release notes");
+    assert.equal(
+      verify.run,
+      'node scripts/check-cli-release-notes.mjs --expected-tag "${GITHUB_REF_NAME}"',
+    );
+    const release = job.steps.find(({ name }) => name === "Create or reconcile the GitHub release");
+    assert.deepEqual(release.env, { GH_TOKEN: "${{ github.token }}" });
+    assert.match(release.run, /gh release view/u);
+    assert.match(release.run, /gh release edit/u);
+    assert.match(release.run, /gh release create/u);
+    assert.match(release.run, /--notes-file \.changes\/current-release\.md/u);
   });
 });

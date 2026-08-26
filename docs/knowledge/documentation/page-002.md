@@ -3,7 +3,6 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
-- [ADR-0145: Authenticated, Node-Scoped Remote Command Delivery](../../decisions/coordination/remote-control/0145-authenticated-remote-command-http-delivery.md) — `docs/decisions/coordination/remote-control/0145-authenticated-remote-command-http-delivery.md`
 - [ADR-0146: Hub-Owned Remote Command Authoring and Artifact Delivery](../../decisions/coordination/remote-control/0146-hub-command-authoring-and-artifact-delivery.md) — `docs/decisions/coordination/remote-control/0146-hub-command-authoring-and-artifact-delivery.md`
 - [ADR-0147: Bounded, Race-Safe Command Artifact Lifecycle](../../decisions/coordination/remote-control/0147-bounded-command-artifact-lifecycle.md) — `docs/decisions/coordination/remote-control/0147-bounded-command-artifact-lifecycle.md`
 - [ADR-0148: Durable Command Artifact Cleanup Runtime](../../decisions/coordination/remote-control/0148-durable-command-artifact-cleanup-runtime.md) — `docs/decisions/coordination/remote-control/0148-durable-command-artifact-cleanup-runtime.md`
@@ -27,3 +26,4 @@
 - [ADR-0085: Installed CLI artifact smoke boundary](../../decisions/distribution/0085-installed-cli-smoke-boundary.md) — `docs/decisions/distribution/0085-installed-cli-smoke-boundary.md`
 - [ADR-0087: Single-bundle CLI deployment unit](../../decisions/distribution/0087-single-bundle-cli-deployment-unit.md) — `docs/decisions/distribution/0087-single-bundle-cli-deployment-unit.md`
 - [ADR-0088: Packed CLI consumer-installation contract](../../decisions/distribution/0088-packed-cli-consumer-installation.md) — `docs/decisions/distribution/0088-packed-cli-consumer-installation.md`
+- [ADR-0167: Platform-Bound Standalone Lervo Node Distribution](../../decisions/distribution/0167-platform-bound-standalone-node-distribution.md) — `docs/decisions/distribution/0167-platform-bound-standalone-node-distribution.md`

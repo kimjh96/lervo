@@ -5,30 +5,31 @@ Completed: 2026-08-26
 
 ## Problem
 
-Lervo verifies packed CLI bytes, release manifests, SBOMs, attestations, tag coordinates, and publication eligibility only after choosing a version and tag. The repository lacked a reviewed source of release intent, automated semantic-version calculation, changelog generation, a release pull request, and exact tag creation. Package manifests were manually synchronized, while Conventional Commits validation alone did not establish intended release impact.
+Lervo verified packed CLI bytes, release manifests, SBOMs, attestations, tag coordinates, and publication eligibility only after a version and tag were chosen. The repository lacked reviewed release intent, automated semantic-version calculation, bounded release-note generation, a release pull request, and exact tag creation. Package manifests were synchronized manually, and Conventional Commits validation did not establish intended release impact.
 
 ## Outcome
 
-A reviewable Changesets-style lifecycle records version intent with each publishable change, aggregates it into one release pull request, and creates the exact release tag after merge. The tag hands off to the existing release-artifact, SBOM, attestation, and publication-authorization pipeline. Version preparation never grants npm publication authority or weakens first-publication or Trusted Publisher boundaries.
+A reviewable Changesets-style lifecycle now records version intent with each publishable change, aggregates it into one release pull request, and creates the exact release tag after merge. Preparation replaces one bounded current release-note projection; Git and GitHub Releases retain history without an append-only repository log or one-file-per-release directory. The tag hands off to release-note publication, release artifacts, SBOMs, attestations, and publication authorization. Version preparation neither grants npm publication authority nor weakens first-publication or Trusted Publisher boundaries.
 
 ## Required contract
 
 1. Select Changesets or a justified equivalent in an ADR. Pin the toolchain and define its configuration, release policy, and generated-file ownership.
-2. Initially treat `@lervo/cli` as the only public package. Private workspace packages do not receive independent public versions or changelogs merely because their source changed.
-3. Require every pull request changing publishable CLI behavior to include bounded release intent: affected public package, `patch`, `minor`, or `major` impact, and an English user-facing summary. Define exact exemptions for tests, internal refactors, documentation-only changes, and release-management changes; never infer exemptions from commit text alone.
+2. Initially treat `@lervo/cli` as the only public package. Private workspace packages do not receive independent public versions or release notes merely because their source changed.
+3. Require every pull request changing publishable CLI behavior to include bounded release intent: the affected public package, `patch`, `minor`, or `major` impact, and an English user-facing summary. Define exact exemptions for tests, internal refactors, documentation-only changes, and release-management changes; never infer exemptions from commit text alone.
 4. Define the pre-1.0 compatibility policy before enabling automation, including how breaking changes map to versions and how Conventional Commit `!` or `BREAKING CHANGE` evidence is reconciled with reviewed release intent.
-5. Aggregate pending intent into an idempotent release pull request that updates the canonical public-package version, lockfile coordinates, changelog, and every version-bound generated release source through its owning command. Never patch release manifests, SBOMs, or attestations manually.
+5. Aggregate pending intent into an idempotent release pull request that updates the canonical public-package version, lockfile coordinates, one replace-in-place current release note, and every version-bound generated release source through its owning command. Never accumulate a changelog or per-release file directory, and never patch release manifests, SBOMs, or attestations manually.
 6. Bind release-pull-request content to the exact included intent records and source revision. New changes update the same open release pull request. Stale, missing, duplicated, or conflicting records fail closed with actionable diagnostics.
-7. After the release pull request merges, verify the clean `main` revision, package version, changelog entry, generated release metadata, and absence of unconsumed intent before creating one annotated `v<version>` tag. A same-version or different-revision tag is a conflict, not a retry target.
-8. Tag creation automatically triggers the existing multi-platform release workflow, which revalidates the tag, source digest, tarball, manifest, SBOM, and attestations instead of trusting the release pull request.
-9. Keep repository-write authority, tag authority, npm staging approval, and npm publication authority separate. The version workflow receives no registry credential and cannot publish, approve a stage, broaden Trusted Publisher configuration, or bypass existing human-approval contracts.
-10. Record bounded automation results and failure meanings without package bodies, credentials, provider configuration, user documents, or unbounded CI output. A created release pull request or tag proves only that operation, not publication.
+7. After the release pull request merges, verify the clean `main` revision, package version, current release-note version, generated release metadata, and absence of unconsumed intent before creating one annotated `v<version>` tag. A same-version or different-revision tag is a conflict, not a retry target.
+8. After the tag matrix succeeds, create or reconcile one GitHub Release from the exact tag-bound current release note. Unsupported private personal-repository attestations may be skipped without losing release notes; a supported attestation failure still blocks the GitHub Release.
+9. Tag creation automatically triggers the existing multi-platform release workflow, which revalidates the tag, source digest, tarball, manifest, SBOM, and attestations instead of trusting the release pull request.
+10. Keep repository-write authority, tag authority, npm staging approval, and npm publication authority separate. The version workflow receives no registry credential and cannot publish, approve a stage, broaden Trusted Publisher configuration, or bypass existing human-approval contracts.
+11. Record bounded automation results and failure meanings without package bodies, credentials, provider configuration, user documents, or unbounded CI output. A created release pull request or tag proves only that operation, not publication.
 
 ## Completion criteria
 
-- An accepted ADR fixes the versioning model, pre-1.0 compatibility rules, chosen tool, public-package scope, release-intent schema, changelog format, and authority boundaries.
+- An accepted ADR fixes the versioning model, pre-1.0 compatibility rules, chosen tool, public-package scope, release-intent schema, bounded current-note format, history retention, and authority boundaries.
 - Repository configuration and CI reject missing, malformed, stale, duplicate, conflicting, or unnecessary release intent, with fixtures for publishable and exempt changes.
-- A deterministic release-pull-request test covers initial creation, repeated no-op reconciliation, additional intent, patch/minor/major aggregation, conflict recovery, and exact generated-file ownership.
+- A deterministic release-pull-request test covers initial creation, repeated no-op reconciliation, additional intent, patch/minor/major aggregation, bounded current-note replacement, conflict recovery, and exact generated-file ownership.
 - Private workspace changes cannot accidentally create public-package releases; CLI changes crossing private-package boundaries still produce one coherent public CLI release.
 - Tag automation covers exact-version success, version/tag mismatch, existing-tag conflict, stale `main`, replay, partial failure, and recovery without creating multiple tags.
 - A tag-driven dry run completes the current Linux, macOS, and Windows packed-consumer matrix and produces verified release artifacts, SBOM, attestations, and publication authorization without publishing to npm.

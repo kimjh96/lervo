@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_0a7425fcdec046515c570b1f
+  - uv_316d6a85b56ef6b6176d046c
 title: "ADR-0221: Reviewed CLI release preparation"
 type: decision

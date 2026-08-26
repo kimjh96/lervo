@@ -1,8 +1,6 @@
-import { execFile as execFileCallback } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { promisify } from "node:util";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -14,7 +12,6 @@ import {
 import { releaseDigest } from "../lib/release-intent.mjs";
 
 const roots = [];
-const execFile = promisify(execFileCallback);
 afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
 );
@@ -69,7 +66,6 @@ describe("CLI release preparation", () => {
     ]);
     const input = {
       repositoryRoot: root,
-      releaseDate: "2026-08-26",
       sourceRevision: "a".repeat(40),
     };
     const first = await createReleasePreparationPlan(input);
@@ -98,26 +94,26 @@ describe("CLI release preparation", () => {
     expect(updated.nextVersion).toBe("0.2.0");
   });
 
-  it("derives a stable release date from the exact source revision", async () => {
+  it("replaces one bounded current release note without creating release history files", async () => {
     const root = await fixture([
-      { impact: "patch", summary: "Correct deterministic release pull request dates." },
+      { impact: "patch", summary: "Correct deterministic current release notes." },
     ]);
-    await execFile("git", ["init", "--initial-branch=main"], { cwd: root });
-    await execFile("git", ["config", "user.name", "Lervo Test"], { cwd: root });
-    await execFile("git", ["config", "user.email", "lervo-test@example.invalid"], { cwd: root });
-    await execFile("git", ["add", "."], { cwd: root });
-    await execFile("git", ["commit", "-m", "test: add release fixture"], {
-      cwd: root,
-      env: {
-        ...process.env,
-        GIT_AUTHOR_DATE: "2026-07-04T12:00:00Z",
-        GIT_COMMITTER_DATE: "2026-07-04T12:00:00Z",
-      },
-    });
-    const first = await createReleasePreparationPlan({ repositoryRoot: root });
-    const second = await createReleasePreparationPlan({ repositoryRoot: root });
+    await writeFile(
+      resolve(root, ".changes/current-release.md"),
+      '<!-- lervo-release package="@lervo/cli" version="0.1.0" schema="1" -->\n\n## What\'s changed\n\n- Previous release.\n',
+    );
+    const input = { repositoryRoot: root, sourceRevision: "e".repeat(40) };
+    const first = await createReleasePreparationPlan(input);
+    const second = await createReleasePreparationPlan(input);
     expect(second.planId).toBe(first.planId);
-    expect(first.releaseDate).toBe("2026-07-04");
+    const noteOperation = first.operations.find(
+      (operation) => operation.path === ".changes/current-release.md",
+    );
+    expect(noteOperation).toMatchObject({ action: "update" });
+    expect(noteOperation.content).toContain('version="0.1.1"');
+    expect(
+      first.operations.some((operation) => operation.path.startsWith(".changes/releases/")),
+    ).toBe(false);
   });
 
   it("runs owned generators, consumes intent, and rolls back on generator failure", async () => {
@@ -126,7 +122,6 @@ describe("CLI release preparation", () => {
     ]);
     const plan = await createReleasePreparationPlan({
       repositoryRoot: root,
-      releaseDate: "2026-08-26",
       sourceRevision: "b".repeat(40),
     });
     const commands = [];
@@ -155,13 +150,13 @@ describe("CLI release preparation", () => {
       "pnpm release:sbom:update",
     ]);
     await expect(readFile(resolve(root, plan.operations.at(-1).path), "utf8")).rejects.toThrow();
+    expect(await readdir(resolve(root, ".changes"))).toEqual(["current-release.md"]);
 
     const rollbackRoot = await fixture([
       { impact: "minor", summary: "Add a reviewed release workflow for public CLI users." },
     ]);
     const rollbackPlan = await createReleasePreparationPlan({
       repositoryRoot: rollbackRoot,
-      releaseDate: "2026-08-26",
       sourceRevision: "c".repeat(40),
     });
     await expect(
@@ -187,7 +182,6 @@ describe("CLI release preparation", () => {
     ]);
     const plan = await createReleasePreparationPlan({
       repositoryRoot: root,
-      releaseDate: "2026-08-26",
       sourceRevision: "d".repeat(40),
     });
     await writeFile(resolve(root, plan.operations.at(-1).path), "changed\n");

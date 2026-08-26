@@ -32,8 +32,14 @@ describe("CLI release preparation workflow", () => {
     assert.match(prepare.run, /git switch -C lervo\/release-cli/u);
     assert.match(prepare.run, /git push --force-with-lease origin lervo\/release-cli/u);
     assert.match(prepare.run, /gh pr view lervo\/release-cli/u);
+    assert.doesNotMatch(prepare.run, /CHANGELOG\.md/u);
     const tag = steps.find(({ name }) => name === "Create and push the exact annotated tag");
     assert.equal(tag.if, "steps.prepare.outputs.disposition == 'tag_check'");
+    assert.match(tag.run, /git config user\.name 'lervo-release\[bot\]'/u);
+    assert.match(
+      tag.run,
+      /git config user\.email 'lervo-release\[bot\]@users\.noreply\.github\.com'/u,
+    );
     assert.match(tag.run, /pnpm release:tag --apply --approval "\$\{plan_id\}" --json/u);
     assert.match(tag.run, /git push origin "\$\(jq -r '\.tag' <<<"\$\{plan\}"\)"/u);
   });

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_f58b212ce440ae248d68ee71
+  - uv_f1630a90187f22ed291ce141
 title: CLI version and release management
 type: concept

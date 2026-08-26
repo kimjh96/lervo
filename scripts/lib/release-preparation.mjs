@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { loadReleaseIntents, releaseDigest, ReleaseIntentError } from "./release-intent.mjs";
+import { currentReleaseNotesPath, renderCurrentReleaseNotes } from "./release-notes.mjs";
 
 const execFile = promisify(execFileCallback);
 const impactOrder = { patch: 0, minor: 1, major: 2 };
@@ -42,37 +43,6 @@ function highestImpact(intents) {
   );
 }
 
-function releaseEntry(version, date, intents) {
-  return [
-    `## ${version} - ${date}`,
-    "",
-    ...intents
-      .toSorted(
-        (left, right) =>
-          left.summary.localeCompare(right.summary) || left.intentId.localeCompare(right.intentId),
-      )
-      .map((intent) => `- ${intent.summary}`),
-    "",
-  ].join("\n");
-}
-
-function desiredChangelog(current, version, date, intents) {
-  const heading = "# Changelog\n\n";
-  const body =
-    current === null ? "" : current.startsWith(heading) ? current.slice(heading.length) : null;
-  if (body === null)
-    throw new ReleasePreparationError(
-      "release_changelog_invalid",
-      "CHANGELOG.md does not use the canonical heading.",
-    );
-  if (body.includes(`## ${version} - `))
-    throw new ReleasePreparationError(
-      "release_changelog_conflict",
-      `CHANGELOG.md already contains version ${version}.`,
-    );
-  return `${heading}${releaseEntry(version, date, intents)}${body}`;
-}
-
 async function optionalText(path) {
   try {
     return await readFile(path, "utf8");
@@ -84,13 +54,6 @@ async function optionalText(path) {
 
 async function currentRevision(repositoryRoot) {
   const result = await execFile("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot });
-  return result.stdout.trim();
-}
-
-async function revisionDate(repositoryRoot, sourceRevision) {
-  const result = await execFile("git", ["show", "-s", "--format=%cs", sourceRevision], {
-    cwd: repositoryRoot,
-  });
   return result.stdout.trim();
 }
 
@@ -108,12 +71,6 @@ export async function createReleasePreparationPlan(input) {
       "release_source_revision_invalid",
       "Release preparation requires an exact source revision.",
     );
-  const releaseDate = input.releaseDate ?? (await revisionDate(repositoryRoot, sourceRevision));
-  if (!/^\d{4}-\d{2}-\d{2}$/u.test(releaseDate))
-    throw new ReleasePreparationError(
-      "release_date_invalid",
-      "Release preparation requires YYYY-MM-DD.",
-    );
   const packagePath = resolve(repositoryRoot, "apps/cli/package.json");
   const packageSource = await readFile(packagePath, "utf8");
   const packageManifest = JSON.parse(packageSource);
@@ -125,9 +82,9 @@ export async function createReleasePreparationPlan(input) {
   const impact = highestImpact(intents);
   const nextVersion = nextCliVersion(packageManifest.version, impact);
   const desiredPackage = `${JSON.stringify({ ...packageManifest, version: nextVersion }, null, 2)}\n`;
-  const changelogPath = resolve(repositoryRoot, "CHANGELOG.md");
-  const changelogSource = await optionalText(changelogPath);
-  const changelog = desiredChangelog(changelogSource, nextVersion, releaseDate, intents);
+  const releaseNotesPath = resolve(repositoryRoot, currentReleaseNotesPath);
+  const releaseNotesSource = await optionalText(releaseNotesPath);
+  const releaseNotes = renderCurrentReleaseNotes(nextVersion, intents);
   const operations = [
     {
       path: "apps/cli/package.json",
@@ -138,11 +95,11 @@ export async function createReleasePreparationPlan(input) {
       owner: "release_preparation",
     },
     {
-      path: "CHANGELOG.md",
-      action: changelogSource === null ? "create" : "update",
-      expectedHash: changelogSource === null ? null : releaseDigest(changelogSource),
-      desiredHash: releaseDigest(changelog),
-      content: changelog,
+      path: currentReleaseNotesPath,
+      action: releaseNotesSource === null ? "create" : "update",
+      expectedHash: releaseNotesSource === null ? null : releaseDigest(releaseNotesSource),
+      desiredHash: releaseDigest(releaseNotes),
+      content: releaseNotes,
       owner: "release_preparation",
     },
     ...intents.map((intent) => ({
@@ -164,7 +121,6 @@ export async function createReleasePreparationPlan(input) {
     currentVersion: packageManifest.version,
     nextVersion,
     impact,
-    releaseDate,
     intentIds: intents.map((intent) => intent.intentId),
     intentDigest: releaseDigest(intents.map(({ path, contentHash }) => ({ path, contentHash }))),
     operations,
@@ -249,7 +205,6 @@ export async function applyReleasePreparation(input) {
     );
   const current = await createReleasePreparationPlan({
     repositoryRoot: input.plan.repositoryRoot,
-    releaseDate: input.plan.releaseDate,
     sourceRevision: input.plan.sourceRevision,
   });
   if (current.planId !== input.plan.planId)

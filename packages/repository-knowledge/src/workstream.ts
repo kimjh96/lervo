@@ -3,15 +3,13 @@ import { lstat, mkdir, open, rename, rm } from "node:fs/promises";
 import { basename, dirname, posix, relative, resolve, sep } from "node:path";
 
 import { validateSchema, type WorkstreamSnapshot } from "@lervo/schemas";
-import { parse } from "yaml";
-
-import { listKnowledgeArtifactPaths } from "./artifact-paths.js";
 import {
   applyDurableKnowledgeOperations,
   type DurableKnowledgeDeleteOperation,
   type DurableKnowledgeUserFileOperation,
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
+import { normalizationRecordRetirementOperations } from "./document-normalization-record-retirement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
 import {
@@ -516,34 +514,6 @@ async function referenceOperations(
     });
   }
   return { updates, operations };
-}
-
-async function normalizationRecordOperations(
-  root: string,
-  sourcePath: string,
-): Promise<{ paths: string[]; operations: DurableKnowledgeDeleteOperation[] }> {
-  const paths = await listKnowledgeArtifactPaths({
-    root,
-    directory: ".lervo/knowledge/document-normalizations",
-    extension: "yaml",
-    maximumFiles: 20_000,
-  });
-  const matched: string[] = [];
-  const operations: DurableKnowledgeDeleteOperation[] = [];
-  for (const path of paths) {
-    const source = await safeTextFile(root, path, 1024 * 1024);
-    if (source === null) continue;
-    let value: unknown;
-    try {
-      value = parse(source.content);
-    } catch {
-      continue;
-    }
-    if ((value as { sourcePath?: unknown } | null)?.sourcePath !== sourcePath) continue;
-    matched.push(path);
-    operations.push({ path, action: "delete", expectedCurrentHash: source.contentHash });
-  }
-  return { paths: matched, operations };
 }
 
 export async function readCurrentWorkstream(
@@ -1088,7 +1058,7 @@ export async function createContinuationWorkstreamMigrationPlan(input: {
   const references = await referenceOperations(root, scan.scan.sources, selected.path);
   const normalizations =
     sourceDisposition === "delete_dedicated_legacy"
-      ? await normalizationRecordOperations(root, selected.path)
+      ? await normalizationRecordRetirementOperations(root, selected.path)
       : { paths: [], operations: [] };
   const snapshotContent = `${canonicalJson(workstream)}\n`;
   const snapshotContentHash = sha256(snapshotContent);

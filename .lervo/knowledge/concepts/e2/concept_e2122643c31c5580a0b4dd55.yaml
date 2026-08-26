@@ -1,12 +1,16 @@
 assurance: unreviewed
 bundleId: bundle_451efff12346a56316cb37e3
 conceptId: concept_e2122643c31c5580a0b4dd55
-freshness: current
+deprecation:
+  kind: document_deleted
+  operationId: kdocop_fbd3c9db4b1c7ceb7f0d415b
+  sourceContentHash: sha256:ba0eeb6ee4067040f4040a88b969fd3ad0265f14be9dd56645fcabcc8b57b56a
+freshness: stale
 ownership: user
 path: CHANGELOG.md
 publicationLanguage: en
 publicationProfile: explanation
-publicationStatus: stable
+publicationStatus: deprecated
 schemaVersion: 1
 sourceUnitVersionIds:
   - uv_4ce7c8ec631b4ad9a72e5176

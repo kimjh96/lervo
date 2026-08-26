@@ -123,6 +123,28 @@ function normalizedResponse(
 }
 
 describe("document content normalization", () => {
+  it("keeps the bounded release-intent workspace outside provider normalization", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, ".changes"), { recursive: true });
+    await writeFile(
+      resolve(root, ".changes/current-release.md"),
+      '<!-- lervo-release package="@lervo/cli" version="0.2.0" schema="1" -->\n\n## What\'s changed\n\n- Release.\n',
+    );
+    const calls: DocumentNormalizationEnvelope[] = [];
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: compiler(calls),
+      signal: new AbortController().signal,
+    });
+    expect(candidate.coverage).toEqual({
+      eligibleDocuments: 0,
+      normalizedDocuments: 0,
+      sourceUnits: 0,
+      complete: true,
+    });
+    expect(calls).toHaveLength(0);
+  });
+
   it("rewrites and splits documents with exact approvals, records lifecycle, and skips current outputs", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/operations"), { recursive: true });

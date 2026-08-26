@@ -65,7 +65,6 @@ const approvedRootMarkdown = new Set([
   "CLAUDE.md",
   "CONTRIBUTING.md",
   "SECURITY.md",
-  "CHANGELOG.md",
   "CODE_OF_CONDUCT.md",
 ]);
 const rootMarkdown = (await readdir(repositoryRoot, { withFileTypes: true }))
