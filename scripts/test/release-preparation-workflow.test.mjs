@@ -26,7 +26,13 @@ describe("CLI release preparation workflow", () => {
   it("reconciles one release branch through exact plan approval and hands off one tag", async () => {
     const workflow = await readWorkflow();
     const steps = workflow.jobs.reconcile.steps;
+    const install = steps.find(({ name }) => name === "Install dependencies");
+    const completion = steps.find(({ name }) => name === "Check direct-main release completion");
     const prepare = steps.find(({ id }) => id === "prepare");
+    assert.equal(install.run, "pnpm install --frozen-lockfile");
+    assert.equal(completion.if, "github.event_name == 'push'");
+    assert.match(completion.run, /release:completion:check --base/u);
+    assert.match(completion.run, /github\.event\.before/u);
     assert.match(prepare.run, /pnpm release:prepare --json/u);
     assert.match(prepare.run, /pnpm release:prepare --apply --approval "\$\{plan_id\}" --json/u);
     assert.match(prepare.run, /pnpm check/u);

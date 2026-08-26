@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_9ce721726e5dcd8234bf00f5"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Correct provider dependency loading and offline repository Node readiness checks."

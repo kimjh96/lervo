@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [Repository Node fleet and automatic Hub replication](../../roadmap/coordination/repository-node-fleet.md) — `docs/roadmap/coordination/repository-node-fleet.md`
 - [Bounded document layout and rewrite ownership](../../roadmap/knowledge/bounded-document-layout.md) — `docs/roadmap/knowledge/bounded-document-layout.md`
 - [Evidence-bound development-pattern promotion](../../roadmap/knowledge/development-pattern-promotion.md) — `docs/roadmap/knowledge/development-pattern-promotion.md`
 - [Public README migration](../../roadmap/knowledge/public-readme-migration.md) — `docs/roadmap/knowledge/public-readme-migration.md`

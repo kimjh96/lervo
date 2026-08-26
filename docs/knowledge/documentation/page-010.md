@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0063: Search-adapter build identity and rebuildable replay receipts](../../decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md) — `docs/decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md`
 - [ADR-0064: Selection-bound operational search quality observations](../../decisions/search/0064-selection-bound-operational-search-quality.md) — `docs/decisions/search/0064-selection-bound-operational-search-quality.md`
 - [ADR-0065: Human search-rollout review and execution boundary](../../decisions/search/0065-human-search-rollout-review.md) — `docs/decisions/search/0065-human-search-rollout-review.md`
 - [ADR-0066: Bounded search-rollout review status](../../decisions/search/0066-bounded-search-rollout-review-status.md) — `docs/decisions/search/0066-bounded-search-rollout-review-status.md`
@@ -26,4 +27,3 @@
 - [Provider instruction entrypoint research](../../research/provider-instruction-entrypoints.md) — `docs/research/provider-instruction-entrypoints.md`
 - [Repository knowledge systems research](../../research/repository-knowledge-systems.md) — `docs/research/repository-knowledge-systems.md`
 - [Managed Context Grounding and Coverage](../../roadmap/context-grounding-coverage.md) — `docs/roadmap/context-grounding-coverage.md`
-- [Repository Node fleet and automatic Hub replication](../../roadmap/coordination/repository-node-fleet.md) — `docs/roadmap/coordination/repository-node-fleet.md`

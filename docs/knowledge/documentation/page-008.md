@@ -26,4 +26,4 @@
 - [ADR-0090: CLI package usage-guide contract](../../decisions/release/packaging/0090-cli-package-usage-guide.md) — `docs/decisions/release/packaging/0090-cli-package-usage-guide.md`
 - [ADR-0215: Supported-runtime release portability](../../decisions/release/packaging/0215-supported-runtime-release-portability.md) — `docs/decisions/release/packaging/0215-supported-runtime-release-portability.md`
 - [ADR-0221: Reviewed CLI release preparation](../../decisions/release/packaging/0221-reviewed-cli-release-preparation.md) — `docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md`
-- [ADR-0117: CLI First-Publication Stage-Only Workflow Candidate](../../decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md) — `docs/decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md`
+- [ADR-0223: Base-bound CLI release completion](../../decisions/release/packaging/0223-base-bound-cli-release-completion.md) — `docs/decisions/release/packaging/0223-base-bound-cli-release-completion.md`

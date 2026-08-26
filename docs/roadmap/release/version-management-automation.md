@@ -5,7 +5,7 @@ Completed: 2026-08-26
 
 ## Problem
 
-Lervo verified packed CLI bytes, release manifests, SBOMs, attestations, tag coordinates, and publication eligibility only after a version and tag were chosen. The repository lacked reviewed release intent, automated semantic-version calculation, bounded release-note generation, a release pull request, and exact tag creation. Package manifests were synchronized manually, and Conventional Commits validation did not establish intended release impact.
+Lervo verified packed CLI bytes, release manifests, SBOMs, attestations, tag coordinates, and publication eligibility only after choosing a version and tag. The repository lacked reviewed release intent, automated semantic-version calculation, bounded release-note generation, a release pull request, and exact tag creation. Package manifests were synchronized manually, and Conventional Commit validation did not establish intended release impact.
 
 ## Outcome
 
@@ -14,16 +14,17 @@ A reviewable Changesets-style lifecycle now records version intent with each pub
 ## Required contract
 
 1. Select Changesets or a justified equivalent in an ADR. Pin the toolchain and define its configuration, release policy, and generated-file ownership.
-2. Initially treat `@lervo/cli` as the only public package. Private workspace packages do not receive independent public versions or release notes merely because their source changed.
+2. Initially treat `@lervo/cli` as the only public package. Private workspace packages receive no independent public versions or release notes merely because their source changed.
 3. Require every pull request changing publishable CLI behavior to include bounded release intent: the affected public package, `patch`, `minor`, or `major` impact, and an English user-facing summary. Define exact exemptions for tests, internal refactors, documentation-only changes, and release-management changes; never infer exemptions from commit text alone.
 4. Define the pre-1.0 compatibility policy before enabling automation, including how breaking changes map to versions and how Conventional Commit `!` or `BREAKING CHANGE` evidence is reconciled with reviewed release intent.
-5. Aggregate pending intent into an idempotent release pull request that updates the canonical public-package version, lockfile coordinates, one replace-in-place current release note, and every version-bound generated release source through its owning command. Never accumulate a changelog or per-release file directory, and never patch release manifests, SBOMs, or attestations manually.
+5. Aggregate pending intent into an idempotent release pull request that updates the canonical public-package version, lockfile coordinates, one replace-in-place current release note, and every version-bound generated release source through its owning command. Never accumulate a changelog or per-release file directory, or manually patch release manifests, SBOMs, or attestations.
 6. Bind release-pull-request content to the exact included intent records and source revision. New changes update the same open release pull request. Stale, missing, duplicated, or conflicting records fail closed with actionable diagnostics.
 7. After the release pull request merges, verify the clean `main` revision, package version, current release-note version, generated release metadata, and absence of unconsumed intent before creating one annotated `v<version>` tag. A same-version or different-revision tag is a conflict, not a retry target.
 8. After the tag matrix succeeds, create or reconcile one GitHub Release from the exact tag-bound current release note. Unsupported private personal-repository attestations may be skipped without losing release notes; a supported attestation failure still blocks the GitHub Release.
 9. Tag creation automatically triggers the existing multi-platform release workflow, which revalidates the tag, source digest, tarball, manifest, SBOM, and attestations instead of trusting the release pull request.
 10. Keep repository-write authority, tag authority, npm staging approval, and npm publication authority separate. The version workflow receives no registry credential and cannot publish, approve a stage, broaden Trusted Publisher configuration, or bypass existing human-approval contracts.
 11. Record bounded automation results and failure meanings without package bodies, credentials, provider configuration, user documents, or unbounded CI output. A created release pull request or tag proves only that operation, not publication.
+12. Enforce reviewed release completion against an exact base for local checks, pull requests, direct-main pushes, and release preparation. Accept either current intent or exact prepared-release evidence; never rely on prompt retrieval, session memory, workstream status, or terminal Stop.
 
 ## Completion criteria
 
@@ -34,6 +35,7 @@ A reviewable Changesets-style lifecycle now records version intent with each pub
 - Tag automation covers exact-version success, version/tag mismatch, existing-tag conflict, stale `main`, replay, partial failure, and recovery without creating multiple tags.
 - A tag-driven dry run completes the current Linux, macOS, and Windows packed-consumer matrix and produces verified release artifacts, SBOM, attestations, and publication authorization without publishing to npm.
 - Documentation explains contributor intent files, release-pull-request review, emergency correction, prerelease policy, tag recovery, and the boundary between version preparation and publication approval.
+- A base-bound completion fixture rejects missing intent and manual version bypass, accepts pending intent and exact consumed preparation, and verifies local, pull-request, direct-main, and release-workflow integration.
 - `pnpm check`, documentation lifecycle checks, and a clean-clone release rehearsal pass before completion.
 
 ## Completion evidence
@@ -41,6 +43,7 @@ A reviewable Changesets-style lifecycle now records version intent with each pub
 - [ADR-0221](../../decisions/release/packaging/0221-reviewed-cli-release-preparation.md) fixes the repository-native v1 intent format, sole-public-package scope, pre-1.0 version policy, exact plan/apply contract, Git tag recovery, privacy, and separate authorities.
 - [CLI version and release management](../../distribution/cli-version-management.md) documents contribution, pull-request review, emergency correction, no-prerelease policy, tag recovery, and publication non-authority.
 - `.changes/config.json`, the release-intent checker, deterministic preparation and tag commands, the fixed release branch workflow, and tag-triggered release matrix implement the lifecycle. Focused tests cover publishable and exempt paths, bundled private packages, deterministic aggregation, generated-owner rollback, stale inputs, tag mismatch, conflict, replay, recovery, and workflow permissions.
+- [ADR-0223](../../decisions/release/packaging/0223-base-bound-cli-release-completion.md), `release:completion:check`, and its workflow fixtures bind local and CI completion to exact Git evidence and close the direct-main gap.
 - Repository checks, documentation migration and lint, and the clean-copy rehearsal completed without creating a release tag, granting npm stage approval, or publishing a package.
 
 ## References

@@ -33,6 +33,9 @@ jobs:
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Check direct-main release completion
+        if: github.event_name == 'push'
+        run: pnpm release:completion:check --base "${{ github.event.before }}"
       - name: Prepare or update the release pull request
         id: prepare
         shell: bash

@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0117: CLI First-Publication Stage-Only Workflow Candidate](../../decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md) — `docs/decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md`
 - [ADR-0118: CLI Stage-Publication Command Boundary](../../decisions/release/staging/0118-cli-stage-publication-command-boundary.md) — `docs/decisions/release/staging/0118-cli-stage-publication-command-boundary.md`
 - [ADR-0119: Stage-Only Workflow Activation Permit and Transaction](../../decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md) — `docs/decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md`
 - [ADR-0120: Post-Apply Verification for the Stage-Only Workflow](../../decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md) — `docs/decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md`
@@ -26,4 +27,3 @@
 - [ADR-0060: Policy-bound search-engine selection and rollback](../../decisions/search/0060-policy-bound-search-engine-selection.md) — `docs/decisions/search/0060-policy-bound-search-engine-selection.md`
 - [ADR-0061: Fail-closed operational search-engine resolution](../../decisions/search/0061-fail-closed-operational-search-engine-resolution.md) — `docs/decisions/search/0061-fail-closed-operational-search-engine-resolution.md`
 - [ADR-0062: Refreshing evidence for a selected search candidate](../../decisions/search/0062-selected-search-candidate-evidence-refresh.md) — `docs/decisions/search/0062-selected-search-candidate-evidence-refresh.md`
-- [ADR-0063: Search-adapter build identity and rebuildable replay receipts](../../decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md) — `docs/decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md`

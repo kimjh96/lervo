@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_fa0feabde1f48bbf0be61760
+freshness: current
+ownership: user
+path: docs/decisions/release/packaging/0223-base-bound-cli-release-completion.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_51f8bdc3c67d07e26f6ea3c7
+title: "ADR-0223: Base-bound CLI release completion"
+type: decision

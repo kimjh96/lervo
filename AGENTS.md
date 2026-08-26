@@ -2,21 +2,24 @@
 
 ## Before changing anything
 
-Read only relevant entrypoints and linked ADRs:
+Read only the relevant entrypoints and linked ADRs:
 
 - Product scope or terminology: `README.md`, `docs/product/vision.md`
 - Components or data flow: `docs/architecture/system.md`
 - Execution, documentation guarantees, telemetry, or skills: `docs/specifications/execution.md`
 - Delivery scope or order: `docs/roadmap/v0.md`
 - Repository knowledge, migration, claims, relations, or OKF exchange: `docs/specs/repository-knowledge-compilation.md`
+- Release impact, version preparation, tags, or publication: `docs/distribution/cli-version-management.md`, `docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md`
 
 Do not load the entire ADR history by default.
 
 Before committing, follow [the repository commit convention](docs/foundation/commit-convention.md). An optional scope must exactly match the workspace package name without `@lervo/`; omit it for repository-wide changes.
 
-Before opening or updating a pull request, read [the repository pull-request template](.github/PULL_REQUEST_TEMPLATE.md) and apply the existing [`writing_en-human` policy](packages/core/src/writing-contract.ts) to its title and body. Start the body at H2 because GitHub renders the title separately; never duplicate it with an H1. Preserve every section, replace guidance with exact evidence, and use `N/A: <reason>` for inapplicable sections. Evaluate each checklist item directly, checking it only after observing supporting evidence and recording blockers for unchecked items. Never submit prose-only summaries or pre-checked boilerplate.
+For implementation changes, run `pnpm release:completion:check --base <task-base-revision>` before claiming completion. Add reviewed release intent for CLI or bundled-private behavior. Neither `pnpm check`, a current workstream, nor a successful terminal Stop independently proves release readiness.
 
-Follow [the repository code convention](docs/foundation/code-convention.md) as the completion contract. Before editing source, identify its responsibility and dependency boundary. Apply module-split signals and the review checklist to every touched source file; resolve structural violations before finishing because lint and formatting are insufficient.
+Before opening or updating a pull request, read [the repository pull-request template](.github/PULL_REQUEST_TEMPLATE.md) and apply the existing [`writing_en-human` policy](packages/core/src/writing-contract.ts) to its title and body. Start the body at H2 because GitHub renders the title separately; never duplicate it with an H1. Preserve every section, replace guidance with exact evidence, and use `N/A: <reason>` where needed. Evaluate each checklist item directly; check it only after observing and recording supporting evidence, and record blockers for unchecked items. Never submit prose-only summaries or pre-checked boilerplate.
+
+Follow [the repository code convention](docs/foundation/code-convention.md) as the completion contract. Before editing source, identify its responsibility and dependency boundary. Apply its module-split signals and review checklist to every touched source file, resolving structural violations before completion; lint and formatting are insufficient.
 
 If a required split materially increases delivery risk, record one bounded follow-up with the exact responsibility and verification. Repeat the structural review before refreshing a long-module review hash; the registry records cohesive modules, not unresolved exceptions.
 
