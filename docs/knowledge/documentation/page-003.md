@@ -16,6 +16,7 @@
 - [ADR-0209: Versioned repository role contracts](../../decisions/execution/orchestration/0209-versioned-repository-role-contracts.md) — `docs/decisions/execution/orchestration/0209-versioned-repository-role-contracts.md`
 - [ADR-0210: Local-first capability package supply chain](../../decisions/execution/orchestration/0210-local-first-capability-package-supply-chain.md) — `docs/decisions/execution/orchestration/0210-local-first-capability-package-supply-chain.md`
 - [ADR-0212: Natural-language capability lifecycle](../../decisions/execution/orchestration/0212-natural-language-capability-lifecycle.md) — `docs/decisions/execution/orchestration/0212-natural-language-capability-lifecycle.md`
+- [ADR-0222: Isolated agent workspace and integration lifecycle](../../decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md) — `docs/decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md`
 - [ADR-0007: Provider-neutral context delivery and E3](../../decisions/execution/providers/0007-provider-neutral-context-delivery.md) — `docs/decisions/execution/providers/0007-provider-neutral-context-delivery.md`
 - [ADR-0009: Codex app-server managed adapter](../../decisions/execution/providers/0009-codex-app-server-managed-adapter.md) — `docs/decisions/execution/providers/0009-codex-app-server-managed-adapter.md`
 - [ADR-0010: Claude Agent SDK managed adapter](../../decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md) — `docs/decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md`
@@ -26,4 +27,3 @@
 - [ADR-0024: Provider-neutral project verification and result artifacts](../../decisions/execution/providers/0024-provider-neutral-project-verification.md) — `docs/decisions/execution/providers/0024-provider-neutral-project-verification.md`
 - [ADR-0029: Codex–Claude cross-review and role-specific provider enforcement](../../decisions/execution/providers/0029-cross-provider-deliberation-runtime.md) — `docs/decisions/execution/providers/0029-cross-provider-deliberation-runtime.md`
 - [ADR-0153: Approval-Bound Managed Provider Node Host](../../decisions/execution/providers/0153-managed-provider-node-host.md) — `docs/decisions/execution/providers/0153-managed-provider-node-host.md`
-- [ADR-0154: Multi-File Managed Provider Turns and Context Reinjection](../../decisions/execution/providers/0154-multi-file-managed-provider-turns.md) — `docs/decisions/execution/providers/0154-multi-file-managed-provider-turns.md`

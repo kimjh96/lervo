@@ -110,6 +110,10 @@ export class AgentWorkforceError extends Error {
       | "assignment_dependency_blocked"
       | "assignment_path_conflict"
       | "assignment_lease_conflict"
+      | "workspace_cleanup_blocked"
+      | "workspace_dependency_blocked"
+      | "workspace_invalid"
+      | "workspace_transition_conflict"
       | "workforce_busy"
       | "workforce_state_invalid"
       | "workforce_write_failed",

@@ -170,6 +170,15 @@ importers:
       '@lervo/verification':
         specifier: workspace:*
         version: link:../../packages/verification
+      '@lervo/workspace-host':
+        specifier: workspace:*
+        version: link:../../packages/workspace-host
+      '@lervo/workspace-host-git':
+        specifier: workspace:*
+        version: link:../../packages/workspace-host-git
+      '@lervo/workspace-host-orca':
+        specifier: workspace:*
+        version: link:../../packages/workspace-host-orca
       '@lervo/writing':
         specifier: workspace:*
         version: link:../../packages/writing
@@ -368,6 +377,9 @@ importers:
       '@lervo/sync-contract':
         specifier: workspace:*
         version: link:../../packages/sync-contract
+      '@lervo/workspace-reservation-hub':
+        specifier: workspace:*
+        version: link:../../packages/workspace-reservation-hub
     devDependencies:
       '@lervo/hub':
         specifier: workspace:*
@@ -474,6 +486,9 @@ importers:
       '@lervo/project':
         specifier: workspace:*
         version: link:../project
+      '@lervo/project-storage':
+        specifier: workspace:*
+        version: link:../project-storage
       '@lervo/roles':
         specifier: workspace:*
         version: link:../roles
@@ -1059,6 +1074,9 @@ importers:
       '@lervo/adapter-contract':
         specifier: workspace:*
         version: link:../adapter-contract
+      '@lervo/agent-workforce':
+        specifier: workspace:*
+        version: link:../agent-workforce
       '@lervo/context':
         specifier: workspace:*
         version: link:../context
@@ -1074,6 +1092,9 @@ importers:
       '@lervo/execution-contract':
         specifier: workspace:*
         version: link:../execution-contract
+      '@lervo/project-storage':
+        specifier: workspace:*
+        version: link:../project-storage
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -1083,6 +1104,9 @@ importers:
       '@lervo/verification-contract':
         specifier: workspace:*
         version: link:../verification-contract
+      '@lervo/workspace-host':
+        specifier: workspace:*
+        version: link:../workspace-host
     devDependencies:
       '@lervo/adapter-claude':
         specifier: workspace:*
@@ -1096,6 +1120,9 @@ importers:
       '@lervo/event-store-sqlite':
         specifier: workspace:*
         version: link:../event-store-sqlite
+      '@lervo/workspace-host-git':
+        specifier: workspace:*
+        version: link:../workspace-host-git
 
   packages/policy:
     dependencies:
@@ -1327,6 +1354,9 @@ importers:
 
   packages/sync:
     dependencies:
+      '@lervo/hub-sync':
+        specifier: workspace:*
+        version: link:../hub-sync
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -1380,6 +1410,35 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+
+  packages/workspace-host: {}
+
+  packages/workspace-host-git:
+    dependencies:
+      '@lervo/workspace-host':
+        specifier: workspace:*
+        version: link:../workspace-host
+
+  packages/workspace-host-orca:
+    dependencies:
+      '@lervo/workspace-host':
+        specifier: workspace:*
+        version: link:../workspace-host
+      '@lervo/workspace-host-git':
+        specifier: workspace:*
+        version: link:../workspace-host-git
+
+  packages/workspace-reservation-hub:
+    dependencies:
+      '@lervo/agent-workforce':
+        specifier: workspace:*
+        version: link:../agent-workforce
+      '@lervo/hub-sync':
+        specifier: workspace:*
+        version: link:../hub-sync
+      '@lervo/orchestrator':
+        specifier: workspace:*
+        version: link:../orchestrator
 
   packages/writing:
     dependencies:

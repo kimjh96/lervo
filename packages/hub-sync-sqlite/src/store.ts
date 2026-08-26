@@ -23,6 +23,13 @@ import {
   type HubSyncIntegrityStore,
   type HubSyncLifecycle,
   type HubWorkstreamReplicationStore,
+  type HubWorkspaceCoordinationStore,
+  type HubWorkspaceReservation,
+  type HubWorkspaceReservationDecision,
+  type HubWorkspaceReservationRelease,
+  type HubWorkspaceReservationRenewal,
+  type HubWorkspaceReservationRequest,
+  type HubWorkspaceSummary,
   type HubRemoteCommandDeliveryState,
   type HubRemoteCommandEnqueueResult,
   type HubRemoteCommandQueueInspectionStore,
@@ -77,6 +84,7 @@ import { KnowledgeGraphIndexSQLiteWriter } from "./knowledge-graph-index-writer.
 import { HubKnowledgeGraphSQLiteRepository } from "./knowledge-graph-repository.js";
 import { SQLiteTransactionRunner } from "./transaction-runner.js";
 import { HubWorkstreamSQLiteRepository } from "./workstream-repository.js";
+import { HubWorkspaceCoordinationSQLiteRepository } from "./workspace-coordination-repository.js";
 
 export class HubSyncSQLiteStore
   implements
@@ -84,6 +92,7 @@ export class HubSyncSQLiteStore
     HubSyncIntegrityStore,
     HubSyncLifecycle,
     HubWorkstreamReplicationStore,
+    HubWorkspaceCoordinationStore,
     HubRemoteCommandQueueStore,
     HubRemoteCommandQueueInspectionStore,
     HubTraceSource,
@@ -107,6 +116,7 @@ export class HubSyncSQLiteStore
   private readonly knowledgeGraphRepository: HubKnowledgeGraphSQLiteRepository;
   private readonly transactionRunner: SQLiteTransactionRunner;
   private readonly workstreamRepository: HubWorkstreamSQLiteRepository;
+  private readonly workspaceCoordinationRepository: HubWorkspaceCoordinationSQLiteRepository;
 
   private constructor(
     path: string,
@@ -129,6 +139,7 @@ export class HubSyncSQLiteStore
     this.knowledgeGraphRepository = new HubKnowledgeGraphSQLiteRepository(database);
     this.transactionRunner = new SQLiteTransactionRunner(database);
     this.workstreamRepository = new HubWorkstreamSQLiteRepository(database);
+    this.workspaceCoordinationRepository = new HubWorkspaceCoordinationSQLiteRepository(database);
   }
 
   static async open(options: { path: string }): Promise<HubSyncSQLiteStore> {
@@ -188,6 +199,56 @@ export class HubSyncSQLiteStore
   }): Promise<WorkstreamReplicationReadResponse> {
     this.assertOpen();
     return this.transactionRunner.read(() => this.workstreamRepository.read(input));
+  }
+
+  async reserveWorkspace(input: {
+    destinationId: string;
+    request: HubWorkspaceReservationRequest;
+    acceptedAt: string;
+  }): Promise<HubWorkspaceReservationDecision> {
+    this.assertOpen();
+    return this.transactionRunner.write(() => this.workspaceCoordinationRepository.reserve(input));
+  }
+
+  async renewWorkspaceReservation(input: {
+    destinationId: string;
+    request: HubWorkspaceReservationRenewal;
+    acceptedAt: string;
+  }): Promise<HubWorkspaceReservation> {
+    this.assertOpen();
+    return this.transactionRunner.write(() => this.workspaceCoordinationRepository.renew(input));
+  }
+
+  async releaseWorkspaceReservation(input: {
+    destinationId: string;
+    request: HubWorkspaceReservationRelease;
+    acceptedAt: string;
+  }): Promise<HubWorkspaceReservation> {
+    this.assertOpen();
+    return this.transactionRunner.write(() => this.workspaceCoordinationRepository.release(input));
+  }
+
+  async publishWorkspaceSummary(input: {
+    destinationId: string;
+    summary: HubWorkspaceSummary;
+    acceptedAt: string;
+  }): Promise<{ status: "created" | "updated" | "duplicate"; summary: HubWorkspaceSummary }> {
+    this.assertOpen();
+    return this.transactionRunner.write(() =>
+      this.workspaceCoordinationRepository.publishSummary(input),
+    );
+  }
+
+  async listWorkspaceSummaries(input: {
+    destinationId: string;
+    projectId: string;
+    repositoryIdentityHash: string;
+    acceptedAt: string;
+  }): Promise<HubWorkspaceSummary[]> {
+    this.assertOpen();
+    return this.transactionRunner.write(() =>
+      this.workspaceCoordinationRepository.listSummaries(input),
+    );
   }
 
   async enqueueRemoteCommand(input: {

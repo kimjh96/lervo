@@ -36,7 +36,8 @@
     "@lervo/schemas": "workspace:*",
     "@lervo/storage-contract": "workspace:*",
     "@lervo/sync": "workspace:*",
-    "@lervo/sync-contract": "workspace:*"
+    "@lervo/sync-contract": "workspace:*",
+    "@lervo/workspace-reservation-hub": "workspace:*"
   },
   "devDependencies": {
     "@lervo/hub": "workspace:*",

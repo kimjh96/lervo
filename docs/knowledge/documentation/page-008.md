@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0102: CLI first-publication execution plan and unarmed boundary](../../decisions/release/bootstrap/0102-cli-first-publication-execution-plan.md) — `docs/decisions/release/bootstrap/0102-cli-first-publication-execution-plan.md`
 - [ADR-0103: CLI first-publication execution-plan command](../../decisions/release/bootstrap/0103-cli-first-publication-execution-plan-command.md) — `docs/decisions/release/bootstrap/0103-cli-first-publication-execution-plan-command.md`
 - [ADR-0104: CLI first-publication activation blocker report](../../decisions/release/bootstrap/0104-cli-first-publication-activation-blocker-report.md) — `docs/decisions/release/bootstrap/0104-cli-first-publication-activation-blocker-report.md`
 - [ADR-0105: CLI first-publication metadata decision and write-free preview](../../decisions/release/bootstrap/0105-cli-first-publication-metadata-preview.md) — `docs/decisions/release/bootstrap/0105-cli-first-publication-metadata-preview.md`
@@ -26,4 +27,3 @@
 - [ADR-0215: Supported-runtime release portability](../../decisions/release/packaging/0215-supported-runtime-release-portability.md) — `docs/decisions/release/packaging/0215-supported-runtime-release-portability.md`
 - [ADR-0221: Reviewed CLI release preparation](../../decisions/release/packaging/0221-reviewed-cli-release-preparation.md) — `docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md`
 - [ADR-0117: CLI First-Publication Stage-Only Workflow Candidate](../../decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md) — `docs/decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md`
-- [ADR-0118: CLI Stage-Publication Command Boundary](../../decisions/release/staging/0118-cli-stage-publication-command-boundary.md) — `docs/decisions/release/staging/0118-cli-stage-publication-command-boundary.md`

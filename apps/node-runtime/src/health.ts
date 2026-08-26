@@ -20,6 +20,7 @@ export interface NodeRuntimeHealthSnapshot {
   updatedAt: string;
   sync: ComponentHealth;
   workstreamReplication: ComponentHealth;
+  workspaceCoordination: ComponentHealth;
   remoteControl: ComponentHealth;
 }
 
@@ -29,6 +30,8 @@ export interface NodeRuntimeHealthPublisher {
   observeSync(result: SyncCycleResult): Promise<void>;
   observeWorkstreamReplication(result: WorkstreamReplicationCycleResult): Promise<void>;
   observeWorkstreamReplicationFailure(code: string): Promise<void>;
+  observeWorkspaceCoordination(): Promise<void>;
+  observeWorkspaceCoordinationFailure(code: string): Promise<void>;
   observeRemoteControl(result: RemoteControlCycleResult): Promise<void>;
   stopping(): Promise<void>;
 }
@@ -38,6 +41,7 @@ function aggregate(snapshot: NodeRuntimeHealthSnapshot): NodeRuntimeHealthSnapsh
   if (
     snapshot.sync.status === "unavailable" ||
     snapshot.workstreamReplication.status === "unavailable" ||
+    snapshot.workspaceCoordination.status === "unavailable" ||
     snapshot.remoteControl.status === "unavailable"
   ) {
     return "degraded";
@@ -45,6 +49,8 @@ function aggregate(snapshot: NodeRuntimeHealthSnapshot): NodeRuntimeHealthSnapsh
   if (
     snapshot.sync.status === "ready" &&
     snapshot.workstreamReplication.status === "ready" &&
+    (snapshot.workspaceCoordination.status === "ready" ||
+      snapshot.workspaceCoordination.status === "disabled") &&
     (snapshot.remoteControl.status === "ready" || snapshot.remoteControl.status === "disabled")
   ) {
     return "ready";
@@ -97,7 +103,11 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
   private snapshot: NodeRuntimeHealthSnapshot;
   private pending: Promise<void> = Promise.resolve();
 
-  constructor(stateDirectory: string, remoteControlConfigured: boolean) {
+  constructor(
+    stateDirectory: string,
+    remoteControlConfigured: boolean,
+    workspaceCoordinationConfigured: boolean,
+  ) {
     this.path = resolve(stateDirectory, NODE_RUNTIME_HEALTH_FILE);
     const now = new Date().toISOString();
     this.snapshot = {
@@ -108,6 +118,9 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
       updatedAt: now,
       sync: { status: "pending" },
       workstreamReplication: { status: "pending" },
+      workspaceCoordination: workspaceCoordinationConfigured
+        ? { status: "pending" }
+        : { status: "disabled" },
       remoteControl: remoteControlConfigured ? { status: "pending" } : { status: "disabled" },
     };
   }
@@ -146,6 +159,18 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
     });
   }
 
+  observeWorkspaceCoordination(): Promise<void> {
+    return this.publish(() => {
+      this.snapshot.workspaceCoordination = { status: "ready" };
+    });
+  }
+
+  observeWorkspaceCoordinationFailure(code: string): Promise<void> {
+    return this.publish(() => {
+      this.snapshot.workspaceCoordination = { status: "unavailable", failureCode: code };
+    });
+  }
+
   observeRemoteControl(result: RemoteControlCycleResult): Promise<void> {
     return this.publish(() => {
       this.snapshot.remoteControl = remoteControlHealth(result);
@@ -173,6 +198,11 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
 export function createNodeRuntimeHealthPublisher(
   stateDirectory: string,
   remoteControlConfigured: boolean,
+  workspaceCoordinationConfigured = false,
 ): NodeRuntimeHealthPublisher {
-  return new FileNodeRuntimeHealthPublisher(stateDirectory, remoteControlConfigured);
+  return new FileNodeRuntimeHealthPublisher(
+    stateDirectory,
+    remoteControlConfigured,
+    workspaceCoordinationConfigured,
+  );
 }

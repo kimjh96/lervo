@@ -9,8 +9,10 @@ import {
   symlink,
   writeFile,
 } from "node:fs/promises";
+import { execFile } from "node:child_process";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
 
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { type OutboxStore } from "@lervo/storage-contract";
@@ -21,11 +23,13 @@ import {
   type CloseableArtifactStore,
   openProjectStorage,
   ProjectStorageError,
+  resolveRepositoryCoordinationHome,
 } from "../src/index.js";
 
 const projectId = "prj_01234567";
 const policyVersion = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const temporaryRoots: string[] = [];
+const execute = promisify(execFile);
 
 async function temporaryRepository(): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-project-storage-"));
@@ -75,6 +79,55 @@ afterEach(async () => {
 });
 
 describe("project storage bootstrap", () => {
+  it("resolves one owner-only coordination home for sibling Git worktrees", async () => {
+    const root = await initializedRepository();
+    await writeFile(resolve(root, "tracked.txt"), "base\n");
+    await execute("git", ["-C", root, "init"]);
+    await execute("git", ["-C", root, "config", "user.email", "lervo-test@example.invalid"]);
+    await execute("git", ["-C", root, "config", "user.name", "Lervo Test"]);
+    await execute("git", ["-C", root, "add", "."]);
+    await execute("git", ["-C", root, "commit", "-m", "fixture"]);
+    const sibling = await temporaryRepository();
+    await rm(sibling, { recursive: true });
+    await execute("git", ["-C", root, "worktree", "add", "--detach", sibling, "HEAD"]);
+
+    const [first, second] = await Promise.all([
+      resolveRepositoryCoordinationHome(root, { now: new Date("2026-08-26T00:00:00Z") }),
+      resolveRepositoryCoordinationHome(sibling, { now: new Date("2026-08-26T00:00:01Z") }),
+    ]);
+
+    expect(first).toMatchObject({
+      schemaVersion: 1,
+      storageKind: "git_common_directory",
+      repositoryInstanceId: expect.stringMatching(/^rpi_[a-f0-9]{24}$/u),
+    });
+    expect(second.repositoryInstanceId).toBe(first.repositoryInstanceId);
+    expect(second.root).toBe(first.root);
+    expect(second.workforce).toBe(first.workforce);
+  });
+
+  it("rejects two non-empty workforce authorities during sibling migration", async () => {
+    const root = await initializedRepository();
+    await writeFile(resolve(root, "tracked.txt"), "base\n");
+    await execute("git", ["-C", root, "init"]);
+    await execute("git", ["-C", root, "config", "user.email", "lervo-test@example.invalid"]);
+    await execute("git", ["-C", root, "config", "user.name", "Lervo Test"]);
+    await execute("git", ["-C", root, "add", "."]);
+    await execute("git", ["-C", root, "commit", "-m", "fixture"]);
+    const sibling = await temporaryRepository();
+    await rm(sibling, { recursive: true });
+    await execute("git", ["-C", root, "worktree", "add", "--detach", sibling, "HEAD"]);
+    await mkdir(resolve(root, ".lervo/data/workforce"), { recursive: true });
+    await mkdir(resolve(sibling, ".lervo/data/workforce"), { recursive: true });
+    await writeFile(resolve(root, ".lervo/data/workforce/agents.json"), "root authority\n");
+    await writeFile(resolve(sibling, ".lervo/data/workforce/agents.json"), "sibling authority\n");
+
+    await resolveRepositoryCoordinationHome(root);
+    await expect(resolveRepositoryCoordinationHome(sibling)).rejects.toMatchObject({
+      code: "coordination_migration_conflict",
+    });
+  });
+
   it("opens the manifest-bound event/outbox and CAS from canonical project paths", async () => {
     const root = await initializedRepository();
     const storage = await openProjectStorage(root);

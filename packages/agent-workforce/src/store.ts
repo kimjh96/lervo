@@ -5,7 +5,8 @@ import { chmod, lstat, mkdir, open, readFile, readdir, rename, rm } from "node:f
 import { hostname } from "node:os";
 import { basename, dirname, posix, resolve } from "node:path";
 
-import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
+import { loadProjectManifest } from "@lervo/project";
+import { resolveRepositoryCoordinationHome } from "@lervo/project-storage";
 import { assertRoleContractBinding, resolveRoleContract, roleProfileHash } from "@lervo/roles";
 
 import {
@@ -221,7 +222,7 @@ function validAssignment(value: unknown, projectId: string): value is WorkforceA
 
 async function state(root: string) {
   const manifest = await loadProjectManifest(root);
-  const base = resolveProjectPaths(root).workforce;
+  const base = (await resolveRepositoryCoordinationHome(root)).workforce;
   await mkdir(resolve(base, "assignments"), { recursive: true, mode: 0o700 });
   return { base, manifest };
 }

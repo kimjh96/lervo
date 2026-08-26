@@ -15,20 +15,24 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
+    "@lervo/agent-workforce": "workspace:*",
     "@lervo/adapter-contract": "workspace:*",
     "@lervo/context": "workspace:*",
     "@lervo/context-delivery": "workspace:*",
     "@lervo/core": "workspace:*",
     "@lervo/event-contract": "workspace:*",
     "@lervo/execution-contract": "workspace:*",
+    "@lervo/project-storage": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/storage-contract": "workspace:*",
-    "@lervo/verification-contract": "workspace:*"
+    "@lervo/verification-contract": "workspace:*",
+    "@lervo/workspace-host": "workspace:*"
   },
   "devDependencies": {
     "@lervo/adapter-claude": "workspace:*",
     "@lervo/adapter-codex": "workspace:*",
     "@lervo/cas": "workspace:*",
-    "@lervo/event-store-sqlite": "workspace:*"
+    "@lervo/event-store-sqlite": "workspace:*",
+    "@lervo/workspace-host-git": "workspace:*"
   }
 }

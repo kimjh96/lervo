@@ -26,6 +26,7 @@ export type HubHttpErrorCode =
   | "project_not_found"
   | "run_not_found"
   | "conflict"
+  | "capacity_exceeded"
   | "request_too_large"
   | "response_too_large"
   | "internal_error";
@@ -39,6 +40,7 @@ const errorMessages: Record<HubHttpErrorCode, string> = {
   project_not_found: "The requested project trace does not exist.",
   run_not_found: "The requested run trace does not exist.",
   conflict: "The request conflicts with the current source state.",
+  capacity_exceeded: "The configured project capacity is full.",
   request_too_large: "The request body exceeds the allowed size.",
   response_too_large: "The response exceeds the allowed size.",
   internal_error: "An error occurred while processing the Hub request.",

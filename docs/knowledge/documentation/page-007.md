@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0004: Project Storage Bootstrap](../../decisions/operations/storage/0004-project-storage-bootstrap.md) — `docs/decisions/operations/storage/0004-project-storage-bootstrap.md`
 - [ADR-0213: Deletable Derived State Boundary](../../decisions/operations/storage/0213-deletable-derived-state-boundary.md) — `docs/decisions/operations/storage/0213-deletable-derived-state-boundary.md`
 - [ADR-0219: Typed derived-state retention](../../decisions/operations/storage/0219-typed-derived-state-retention.md) — `docs/decisions/operations/storage/0219-typed-derived-state-retention.md`
 - [ADR-0039: Authenticate and Scope Projects Before Trace HTTP Reads](../../decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md) — `docs/decisions/operations/trace/0039-authenticated-project-scoped-trace-http.md`
@@ -26,4 +27,3 @@
 - [ADR-0099: Durable storage and interactive adapter for CLI first publication](../../decisions/release/bootstrap/0099-cli-first-publication-durable-interactive-adapter.md) — `docs/decisions/release/bootstrap/0099-cli-first-publication-durable-interactive-adapter.md`
 - [ADR-0100: Read-only CLI first-publication preflight report](../../decisions/release/bootstrap/0100-cli-first-publication-read-only-preflight-report.md) — `docs/decisions/release/bootstrap/0100-cli-first-publication-read-only-preflight-report.md`
 - [ADR-0101: CLI first-publication preflight command](../../decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md) — `docs/decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md`
-- [ADR-0102: CLI first-publication execution plan and unarmed boundary](../../decisions/release/bootstrap/0102-cli-first-publication-execution-plan.md) — `docs/decisions/release/bootstrap/0102-cli-first-publication-execution-plan.md`

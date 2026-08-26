@@ -54,6 +54,7 @@
       "@lervo/event-contract@0.1.0",
       "@lervo/event-store-sqlite@0.1.0",
       "@lervo/execution-contract@0.1.0",
+      "@lervo/hub-sync@0.1.0",
       "@lervo/identity-migration@0.1.0",
       "@lervo/knowledge-okf@0.1.0",
       "@lervo/knowledge@0.1.0",
@@ -83,6 +84,10 @@
       "@lervo/sync@0.1.0",
       "@lervo/verification-contract@0.1.0",
       "@lervo/verification@0.1.0",
+      "@lervo/workspace-host-git@0.1.0",
+      "@lervo/workspace-host-orca@0.1.0",
+      "@lervo/workspace-host@0.1.0",
+      "@lervo/workspace-reservation-hub@0.1.0",
       "@lervo/writing-contract@0.1.0",
       "@lervo/writing@0.1.0"
     ],
@@ -126,7 +131,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:debc43541e729f456b5a0a71cab8d944cd194551adfd0486394d6041360ff1a3"
+    "bundleDigest": "sha256:8192fa86b7554ffcb44e3115930b95803411dfdf1162c76b7eae135bf3b893ab"
   },
   "archive": {
     "rootFiles": [
@@ -140,22 +145,22 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 4197213,
-        "sha256": "sha256:4b487465cc90dbbd49b6f03ef39e24b9c0cf9849318abd9acb873d9ef99df297"
+        "size": 4313935,
+        "sha256": "sha256:456e19c0dd45c34e92c10ba83a54fb56a223a74e340e6c7e78e2e030cac2f90b"
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 2263612,
-        "sha256": "sha256:4a6b74f5a9630bdc5c90d785ed1e0d1296d3f7c21e0b0ad5c880c29502b802f1"
+        "size": 2301856,
+        "sha256": "sha256:a0adc52e899fc1e98678f15431c5f14fd9f723315620a0f8cece1a43e2222a2b"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 2288187,
-        "sha256": "sha256:8fcb06e0edc32b09b4c4a7321aa155f9f3bc55516110d087fd2e5d22d966c2ad"
+        "size": 2424504,
+        "sha256": "sha256:9950533f91795f9cd2ad3c20c222b024e8590d5fe5cf4fcc2e70efd8cc079a7d"
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:58bc36021d3745361e385e32eee12fb73e8c5a6c5307c7f8d7e737aa28b2966d"
+    "contentDigest": "sha256:c65beea6393a9867127396ac04060793fa090422bbca2b1f5660fc80d9b62de1"
   },
   "dependencies": {
     "portable": [
@@ -268,5 +273,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:abbb181afa3f1f3ecb1a302ef84e9e96402a06beec865f463aa3cea343ab2983"
+  "artifactDigest": "sha256:c90ec5b1c81aa0fa2433b68809854a2032669c74659fef4a910654ce9c82874a"
 }

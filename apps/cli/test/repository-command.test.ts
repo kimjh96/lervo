@@ -104,6 +104,7 @@ describe("repository selection command", () => {
             updatedAt: now,
             sync: { status: "ready" },
             workstreamReplication: { status: "ready" },
+            workspaceCoordination: { status: "disabled" },
             remoteControl: { status: "ready" },
           };
         },
@@ -256,6 +257,7 @@ describe("repository selection command", () => {
             updatedAt: new Date(Date.now() + observations * 1_000).toISOString(),
             sync: { status: "unavailable", failureCode: "hub_unavailable" },
             workstreamReplication: { status: "unavailable", failureCode: "hub_unavailable" },
+            workspaceCoordination: { status: "disabled" },
             remoteControl: { status: "disabled" },
           };
         },

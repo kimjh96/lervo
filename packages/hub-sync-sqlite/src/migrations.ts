@@ -529,6 +529,152 @@ const migrations = [
       BEFORE DELETE ON hub_workstream_revisions
       BEGIN SELECT RAISE(ABORT, 'hub workstream revisions are append-only'); END;
   `,
+  `
+    CREATE TABLE hub_workspace_coordination_policies (
+      destination_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      repository_identity_hash TEXT NOT NULL,
+      policy_id TEXT NOT NULL CHECK (policy_id = 'workspace-coordination-v1'),
+      max_active_reservations INTEGER NOT NULL CHECK (max_active_reservations >= 1),
+      max_retained_terminal_summaries INTEGER NOT NULL
+        CHECK (max_retained_terminal_summaries >= 1),
+      terminal_summary_retention_ms INTEGER NOT NULL CHECK (terminal_summary_retention_ms >= 1),
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (destination_id, project_id, repository_identity_hash),
+      FOREIGN KEY (destination_id, project_id)
+        REFERENCES hub_projects(destination_id, project_id)
+    ) STRICT;
+    CREATE TRIGGER hub_workspace_coordination_policies_immutable
+      BEFORE UPDATE ON hub_workspace_coordination_policies
+      BEGIN SELECT RAISE(ABORT, 'hub workspace coordination policies are immutable'); END;
+    CREATE TRIGGER hub_workspace_coordination_policies_no_delete
+      BEFORE DELETE ON hub_workspace_coordination_policies
+      BEGIN SELECT RAISE(ABORT, 'hub workspace coordination policies cannot be deleted'); END;
+
+    CREATE TABLE hub_workspace_reservations (
+      reservation_id TEXT PRIMARY KEY,
+      destination_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      repository_identity_hash TEXT NOT NULL,
+      assignment_id TEXT NOT NULL,
+      workspace_id TEXT NOT NULL,
+      node_id TEXT NOT NULL,
+      generation INTEGER NOT NULL CHECK (generation >= 1),
+      base_commit TEXT NOT NULL,
+      integration_target_digest TEXT NOT NULL,
+      scopes_json TEXT NOT NULL,
+      state TEXT NOT NULL CHECK (state IN ('pending', 'granted', 'released', 'expired')),
+      requested_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      expires_at_ms INTEGER NOT NULL CHECK (expires_at_ms >= 0),
+      local_lease_expires_at TEXT NOT NULL,
+      local_lease_expires_at_ms INTEGER NOT NULL CHECK (local_lease_expires_at_ms >= 0),
+      idempotency_key TEXT NOT NULL,
+      request_content_hash TEXT NOT NULL,
+      revision INTEGER NOT NULL CHECK (revision >= 1),
+      updated_at TEXT NOT NULL,
+      UNIQUE (destination_id, project_id, repository_identity_hash, idempotency_key),
+      FOREIGN KEY (destination_id, project_id)
+        REFERENCES hub_projects(destination_id, project_id)
+    ) STRICT;
+    CREATE INDEX hub_workspace_reservations_active
+      ON hub_workspace_reservations (
+        destination_id, project_id, repository_identity_hash, state, expires_at_ms
+      );
+    CREATE TRIGGER hub_workspace_reservations_identity_immutable
+      BEFORE UPDATE ON hub_workspace_reservations
+      WHEN OLD.reservation_id != NEW.reservation_id
+        OR OLD.destination_id != NEW.destination_id
+        OR OLD.project_id != NEW.project_id
+        OR OLD.repository_identity_hash != NEW.repository_identity_hash
+        OR OLD.assignment_id != NEW.assignment_id
+        OR OLD.workspace_id != NEW.workspace_id
+        OR OLD.node_id != NEW.node_id
+        OR OLD.generation != NEW.generation
+        OR OLD.base_commit != NEW.base_commit
+        OR OLD.integration_target_digest != NEW.integration_target_digest
+        OR OLD.scopes_json != NEW.scopes_json
+        OR OLD.requested_at != NEW.requested_at
+        OR OLD.idempotency_key != NEW.idempotency_key
+        OR OLD.request_content_hash != NEW.request_content_hash
+      BEGIN SELECT RAISE(ABORT, 'hub workspace reservation identity is immutable'); END;
+    CREATE TRIGGER hub_workspace_reservations_no_delete
+      BEFORE DELETE ON hub_workspace_reservations
+      BEGIN SELECT RAISE(ABORT, 'hub workspace reservations cannot be deleted'); END;
+
+    CREATE TABLE hub_workspace_reservation_audit (
+      audit_sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+      reservation_id TEXT NOT NULL,
+      destination_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      repository_identity_hash TEXT NOT NULL,
+      previous_state TEXT NOT NULL
+        CHECK (previous_state IN ('absent', 'pending', 'granted', 'released', 'expired')),
+      state TEXT NOT NULL CHECK (state IN ('pending', 'granted', 'released', 'expired')),
+      generation INTEGER NOT NULL CHECK (generation >= 1),
+      node_id TEXT NOT NULL,
+      occurred_at TEXT NOT NULL,
+      event_json TEXT NOT NULL,
+      FOREIGN KEY (reservation_id) REFERENCES hub_workspace_reservations(reservation_id)
+    ) STRICT;
+    CREATE INDEX hub_workspace_reservation_audit_coordinate
+      ON hub_workspace_reservation_audit (
+        destination_id, project_id, repository_identity_hash, audit_sequence
+      );
+    CREATE TRIGGER hub_workspace_reservation_audit_no_update
+      BEFORE UPDATE ON hub_workspace_reservation_audit
+      BEGIN SELECT RAISE(ABORT, 'hub workspace reservation audit is append-only'); END;
+    CREATE TRIGGER hub_workspace_reservation_audit_no_delete
+      BEFORE DELETE ON hub_workspace_reservation_audit
+      BEGIN SELECT RAISE(ABORT, 'hub workspace reservation audit is append-only'); END;
+
+    CREATE TABLE hub_workspace_summaries (
+      destination_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      repository_identity_hash TEXT NOT NULL,
+      workspace_id TEXT NOT NULL,
+      assignment_id TEXT NOT NULL,
+      node_id TEXT NOT NULL,
+      generation INTEGER NOT NULL CHECK (generation >= 1),
+      state TEXT NOT NULL,
+      summary_content_hash TEXT NOT NULL,
+      summary_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      updated_at_ms INTEGER NOT NULL CHECK (updated_at_ms >= 0),
+      retained_until_ms INTEGER NOT NULL CHECK (retained_until_ms >= updated_at_ms),
+      PRIMARY KEY (destination_id, project_id, repository_identity_hash, workspace_id),
+      FOREIGN KEY (destination_id, project_id)
+        REFERENCES hub_projects(destination_id, project_id)
+    ) STRICT;
+    CREATE INDEX hub_workspace_summaries_retention
+      ON hub_workspace_summaries (
+        destination_id, project_id, repository_identity_hash, retained_until_ms
+      );
+
+    CREATE TABLE hub_workspace_summary_audit (
+      audit_sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+      destination_id TEXT NOT NULL,
+      project_id TEXT NOT NULL,
+      repository_identity_hash TEXT NOT NULL,
+      workspace_id TEXT NOT NULL,
+      generation INTEGER NOT NULL CHECK (generation >= 1),
+      previous_state TEXT,
+      state TEXT NOT NULL,
+      summary_content_hash TEXT NOT NULL,
+      occurred_at TEXT NOT NULL,
+      event_json TEXT NOT NULL
+    ) STRICT;
+    CREATE INDEX hub_workspace_summary_audit_coordinate
+      ON hub_workspace_summary_audit (
+        destination_id, project_id, repository_identity_hash, audit_sequence
+      );
+    CREATE TRIGGER hub_workspace_summary_audit_no_update
+      BEFORE UPDATE ON hub_workspace_summary_audit
+      BEGIN SELECT RAISE(ABORT, 'hub workspace summary audit is append-only'); END;
+    CREATE TRIGGER hub_workspace_summary_audit_no_delete
+      BEFORE DELETE ON hub_workspace_summary_audit
+      BEGIN SELECT RAISE(ABORT, 'hub workspace summary audit is append-only'); END;
+  `,
 ] as const;
 
 export const hubSyncSchemaVersion = migrations.length;

@@ -108,6 +108,19 @@ describe("Hub sync SQLite integrity lifecycle", () => {
 
     const previous = new DatabaseSync(path);
     previous.exec(`
+      DROP TRIGGER hub_workspace_summary_audit_no_delete;
+      DROP TRIGGER hub_workspace_summary_audit_no_update;
+      DROP TABLE hub_workspace_summary_audit;
+      DROP TABLE hub_workspace_summaries;
+      DROP TRIGGER hub_workspace_reservation_audit_no_delete;
+      DROP TRIGGER hub_workspace_reservation_audit_no_update;
+      DROP TABLE hub_workspace_reservation_audit;
+      DROP TRIGGER hub_workspace_reservations_no_delete;
+      DROP TRIGGER hub_workspace_reservations_identity_immutable;
+      DROP TABLE hub_workspace_reservations;
+      DROP TRIGGER hub_workspace_coordination_policies_no_delete;
+      DROP TRIGGER hub_workspace_coordination_policies_immutable;
+      DROP TABLE hub_workspace_coordination_policies;
       DROP TRIGGER hub_workstream_revisions_no_delete;
       DROP TRIGGER hub_workstream_revisions_identity_immutable;
       DROP TABLE hub_workstream_revisions;
@@ -146,6 +159,19 @@ describe("Hub sync SQLite integrity lifecycle", () => {
 
     const previous = new DatabaseSync(path);
     previous.exec(`
+      DROP TRIGGER hub_workspace_summary_audit_no_delete;
+      DROP TRIGGER hub_workspace_summary_audit_no_update;
+      DROP TABLE hub_workspace_summary_audit;
+      DROP TABLE hub_workspace_summaries;
+      DROP TRIGGER hub_workspace_reservation_audit_no_delete;
+      DROP TRIGGER hub_workspace_reservation_audit_no_update;
+      DROP TABLE hub_workspace_reservation_audit;
+      DROP TRIGGER hub_workspace_reservations_no_delete;
+      DROP TRIGGER hub_workspace_reservations_identity_immutable;
+      DROP TABLE hub_workspace_reservations;
+      DROP TRIGGER hub_workspace_coordination_policies_no_delete;
+      DROP TRIGGER hub_workspace_coordination_policies_immutable;
+      DROP TABLE hub_workspace_coordination_policies;
       DROP TRIGGER hub_workstream_revisions_no_delete;
       DROP TRIGGER hub_workstream_revisions_identity_immutable;
       DROP TABLE hub_workstream_revisions;

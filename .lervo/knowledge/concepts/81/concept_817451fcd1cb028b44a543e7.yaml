@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_413f5ea90bae7516f83ebde4
+  - uv_0b3e3442f261ebeeb6f8dc49
 title: Hub and Node coordination specification
 type: concept

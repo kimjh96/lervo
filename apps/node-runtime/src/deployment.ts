@@ -18,6 +18,10 @@ import {
   calculateProjectIdentityHash,
   createProjectRegistrationRequest,
 } from "@lervo/sync-contract";
+import {
+  reconcileHubWorkspaceSummaries,
+  type HubWorkspaceSummaryTransport,
+} from "@lervo/workspace-reservation-hub";
 
 import type { NodeRuntimeConfig } from "./config-types.js";
 import { parseNodeRuntimeConfig } from "./config.js";
@@ -80,6 +84,7 @@ export async function openNodeRuntime(
     const health = createNodeRuntimeHealthPublisher(
       paths.state,
       validated.remoteCommands !== undefined,
+      validated.workspaceCoordination !== undefined,
     );
     store = await SQLiteEventStore.open({
       path: paths.eventDatabase,
@@ -166,6 +171,22 @@ export async function openNodeRuntime(
         return candidate.readWorkstream();
       },
     };
+    const workspaceTransport: HubWorkspaceSummaryTransport = {
+      publishWorkspaceSummary(summary) {
+        const candidate = createTransport(transportOptions()) as AuthenticatedHubTransport &
+          Partial<HubWorkspaceSummaryTransport>;
+        if (typeof candidate.publishWorkspaceSummary !== "function")
+          throw new Error("The configured Hub transport does not support workspace summaries.");
+        return candidate.publishWorkspaceSummary(summary);
+      },
+      readWorkspaceSummaries() {
+        const candidate = createTransport(transportOptions()) as AuthenticatedHubTransport &
+          Partial<HubWorkspaceSummaryTransport>;
+        if (typeof candidate.readWorkspaceSummaries !== "function")
+          throw new Error("The configured Hub transport does not support workspace summaries.");
+        return candidate.readWorkspaceSummaries();
+      },
+    };
     const localWorkstreams = new NodeWorkstreamReplicationLocalPort(
       paths.repositoryRoot,
       manifest.projectId,
@@ -237,8 +258,30 @@ export async function openNodeRuntime(
                     : "workstream_replication_failed";
                 await health.observeWorkstreamReplicationFailure(code);
               }
+              if (validated.workspaceCoordination !== undefined) {
+                try {
+                  await reconcileHubWorkspaceSummaries({
+                    repositoryRoot: paths.repositoryRoot,
+                    nodeId: validated.workspaceCoordination.nodeId,
+                    repositoryIdentityHash: target.projectIdentityHash,
+                    transport: workspaceTransport,
+                  });
+                  await health.observeWorkspaceCoordination();
+                } catch (error) {
+                  const code =
+                    typeof error === "object" &&
+                    error !== null &&
+                    "code" in error &&
+                    typeof error.code === "string"
+                      ? error.code
+                      : "workspace_coordination_failed";
+                  await health.observeWorkspaceCoordinationFailure(code);
+                }
+              }
             } else {
               await health.observeWorkstreamReplicationFailure(result.failureCode);
+              if (validated.workspaceCoordination !== undefined)
+                await health.observeWorkspaceCoordinationFailure(result.failureCode);
             }
             await ports.onCycle?.(result);
           },
