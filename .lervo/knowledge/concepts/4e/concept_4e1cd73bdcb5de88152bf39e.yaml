@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_7b7065422772e6e204832497
+  - uv_986501d606526bd354f311a4
 title: Local data and state lifecycle
 type: concept

@@ -1,7 +1,7 @@
 # Lervo System Architecture
 
 Status: `active`
-As of: 2026-08-25
+As of: 2026-08-26
 
 ## System shape
 
@@ -26,7 +26,7 @@ Direct provider terminals use a narrower native-hook path. Each prompt performs 
 
 `.lervo/project.yaml` identifies the repository and privacy defaults. Durable records are under gitignored `.lervo/data`; rebuildable projections are under `.lervo/state`. Runtime directories are lazy. Legacy relocation is atomic and fails closed on conflicting copies.
 
-Active continuation is `.lervo/state/workstreams/current.json`. CAS under `.lervo/data/cas` stores exact snapshots and optional legacy-source bytes; `workstream.snapshot.recorded` binds revision and content coordinates without event prose. Migration discovers candidates from bounded content structure, not required names or locations. A missing projection is rebuilt from the latest event and CAS bytes before context is returned. Canonical Markdown retains long-term facts.
+Active continuation is `.lervo/state/workstreams/current.json`. CAS under `.lervo/data/cas` stores exact snapshots and optional legacy-source bytes; `workstream.snapshot.recorded` binds revision and content coordinates without event prose. Migration discovers candidates from bounded content structure, not required names or locations. Before context is returned, a missing projection is rebuilt from the latest event and CAS bytes. Canonical Markdown retains long-term facts.
 
 Lazy workforce state is under `.lervo/data/workforce/`. Six built-in role templates and tracked `.lervo/roles/<role-id>.json` sources resolve to versioned deterministic contracts. Composition conservatively merges capabilities and binds exact ancestry hashes. Root agents and subagents share the contract; parentage changes only bounded delegation depth. Atomic scheduler leases reject overlapping paths while allowing disjoint same-role or mixed-role work. Handoffs use exact artifact and context-evidence coordinates, not conversation memory. Managed runs revalidate assignment, agent, lease, write path, provider, role version and hash, and verification suites.
 
@@ -44,7 +44,7 @@ Terminal integration merges approved handlers into Codex and Claude repository h
 
 Managed runs require a present, verified workstream delivered with E1–E3 like any exact-byte source. Direct hooks prepare at most 8 KiB and retain only ID, revision, hash, scope, and byte count. Stop compares prompt-time and final repository revisions. Read-only turns create no history. Changed turns require the working agent to create or advance a bounded checkpoint and declare canonicalization, knowledge, and optional deliberation dispositions at the exact final revision.
 
-Decisions: [context preparation](../decisions/execution/orchestration/0006-deterministic-context-preparation.md), [context delivery](../decisions/execution/providers/0007-provider-neutral-context-delivery.md), [managed context gate](../decisions/execution/orchestration/0008-managed-context-gate-orchestration.md), [Codex adapter](../decisions/execution/providers/0009-codex-app-server-managed-adapter.md), [Claude adapter](../decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md), [run lifecycle](../decisions/execution/providers/0011-managed-provider-run-lifecycle.md), [terminal integration](../decisions/execution/providers/0196-fail-closed-provider-terminal-integration.md), [unmanaged observation](../decisions/execution/providers/0197-unmanaged-terminal-context-observation.md), [managed grounding](../decisions/execution/providers/0198-managed-context-grounding-and-coverage.md), [natural-language finalization](../decisions/execution/providers/0200-natural-language-terminal-turn-finalization.md), [provider-confirmed capability activation](../decisions/execution/providers/0211-provider-confirmed-capability-activation.md).
+Decisions: [context preparation](../decisions/execution/orchestration/0006-deterministic-context-preparation.md), [context delivery](../decisions/execution/providers/0007-provider-neutral-context-delivery.md), [managed context gate](../decisions/execution/orchestration/0008-managed-context-gate-orchestration.md), [Codex adapter](../decisions/execution/providers/0009-codex-app-server-managed-adapter.md), [Claude adapter](../decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md), [run lifecycle](../decisions/execution/providers/0011-managed-provider-run-lifecycle.md), [terminal integration](../decisions/execution/providers/0196-fail-closed-provider-terminal-integration.md), [unmanaged observation](../decisions/execution/providers/0197-unmanaged-terminal-context-observation.md), [managed grounding](../decisions/execution/providers/0198-managed-context-grounding-and-coverage.md), [natural-language finalization](../decisions/execution/providers/0200-natural-language-terminal-turn-finalization.md), [provider-confirmed capability activation](../decisions/execution/providers/0211-provider-confirmed-capability-activation.md), [isolated agent workspaces](../decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md).
 
 ### Repository knowledge
 

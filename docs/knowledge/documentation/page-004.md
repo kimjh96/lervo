@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0154: Multi-File Managed Provider Turns and Context Reinjection](../../decisions/execution/providers/0154-multi-file-managed-provider-turns.md) — `docs/decisions/execution/providers/0154-multi-file-managed-provider-turns.md`
 - [ADR-0155: Explicit Managed Provider Host Role Registry](../../decisions/execution/providers/0155-managed-provider-role-registry.md) — `docs/decisions/execution/providers/0155-managed-provider-role-registry.md`
 - [ADR-0156: Local Skill Resolution in the Managed Provider Host](../../decisions/execution/providers/0156-managed-provider-skill-resolution.md) — `docs/decisions/execution/providers/0156-managed-provider-skill-resolution.md`
 - [ADR-0157: Claude SDK Command-Lifecycle Input Acknowledgement](../../decisions/execution/providers/0157-claude-sdk-command-lifecycle-input-acknowledgement.md) — `docs/decisions/execution/providers/0157-claude-sdk-command-lifecycle-input-acknowledgement.md`
@@ -26,4 +27,3 @@
 - [ADR-0020: Unified Lervo product identity](../../decisions/foundation/0020-lervo-product-identity.md) — `docs/decisions/foundation/0020-lervo-product-identity.md`
 - [Architecture decisions](../../decisions/index.md) — `docs/decisions/index.md`
 - [ADR-0017: Sharded document manifests and no append-only documents](../../decisions/knowledge/documents/0017-sharded-document-manifests.md) — `docs/decisions/knowledge/documents/0017-sharded-document-manifests.md`
-- [ADR-0018: Existing-document adoption and safe migration](../../decisions/knowledge/documents/0018-existing-document-adoption.md) — `docs/decisions/knowledge/documents/0018-existing-document-adoption.md`

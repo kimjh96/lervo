@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_315790881af3d8d747baf813
+freshness: current
+ownership: user
+path: docs/specifications/execution/agent-workspaces.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_88fb506f2477a49a9eb0a78e
+title: Agent workspace, integration, and cleanup specification
+type: concept

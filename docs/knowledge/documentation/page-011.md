@@ -3,8 +3,10 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [Public README migration](../../roadmap/knowledge/public-readme-migration.md) — `docs/roadmap/knowledge/public-readme-migration.md`
 - [Natural-language terminal development flow](../../roadmap/natural-language-terminal-flow.md) — `docs/roadmap/natural-language-terminal-flow.md`
 - [Repository onboarding and agent workforce](../../roadmap/onboarding/agent-workforce.md) — `docs/roadmap/onboarding/agent-workforce.md`
+- [Isolated agent workspace lifecycle](../../roadmap/onboarding/agent-workspace-lifecycle.md) — `docs/roadmap/onboarding/agent-workspace-lifecycle.md`
 - [Provider-entrypoint bootstrap convergence](../../roadmap/onboarding/provider-entrypoint-bootstrap.md) — `docs/roadmap/onboarding/provider-entrypoint-bootstrap.md`
 - [Repository upgrade orchestration](../../roadmap/onboarding/repository-upgrade.md) — `docs/roadmap/onboarding/repository-upgrade.md`
 - [Typed derived-state retention and bounded pruning](../../roadmap/operations/state-retention.md) — `docs/roadmap/operations/state-retention.md`
@@ -12,6 +14,7 @@
 - [Lervo v0 roadmap](../../roadmap/v0.md) — `docs/roadmap/v0.md`
 - [Hub and Node coordination specification](../../specifications/coordination/hub-and-node.md) — `docs/specifications/coordination/hub-and-node.md`
 - [Lervo Execution and Evidence Specification](../../specifications/execution.md) — `docs/specifications/execution.md`
+- [Agent workspace, integration, and cleanup specification](../../specifications/execution/agent-workspaces.md) — `docs/specifications/execution/agent-workspaces.md`
 - [Capability package supply chain](../../specifications/execution/capabilities.md) — `docs/specifications/execution/capabilities.md`
 - [Execution events and privacy](../../specifications/execution/events-and-privacy.md) — `docs/specifications/execution/events-and-privacy.md`
 - [Local data and state lifecycle](../../specifications/execution/state-lifecycle.md) — `docs/specifications/execution/state-lifecycle.md`

@@ -1,7 +1,7 @@
 # Lervo Execution and Evidence Specification
 
 Status: `active`
-As of: 2026-08-25
+As of: 2026-08-26
 
 ## 1. Scope
 
