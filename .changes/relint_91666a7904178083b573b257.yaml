@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_91666a7904178083b573b257"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep release workspaces outside repository knowledge normalization."
