@@ -2,4 +2,4 @@
 "intentId": "relint_1790ac636e2db74c5ec1f4f4"
 "package": "@lervo/cli"
 "impact": "patch"
-"summary": "Preserve pull request heading levels and verify exact release branches before review."
+"summary": "Preserve GitHub pull request body heading levels during document normalization."
