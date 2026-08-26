@@ -163,6 +163,15 @@ describe("CLI release matrix workflow", () => {
     assert.match(release.run, /gh release view/u);
     assert.match(release.run, /gh release edit/u);
     assert.match(release.run, /gh release create/u);
+    assert.match(
+      release.run,
+      /gh release edit "\$\{GITHUB_REF_NAME\}" --title "@lervo\/cli \$\{GITHUB_REF_NAME\}"/u,
+    );
+    assert.match(
+      release.run,
+      /gh release create "\$\{GITHUB_REF_NAME\}" --verify-tag --title "@lervo\/cli \$\{GITHUB_REF_NAME\}"/u,
+    );
+    assert.doesNotMatch(release.run, /--title "Lervo CLI /u);
     assert.match(release.run, /--notes-file \.changes\/current-release\.md/u);
   });
 });
