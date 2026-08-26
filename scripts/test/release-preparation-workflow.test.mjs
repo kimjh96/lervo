@@ -29,14 +29,17 @@ describe("CLI release preparation workflow", () => {
     const prepare = steps.find(({ id }) => id === "prepare");
     assert.match(prepare.run, /pnpm release:prepare --json/u);
     assert.match(prepare.run, /pnpm release:prepare --apply --approval "\$\{plan_id\}" --json/u);
+    assert.match(prepare.run, /pnpm check/u);
+    assert.match(prepare.run, /pnpm lervo knowledge lint --json/u);
     assert.match(prepare.run, /git switch -C lervo\/release-cli/u);
     assert.match(prepare.run, /git push --force-with-lease origin lervo\/release-cli/u);
     assert.match(prepare.run, /gh pr list .*--state open/u);
     assert.match(prepare.run, /gh pr create .*--body-file "\$\{body_file\}"/u);
     assert.match(prepare.run, /gh pr edit .*--body-file "\$\{body_file\}"/u);
     assert.doesNotMatch(prepare.run, /gh pr view lervo\/release-cli/u);
-    assert.match(prepare.run, /\[ \] Relevant tests, `pnpm quality:check`/u);
-    assert.match(prepare.run, /Pending pull-request CI/u);
+    assert.match(prepare.run, /\[x\] Relevant tests, `pnpm quality:check`/u);
+    assert.match(prepare.run, /exact release branch/u);
+    assert.doesNotMatch(prepare.run, /Pending pull-request CI/u);
     assert.doesNotMatch(prepare.run, /—/u);
     for (const heading of [
       "Summary",
