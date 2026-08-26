@@ -32,6 +32,14 @@ import {
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import type { CliIo } from "./types.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
+import {
+  attachTerminalWorkspace,
+  checkpointTerminalWorkspace,
+  inspectTerminalWorkspace,
+  TerminalWorkspaceIsolationError,
+  type TerminalWorkspaceBinding,
+  type TerminalWorkspaceInspection,
+} from "./terminal-workspace-lifecycle.js";
 
 export const terminalUsage =
   "  lervo terminal status [--root <path>] [--json]\n  lervo terminal coverage [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--json]\n  lervo terminal declare --provider <codex|claude> --observation <observation-id> --stdin [--root <path>] [--json]\n  lervo terminal hook --provider <codex|claude> --contract <1|2>";
@@ -97,15 +105,19 @@ interface LifecycleInspection {
     afterRevision: string;
     changed: boolean;
   };
+  workspace: TerminalWorkspaceInspection | null;
 }
 
 interface PreparedTurnExpectation {
   contextEventId: string;
   observationId: string;
   provider: TerminalIntegrationProvider;
+  providerSessionId: string;
   workstreamId: string | null;
   revision: number | null;
   repositoryRevision: string;
+  preparedAt: string;
+  workspaceBinding: TerminalWorkspaceBinding | null;
 }
 
 interface TerminalActivationReceipt {
@@ -199,6 +211,7 @@ async function promptContext(
   prompt: string,
   provider: TerminalIntegrationProvider,
   observationId: string,
+  workspaceBinding: TerminalWorkspaceBinding | null,
 ): Promise<{
   additionalContext: string;
   sourceSnapshotId: string;
@@ -250,16 +263,28 @@ async function promptContext(
             context,
           };
         })();
+  const finalizationInstruction =
+    workspaceBinding?.executionKind === "worker"
+      ? [
+          `This direct provider turn is attached to worker workspace ${workspaceBinding.workspaceId} generation ${workspaceBinding.workspaceGeneration}; provider execution remains unmanaged, while checkout ownership and Stop isolation are evidence-bound.`,
+          "Change only assignment-scoped paths. Worker Stop rechecks the ownership marker, writer session, assignment lease, exact workspace revision, and path-scoped diff, then records a workspace checkpoint. It does not advance the repository-wide workstream or repair knowledge movement owned by another workspace.",
+          "Commit only when the task or sealing flow requires it; Lervo never invents or silently commits unfinished bytes.",
+        ].join("\n\n")
+      : `For a repository-changing turn, finish repository verification and knowledge refresh first, then declare the bounded disposition with \`lervo terminal declare --provider ${provider} --observation ${observationId} --stdin\`. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. If the user explicitly requests or mentions Codex-Claude deliberation for the task, run \`lervo deliberate --auto --caller ${provider} "<bounded topic>"\` and bind its result instead of declaring not_requested. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; it is not proof of internal reasoning. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
+  const workstreamInstruction =
+    workspaceBinding?.executionKind === "worker"
+      ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping."
+      : workstream === null
+        ? "If this turn changes repository-authored bytes, the agent must create a bounded checkpoint through the `lervo workstream start --actor agent --provider <current-provider>` plan/apply flow before completion. A read-only inquiry does not create artificial continuation state. The user must not be asked to run bookkeeping commands."
+        : "If this turn changes repository-authored bytes, the agent must record the next bounded revision through the `lervo workstream update --actor agent --provider <current-provider>` plan/apply flow before completion. Preserve identity and origin, replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.";
   const preamble = [
     "Lervo terminal integration v1 queried this repository for the current user prompt.",
     `sourceSnapshotId: ${result.sourceSnapshotId}`,
     "The following exact-hash publications were loaded and prepared for return through the provider hook. This proves hook-side preparation, not provider acceptance, managed delivery, understanding, or later use.",
     "Use current repository bytes as authority, follow AGENTS.md, and do not treat a recommendation as semantic truth.",
     "If the final response explicitly relies on a supplied publication, append its exact Lervo evidence marker as a standalone Markdown HTML comment. Keep the marker out of prose and code. Markdown renderers hide the comment, while raw output retains verifiable evidence. A marker proves only an output reference, never understanding or internal use.",
-    `For a repository-changing turn, finish repository verification and knowledge refresh first, then declare the bounded disposition with \`lervo terminal declare --provider ${provider} --observation ${observationId} --stdin\`. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. If the user explicitly requests or mentions Codex-Claude deliberation for the task, run \`lervo deliberate --auto --caller ${provider} "<bounded topic>"\` and bind its result instead of declaring not_requested. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; it is not proof of internal reasoning. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`,
-    workstream === null
-      ? "If this turn changes repository-authored bytes, the agent must create a bounded checkpoint through the `lervo workstream start --actor agent --provider <current-provider>` plan/apply flow before completion. A read-only inquiry does not create artificial continuation state. The user must not be asked to run bookkeeping commands."
-      : "If this turn changes repository-authored bytes, the agent must record the next bounded revision through the `lervo workstream update --actor agent --provider <current-provider>` plan/apply flow before completion. Preserve identity and origin, replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.",
+    finalizationInstruction,
+    workstreamInstruction,
   ].join("\n\n");
   const sections: string[] = [];
   const documents: PreparedDocument[] = [];
@@ -533,6 +558,31 @@ async function inspectLifecycle(
     changed: expected !== undefined && expected.repositoryRevision !== currentRepository.revision,
   };
   const issues: LifecycleInspection["issues"] = [];
+  let workspace: TerminalWorkspaceInspection | null = null;
+  if (expected?.workspaceBinding !== null && expected?.workspaceBinding !== undefined) {
+    workspace = await inspectTerminalWorkspace({
+      root,
+      provider: expected.provider,
+      providerSessionId: expected.providerSessionId,
+      binding: expected.workspaceBinding,
+    });
+    issues.push(...workspace.issues);
+    if (expected.workspaceBinding.executionKind === "worker") {
+      const activation = await readActivationReceipts(root);
+      const runtimeActivation = await inspectRuntimeActivation(root, activation);
+      return {
+        schemaVersion: 1,
+        status: issues.length === 0 ? "current" : "action_required",
+        repositoryRoot: root,
+        issues,
+        activation,
+        runtimeActivation,
+        activationReadiness: activationReadiness(runtimeActivation),
+        repositoryChange,
+        workspace,
+      };
+    }
+  }
   try {
     const handoff = await lstat(resolve(root, "HANDOFF.md"));
     if (handoff.isFile() && !handoff.isSymbolicLink())
@@ -694,6 +744,7 @@ async function inspectLifecycle(
     runtimeActivation,
     activationReadiness: activationReadiness(runtimeActivation),
     repositoryChange,
+    workspace,
   };
 }
 
@@ -830,6 +881,7 @@ async function recordPreparedContext(input: {
   prompt: string;
   observationId: string;
   context: Awaited<ReturnType<typeof promptContext>>;
+  workspaceBinding: TerminalWorkspaceBinding | null;
   occurredAt: string;
 }): Promise<string> {
   input.context.documents.forEach((document) => assertRepositoryRelativePath(document.path));
@@ -858,6 +910,13 @@ async function recordPreparedContext(input: {
           workstreamSnapshotHash: input.context.workstream?.snapshotHash ?? null,
           workstreamScope: input.context.workstream?.scope ?? null,
           workstreamDeliveredByteCount: input.context.workstream?.deliveredByteCount ?? null,
+          workspaceExecutionKind: input.workspaceBinding?.executionKind ?? null,
+          workspaceId: input.workspaceBinding?.workspaceId ?? null,
+          workspaceGeneration: input.workspaceBinding?.workspaceGeneration ?? null,
+          workspaceRevision: input.workspaceBinding?.workspaceRevision ?? null,
+          assignmentId: input.workspaceBinding?.assignmentId ?? null,
+          leaseGeneration: input.workspaceBinding?.leaseGeneration ?? null,
+          writerSessionId: input.workspaceBinding?.writerSessionId ?? null,
         },
       }),
     );
@@ -903,6 +962,7 @@ async function preparedTurnExpectation(
   root: string,
   coordinates: UnmanagedCoordinates,
   provider: TerminalIntegrationProvider,
+  providerSessionId: string,
 ): Promise<PreparedTurnExpectation | null> {
   const storage = await openProjectStorage(root);
   try {
@@ -912,6 +972,13 @@ async function preparedTurnExpectation(
     const workstreamId = payload.workstreamId;
     const revision = payload.workstreamRevision;
     const repositoryRevision = payload.repositoryRevision;
+    const workspaceExecutionKind = payload.workspaceExecutionKind;
+    const workspaceId = payload.workspaceId;
+    const workspaceGeneration = payload.workspaceGeneration;
+    const workspaceRevision = payload.workspaceRevision;
+    const assignmentId = payload.assignmentId;
+    const leaseGeneration = payload.leaseGeneration;
+    const writerSessionId = payload.writerSessionId;
     const bothNull = workstreamId === null && revision === null;
     const bothPresent =
       typeof workstreamId === "string" && Number.isSafeInteger(revision) && Number(revision) >= 1;
@@ -924,13 +991,47 @@ async function preparedTurnExpectation(
       throw new Error("Prepared repository revision is invalid.");
     if (typeof payload.observationId !== "string")
       throw new Error("Prepared terminal observation coordinate is invalid.");
+    const workspaceNull =
+      workspaceExecutionKind == null &&
+      workspaceId == null &&
+      workspaceGeneration == null &&
+      workspaceRevision == null &&
+      assignmentId == null &&
+      leaseGeneration == null &&
+      writerSessionId == null;
+    const workspacePresent =
+      (workspaceExecutionKind === "worker" || workspaceExecutionKind === "integrator") &&
+      typeof workspaceId === "string" &&
+      Number.isSafeInteger(workspaceGeneration) &&
+      Number(workspaceGeneration) >= 1 &&
+      Number.isSafeInteger(workspaceRevision) &&
+      Number(workspaceRevision) >= 1 &&
+      typeof assignmentId === "string" &&
+      Number.isSafeInteger(leaseGeneration) &&
+      Number(leaseGeneration) >= 1 &&
+      typeof writerSessionId === "string";
+    if (!workspaceNull && !workspacePresent)
+      throw new Error("Prepared workspace coordinates are incomplete.");
     return {
       contextEventId: context.eventId,
       observationId: payload.observationId,
       provider,
+      providerSessionId,
       workstreamId: bothPresent ? workstreamId : null,
       revision: bothPresent ? Number(revision) : null,
       repositoryRevision,
+      preparedAt: context.occurredAt,
+      workspaceBinding: workspacePresent
+        ? {
+            executionKind: workspaceExecutionKind,
+            workspaceId,
+            workspaceGeneration: Number(workspaceGeneration),
+            workspaceRevision: Number(workspaceRevision),
+            assignmentId,
+            leaseGeneration: Number(leaseGeneration),
+            writerSessionId,
+          }
+        : null,
     };
   } finally {
     await storage.close();
@@ -962,6 +1063,7 @@ async function recordObservedTurn(input: {
   coordinates: UnmanagedCoordinates;
   hookInput: ParsedHookInput;
   lifecycle: LifecycleInspection;
+  workspaceCheckpointEventId: string | null;
   occurredAt: string;
 }): Promise<{ eventId: string; referenceCount: number }> {
   const storage = await openProjectStorage(input.root);
@@ -1028,6 +1130,14 @@ async function recordObservedTurn(input: {
               finalWorkstream === null ? null : sha256(`${canonicalJson(finalWorkstream)}\n`),
             providerSessionDigest: input.coordinates.providerSessionDigest,
             providerTurnDigest: input.coordinates.providerTurnDigest,
+            workspaceExecutionKind: input.lifecycle.workspace?.binding.executionKind ?? null,
+            workspaceId: input.lifecycle.workspace?.binding.workspaceId ?? null,
+            workspaceGeneration: input.lifecycle.workspace?.binding.workspaceGeneration ?? null,
+            workspaceRevision: input.lifecycle.workspace?.binding.workspaceRevision ?? null,
+            assignmentId: input.lifecycle.workspace?.binding.assignmentId ?? null,
+            leaseGeneration: input.lifecycle.workspace?.binding.leaseGeneration ?? null,
+            writerSessionId: input.lifecycle.workspace?.binding.writerSessionId ?? null,
+            workspaceCheckpointEventId: input.workspaceCheckpointEventId,
           },
         }),
       );
@@ -1235,7 +1345,31 @@ async function runHook(args: string[], io: CliIo): Promise<number> {
     const occurredAt = new Date().toISOString();
     if (input.event === "UserPromptSubmit") {
       const observationId = newIdentifier("tobs");
-      const context = await promptContext(root, input.prompt!, provider, observationId);
+      let workspaceBinding: TerminalWorkspaceBinding | null;
+      try {
+        workspaceBinding = await attachTerminalWorkspace({
+          root,
+          provider,
+          providerSessionId: input.providerSessionId,
+          now: new Date(occurredAt),
+        });
+      } catch (error) {
+        if (!(error instanceof TerminalWorkspaceIsolationError)) throw error;
+        io.stdout(
+          `${JSON.stringify({
+            decision: "block",
+            reason: `Lervo blocked terminal workspace attachment.\n${error.code}: run lervo workspace inspect --json and recover only this assignment workspace.`,
+          })}\n`,
+        );
+        return 0;
+      }
+      const context = await promptContext(
+        root,
+        input.prompt!,
+        provider,
+        observationId,
+        workspaceBinding,
+      );
       const observationEventId = await recordPreparedContext({
         root,
         provider,
@@ -1243,6 +1377,7 @@ async function runHook(args: string[], io: CliIo): Promise<number> {
         prompt: input.prompt!,
         observationId,
         context,
+        workspaceBinding,
         occurredAt,
       });
       await writeActivationReceipt(root, {
@@ -1265,7 +1400,12 @@ async function runHook(args: string[], io: CliIo): Promise<number> {
       );
       return 0;
     }
-    const expectation = await preparedTurnExpectation(root, coordinates, provider);
+    const expectation = await preparedTurnExpectation(
+      root,
+      coordinates,
+      provider,
+      input.providerSessionId,
+    );
     if (expectation === null) {
       if (input.stopHookActive) {
         io.stdout("{}\n");
@@ -1281,12 +1421,36 @@ async function runHook(args: string[], io: CliIo): Promise<number> {
       return 0;
     }
     const lifecycle = await inspectLifecycle(root, expectation);
+    let workspaceCheckpointEventId: string | null = null;
+    if (
+      lifecycle.status === "current" &&
+      expectation.workspaceBinding?.executionKind === "worker" &&
+      lifecycle.workspace !== null
+    ) {
+      try {
+        workspaceCheckpointEventId = (
+          await checkpointTerminalWorkspace({
+            root,
+            inspection: lifecycle.workspace,
+            contextEventId: expectation.contextEventId,
+            occurredAt: expectation.preparedAt,
+          })
+        ).eventId;
+      } catch {
+        lifecycle.issues.push({
+          code: "workspace_checkpoint_failed",
+          command: "lervo workspace inspect --json",
+        });
+        lifecycle.status = "action_required";
+      }
+    }
     const observation = await recordObservedTurn({
       root,
       provider,
       coordinates,
       hookInput: input,
       lifecycle,
+      workspaceCheckpointEventId,
       occurredAt,
     });
     if (lifecycle.status === "current") {
@@ -1303,13 +1467,18 @@ async function runHook(args: string[], io: CliIo): Promise<number> {
       io.stdout("{}\n");
       return 0;
     }
+    const worker = expectation.workspaceBinding?.executionKind === "worker";
     const reason = [
-      "Lervo blocked terminal completion because the repository lifecycle is not current.",
+      worker
+        ? "Lervo blocked worker completion because this workspace isolation boundary is not current."
+        : "Lervo blocked terminal completion because the repository lifecycle is not current.",
       ...lifecycle.issues.map(
         (item) =>
           `${item.code}: run ${item.command}, review the read-only plan, and apply only the exact current plan/approval.`,
       ),
-      "Complete the required migration or lint work, then try to finish again.",
+      worker
+        ? "Recover only this assignment workspace, then try to finish again; do not advance another workspace's global lifecycle."
+        : "Complete the required migration or lint work, then try to finish again.",
     ].join("\n");
     await writeActivationReceipt(root, {
       schemaVersion: 1,

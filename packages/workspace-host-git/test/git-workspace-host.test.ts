@@ -80,6 +80,7 @@ describe("Git workspace host", () => {
       await adapter.remove({
         repositoryRoot: fixture.repositoryRoot,
         workspacePath: fixture.workspacePath,
+        baseCommit: fixture.baseCommit,
         marker,
         idempotencyKey: "idk_remove_fixture_001",
       }),
@@ -100,6 +101,7 @@ describe("Git workspace host", () => {
       adapter.remove({
         repositoryRoot: fixture.repositoryRoot,
         workspacePath: fixture.workspacePath,
+        baseCommit: fixture.baseCommit,
         marker,
         idempotencyKey: "idk_remove_fixture_002",
       }),

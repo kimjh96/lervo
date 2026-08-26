@@ -145,6 +145,7 @@ export async function planWorkspaceProvision(input: {
     host: { kind: input.host.kind, version: input.host.version, nativeInstanceDigest: null },
     baseCommit: input.baseCommit,
     integrationTargetDigest: input.integrationTargetDigest,
+    creationPlanId: planId,
     markerHash: digest(marker),
     pathDigest,
     state: "provisioning",

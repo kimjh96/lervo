@@ -17,6 +17,7 @@ export interface WorkspaceHostInspection {
   treeHash: string | null;
   clean: boolean | null;
   gitOperationInProgress: boolean | null;
+  changedPaths: string[] | null;
   markerMatched: boolean;
   processObservation: "quiescent" | "live" | "unavailable";
   nativeInstanceDigest: string | null;
@@ -30,9 +31,17 @@ export interface WorkspaceProvisionRequest {
   idempotencyKey: string;
 }
 
+export interface WorkspaceInspectionRequest {
+  repositoryRoot: string;
+  workspacePath: string;
+  baseCommit: string;
+  marker: WorkspaceOwnershipMarker;
+}
+
 export interface WorkspaceRemovalRequest {
   repositoryRoot: string;
   workspacePath: string;
+  baseCommit: string;
   marker: WorkspaceOwnershipMarker;
   idempotencyKey: string;
 }
@@ -47,9 +56,7 @@ export interface WorkspaceHostAdapter {
     processObservation: boolean;
   };
   provision(request: WorkspaceProvisionRequest): Promise<WorkspaceHostInspection>;
-  inspect(
-    request: Omit<WorkspaceProvisionRequest, "baseCommit" | "idempotencyKey">,
-  ): Promise<WorkspaceHostInspection>;
+  inspect(request: WorkspaceInspectionRequest): Promise<WorkspaceHostInspection>;
   remove(request: WorkspaceRemovalRequest): Promise<WorkspaceHostInspection>;
 }
 

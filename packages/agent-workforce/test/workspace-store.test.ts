@@ -35,6 +35,7 @@ function record(repositoryInstanceId: string, baseCommit: string): AgentWorkspac
     host: { kind: "git", version: "1.0.0", nativeInstanceDigest: null },
     baseCommit,
     integrationTargetDigest: hash,
+    creationPlanId: "wpl_0123456789abcdef01234567",
     markerHash: hash,
     pathDigest: hash,
     state: "provisioning",

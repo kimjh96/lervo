@@ -170,6 +170,12 @@ importers:
       '@lervo/verification':
         specifier: workspace:*
         version: link:../../packages/verification
+      '@lervo/workspace-host':
+        specifier: workspace:*
+        version: link:../../packages/workspace-host
+      '@lervo/workspace-host-git':
+        specifier: workspace:*
+        version: link:../../packages/workspace-host-git
       '@lervo/writing':
         specifier: workspace:*
         version: link:../../packages/writing

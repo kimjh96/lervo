@@ -2,7 +2,7 @@ import { RepositoryCoordinationRecords } from "@lervo/project-storage";
 
 import { AgentWorkforceError } from "./types.js";
 import { isAgentWorkspace, transitionWorkspace } from "./workspace-lifecycle.js";
-import type { AgentWorkspace, WorkspaceState } from "./workspace-types.js";
+import type { AgentWorkspace, WorkspaceCheckpoint, WorkspaceState } from "./workspace-types.js";
 
 const EVENT_ID = /^evt_[A-Za-z0-9_-]{8,128}$/u;
 
@@ -11,6 +11,7 @@ export interface WorkspaceCoordinationEvent {
   eventId: string;
   type:
     | "agent.workspace.provisioned"
+    | "agent.workspace.checkpointed"
     | "agent.workspace.state.changed"
     | "agent.workspace.sealed"
     | "assignment.integration.recorded"
@@ -35,6 +36,41 @@ export interface WorkspaceCoordinationEvent {
   integrationEvidenceId: string | null;
   cleanupPlanId: string | null;
   revision: number;
+}
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  if (value !== null && typeof value === "object")
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`)
+      .join(",")}}`;
+  return JSON.stringify(value);
+}
+
+function isWorkspaceCheckpoint(value: WorkspaceCheckpoint): boolean {
+  return (
+    value.schemaVersion === 1 &&
+    value.type === "agent.workspace.checkpointed" &&
+    EVENT_ID.test(value.eventId) &&
+    /^wsp_[a-f0-9]{24}$/u.test(value.workspaceId) &&
+    Number.isSafeInteger(value.generation) &&
+    value.generation >= 1 &&
+    Number.isSafeInteger(value.workspaceRevision) &&
+    value.workspaceRevision >= 1 &&
+    /^asn_[a-f0-9]{24}$/u.test(value.assignmentId) &&
+    Number.isSafeInteger(value.assignmentRevision) &&
+    value.assignmentRevision >= 1 &&
+    Number.isSafeInteger(value.leaseGeneration) &&
+    value.leaseGeneration >= 1 &&
+    /^ses_[A-Za-z0-9_-]{8,128}$/u.test(value.writerSessionId) &&
+    /^[a-f0-9]{40,64}$/u.test(value.headCommit) &&
+    /^[a-f0-9]{40,64}$/u.test(value.treeHash) &&
+    /^sha256:[a-f0-9]{64}$/u.test(value.changedPathSetDigest) &&
+    Number.isSafeInteger(value.changedPathCount) &&
+    value.changedPathCount >= 0 &&
+    Number.isFinite(Date.parse(value.occurredAt))
+  );
 }
 
 function invalid(message: string): never {
@@ -173,4 +209,31 @@ export async function updateWorkspace(
     }),
   });
   return { workspace: structuredClone(result.value), contentHash: result.contentHash };
+}
+
+export async function recordWorkspaceCheckpoint(input: {
+  repositoryRoot: string;
+  checkpoint: WorkspaceCheckpoint;
+}): Promise<WorkspaceCheckpoint> {
+  if (!isWorkspaceCheckpoint(input.checkpoint)) invalid("The workspace checkpoint is invalid.");
+  const records = await RepositoryCoordinationRecords.open(input.repositoryRoot);
+  const existing = await records.read<WorkspaceCheckpoint>("events", input.checkpoint.eventId);
+  if (existing !== null) {
+    if (
+      !isWorkspaceCheckpoint(existing.value) ||
+      stableJson(existing.value) !== stableJson(input.checkpoint)
+    )
+      throw new AgentWorkforceError(
+        "workspace_transition_conflict",
+        "The workspace checkpoint event ID was reused with different content.",
+      );
+    return structuredClone(existing.value);
+  }
+  const result = await records.write({
+    collection: "events",
+    recordId: input.checkpoint.eventId,
+    value: input.checkpoint,
+    expectedContentHash: null,
+  });
+  return structuredClone(result.value);
 }

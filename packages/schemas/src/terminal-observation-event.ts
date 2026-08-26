@@ -8,6 +8,21 @@ const observationIdSchema = {
 } as const;
 
 const optionalTurnDigestSchema = { anyOf: [sha256Schema, { type: "null" }] } as const;
+const optionalWorkspaceIdSchema = {
+  anyOf: [{ type: "string", pattern: "^wsp_[a-f0-9]{24}$" }, { type: "null" }],
+} as const;
+const optionalAssignmentIdSchema = {
+  anyOf: [{ type: "string", pattern: "^asn_[a-f0-9]{24}$" }, { type: "null" }],
+} as const;
+const optionalWriterSessionIdSchema = {
+  anyOf: [{ type: "string", pattern: "^ses_[A-Za-z0-9_-]{8,128}$" }, { type: "null" }],
+} as const;
+const optionalPositiveIntegerSchema = {
+  anyOf: [{ type: "integer", minimum: 1 }, { type: "null" }],
+} as const;
+const optionalExecutionKindSchema = {
+  anyOf: [{ type: "string", enum: ["worker", "integrator"] }, { type: "null" }],
+} as const;
 
 const preparedDocumentSchema = {
   type: "object",
@@ -54,6 +69,13 @@ export const terminalContextPreparedEventPayloadSchema = {
     workstreamDeliveredByteCount: {
       anyOf: [{ type: "integer", minimum: 1, maximum: 8192 }, { type: "null" }],
     },
+    workspaceExecutionKind: optionalExecutionKindSchema,
+    workspaceId: optionalWorkspaceIdSchema,
+    workspaceGeneration: optionalPositiveIntegerSchema,
+    workspaceRevision: optionalPositiveIntegerSchema,
+    assignmentId: optionalAssignmentIdSchema,
+    leaseGeneration: optionalPositiveIntegerSchema,
+    writerSessionId: optionalWriterSessionIdSchema,
   },
   required: [
     "observationId",
@@ -159,6 +181,14 @@ export const terminalTurnObservedEventPayloadSchema = {
     finalWorkstreamSnapshotHash: { anyOf: [sha256Schema, { type: "null" }] },
     providerSessionDigest: sha256Schema,
     providerTurnDigest: optionalTurnDigestSchema,
+    workspaceExecutionKind: optionalExecutionKindSchema,
+    workspaceId: optionalWorkspaceIdSchema,
+    workspaceGeneration: optionalPositiveIntegerSchema,
+    workspaceRevision: optionalPositiveIntegerSchema,
+    assignmentId: optionalAssignmentIdSchema,
+    leaseGeneration: optionalPositiveIntegerSchema,
+    writerSessionId: optionalWriterSessionIdSchema,
+    workspaceCheckpointEventId: { anyOf: [eventIdSchema, { type: "null" }] },
   },
   required: [
     "observationId",

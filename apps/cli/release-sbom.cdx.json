@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:a02450d1-472a-52f0-9252-dd267058f381",
+  "serialNumber": "urn:uuid:1e9d8377-e5ff-5b17-aa1d-ad979dda84df",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "44c6280dd735d22d32d4ae6d9b3d15b0a7e46fc5300ffcdcd556efa09d54254b"
+          "content": "1fb5a9d3b3e3b4b74fb7b70c1543f8dbd1679813406817bf0526951c74fa77ea"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:b37feb5339657c07f14ef55e81891f66ee0eedb90210b1907997a3088b690478"
+          "value": "sha256:a6b2630977150cbd231d463d4ce1a3b2cc6f27dcdbf9cc6638081a095d710680"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:8bcf1e18d9c5a9d8ff69abbe83c1cb97194f16d935178bc13799a602e25161c9"
+          "value": "sha256:b030ce01d13b819f5d238d6685806de2592ce39923cc5ea7b9bc96bd27514da1"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -1045,6 +1045,21 @@
       "name": "verification",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/verification@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/workspace-host-git@0.1.0",
+      "group": "@lervo",
+      "name": "workspace-host-git",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/workspace-host-git@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -3878,6 +3893,7 @@
         "pkg:npm/%40lervo/sync@0.1.0",
         "pkg:npm/%40lervo/verification-contract@0.1.0",
         "pkg:npm/%40lervo/verification@0.1.0",
+        "pkg:npm/%40lervo/workspace-host-git@0.1.0",
         "pkg:npm/%40lervo/workspace-host@0.1.0",
         "pkg:npm/%40lervo/writing-contract@0.1.0",
         "pkg:npm/%40lervo/writing@0.1.0",

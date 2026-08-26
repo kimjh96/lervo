@@ -85,6 +85,7 @@ export function isAgentWorkspace(value: AgentWorkspace): boolean {
     (value.host.nativeInstanceDigest === null || HASH.test(value.host.nativeInstanceDigest)) &&
     COMMIT.test(value.baseCommit) &&
     HASH.test(value.integrationTargetDigest) &&
+    /^wpl_[a-f0-9]{24}$/u.test(value.creationPlanId) &&
     HASH.test(value.markerHash) &&
     HASH.test(value.pathDigest) &&
     validSession(value.writerSession) &&

@@ -83,6 +83,7 @@
       "@lervo/sync@0.1.0",
       "@lervo/verification-contract@0.1.0",
       "@lervo/verification@0.1.0",
+      "@lervo/workspace-host-git@0.1.0",
       "@lervo/workspace-host@0.1.0",
       "@lervo/writing-contract@0.1.0",
       "@lervo/writing@0.1.0"
@@ -127,7 +128,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:8bcf1e18d9c5a9d8ff69abbe83c1cb97194f16d935178bc13799a602e25161c9"
+    "bundleDigest": "sha256:b030ce01d13b819f5d238d6685806de2592ce39923cc5ea7b9bc96bd27514da1"
   },
   "archive": {
     "rootFiles": [
@@ -141,22 +142,22 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 4204738,
-        "sha256": "sha256:44c6280dd735d22d32d4ae6d9b3d15b0a7e46fc5300ffcdcd556efa09d54254b"
+        "size": 4258081,
+        "sha256": "sha256:1fb5a9d3b3e3b4b74fb7b70c1543f8dbd1679813406817bf0526951c74fa77ea"
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 2264271,
-        "sha256": "sha256:c9bea3d0c48c663cdc4e5ca240237d213545ceefa3a421d01abb8f320db1161c"
+        "size": 2266021,
+        "sha256": "sha256:033468e394344024b286457c962b12fe054c4b89d1bbeb21117e496653c27f5d"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 2288846,
-        "sha256": "sha256:434f05c035e77e4c919e7a07d2e7cddf1e134bd71b7f5d9848bd36174e7f0188"
+        "size": 2418222,
+        "sha256": "sha256:9dbd4746bb968e8139be70f96ec2f7a7ac793ea98eb9863a94e2cc3ec9b1106e"
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:a5ca2d2ba0568c0bec1761bc3f7c7a91986b84b9c6c4fda7d33910f398fcdf56"
+    "contentDigest": "sha256:2898baa04d8e44dff3838065963b652d5db58fa6b45b0904ac7bf8990626c72f"
   },
   "dependencies": {
     "portable": [
@@ -269,5 +270,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:b37feb5339657c07f14ef55e81891f66ee0eedb90210b1907997a3088b690478"
+  "artifactDigest": "sha256:a6b2630977150cbd231d463d4ce1a3b2cc6f27dcdbf9cc6638081a095d710680"
 }

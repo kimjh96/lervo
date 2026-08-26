@@ -1,6 +1,11 @@
+import { execFile } from "node:child_process";
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
+
+import { claimAssignment, createAssignment, registerAgent } from "@lervo/agent-workforce";
+import { applyWorkspaceProvision, planWorkspaceProvision } from "@lervo/orchestrator";
 
 import {
   applyKnowledgeInstructionBridgePlan,
@@ -13,12 +18,14 @@ import {
   sha256,
   terminalHookCommand,
 } from "@lervo/repository-knowledge";
-import { openProjectStorage } from "@lervo/project-storage";
+import { openProjectStorage, RepositoryCoordinationRecords } from "@lervo/project-storage";
+import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
 
 const roots: string[] = [];
+const execute = promisify(execFile);
 const runtimeContent = "#!/usr/bin/env node\nprocess.stdout.write('{}\\n');\n";
 
 async function initializedRepository(): Promise<string> {
@@ -62,11 +69,162 @@ async function initializedRepository(): Promise<string> {
   return root;
 }
 
+async function managedWorkerRepository() {
+  const repositoryRoot = await initializedRepository();
+  await execute("git", ["-C", repositoryRoot, "init"]);
+  await execute("git", [
+    "-C",
+    repositoryRoot,
+    "config",
+    "user.email",
+    "lervo-test@example.invalid",
+  ]);
+  await execute("git", ["-C", repositoryRoot, "config", "user.name", "Lervo Test"]);
+  await execute("git", ["-C", repositoryRoot, "add", "."]);
+  await execute("git", ["-C", repositoryRoot, "commit", "-m", "fixture"]);
+  const { stdout } = await execute("git", ["-C", repositoryRoot, "rev-parse", "HEAD"]);
+  const baseCommit = stdout.trim();
+  const agent = await registerAgent({
+    repositoryRoot,
+    roleId: "developer",
+    provider: "codex",
+    responsibilityPaths: ["README.md"],
+  });
+  const assignment = await createAssignment({
+    repositoryRoot,
+    taskType: "implementation",
+    roleId: "developer",
+    acceptanceCriteria: ["Update the assigned document."],
+    verificationSuiteIds: ["project.quick"],
+    expectedPaths: ["README.md"],
+  });
+  const claimed = await claimAssignment({
+    repositoryRoot,
+    assignmentId: assignment.assignmentId,
+    agentId: agent.agentId,
+    sessionId: "ses_terminal_worker_fixture",
+  });
+  const parent = await mkdtemp(resolve(tmpdir(), "lervo-cli-worker-parent-"));
+  roots.push(parent);
+  const workspacePath = resolve(parent, "worker");
+  const host = new GitWorkspaceHostAdapter();
+  const plan = await planWorkspaceProvision({
+    repositoryRoot,
+    workspacePath,
+    assignmentId: claimed.assignmentId,
+    agentId: agent.agentId,
+    leaseId: claimed.lease!.leaseId,
+    provider: "codex",
+    baseCommit,
+    integrationTargetDigest: sha256("terminal-worker-target"),
+    executionKind: "worker",
+    host,
+  });
+  await applyWorkspaceProvision({ plan, host });
+  return { repositoryRoot, workspacePath, workspaceId: plan.workspace.workspaceId };
+}
+
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
 describe("terminal integration CLI", () => {
+  it("checkpoints an attached worker without requiring foreign global lifecycle updates", async () => {
+    const fixture = await managedWorkerRepository();
+    const invoke = async (event: "UserPromptSubmit" | "Stop", turnId: string) => {
+      const messages: string[] = [];
+      const errors: string[] = [];
+      expect(
+        await runCli(["terminal", "hook", "--provider", "codex", "--contract", "2"], {
+          cwd: fixture.workspacePath,
+          stdout: (message: string) => messages.push(message),
+          stderr: (message: string) => errors.push(message),
+          stdin: async () =>
+            JSON.stringify(
+              event === "UserPromptSubmit"
+                ? {
+                    hook_event_name: event,
+                    session_id: "managed-worker-provider-session",
+                    turn_id: turnId,
+                    prompt: "Update the assigned document.",
+                  }
+                : {
+                    hook_event_name: event,
+                    session_id: "managed-worker-provider-session",
+                    turn_id: turnId,
+                    last_assistant_message: "Done.",
+                  },
+            ),
+        }),
+        errors.join(""),
+      ).toBe(0);
+      expect(errors).toEqual([]);
+      return JSON.parse(messages.join("")) as {
+        decision?: string;
+        reason?: string;
+        hookSpecificOutput?: { additionalContext: string };
+      };
+    };
+
+    const prepared = await invoke("UserPromptSubmit", "worker-turn-1");
+    expect(prepared.hookSpecificOutput?.additionalContext).toContain(
+      "does not advance the repository-wide workstream",
+    );
+    const inspectionOutput: string[] = [];
+    expect(
+      await runCli(["workspace", "inspect", "--json"], {
+        cwd: fixture.workspacePath,
+        stdout: (message: string) => inspectionOutput.push(message),
+        stderr: () => undefined,
+      }),
+    ).toBe(0);
+    expect(JSON.parse(inspectionOutput.join(""))).toMatchObject({
+      status: "current",
+      inspections: [{ workspace: { workspaceId: fixture.workspaceId, state: "active" } }],
+    });
+    const secondWriterOutput: string[] = [];
+    expect(
+      await runCli(["terminal", "hook", "--provider", "codex", "--contract", "2"], {
+        cwd: fixture.workspacePath,
+        stdout: (message: string) => secondWriterOutput.push(message),
+        stderr: () => undefined,
+        stdin: async () =>
+          JSON.stringify({
+            hook_event_name: "UserPromptSubmit",
+            session_id: "foreign-writer-session",
+            turn_id: "foreign-writer-turn",
+            prompt: "Mutate the same checkout.",
+          }),
+      }),
+    ).toBe(0);
+    expect(JSON.parse(secondWriterOutput.join(""))).toMatchObject({
+      decision: "block",
+      reason: expect.stringContaining("writer_lease_lost"),
+    });
+    await writeFile(resolve(fixture.workspacePath, "README.md"), "# Assigned worker change\n");
+    expect(await invoke("Stop", "worker-turn-1")).toEqual({});
+
+    const records = await RepositoryCoordinationRecords.open(fixture.workspacePath);
+    const checkpoint = (await records.list<Record<string, unknown>>("events")).find(
+      (record) =>
+        record.value.workspaceId === fixture.workspaceId && "writerSessionId" in record.value,
+    );
+    expect(checkpoint?.value).toMatchObject({
+      workspaceId: fixture.workspaceId,
+      changedPathCount: 1,
+      checkoutClean: false,
+    });
+
+    await invoke("UserPromptSubmit", "worker-turn-2");
+    await writeFile(resolve(fixture.workspacePath, "outside-scope.txt"), "foreign\n");
+    const blocked = await invoke("Stop", "worker-turn-2");
+    expect(blocked).toMatchObject({
+      decision: "block",
+      reason: expect.stringContaining("workspace_path_escape"),
+    });
+    expect(blocked.reason).not.toMatch(/workstream_checkpoint_required|migrate knowledge/u);
+  }, 30_000);
+
   it("reapplies a repeated runtime transition after an intervening application event", async () => {
     const root = await initializedRepository();
     const errors: string[] = [];

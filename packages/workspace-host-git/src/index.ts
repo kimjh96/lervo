@@ -9,6 +9,7 @@ import {
   WorkspaceHostError,
   type WorkspaceHostAdapter,
   type WorkspaceHostInspection,
+  type WorkspaceInspectionRequest,
   type WorkspaceOwnershipMarker,
   type WorkspaceProvisionRequest,
   type WorkspaceRemovalRequest,
@@ -60,13 +61,14 @@ function validateRequest(
   repositoryRoot: string,
   workspacePath: string,
   marker: WorkspaceOwnershipMarker,
+  allowSamePath = false,
 ) {
   if (
     !isAbsolute(repositoryRoot) ||
     !isAbsolute(workspacePath) ||
     resolve(repositoryRoot) !== repositoryRoot ||
     resolve(workspacePath) !== workspacePath ||
-    repositoryRoot === workspacePath ||
+    (!allowSamePath && repositoryRoot === workspacePath) ||
     !validMarker(marker)
   )
     fail("host_coordinate_invalid", "The Git workspace coordinate is invalid.");
@@ -143,9 +145,12 @@ async function gitOperationInProgress(workspacePath: string): Promise<boolean> {
 async function inspectGitWorkspace(input: {
   repositoryRoot: string;
   workspacePath: string;
+  baseCommit: string;
   marker: WorkspaceOwnershipMarker;
 }): Promise<WorkspaceHostInspection> {
-  validateRequest(input.repositoryRoot, input.workspacePath, input.marker);
+  validateRequest(input.repositoryRoot, input.workspacePath, input.marker, true);
+  if (!COMMIT.test(input.baseCommit))
+    fail("host_coordinate_invalid", "The Git inspection base is invalid.");
   const worktrees = await registeredWorktrees(input.repositoryRoot);
   let registeredPath = input.workspacePath;
   try {
@@ -161,6 +166,7 @@ async function inspectGitWorkspace(input: {
       treeHash: null,
       clean: null,
       gitOperationInProgress: null,
+      changedPaths: null,
       markerMatched: false,
       processObservation: "unavailable",
       nativeInstanceDigest: null,
@@ -174,6 +180,7 @@ async function inspectGitWorkspace(input: {
         treeHash: null,
         clean: null,
         gitOperationInProgress: null,
+        changedPaths: null,
         markerMatched: false,
         processObservation: "unavailable",
         nativeInstanceDigest: digest({ path: input.workspacePath, head: registeredHead }),
@@ -185,24 +192,29 @@ async function inspectGitWorkspace(input: {
       treeHash: null,
       clean: null,
       gitOperationInProgress: null,
+      changedPaths: null,
       markerMatched: false,
       processObservation: "unavailable",
       nativeInstanceDigest: digest({ path: input.workspacePath, head: registeredHead }),
     };
   }
-  const [headCommit, treeHash, status, operation, matched] = await Promise.all([
+  const [headCommit, treeHash, status, operation, matched, changed, untracked] = await Promise.all([
     git(input.workspacePath, ["rev-parse", "HEAD"]),
     git(input.workspacePath, ["rev-parse", "HEAD^{tree}"]),
     git(input.workspacePath, ["status", "--porcelain=v2", "--untracked-files=normal"]),
     gitOperationInProgress(input.workspacePath),
     markerMatches(input.workspacePath, input.marker),
+    git(input.workspacePath, ["diff", "--name-only", "-z", input.baseCommit]),
+    git(input.workspacePath, ["ls-files", "--others", "--exclude-standard", "-z"]),
   ]);
+  const changedPaths = [...new Set(`${changed}\0${untracked}`.split("\0").filter(Boolean))].sort();
   return {
     status: matched ? "present" : "recovery_required",
     headCommit,
     treeHash,
     clean: status.length === 0,
     gitOperationInProgress: operation,
+    changedPaths,
     markerMatched: matched,
     processObservation: "unavailable",
     nativeInstanceDigest: digest({ path: await realpath(input.workspacePath), head: headCommit }),
@@ -276,7 +288,7 @@ export class GitWorkspaceHostAdapter implements WorkspaceHostAdapter {
     return inspectGitWorkspace(request);
   }
 
-  inspect(request: Omit<WorkspaceProvisionRequest, "baseCommit" | "idempotencyKey">) {
+  inspect(request: WorkspaceInspectionRequest) {
     return inspectGitWorkspace(request);
   }
 

@@ -50,6 +50,7 @@ export interface AgentWorkspace {
   };
   baseCommit: string;
   integrationTargetDigest: string;
+  creationPlanId: string;
   markerHash: string;
   pathDigest: string;
   state: WorkspaceState;
@@ -108,4 +109,23 @@ export interface WorkspaceIntegrationCandidate {
   dependencyAssignmentIds: string[];
   priority: number;
   sealedAt: string;
+}
+
+export interface WorkspaceCheckpoint {
+  schemaVersion: 1;
+  type: "agent.workspace.checkpointed";
+  eventId: string;
+  workspaceId: string;
+  generation: number;
+  workspaceRevision: number;
+  assignmentId: string;
+  assignmentRevision: number;
+  leaseGeneration: number;
+  writerSessionId: string;
+  headCommit: string;
+  treeHash: string;
+  changedPathSetDigest: string;
+  changedPathCount: number;
+  checkoutClean: boolean;
+  occurredAt: string;
 }

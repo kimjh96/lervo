@@ -112,6 +112,7 @@ The lifecycle adds these canonical local coordination events:
 - `agent.workspace.provisioned`: workspace, assignment, agent, repository-instance, adapter, generation, base and target digests, and time.
 - `agent.workspace.state.changed`: workspace, assignment, generation, previous and next state, bounded reason code, lease generation when applicable, and time.
 - `agent.workspace.sealed`: workspace, assignment, generation, base/head/tree hashes, changed-path-set digest and count, result artifact and verification-result coordinates, no-change flag, and time.
+- `agent.workspace.checkpointed`: workspace and assignment revisions and generations, writer session, head/tree hashes, changed-path-set digest and count, clean flag, and time.
 - `assignment.integration.recorded`: integration and integration-assignment IDs, integrator workspace, ordered source workspace generations and head hashes, target before/after hashes, strategy, verification-result coordinates, and time.
 - `agent.workspace.removed`: workspace, generation, integration or discard evidence ID, cleanup plan ID, adapter kind and version, and time.
 

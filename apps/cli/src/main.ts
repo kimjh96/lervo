@@ -23,6 +23,7 @@ import type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
 import { runUpgradeCommand, upgradeUsage } from "./upgrade-command.js";
 import { runVersionCommand, versionUsage } from "./version-command.js";
 import { runWorkstreamCommand, workstreamUsage } from "./workstream-command.js";
+import { runWorkspaceCommand, workspaceUsage } from "./workspace-command.js";
 import { runWorkforceCommand, workforceUsage } from "./workforce-command.js";
 
 const usage = `Usage:
@@ -42,6 +43,7 @@ ${environmentUsage}
 ${repositoryUsage}
 ${terminalUsage}
 ${workstreamUsage}
+${workspaceUsage}
 ${workforceUsage}
 ${roleUsage}
 ${readmeUsage}
@@ -84,6 +86,7 @@ export async function runCli(
   if (command === "repository") return runRepositoryCommand(args.slice(1), io);
   if (command === "terminal") return runTerminalCommand(args.slice(1), io);
   if (command === "workstream") return runWorkstreamCommand(args.slice(1), io);
+  if (command === "workspace") return runWorkspaceCommand(args.slice(1), io);
   if (command === "workforce" || command === "agent" || command === "assignment")
     return runWorkforceCommand(command, args.slice(1), io);
   if (command === "role") return runRoleCommand(args.slice(1), io);

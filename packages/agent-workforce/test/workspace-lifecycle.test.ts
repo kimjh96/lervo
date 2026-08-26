@@ -26,6 +26,7 @@ function workspace(state: AgentWorkspace["state"] = "provisioning"): AgentWorksp
     host: { kind: "git", version: "1.0.0", nativeInstanceDigest: null },
     baseCommit: commit,
     integrationTargetDigest: hash,
+    creationPlanId: "wpl_0123456789abcdef01234567",
     markerHash: hash,
     pathDigest: hash,
     state,
