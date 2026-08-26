@@ -1,9 +1,9 @@
-import {
-  startup as defaultStartup,
-  type Query,
-  type WarmQuery,
-  type McpServerConfig,
-  type SdkPluginConfig,
+import type {
+  startup,
+  Query,
+  WarmQuery,
+  McpServerConfig,
+  SdkPluginConfig,
 } from "@anthropic-ai/claude-agent-sdk";
 
 import { AsyncQueue } from "./async-queue.js";
@@ -39,12 +39,13 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
 
   static async connect(
     options: ClaudeAgentClientStartOptions,
-    sdkStartup: typeof defaultStartup = defaultStartup,
+    sdkStartup?: typeof startup,
   ): Promise<ClaudeSdkAgentClient> {
     const abortController = new AbortController();
     let warm: WarmQuery;
     let connected: ClaudeSdkAgentClient | undefined;
     try {
+      const start = sdkStartup ?? (await import("@anthropic-ai/claude-agent-sdk")).startup;
       const mcpServers: Record<string, McpServerConfig> = {};
       const plugins: SdkPluginConfig[] = [];
       for (const activation of options.capabilityActivations ?? []) {
@@ -98,7 +99,7 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
           };
         }
       }
-      warm = await sdkStartup({
+      warm = await start({
         initializeTimeoutMs: options.requestTimeoutMs,
         options: {
           abortController,
