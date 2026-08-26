@@ -85,7 +85,7 @@ jobs:
 
           ## Risk and recovery
 
-          The fixed branch is reconciled with force-with-lease. A stale source, changed intent, owner-command failure, or conflicting remote branch fails closed and is recoverable by rerunning from current `main`.
+          The fixed branch ref is aligned to the exact existing `main` revision before a fast-forward artifact push. A stale source, changed intent, owner-command failure, or concurrent branch change fails closed and is recoverable by rerunning from current `main`.
 
           ## Checklist
 

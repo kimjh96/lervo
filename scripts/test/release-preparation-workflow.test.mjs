@@ -39,6 +39,7 @@ describe("CLI release preparation workflow", () => {
     assert.match(prepare.run, /git switch -C lervo\/release-cli/u);
     assert.match(prepare.run, /git push origin lervo\/release-cli/u);
     assert.doesNotMatch(prepare.run, /git push --force/u);
+    assert.doesNotMatch(prepare.run, /force-with-lease/u);
     assert.match(prepare.run, /gh pr list .*--state open/u);
     assert.match(prepare.run, /gh pr create .*--body-file "\$\{body_file\}"/u);
     assert.match(prepare.run, /gh pr edit .*--body-file "\$\{body_file\}"/u);
