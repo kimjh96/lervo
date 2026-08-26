@@ -205,6 +205,22 @@ describe("SQLite append-only event store", () => {
     second.close();
   });
 
+  it("verifies integrity across bounded event pages", async () => {
+    const store = await SQLiteEventStore.open({ path: await databasePath(), projectId });
+    let headHash: string | null = null;
+    for (let index = 1; index <= 1001; index += 1) {
+      headHash = store.append(
+        draft({
+          eventId: `evt_${String(index).padStart(8, "0")}`,
+          occurredAt: `2026-08-18T00:${String(Math.floor(index / 60)).padStart(2, "0")}:${String(index % 60).padStart(2, "0")}Z`,
+        }),
+      ).event.eventHash;
+    }
+
+    expect(store.verifyIntegrity()).toEqual({ valid: true, eventCount: 1001, headHash });
+    store.close();
+  });
+
   it("records and validates the explicit schema migration version", async () => {
     const path = await databasePath();
     const store = await SQLiteEventStore.open({ path, projectId });

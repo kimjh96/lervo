@@ -18,6 +18,8 @@ import {
 import { EventStoreError } from "./errors.js";
 import { requireString, rowToEvent } from "./row-codec.js";
 
+const integrityPageSize = 1000;
+
 export class SQLiteEventRepository {
   constructor(
     private readonly database: DatabaseSync,
@@ -144,25 +146,29 @@ export class SQLiteEventRepository {
   verifyIntegrity(): EventChainReport {
     let previousHash: string | null = null;
     let eventCount = 0;
-    const rows = this.database
-      .prepare("SELECT * FROM events WHERE project_id = ? ORDER BY seq")
-      .iterate(this.projectId);
-    for (const row of rows) {
-      const event = rowToEvent(row);
-      eventCount += 1;
-      if (event.seq !== eventCount || event.previousHash !== previousHash) {
-        throw new EventStoreError(
-          "integrity_failed",
-          `The event chain coordinates break at ${event.eventId}.`,
-        );
+    const page = this.database.prepare(
+      "SELECT * FROM events WHERE project_id = ? AND seq > ? ORDER BY seq LIMIT ?",
+    );
+    while (true) {
+      const rows = page.all(this.projectId, eventCount, integrityPageSize);
+      if (rows.length === 0) break;
+      for (const row of rows) {
+        const event = rowToEvent(row);
+        eventCount += 1;
+        if (event.seq !== eventCount || event.previousHash !== previousHash) {
+          throw new EventStoreError(
+            "integrity_failed",
+            `The event chain coordinates break at ${event.eventId}.`,
+          );
+        }
+        if (event.eventHash !== computeEventHash(eventWithoutHash(event))) {
+          throw new EventStoreError(
+            "integrity_failed",
+            `The event hash does not match at ${event.eventId}.`,
+          );
+        }
+        previousHash = event.eventHash;
       }
-      if (event.eventHash !== computeEventHash(eventWithoutHash(event))) {
-        throw new EventStoreError(
-          "integrity_failed",
-          `The event hash does not match at ${event.eventId}.`,
-        );
-      }
-      previousHash = event.eventHash;
     }
     return { valid: true, eventCount, headHash: previousHash };
   }
