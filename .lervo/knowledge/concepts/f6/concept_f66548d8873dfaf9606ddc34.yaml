@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_f66548d8873dfaf9606ddc34
+freshness: current
+ownership: user
+path: .github/PULL_REQUEST_TEMPLATE.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_cda9d46e6932c06e9fae7115
+title: Pull request
+type: concept

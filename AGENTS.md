@@ -14,11 +14,13 @@ Do not load the entire ADR history by default.
 
 Before committing, follow [the repository commit convention](docs/foundation/commit-convention.md). An optional scope must exactly match the workspace package name without `@lervo/`; omit it for repository-wide changes.
 
-Follow [the repository code convention](docs/foundation/code-convention.md) as the completion contract. Before editing source, identify its responsibility and dependency boundary. Apply the module-split signals to every touched source file, complete the review checklist, and resolve structural violations before finishing. Passing lint or formatting is insufficient.
+Before opening or updating a pull request, read [the repository pull-request template](.github/PULL_REQUEST_TEMPLATE.md). Preserve every section, replace guidance with exact evidence, and use `N/A — <reason>` for inapplicable sections. The PR-authoring agent must evaluate each checklist item, check it only after observing supporting evidence, and record blockers for unchecked items. Never submit prose-only summaries or pre-checked boilerplate.
 
-If a required split would materially increase delivery risk, record one bounded follow-up naming the exact responsibility and verification. Never refresh a long-module review hash without repeating the structural review; the registry records cohesive modules, not exceptions for unresolved violations.
+Follow [the repository code convention](docs/foundation/code-convention.md) as the completion contract. Before editing source, identify its responsibility and dependency boundary. Apply module-split signals and the review checklist to every touched source file, resolving structural violations before finishing; lint and formatting alone are insufficient.
 
-ESLint owns automatable code quality; Prettier owns formatting. For source or configuration changes, run `pnpm quality:check` and limit broad automatic-fix diffs to the task.
+If a required split materially increases delivery risk, record one bounded follow-up with the exact responsibility and verification. Repeat the structural review before refreshing a long-module review hash; the registry records cohesive modules, not unresolved exceptions.
+
+ESLint owns automatable code quality; Prettier owns formatting. For source or configuration changes, run `pnpm quality:check` and keep broad automatic-fix diffs within task scope.
 
 ## Invariants
 

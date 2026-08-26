@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [Pull request](../../../.github/PULL_REQUEST_TEMPLATE.md) — `.github/PULL_REQUEST_TEMPLATE.md`
 - [@lervo/cli](../../../apps/cli/README.md) — `apps/cli/README.md`
 - [ADR-0046: Platform-neutral conversation participation](../../decisions/coordination/conversations/0046-platform-neutral-conversation-participation.md) — `docs/decisions/coordination/conversations/0046-platform-neutral-conversation-participation.md`
 - [ADR-0048: Authenticated Slack and Discord conversation adapters](../../decisions/coordination/conversations/0048-authenticated-platform-conversation-adapters.md) — `docs/decisions/coordination/conversations/0048-authenticated-platform-conversation-adapters.md`
@@ -26,4 +27,3 @@
 - [ADR-0005: Shared Context and Role Handoff](../../decisions/coordination/remote-control/0005-shared-context-and-role-handoff.md) — `docs/decisions/coordination/remote-control/0005-shared-context-and-role-handoff.md`
 - [ADR-0041: Signed, project-scoped, locally authorized remote commands](../../decisions/coordination/remote-control/0041-signed-scoped-remote-command.md) — `docs/decisions/coordination/remote-control/0041-signed-scoped-remote-command.md`
 - [ADR-0042: Durable remote-command delivery across restart and lost responses](../../decisions/coordination/remote-control/0042-durable-remote-command-delivery.md) — `docs/decisions/coordination/remote-control/0042-durable-remote-command-delivery.md`
-- [ADR-0145: Authenticated, Node-Scoped Remote Command Delivery](../../decisions/coordination/remote-control/0145-authenticated-remote-command-http-delivery.md) — `docs/decisions/coordination/remote-control/0145-authenticated-remote-command-http-delivery.md`

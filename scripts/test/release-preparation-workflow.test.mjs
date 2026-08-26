@@ -32,6 +32,20 @@ describe("CLI release preparation workflow", () => {
     assert.match(prepare.run, /git switch -C lervo\/release-cli/u);
     assert.match(prepare.run, /git push --force-with-lease origin lervo\/release-cli/u);
     assert.match(prepare.run, /gh pr view lervo\/release-cli/u);
+    assert.match(prepare.run, /gh pr create .*--body-file "\$\{body_file\}"/u);
+    assert.match(prepare.run, /\[ \] Relevant tests, `pnpm quality:check`/u);
+    assert.match(prepare.run, /Pending pull-request CI/u);
+    for (const heading of [
+      "Summary",
+      "Scope and authority",
+      "Contract and architecture",
+      "Release impact",
+      "Verification",
+      "Knowledge and documentation",
+      "Risk and recovery",
+      "Checklist",
+    ])
+      assert.match(prepare.run, new RegExp(`^## ${heading}$`, "mu"));
     assert.doesNotMatch(prepare.run, /CHANGELOG\.md/u);
     const tag = steps.find(({ name }) => name === "Create and push the exact annotated tag");
     assert.equal(tag.if, "steps.prepare.outputs.disposition == 'tag_check'");
