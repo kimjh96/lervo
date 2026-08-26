@@ -63,6 +63,10 @@ describe("Git workspace host", () => {
       processObservation: "unavailable",
     });
     expect(await adapter.provision(request)).toEqual(provisioned);
+    expect(await adapter.inspectResult(request)).toMatchObject({
+      baseCommitReachable: true,
+      commitIds: [],
+    });
     const { stdout: gitDirectory } = await execute("git", [
       "-C",
       fixture.workspacePath,

@@ -32,6 +32,7 @@ function workspace(state: AgentWorkspace["state"] = "provisioning"): AgentWorksp
     state,
     writerSession: null,
     sealedResult: null,
+    integrationQueueEntryId: null,
     integrationEvidenceId: null,
     cleanupPlanId: null,
     recoveryReason: null,

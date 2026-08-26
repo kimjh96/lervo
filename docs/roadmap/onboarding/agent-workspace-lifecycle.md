@@ -9,9 +9,9 @@ Assignment path leases reject declared overlap, but concurrent terminals can sti
 
 ## Product outcome
 
-Each write-capable repository agent uses a dedicated managed worktree. Workers checkpoint and seal only their assignment result. An ordinary repository agent with integration capability combines sealed results in a separate integration worktree, runs repository-wide verification, and advances the canonical workstream. Integrated worker worktrees are removed automatically only when local evidence proves they are clean, quiescent, reachable, and recoverable.
+Each write-capable repository agent uses a dedicated managed worktree. Workers checkpoint and seal only their assignment result. An ordinary repository agent with integration capability combines sealed results in a separate integration worktree, runs repository-wide verification, and advances the canonical workstream.
 
-Local coordination works without a Hub. Explicit Hub coordination adds cross-Node scope reservations and status without transferring write, merge, approval, or cleanup authority.
+Integrated worker worktrees are removed automatically only when local evidence proves they are clean, quiescent, reachable, and recoverable. Local coordination works without a Hub. Explicit Hub coordination adds cross-Node scope reservations and status without transferring write, merge, approval, or cleanup authority.
 
 ## Delivery order
 
@@ -19,7 +19,7 @@ Local coordination works without a Hub. Explicit Hub coordination adds cross-Nod
 2. [Completed] Add workspace identities, generations, ownership markers, lifecycle state, events, and the provider-neutral workspace-host port.
 3. [Completed] Implement native Git provisioning and inspection, then bind assignments and one writer session to dedicated worktrees.
 4. [Completed] Make direct terminal preparation and Stop execution-kind-aware; workers finalize scoped workspace state while integrators retain repository-wide finalization.
-5. Add immutable sealing, deterministic integration queueing, exclusive target leases, exact Git integration plans, and conflict recovery.
+5. [In progress] Immutable sealing and deterministic integration queueing are implemented. Add exclusive target leases, exact Git integration plans, and conflict recovery.
 6. Add path-private cleanup planning, non-force removal, crash recovery, and positive process quiescence. Keep automatic cleanup disabled until these gates pass.
 7. Add an Orca host adapter for managed worktree and terminal evidence without importing Orca into lifecycle domain packages.
 8. Add optional Hub reservations, permissions, audit transitions, Node reconciliation, health, and cross-Node acceptance.

@@ -12,3 +12,6 @@ export * from "./provider-write-bridge.js";
 export * from "./repository-snapshot.js";
 export * from "./types.js";
 export * from "./workspace-provisioning.js";
+export { applyWorkspaceSeal } from "./workspace-seal-apply.js";
+export { planWorkspaceSeal } from "./workspace-seal-plan.js";
+export type { WorkspaceSealPlan } from "./workspace-seal-contract.js";

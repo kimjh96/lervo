@@ -16,11 +16,13 @@ This planned execution-space contract refines, without replacing, assignment pat
 
 ## Implementation status
 
-Implemented foundations include a Git-common-directory, owner-only coordination home shared by sibling worktrees; conflict-safe legacy migration; content-hash compare-and-swap workspace records and allowlisted events; pure transition, scoped-path, deterministic-ordering, and cleanup-eligibility decisions; a provider-neutral host port; and a native Git adapter supporting idempotent detached-worktree provisioning, exact base-relative inspection, marker validation, dirty-worktree protection, and non-force removal. Assignment orchestration provides read-only provision planning and exact apply with stale-lease rejection and recovery state.
+Implemented foundations include a Git-common-directory, owner-only coordination home shared by sibling worktrees; conflict-safe legacy migration; content-hash compare-and-swap workspace records and allowlisted events; pure transition, scoped-path, deterministic-ordering, and cleanup-eligibility decisions; a provider-neutral host port; and a native Git adapter supporting idempotent detached-worktree provisioning, exact base-relative result inspection, stable native-instance identity, marker validation, dirty-worktree protection, and non-force removal. Assignment orchestration provides read-only provision planning and exact apply with stale-lease rejection and recovery state.
 
 Direct terminal preparation activates one writer only for an exact ready workspace. Worker Stop rechecks marker, workspace revision, writer, assignment lease, and base-relative path partition, then records a path-private checkpoint without requiring foreign global workstream or knowledge updates. Integrator and unattached Stop retain repository-wide finalization. `lervo workspace inspect` reads the current local binding without mutation. Direct provider execution remains telemetry-limited and is not managed provider execution.
 
-Sealing and integration orchestration, automatic cleanup policy, the Orca production adapter, and Hub reservations remain disabled until their gates pass.
+Immutable sealing uses a read-only, content-bound plan and an exact apply recheck. It freezes the writer, accepts only clean committed in-scope bytes with a reachable base, binds ordered commits, result and verification artifacts, approval and recovery status, and publishes a deterministic queue entry. Orphaned or stale queue records are projected only when the exact workspace generation reached `integration_pending`.
+
+Exact Git integration and conflict recovery, automatic cleanup policy, the Orca production adapter, and Hub reservations remain disabled until their gates pass.
 
 ## Identities and storage
 

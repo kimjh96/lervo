@@ -3,6 +3,7 @@ import type {
   AgentWorkspace,
   WorkspaceCleanupObservation,
   WorkspaceIntegrationCandidate,
+  WorkspaceIntegrationQueueEntry,
   WorkspaceSealedResult,
   WorkspaceState,
   WorkspaceTransitionEvidence,
@@ -13,6 +14,8 @@ const HASH = /^sha256:[a-f0-9]{64}$/u;
 const COMMIT = /^[a-f0-9]{40,64}$/u;
 const WORKSPACE_ID = /^wsp_[a-f0-9]{24}$/u;
 const REPOSITORY_INSTANCE_ID = /^rpi_[a-f0-9]{24}$/u;
+const ARTIFACT_ID = /^art_[A-Za-z0-9_-]{8,128}$/u;
+const SAFE_PATH = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))(?!.*\\)(?!.*\0).{1,1024}$/u;
 
 const transitions: Readonly<Record<WorkspaceState, readonly WorkspaceState[]>> = {
   provisioning: ["ready", "recovery_required"],
@@ -61,12 +64,62 @@ function validSeal(value: WorkspaceSealedResult | null): boolean {
     HASH.test(value.changedPathSetDigest) &&
     Number.isSafeInteger(value.changedPathCount) &&
     value.changedPathCount >= 0 &&
-    /^art_[A-Za-z0-9_-]{8,128}$/u.test(value.resultArtifactId) &&
+    value.changedPaths.length === value.changedPathCount &&
+    value.changedPaths.length <= 10_000 &&
+    value.changedPaths.every((path) => SAFE_PATH.test(path)) &&
+    new Set(value.changedPaths).size === value.changedPaths.length &&
+    value.commitIds.length <= 10_000 &&
+    value.commitIds.every((commitId) => COMMIT.test(commitId)) &&
+    ARTIFACT_ID.test(value.resultArtifactId) &&
     HASH.test(value.resultArtifactHash) &&
-    value.verificationResultHashes.length <= 64 &&
-    value.verificationResultHashes.every((hash) => HASH.test(hash)) &&
+    value.verificationResults.length <= 64 &&
+    value.verificationResults.every(
+      (result) =>
+        /^[a-z][a-z0-9._-]{1,99}$/u.test(result.suiteId) &&
+        HASH.test(result.policyHash) &&
+        ARTIFACT_ID.test(result.resultArtifactId) &&
+        HASH.test(result.resultArtifactHash) &&
+        validTime(result.completedAt) &&
+        result.passed,
+    ) &&
+    !value.approvalPending &&
+    !value.recoveryPending &&
+    (value.sourceWorkstream === null ||
+      (/^wks_[a-f0-9]{24}$/u.test(value.sourceWorkstream.workstreamId) &&
+        Number.isSafeInteger(value.sourceWorkstream.revision) &&
+        value.sourceWorkstream.revision >= 1 &&
+        HASH.test(value.sourceWorkstream.snapshotHash))) &&
     validTime(value.sealedAt) &&
-    (!value.noChange || value.changedPathCount === 0)
+    (value.noChange
+      ? value.changedPathCount === 0 &&
+        value.commitIds.length === 0 &&
+        value.headCommit === value.baseCommit
+      : value.changedPathCount > 0 && value.commitIds.length > 0)
+  );
+}
+
+export function isWorkspaceIntegrationQueueEntry(value: WorkspaceIntegrationQueueEntry): boolean {
+  return (
+    value.schemaVersion === 1 &&
+    /^inq_[a-f0-9]{24}$/u.test(value.queueEntryId) &&
+    WORKSPACE_ID.test(value.workspaceId) &&
+    Number.isSafeInteger(value.generation) &&
+    value.generation >= 1 &&
+    /^asn_[a-f0-9]{24}$/u.test(value.assignmentId) &&
+    value.dependencyAssignmentIds.length <= 64 &&
+    value.dependencyAssignmentIds.every((id) => /^asn_[a-f0-9]{24}$/u.test(id)) &&
+    new Set(value.dependencyAssignmentIds).size === value.dependencyAssignmentIds.length &&
+    Number.isSafeInteger(value.priority) &&
+    value.priority >= 0 &&
+    value.priority <= 100 &&
+    COMMIT.test(value.headCommit) &&
+    COMMIT.test(value.treeHash) &&
+    HASH.test(value.changedPathSetDigest) &&
+    Number.isSafeInteger(value.changedPathCount) &&
+    value.changedPathCount >= 0 &&
+    validTime(value.sealedAt) &&
+    validTime(value.queuedAt) &&
+    Date.parse(value.queuedAt) >= Date.parse(value.sealedAt)
   );
 }
 
@@ -90,6 +143,8 @@ export function isAgentWorkspace(value: AgentWorkspace): boolean {
     HASH.test(value.pathDigest) &&
     validSession(value.writerSession) &&
     (value.sealedResult === null || validSeal(value.sealedResult)) &&
+    (value.integrationQueueEntryId === null ||
+      /^inq_[a-f0-9]{24}$/u.test(value.integrationQueueEntryId)) &&
     Number.isSafeInteger(value.revision) &&
     value.revision >= 1 &&
     validTime(value.createdAt) &&
@@ -112,6 +167,7 @@ function validateTransitionEvidence(input: {
   evidence: WorkspaceTransitionEvidence;
   writerSession?: WorkspaceWriterSession | null;
   sealedResult?: WorkspaceSealedResult;
+  integrationQueueEntryId?: string;
   integrationEvidenceId?: string;
   cleanupPlanId?: string;
   recoveryReason?: string;
@@ -124,13 +180,21 @@ function validateTransitionEvidence(input: {
     if (input.writerSession === undefined || input.writerSession === null)
       fail("workspace_transition_conflict", "Workspace activation requires one writer session.");
   }
-  if (nextState === "sealing") requireEvidence(evidence, ["writerFrozen"]);
+  if (nextState === "sealing") {
+    requireEvidence(evidence, ["writerFrozen"]);
+    if (input.writerSession !== null)
+      fail("workspace_transition_conflict", "Workspace sealing must freeze its writer.");
+  }
   if (nextState === "sealed") {
     requireEvidence(evidence, ["checkoutClean"]);
     if (!validSeal(input.sealedResult ?? null))
       fail("workspace_transition_conflict", "Workspace sealing requires an immutable result.");
   }
-  if (nextState === "integration_pending") requireEvidence(evidence, ["queueEntryCommitted"]);
+  if (nextState === "integration_pending") {
+    requireEvidence(evidence, ["queueEntryCommitted"]);
+    if (!/^inq_[a-f0-9]{24}$/u.test(input.integrationQueueEntryId ?? ""))
+      fail("workspace_transition_conflict", "Workspace queue evidence is missing.");
+  }
   if (nextState === "integrating") requireEvidence(evidence, ["integrationLeaseHeld"]);
   if (nextState === "integrated") {
     requireEvidence(evidence, ["integrationVerified"]);
@@ -161,6 +225,7 @@ export function transitionWorkspace(input: {
   evidence?: WorkspaceTransitionEvidence;
   writerSession?: WorkspaceWriterSession | null;
   sealedResult?: WorkspaceSealedResult;
+  integrationQueueEntryId?: string;
   integrationEvidenceId?: string;
   cleanupPlanId?: string;
   recoveryReason?: string;
@@ -188,6 +253,9 @@ export function transitionWorkspace(input: {
     updatedAt: input.occurredAt,
     ...(input.writerSession === undefined ? {} : { writerSession: input.writerSession }),
     ...(input.sealedResult === undefined ? {} : { sealedResult: input.sealedResult }),
+    ...(input.integrationQueueEntryId === undefined
+      ? {}
+      : { integrationQueueEntryId: input.integrationQueueEntryId }),
     ...(input.integrationEvidenceId === undefined
       ? {}
       : { integrationEvidenceId: input.integrationEvidenceId }),

@@ -20,15 +20,35 @@ export interface WorkspaceWriterSession {
   startedAt: string;
 }
 
+export interface WorkspaceVerificationResult {
+  suiteId: string;
+  policyHash: string;
+  resultArtifactId: string;
+  resultArtifactHash: string;
+  completedAt: string;
+  passed: boolean;
+}
+
+export interface WorkspaceWorkstreamBinding {
+  workstreamId: string;
+  revision: number;
+  snapshotHash: string;
+}
+
 export interface WorkspaceSealedResult {
   baseCommit: string;
   headCommit: string;
   treeHash: string;
   changedPathSetDigest: string;
   changedPathCount: number;
+  changedPaths: string[];
+  commitIds: string[];
   resultArtifactId: string;
   resultArtifactHash: string;
-  verificationResultHashes: string[];
+  verificationResults: WorkspaceVerificationResult[];
+  approvalPending: boolean;
+  recoveryPending: boolean;
+  sourceWorkstream: WorkspaceWorkstreamBinding | null;
   noChange: boolean;
   sealedAt: string;
 }
@@ -56,6 +76,7 @@ export interface AgentWorkspace {
   state: WorkspaceState;
   writerSession: WorkspaceWriterSession | null;
   sealedResult: WorkspaceSealedResult | null;
+  integrationQueueEntryId: string | null;
   integrationEvidenceId: string | null;
   cleanupPlanId: string | null;
   recoveryReason: string | null;
@@ -109,6 +130,22 @@ export interface WorkspaceIntegrationCandidate {
   dependencyAssignmentIds: string[];
   priority: number;
   sealedAt: string;
+}
+
+export interface WorkspaceIntegrationQueueEntry {
+  schemaVersion: 1;
+  queueEntryId: string;
+  workspaceId: string;
+  generation: number;
+  assignmentId: string;
+  dependencyAssignmentIds: string[];
+  priority: number;
+  headCommit: string;
+  treeHash: string;
+  changedPathSetDigest: string;
+  changedPathCount: number;
+  sealedAt: string;
+  queuedAt: string;
 }
 
 export interface WorkspaceCheckpoint {

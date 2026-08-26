@@ -151,6 +151,7 @@ export async function planWorkspaceProvision(input: {
     state: "provisioning",
     writerSession: null,
     sealedResult: null,
+    integrationQueueEntryId: null,
     integrationEvidenceId: null,
     cleanupPlanId: null,
     recoveryReason: null,

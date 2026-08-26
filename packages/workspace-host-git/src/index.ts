@@ -13,6 +13,8 @@ import {
   type WorkspaceOwnershipMarker,
   type WorkspaceProvisionRequest,
   type WorkspaceRemovalRequest,
+  type WorkspaceResultInspection,
+  type WorkspaceResultInspectionRequest,
 } from "@lervo/workspace-host";
 
 const execute = promisify(execFile);
@@ -83,6 +85,20 @@ async function git(root: string, arguments_: string[]): Promise<string> {
     return stdout.trim();
   } catch (error) {
     fail("host_git_failed", "The Git workspace operation failed.", error);
+  }
+}
+
+async function gitSucceeds(root: string, arguments_: string[]): Promise<boolean> {
+  try {
+    await execute("git", ["-C", root, ...arguments_], {
+      encoding: "utf8",
+      maxBuffer: 2 * 1024 * 1024,
+    });
+    return true;
+  } catch (error) {
+    const code = (error as { code?: unknown }).code;
+    if (code === 1) return false;
+    fail("host_git_failed", "The Git workspace predicate failed.", error);
   }
 }
 
@@ -183,7 +199,7 @@ async function inspectGitWorkspace(input: {
         changedPaths: null,
         markerMatched: false,
         processObservation: "unavailable",
-        nativeInstanceDigest: digest({ path: input.workspacePath, head: registeredHead }),
+        nativeInstanceDigest: digest({ path: input.workspacePath }),
       };
   } catch {
     return {
@@ -195,7 +211,7 @@ async function inspectGitWorkspace(input: {
       changedPaths: null,
       markerMatched: false,
       processObservation: "unavailable",
-      nativeInstanceDigest: digest({ path: input.workspacePath, head: registeredHead }),
+      nativeInstanceDigest: digest({ path: input.workspacePath }),
     };
   }
   const [headCommit, treeHash, status, operation, matched, changed, untracked] = await Promise.all([
@@ -217,8 +233,34 @@ async function inspectGitWorkspace(input: {
     changedPaths,
     markerMatched: matched,
     processObservation: "unavailable",
-    nativeInstanceDigest: digest({ path: await realpath(input.workspacePath), head: headCommit }),
+    nativeInstanceDigest: digest({ path: await realpath(input.workspacePath) }),
   };
+}
+
+async function inspectGitResult(
+  input: WorkspaceResultInspectionRequest,
+): Promise<WorkspaceResultInspection> {
+  const inspection = await inspectGitWorkspace(input);
+  if (inspection.status !== "present" || inspection.headCommit === null)
+    return { ...inspection, baseCommitReachable: null, commitIds: null };
+  const baseCommitReachable = await gitSucceeds(input.workspacePath, [
+    "merge-base",
+    "--is-ancestor",
+    input.baseCommit,
+    inspection.headCommit,
+  ]);
+  const commitIds = baseCommitReachable
+    ? (
+        await git(input.workspacePath, [
+          "rev-list",
+          "--reverse",
+          `${input.baseCommit}..${inspection.headCommit}`,
+        ])
+      )
+        .split("\n")
+        .filter(Boolean)
+    : [];
+  return { ...inspection, baseCommitReachable, commitIds };
 }
 
 async function writeMarker(workspacePath: string, marker: WorkspaceOwnershipMarker): Promise<void> {
@@ -290,6 +332,10 @@ export class GitWorkspaceHostAdapter implements WorkspaceHostAdapter {
 
   inspect(request: WorkspaceInspectionRequest) {
     return inspectGitWorkspace(request);
+  }
+
+  inspectResult(request: WorkspaceResultInspectionRequest) {
+    return inspectGitResult(request);
   }
 
   async remove(request: WorkspaceRemovalRequest): Promise<WorkspaceHostInspection> {

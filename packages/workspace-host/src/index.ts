@@ -23,6 +23,11 @@ export interface WorkspaceHostInspection {
   nativeInstanceDigest: string | null;
 }
 
+export interface WorkspaceResultInspection extends WorkspaceHostInspection {
+  baseCommitReachable: boolean | null;
+  commitIds: string[] | null;
+}
+
 export interface WorkspaceProvisionRequest {
   repositoryRoot: string;
   workspacePath: string;
@@ -37,6 +42,8 @@ export interface WorkspaceInspectionRequest {
   baseCommit: string;
   marker: WorkspaceOwnershipMarker;
 }
+
+export type WorkspaceResultInspectionRequest = WorkspaceInspectionRequest;
 
 export interface WorkspaceRemovalRequest {
   repositoryRoot: string;
@@ -57,6 +64,7 @@ export interface WorkspaceHostAdapter {
   };
   provision(request: WorkspaceProvisionRequest): Promise<WorkspaceHostInspection>;
   inspect(request: WorkspaceInspectionRequest): Promise<WorkspaceHostInspection>;
+  inspectResult(request: WorkspaceResultInspectionRequest): Promise<WorkspaceResultInspection>;
   remove(request: WorkspaceRemovalRequest): Promise<WorkspaceHostInspection>;
 }
 

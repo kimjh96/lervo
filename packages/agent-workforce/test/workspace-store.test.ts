@@ -41,6 +41,7 @@ function record(repositoryInstanceId: string, baseCommit: string): AgentWorkspac
     state: "provisioning",
     writerSession: null,
     sealedResult: null,
+    integrationQueueEntryId: null,
     integrationEvidenceId: null,
     cleanupPlanId: null,
     recoveryReason: null,
