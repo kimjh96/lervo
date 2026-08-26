@@ -1,6 +1,6 @@
 # Agent workspace, integration, and cleanup specification
 
-Status: `planned`
+Status: `in_progress`
 As of: 2026-08-26
 
 ## Scope and invariants
@@ -14,15 +14,21 @@ This specification defines the planned execution-space contract for concurrent r
 5. A workspace is removable only when exact local evidence proves its result was integrated or explicitly discarded and no live owner remains.
 6. Host products such as Orca remain behind an adapter. Git, provider, and Hub details do not enter the lifecycle domain contract.
 
+## Implementation status
+
+The repository-instance foundation is implemented: Git sibling worktrees share one owner-only coordination home; legacy workforce migration rejects competing non-empty authorities; workspace records and allowlisted transition events use content-hash compare-and-swap; and pure lifecycle decisions cover transitions, scoped path partitioning, deterministic integration ordering, and cleanup eligibility. The provider-neutral workspace-host port and native Git adapter support idempotent detached-worktree provisioning, exact inspection, marker validation, dirty-worktree protection, and ordinary non-force removal. Assignment-bound orchestration provides read-only provision planning and exact apply with stale-lease rejection and recovery state.
+
+Scope-aware terminal Stop, sealing and integration orchestration, automatic cleanup policy, the Orca production adapter, and Hub reservations remain disabled until their delivery gates pass. Direct hooks retain unmanaged repository-wide finalization behavior; the foundation does not resolve the original Stop interaction.
+
 ## Identities and storage
 
-The domain uses separate opaque identities for the repository project, local repository instance, assignment, agent, assignment lease generation, workspace, workspace generation, writer session, integration attempt, cleanup plan, Node, and optional Hub reservation. None may be reconstructed from a filesystem path, branch name, provider session, or conversation.
+The domain has separate opaque identities for the repository project, local repository instance, assignment, agent, assignment lease generation, workspace, workspace generation, writer session, integration attempt, cleanup plan, Node, and optional Hub reservation. None may be reconstructed from a filesystem path, branch name, provider session, or conversation.
 
 The Git common directory anchors a lazy, owner-only coordination home shared by sibling worktrees. It stores workforce state, the workspace registry, integration queue, scheduler locks, cleanup journals, and canonical coordination events. Repository snapshots exclude it. A workspace record may retain a local absolute path and native host instance ID, but public plans, events, Hub envelopes, and diagnostics expose only opaque IDs or domain-separated digests.
 
 Each workspace has a Lervo ownership marker containing its workspace ID, generation, repository-instance ID, adapter kind and version, creation-plan ID, and path digest. Planning and cleanup reject symbolic or changed markers, a mismatched Git common directory, and paths that are not the exact registered worktree.
 
-The coordination event chain is serialized transactionally with the workforce transition it proves. Sibling worktrees never append competing per-checkout workforce chains. Node synchronization treats the repository-instance producer as its own destination coordinate; per-worktree execution events retain their existing producer identity. Import and migration must preserve this distinction and must not combine histories by timestamp.
+The coordination event chain is serialized transactionally with the workforce transition it proves. Sibling worktrees never append competing per-checkout workforce chains. Node synchronization treats the repository-instance producer as its own destination coordinate; per-worktree execution events retain their existing producer identity. Import and migration preserve this distinction and never combine histories by timestamp.
 
 ## End-to-end operating flow
 

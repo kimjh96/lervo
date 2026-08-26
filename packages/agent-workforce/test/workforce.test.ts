@@ -1,6 +1,8 @@
+import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
 
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import {
@@ -23,6 +25,7 @@ import {
 } from "../src/index.js";
 
 const roots: string[] = [];
+const execute = promisify(execFile);
 
 async function repository(): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-workforce-"));
@@ -107,6 +110,66 @@ afterEach(async () =>
 );
 
 describe("repository agent workforce", () => {
+  it("shares one scheduler across sibling worktrees and rejects cross-worktree overlap", async () => {
+    const root = await repository();
+    await writeFile(resolve(root, "README.fixture.md"), "fixture\n");
+    await execute("git", ["-C", root, "init"]);
+    await execute("git", ["-C", root, "config", "user.email", "lervo-test@example.invalid"]);
+    await execute("git", ["-C", root, "config", "user.name", "Lervo Test"]);
+    await execute("git", ["-C", root, "add", "."]);
+    await execute("git", ["-C", root, "commit", "-m", "fixture"]);
+    const sibling = await mkdtemp(resolve(tmpdir(), "lervo-workforce-sibling-"));
+    roots.push(sibling);
+    await rm(sibling, { recursive: true });
+    await execute("git", ["-C", root, "worktree", "add", "--detach", sibling, "HEAD"]);
+
+    const first = await registerAgent({
+      repositoryRoot: root,
+      roleId: "developer",
+      responsibilityPaths: ["src"],
+    });
+    const second = await registerAgent({
+      repositoryRoot: sibling,
+      roleId: "developer",
+      responsibilityPaths: ["src"],
+    });
+    expect((await listAgents(sibling)).map((agent) => agent.agentId)).toEqual(
+      [first.agentId, second.agentId].sort(),
+    );
+    const [alpha, overlap] = await Promise.all([
+      createAssignment({
+        repositoryRoot: root,
+        taskType: "implementation",
+        roleId: "developer",
+        acceptanceCriteria: ["Alpha passes."],
+        verificationSuiteIds: ["project.quick"],
+        expectedPaths: ["src"],
+      }),
+      createAssignment({
+        repositoryRoot: sibling,
+        taskType: "implementation",
+        roleId: "developer",
+        acceptanceCriteria: ["Overlap is rejected."],
+        verificationSuiteIds: ["project.quick"],
+        expectedPaths: ["src/file.ts"],
+      }),
+    ]);
+    await claimAssignment({
+      repositoryRoot: root,
+      assignmentId: alpha.assignmentId,
+      agentId: first.agentId,
+      sessionId: "ses_shared_root_001",
+    });
+    await expect(
+      claimAssignment({
+        repositoryRoot: sibling,
+        assignmentId: overlap.assignmentId,
+        agentId: second.agentId,
+        sessionId: "ses_shared_sibling_01",
+      }),
+    ).rejects.toMatchObject({ code: "assignment_path_conflict" });
+  });
+
   it("gives a repository-specialized researcher the full root, subagent, assignment, and concurrency lifecycle", async () => {
     const root = await repository();
     await mkdir(resolve(root, ".lervo/roles"), { recursive: true });

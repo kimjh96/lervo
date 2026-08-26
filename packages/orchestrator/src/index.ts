@@ -11,3 +11,4 @@ export * from "./project-verification.js";
 export * from "./provider-write-bridge.js";
 export * from "./repository-snapshot.js";
 export * from "./types.js";
+export * from "./workspace-provisioning.js";

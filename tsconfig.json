@@ -18,6 +18,9 @@
       "@lervo/context-coverage": ["packages/context-coverage/src/index.ts"],
       "@lervo/conversation-contract": ["packages/conversation-contract/src/index.ts"],
       "@lervo/conversation-control": ["packages/conversation-control/src/index.ts"],
+      "@lervo/conversation-deliberation-contract": [
+        "packages/conversation-deliberation-contract/src/index.ts"
+      ],
       "@lervo/conversation-deliberation-sqlite": [
         "packages/conversation-deliberation-sqlite/src/index.ts"
       ],
@@ -81,7 +84,9 @@
       "@lervo/verification": ["packages/verification/src/index.ts"],
       "@lervo/verification-contract": ["packages/verification-contract/src/index.ts"],
       "@lervo/writing": ["packages/writing/src/index.ts"],
-      "@lervo/writing-contract": ["packages/writing-contract/src/index.ts"]
+      "@lervo/writing-contract": ["packages/writing-contract/src/index.ts"],
+      "@lervo/workspace-host": ["packages/workspace-host/src/index.ts"],
+      "@lervo/workspace-host-git": ["packages/workspace-host-git/src/index.ts"]
     },
     "types": ["node", "vitest/globals"]
   },

@@ -1,0 +1,111 @@
+export type WorkspaceExecutionKind = "worker" | "integrator" | "unmanaged";
+
+export type WorkspaceState =
+  | "provisioning"
+  | "ready"
+  | "active"
+  | "sealing"
+  | "sealed"
+  | "integration_pending"
+  | "integrating"
+  | "integrated"
+  | "integration_conflict"
+  | "cleanup_eligible"
+  | "removing"
+  | "removed"
+  | "recovery_required";
+
+export interface WorkspaceWriterSession {
+  sessionId: string;
+  startedAt: string;
+}
+
+export interface WorkspaceSealedResult {
+  baseCommit: string;
+  headCommit: string;
+  treeHash: string;
+  changedPathSetDigest: string;
+  changedPathCount: number;
+  resultArtifactId: string;
+  resultArtifactHash: string;
+  verificationResultHashes: string[];
+  noChange: boolean;
+  sealedAt: string;
+}
+
+export interface AgentWorkspace {
+  schemaVersion: 1;
+  workspaceId: string;
+  generation: number;
+  repositoryInstanceId: string;
+  projectId: string;
+  assignmentId: string;
+  agentId: string;
+  leaseGeneration: number;
+  executionKind: Exclude<WorkspaceExecutionKind, "unmanaged">;
+  host: {
+    kind: "git" | "orca";
+    version: string;
+    nativeInstanceDigest: string | null;
+  };
+  baseCommit: string;
+  integrationTargetDigest: string;
+  markerHash: string;
+  pathDigest: string;
+  state: WorkspaceState;
+  writerSession: WorkspaceWriterSession | null;
+  sealedResult: WorkspaceSealedResult | null;
+  integrationEvidenceId: string | null;
+  cleanupPlanId: string | null;
+  recoveryReason: string | null;
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkspaceTransitionEvidence {
+  hostInspected?: boolean;
+  markerMatched?: boolean;
+  checkoutClean?: boolean;
+  writerFrozen?: boolean;
+  queueEntryCommitted?: boolean;
+  integrationLeaseHeld?: boolean;
+  integrationVerified?: boolean;
+  conflictAborted?: boolean;
+  cleanupEligible?: boolean;
+  cleanupPlanBound?: boolean;
+  hostAbsent?: boolean;
+  gitMetadataAbsent?: boolean;
+}
+
+export interface WorkspaceCleanupObservation {
+  owned: boolean;
+  stateIntegrated: boolean;
+  sealedBytesMatch: boolean;
+  checkoutClean: boolean;
+  headReachable: boolean;
+  leaseAbsent: boolean;
+  writerAbsent: boolean;
+  terminalAbsent: boolean;
+  childWorkspaceAbsent: boolean;
+  gitOperationAbsent: boolean;
+  reviewLinkAbsent: boolean;
+  transactionAbsent: boolean;
+  approvalAbsent: boolean;
+  recoveryMarkerAbsent: boolean;
+  markerMatched: boolean;
+  repositoryMatched: boolean;
+  adapterMatched: boolean;
+  pathMatched: boolean;
+  quiescenceProven: boolean;
+  nonForceRemovalSupported: boolean;
+}
+
+export interface WorkspaceIntegrationCandidate {
+  workspaceId: string;
+  generation: number;
+  assignmentId: string;
+  dependencyAssignmentIds: string[];
+  priority: number;
+  sealedAt: string;
+}

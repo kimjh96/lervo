@@ -81,7 +81,7 @@
     },
     {
       "path": "packages/agent-workforce/src/store.ts",
-      "contentHash": "sha256:2cccc6ebc109403391d528cdbde5820a49f7d9bec6eac46fa1c0198b6b3935ff",
+      "contentHash": "sha256:022c184a5b5b71f62ce6689a58650fd2f15d035e6b28b15f7db715d743ef28c4",
       "responsibility": "Durable repository workforce aggregate",
       "rationale": "Agent, assignment, lease, and handoff transitions share one locked workforce state aggregate, validation model, atomic write protocol, and concurrency retry boundary.",
       "disposition": "cohesive"

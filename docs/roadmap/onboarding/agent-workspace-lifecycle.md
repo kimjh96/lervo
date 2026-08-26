@@ -1,6 +1,6 @@
 # Isolated agent workspace lifecycle
 
-Status: `planned`
+Status: `in_progress`
 As of: 2026-08-26
 
 ## Problem
@@ -15,9 +15,9 @@ Local coordination works without a Hub. Projects that explicitly enable Hub coor
 
 ## Delivery order
 
-1. Introduce the shared repository-instance coordination home and migrate conflict-free single-checkout workforce state.
-2. Add workspace identities, generations, ownership markers, lifecycle state, events, and the provider-neutral workspace-host port.
-3. Implement native Git provisioning and inspection, then bind assignments and one writer session to dedicated worktrees.
+1. [Completed] Introduce the shared repository-instance coordination home and migrate conflict-free single-checkout workforce state.
+2. [Completed] Add workspace identities, generations, ownership markers, lifecycle state, events, and the provider-neutral workspace-host port.
+3. [In progress] Implement native Git provisioning and inspection, then bind assignments and one writer session to dedicated worktrees. Provision plan/apply is implemented; writer-session activation remains with terminal integration.
 4. Make direct terminal preparation and Stop execution-kind-aware; workers finalize scoped workspace state while integrators retain repository-wide finalization.
 5. Add immutable sealing, deterministic integration queueing, exclusive target leases, exact Git integration plans, and conflict recovery.
 6. Add path-private cleanup planning, non-force removal, crash recovery, and positive process quiescence. Keep automatic cleanup disabled until these gates pass.
