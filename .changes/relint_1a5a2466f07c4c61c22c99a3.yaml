@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1a5a2466f07c4c61c22c99a3"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reconcile managed document rewrite rules during repository layout upgrades."

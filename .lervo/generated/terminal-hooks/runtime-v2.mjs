@@ -64732,6 +64732,45 @@ async function createRepositoryLayoutMigrationPlan(input) {
       reason: operation.path === "AGENTS.md" ? "refresh_instruction_routes" : "normalize_agent_surface_references"
     };
   }) : [];
+  const rewriters = await inspectRepositoryDocumentRewriters({ repositoryRoot: root2 });
+  const prettierIgnoreOperations = [];
+  if ((rewriters.prettierIgnore.beforeContent ?? "") !== rewriters.prettierIgnore.afterContent) {
+    const beforeHash = rewriters.prettierIgnore.beforeContent === null ? void 0 : sha2564(rewriters.prettierIgnore.beforeContent);
+    const afterHash = sha2564(rewriters.prettierIgnore.afterContent);
+    prettierIgnoreOperations.push({
+      path: ".prettierignore",
+      action: rewriters.prettierIgnore.beforeContent === null ? "create" : "update",
+      ownership: "user",
+      mediaType: "text/plain",
+      content: rewriters.prettierIgnore.afterContent,
+      ...beforeHash === void 0 ? {} : { expectedCurrentHash: beforeHash },
+      desiredHash: afterHash
+    });
+    if (rewriters.prettierIgnore.approvalRequired) {
+      const operationId = stableId("kdocop", {
+        projectId: scan.projectId,
+        action: "reconcile_document_rewriters",
+        path: ".prettierignore",
+        beforeHash,
+        afterHash,
+        userRegionHash: rewriters.prettierIgnore.userRegionHash
+      });
+      userUpdates.push({
+        operationId,
+        approvalHash: sha2564(canonicalJson2({
+          operationId,
+          action: "update_user_document",
+          path: ".prettierignore",
+          beforeHash,
+          afterHash
+        })),
+        path: ".prettierignore",
+        beforeHash,
+        afterHash,
+        reason: "reconcile_document_rewriters"
+      });
+    }
+  }
   const normalizationOwnershipOperations = await normalizationOwnershipUpgradeOperations(root2);
   const taxonomyUpgradeOperation = decisionTaxonomyRequiresUpgrade((0, import_yaml23.parse)(taxonomySource)) ? [
     {
@@ -64817,6 +64856,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
   const operations = [
     ...taxonomyUpgradeOperation,
     ...normalizationOwnershipOperations,
+    ...prettierIgnoreOperations,
     ...structural?.operations ?? [],
     ...referenceOperations,
     ...bridgeOperations,
@@ -64826,7 +64866,7 @@ async function createRepositoryLayoutMigrationPlan(input) {
   ];
   const taxonomyHash = sha2564(canonicalJson2(taxonomy));
   const policyHash = sha2564(canonicalJson2({ knowledge: policy, decisionTaxonomy: taxonomy }));
-  const status = blockers.length > 0 ? "blocked" : moves.length > 0 || userUpdates.length > 0 ? "review_required" : machineMoves.length > 0 || taxonomyUpgradeOperation.length > 0 || normalizationOwnershipOperations.length > 0 ? "ready" : "current";
+  const status = blockers.length > 0 ? "blocked" : moves.length > 0 || userUpdates.length > 0 ? "review_required" : machineMoves.length > 0 || taxonomyUpgradeOperation.length > 0 || normalizationOwnershipOperations.length > 0 || prettierIgnoreOperations.length > 0 ? "ready" : "current";
   const materials = {
     projectId: scan.projectId,
     sourceSnapshotId: scan.snapshotId,

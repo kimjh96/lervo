@@ -9,6 +9,7 @@ import {
   applyRepositoryLayoutMigrationPlan,
   createDocumentMoveLineage,
   createRepositoryLayoutMigrationPlan,
+  inspectRepositoryDocumentRewriters,
   lintRepositoryKnowledge,
   recoverKnowledgeMaterialization,
   sha256,
@@ -782,5 +783,68 @@ describe("repository layout migration", () => {
     expect((await createRepositoryLayoutMigrationPlan({ repositoryRoot: root })).status).toBe(
       "current",
     );
+  });
+
+  it("reconciles the managed Prettier block for current normalization ownership", async () => {
+    const root = await repository();
+    const initial = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    await applyRepositoryLayoutMigrationPlan({
+      plan: initial,
+      approvals: [...initial.moves, ...initial.userUpdates].map((item) => ({
+        operationId: item.operationId,
+        approvalHash: item.approvalHash,
+      })),
+      now: new Date(),
+      recordApplied: () => undefined,
+    });
+    const content = await readFile(resolve(root, "README.md"), "utf8");
+    const recordId = "knormdoc_aaaaaaaaaaaaaaaaaaaaaaaa";
+    const directory = resolve(root, ".lervo/knowledge/document-normalizations/aa");
+    await mkdir(directory, { recursive: true });
+    await writeFile(
+      resolve(directory, `${recordId}.yaml`),
+      [
+        `recordId: ${recordId}`,
+        "schemaVersion: 2",
+        "outputLanguage: en",
+        "formatVersion: lervo.document.v1",
+        "sourcePath: README.md",
+        `sourceContentHash: ${sha256(content)}`,
+        "resourceBindings: []",
+        "byteOwnership:",
+        "  owner: reviewer",
+        "  rewritePolicy: reviewed_exact",
+        "outputs:",
+        "  - path: README.md",
+        `    contentHash: ${sha256(content)}`,
+        "",
+      ].join("\n"),
+    );
+
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+
+    expect(plan.status).toBe("ready");
+    expect(plan.operations).toContainEqual(
+      expect.objectContaining({ path: ".prettierignore", action: "create" }),
+    );
+    let transactionLint: Awaited<ReturnType<typeof lintRepositoryKnowledge>> | undefined;
+    await applyRepositoryLayoutMigrationPlan({
+      plan,
+      approvals: [],
+      now: new Date(),
+      recordApplied: async () => {
+        transactionLint = await lintRepositoryKnowledge(root, {
+          allowTransactionPlanId: plan.planId,
+        });
+      },
+    });
+    const afterRewrite = await inspectRepositoryDocumentRewriters({ repositoryRoot: root });
+    expect(await readFile(resolve(root, ".prettierignore"), "utf8")).toBe(
+      afterRewrite.prettierIgnore.afterContent,
+    );
+    expect(transactionLint?.issues).not.toContainEqual(
+      expect.objectContaining({ code: "document_rewrite_ownership_conflict" }),
+    );
+    expect(await readFile(resolve(root, ".prettierignore"), "utf8")).toContain("README.md");
   });
 });

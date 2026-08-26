@@ -228,9 +228,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:ecc204fec7b5752215164e95a524e32bcba7070dba2d867488346eb1d4f986ca",
+      "contentHash": "sha256:24a88084a1a2c45184711fb8948eee5f731e76681f0b0c13be437d8c5ae7caa9",
       "responsibility": "Repository document-layout migration",
-      "rationale": "Classification, link rebasing, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction.",
+      "rationale": "Classification, link rebasing, rewrite-ownership reconciliation, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction.",
       "disposition": "cohesive"
     },
     {
