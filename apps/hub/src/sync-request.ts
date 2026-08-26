@@ -4,7 +4,12 @@ import { InvalidHubHttpRequestError } from "./request.js";
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 
 export interface HubSyncHttpRoute {
-  kind: "registration" | "event-batches" | "workstreams";
+  kind:
+    | "registration"
+    | "event-batches"
+    | "workstreams"
+    | "workspace-reservations"
+    | "workspace-summaries";
   projectId: string;
 }
 
@@ -26,7 +31,14 @@ export function matchHubSyncRoute(pathname: string): HubSyncHttpRoute | null {
   }
   if (!HUB_PROJECT_ID_PATTERN.test(projectId)) throw new InvalidHubHttpRequestError();
   const kind = segments[5];
-  if (kind !== "registration" && kind !== "event-batches" && kind !== "workstreams") return null;
+  if (
+    kind !== "registration" &&
+    kind !== "event-batches" &&
+    kind !== "workstreams" &&
+    kind !== "workspace-reservations" &&
+    kind !== "workspace-summaries"
+  )
+    return null;
   return { kind, projectId };
 }
 

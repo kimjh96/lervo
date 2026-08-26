@@ -207,6 +207,33 @@ export class RepositoryCoordinationRecords {
     }
   }
 
+  async remove(input: {
+    collection: Exclude<RepositoryCoordinationCollection, "events">;
+    recordId: string;
+    expectedContentHash: string;
+  }): Promise<boolean> {
+    if (!HASH.test(input.expectedContentHash))
+      throw new ProjectStorageError(
+        "coordination_state_conflict",
+        "The expected repository coordination content hash is invalid.",
+      );
+    const path = targetPath(this.home, input.collection, input.recordId);
+    const release = await acquireLock(this.home, `${input.collection}-${input.recordId}`);
+    try {
+      const current = await readContent(path);
+      if (current === null) return false;
+      if (digest(current) !== input.expectedContentHash)
+        throw new ProjectStorageError(
+          "coordination_state_conflict",
+          "The repository coordination record changed before removal.",
+        );
+      await rm(path);
+      return true;
+    } finally {
+      await release();
+    }
+  }
+
   async list<T>(
     collection: RepositoryCoordinationCollection,
   ): Promise<RepositoryCoordinationRecord<T>[]> {

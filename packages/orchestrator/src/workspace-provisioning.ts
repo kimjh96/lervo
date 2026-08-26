@@ -90,6 +90,7 @@ export async function planWorkspaceProvision(input: {
   baseCommit: string;
   integrationTargetDigest: string;
   executionKind: "worker" | "integrator";
+  workspaceId?: string;
   host: WorkspaceHostAdapter;
   now?: Date;
 }): Promise<WorkspaceProvisionPlan> {
@@ -118,7 +119,9 @@ export async function planWorkspaceProvision(input: {
   });
   const now = input.now ?? new Date();
   const home = await resolveRepositoryCoordinationHome(input.repositoryRoot, { now });
-  const workspaceId = id("wsp");
+  const workspaceId = input.workspaceId ?? id("wsp");
+  if (!/^wsp_[a-f0-9]{24}$/u.test(workspaceId))
+    throw new WorkspaceHostError("host_coordinate_invalid", "The workspace identity is invalid.");
   const planId = id("wpl");
   const pathDigest = repositoryCoordinateDigest(input.workspacePath);
   const marker: WorkspaceOwnershipMarker = {
@@ -148,6 +151,7 @@ export async function planWorkspaceProvision(input: {
     creationPlanId: planId,
     markerHash: digest(marker),
     pathDigest,
+    ownerWorkspacePath: input.workspacePath,
     state: "provisioning",
     writerSession: null,
     sealedResult: null,

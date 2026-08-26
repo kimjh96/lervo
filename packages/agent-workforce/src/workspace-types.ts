@@ -73,6 +73,7 @@ export interface AgentWorkspace {
   creationPlanId: string;
   markerHash: string;
   pathDigest: string;
+  ownerWorkspacePath?: string;
   state: WorkspaceState;
   writerSession: WorkspaceWriterSession | null;
   sealedResult: WorkspaceSealedResult | null;

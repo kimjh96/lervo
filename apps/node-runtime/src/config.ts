@@ -46,7 +46,7 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
   const source = configRecord(value, "Node runtime config");
   exactConfigKeys(
     source,
-    ["schemaVersion", "repositoryRoot", "hub", "sync", "remoteCommands"],
+    ["schemaVersion", "repositoryRoot", "hub", "sync", "workspaceCoordination", "remoteCommands"],
     "Node runtime config",
   );
   if (source.schemaVersion !== 1) {
@@ -91,6 +91,23 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
     source.remoteCommands === undefined
       ? undefined
       : parseRemoteCommandConfig(source.remoteCommands, baseDirectory);
+  const workspaceCoordination =
+    source.workspaceCoordination === undefined
+      ? undefined
+      : configRecord(source.workspaceCoordination, "workspaceCoordination");
+  if (workspaceCoordination !== undefined) {
+    exactConfigKeys(workspaceCoordination, ["mode", "nodeId"], "workspaceCoordination");
+    if (
+      workspaceCoordination.mode !== "hub_coordinated" ||
+      !/^nod_[A-Za-z0-9_-]{8,128}$/u.test(
+        configText(workspaceCoordination.nodeId, "workspaceCoordination.nodeId"),
+      )
+    )
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "workspaceCoordination must bind hub_coordinated mode and a valid Node ID.",
+      );
+  }
   return {
     schemaVersion: 1,
     repositoryRoot: resolve(baseDirectory, configText(source.repositoryRoot, "repositoryRoot")),
@@ -113,6 +130,14 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
       ...(maxRequestBytes === undefined ? {} : { maxRequestBytes }),
       ...(maxResponseBytes === undefined ? {} : { maxResponseBytes }),
     },
+    ...(workspaceCoordination === undefined
+      ? {}
+      : {
+          workspaceCoordination: {
+            mode: "hub_coordinated" as const,
+            nodeId: workspaceCoordination.nodeId as string,
+          },
+        }),
     ...(remoteCommands === undefined ? {} : { remoteCommands }),
   };
 }

@@ -5,9 +5,17 @@ import {
   handleProjectRegistration,
   handleWorkstreamPublish,
   handleWorkstreamRead,
+  handleWorkspaceCoordinationMutation,
+  handleWorkspaceSummaryPublish,
+  handleWorkspaceSummaryRead,
+  isHubWorkspaceCoordinationMutation,
+  isHubWorkspaceSummary,
   type HubSyncCommandStore,
+  type HubWorkspaceCoordinationStore,
+  type HubWorkspaceSummary,
   type HubWorkstreamReplicationStore,
   HubWorkstreamReplicationError,
+  HubWorkspaceCoordinationError,
 } from "@lervo/hub-sync";
 import {
   type OutboundEventBatch,
@@ -28,7 +36,7 @@ const MAX_MAX_REQUEST_BYTES = 16_777_216;
 
 export interface HubSyncHttpHandlerOptions {
   authenticator: HubRequestAuthenticator;
-  store: HubSyncCommandStore & HubWorkstreamReplicationStore;
+  store: HubSyncCommandStore & HubWorkstreamReplicationStore & HubWorkspaceCoordinationStore;
   hubIdentityHash: string;
   now?: () => Date;
   maxRequestBytes?: number;
@@ -55,6 +63,19 @@ function workstreamError(
   } else {
     sendHubError(response, 500, "internal_error", maximum, headers);
   }
+}
+
+function workspaceCoordinationError(
+  response: ServerResponse,
+  error: HubWorkspaceCoordinationError,
+  maximum: number,
+  headers: Record<string, string>,
+): void {
+  if (error.code === "workspace_coordination_invalid")
+    sendHubError(response, 400, "invalid_request", maximum, headers);
+  else if (error.code === "workspace_coordination_capacity")
+    sendHubError(response, 429, "capacity_exceeded", maximum, headers);
+  else sendHubError(response, 409, "conflict", maximum, headers);
 }
 
 function requestLimit(value: number | undefined): number {
@@ -112,14 +133,14 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         sendHubError(response, 404, "not_found", maxResponseBytes, identityHeaders);
         return;
       }
-      const acceptedMethod =
-        route.kind === "workstreams"
-          ? request.method === "GET" || request.method === "POST"
-          : request.method === "POST";
+      const supportsRead = ["workstreams", "workspace-summaries"].includes(route.kind);
+      const acceptedMethod = supportsRead
+        ? request.method === "GET" || request.method === "POST"
+        : request.method === "POST";
       if (!acceptedMethod) {
         sendHubError(response, 405, "method_not_allowed", maxResponseBytes, {
           ...identityHeaders,
-          allow: route.kind === "workstreams" ? "GET, POST" : "POST",
+          allow: supportsRead ? "GET, POST" : "POST",
         });
         return;
       }
@@ -138,8 +159,11 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         (project) =>
           project.destinationId === query.destinationId && project.projectId === route.projectId,
       );
-      const requiredPermission =
-        route.kind === "workstreams"
+      const requiredPermission = route.kind.startsWith("workspace-")
+        ? request.method === "GET"
+          ? "workspace.read"
+          : "workspace.coordinate"
+        : route.kind === "workstreams"
           ? request.method === "GET"
             ? "workstream.read"
             : "workstream.write"
@@ -162,6 +186,17 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
           repositoryIdentityHash: query.projectIdentityHash,
         });
         sendHubJson(response, 200, result, maxResponseBytes, identityHeaders);
+        return;
+      }
+      if (route.kind === "workspace-summaries" && request.method === "GET") {
+        const result = await handleWorkspaceSummaryRead({
+          store: options.store,
+          destinationId: query.destinationId,
+          projectId: route.projectId,
+          repositoryIdentityHash: query.projectIdentityHash,
+          acceptedAt,
+        });
+        sendHubJson(response, 200, { summaries: result }, maxResponseBytes, identityHeaders);
         return;
       }
       const body = await readBoundedJsonBody(request, maxRequestBytes);
@@ -219,6 +254,53 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         return;
       }
 
+      if (route.kind === "workspace-reservations") {
+        if (!isHubWorkspaceCoordinationMutation(body)) throw new InvalidHubHttpRequestError();
+        if (
+          body.request.projectId !== route.projectId ||
+          body.request.repositoryIdentityHash !== query.projectIdentityHash
+        )
+          throw new InvalidHubHttpRequestError();
+        const result = await handleWorkspaceCoordinationMutation({
+          store: options.store,
+          destinationId: query.destinationId,
+          mutation: body,
+          acceptedAt,
+        });
+        sendHubJson(
+          response,
+          result.status === "granted" ? 201 : 200,
+          result,
+          maxResponseBytes,
+          identityHeaders,
+        );
+        return;
+      }
+
+      if (route.kind === "workspace-summaries") {
+        if (!isHubWorkspaceSummary(body)) throw new InvalidHubHttpRequestError();
+        const summary = body as HubWorkspaceSummary;
+        if (
+          summary.projectId !== route.projectId ||
+          summary.repositoryIdentityHash !== query.projectIdentityHash
+        )
+          throw new InvalidHubHttpRequestError();
+        const result = await handleWorkspaceSummaryPublish({
+          store: options.store,
+          destinationId: query.destinationId,
+          summary,
+          acceptedAt,
+        });
+        sendHubJson(
+          response,
+          result.status === "created" ? 201 : 200,
+          result,
+          maxResponseBytes,
+          identityHeaders,
+        );
+        return;
+      }
+
       if (!validateSchema("outboundEventBatch", body).valid) {
         throw new InvalidHubHttpRequestError();
       }
@@ -244,6 +326,8 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         syncError(response, error, maxResponseBytes, identityHeaders);
       } else if (error instanceof HubWorkstreamReplicationError) {
         workstreamError(response, error, maxResponseBytes, identityHeaders);
+      } else if (error instanceof HubWorkspaceCoordinationError) {
+        workspaceCoordinationError(response, error, maxResponseBytes, identityHeaders);
       } else {
         sendHubError(response, 500, "internal_error", maxResponseBytes, identityHeaders);
       }

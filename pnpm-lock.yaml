@@ -176,6 +176,9 @@ importers:
       '@lervo/workspace-host-git':
         specifier: workspace:*
         version: link:../../packages/workspace-host-git
+      '@lervo/workspace-host-orca':
+        specifier: workspace:*
+        version: link:../../packages/workspace-host-orca
       '@lervo/writing':
         specifier: workspace:*
         version: link:../../packages/writing
@@ -374,6 +377,9 @@ importers:
       '@lervo/sync-contract':
         specifier: workspace:*
         version: link:../../packages/sync-contract
+      '@lervo/workspace-reservation-hub':
+        specifier: workspace:*
+        version: link:../../packages/workspace-reservation-hub
     devDependencies:
       '@lervo/hub':
         specifier: workspace:*
@@ -1348,6 +1354,9 @@ importers:
 
   packages/sync:
     dependencies:
+      '@lervo/hub-sync':
+        specifier: workspace:*
+        version: link:../hub-sync
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -1409,6 +1418,27 @@ importers:
       '@lervo/workspace-host':
         specifier: workspace:*
         version: link:../workspace-host
+
+  packages/workspace-host-orca:
+    dependencies:
+      '@lervo/workspace-host':
+        specifier: workspace:*
+        version: link:../workspace-host
+      '@lervo/workspace-host-git':
+        specifier: workspace:*
+        version: link:../workspace-host-git
+
+  packages/workspace-reservation-hub:
+    dependencies:
+      '@lervo/agent-workforce':
+        specifier: workspace:*
+        version: link:../agent-workforce
+      '@lervo/hub-sync':
+        specifier: workspace:*
+        version: link:../hub-sync
+      '@lervo/orchestrator':
+        specifier: workspace:*
+        version: link:../orchestrator
 
   packages/writing:
     dependencies:

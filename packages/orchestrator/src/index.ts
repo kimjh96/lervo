@@ -1,4 +1,5 @@
 export * from "./adapter-signals.js";
+export * from "./automatic-workspace-cleanup.js";
 export * from "./managed-context-reference.js";
 export * from "./managed-context-run.js";
 export * from "./managed-provider-run.js";
@@ -12,6 +13,15 @@ export * from "./provider-write-bridge.js";
 export * from "./repository-snapshot.js";
 export * from "./types.js";
 export * from "./workspace-provisioning.js";
+export * from "./workspace-assignment-claim.js";
+export { applyWorkspaceCleanup } from "./workspace-cleanup-apply.js";
+export { recoverWorkspaceCleanup } from "./workspace-cleanup-recovery.js";
+export { planWorkspaceCleanup } from "./workspace-cleanup-plan.js";
+export type {
+  WorkspaceCleanupCoordinates,
+  WorkspaceCleanupPlan,
+  WorkspaceCleanupReceipt,
+} from "./workspace-cleanup-contract.js";
 export { applyWorkspaceSeal } from "./workspace-seal-apply.js";
 export { planWorkspaceSeal } from "./workspace-seal-plan.js";
 export type { WorkspaceSealPlan } from "./workspace-seal-contract.js";

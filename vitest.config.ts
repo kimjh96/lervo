@@ -86,6 +86,12 @@ export default defineConfig({
       "@lervo/verification-contract": fromRoot("./packages/verification-contract/src/index.ts"),
       "@lervo/writing": fromRoot("./packages/writing/src/index.ts"),
       "@lervo/writing-contract": fromRoot("./packages/writing-contract/src/index.ts"),
+      "@lervo/workspace-host": fromRoot("./packages/workspace-host/src/index.ts"),
+      "@lervo/workspace-host-git": fromRoot("./packages/workspace-host-git/src/index.ts"),
+      "@lervo/workspace-host-orca": fromRoot("./packages/workspace-host-orca/src/index.ts"),
+      "@lervo/workspace-reservation-hub": fromRoot(
+        "./packages/workspace-reservation-hub/src/index.ts",
+      ),
     },
   },
   test: {

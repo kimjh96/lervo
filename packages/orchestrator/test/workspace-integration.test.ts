@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -10,6 +10,7 @@ import {
   commitWorkspaceIntegrationAttempt,
   completeAssignment,
   createAssignment,
+  readWorkspaceCleanupJournal,
   readWorkspace,
   readWorkspaceIntegrationAttempt,
   registerAgent,
@@ -31,13 +32,17 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   applyWorkspaceIntegrationCandidate,
+  applyWorkspaceCleanup,
   completeWorkspaceIntegration,
   applyWorkspaceProvision,
   applyWorkspaceSeal,
   planWorkspaceIntegrationCandidate,
+  planWorkspaceCleanup,
   planWorkspaceProvision,
   planWorkspaceSeal,
   verifyWorkspaceIntegrationCandidate,
+  recoverWorkspaceCleanup,
+  reconcileAutomaticWorkspaceCleanup,
   type ManagedProjectVerification,
 } from "../src/index.js";
 import type { ManagedEventSpec } from "../src/telemetry.js";
@@ -267,7 +272,10 @@ async function fixture(options: { conflict?: boolean; targetAdvance?: boolean } 
   };
 }
 
-async function plan(current: Awaited<ReturnType<typeof fixture>>) {
+async function plan(
+  current: Awaited<ReturnType<typeof fixture>>,
+  strategies?: Record<string, "fast_forward" | "cherry_pick" | "merge">,
+) {
   return planWorkspaceIntegrationCandidate({
     repositoryRoot: current.root,
     integrationWorkspacePath: current.integrationPath,
@@ -280,6 +288,7 @@ async function plan(current: Awaited<ReturnType<typeof fixture>>) {
     targetGeneration: 1,
     verificationSuites: [integrationSuite],
     selectedWorkspaceIds: [current.worker.workspaceId],
+    ...(strategies === undefined ? {} : { strategies }),
     integrationHost: current.integrationHost,
     now: new Date("2026-08-26T00:00:16Z"),
   });
@@ -331,8 +340,11 @@ async function passingVerification(
   };
 }
 
-async function prepareVerifiedCandidate(current: Awaited<ReturnType<typeof fixture>>) {
-  const integrationPlan = await plan(current);
+async function prepareVerifiedCandidate(
+  current: Awaited<ReturnType<typeof fixture>>,
+  strategies?: Record<string, "fast_forward" | "cherry_pick" | "merge">,
+) {
+  const integrationPlan = await plan(current, strategies);
   const candidate = await applyWorkspaceIntegrationCandidate({
     plan: integrationPlan,
     integrationHost: current.integrationHost,
@@ -717,6 +729,193 @@ describe("workspace integration candidate orchestration", () => {
     );
     expect((await readWorkspace(current.root, current.worker.workspaceId))!.workspace.state).toBe(
       "integration_conflict",
+    );
+  }, 20_000);
+
+  it("plans path-private cleanup and removes an integrated quiescent worktree without force", async () => {
+    const current = await fixture({ targetAdvance: true });
+    const strategies = { [current.worker.workspaceId]: "fast_forward" as const };
+    const { integrationPlan, verification } = await prepareVerifiedCandidate(current, strategies);
+    await completeWorkspaceIntegration({
+      plan: integrationPlan,
+      verificationReceipt: verification,
+      integrationHost: current.integrationHost,
+      now: new Date("2026-08-26T00:00:21Z"),
+    });
+    const host = new GitWorkspaceHostAdapter();
+    const cleanupPlan = await planWorkspaceCleanup({
+      coordinates: {
+        repositoryRoot: current.root,
+        workspacePath: current.workerPath,
+        integrationTargetRef: current.targetRef,
+      },
+      workspaceId: current.worker.workspaceId,
+      host,
+      now: new Date("2026-08-26T00:00:22Z"),
+    });
+    expect(cleanupPlan).toMatchObject({
+      status: "ready",
+      blockedReasons: [],
+      quiescenceSource: "lervo_writer_closure",
+      operation: "remove_workspace_non_force",
+    });
+    const serialized = JSON.stringify(cleanupPlan);
+    expect(serialized).not.toContain(current.root);
+    expect(serialized).not.toContain(current.workerPath);
+    expect(serialized).not.toContain(current.targetRef);
+
+    const removed = await applyWorkspaceCleanup({
+      plan: cleanupPlan,
+      coordinates: {
+        repositoryRoot: current.root,
+        workspacePath: current.workerPath,
+        integrationTargetRef: current.targetRef,
+      },
+      host,
+      now: new Date("2026-08-26T00:00:23Z"),
+    });
+    expect(removed).toMatchObject({ status: "removed", planId: cleanupPlan.planId });
+    await expect(lstat(current.workerPath)).rejects.toMatchObject({ code: "ENOENT" });
+    expect((await readWorkspace(current.root, current.worker.workspaceId))!.workspace.state).toBe(
+      "removed",
+    );
+    expect(await readWorkspaceCleanupJournal(current.root, cleanupPlan.journalId)).toBeNull();
+    await expect(
+      applyWorkspaceCleanup({
+        plan: cleanupPlan,
+        coordinates: {
+          repositoryRoot: current.root,
+          workspacePath: current.workerPath,
+          integrationTargetRef: current.targetRef,
+        },
+        host,
+        now: new Date("2026-08-26T00:00:24Z"),
+      }),
+    ).resolves.toEqual(removed);
+  }, 20_000);
+
+  it("recovers an interrupted cleanup after host removal but before the removed event", async () => {
+    const current = await fixture({ targetAdvance: true });
+    const strategies = { [current.worker.workspaceId]: "fast_forward" as const };
+    const { integrationPlan, verification } = await prepareVerifiedCandidate(current, strategies);
+    await completeWorkspaceIntegration({
+      plan: integrationPlan,
+      verificationReceipt: verification,
+      integrationHost: current.integrationHost,
+      now: new Date("2026-08-26T00:00:21Z"),
+    });
+    const host = new GitWorkspaceHostAdapter();
+    const coordinates = {
+      repositoryRoot: current.root,
+      workspacePath: current.workerPath,
+      integrationTargetRef: current.targetRef,
+    };
+    const cleanupPlan = await planWorkspaceCleanup({
+      coordinates,
+      workspaceId: current.worker.workspaceId,
+      host,
+      now: new Date("2026-08-26T00:00:22Z"),
+    });
+    const records = await RepositoryCoordinationRecords.open(current.root);
+    await records.write({
+      collection: "events",
+      recordId: cleanupPlan.removedEventId,
+      value: { occupied: true },
+      expectedContentHash: null,
+    });
+    await expect(
+      applyWorkspaceCleanup({
+        plan: cleanupPlan,
+        coordinates,
+        host,
+        now: new Date("2026-08-26T00:00:23Z"),
+      }),
+    ).rejects.toMatchObject({ code: "coordination_state_conflict" });
+    expect((await readWorkspace(current.root, current.worker.workspaceId))!.workspace.state).toBe(
+      "removing",
+    );
+    expect(
+      (await readWorkspaceCleanupJournal(current.root, cleanupPlan.journalId))!.journal.phase,
+    ).toBe("removal_observed");
+
+    const recovered = await recoverWorkspaceCleanup({
+      coordinates,
+      journalId: cleanupPlan.journalId,
+      host,
+      now: new Date("2026-08-26T00:00:24Z"),
+    });
+    expect(recovered).toMatchObject({ status: "removed", workspace: { state: "removed" } });
+    expect(await readWorkspaceCleanupJournal(current.root, cleanupPlan.journalId)).toBeNull();
+  }, 20_000);
+
+  it("applies cleanup only when an explicit repository policy enables it", async () => {
+    const current = await fixture({ targetAdvance: true });
+    const strategies = { [current.worker.workspaceId]: "fast_forward" as const };
+    const { integrationPlan, verification } = await prepareVerifiedCandidate(current, strategies);
+    await completeWorkspaceIntegration({
+      plan: integrationPlan,
+      verificationReceipt: verification,
+      integrationHost: current.integrationHost,
+      now: new Date("2026-08-26T00:00:21Z"),
+    });
+    const host = new GitWorkspaceHostAdapter();
+    await expect(
+      reconcileAutomaticWorkspaceCleanup({
+        repositoryRoot: current.root,
+        policy: { enabled: false, integrationTargetRef: current.targetRef },
+        hostFor: () => host,
+      }),
+    ).resolves.toEqual({ status: "disabled", removed: [], pending: [] });
+    expect((await lstat(current.workerPath)).isDirectory()).toBe(true);
+
+    const result = await reconcileAutomaticWorkspaceCleanup({
+      repositoryRoot: current.root,
+      policy: { enabled: true, integrationTargetRef: current.targetRef },
+      hostFor: (kind, version) => (kind === host.kind && version === host.version ? host : null),
+      now: new Date("2026-08-26T00:00:22Z"),
+    });
+    expect(result).toMatchObject({ status: "complete", removed: [{ status: "removed" }] });
+    await expect(lstat(current.workerPath)).rejects.toMatchObject({ code: "ENOENT" });
+  }, 20_000);
+
+  it("keeps cleanup blocked when the host positively observes a live terminal", async () => {
+    const current = await fixture({ targetAdvance: true });
+    const strategies = { [current.worker.workspaceId]: "fast_forward" as const };
+    const { integrationPlan, verification } = await prepareVerifiedCandidate(current, strategies);
+    await completeWorkspaceIntegration({
+      plan: integrationPlan,
+      verificationReceipt: verification,
+      integrationHost: current.integrationHost,
+      now: new Date("2026-08-26T00:00:21Z"),
+    });
+    const gitHost = new GitWorkspaceHostAdapter();
+    const liveHost = {
+      kind: gitHost.kind,
+      version: gitHost.version,
+      capabilities: { ...gitHost.capabilities, processObservation: true as const },
+      remove: gitHost.remove.bind(gitHost),
+      inspectCleanup: async (...args: Parameters<typeof gitHost.inspectCleanup>) => ({
+        ...(await gitHost.inspectCleanup(...args)),
+        processObservation: "live" as const,
+      }),
+    };
+    const cleanupPlan = await planWorkspaceCleanup({
+      coordinates: {
+        repositoryRoot: current.root,
+        workspacePath: current.workerPath,
+        integrationTargetRef: current.targetRef,
+      },
+      workspaceId: current.worker.workspaceId,
+      host: liveHost,
+      now: new Date("2026-08-26T00:00:22Z"),
+    });
+    expect(cleanupPlan).toMatchObject({
+      status: "blocked",
+      quiescenceSource: "unproven",
+      blockedReasons: ["terminal_live_or_uncertain", "quiescence_unproven"],
+    });
+    expect((await readWorkspace(current.root, current.worker.workspaceId))!.workspace.state).toBe(
+      "integrated",
     );
   }, 20_000);
 });

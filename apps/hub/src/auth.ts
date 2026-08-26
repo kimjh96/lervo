@@ -22,6 +22,8 @@ export type HubPermission =
   | "sync.write"
   | "workstream.read"
   | "workstream.write"
+  | "workspace.read"
+  | "workspace.coordinate"
   | "policy.read"
   | "policy.write"
   | "command.read"
@@ -66,6 +68,8 @@ function validateCredential(credential: HubBearerCredential): void {
           "sync.write",
           "workstream.read",
           "workstream.write",
+          "workspace.read",
+          "workspace.coordinate",
           "policy.read",
           "policy.write",
           "command.read",

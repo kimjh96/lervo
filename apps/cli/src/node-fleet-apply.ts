@@ -81,6 +81,7 @@ export interface NodeFleetApplyReceipt {
     startedAt: string;
     sync: "ready" | "unavailable:hub_unavailable";
     workstreamReplication: "ready" | "unavailable:hub_unavailable";
+    workspaceCoordination: "ready" | "disabled" | "unavailable:hub_unavailable";
     remoteControl: "ready" | "disabled" | "unavailable:hub_unavailable";
   };
   registry: RegisterNodeFleetInstanceResult;
@@ -105,6 +106,7 @@ export interface NodeFleetStatusReport {
       status: "ready" | "starting" | "degraded" | "stopping" | "unavailable" | "stale";
       sync: string;
       workstreamReplication: string;
+      workspaceCoordination: string;
       remoteControl: string;
       updatedAt: string | null;
     };
@@ -225,6 +227,8 @@ async function readHealthSnapshot(path: string): Promise<NodeRuntimeHealthSnapsh
     value.sync.status !== "ready" ||
     !healthComponent(value.workstreamReplication) ||
     value.workstreamReplication.status !== "ready" ||
+    !healthComponent(value.workspaceCoordination) ||
+    !["ready", "disabled"].includes(value.workspaceCoordination.status) ||
     !healthComponent(value.remoteControl) ||
     !["ready", "disabled"].includes(value.remoteControl.status) ||
     value.status !== "ready"
@@ -319,6 +323,7 @@ export async function inspectNodeFleetStatus(input: {
           status: runtimeStatus,
           sync: componentStatus(health?.sync),
           workstreamReplication: componentStatus(health?.workstreamReplication),
+          workspaceCoordination: componentStatus(health?.workspaceCoordination),
           remoteControl: componentStatus(health?.remoteControl),
           updatedAt: health?.updatedAt ?? null,
         },
@@ -369,15 +374,21 @@ async function observeReadiness(
         current.remoteControl.status === "ready" ||
         current.remoteControl.status === "disabled" ||
         (allowHubUnavailable && hubUnavailable(current.remoteControl));
+      const workspaceReady =
+        current.workspaceCoordination.status === "ready" ||
+        current.workspaceCoordination.status === "disabled" ||
+        (allowHubUnavailable && hubUnavailable(current.workspaceCoordination));
       const offline =
         hubUnavailable(current.sync) ||
         hubUnavailable(current.workstreamReplication) ||
+        hubUnavailable(current.workspaceCoordination) ||
         hubUnavailable(current.remoteControl);
       const complete =
         (current.status === "ready" ||
           (allowHubUnavailable && current.status === "degraded" && offline)) &&
         syncReady &&
         workstreamReady &&
+        workspaceReady &&
         remoteReady &&
         updatedAt >= notBefore.getTime();
       if (
@@ -399,6 +410,9 @@ async function observeReadiness(
             workstreamReplication: componentStatus(
               current.workstreamReplication,
             ) as NodeFleetApplyReceipt["readiness"]["workstreamReplication"],
+            workspaceCoordination: componentStatus(
+              current.workspaceCoordination,
+            ) as NodeFleetApplyReceipt["readiness"]["workspaceCoordination"],
             remoteControl: componentStatus(
               current.remoteControl,
             ) as NodeFleetApplyReceipt["readiness"]["remoteControl"],

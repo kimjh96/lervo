@@ -13,7 +13,7 @@ Agent state may contain exact capability package IDs, kinds, versions, content h
 
 Managed `capability.activated` is emitted only after the provider adapter returns a valid exact receipt. Its envelope binds project, run, session, provider actor, and confirmation time. Its payload contains capability ID and kind, version and content hash, adapter and provider-session IDs, evidence (`mcp_connected` or `plugin_loaded`), and a privacy-bounded activation digest. It excludes local paths, commands, arguments, URLs, configuration, credentials and credential names, plugin content, tool inventories, and raw errors. Confirmation failure or timeout emits no activation event, blocks the task turn with `capability_activation_failed`, and appears only as the bounded `run.failed` diagnostic digest. Activation proves connection or load before the turn, not invocation or use.
 
-## Planned agent workspace events
+## Agent workspace events
 
 The isolated-workspace design adds canonical coordination events to the shared repository-instance home.
 
@@ -30,6 +30,8 @@ The isolated-workspace design adds canonical coordination events to the shared r
 `agent.workspace.removed` retains workspace and generation, integration or discard evidence ID, cleanup plan ID, adapter kind and version, and time. It proves the registered checkout and Git worktree metadata were absent after non-force removal. It does not prove branch deletion, artifact erasure, assignment retirement, or remote cleanup.
 
 Hub audit transitions `workspace.reservation.granted`, `workspace.reservation.renewed`, `workspace.reservation.released`, and `workspace.reservation.expired` retain project and repository identity, opaque reservation, assignment, workspace and Node IDs, scope and target digests, generation, expiry, idempotency digest, transition, and time. They are not local execution events and grant no repository authority.
+
+`workspace.summary.recorded` is a Hub-only append-only audit transition. It requires project and repository identity hashes, opaque workspace, assignment and Node IDs, generation, previous and next lifecycle states, host kind, bounded process observation and terminal count, optional integration and cleanup-plan IDs, content hash, and acceptance time. It excludes paths and host-native instance coordinates. The first summary must be `provisioning`; generation and state transitions are monotonic. Duplicate content is idempotent, while unknown-parent, stale, capacity, or authentication failure records no new summary audit row and changes no local state.
 
 All workspace payloads exclude absolute and repository-relative paths, branch names, task and acceptance prose, source and patch bodies, commands, prompts, provider output, terminal content, credentials, approvals, reasoning, and unrestricted errors. Event failure rolls back the state transition when the host effect is reversible. Uncertain provisioning or removal enters `recovery_required` and emits no success event.
 

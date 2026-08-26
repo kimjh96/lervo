@@ -36,6 +36,18 @@ export async function readWorkspaceIntegrationAttempt(
   return { attempt: structuredClone(stored.value), contentHash: stored.contentHash };
 }
 
+export async function listWorkspaceIntegrationAttempts(
+  repositoryRoot: string,
+): Promise<WorkspaceIntegrationAttempt[]> {
+  const records = await RepositoryCoordinationRecords.open(repositoryRoot);
+  const stored = await records.list<WorkspaceIntegrationAttempt>("integrationAttempts");
+  if (stored.some((record) => !isWorkspaceIntegrationAttempt(record.value)))
+    invalid("A stored integration attempt is invalid.");
+  return stored
+    .map((record) => structuredClone(record.value))
+    .sort((left, right) => left.targetLeaseId.localeCompare(right.targetLeaseId));
+}
+
 export async function hasExactWorkspaceIntegrationRecordedEvent(input: {
   repositoryRoot: string;
   eventId: string;

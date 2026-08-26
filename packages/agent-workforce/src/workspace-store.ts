@@ -5,16 +5,35 @@ import { isAgentWorkspace, transitionWorkspace } from "./workspace-lifecycle.js"
 import type { AgentWorkspace, WorkspaceCheckpoint, WorkspaceState } from "./workspace-types.js";
 
 const EVENT_ID = /^evt_[A-Za-z0-9_-]{8,128}$/u;
+const WORKSPACE_STATES: WorkspaceState[] = [
+  "provisioning",
+  "ready",
+  "active",
+  "sealing",
+  "sealed",
+  "integration_pending",
+  "integrating",
+  "integrated",
+  "integration_conflict",
+  "cleanup_eligible",
+  "removing",
+  "removed",
+  "recovery_required",
+];
+const WORKSPACE_EVENT_TYPES: WorkspaceCoordinationEvent["type"][] = [
+  "agent.workspace.provisioned",
+  "agent.workspace.state.changed",
+  "agent.workspace.sealed",
+  "agent.workspace.removed",
+];
 
 export interface WorkspaceCoordinationEvent {
   schemaVersion: 1;
   eventId: string;
   type:
     | "agent.workspace.provisioned"
-    | "agent.workspace.checkpointed"
     | "agent.workspace.state.changed"
     | "agent.workspace.sealed"
-    | "assignment.integration.recorded"
     | "agent.workspace.removed";
   occurredAt: string;
   workspaceId: string;
@@ -75,6 +94,70 @@ function isWorkspaceCheckpoint(value: WorkspaceCheckpoint): boolean {
 
 function invalid(message: string): never {
   throw new AgentWorkforceError("workspace_invalid", message);
+}
+
+export function isWorkspaceCoordinationEvent(value: unknown): value is WorkspaceCoordinationEvent {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const event = value as WorkspaceCoordinationEvent;
+  return (
+    event.schemaVersion === 1 &&
+    EVENT_ID.test(event.eventId) &&
+    WORKSPACE_EVENT_TYPES.includes(event.type) &&
+    Number.isFinite(Date.parse(event.occurredAt)) &&
+    /^wsp_[a-f0-9]{24}$/u.test(event.workspaceId) &&
+    Number.isSafeInteger(event.generation) &&
+    event.generation >= 1 &&
+    /^asn_[a-f0-9]{24}$/u.test(event.assignmentId) &&
+    /^agt_[a-f0-9]{24}$/u.test(event.agentId) &&
+    /^rpi_[a-f0-9]{24}$/u.test(event.repositoryInstanceId) &&
+    ["git", "orca"].includes(event.hostKind) &&
+    typeof event.hostVersion === "string" &&
+    /^[a-f0-9]{40,64}$/u.test(event.baseCommit) &&
+    /^sha256:[a-f0-9]{64}$/u.test(event.integrationTargetDigest) &&
+    (event.previousState === "absent" || WORKSPACE_STATES.includes(event.previousState)) &&
+    WORKSPACE_STATES.includes(event.state) &&
+    (event.reasonCode === null || /^[a-z][a-z0-9_]{1,99}$/u.test(event.reasonCode)) &&
+    (event.headCommit === null || /^[a-f0-9]{40,64}$/u.test(event.headCommit)) &&
+    (event.treeHash === null || /^[a-f0-9]{40,64}$/u.test(event.treeHash)) &&
+    (event.changedPathSetDigest === null ||
+      /^sha256:[a-f0-9]{64}$/u.test(event.changedPathSetDigest)) &&
+    (event.changedPathCount === null ||
+      (Number.isSafeInteger(event.changedPathCount) && event.changedPathCount >= 0)) &&
+    (event.integrationEvidenceId === null ||
+      /^int_[a-f0-9]{24}$/u.test(event.integrationEvidenceId)) &&
+    (event.cleanupPlanId === null || /^wcp_[a-f0-9]{24}$/u.test(event.cleanupPlanId)) &&
+    Number.isSafeInteger(event.revision) &&
+    event.revision >= 1
+  );
+}
+
+export async function listWorkspaceCoordinationEvents(
+  repositoryRoot: string,
+): Promise<WorkspaceCoordinationEvent[]> {
+  const records = await RepositoryCoordinationRecords.open(repositoryRoot);
+  const values = (await records.list<unknown>("events")).map((record) => record.value);
+  if (
+    values.some(
+      (value) =>
+        value !== null &&
+        typeof value === "object" &&
+        !Array.isArray(value) &&
+        WORKSPACE_EVENT_TYPES.includes(
+          (value as { type?: unknown }).type as WorkspaceCoordinationEvent["type"],
+        ) &&
+        !isWorkspaceCoordinationEvent(value),
+    )
+  )
+    invalid("A stored workspace coordination event is invalid.");
+  return values
+    .filter(isWorkspaceCoordinationEvent)
+    .map((event) => structuredClone(event))
+    .sort(
+      (left, right) =>
+        Date.parse(left.occurredAt) - Date.parse(right.occurredAt) ||
+        left.workspaceId.localeCompare(right.workspaceId) ||
+        left.revision - right.revision,
+    );
 }
 
 function eventFor(input: {

@@ -86,7 +86,9 @@
       "@lervo/writing": ["packages/writing/src/index.ts"],
       "@lervo/writing-contract": ["packages/writing-contract/src/index.ts"],
       "@lervo/workspace-host": ["packages/workspace-host/src/index.ts"],
-      "@lervo/workspace-host-git": ["packages/workspace-host-git/src/index.ts"]
+      "@lervo/workspace-host-git": ["packages/workspace-host-git/src/index.ts"],
+      "@lervo/workspace-host-orca": ["packages/workspace-host-orca/src/index.ts"],
+      "@lervo/workspace-reservation-hub": ["packages/workspace-reservation-hub/src/index.ts"]
     },
     "types": ["node", "vitest/globals"]
   },

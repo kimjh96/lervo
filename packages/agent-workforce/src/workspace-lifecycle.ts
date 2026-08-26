@@ -1,3 +1,5 @@
+import { isAbsolute } from "node:path";
+
 import { AgentWorkforceError } from "./types.js";
 import type {
   AgentWorkspace,
@@ -30,7 +32,7 @@ const transitions: Readonly<Record<WorkspaceState, readonly WorkspaceState[]>> =
   cleanup_eligible: ["removing", "recovery_required"],
   removing: ["removed", "cleanup_eligible", "recovery_required"],
   removed: [],
-  recovery_required: [],
+  recovery_required: ["cleanup_eligible", "removed"],
 };
 
 function fail(
@@ -141,6 +143,10 @@ export function isAgentWorkspace(value: AgentWorkspace): boolean {
     /^wpl_[a-f0-9]{24}$/u.test(value.creationPlanId) &&
     HASH.test(value.markerHash) &&
     HASH.test(value.pathDigest) &&
+    (value.ownerWorkspacePath === undefined ||
+      (value.ownerWorkspacePath.length <= 4_096 &&
+        !value.ownerWorkspacePath.includes("\0") &&
+        isAbsolute(value.ownerWorkspacePath))) &&
     validSession(value.writerSession) &&
     (value.sealedResult === null || validSeal(value.sealedResult)) &&
     (value.integrationQueueEntryId === null ||

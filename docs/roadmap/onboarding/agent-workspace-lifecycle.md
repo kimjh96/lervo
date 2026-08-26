@@ -1,6 +1,6 @@
 # Isolated agent workspace lifecycle
 
-Status: `in_progress`
+Status: `complete`
 As of: 2026-08-26
 
 ## Problem
@@ -20,11 +20,18 @@ Integrated worker worktrees are removed automatically only when local evidence p
 3. [Completed] Implement native Git provisioning and inspection, then bind assignments and one writer session to dedicated worktrees.
 4. [Completed] Make direct terminal preparation and `Stop` execution-kind-aware. Workers finalize scoped workspace state; integrators retain repository-wide finalization.
 5. [Completed] Implement immutable sealing, deterministic integration queueing, exclusive target-generation leases, path-private collision plans, isolated Git candidate preparation, stale-target rejection, exact conflict abort, content-bound repository-wide candidate verification, and non-checked-out target-ref compare-and-swap advancement. Durable success binds the receipt before movement, atomically commits the authoritative attempt and privacy-bounded event, exactly rolls back pre-commit failures, and idempotently resumes post-commit source projections.
-6. Add path-private cleanup planning, non-force removal, crash recovery, and positive process quiescence. Keep automatic cleanup disabled until these gates pass.
-7. Add an Orca host adapter for managed worktree and terminal evidence without importing Orca into lifecycle domain packages.
-8. Add optional Hub reservations, permissions, audit transitions, Node reconciliation, health, and cross-Node acceptance.
-9. Set and verify bounded Hub capacity, terminal-summary retention, and local coordination-event synchronization before coordinated rollout.
-10. Enable automatic cleanup by repository policy only after Git and Orca adapter acceptance passes.
+6. [Completed] Add path-private cleanup planning, non-force removal, a private recovery journal, exact reachability, and positive process quiescence. Git may substitute durable Lervo writer closure only when native process observation is unavailable.
+7. [Completed] Add an optional Orca CLI host adapter for worktree, live-terminal, linked-review, child-worktree, and visible lifecycle evidence without importing Orca into lifecycle domain packages.
+8. [Completed] Add optional Hub reservations, separate permissions, append-only audit transitions, authenticated Node summary reconciliation, and independent health.
+9. [Completed] Fix and test v1 capacity at 32 active reservations per project coordinate, 128 retained terminal summaries, 30-day terminal-summary retention, and privacy-bounded local lifecycle-event reconciliation.
+10. [Completed] Expose automatic cleanup only behind an explicit repository-policy input after the common Git and Orca gates; disabled policy and any incomplete proof preserve the worktree.
+
+## Completion evidence
+
+- Cleanup plan/apply/recovery tests cover exact path privacy, idempotency, non-force removal, live-terminal blocking, lost host responses, post-removal event interruption, and policy-disabled behavior.
+- The Git and Orca adapters implement the same cleanup port. Orca is loaded only by adapter and CLI composition; local lifecycle and Git execution do not depend on Orca installation.
+- Hub SQLite and HTTP tests cover overlap, generation fencing, expiry, idempotency, capacity, retention, permissions, unknown-parent rejection, and path-private audit bytes.
+- The Node runtime reports workspace coordination separately from event sync, workstream replication, and remote control. Missing configuration reports `disabled`; transport or validation failure reports `unavailable` without affecting `local_first` execution.
 
 ## Acceptance
 

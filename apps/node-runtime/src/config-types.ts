@@ -17,6 +17,10 @@ export interface NodeRuntimeConfig {
     maxRequestBytes?: number;
     maxResponseBytes?: number;
   };
+  workspaceCoordination?: {
+    mode: "hub_coordinated";
+    nodeId: string;
+  };
   remoteCommands?: {
     nodeId: string;
     trustFile?: string;

@@ -7,6 +7,7 @@ import { resolve } from "node:path";
 import { SQLiteEventStore, type EventDraft } from "@lervo/event-store-sqlite";
 import { canonicalJson } from "@lervo/event-contract";
 import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
+import { hubWorkspaceCoordinationDigest } from "@lervo/hub-sync";
 import {
   defaultProjectDataPolicy,
   type ProjectManifest,
@@ -93,7 +94,14 @@ async function start(store: HubSyncSQLiteStore, project: ProjectManifest): Promi
     {
       token: syncToken,
       principalId: "node:sync-http",
-      permissions: ["sync.write", "trace.read", "workstream.read", "workstream.write"],
+      permissions: [
+        "sync.write",
+        "trace.read",
+        "workstream.read",
+        "workstream.write",
+        "workspace.read",
+        "workspace.coordinate",
+      ],
       projects: [{ destinationId, projectId: project.projectId }],
     },
     {
@@ -302,6 +310,100 @@ describe("authenticated Hub event sync HTTP", () => {
       valid: true,
       projectCount: 0,
       eventCount: 0,
+    });
+  });
+
+  it("serves workspace reservations and observational summaries behind separate permissions", async () => {
+    const root = await fixtureRoot();
+    const project = manifest();
+    const identity = calculateProjectIdentityHash(project);
+    const hub = await HubSyncSQLiteStore.open({ path: resolve(root, "hub.sqlite") });
+    hubStores.push(hub);
+    const baseUrl = await start(hub, project);
+    const registration = createProjectRegistrationRequest({
+      manifest: project,
+      destinationId,
+      requestedAt: "2026-08-22T02:00:00.000Z",
+    });
+    await hub.registerProject({ request: registration, acceptedAt: registration.requestedAt });
+    const endpoint = (kind: "workspace-reservations" | "workspace-summaries") => {
+      const url = new URL(`v1/sync/projects/${project.projectId}/${kind}`, baseUrl);
+      url.searchParams.set("destinationId", destinationId);
+      url.searchParams.set("projectIdentityHash", identity);
+      return url;
+    };
+    const reservationContent = {
+      schemaVersion: 1 as const,
+      reservationId: "hrs_0123456789abcdef01234567",
+      projectId: project.projectId,
+      repositoryIdentityHash: identity,
+      assignmentId: "asn_0123456789abcdef01234567",
+      workspaceId: "wsp_0123456789abcdef01234567",
+      nodeId: "nod_sync_http_node_01",
+      generation: 1,
+      baseCommit: "b".repeat(40),
+      integrationTargetDigest: `sha256:${"c".repeat(64)}`,
+      scopes: [
+        { scopeDigest: `sha256:${"d".repeat(64)}`, ancestorDigests: [`sha256:${"d".repeat(64)}`] },
+      ],
+      requestedAt: "2026-08-22T02:00:00.000Z",
+      expiresAt: "2026-08-22T02:05:00.000Z",
+      localLeaseExpiresAt: "2026-08-22T02:10:00.000Z",
+      idempotencyKey: "idk_sync_http_workspace_01",
+    };
+    const forbidden = await fetch(endpoint("workspace-reservations"), {
+      method: "POST",
+      headers: { authorization: `Bearer ${traceOnlyToken}`, "content-type": "application/json" },
+      body: "body-must-not-be-read",
+    });
+    expect(forbidden.status).toBe(403);
+    const reserved = await fetch(endpoint("workspace-reservations"), {
+      method: "POST",
+      headers: { authorization: `Bearer ${syncToken}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        operation: "reserve",
+        request: {
+          ...reservationContent,
+          contentHash: hubWorkspaceCoordinationDigest(reservationContent),
+        },
+      }),
+    });
+    expect(reserved.status).toBe(201);
+    await expect(reserved.json()).resolves.toMatchObject({
+      status: "granted",
+      reservation: { state: "granted" },
+    });
+    const summaryContent = {
+      schemaVersion: 1 as const,
+      projectId: project.projectId,
+      repositoryIdentityHash: identity,
+      workspaceId: reservationContent.workspaceId,
+      assignmentId: reservationContent.assignmentId,
+      nodeId: reservationContent.nodeId,
+      generation: 1,
+      state: "provisioning" as const,
+      hostKind: "orca" as const,
+      processObservation: "quiescent" as const,
+      terminalCount: 0,
+      integrationEvidenceId: null,
+      cleanupPlanId: null,
+      updatedAt: "2026-08-22T02:00:00.000Z",
+    };
+    const published = await fetch(endpoint("workspace-summaries"), {
+      method: "POST",
+      headers: { authorization: `Bearer ${syncToken}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        ...summaryContent,
+        contentHash: hubWorkspaceCoordinationDigest(summaryContent),
+      }),
+    });
+    expect(published.status).toBe(201);
+    const listed = await fetch(endpoint("workspace-summaries"), {
+      headers: { authorization: `Bearer ${syncToken}` },
+    });
+    expect(listed.status).toBe(200);
+    await expect(listed.json()).resolves.toMatchObject({
+      summaries: [{ workspaceId: reservationContent.workspaceId, terminalCount: 0 }],
     });
   });
 });

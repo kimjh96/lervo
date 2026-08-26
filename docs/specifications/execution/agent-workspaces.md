@@ -1,6 +1,6 @@
 # Agent workspace, integration, and cleanup specification
 
-Status: `in_progress`
+Status: `active`
 As of: 2026-08-26
 
 ## Scope and invariants
@@ -28,7 +28,9 @@ Repository-wide candidate verification is a non-success phase. Its plan binds ev
 
 The Git host port can advance a non-checked-out local target ref with exact compare-and-swap after rechecking candidate commit, tree, ancestry, marker, cleanliness, and Git-operation state. Inverse compare-and-swap provides idempotent rollback while retaining the candidate.
 
-Durable integration success is a provider-neutral recovery transaction. It validates the exact receipt, records an `advancing` marker, advances an eligible target through the host port, atomically commits the authoritative `integrated` attempt with one `assignment.integration.recorded` event, then projects every source workspace to `integrated`. A lost host response re-inspects and resumes the exact candidate. Failure before the authoritative event rolls the target back; interruption afterward completes missing projections without another success event. Checked-out target refs cannot advance automatically. Automatic cleanup, the Orca production adapter, and Hub reservations remain disabled until their gates pass.
+Durable integration success is a provider-neutral recovery transaction. It validates the exact receipt, records an `advancing` marker, advances an eligible target through the host port, atomically commits the authoritative `integrated` attempt with one `assignment.integration.recorded` event, then projects every source workspace to `integrated`. A lost host response re-inspects and resumes the exact candidate. Failure before the authoritative event rolls the target back; interruption afterward completes missing projections without another success event. Checked-out target refs cannot advance automatically.
+
+Cleanup plan/apply/recovery, the native Git adapter, and the optional Orca adapter are implemented. `lervo workspace cleanup` renders a path-private read-only plan and applies only the exact plan supplied on stdin; `lervo workspace recover` reconciles its private journal. Automatic cleanup requires an explicit enabled policy input and otherwise remains disabled. Hub coordination is optional: reservations precede local claims only in `hub_coordinated`; `local_first` invokes no Hub port. The Node reconciles privacy-bounded lifecycle summaries and publishes an independent health component.
 
 ## Identities and storage
 
@@ -52,8 +54,8 @@ The event chain is transactionally serialized with the workforce transition it p
 
 Agents perform lifecycle bookkeeping from natural-language requests. The command roadmap includes:
 
-- `lervo workspace inspect` (implemented) and planned `current|list|show|status`
-- `lervo workspace seal|cleanup|recover`, with read-only plan and exact apply
+- `lervo workspace inspect|cleanup|recover` (implemented); planned `current|list|show|status`
+- `lervo workspace seal`, with read-only plan and exact apply
 - `lervo integration queue|plan|apply|resolve`
 
 Users need not relay commands between agents. Provisioning normally occurs during assignment claim. Direct provisioning uses the same assignment and exact-plan contract and cannot create an unassigned writer.
@@ -125,7 +127,7 @@ The authoritative success commit writes the `integrated` attempt and `assignment
 
 ## Cleanup contract
 
-Policy may automatically plan integrated workspaces, but apply remains content-bound. A plan includes workspace and generation, marker and path digests, sealed head and tree, integrated-event ID, target-reachability proof, Git metadata hash, adapter coordinates, process observation, dependent-reference count, and exact removal operations.
+Policy may automatically plan integrated workspaces, but apply remains content-bound. The owner-only workspace record retains the private absolute worktree coordinate for that purpose; plans, events, Hub envelopes, and diagnostics expose only its digest. A plan includes workspace and generation, marker and path digests, sealed head and tree, integrated-event ID, target-reachability proof, Git metadata hash, adapter coordinates, process observation, dependent-reference count, and the single non-force removal operation.
 
 A plan is `ready` only when the workspace is Lervo-owned, `cleanup_eligible`, clean, and unchanged since sealing; its exact head is reachable from the durable integration target; no lease, writer, terminal, child workspace, Git operation, review linkage, transaction, approval, or recovery marker remains; the adapter positively proves quiescence; and non-force worktree removal is supported.
 
@@ -139,7 +141,7 @@ Orca cannot prove quiescence with a live or uncertain terminal. Native Git witho
 
 Reservation scopes use local path normalization and transport hashes; exact and ancestor overlaps conflict. Fencing binds repository identity, scope, target digest, lease generation, and bounded expiry. Same-content retries are idempotent; changed content under one idempotency key conflicts. Reservations grant no repository write, merge, approval, provider, or cleanup capability.
 
-V1 permits at most 128 normalized expected paths and leases from 5 seconds through 30 minutes. Hub reservations use the same expiry and cannot outlive the local lease. Versioned, tested capacity policy must bound active reservations per project and retained terminal summaries before rollout; capacity rejection never evicts an active reservation, and values are not inferred from database capacity.
+V1 permits at most 128 normalized expected paths and leases from 5 seconds through 30 minutes. Hub reservations use the same expiry and cannot outlive the local lease. Policy `workspace-coordination-v1` permits 32 active reservations per project coordinate and 128 current terminal summaries retained for 30 days. Capacity rejection never evicts an active reservation, and values are not inferred from database capacity.
 
 Hub loss behavior:
 

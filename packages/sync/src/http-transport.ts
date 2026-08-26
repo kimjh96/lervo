@@ -4,6 +4,12 @@ import type {
   RemoteCommandTarget,
   WorkstreamReplicationPublishRequest,
 } from "@lervo/schemas";
+import {
+  isHubWorkspaceCoordinationMutation,
+  isHubWorkspaceSummary,
+  type HubWorkspaceCoordinationMutation,
+  type HubWorkspaceSummary,
+} from "@lervo/hub-sync";
 import { validateSchema } from "@lervo/schemas";
 import {
   assertOutboundEventBatch,
@@ -162,6 +168,33 @@ export class AuthenticatedHubHttpTransport
     return this.requestJson("workstreams", "GET", undefined, [200]);
   }
 
+  async coordinateWorkspace(mutation: HubWorkspaceCoordinationMutation): Promise<unknown> {
+    if (!isHubWorkspaceCoordinationMutation(mutation))
+      throw new Error("The workspace coordination mutation is invalid.");
+    if (
+      mutation.request.projectId !== this.target.projectId ||
+      mutation.request.repositoryIdentityHash !== this.target.projectIdentityHash
+    )
+      throw new Error(
+        "The workspace coordination coordinates differ from the transport configuration.",
+      );
+    return this.requestJson("workspace-reservations", "POST", mutation, [200, 201]);
+  }
+
+  async publishWorkspaceSummary(summary: HubWorkspaceSummary): Promise<unknown> {
+    if (
+      !isHubWorkspaceSummary(summary) ||
+      summary.projectId !== this.target.projectId ||
+      summary.repositoryIdentityHash !== this.target.projectIdentityHash
+    )
+      throw new Error("The workspace summary coordinates are invalid.");
+    return this.requestJson("workspace-summaries", "POST", summary, [200, 201]);
+  }
+
+  async readWorkspaceSummaries(): Promise<unknown> {
+    return this.requestJson("workspace-summaries", "GET", undefined, [200]);
+  }
+
   private async post(
     kind: "registration" | "event-batches",
     body: unknown,
@@ -171,7 +204,12 @@ export class AuthenticatedHubHttpTransport
   }
 
   private async requestJson(
-    kind: "registration" | "event-batches" | "workstreams",
+    kind:
+      | "registration"
+      | "event-batches"
+      | "workstreams"
+      | "workspace-reservations"
+      | "workspace-summaries",
     method: "GET" | "POST",
     body: unknown | undefined,
     acceptedStatuses: readonly number[],

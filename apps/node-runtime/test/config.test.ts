@@ -82,6 +82,26 @@ describe("Node runtime configuration", () => {
     ).rejects.toMatchObject({ code: "project_invalid" });
   });
 
+  it("requires explicit Hub-coordinated workspace mode and a durable Node identity", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, await availablePort());
+    const configured = structuredClone(fixture.value);
+    configured.workspaceCoordination = {
+      mode: "hub_coordinated",
+      nodeId: "nod_workspace_node_01",
+    };
+    expect(parseNodeRuntimeConfig(configured, root)).toMatchObject({
+      workspaceCoordination: {
+        mode: "hub_coordinated",
+        nodeId: "nod_workspace_node_01",
+      },
+    });
+    (configured.workspaceCoordination as Record<string, unknown>).mode = "local_first";
+    expect(() => parseNodeRuntimeConfig(configured, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
+  });
+
   it("parses scoped trust key files and requires explicit command execution ports", async () => {
     const root = await temporaryRoot();
     const fixture = await nodeRuntimeFixture(root, await availablePort());

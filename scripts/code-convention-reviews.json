@@ -32,7 +32,7 @@
     },
     {
       "path": "apps/cli/src/node-fleet-apply.ts",
-      "contentHash": "sha256:89dd691a89e407b578daa99a23e2a3091c008485b005ef086dfd02fb1ea04722",
+      "contentHash": "sha256:f47c8ac25d2db32e921be254c41c8be12a349895d2dc9187f60464801fd3420d",
       "responsibility": "Repository Node fleet onboarding transaction",
       "rationale": "Status inspection, readiness observation, installation, and legacy transition are phases of one transactional fleet-apply contract with shared compensation and health evidence.",
       "disposition": "cohesive"
@@ -102,14 +102,14 @@
     },
     {
       "path": "packages/hub-sync-sqlite/src/migrations.ts",
-      "contentHash": "sha256:e601c4864440feb65a4a8905d2e6486c8f131dfadbfd9a6da0c6bf9dc3c6c0cb",
+      "contentHash": "sha256:db345d6cda627b83165ebef83b6923017be49567761413fd302d501f9681112e",
       "responsibility": "Hub synchronization SQLite schema migration",
       "rationale": "The declarative migration catalog and migration runner own one versioned SQLite schema boundary; length is driven by schema history rather than mixed runtime policy.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:c0b105ea087625a0983314e94a3391890436d267abbbb9e306f128aeaebaff1a",
+      "contentHash": "sha256:4e957765335a89e0eebcd49eff01590598863ff14b5375adc52bf75b87d90fee",
       "responsibility": "Hub synchronization SQLite store",
       "rationale": "The store class is one persistence adapter that composes repositories under a shared database, transaction, and schema lifecycle.",
       "disposition": "cohesive"

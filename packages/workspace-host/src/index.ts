@@ -87,4 +87,5 @@ export class WorkspaceHostError extends Error {
   }
 }
 
+export * from "./cleanup.js";
 export * from "./integration.js";

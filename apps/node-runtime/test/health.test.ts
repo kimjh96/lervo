@@ -95,4 +95,25 @@ describe("Node runtime readiness snapshot", () => {
       remoteControl: { status: "ready" },
     });
   });
+
+  it("reports optional workspace coordination independently", async () => {
+    const publisher = createNodeRuntimeHealthPublisher(await stateDirectory(), false, true);
+    await publisher.initialize();
+    await publisher.observeSync(idleSync);
+    await publisher.observeWorkstreamReplication(absentWorkstream);
+    expect(await snapshot(publisher.path)).toMatchObject({
+      status: "starting",
+      workspaceCoordination: { status: "pending" },
+    });
+    await publisher.observeWorkspaceCoordinationFailure("hub_unavailable");
+    expect(await snapshot(publisher.path)).toMatchObject({
+      status: "degraded",
+      workspaceCoordination: { status: "unavailable", failureCode: "hub_unavailable" },
+    });
+    await publisher.observeWorkspaceCoordination();
+    expect(await snapshot(publisher.path)).toMatchObject({
+      status: "ready",
+      workspaceCoordination: { status: "ready" },
+    });
+  });
 });
