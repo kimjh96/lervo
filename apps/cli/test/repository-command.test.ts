@@ -226,8 +226,23 @@ describe("repository selection command", () => {
       homeDirectory: home,
     });
     let active = false;
-    let observations = 0;
     const startedAt = new Date(Date.now() + 1_000).toISOString();
+    await mkdir(resolve(plan.desired.healthPath, ".."), { recursive: true });
+    await writeFile(
+      plan.desired.healthPath,
+      `${JSON.stringify({
+        schemaVersion: 1,
+        status: "degraded",
+        processId: 4321,
+        startedAt,
+        updatedAt: new Date(Date.now() + 2_000).toISOString(),
+        sync: { status: "unavailable", failureCode: "hub_unavailable" },
+        workstreamReplication: { status: "unavailable", failureCode: "hub_unavailable" },
+        workspaceCoordination: { status: "disabled" },
+        remoteControl: { status: "disabled" },
+      })}\n`,
+      { mode: 0o600 },
+    );
     const receipt = await applyNodeFleetOnboarding({
       plan,
       configPath: config,
@@ -247,20 +262,6 @@ describe("repository selection command", () => {
           },
         },
         wait: async () => undefined,
-        readHealth: async () => {
-          observations += 1;
-          return {
-            schemaVersion: 1,
-            status: "degraded",
-            processId: 4321,
-            startedAt,
-            updatedAt: new Date(Date.now() + observations * 1_000).toISOString(),
-            sync: { status: "unavailable", failureCode: "hub_unavailable" },
-            workstreamReplication: { status: "unavailable", failureCode: "hub_unavailable" },
-            workspaceCoordination: { status: "disabled" },
-            remoteControl: { status: "disabled" },
-          };
-        },
       },
     });
     expect(receipt.readiness).toEqual(

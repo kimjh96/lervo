@@ -198,11 +198,18 @@ async function assertExecutable(path: string): Promise<string> {
   return realpath(path);
 }
 
-function healthComponent(value: unknown): value is { status: "ready" | "disabled" } {
+function healthComponent(value: unknown): value is NodeRuntimeHealthSnapshot["sync"] {
+  if (value === null || typeof value !== "object") return false;
+  const component = value as { status?: unknown; failureCode?: unknown };
+  if (["pending", "ready", "disabled"].includes(component.status as string)) {
+    return component.failureCode === undefined;
+  }
   return (
-    value !== null &&
-    typeof value === "object" &&
-    ["ready", "disabled"].includes((value as { status?: unknown }).status as string)
+    component.status === "unavailable" &&
+    typeof component.failureCode === "string" &&
+    component.failureCode.length > 0 &&
+    component.failureCode.length <= 128 &&
+    !/[\0\r\n]/u.test(component.failureCode)
   );
 }
 
@@ -224,19 +231,12 @@ async function readHealthSnapshot(path: string): Promise<NodeRuntimeHealthSnapsh
     !Number.isFinite(Date.parse(value.startedAt)) ||
     !Number.isFinite(Date.parse(value.updatedAt)) ||
     !healthComponent(value.sync) ||
-    value.sync.status !== "ready" ||
     !healthComponent(value.workstreamReplication) ||
-    value.workstreamReplication.status !== "ready" ||
     !healthComponent(value.workspaceCoordination) ||
-    !["ready", "disabled"].includes(value.workspaceCoordination.status) ||
     !healthComponent(value.remoteControl) ||
-    !["ready", "disabled"].includes(value.remoteControl.status) ||
-    value.status !== "ready"
+    !["starting", "ready", "degraded", "stopping"].includes(value.status)
   ) {
-    fail(
-      "node_fleet_readiness_unavailable",
-      "The Node runtime has not reported complete ready state.",
-    );
+    fail("node_fleet_readiness_unavailable", "The Node runtime health snapshot is invalid.");
   }
   return value;
 }
