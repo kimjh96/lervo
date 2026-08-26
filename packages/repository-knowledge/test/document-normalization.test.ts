@@ -145,6 +145,76 @@ describe("document content normalization", () => {
     expect(calls).toHaveLength(0);
   });
 
+  it("keeps the GitHub pull-request title outside the normalized body", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, ".github"), { recursive: true });
+    await writeFile(
+      resolve(root, ".github/PULL_REQUEST_TEMPLATE.md"),
+      "## Summary\n\n<!-- State the result. -->\n\n## Checklist\n\n- [ ] Verify the change.\n",
+    );
+    const observed: DocumentNormalizationEnvelope[] = [];
+    const normalizer: RepositoryDocumentNormalizationCompiler = {
+      descriptor: compiler([]).descriptor,
+      async normalize(envelope) {
+        observed.push(envelope);
+        return {
+          ...normalizedResponse(envelope),
+          documents: envelope.documents.map((document) => ({
+            sourcePath: document.path,
+            outputs: [
+              {
+                path: document.path,
+                content: "# Pull request\n\n## Summary\n\nState the result.\n",
+                coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+              },
+            ],
+          })),
+        };
+      },
+    };
+
+    await expect(
+      compileConfiguredDocumentNormalizationCandidate({
+        repositoryRoot: root,
+        compiler: normalizer,
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
+    expect(observed[0]?.documents[0]).toMatchObject({
+      path: ".github/PULL_REQUEST_TEMPLATE.md",
+      profile: "pull_request_template",
+      constraints: {
+        allowSiblingTopicSplit: false,
+        headingPolicy: "forbid_h1",
+      },
+    });
+
+    normalizer.normalize = async (envelope) => ({
+      ...normalizedResponse(envelope),
+      documents: envelope.documents.map((document) => ({
+        sourcePath: document.path,
+        outputs: [
+          {
+            path: document.path,
+            content:
+              "## Summary\n\nState the result.\n\n## Checklist\n\n- [ ] Verify the change.\n",
+            coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+          },
+        ],
+      })),
+    });
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
+    expect(candidate.items[0]).toMatchObject({
+      profile: "pull_request_template",
+      outputs: [{ path: ".github/PULL_REQUEST_TEMPLATE.md" }],
+    });
+    expect(candidate.items[0]?.outputs[0]?.content).not.toMatch(/^# /mu);
+  });
+
   it("rewrites and splits documents with exact approvals, records lifecycle, and skips current outputs", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/operations"), { recursive: true });

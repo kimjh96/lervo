@@ -219,6 +219,7 @@ console.log(JSON.stringify({ type: "turn.completed" }));
     };
     expect(invocation.cwd).not.toBe(item.repository);
     expect(invocation.input).toContain("preserveMeaning");
+    expect(invocation.input).toContain('"headingPolicy":"require_h1"');
     expect(invocation.input).toContain("Preserve every independently testable requirement");
     expect(invocation.args).toContain("--ignore-user-config");
     expect(invocation.args).toContain("--ignore-rules");

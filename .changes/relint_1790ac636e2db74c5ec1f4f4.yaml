@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1790ac636e2db74c5ec1f4f4"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Preserve GitHub pull request body heading levels during document normalization."

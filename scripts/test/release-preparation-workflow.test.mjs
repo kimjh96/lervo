@@ -35,6 +35,7 @@ describe("CLI release preparation workflow", () => {
     assert.match(prepare.run, /gh pr create .*--body-file "\$\{body_file\}"/u);
     assert.match(prepare.run, /\[ \] Relevant tests, `pnpm quality:check`/u);
     assert.match(prepare.run, /Pending pull-request CI/u);
+    assert.doesNotMatch(prepare.run, /—/u);
     for (const heading of [
       "Summary",
       "Scope and authority",

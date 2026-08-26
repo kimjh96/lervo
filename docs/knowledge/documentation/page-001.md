@@ -3,7 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
-- [Pull request](../../../.github/PULL_REQUEST_TEMPLATE.md) — `.github/PULL_REQUEST_TEMPLATE.md`
+- [PULL REQUEST TEMPLATE](../../../.github/PULL_REQUEST_TEMPLATE.md) — `.github/PULL_REQUEST_TEMPLATE.md`
 - [@lervo/cli](../../../apps/cli/README.md) — `apps/cli/README.md`
 - [ADR-0046: Platform-neutral conversation participation](../../decisions/coordination/conversations/0046-platform-neutral-conversation-participation.md) — `docs/decisions/coordination/conversations/0046-platform-neutral-conversation-participation.md`
 - [ADR-0048: Authenticated Slack and Discord conversation adapters](../../decisions/coordination/conversations/0048-authenticated-platform-conversation-adapters.md) — `docs/decisions/coordination/conversations/0048-authenticated-platform-conversation-adapters.md`

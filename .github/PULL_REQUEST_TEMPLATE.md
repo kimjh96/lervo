@@ -1,4 +1,4 @@
-# Pull request
+<!-- Follow writing_en-human. GitHub renders the title separately, so start at H2. -->
 
 ## Summary
 
@@ -6,7 +6,7 @@
 
 ## Scope and authority
 
-<!-- List what is in scope, what is intentionally out of scope, and any external writes performed. -->
+<!-- List what is in scope, intentionally out of scope, and any external writes performed. -->
 
 ## Contract and architecture
 
@@ -14,11 +14,11 @@
 
 ## Release impact
 
-<!-- Link the release intent, or give the exact exemption. A release PR never grants npm publication authority. -->
+<!-- Link the release intent or give the exact exemption. A release PR never grants npm publication authority. -->
 
 ## Verification
 
-<!-- List the exact commands and results. Do not claim checks that were not observed. -->
+<!-- List exact commands and results. Do not claim unobserved checks. -->
 
 ## Knowledge and documentation
 
@@ -34,7 +34,7 @@
 The PR author must evaluate these items directly. Change an item to [x] only after its
 supporting evidence has been observed. Leave an unmet item unchecked and explain the blocker
 in the relevant section. For an inapplicable item, check it only after recording an exact
-"N/A — <reason>" in the relevant section. Checkboxes are attestations, not substitutes for CI.
+"N/A: <reason>" in the relevant section. Checkboxes are attestations, not substitutes for CI.
 -->
 
 - [ ] I read `AGENTS.md` and the relevant linked entrypoints before changing bytes.
@@ -45,4 +45,4 @@ in the relevant section. For an inapplicable item, check it only after recording
 - [ ] Relevant tests, `pnpm quality:check`, and required Lervo migration/lint checks pass.
 - [ ] No secret, mutable credential, or unsupported authority is included.
 
-<!-- Preserve every section. Use "N/A — <reason>" instead of deleting a section or leaving it blank. -->
+<!-- Preserve every section. Use "N/A: <reason>" instead of deleting a section or leaving it blank. -->

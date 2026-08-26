@@ -72,7 +72,7 @@ jobs:
 
           ## Knowledge and documentation
 
-          N/A — canonical release documentation and knowledge lifecycle changes belong to the source pull requests whose intent is aggregated here.
+          N/A: Canonical release documentation and knowledge lifecycle changes belong to the source pull requests aggregated here.
 
           ## Risk and recovery
 
@@ -80,11 +80,11 @@ jobs:
 
           ## Checklist
 
-          - [x] N/A — this bot applies an already reviewed release plan; source pull-request authors own instruction-entrypoint evidence.
-          - [x] N/A — release preparation changes generated artifacts and package coordinates, not source modules.
+          - [x] N/A: This bot applies a reviewed release plan. Source pull-request authors provide instruction-entrypoint evidence.
+          - [x] N/A: Release preparation changes generated artifacts and package coordinates, not source modules.
           - [x] Repository-authored state is bounded; this change adds neither an append-only file nor a one-file-per-operation archive.
           - [x] Lervo-managed, generated, and user-owned bytes retain distinct owners.
-          - [x] N/A — canonical documentation and roadmap evidence belongs to each aggregated source pull request.
+          - [x] N/A: Each aggregated source pull request provides its canonical documentation and roadmap evidence.
           - [ ] Relevant tests, `pnpm quality:check`, and required Lervo migration/lint checks pass. Pending pull-request CI.
           - [x] No secret, mutable credential, or unsupported authority is included.
           EOF

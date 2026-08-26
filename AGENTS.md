@@ -2,7 +2,7 @@
 
 ## Before changing anything
 
-Read only the relevant entrypoints and linked ADRs:
+Read only relevant entrypoints and linked ADRs:
 
 - Product scope or terminology: `README.md`, `docs/product/vision.md`
 - Components or data flow: `docs/architecture/system.md`
@@ -14,13 +14,13 @@ Do not load the entire ADR history by default.
 
 Before committing, follow [the repository commit convention](docs/foundation/commit-convention.md). An optional scope must exactly match the workspace package name without `@lervo/`; omit it for repository-wide changes.
 
-Before opening or updating a pull request, read [the repository pull-request template](.github/PULL_REQUEST_TEMPLATE.md). Preserve every section, replace guidance with exact evidence, and use `N/A — <reason>` for inapplicable sections. The PR-authoring agent must evaluate each checklist item, check it only after observing supporting evidence, and record blockers for unchecked items. Never submit prose-only summaries or pre-checked boilerplate.
+Before opening or updating a pull request, read [the repository pull-request template](.github/PULL_REQUEST_TEMPLATE.md) and apply the existing [`writing_en-human` policy](packages/core/src/writing-contract.ts) to its title and body. Start the body at H2 because GitHub renders the title separately; never duplicate it with an H1. Preserve every section, replace guidance with exact evidence, and use `N/A: <reason>` for inapplicable sections. Evaluate each checklist item directly, checking it only after observing supporting evidence and recording blockers for unchecked items. Never submit prose-only summaries or pre-checked boilerplate.
 
-Follow [the repository code convention](docs/foundation/code-convention.md) as the completion contract. Before editing source, identify its responsibility and dependency boundary. Apply module-split signals and the review checklist to every touched source file, resolving structural violations before finishing; lint and formatting alone are insufficient.
+Follow [the repository code convention](docs/foundation/code-convention.md) as the completion contract. Before editing source, identify its responsibility and dependency boundary. Apply module-split signals and the review checklist to every touched source file; resolve structural violations before finishing because lint and formatting are insufficient.
 
 If a required split materially increases delivery risk, record one bounded follow-up with the exact responsibility and verification. Repeat the structural review before refreshing a long-module review hash; the registry records cohesive modules, not unresolved exceptions.
 
-ESLint owns automatable code quality; Prettier owns formatting. For source or configuration changes, run `pnpm quality:check` and keep broad automatic-fix diffs within task scope.
+ESLint owns automatable code quality; Prettier owns formatting. For source or configuration changes, run `pnpm quality:check` and keep broad automatic-fix diffs within scope.
 
 ## Invariants
 

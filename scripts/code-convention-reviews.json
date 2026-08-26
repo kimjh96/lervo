@@ -137,7 +137,7 @@
     },
     {
       "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
-      "contentHash": "sha256:5bc827ac14a241fff692f9f06166a7001d8125a07e5e7f706b3e72f5628267a6",
+      "contentHash": "sha256:f01c665a2eda146283f58b86b5ed319dc299ba3cced6b91d270424f9e9368a5d",
       "responsibility": "Isolated provider compiler process adapter",
       "rationale": "Process control and Codex or Claude response parsing are contained within one capability-free compiler adapter boundary that returns provider-neutral compiler contracts.",
       "disposition": "cohesive"
@@ -158,7 +158,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:d600dc60c2027eb50251df18dbe2242cae98afac19711e632bbec81069683d76",
+      "contentHash": "sha256:bf9c55fba8ee577e60561913faa7aade69ba1ec9163e69c20dce92aff9790864",
       "responsibility": "Reviewed document normalization lifecycle",
       "rationale": "Profiles, envelopes, candidate validation, compiler invocation, storage, inspection, plan, and exact-approved apply all share one content-bound normalization contract.",
       "disposition": "cohesive"

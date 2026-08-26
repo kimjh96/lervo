@@ -58840,6 +58840,8 @@ function normalizationProfile(source) {
     return "agent_instruction";
   if (source.path === "CLAUDE.md" || /\/(?:CLAUDE|CLAUDE\.local)\.md$/u.test(source.path))
     return "provider_bridge";
+  if (source.path === ".github/PULL_REQUEST_TEMPLATE.md")
+    return "pull_request_template";
   if (/^(?:.*\/)?\.agents\/skills\/[^/]+\/SKILL\.md$/u.test(source.path))
     return "portable_skill";
   if (/^(?:.*\/)?\.agents\/skills\/[^/]+\/references\/.*\.md$/u.test(source.path))

@@ -43,6 +43,7 @@ const DOCUMENT_NORMALIZATION_PROFILES = new Set<DocumentNormalizationProfile>([
   "roadmap_document",
   "instruction_document",
   "handoff_document",
+  "pull_request_template",
   "repository_document",
 ]);
 
@@ -59,6 +60,7 @@ export type DocumentNormalizationProfile =
   | "roadmap_document"
   | "instruction_document"
   | "handoff_document"
+  | "pull_request_template"
   | "repository_document";
 
 export interface DocumentNormalizationCompilerDescriptor {
@@ -97,6 +99,7 @@ export interface DocumentNormalizationEnvelopeDocument {
     allowedSplitPrefix: string | null;
     maximumOutputBytes: number;
     maximumOutputLines: number;
+    headingPolicy: "require_h1" | "forbid_h1";
     requiredAgentInstructionPath?: "AGENTS.md";
     rewriteWikiLinksAsMarkdown?: true;
   };
@@ -252,6 +255,7 @@ function normalizationProfile(source: RepositorySource): DocumentNormalizationPr
     return "agent_instruction";
   if (source.path === "CLAUDE.md" || /\/(?:CLAUDE|CLAUDE\.local)\.md$/u.test(source.path))
     return "provider_bridge";
+  if (source.path === ".github/PULL_REQUEST_TEMPLATE.md") return "pull_request_template";
   if (/^(?:.*\/)?\.agents\/skills\/[^/]+\/SKILL\.md$/u.test(source.path)) return "portable_skill";
   if (/^(?:.*\/)?\.agents\/skills\/[^/]+\/references\/.*\.md$/u.test(source.path))
     return "skill_reference";
@@ -373,6 +377,20 @@ function maximumOutputLines(profile: DocumentNormalizationProfile): number {
   return 320;
 }
 
+function headingPolicy(
+  profile: DocumentNormalizationProfile,
+): DocumentNormalizationEnvelopeDocument["constraints"]["headingPolicy"] {
+  return profile === "pull_request_template" ? "forbid_h1" : "require_h1";
+}
+
+function hasValidHeadingStructure(
+  content: string,
+  policy: DocumentNormalizationEnvelopeDocument["constraints"]["headingPolicy"],
+): boolean {
+  const hasH1 = /^#\s+\S/mu.test(content);
+  return policy === "require_h1" ? hasH1 : !hasH1 && /^##\s+\S/mu.test(content);
+}
+
 function splitPrefix(path: string, profile: DocumentNormalizationProfile): string | null {
   // The root README is a stable human entrypoint. Its durable detail belongs in
   // the repository's semantic documentation hierarchy, which cannot be chosen
@@ -385,6 +403,7 @@ function splitPrefix(path: string, profile: DocumentNormalizationProfile): strin
       "portable_skill",
       "skill_reference",
       "decision_record",
+      "pull_request_template",
     ].includes(profile)
   )
     return null;
@@ -525,6 +544,7 @@ function normalizationEnvelopes(input: {
           allowedSplitPrefix: splitPrefix(item.source.path, item.profile),
           maximumOutputBytes: maximumOutputBytes(item.profile),
           maximumOutputLines: maximumOutputLines(item.profile),
+          headingPolicy: headingPolicy(item.profile),
           ...(item.source.path === "README.md" && hasRootAgentInstructions
             ? { requiredAgentInstructionPath: "AGENTS.md" as const }
             : {}),
@@ -679,10 +699,21 @@ function requiredResponse(
           "knowledge_compile_failed",
           `The normalized output ${output.path} has ${outputLines} lines and exceeds its ${source.constraints.maximumOutputLines}-line contract.`,
         );
-      if (!/^#\s+\S/mu.test(output.content))
+      if (
+        source.constraints.headingPolicy === "require_h1" &&
+        !hasValidHeadingStructure(output.content, source.constraints.headingPolicy)
+      )
         throw new RepositoryKnowledgeError(
           "knowledge_compile_failed",
           `The normalized output ${output.path} has no H1.`,
+        );
+      if (
+        source.constraints.headingPolicy === "forbid_h1" &&
+        !hasValidHeadingStructure(output.content, source.constraints.headingPolicy)
+      )
+        throw new RepositoryKnowledgeError(
+          "knowledge_compile_failed",
+          `The normalized output ${output.path} must contain no H1 and must start its rendered sections at H2.`,
         );
       if (
         output.content
@@ -902,7 +933,7 @@ function validateDocumentNormalizationCandidate(candidate: DocumentNormalization
         output.byteCount < 1 ||
         output.byteCount > maximumOutputBytes(item.profile) ||
         output.content.split("\n").length > maximumOutputLines(item.profile) ||
-        !/^#\s+\S/mu.test(output.content) ||
+        !hasValidHeadingStructure(output.content, headingPolicy(item.profile)) ||
         !Array.isArray(output.coveredUnitVersionIds) ||
         output.coveredUnitVersionIds.length < 1 ||
         output.coveredUnitVersionIds.some(
