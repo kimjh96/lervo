@@ -5,7 +5,9 @@ import { resolve } from "node:path";
 import { promisify } from "node:util";
 
 import {
+  beginWorkspaceIntegrationAdvancement,
   claimAssignment,
+  commitWorkspaceIntegrationAttempt,
   completeAssignment,
   createAssignment,
   readWorkspace,
@@ -15,6 +17,7 @@ import {
 } from "@lervo/agent-workforce";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { repositoryCoordinateDigest } from "@lervo/project-storage";
+import { RepositoryCoordinationRecords } from "@lervo/project-storage";
 import type { VerificationResult, VerificationSuite } from "@lervo/schemas";
 import {
   calculateVerificationId,
@@ -23,10 +26,12 @@ import {
   verificationSuiteHash,
 } from "@lervo/verification-contract";
 import { GitWorkspaceHostAdapter, GitWorkspaceIntegrationAdapter } from "@lervo/workspace-host-git";
+import type { WorkspaceIntegrationHostAdapter } from "@lervo/workspace-host";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
   applyWorkspaceIntegrationCandidate,
+  completeWorkspaceIntegration,
   applyWorkspaceProvision,
   applyWorkspaceSeal,
   planWorkspaceIntegrationCandidate,
@@ -87,7 +92,7 @@ async function activate(input: {
   ).workspace;
 }
 
-async function fixture(options: { conflict?: boolean } = {}) {
+async function fixture(options: { conflict?: boolean; targetAdvance?: boolean } = {}) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-workspace-integration-"));
   const parent = await mkdtemp(resolve(tmpdir(), "lervo-workspace-integration-parent-"));
   roots.push(root, parent);
@@ -106,6 +111,8 @@ async function fixture(options: { conflict?: boolean } = {}) {
   await git(root, "add", ".");
   await git(root, "commit", "-m", "fixture");
   const baseCommit = await git(root, "rev-parse", "HEAD");
+  const selectedTargetRef = options.targetAdvance ? "refs/heads/integration-target" : targetRef;
+  if (options.targetAdvance) await git(root, "branch", "integration-target", baseCommit);
   const agent = await registerAgent({
     repositoryRoot: root,
     roleId: "developer",
@@ -139,7 +146,7 @@ async function fixture(options: { conflict?: boolean } = {}) {
     leaseId: workerLease.lease!.leaseId,
     provider: "codex",
     baseCommit,
-    integrationTargetDigest: repositoryCoordinateDigest(targetRef),
+    integrationTargetDigest: repositoryCoordinateDigest(selectedTargetRef),
     executionKind: "worker",
     host,
     now: new Date("2026-08-26T00:00:04Z"),
@@ -203,7 +210,7 @@ async function fixture(options: { conflict?: boolean } = {}) {
     await git(root, "add", "src/base.ts");
     await git(root, "commit", "-m", "target result");
   }
-  const targetBeforeCommit = await git(root, "rev-parse", targetRef);
+  const targetBeforeCommit = await git(root, "rev-parse", selectedTargetRef);
   const integrationAssignment = await createAssignment({
     repositoryRoot: root,
     taskType: "repository.integration",
@@ -229,7 +236,7 @@ async function fixture(options: { conflict?: boolean } = {}) {
     leaseId: integrationLease.lease!.leaseId,
     provider: "codex",
     baseCommit: targetBeforeCommit,
-    integrationTargetDigest: repositoryCoordinateDigest(targetRef),
+    integrationTargetDigest: repositoryCoordinateDigest(selectedTargetRef),
     executionKind: "integrator",
     host,
     now: new Date("2026-08-26T00:00:13Z"),
@@ -255,6 +262,7 @@ async function fixture(options: { conflict?: boolean } = {}) {
     agent,
     integrationLease,
     targetBeforeCommit,
+    targetRef: selectedTargetRef,
     integrationHost,
   };
 }
@@ -268,7 +276,7 @@ async function plan(current: Awaited<ReturnType<typeof fixture>>) {
     integratorWriterSessionId: "ses_integrator_workspace",
     leaseId: current.integrationLease.lease!.leaseId,
     provider: "codex",
-    targetRef,
+    targetRef: current.targetRef,
     targetGeneration: 1,
     verificationSuites: [integrationSuite],
     selectedWorkspaceIds: [current.worker.workspaceId],
@@ -321,6 +329,29 @@ async function passingVerification(
       ...stored,
     },
   };
+}
+
+async function prepareVerifiedCandidate(current: Awaited<ReturnType<typeof fixture>>) {
+  const integrationPlan = await plan(current);
+  const candidate = await applyWorkspaceIntegrationCandidate({
+    plan: integrationPlan,
+    integrationHost: current.integrationHost,
+    now: new Date("2026-08-26T00:00:17Z"),
+  });
+  const artifacts = new MemoryArtifactStore();
+  const verification = await verifyWorkspaceIntegrationCandidate({
+    plan: integrationPlan,
+    integrationHost: current.integrationHost,
+    suites: [integrationSuite],
+    verifier: {
+      verify: ({ suite, repositoryRevision }) =>
+        passingVerification(artifacts, suite, repositoryRevision),
+    },
+    artifactStore: artifacts,
+    append: () => undefined,
+    now: () => new Date("2026-08-26T00:00:20Z"),
+  });
+  return { integrationPlan, candidate, verification };
 }
 
 afterEach(async () => {
@@ -449,6 +480,200 @@ describe("workspace integration candidate orchestration", () => {
       }),
     ).rejects.toMatchObject({ code: "host_effect_uncertain" });
     expect(await git(current.root, "rev-parse", targetRef)).toBe(current.targetBeforeCommit);
+  }, 20_000);
+
+  it("records exact integration success and projects every source as integrated", async () => {
+    const current = await fixture({ targetAdvance: true });
+    const { integrationPlan, candidate, verification } = await prepareVerifiedCandidate(current);
+    const completed = await completeWorkspaceIntegration({
+      plan: integrationPlan,
+      verificationReceipt: verification,
+      integrationHost: current.integrationHost,
+      now: new Date("2026-08-26T00:00:21Z"),
+    });
+    expect(completed).toMatchObject({
+      status: "integrated",
+      attemptId: integrationPlan.attempt.attemptId,
+      targetBeforeCommit: current.targetBeforeCommit,
+      targetAfterCommit: candidate.candidateCommit,
+      verificationReceiptHash: verification.contentHash,
+      integratedWorkspaceIds: [current.worker.workspaceId],
+    });
+    expect(await git(current.root, "rev-parse", current.targetRef)).toBe(candidate.candidateCommit);
+    expect(
+      (await readWorkspace(current.root, current.worker.workspaceId))!.workspace,
+    ).toMatchObject({
+      state: "integrated",
+      integrationEvidenceId: integrationPlan.attempt.attemptId,
+    });
+    const attempt = await readWorkspaceIntegrationAttempt(
+      current.root,
+      integrationPlan.attempt.targetLeaseId,
+    );
+    expect(attempt!.attempt.state).toBe("integrated");
+    const records = await RepositoryCoordinationRecords.open(current.root);
+    const recorded = await records.read<Record<string, unknown>>(
+      "events",
+      integrationPlan.integratedAttemptEventId,
+    );
+    expect(recorded!.value).toMatchObject({
+      type: "assignment.integration.recorded",
+      targetBeforeCommit: current.targetBeforeCommit,
+      targetAfterCommit: candidate.candidateCommit,
+      verificationReceiptHash: verification.contentHash,
+    });
+    expect(JSON.stringify(recorded!.value)).not.toContain(current.integrationPath);
+    expect(JSON.stringify(recorded!.value)).not.toContain(current.targetRef);
+    await expect(
+      completeWorkspaceIntegration({
+        plan: integrationPlan,
+        verificationReceipt: verification,
+        integrationHost: current.integrationHost,
+        now: new Date("2026-08-26T00:00:22Z"),
+      }),
+    ).resolves.toEqual(completed);
+  }, 20_000);
+
+  it("recovers an advancement whose successful response was lost", async () => {
+    const current = await fixture({ targetAdvance: true });
+    const { integrationPlan, candidate, verification } = await prepareVerifiedCandidate(current);
+    let firstAdvance = true;
+    const base = current.integrationHost;
+    const lostResponseHost: WorkspaceIntegrationHostAdapter = {
+      kind: base.kind,
+      version: base.version,
+      capabilities: base.capabilities,
+      inspectTarget: (request) => base.inspectTarget(request),
+      applyIntegration: (request) => base.applyIntegration(request),
+      advanceTarget: async (request) => {
+        const result = await base.advanceTarget(request);
+        if (firstAdvance) {
+          firstAdvance = false;
+          throw new Error("response lost after exact ref update");
+        }
+        return result;
+      },
+      rollbackTarget: (request) => base.rollbackTarget(request),
+      resetCandidate: (request) => base.resetCandidate(request),
+    };
+    await expect(
+      completeWorkspaceIntegration({
+        plan: integrationPlan,
+        verificationReceipt: verification,
+        integrationHost: lostResponseHost,
+        now: new Date("2026-08-26T00:00:21Z"),
+      }),
+    ).resolves.toMatchObject({
+      status: "integrated",
+      targetAfterCommit: candidate.candidateCommit,
+    });
+  }, 20_000);
+
+  it("rejects a verification receipt whose content no longer matches its hash", async () => {
+    const current = await fixture({ targetAdvance: true });
+    const { integrationPlan, verification } = await prepareVerifiedCandidate(current);
+    const changedReceipt = {
+      ...verification,
+      verifiedAt: "2026-08-26T00:00:20.001Z",
+    };
+    await expect(
+      completeWorkspaceIntegration({
+        plan: integrationPlan,
+        verificationReceipt: changedReceipt,
+        integrationHost: current.integrationHost,
+        now: new Date("2026-08-26T00:00:21Z"),
+      }),
+    ).rejects.toMatchObject({ code: "host_coordinate_invalid" });
+    expect(await git(current.root, "rev-parse", current.targetRef)).toBe(
+      current.targetBeforeCommit,
+    );
+  }, 20_000);
+
+  it("rolls the target back when the success event cannot commit", async () => {
+    const current = await fixture({ targetAdvance: true });
+    const { integrationPlan, verification } = await prepareVerifiedCandidate(current);
+    const records = await RepositoryCoordinationRecords.open(current.root);
+    await records.write({
+      collection: "events",
+      recordId: integrationPlan.integratedAttemptEventId,
+      value: { occupied: true },
+      expectedContentHash: null,
+    });
+    await expect(
+      completeWorkspaceIntegration({
+        plan: integrationPlan,
+        verificationReceipt: verification,
+        integrationHost: current.integrationHost,
+        now: new Date("2026-08-26T00:00:21Z"),
+      }),
+    ).rejects.toMatchObject({ code: "coordination_state_conflict" });
+    expect(await git(current.root, "rev-parse", current.targetRef)).toBe(
+      current.targetBeforeCommit,
+    );
+    expect(
+      (await readWorkspaceIntegrationAttempt(current.root, integrationPlan.attempt.targetLeaseId))!
+        .attempt.state,
+    ).toBe("candidate");
+  }, 20_000);
+
+  it("resumes source projection after the durable integration commit point", async () => {
+    const current = await fixture({ targetAdvance: true });
+    const { integrationPlan, candidate, verification } = await prepareVerifiedCandidate(current);
+    let attempt = await readWorkspaceIntegrationAttempt(
+      current.root,
+      integrationPlan.attempt.targetLeaseId,
+    );
+    attempt = await beginWorkspaceIntegrationAdvancement({
+      repositoryRoot: current.root,
+      targetLeaseId: attempt!.attempt.targetLeaseId,
+      expectedContentHash: attempt!.contentHash,
+      expectedRevision: attempt!.attempt.revision,
+      eventId: integrationPlan.advancingEventId,
+      occurredAt: "2026-08-26T00:00:21Z",
+      verificationReceiptHash: verification.contentHash,
+      verificationResults: verification.results.map(
+        ({ suiteId, suiteHash, verificationId, resultArtifactId, resultContentHash }) => ({
+          suiteId,
+          suiteHash,
+          verificationId,
+          resultArtifactId,
+          resultContentHash,
+        }),
+      ),
+    });
+    await current.integrationHost.advanceTarget({
+      repositoryRoot: current.root,
+      integrationWorkspacePath: current.integrationPath,
+      integrationBaseCommit: integrationPlan.integrationBaseCommit,
+      integrationMarker: integrationPlan.integrationMarker,
+      targetRef: current.targetRef,
+      targetBeforeCommit: current.targetBeforeCommit,
+      candidateCommit: candidate.candidateCommit!,
+      candidateTreeHash: candidate.candidateTreeHash!,
+      idempotencyKey: integrationPlan.advanceIdempotencyKey,
+    });
+    await commitWorkspaceIntegrationAttempt({
+      repositoryRoot: current.root,
+      targetLeaseId: attempt.attempt.targetLeaseId,
+      expectedContentHash: attempt.contentHash,
+      expectedRevision: attempt.attempt.revision,
+      eventId: integrationPlan.integratedAttemptEventId,
+      occurredAt: "2026-08-26T00:00:21Z",
+    });
+    expect((await readWorkspace(current.root, current.worker.workspaceId))!.workspace.state).toBe(
+      "integrating",
+    );
+    await expect(
+      completeWorkspaceIntegration({
+        plan: integrationPlan,
+        verificationReceipt: verification,
+        integrationHost: current.integrationHost,
+        now: new Date("2026-08-26T00:00:22Z"),
+      }),
+    ).resolves.toMatchObject({ status: "integrated" });
+    expect((await readWorkspace(current.root, current.worker.workspaceId))!.workspace.state).toBe(
+      "integrated",
+    );
   }, 20_000);
 
   it("rejects a stale target before acquiring the integration attempt", async () => {

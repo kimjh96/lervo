@@ -1,6 +1,7 @@
 export * from "./store.js";
 export * from "./integration-queue-store.js";
 export * from "./integration-attempt-store.js";
+export * from "./integration-attempt-contract.js";
 export * from "./integration-attempt-types.js";
 export * from "./natural-language.js";
 export * from "./types.js";

@@ -27,7 +27,7 @@ async function exactEvent(input: {
   eventId: string;
   workspaceId: string;
   generation: number;
-  state: "integrating" | "integration_conflict";
+  state: "integrating" | "integrated" | "integration_conflict";
   revision: number;
 }): Promise<boolean> {
   const records = await RepositoryCoordinationRecords.open(input.repositoryRoot);
@@ -210,6 +210,49 @@ export async function finalizeIntegrationConflictSources(
       occurredAt,
       evidence: { conflictAborted: true },
       reasonCode: "git_conflict_aborted",
+    });
+  }
+}
+
+export async function finalizeIntegrationSuccessSources(
+  plan: WorkspaceIntegrationPlan,
+  occurredAt: string,
+): Promise<void> {
+  for (const source of plan.sources) {
+    const stored = await readWorkspace(plan.repositoryRoot, source.workspaceId);
+    if (stored === null)
+      throw new WorkspaceHostError("host_effect_uncertain", "An integration source is absent.");
+    if (
+      stored.workspace.state === "integrated" &&
+      stored.workspace.revision === source.workspaceRevision + 2 &&
+      stored.workspace.integrationEvidenceId === plan.attempt.attemptId &&
+      (await exactEvent({
+        repositoryRoot: plan.repositoryRoot,
+        eventId: source.integratedEventId,
+        workspaceId: source.workspaceId,
+        generation: source.generation,
+        state: "integrated",
+        revision: source.workspaceRevision + 2,
+      }))
+    )
+      continue;
+    if (!(await exactIntegratingSource(plan, stored, source)))
+      throw new WorkspaceHostError(
+        "host_effect_uncertain",
+        "An integrated source is not bound to this attempt.",
+      );
+    await updateWorkspace({
+      repositoryRoot: plan.repositoryRoot,
+      workspaceId: source.workspaceId,
+      expectedContentHash: stored.contentHash,
+      eventId: source.integratedEventId,
+      expectedRevision: stored.workspace.revision,
+      expectedGeneration: source.generation,
+      nextState: "integrated",
+      occurredAt,
+      evidence: { integrationVerified: true },
+      integrationEvidenceId: plan.attempt.attemptId,
+      reasonCode: "integration_target_advanced",
     });
   }
 }

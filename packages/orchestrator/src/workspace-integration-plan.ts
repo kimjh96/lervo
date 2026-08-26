@@ -232,6 +232,7 @@ export async function planWorkspaceIntegrationCandidate(input: {
     changedPathSetDigest: workspace.sealedResult!.changedPathSetDigest,
     strategy: input.strategies?.[workspace.workspaceId] ?? "cherry_pick",
     integratingEventId: randomId("evt"),
+    integratedEventId: randomId("evt"),
     conflictEventId: randomId("evt"),
     recoveryEventId: randomId("evt"),
   }));
@@ -283,6 +284,9 @@ export async function planWorkspaceIntegrationCandidate(input: {
     state: "leased",
     candidateCommit: null,
     candidateTreeHash: null,
+    verificationReceiptHash: null,
+    verificationResults: [],
+    targetAfterCommit: null,
     conflictWorkspaceId: null,
     conflictReason: null,
     revision: 1,
@@ -324,7 +328,11 @@ export async function planWorkspaceIntegrationCandidate(input: {
     leaseEventId: randomId("evt"),
     candidateEventId: randomId("evt"),
     conflictAttemptEventId: randomId("evt"),
+    advancingEventId: randomId("evt"),
+    integratedAttemptEventId: randomId("evt"),
+    rollbackEventId: randomId("evt"),
     idempotencyKey: randomId("idk"),
+    advanceIdempotencyKey: randomId("idk"),
     resetIdempotencyKey: randomId("idk"),
   };
   const contentHash = workspaceIntegrationPlanContent(content);

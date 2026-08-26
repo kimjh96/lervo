@@ -1,4 +1,13 @@
-export type WorkspaceIntegrationAttemptState = "leased" | "candidate" | "conflict";
+export type WorkspaceIntegrationAttemptState =
+  "leased" | "candidate" | "advancing" | "integrated" | "conflict";
+
+export interface WorkspaceIntegrationVerificationCoordinate {
+  suiteId: string;
+  suiteHash: string;
+  verificationId: string;
+  resultArtifactId: string;
+  resultContentHash: string;
+}
 
 export interface WorkspaceIntegrationAttemptSource {
   workspaceId: string;
@@ -25,6 +34,9 @@ export interface WorkspaceIntegrationAttempt {
   state: WorkspaceIntegrationAttemptState;
   candidateCommit: string | null;
   candidateTreeHash: string | null;
+  verificationReceiptHash: string | null;
+  verificationResults: WorkspaceIntegrationVerificationCoordinate[];
+  targetAfterCommit: string | null;
   conflictWorkspaceId: string | null;
   conflictReason: "git_conflict" | null;
   revision: number;
@@ -51,7 +63,35 @@ export interface WorkspaceIntegrationAttemptEvent {
   state: WorkspaceIntegrationAttemptState;
   candidateCommit: string | null;
   candidateTreeHash: string | null;
+  verificationReceiptHash: string | null;
+  targetAfterCommit: string | null;
   conflictWorkspaceId: string | null;
   conflictReason: "git_conflict" | null;
+  revision: number;
+}
+
+export interface WorkspaceIntegrationRecordedEvent {
+  schemaVersion: 1;
+  type: "assignment.integration.recorded";
+  eventId: string;
+  occurredAt: string;
+  attemptId: string;
+  targetLeaseId: string;
+  repositoryInstanceId: string;
+  targetDigest: string;
+  targetGeneration: number;
+  integrationAssignmentId: string;
+  integratorAgentId: string;
+  integratorWorkspaceId: string;
+  sources: Array<{
+    workspaceId: string;
+    generation: number;
+    headCommit: string;
+    strategy: "fast_forward" | "cherry_pick" | "merge";
+  }>;
+  targetBeforeCommit: string;
+  targetAfterCommit: string;
+  verificationReceiptHash: string;
+  verificationResults: WorkspaceIntegrationVerificationCoordinate[];
   revision: number;
 }

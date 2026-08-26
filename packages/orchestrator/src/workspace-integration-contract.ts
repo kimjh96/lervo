@@ -22,6 +22,7 @@ export interface WorkspaceIntegrationPlanSource {
   changedPathSetDigest: string;
   strategy: WorkspaceIntegrationStrategy;
   integratingEventId: string;
+  integratedEventId: string;
   conflictEventId: string;
   recoveryEventId: string;
 }
@@ -70,7 +71,11 @@ export interface WorkspaceIntegrationPlan {
   leaseEventId: string;
   candidateEventId: string;
   conflictAttemptEventId: string;
+  advancingEventId: string;
+  integratedAttemptEventId: string;
+  rollbackEventId: string;
   idempotencyKey: string;
+  advanceIdempotencyKey: string;
   resetIdempotencyKey: string;
   contentHash: string;
 }

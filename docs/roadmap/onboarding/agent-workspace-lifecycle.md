@@ -18,8 +18,8 @@ Integrated worker worktrees are removed automatically only when local evidence p
 1. [Completed] Introduce the shared repository-instance coordination home and migrate conflict-free single-checkout workforce state.
 2. [Completed] Add workspace identities, generations, ownership markers, lifecycle state, events, and the provider-neutral workspace-host port.
 3. [Completed] Implement native Git provisioning and inspection, then bind assignments and one writer session to dedicated worktrees.
-4. [Completed] Make direct terminal preparation and `Stop` execution-kind-aware; workers finalize scoped workspace state while integrators retain repository-wide finalization.
-5. [In progress] Immutable sealing, deterministic integration queueing, exclusive target-generation leases, path-private collision plans, isolated Git candidate preparation, stale-target rejection, exact conflict abort, content-bound repository-wide candidate verification, and non-checked-out target-ref compare-and-swap advancement with inverse rollback are implemented. Compose durable success recording and interruption recovery with those verified host operations before enabling integration success.
+4. [Completed] Make direct terminal preparation and `Stop` execution-kind-aware. Workers finalize scoped workspace state; integrators retain repository-wide finalization.
+5. [Completed] Implement immutable sealing, deterministic integration queueing, exclusive target-generation leases, path-private collision plans, isolated Git candidate preparation, stale-target rejection, exact conflict abort, content-bound repository-wide candidate verification, and non-checked-out target-ref compare-and-swap advancement. Durable success binds the receipt before movement, atomically commits the authoritative attempt and privacy-bounded event, exactly rolls back pre-commit failures, and idempotently resumes post-commit source projections.
 6. Add path-private cleanup planning, non-force removal, crash recovery, and positive process quiescence. Keep automatic cleanup disabled until these gates pass.
 7. Add an Orca host adapter for managed worktree and terminal evidence without importing Orca into lifecycle domain packages.
 8. Add optional Hub reservations, permissions, audit transitions, Node reconciliation, health, and cross-Node acceptance.
@@ -30,13 +30,13 @@ Integrated worker worktrees are removed automatically only when local evidence p
 
 - Two disjoint assignments run concurrently in separate worktrees and share one local scheduler; overlapping claims fail before either writer starts.
 - A second writer or foreign path mutation produces a bounded isolation error. `Stop` does not require the affected worker to update another workspace's global workstream.
-- A sealed result binds clean commits, changed-path digest, verification, and durable artifacts and remains integrable after its agent exits.
-- Exactly one integration assignment owns each target generation. Stale targets and conflicts preserve worker results and advance neither target nor current workstream.
+- A sealed result binds clean commits, changed-path digest, verification, and durable artifacts, and remains integrable after its agent exits.
+- Exactly one integration assignment owns each target generation. Stale targets and conflicts preserve worker results and advance neither the target nor the current workstream.
 - Repository-wide documentation, knowledge, lint, and verification run only against the integrated checkout before the integrator advances the workstream.
-- An integrated, clean, quiescent Lervo-owned worktree is removed without force. Dirty, untracked, live, linked, unintegrated, unreachable, uncertain, symbolic, or recovery-marked worktrees remain.
+- An integrated, clean, quiescent, Lervo-owned worktree is removed without force. Dirty, untracked, live, linked, unintegrated, unreachable, uncertain, symbolic, or recovery-marked worktrees remain.
 - Interrupted cleanup deterministically restores eligibility or completes metadata cleanup from durable evidence; it never recursively deletes an uncertain directory.
 - Worktree deletion does not implicitly delete its sealed result, integration evidence, assignment history, branch, or remote ref.
-- The Git adapter passes the common host contract. The Orca adapter additionally proves live-terminal protection and updates Orca-visible lifecycle status.
+- The Git adapter passes the common host contract. The Orca adapter also proves live-terminal protection and updates Orca-visible lifecycle status.
 - `local_first` passes without Hub. `hub_coordinated` rejects cross-Node overlap, fences stale generations, survives lost acknowledgements, and never grants remote cleanup or approval authority.
 - Hub workstream divergence remains separate and cannot be resolved by reservations or integration queue order.
 - Event and Hub payload tests prove exclusion of paths, branch names, source and patch bodies, prompts, provider output, credentials, approvals, and reasoning.

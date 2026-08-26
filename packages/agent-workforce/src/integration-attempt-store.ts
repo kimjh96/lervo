@@ -1,119 +1,22 @@
 import { RepositoryCoordinationRecords } from "@lervo/project-storage";
 
+import {
+  isWorkspaceIntegrationAttempt,
+  stableWorkspaceIntegrationAttemptJson,
+  validWorkspaceIntegrationTime,
+  validWorkspaceIntegrationVerificationResult,
+  workspaceIntegrationAttemptEvent,
+  workspaceIntegrationRecordedEvent,
+} from "./integration-attempt-contract.js";
 import type {
   WorkspaceIntegrationAttempt,
-  WorkspaceIntegrationAttemptEvent,
   WorkspaceIntegrationAttemptState,
+  WorkspaceIntegrationRecordedEvent,
+  WorkspaceIntegrationVerificationCoordinate,
 } from "./integration-attempt-types.js";
 import { AgentWorkforceError } from "./types.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
-const COMMIT = /^[a-f0-9]{40,64}$/u;
-const EVENT_ID = /^evt_[A-Za-z0-9_-]{8,128}$/u;
-
-function stableJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
-  if (value !== null && typeof value === "object")
-    return `{${Object.entries(value as Record<string, unknown>)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`)
-      .join(",")}}`;
-  return JSON.stringify(value);
-}
-
-function validTime(value: string): boolean {
-  return Number.isFinite(Date.parse(value));
-}
-
-export function isWorkspaceIntegrationAttempt(value: WorkspaceIntegrationAttempt): boolean {
-  return (
-    value.schemaVersion === 1 &&
-    /^int_[a-f0-9]{24}$/u.test(value.attemptId) &&
-    /^itl_[a-f0-9]{24}$/u.test(value.targetLeaseId) &&
-    HASH.test(value.planContentHash) &&
-    /^rpi_[a-f0-9]{24}$/u.test(value.repositoryInstanceId) &&
-    HASH.test(value.targetDigest) &&
-    Number.isSafeInteger(value.targetGeneration) &&
-    value.targetGeneration >= 1 &&
-    COMMIT.test(value.targetBeforeCommit) &&
-    /^asn_[a-f0-9]{24}$/u.test(value.integrationAssignmentId) &&
-    /^agt_[a-f0-9]{24}$/u.test(value.integratorAgentId) &&
-    /^wsp_[a-f0-9]{24}$/u.test(value.integratorWorkspaceId) &&
-    Number.isSafeInteger(value.integratorWorkspaceGeneration) &&
-    value.integratorWorkspaceGeneration >= 1 &&
-    value.sources.length > 0 &&
-    value.sources.length <= 32 &&
-    value.sources.every(
-      (source) =>
-        /^wsp_[a-f0-9]{24}$/u.test(source.workspaceId) &&
-        Number.isSafeInteger(source.generation) &&
-        source.generation >= 1 &&
-        COMMIT.test(source.headCommit) &&
-        COMMIT.test(source.treeHash) &&
-        ["fast_forward", "cherry_pick", "merge"].includes(source.strategy),
-    ) &&
-    new Set(value.sources.map((source) => source.workspaceId)).size === value.sources.length &&
-    ["leased", "candidate", "conflict"].includes(value.state) &&
-    (value.candidateCommit === null || COMMIT.test(value.candidateCommit)) &&
-    (value.candidateTreeHash === null || COMMIT.test(value.candidateTreeHash)) &&
-    (value.conflictWorkspaceId === null || /^wsp_[a-f0-9]{24}$/u.test(value.conflictWorkspaceId)) &&
-    (value.conflictReason === null || value.conflictReason === "git_conflict") &&
-    ((value.state === "leased" &&
-      value.candidateCommit === null &&
-      value.candidateTreeHash === null &&
-      value.conflictWorkspaceId === null &&
-      value.conflictReason === null) ||
-      (value.state === "candidate" &&
-        value.candidateCommit !== null &&
-        value.candidateTreeHash !== null &&
-        value.conflictWorkspaceId === null &&
-        value.conflictReason === null) ||
-      (value.state === "conflict" &&
-        value.candidateCommit === null &&
-        value.candidateTreeHash === null &&
-        value.conflictWorkspaceId !== null &&
-        value.conflictReason === "git_conflict")) &&
-    Number.isSafeInteger(value.revision) &&
-    value.revision >= 1 &&
-    validTime(value.createdAt) &&
-    validTime(value.updatedAt)
-  );
-}
-
-function eventFor(input: {
-  eventId: string;
-  current: WorkspaceIntegrationAttempt | null;
-  next: WorkspaceIntegrationAttempt;
-}): WorkspaceIntegrationAttemptEvent {
-  if (!EVENT_ID.test(input.eventId)) invalid("The integration attempt event ID is invalid.");
-  return {
-    schemaVersion: 1,
-    type: "assignment.integration.state.changed",
-    eventId: input.eventId,
-    occurredAt: input.next.updatedAt,
-    attemptId: input.next.attemptId,
-    targetLeaseId: input.next.targetLeaseId,
-    repositoryInstanceId: input.next.repositoryInstanceId,
-    targetDigest: input.next.targetDigest,
-    targetGeneration: input.next.targetGeneration,
-    targetBeforeCommit: input.next.targetBeforeCommit,
-    integrationAssignmentId: input.next.integrationAssignmentId,
-    integratorAgentId: input.next.integratorAgentId,
-    integratorWorkspaceId: input.next.integratorWorkspaceId,
-    sources: input.next.sources.map(({ workspaceId, generation, headCommit }) => ({
-      workspaceId,
-      generation,
-      headCommit,
-    })),
-    previousState: input.current?.state ?? "absent",
-    state: input.next.state,
-    candidateCommit: input.next.candidateCommit,
-    candidateTreeHash: input.next.candidateTreeHash,
-    conflictWorkspaceId: input.next.conflictWorkspaceId,
-    conflictReason: input.next.conflictReason,
-    revision: input.next.revision,
-  };
-}
 
 function invalid(message: string): never {
   throw new AgentWorkforceError("workspace_invalid", message);
@@ -133,6 +36,23 @@ export async function readWorkspaceIntegrationAttempt(
   return { attempt: structuredClone(stored.value), contentHash: stored.contentHash };
 }
 
+export async function hasExactWorkspaceIntegrationRecordedEvent(input: {
+  repositoryRoot: string;
+  eventId: string;
+  attempt: WorkspaceIntegrationAttempt;
+}): Promise<boolean> {
+  if (input.attempt.state !== "integrated") return false;
+  const records = await RepositoryCoordinationRecords.open(input.repositoryRoot);
+  const stored = await records.read<WorkspaceIntegrationRecordedEvent>("events", input.eventId);
+  return (
+    stored !== null &&
+    stableWorkspaceIntegrationAttemptJson(stored.value) ===
+      stableWorkspaceIntegrationAttemptJson(
+        workspaceIntegrationRecordedEvent({ eventId: input.eventId, next: input.attempt }),
+      )
+  );
+}
+
 export async function acquireWorkspaceIntegrationTargetLease(input: {
   repositoryRoot: string;
   attempt: WorkspaceIntegrationAttempt;
@@ -149,7 +69,10 @@ export async function acquireWorkspaceIntegrationTargetLease(input: {
     input.attempt.targetLeaseId,
   );
   if (existing !== null) {
-    if (stableJson(existing.attempt) !== stableJson(input.attempt))
+    if (
+      stableWorkspaceIntegrationAttemptJson(existing.attempt) !==
+      stableWorkspaceIntegrationAttemptJson(input.attempt)
+    )
       throw new AgentWorkforceError(
         "workspace_transition_conflict",
         "The target generation already has a different integration lease.",
@@ -163,7 +86,11 @@ export async function acquireWorkspaceIntegrationTargetLease(input: {
     value: input.attempt,
     expectedContentHash: null,
     eventId: input.eventId,
-    event: eventFor({ eventId: input.eventId, current: null, next: input.attempt }),
+    event: workspaceIntegrationAttemptEvent({
+      eventId: input.eventId,
+      current: null,
+      next: input.attempt,
+    }),
   });
   return { attempt: structuredClone(stored.value), contentHash: stored.contentHash };
 }
@@ -187,7 +114,7 @@ export async function updateWorkspaceIntegrationAttempt(input: {
     current.contentHash !== input.expectedContentHash ||
     current.attempt.revision !== input.expectedRevision ||
     current.attempt.state !== "leased" ||
-    !validTime(input.occurredAt)
+    !validWorkspaceIntegrationTime(input.occurredAt)
   )
     throw new AgentWorkforceError(
       "workspace_transition_conflict",
@@ -198,6 +125,9 @@ export async function updateWorkspaceIntegrationAttempt(input: {
     state: input.nextState,
     candidateCommit: input.candidateCommit ?? null,
     candidateTreeHash: input.candidateTreeHash ?? null,
+    verificationReceiptHash: null,
+    verificationResults: [],
+    targetAfterCommit: null,
     conflictWorkspaceId: input.conflictWorkspaceId ?? null,
     conflictReason: input.conflictReason ?? null,
     revision: current.attempt.revision + 1,
@@ -212,7 +142,148 @@ export async function updateWorkspaceIntegrationAttempt(input: {
     value: next,
     expectedContentHash: current.contentHash,
     eventId: input.eventId,
-    event: eventFor({ eventId: input.eventId, current: current.attempt, next }),
+    event: workspaceIntegrationAttemptEvent({
+      eventId: input.eventId,
+      current: current.attempt,
+      next,
+    }),
+  });
+  return { attempt: structuredClone(stored.value), contentHash: stored.contentHash };
+}
+
+export async function beginWorkspaceIntegrationAdvancement(input: {
+  repositoryRoot: string;
+  targetLeaseId: string;
+  expectedContentHash: string;
+  expectedRevision: number;
+  eventId: string;
+  occurredAt: string;
+  verificationReceiptHash: string;
+  verificationResults: WorkspaceIntegrationVerificationCoordinate[];
+}): Promise<{ attempt: WorkspaceIntegrationAttempt; contentHash: string }> {
+  const current = await readWorkspaceIntegrationAttempt(input.repositoryRoot, input.targetLeaseId);
+  if (
+    current === null ||
+    current.contentHash !== input.expectedContentHash ||
+    current.attempt.revision !== input.expectedRevision ||
+    current.attempt.state !== "candidate" ||
+    current.attempt.candidateCommit === null ||
+    !validWorkspaceIntegrationTime(input.occurredAt) ||
+    !HASH.test(input.verificationReceiptHash) ||
+    input.verificationResults.length === 0 ||
+    !input.verificationResults.every(validWorkspaceIntegrationVerificationResult)
+  )
+    throw new AgentWorkforceError(
+      "workspace_transition_conflict",
+      "The integration advancement coordinate changed before apply.",
+    );
+  const next: WorkspaceIntegrationAttempt = {
+    ...current.attempt,
+    state: "advancing",
+    verificationReceiptHash: input.verificationReceiptHash,
+    verificationResults: structuredClone(input.verificationResults),
+    targetAfterCommit: current.attempt.candidateCommit,
+    revision: current.attempt.revision + 1,
+    updatedAt: input.occurredAt,
+  };
+  if (!isWorkspaceIntegrationAttempt(next)) invalid("The advancing attempt is invalid.");
+  const records = await RepositoryCoordinationRecords.open(input.repositoryRoot);
+  const stored = await records.writeTransition({
+    collection: "integrationAttempts",
+    recordId: input.targetLeaseId,
+    value: next,
+    expectedContentHash: current.contentHash,
+    eventId: input.eventId,
+    event: workspaceIntegrationAttemptEvent({
+      eventId: input.eventId,
+      current: current.attempt,
+      next,
+    }),
+  });
+  return { attempt: structuredClone(stored.value), contentHash: stored.contentHash };
+}
+
+export async function commitWorkspaceIntegrationAttempt(input: {
+  repositoryRoot: string;
+  targetLeaseId: string;
+  expectedContentHash: string;
+  expectedRevision: number;
+  eventId: string;
+  occurredAt: string;
+}): Promise<{ attempt: WorkspaceIntegrationAttempt; contentHash: string }> {
+  const current = await readWorkspaceIntegrationAttempt(input.repositoryRoot, input.targetLeaseId);
+  if (
+    current === null ||
+    current.contentHash !== input.expectedContentHash ||
+    current.attempt.revision !== input.expectedRevision ||
+    current.attempt.state !== "advancing" ||
+    !validWorkspaceIntegrationTime(input.occurredAt)
+  )
+    throw new AgentWorkforceError(
+      "workspace_transition_conflict",
+      "The integration success coordinate changed before commit.",
+    );
+  const next: WorkspaceIntegrationAttempt = {
+    ...current.attempt,
+    state: "integrated",
+    revision: current.attempt.revision + 1,
+    updatedAt: input.occurredAt,
+  };
+  if (!isWorkspaceIntegrationAttempt(next)) invalid("The integrated attempt is invalid.");
+  const records = await RepositoryCoordinationRecords.open(input.repositoryRoot);
+  const stored = await records.writeTransition({
+    collection: "integrationAttempts",
+    recordId: input.targetLeaseId,
+    value: next,
+    expectedContentHash: current.contentHash,
+    eventId: input.eventId,
+    event: workspaceIntegrationRecordedEvent({ eventId: input.eventId, next }),
+  });
+  return { attempt: structuredClone(stored.value), contentHash: stored.contentHash };
+}
+
+export async function rollbackWorkspaceIntegrationAdvancement(input: {
+  repositoryRoot: string;
+  targetLeaseId: string;
+  expectedContentHash: string;
+  expectedRevision: number;
+  eventId: string;
+  occurredAt: string;
+}): Promise<{ attempt: WorkspaceIntegrationAttempt; contentHash: string }> {
+  const current = await readWorkspaceIntegrationAttempt(input.repositoryRoot, input.targetLeaseId);
+  if (
+    current === null ||
+    current.contentHash !== input.expectedContentHash ||
+    current.attempt.revision !== input.expectedRevision ||
+    current.attempt.state !== "advancing" ||
+    !validWorkspaceIntegrationTime(input.occurredAt)
+  )
+    throw new AgentWorkforceError(
+      "workspace_transition_conflict",
+      "The integration rollback coordinate changed before apply.",
+    );
+  const next: WorkspaceIntegrationAttempt = {
+    ...current.attempt,
+    state: "candidate",
+    verificationReceiptHash: null,
+    verificationResults: [],
+    targetAfterCommit: null,
+    revision: current.attempt.revision + 1,
+    updatedAt: input.occurredAt,
+  };
+  if (!isWorkspaceIntegrationAttempt(next)) invalid("The rolled back attempt is invalid.");
+  const records = await RepositoryCoordinationRecords.open(input.repositoryRoot);
+  const stored = await records.writeTransition({
+    collection: "integrationAttempts",
+    recordId: input.targetLeaseId,
+    value: next,
+    expectedContentHash: current.contentHash,
+    eventId: input.eventId,
+    event: workspaceIntegrationAttemptEvent({
+      eventId: input.eventId,
+      current: current.attempt,
+      next,
+    }),
   });
   return { attempt: structuredClone(stored.value), contentHash: stored.contentHash };
 }

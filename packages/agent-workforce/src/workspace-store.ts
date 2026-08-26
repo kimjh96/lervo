@@ -89,11 +89,9 @@ function eventFor(input: {
       ? "agent.workspace.provisioned"
       : input.next.state === "sealed"
         ? "agent.workspace.sealed"
-        : input.next.state === "integrated"
-          ? "assignment.integration.recorded"
-          : input.next.state === "removed"
-            ? "agent.workspace.removed"
-            : "agent.workspace.state.changed";
+        : input.next.state === "removed"
+          ? "agent.workspace.removed"
+          : "agent.workspace.state.changed";
   return {
     schemaVersion: 1,
     eventId: input.eventId,

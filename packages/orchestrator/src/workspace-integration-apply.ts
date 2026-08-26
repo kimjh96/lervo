@@ -42,7 +42,7 @@ function receipt(attempt: WorkspaceIntegrationAttempt): WorkspaceIntegrationCand
   return {
     attemptId: attempt.attemptId,
     targetLeaseId: attempt.targetLeaseId,
-    status: attempt.state,
+    status: attempt.state === "conflict" ? "conflict" : "candidate",
     targetBeforeCommit: attempt.targetBeforeCommit,
     candidateCommit: attempt.candidateCommit,
     candidateTreeHash: attempt.candidateTreeHash,
