@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_688257c9b79c8890bbb488ed"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add isolated multi-agent workspace lifecycle and exact integration coordination."

@@ -1,6 +1,7 @@
-<!-- lervo-release package="@lervo/cli" version="0.2.2" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.3.0" schema="1" -->
 
 ## What's changed
 
-- Preserve GitHub pull request body heading levels during document normalization.
-- Prevent SQLite integrity scans from losing lazy statements under memory pressure.
+- Add bounded document layout enforcement and explicit rewrite ownership.
+- Add isolated multi-agent workspace lifecycle and exact integration coordination.
+- Correct provider dependency loading and offline repository Node readiness checks.
