@@ -42,6 +42,10 @@ describe("CLI release matrix workflow", () => {
     ]);
     assert.deepEqual(workflow.permissions, { contents: "read" });
     const job = workflow.jobs["packed-cli"];
+    assert.equal(
+      job.if,
+      "github.event_name != 'pull_request' || github.head_ref == 'lervo/release-cli'",
+    );
     assert.equal(job.strategy["fail-fast"], false);
     assert.deepEqual(job.strategy.matrix.os, ["ubuntu-latest", "macos-latest", "windows-latest"]);
     assert.equal(job["timeout-minutes"], 20);
