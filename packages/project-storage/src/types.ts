@@ -46,13 +46,14 @@ export interface RepositoryCoordinationHome {
   workforce: string;
   workspaces: string;
   integrations: string;
+  integrationAttempts: string;
   cleanupJournals: string;
   events: string;
   locks: string;
 }
 
 export type RepositoryCoordinationCollection =
-  "workspaces" | "integrations" | "cleanupJournals" | "events";
+  "workspaces" | "integrations" | "integrationAttempts" | "cleanupJournals" | "events";
 
 export interface RepositoryCoordinationRecord<T> {
   value: T;

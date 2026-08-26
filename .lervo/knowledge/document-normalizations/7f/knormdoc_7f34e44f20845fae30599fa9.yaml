@@ -1,0 +1,29 @@
+candidateId: knorm_6d532b599cf7b07db30c914d
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a21f0cd18faa4c5ca45036d3
+outputLanguage: en
+outputs:
+  - byteCount: 13786
+    contentHash: sha256:fa4108738933b12dd427dc20ba52b31a47675c96b876af5279d76f468e834410
+    path: docs/specifications/execution/events-and-privacy.md
+    userRegionHash: sha256:fa4108738933b12dd427dc20ba52b31a47675c96b876af5279d76f468e834410
+profile: specification_document
+recordId: knormdoc_7f34e44f20845fae30599fa9
+resourceBindings: []
+schemaVersion: 1
+sourceContentHash: sha256:fa4108738933b12dd427dc20ba52b31a47675c96b876af5279d76f468e834410
+sourcePath: docs/specifications/execution/events-and-privacy.md
+sourceUnitVersionIds:
+  - uv_12535e61caff10fd5c72ced6
+  - uv_2a0a0ea36de700425cf3edfb
+  - uv_854d11baa3c8a5d36cc55b2c
+  - uv_8c8f2fa4b238c06533cafd71
+  - uv_9327ca16ecde7bb32966c870
+  - uv_9e8b1a78defc8332f48f2d9b
+  - uv_eeb383e0afc88a0644a5487d

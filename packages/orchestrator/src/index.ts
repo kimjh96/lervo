@@ -15,3 +15,11 @@ export * from "./workspace-provisioning.js";
 export { applyWorkspaceSeal } from "./workspace-seal-apply.js";
 export { planWorkspaceSeal } from "./workspace-seal-plan.js";
 export type { WorkspaceSealPlan } from "./workspace-seal-contract.js";
+export { applyWorkspaceIntegrationCandidate } from "./workspace-integration-apply.js";
+export { planWorkspaceIntegrationCandidate } from "./workspace-integration-plan.js";
+export type { WorkspaceIntegrationCandidateReceipt } from "./workspace-integration-apply.js";
+export type {
+  WorkspaceIntegrationCollision,
+  WorkspaceIntegrationPlan,
+  WorkspaceIntegrationPlanSource,
+} from "./workspace-integration-contract.js";

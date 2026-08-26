@@ -86,3 +86,5 @@ export class WorkspaceHostError extends Error {
     this.name = "WorkspaceHostError";
   }
 }
+
+export * from "./integration.js";

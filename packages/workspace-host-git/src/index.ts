@@ -357,3 +357,5 @@ export class GitWorkspaceHostAdapter implements WorkspaceHostAdapter {
     return after;
   }
 }
+
+export * from "./integration.js";

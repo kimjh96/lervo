@@ -22,7 +22,9 @@ Direct terminal preparation activates one writer only for an exact ready workspa
 
 Immutable sealing uses a read-only, content-bound plan and an exact apply recheck. It freezes the writer, accepts only clean committed in-scope bytes with a reachable base, binds ordered commits, result and verification artifacts, approval and recovery status, and publishes a deterministic queue entry. Orphaned or stale queue records are projected only when the exact workspace generation reached `integration_pending`.
 
-Exact Git integration and conflict recovery, automatic cleanup policy, the Orca production adapter, and Hub reservations remain disabled until their gates pass.
+Candidate-only exact Git integration is implemented behind the provider-neutral integration-host port. A read-only plan binds the integrator assignment and writer, target ref and generation, target-before commit, ordered immutable sources, strategies, changed-path union, and path-private collision report. Apply acquires one exclusive target-generation lease, operates only in the isolated integration worktree, leaves the target ref unchanged, records a durable candidate, or aborts a Git conflict back to the exact target-before commit. Stale targets acquire no lease, competing plans cannot reuse a target generation, and lost-response retry rechecks or resets only the isolated candidate.
+
+Target advancement and successful `assignment.integration.recorded` emission remain disabled until repository-wide verification, durable success commit, and rollback gates pass. Automatic cleanup policy, the Orca production adapter, and Hub reservations also remain disabled until their gates pass.
 
 ## Identities and storage
 
@@ -108,6 +110,8 @@ The bounded integration queue is a replace-current projection of durable seal an
 A plan selects bounded sealed generations and binds the exclusive integration assignment, integrator agent and workspace, target ref and generation; target-before commit and repository snapshot; source workspace IDs, generations, heads, trees, and dependency edges; exact per-source strategy and deterministic order; expected changed-path union and collision report; required focused and repository-wide verification; and desired target commit or deterministic validation rule.
 
 Apply uses an isolated integration worktree; any changed binding requires a new plan. Text or tree conflict aborts Git and records no success; sources remain sealed. After exact incorporation and verification, `assignment.integration.recorded` commits with the assignment transition. Only then may the integrator refresh canonical documentation, advance the workstream, and make sources cleanup candidates.
+
+Candidate preparation is a distinct non-success phase. Its local attempt state is `leased`, `candidate`, or `conflict`; it never advances the target ref or marks a source `integrated`. The target-generation lease is deterministic for repository instance, target digest, and generation, while its attempt record separately binds target-before. Candidate and conflict retries require the same plan hash and re-inspect marker, cleanliness, Git-operation absence, target ref, and isolated-worktree head. A collision report contains only path digests and opaque workspace IDs.
 
 ## Cleanup contract
 

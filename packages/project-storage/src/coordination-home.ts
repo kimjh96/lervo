@@ -255,15 +255,21 @@ export async function resolveRepositoryCoordinationHome(
       workforce: resolve(coordinate.root, "workforce"),
       workspaces: resolve(coordinate.root, "workspaces"),
       integrations: resolve(coordinate.root, "integrations"),
+      integrationAttempts: resolve(coordinate.root, "integration-attempts"),
       cleanupJournals: resolve(coordinate.root, "cleanup-journals"),
       events: resolve(coordinate.root, "events"),
       locks: resolve(coordinate.root, "locks"),
     };
     await migrateWorkforce(paths.workforce, home.workforce);
     await Promise.all(
-      [home.workspaces, home.integrations, home.cleanupJournals, home.events, home.locks].map(
-        (path) => ensurePrivateDirectory(path),
-      ),
+      [
+        home.workspaces,
+        home.integrations,
+        home.integrationAttempts,
+        home.cleanupJournals,
+        home.events,
+        home.locks,
+      ].map((path) => ensurePrivateDirectory(path)),
     );
     return home;
   } finally {
