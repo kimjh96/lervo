@@ -38,18 +38,19 @@ async function fixture(withIntent) {
     JSON.stringify({ name: "@lervo/bundled", version: "0.1.0", private: true }),
   );
   if (withIntent) {
-    const identity = {
-      package: "@lervo/cli",
-      impact: "patch",
-      summary: "Correct public CLI behavior with bounded diagnostics.",
-    };
-    const id = `relint_${releaseDigest(identity).slice("sha256:".length, "sha256:".length + 24)}`;
-    await writeFile(
-      resolve(root, `.changes/${id}.yaml`),
-      `schemaVersion: 1\nintentId: ${id}\npackage: "${identity.package}"\nimpact: ${identity.impact}\nsummary: ${identity.summary}\n`,
-    );
+    await writeIntent(root, "patch", "Correct public CLI behavior with bounded diagnostics.");
   }
   return root;
+}
+
+async function writeIntent(root, impact, summary) {
+  const identity = { package: "@lervo/cli", impact, summary };
+  const id = `relint_${releaseDigest(identity).slice("sha256:".length, "sha256:".length + 24)}`;
+  await writeFile(
+    resolve(root, `.changes/${id}.yaml`),
+    `schemaVersion: 1\nintentId: ${id}\npackage: "${identity.package}"\nimpact: ${impact}\nsummary: ${summary}\n`,
+  );
+  return id;
 }
 
 describe("release intent change classification", () => {
@@ -96,6 +97,26 @@ describe("release intent change classification", () => {
     expect(report).toMatchObject({ valid: true, publishablePathCount: 0 });
   });
 
+  it("ignores unchanged pending intents when checking a later pull request", async () => {
+    const root = await fixture(true);
+    await execFile("git", ["init", "--initial-branch=main"], { cwd: root });
+    await execFile("git", ["config", "user.name", "Lervo Test"], { cwd: root });
+    await execFile("git", ["config", "user.email", "lervo-test@example.invalid"], { cwd: root });
+    await execFile("git", ["add", "."], { cwd: root });
+    await execFile("git", ["commit", "-m", "test: add pending release intent"], { cwd: root });
+    const base = (await execFile("git", ["rev-parse", "HEAD"], { cwd: root })).stdout.trim();
+    await mkdir(resolve(root, "docs"), { recursive: true });
+    await writeFile(resolve(root, "docs/release.md"), "# Release\n");
+    await execFile("git", ["add", "."], { cwd: root });
+    await execFile("git", ["commit", "-m", "docs: document release"], { cwd: root });
+
+    expect(await inspectReleaseIntent({ repositoryRoot: root, baseRevision: base })).toMatchObject({
+      valid: true,
+      publishablePathCount: 0,
+      intentIds: [],
+    });
+  });
+
   it("rejects an intent whose filename is not derived from its bounded content", async () => {
     const root = await fixture(false);
     const id = "relint_aaaaaaaaaaaaaaaaaaaaaaaa";
@@ -121,7 +142,7 @@ describe("release intent change classification", () => {
   });
 
   it("requires reviewed major intent for Conventional Commit breaking evidence", async () => {
-    const root = await fixture(true);
+    const root = await fixture(false);
     await mkdir(resolve(root, "apps/cli/src"), { recursive: true });
     await writeFile(resolve(root, "apps/cli/src/main.ts"), "export const version = 1;\n");
     await execFile("git", ["init", "--initial-branch=main"], { cwd: root });
@@ -131,6 +152,7 @@ describe("release intent change classification", () => {
     await execFile("git", ["commit", "-m", "test: add release fixture"], { cwd: root });
     const base = (await execFile("git", ["rev-parse", "HEAD"], { cwd: root })).stdout.trim();
     await writeFile(resolve(root, "apps/cli/src/main.ts"), "export const version = 2;\n");
+    await writeIntent(root, "patch", "Describe the reviewed breaking CLI behavior change.");
     await execFile("git", ["add", "."], { cwd: root });
     await execFile("git", ["commit", "-m", "feat(cli)!: change public behavior"], { cwd: root });
     const report = await inspectReleaseIntent({ repositoryRoot: root, baseRevision: base });

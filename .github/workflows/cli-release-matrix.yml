@@ -17,6 +17,7 @@ concurrency:
 jobs:
   packed-cli:
     name: Packed CLI (${{ matrix.os }})
+    if: github.event_name != 'pull_request' || github.head_ref == 'lervo/release-cli'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:

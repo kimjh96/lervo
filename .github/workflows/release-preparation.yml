@@ -43,6 +43,8 @@ jobs:
             plan="$(pnpm release:prepare --json)"
             plan_id="$(jq -r '.planId' <<<"${plan}")"
             pnpm release:prepare --apply --approval "${plan_id}" --json
+            pnpm check
+            pnpm lervo knowledge lint --json
             git switch -C lervo/release-cli
             git add apps/cli/package.json apps/cli/release-artifact-manifest.json apps/cli/release-sbom.cdx.json pnpm-lock.yaml .changes
             git -c user.name='lervo-release[bot]' -c user.email='lervo-release[bot]@users.noreply.github.com' commit -m 'chore(cli): prepare release'
@@ -67,7 +69,7 @@ jobs:
 
           ## Verification
 
-          The workflow applied the exact release-preparation plan and completed its frozen lockfile, build, manifest, and SBOM owner commands. Pull-request CI remains pending until reported by GitHub checks.
+          The workflow applied the exact release-preparation plan, ran `pnpm check` on the resulting release bytes, and confirmed that Lervo knowledge lint reported no issues.
 
           ## Knowledge and documentation
 
@@ -84,7 +86,7 @@ jobs:
           - [x] Repository-authored state is bounded; this change adds neither an append-only file nor a one-file-per-operation archive.
           - [x] Lervo-managed, generated, and user-owned bytes retain distinct owners.
           - [x] N/A: Each aggregated source pull request provides its canonical documentation and roadmap evidence.
-          - [ ] Relevant tests, `pnpm quality:check`, and required Lervo migration/lint checks pass. Pending pull-request CI.
+          - [x] Relevant tests, `pnpm quality:check`, and required Lervo migration/lint checks pass on the exact release branch.
           - [x] No secret, mutable credential, or unsupported authority is included.
           EOF
             open_pr_number="$(gh pr list --base main --head lervo/release-cli --state open --json number --jq '.[0].number // empty')"

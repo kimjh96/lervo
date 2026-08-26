@@ -81,6 +81,9 @@ export async function inspectReleaseIntent(input) {
         )
       ).split("\n");
   const changedPaths = changedSource.filter(Boolean).toSorted();
+  const relevantIntents = input.baseRevision
+    ? intents.filter((intent) => changedPaths.includes(intent.path))
+    : intents;
   const publishablePaths = changedPaths.filter((path) => {
     if (exempt(path)) return false;
     if (path.startsWith("apps/cli/src/") || path === "apps/cli/package.json") return true;
@@ -89,9 +92,9 @@ export async function inspectReleaseIntent(input) {
     );
   });
   const diagnostics = [];
-  if (publishablePaths.length > 0 && intents.length === 0)
+  if (publishablePaths.length > 0 && relevantIntents.length === 0)
     diagnostics.push("missing_release_intent");
-  if (publishablePaths.length === 0 && intents.length > 0)
+  if (publishablePaths.length === 0 && relevantIntents.length > 0)
     diagnostics.push("unnecessary_release_intent");
   let breakingEvidence = false;
   if (input.baseRevision) {
@@ -102,7 +105,7 @@ export async function inspectReleaseIntent(input) {
     ]);
     breakingEvidence = /(?:^[a-z]+(?:\([^)]*\))?!:|^BREAKING CHANGE:)/mu.test(messages);
   }
-  if (breakingEvidence && !intents.some((intent) => intent.impact === "major"))
+  if (breakingEvidence && !relevantIntents.some((intent) => intent.impact === "major"))
     diagnostics.push("breaking_evidence_requires_major_intent");
   return {
     schemaVersion: 1,
@@ -116,8 +119,8 @@ export async function inspectReleaseIntent(input) {
         // Paths remain local to the check output only as opaque digests.
         `sha256:${createHash("sha256").update(path).digest("hex")}`,
     ),
-    intentIds: intents.map((intent) => intent.intentId),
-    impacts: intents.map((intent) => intent.impact),
+    intentIds: relevantIntents.map((intent) => intent.intentId),
+    impacts: relevantIntents.map((intent) => intent.impact),
     breakingEvidence,
     diagnostics,
     exemptions: [
