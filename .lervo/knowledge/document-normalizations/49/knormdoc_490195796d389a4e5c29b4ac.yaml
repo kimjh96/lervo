@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_d2fd8aa094a143c0583abe5e
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_490195796d389a4e5c29b4ac
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:0d305085b37ca62c88d622017803c6080d9ea5e7f85b6b489a311b732018f03a
 sourcePath: docs/decisions/execution/providers/0211-provider-confirmed-capability-activation.md
 sourceUnitVersionIds:

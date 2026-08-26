@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_bd7fe7bc0764b9054bbf2704
 compiler:
   compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
@@ -16,7 +19,7 @@ outputs:
 profile: architecture_document
 recordId: knormdoc_63f9fc2ee4304bcc6586aed9
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:07171e518b82606698499742a0f8166a82841354e30c2c4140db697c1bc466fd
 sourcePath: docs/architecture/system.md
 sourceUnitVersionIds:

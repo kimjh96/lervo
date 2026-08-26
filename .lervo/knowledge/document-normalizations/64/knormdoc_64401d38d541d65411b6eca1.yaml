@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_64401d38d541d65411b6eca1
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:aa2f23e86e55292757adf0e1f55197160fa0cf06dc2e2f3121ac7ebbf462a18e
 sourcePath: docs/decisions/execution/providers/0153-managed-provider-node-host.md
 sourceUnitVersionIds:

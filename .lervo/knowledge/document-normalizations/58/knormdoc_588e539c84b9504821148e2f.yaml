@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_588e539c84b9504821148e2f
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:478ac9e3da5f16e8cb8feef9cfb9ad5c024ee183356bb697e6467e1ccfb01ece
 sourcePath: docs/decisions/release/assurance/0091-cli-registry-publish-preflight.md
 sourceUnitVersionIds:

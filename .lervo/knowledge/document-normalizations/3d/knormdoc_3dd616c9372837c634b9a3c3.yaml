@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_3dd616c9372837c634b9a3c3
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:28dd53c1f905556e3c0d9eb30acc1fab4ca8f2798eaaf678bc8f2fc357c07522
 sourcePath: docs/decisions/execution/orchestration/0210-local-first-capability-package-supply-chain.md
 sourceUnitVersionIds:

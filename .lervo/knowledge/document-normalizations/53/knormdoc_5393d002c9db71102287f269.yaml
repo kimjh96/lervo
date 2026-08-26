@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_fcf7c6145ff9d232dcdd5402
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: roadmap_document
 recordId: knormdoc_5393d002c9db71102287f269
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:76d6ffe69191cd93c5cd4c32ee5a23adbb2903b4e853ea11eba0af496ee20570
 sourcePath: docs/roadmap/coordination/repository-node-fleet.md
 sourceUnitVersionIds:

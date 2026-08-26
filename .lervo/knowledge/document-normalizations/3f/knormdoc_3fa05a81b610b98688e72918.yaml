@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_3fa05a81b610b98688e72918
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:1b6c80385ed27c138c5e1af8f57045bf166961a4464b1abe3dce6fd1e1af276b
 sourcePath: docs/decisions/search/0057-provider-neutral-search-candidate-comparison.md
 sourceUnitVersionIds:

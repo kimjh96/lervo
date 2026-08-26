@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_b8ed0f5a53e19bf02a5ac1f3
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: repository_document
 recordId: knormdoc_64f4c64e58a5afbc4ac8db06
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:1f2676315b665b1fe6e609e31530471c513ab9caaf366ba87f0ff06c058bd640
 sourcePath: docs/foundation/commit-convention.md
 sourceUnitVersionIds:

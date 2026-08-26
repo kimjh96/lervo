@@ -72,7 +72,7 @@ The provider returns schema-valid concepts, claims, and within-response relation
 
 ### Document content normalization
 
-After canonical bootstrap, layout, and bridges are current, `migrate knowledge --provider codex|claude` uses the same boundary to return bounded Markdown candidates. Canonical adoption and bridge disposition are independent from every normalization candidate; rejecting or deferring unrelated prose cannot stale an unchanged reviewed entrypoint stage.
+After canonical bootstrap, layout, and bridges are current, `migrate knowledge --provider codex|claude` uses the same boundary to return bounded Markdown candidates. Entrypoint adoption and bridge disposition remain independent from prose normalization.
 
 V1 covers ordinary `.md` files outside generated navigation and `.changes/`. Profiles distinguish README, agent instruction, bridge, portable skill or reference, decision, product, architecture, specification, roadmap, instruction, pull-request template, and general documents. Release intents and the replace-in-place current release note retain release ownership and never enter provider normalization. Output follows `publication.language`; v1 accepts `en`.
 
@@ -82,7 +82,9 @@ Coverage maps every source section to one or more declared outputs using complet
 
 Candidates and shard responses remain ignored local state. Cache identity binds the envelope and compiler build. Plans bind exact candidate bytes and require per-source approval. Apply never reruns the provider: it writes candidates and sharded lifecycle records through the journal, then emits `knowledge.materialization.applied` with `operation=normalize_documents`.
 
-Records bind output hashes and a user-region hash excluding managed blocks, preventing managed route refresh from staling unchanged prose. Replacement removes older active records. Apply lint permits only the expected stale instruction-bridge transition warning; immediate bridge and structural refresh restore validity. Other lint errors roll back. Later user-region, output, or resource mismatches become stale and require review.
+Records bind output and resource hashes plus a user-region hash that excludes managed blocks. Replacement retires older records, and the same transaction refreshes registered rewrite configuration. Post-apply lint failure rolls back; later byte mismatches become stale and require review.
+
+Repository document layout follows [ADR-0222](../decisions/knowledge/repository/0222-bounded-role-based-document-layout.md). One tree evaluator serves planning, lint and durable permits. Tracked roles locate human documents; provider adapters alone locate provider entrypoints. Bounded rewrite descriptors reconcile byte owners, while unobserved rewrites remain unmanaged.
 
 ## 9. Reconciliation and review
 

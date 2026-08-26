@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: roadmap_document
 recordId: knormdoc_ed4fc1726567de4bd8c5c713
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:a6fcdb645a8697316201099500db05229ca417fab7d4dc1d3903f9ca643fc36e
 sourcePath: docs/roadmap/context-grounding-coverage.md
 sourceUnitVersionIds:

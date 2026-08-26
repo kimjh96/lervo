@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_be07e4abb5731a2af8ade16a
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:7e3fffe5e01e34a26e72982c46cbb1c3b062502c590843695ff0dd893c6bc94a
 sourcePath: docs/decisions/coordination/sync/0038-bounded-async-hub-storage-and-trace.md
 sourceUnitVersionIds:

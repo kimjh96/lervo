@@ -1,5 +1,6 @@
 export * from "./config.js";
 export * from "./decision-taxonomy.js";
+export * from "./repository-document-policy.js";
 export * from "./document-storage.js";
 export * from "./document-validation.js";
 export * from "./init-apply.js";

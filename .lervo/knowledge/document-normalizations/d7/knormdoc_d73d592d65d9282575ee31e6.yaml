@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_d73d592d65d9282575ee31e6
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:8e93f39cd90e320d568a725c15a1277e8bedf458d097ff7c9e86555bb3a5b902
 sourcePath: docs/decisions/operations/diagnostics/0074-doctor-scope-execution-plans.md
 sourceUnitVersionIds:

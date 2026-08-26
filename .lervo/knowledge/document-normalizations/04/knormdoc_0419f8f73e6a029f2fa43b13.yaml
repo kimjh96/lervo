@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_db4db4eff20bda89c78cbc0a
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_0419f8f73e6a029f2fa43b13
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:3230318c8ecc6d51622bb06ca846ad9f3979cdb1c3f9f29a7debc6df8e774576
 sourcePath: docs/decisions/operations/services/0207-transactional-repository-node-apply-and-readiness.md
 sourceUnitVersionIds:

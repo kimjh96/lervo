@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_6ab342d2f9770dffa3178985
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:96ef6d35fb937993cf9697f7659caf0c412dfbc659fad8a277ac123bb396e620
 sourcePath: docs/decisions/foundation/0020-lervo-product-identity.md
 sourceUnitVersionIds:

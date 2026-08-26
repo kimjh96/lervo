@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_1dd1ad4f067f1016dd951cb9
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_b05b441a6417f512360cb371
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:402ef587148be99c9673ad828972aada14e49eb533a60bd98a3d5a9e2375e556
 sourcePath: docs/decisions/execution/providers/0204-self-contained-repository-terminal-hook-runtime.md
 sourceUnitVersionIds:

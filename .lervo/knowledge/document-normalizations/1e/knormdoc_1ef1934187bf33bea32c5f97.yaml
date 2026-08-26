@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_1ef1934187bf33bea32c5f97
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:2e390fed1a5fc7adce7f8b55a83ab0d2acf1ef886c7d3532ca2d670338e700a2
 sourcePath: docs/decisions/operations/services/0165-runtime-readiness-and-preflight-boundary.md
 sourceUnitVersionIds:

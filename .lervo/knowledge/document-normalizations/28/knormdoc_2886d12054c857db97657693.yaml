@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_2886d12054c857db97657693
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:e5385d01b6a8cde3e411093e70e23f2bdfdb7bd1676cfb99786293d8f2ffc7cf
 sourcePath: docs/decisions/coordination/deliberation/0136-platform-neutral-conversation-deliberation-control.md
 sourceUnitVersionIds:

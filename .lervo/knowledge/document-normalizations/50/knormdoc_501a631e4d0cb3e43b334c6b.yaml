@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_173b04d1705ac0b4f08f88c3
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_501a631e4d0cb3e43b334c6b
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:1e7d91d0208ca7eecb3b602d22171bf1f262da46752f688cb3d8f0ecdc4226ae
 sourcePath: docs/decisions/release/packaging/0215-supported-runtime-release-portability.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_3638e5fc2c66d06ec3ec6b49
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:a8be40f843bc89c0f7bf8790e6b036b32309d8290dd8fe87679b2724cab5e17f
 sourcePath: docs/decisions/search/0056-search-evaluation-sample-bundles.md
 sourceUnitVersionIds:

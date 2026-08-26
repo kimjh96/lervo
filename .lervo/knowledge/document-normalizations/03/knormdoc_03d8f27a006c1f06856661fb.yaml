@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_03d8f27a006c1f06856661fb
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:fc54078d1ec09f4d890b624e57ee58d89161384ae1c25f5c9dc7f8b500003ca3
 sourcePath: docs/decisions/execution/orchestration/0006-deterministic-context-preparation.md
 sourceUnitVersionIds:

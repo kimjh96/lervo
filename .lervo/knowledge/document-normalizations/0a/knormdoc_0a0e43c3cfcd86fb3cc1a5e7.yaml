@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_0a0e43c3cfcd86fb3cc1a5e7
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:ccd849d2b201e57ea98a7e4ba80e315a43491e61b8e1c856b204264c09453a6a
 sourcePath: docs/decisions/operations/trace/0081-trace-output-mode-deprecation.md
 sourceUnitVersionIds:

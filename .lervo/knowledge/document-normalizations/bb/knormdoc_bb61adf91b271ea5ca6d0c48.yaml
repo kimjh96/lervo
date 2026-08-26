@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_bb61adf91b271ea5ca6d0c48
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:93d289cfa414e725b357ed4b8325fe45f4a2920dfc438db607a81531b71f8160
 sourcePath: docs/decisions/release/bootstrap/0116-cli-first-publication-transition-completion-command.md
 sourceUnitVersionIds:

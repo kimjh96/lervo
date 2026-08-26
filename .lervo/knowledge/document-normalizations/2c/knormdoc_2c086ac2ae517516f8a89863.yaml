@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_b8ed0f5a53e19bf02a5ac1f3
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: roadmap_document
 recordId: knormdoc_2c086ac2ae517516f8a89863
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:c47efade164fe9f4819c3096b800cf0dcd94d80946bed9ed6cccd265836196f9
 sourcePath: docs/roadmap/knowledge/development-pattern-promotion.md
 sourceUnitVersionIds:

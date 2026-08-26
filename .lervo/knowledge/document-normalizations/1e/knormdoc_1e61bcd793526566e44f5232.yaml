@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_1e61bcd793526566e44f5232
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:781db0afff1f1937d428b44993e473116fc3b2eecf96ad5842fabd0033dad5f4
 sourcePath: docs/decisions/coordination/deliberation/0026-structured-deliberation-contracts.md
 sourceUnitVersionIds:

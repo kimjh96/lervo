@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_c3633f1dcb968dc0ca42e31c
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:3b96a1faada9e1331122d36f042c0bd917869aaeef2bc5be84a2adef5eac6e20
 sourcePath: docs/decisions/coordination/sync/0150-authenticated-project-scoped-hub-sync-http.md
 sourceUnitVersionIds:

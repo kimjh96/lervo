@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_fcf7c6145ff9d232dcdd5402
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_11d3305b99a619e398f3f0b8
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:72ff974bc5ee79907fd3f9165d91b91826a6ce73eed7226a6d26eb0719ae3183
 sourcePath: docs/decisions/operations/services/0202-repository-node-fleet-identity-and-registry.md
 sourceUnitVersionIds:

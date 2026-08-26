@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_0d270fa539db531e991297e9
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:97be60c6ccf12ac177fda4e116e5634d33b2021b9277af55d1b1f452642099e8
 sourcePath: docs/decisions/execution/providers/0156-managed-provider-skill-resolution.md
 sourceUnitVersionIds:

@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   applyDurableKnowledgeOperations,
+  authorizeCurrentRepositoryDocumentLayout,
   recoverKnowledgeMaterialization,
   sha256,
   type DurableKnowledgeDeleteOperation,
@@ -39,6 +40,20 @@ afterEach(async () => {
 });
 
 describe("durable semantic knowledge materialization", () => {
+  it("rejects a document mutation without a projected-layout permit", async () => {
+    const root = await repository();
+    await expect(
+      applyDurableKnowledgeOperations({
+        repositoryRoot: root,
+        projectId: "prj_durableknowledge",
+        planId: `ksmat_${"d".repeat(24)}`,
+        operations: [createOperation()],
+        receipt: { ok: true },
+        recordApplied: () => undefined,
+      }),
+    ).rejects.toMatchObject({ code: "document_layout_permit_required" });
+  });
+
   it("recovers every pre/post-event interruption from the journal and event coordinate", async () => {
     const cases: Array<{ checkpoint: KnowledgeMaterializationCheckpoint; committed: boolean }> = [
       { checkpoint: "staged", committed: false },
@@ -55,6 +70,10 @@ describe("durable semantic knowledge materialization", () => {
           projectId: "prj_durableknowledge",
           planId: `ksmat_${String(index + 1).repeat(24)}`,
           operations: [createOperation()],
+          documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+            repositoryRoot: root,
+            operations: [createOperation()],
+          }),
           receipt: { ok: true },
           recordApplied: () => {
             eventRecorded = true;
@@ -100,6 +119,10 @@ describe("durable semantic knowledge materialization", () => {
         projectId: "prj_durableknowledge",
         planId: `ksmat_${"a".repeat(24)}`,
         operations: [operation],
+        documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+          repositoryRoot: root,
+          operations: [operation],
+        }),
         receipt: { ok: true },
         recordApplied: () => undefined,
         failureInjector: (checkpoint) =>
@@ -120,6 +143,10 @@ describe("durable semantic knowledge materialization", () => {
         projectId: "prj_durableknowledge",
         planId: `ksmat_${"b".repeat(24)}`,
         operations: [createOperation()],
+        documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+          repositoryRoot: root,
+          operations: [createOperation()],
+        }),
         receipt: { ok: true },
         recordApplied: () => {
           throw new Error("event unavailable");

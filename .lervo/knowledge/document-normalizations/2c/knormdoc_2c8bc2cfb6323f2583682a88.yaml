@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_b8ed0f5a53e19bf02a5ac1f3
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: roadmap_document
 recordId: knormdoc_2c8bc2cfb6323f2583682a88
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:22600fc8db7aced0dce3a00a0f70e4aa859403c8466f5179e95b4937018a1509
 sourcePath: docs/roadmap/operations/state-retention.md
 sourceUnitVersionIds:

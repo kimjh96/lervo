@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_c195e316ecc5ff9b1eeae6f7
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:4723f537b7a5de25237c0c089967a625e83d29f1afb9c8d2f99dbb5e293a1ae3
 sourcePath: docs/decisions/coordination/sync/0045-hub-policy-authoring-and-http-sync.md
 sourceUnitVersionIds:

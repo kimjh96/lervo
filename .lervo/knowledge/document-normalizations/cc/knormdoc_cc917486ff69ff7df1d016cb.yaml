@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_cc917486ff69ff7df1d016cb
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:061092b406984ca65a76f553c64ccc5c22529b57a5113243a109786e5fb37cea
 sourcePath: docs/decisions/distribution/0087-single-bundle-cli-deployment-unit.md
 sourceUnitVersionIds:

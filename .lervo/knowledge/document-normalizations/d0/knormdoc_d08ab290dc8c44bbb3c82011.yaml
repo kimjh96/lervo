@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_d08ab290dc8c44bbb3c82011
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:77b65a0d11e330acf4aa9635b7b4551692fe10fbd7d2505a844afae220e3d512
 sourcePath: docs/decisions/coordination/sync/0034-project-registration-and-event-sync-contract.md
 sourceUnitVersionIds:

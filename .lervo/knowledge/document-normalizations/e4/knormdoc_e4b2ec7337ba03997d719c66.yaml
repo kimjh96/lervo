@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_e4b2ec7337ba03997d719c66
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:c215cb38b25d61f9f71a35c01bd09e7ae720a7f02bcb2f122c513922fc4e921f
 sourcePath: docs/decisions/coordination/deliberation/0133-cli-two-provider-deliberation.md
 sourceUnitVersionIds:

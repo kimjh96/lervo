@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_35f9da02003ea2cdd3ca0da5
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:4cbbc587cada2d3112c81c6286f58eef150beed071097c2491f35c9758de3f33
 sourcePath: docs/decisions/release/bootstrap/0099-cli-first-publication-durable-interactive-adapter.md
 sourceUnitVersionIds:

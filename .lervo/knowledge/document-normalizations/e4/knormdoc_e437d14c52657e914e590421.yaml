@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_e437d14c52657e914e590421
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:bd4e934c06cd12fc265ac3d808a6bfd784816c6781988e68b79a97eff6d26240
 sourcePath: docs/decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md
 sourceUnitVersionIds:

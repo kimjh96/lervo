@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_22906a7edbfc045c67339f24
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:111003fc6969ee3cfd7efd7b7a1cfd0a569a450300a284df1cb192045da1b746
 sourcePath: docs/decisions/coordination/remote-control/0041-signed-scoped-remote-command.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_bcf9b76795632f1df6a1d585
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:73ae012204e735d50b1e71abd7751c6cc274796ce4055bfc864afb3e3e57f247
 sourcePath: docs/decisions/execution/verification/0032-managed-run-project-verification.md
 sourceUnitVersionIds:

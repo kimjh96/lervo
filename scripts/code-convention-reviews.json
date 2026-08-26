@@ -158,56 +158,56 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:bf9c55fba8ee577e60561913faa7aade69ba1ec9163e69c20dce92aff9790864",
+      "contentHash": "sha256:1c69af12025f5e328a98e388501f34289738bf37de15e9deee51efd44e79cd3e",
       "responsibility": "Reviewed document normalization lifecycle",
       "rationale": "Profiles, envelopes, candidate validation, compiler invocation, storage, inspection, plan, and exact-approved apply all share one content-bound normalization contract.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-merge.ts",
-      "contentHash": "sha256:dccaba2b9cffa3f2d9b37052e1d4c205b94d6979f32a53e4454788a83a0337a5",
+      "contentHash": "sha256:a1e416e3dc30751bbb6ad915e0930f367ae2eec4aeffe948446ac84f751f9cca",
       "responsibility": "Exact-approved document merge operation",
       "rationale": "Plan serialization, safe source inspection, merge planning, lineage updates, and apply are one atomic document-merge responsibility.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-move.ts",
-      "contentHash": "sha256:1b83fed3ea2e22ab15ffe00142ecdedaa76353f28539ab21d87b33e6628a1ff3",
+      "contentHash": "sha256:e5418ab53cfcf0d3547f343b7c5c7f71e1ed497e6f7e6a62ff87ba56ad42b259",
       "responsibility": "Exact-approved document move operation",
       "rationale": "Destination safety, plan serialization, lineage preservation, plan creation, and apply are one atomic document-move responsibility.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-split.ts",
-      "contentHash": "sha256:36a05d7c03eb63be58e791d3e65a168119e11b07a591fbf8145ce18e0873fefa",
+      "contentHash": "sha256:951416a7680cea61b3350b22757da6a8f681a251ef2912d70a39eb8ac7faa5c2",
       "responsibility": "Exact-approved document split operation",
       "rationale": "Heading extraction, destination safety, plan serialization, lineage preservation, and apply are one atomic document-split responsibility.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/durable-apply.ts",
-      "contentHash": "sha256:96a364c5126f3517ea442a2b67dabe7323bc2e8b8eee7075da399f47d374c641",
+      "contentHash": "sha256:9eb70a10659c9ae3660d53e71a63a8e601fa611be6e9d5dc2d716072cea3087e",
       "responsibility": "Durable knowledge filesystem transaction",
       "rationale": "Journal creation, binding checks, safe writes, rollback, recovery, and cleanup implement one atomic filesystem transaction protocol.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/instruction-bridge.ts",
-      "contentHash": "sha256:9f6ac432e5eada5ecfc842e0744e921cb9e6f3b70be913ab58525f60e1f9342c",
+      "contentHash": "sha256:7149bbacf05be4a336cb52de846a7de516232e4b38ca8e36cf29fd636ac1c6c4",
       "responsibility": "Provider instruction bridge lifecycle",
       "rationale": "Profile resolution, registry binding, structural refresh, plan creation, and exact-approved apply share one instruction-bridge lifecycle; target construction and classification are extracted.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/lint-query.ts",
-      "contentHash": "sha256:44c093df999f3f9d9d2bc7f93b4cf8742a987d6e7cbd833e71b1bf136b7139e1",
+      "contentHash": "sha256:317f54c229ce976fdc5f6f8a94fbea2e9214538e94592723f12ad5951151ea3b",
       "responsibility": "Repository knowledge lifecycle lint",
       "rationale": "Query behavior and safe publication access were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/public-readme.ts",
-      "contentHash": "sha256:af92127212304016a0aedbf00d2d3fd3819153931ccb3b0caac477ea561b56ed",
+      "contentHash": "sha256:1362ee4dc7a490b3e2ff00868d96c3334a2e5ce48796d1cab01da5bbd4e22e89",
       "responsibility": "Public README improvement lifecycle",
       "rationale": "Coordinate extraction, candidate validation, protected-change review, plan creation, and apply implement one byte-safe README improvement contract.",
       "disposition": "cohesive"
@@ -228,7 +228,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:b3e24a7abc713a29794930e9ef4460b3b33047bf61cf6124f9958b37552154a4",
+      "contentHash": "sha256:ecc204fec7b5752215164e95a524e32bcba7070dba2d867488346eb1d4f986ca",
       "responsibility": "Repository document-layout migration",
       "rationale": "Classification, link rebasing, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction.",
       "disposition": "cohesive"
@@ -249,7 +249,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/semantic-materialization.ts",
-      "contentHash": "sha256:8d155abc63e13fc08cd4748a1b55e579cef212fca31c1c0f0b38ec8fd914e528",
+      "contentHash": "sha256:6bc3cf1b7d5bfd03c51a5fcbdddf59d97d411110a3d91276b722f143d6edd116",
       "responsibility": "Reviewed semantic materialization transaction",
       "rationale": "Review loading, operation derivation, publication generation, plan creation, and apply share one review-bound materialization contract.",
       "disposition": "cohesive"
@@ -263,14 +263,14 @@
     },
     {
       "path": "packages/repository-knowledge/src/terminal-integration.ts",
-      "contentHash": "sha256:89219694080afcee126af7904c63be67ff49a46f23577c31892a4623750aa12d",
+      "contentHash": "sha256:1b1c1ce02e1d37436b6c0a1a66486a71b2517b6c9ccf9812fce8bef0abeb2c97",
       "responsibility": "Provider terminal-hook installation lifecycle",
       "rationale": "Provider configuration merge, runtime integrity, inspection, plan creation, and apply form one fail-closed terminal integration contract.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/workstream.ts",
-      "contentHash": "sha256:d62a7bc94c665964393a1543da304e18e5d606bd111bb13726d87c0e68b0667f",
+      "contentHash": "sha256:63ddd1f48bf90eb2bac8961428ee4e5f6f9fd99a074a644feed53776d0704c94",
       "responsibility": "Revisioned workstream snapshot lifecycle",
       "rationale": "Current state, continuation import, start, update, and replicated import all preserve one WorkstreamSnapshot aggregate, origin invariant, CAS binding, and durable apply protocol.",
       "disposition": "cohesive"

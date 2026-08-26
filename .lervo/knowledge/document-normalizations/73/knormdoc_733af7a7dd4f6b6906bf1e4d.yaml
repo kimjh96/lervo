@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_733af7a7dd4f6b6906bf1e4d
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:9c8f31918f877c3cec211f8f5c6e1a34a567de8aef2d96c30e8046b299e2d046
 sourcePath: docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md
 sourceUnitVersionIds:

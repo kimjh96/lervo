@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_ae89eec630d1ca57fe5ded34
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:ccc1b964eebbe822e01e502bd03b878326e4f9bb1ec5d091a76be95f0339bcb2
 sourcePath: docs/decisions/execution/providers/0160-real-https-managed-provider-vertical-pilot.md
 sourceUnitVersionIds:

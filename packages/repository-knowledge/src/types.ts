@@ -380,7 +380,17 @@ export class RepositoryKnowledgeError extends Error {
       | "knowledge_recovery_invalid"
       | "knowledge_rollback_failed"
       | "knowledge_impact_invalid"
-      | "knowledge_lint_failed",
+      | "knowledge_lint_failed"
+      | "document_directory_file_capacity_exceeded"
+      | "document_directory_child_capacity_exceeded"
+      | "document_repository_capacity_exceeded"
+      | "document_role_conflict"
+      | "document_role_policy_unresolved"
+      | "document_rewrite_ownership_conflict"
+      | "document_rewrite_rule_capacity_exceeded"
+      | "document_rewriter_unmanaged"
+      | "document_layout_permit_required"
+      | "document_layout_permit_invalid",
     message: string,
   ) {
     super(message);

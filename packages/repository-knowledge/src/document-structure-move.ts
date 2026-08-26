@@ -10,6 +10,7 @@ import {
   type DurableKnowledgeMoveOperation,
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
+import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import {
   createKnowledgeMigrationPlanForScan,
   recordedGeneratedKnowledgePaths,
@@ -359,7 +360,7 @@ export async function createKnowledgeDocumentMovePlan(input: {
     approvalHash,
     operations: operationBindings,
   };
-  return {
+  const plan: KnowledgeDocumentMovePlan = {
     schemaVersion: 1,
     planId: stableId("kstruct", materials),
     operationId,
@@ -381,6 +382,8 @@ export async function createKnowledgeDocumentMovePlan(input: {
     lineageId: lineage.value.lineageId,
     operations,
   };
+  await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations });
+  return plan;
 }
 
 export async function applyKnowledgeDocumentMovePlan(input: {
@@ -441,6 +444,10 @@ export async function applyKnowledgeDocumentMovePlan(input: {
     projectId: current.projectId,
     planId: current.planId,
     operations: current.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: current.repositoryRoot,
+      operations: current.operations,
+    }),
     receipt,
     recordApplied: input.recordApplied,
     ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),

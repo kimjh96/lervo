@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_5269ed0be3eab61378e2455a
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:f6bbcbab276faf0c4c7440a570e6c15b74595123b2bd61a99b012e52cfce8901
 sourcePath: docs/decisions/release/staging/0126-cli-npm-stage-approval-authorization.md
 sourceUnitVersionIds:

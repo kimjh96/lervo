@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_4b24114b8c03098b5ca3cd94
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:03afed21b5f7801c2a5ac31c0c59dcb7a39ded2b4ec515a14f4442494d99b548
 sourcePath: docs/decisions/execution/providers/0014-managed-adapter-session-hardening.md
 sourceUnitVersionIds:

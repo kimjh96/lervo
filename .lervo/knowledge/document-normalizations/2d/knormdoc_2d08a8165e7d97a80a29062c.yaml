@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_2d08a8165e7d97a80a29062c
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:640accb7c55fd3971323bbe28dba908968ca5e77095c8e3c5e968526b7050413
 sourcePath: docs/decisions/coordination/remote-control/0158-direct-tls-hub-runtime.md
 sourceUnitVersionIds:

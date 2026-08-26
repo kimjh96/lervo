@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_28e017676108ceb8b90c97f2
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:ce0c5aa2452f855dab017332a28744595e8186ff194d4bb0da9cf14c0e6448f2
 sourcePath: docs/decisions/coordination/conversations/0046-platform-neutral-conversation-participation.md
 sourceUnitVersionIds:

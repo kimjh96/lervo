@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_4241395fcb88776bf63a7f59
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_aeed73396326e2fa518b4cd1
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:abf1785ebda49c9124f9f38715cbe1d06a85aa1f76f5a39da1f2d27e2241cd6c
 sourcePath: docs/decisions/release/packaging/0089-cli-multi-platform-release-matrix.md
 sourceUnitVersionIds:

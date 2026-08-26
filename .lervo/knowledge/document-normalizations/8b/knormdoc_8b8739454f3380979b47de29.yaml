@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_8b8739454f3380979b47de29
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:bf261b49787a9df43eae950de3ce3903531c7a05781aacd20f7fc0936eb8d890
 sourcePath: docs/decisions/search/0065-human-search-rollout-review.md
 sourceUnitVersionIds:

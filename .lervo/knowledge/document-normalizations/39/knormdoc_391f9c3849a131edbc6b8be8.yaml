@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_b8ed0f5a53e19bf02a5ac1f3
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_391f9c3849a131edbc6b8be8
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:6b2972f89c7727a31dfac9459be8c7eabf039075d642e0bd067526e275dab833
 sourcePath: docs/decisions/operations/storage/0219-typed-derived-state-retention.md
 sourceUnitVersionIds:

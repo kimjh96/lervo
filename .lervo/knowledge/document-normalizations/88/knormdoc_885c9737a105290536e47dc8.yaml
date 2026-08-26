@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: provider_bridge
 recordId: knormdoc_885c9737a105290536e47dc8
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:734caedbc45974ccc3dd027b13e5977d73c95905466292919c705c9cf1426622
 sourcePath: CLAUDE.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_879a15fe961f8b38cb679e0b
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_942992e3562632c9c1987d6c
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:b7d1ea9fd186b091a9568966f7ba2a3934c19215b0f855ba78a8d03c449c54cc
 sourcePath: docs/decisions/operations/services/0214-bounded-repository-upgrade-orchestration.md
 sourceUnitVersionIds:

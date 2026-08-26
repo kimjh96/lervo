@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_be15a3c4b8a09a2dc8198df6
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:942a49e7cdf024d3a1da3426250557f819b21521c53f69678c21d481908a57de
 sourcePath: docs/decisions/coordination/remote-control/0159-atomic-hub-bearer-credential-reload.md
 sourceUnitVersionIds:

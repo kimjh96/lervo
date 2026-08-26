@@ -9,6 +9,7 @@ import {
   type DurableKnowledgeUserFileOperation,
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
+import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { normalizationRecordRetirementOperations } from "./document-normalization-record-retirement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
@@ -831,6 +832,10 @@ export async function applyWorkstreamStartPlan(input: {
     projectId: current.projectId,
     planId: current.planId,
     operations: current.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: current.repositoryRoot,
+      operations: current.operations,
+    }),
     receipt,
     recordApplied: (applied) => input.recordApplied(applied, snapshotContent),
   });
@@ -1252,6 +1257,10 @@ export async function applyContinuationWorkstreamMigrationPlan(input: {
     projectId: current.projectId,
     planId: current.planId,
     operations: current.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: current.repositoryRoot,
+      operations: current.operations,
+    }),
     receipt,
     recordApplied: (applied) =>
       input.recordApplied(applied, { sourceContent: source.content, snapshotContent }),
@@ -1410,6 +1419,10 @@ export async function applyWorkstreamUpdatePlan(input: {
     projectId: current.projectId,
     planId: current.planId,
     operations: current.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: current.repositoryRoot,
+      operations: current.operations,
+    }),
     receipt,
     recordApplied: (applied) => input.recordApplied(applied, snapshotContent),
   });
@@ -1542,6 +1555,10 @@ export async function applyReplicatedWorkstreamImportPlan(input: {
     projectId: current.projectId,
     planId: current.planId,
     operations: current.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: current.repositoryRoot,
+      operations: current.operations,
+    }),
     receipt,
     recordApplied: (applied) => input.recordApplied(applied, content),
   });

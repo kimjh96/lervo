@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_2b7e520df911ec04aa534658
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:297c9622afb9b1dc0823fd6e06cbe72afdf3714babdbc79ef3b109b2fbe1ac7c
 sourcePath: docs/decisions/operations/trace/0040-bounded-trace-web-view.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_f803dceb613cd4a5aa0f725f
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:c034ed4f25be7bd9716731553acb51af789745e510b4833ec2e5229c6d9c2779
 sourcePath: docs/decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md
 sourceUnitVersionIds:

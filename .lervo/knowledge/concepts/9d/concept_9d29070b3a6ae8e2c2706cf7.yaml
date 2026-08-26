@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_ada2669fa6abcf72296355eb
+  - uv_e637a26c46edaa0d9734fec4
 title: Bounded document layout and rewrite ownership
 type: concept

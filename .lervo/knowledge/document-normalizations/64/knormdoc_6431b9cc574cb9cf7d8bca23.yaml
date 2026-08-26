@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_6431b9cc574cb9cf7d8bca23
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:26219206686f413747e0376add3da17341edfd9c29537c4da2a851a8f76c32ba
 sourcePath: docs/decisions/knowledge/repository/0030-evidence-bound-knowledge-candidates.md
 sourceUnitVersionIds:

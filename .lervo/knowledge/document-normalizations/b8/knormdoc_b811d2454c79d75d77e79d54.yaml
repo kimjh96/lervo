@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_b811d2454c79d75d77e79d54
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:852ba50c867737c706814c08adad449b525b495f59194b562ac2a7bcb3353c45
 sourcePath: docs/decisions/coordination/sync/0035-outbound-sync-worker.md
 sourceUnitVersionIds:

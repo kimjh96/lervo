@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_e2837370f753bfb3281d2c9a
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:ecd99d46dd4ee8ea547ab4838963cb51619929e445136388ae4468b2f13104f5
 sourcePath: docs/decisions/release/assurance/0092-cli-release-sbom.md
 sourceUnitVersionIds:

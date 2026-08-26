@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_5abf0fae342822d9c6ccb17a
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:637e21283cf9348f45c2a2c368d86aa7d63e1f25e8c5df946df163fed7143de0
 sourcePath: docs/decisions/knowledge/repository/0173-bounded-parser-grade-json-source-units.md
 sourceUnitVersionIds:

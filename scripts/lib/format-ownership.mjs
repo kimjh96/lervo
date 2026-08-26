@@ -37,7 +37,10 @@ export async function lervoLifecycleOwnedFormatPaths(repositoryRoot) {
   for (const recordPath of await normalizationRecordPaths(repositoryRoot)) {
     const record = parse(await readFile(recordPath, "utf8"));
     if (
-      record?.schemaVersion !== 1 ||
+      ![1, 2].includes(record?.schemaVersion) ||
+      (record.schemaVersion === 2 &&
+        (record.byteOwnership?.owner !== "reviewer" ||
+          record.byteOwnership?.rewritePolicy !== "reviewed_exact")) ||
       !Array.isArray(record.outputs) ||
       record.outputs.length === 0
     )

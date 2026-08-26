@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_d493b077cc4a0d678d1e1a21
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:e3883b440dff83403035eceb2c4b544c8d6207da9a138b74ef283f5dd4a2cac3
 sourcePath: docs/decisions/coordination/remote-control/0146-hub-command-authoring-and-artifact-delivery.md
 sourceUnitVersionIds:

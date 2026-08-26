@@ -1,10 +1,15 @@
 import { constants } from "node:fs";
-import { lstat, open } from "node:fs/promises";
+import { lstat, open, readFile } from "node:fs/promises";
 import { basename, posix, resolve } from "node:path";
 
 import { fromMarkdown } from "mdast-util-from-markdown";
-import { stringify } from "yaml";
-import { loadDecisionTaxonomy } from "@lervo/project";
+import { parse, stringify } from "yaml";
+import {
+  decisionTaxonomyRequiresUpgrade,
+  loadDecisionTaxonomy,
+  serializeDecisionTaxonomy,
+  type DecisionTaxonomy,
+} from "@lervo/project";
 
 import {
   createKnowledgeMigrationPlanForScan,
@@ -19,6 +24,7 @@ import {
   type DurableKnowledgeUserFileOperation,
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
+import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
 import {
@@ -46,12 +52,10 @@ import {
   type RepositorySource,
 } from "./types.js";
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
+import { providerSurfaceRoles } from "./provider-surface-descriptors.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/;
-const ROOT_ENTRYPOINTS = new Set([
-  "README.md",
-  "AGENTS.md",
-  "CLAUDE.md",
+const ECOSYSTEM_ROOT_ENTRYPOINTS = new Set([
   "CONTRIBUTING.md",
   "SECURITY.md",
   "CHANGELOG.md",
@@ -211,33 +215,55 @@ function mediaTypeFor(source: RepositorySource): DurableKnowledgeUserFileOperati
 function classifiedRootDestination(
   path: string,
   content: string,
+  taxonomy: DecisionTaxonomy,
 ): Pick<RepositoryLayoutMove, "toPath" | "classification" | "reason"> | null {
-  if (path.includes("/") || ROOT_ENTRYPOINTS.has(path) || !/\.md$/iu.test(path)) return null;
+  const roles = [...taxonomy.documentPolicy.roles, ...providerSurfaceRoles()];
+  const protectedPaths = new Set(
+    roles.map((role) => role.path).filter((rolePath) => !rolePath.includes("/")),
+  );
+  if (
+    path.includes("/") ||
+    protectedPaths.has(path) ||
+    ECOSYSTEM_ROOT_ENTRYPOINTS.has(path) ||
+    !/\.md$/iu.test(path)
+  )
+    return null;
+  const rolePath = (roleId: string): string | null =>
+    taxonomy.documentPolicy.roles.find((role) => role.roleId === roleId)?.path ?? null;
   const stem = basename(path, ".md").toUpperCase();
   const heading = /^#\s+(.+)$/mu.exec(content)?.[1]?.trim().toLowerCase() ?? "";
-  if (/(?:^|_)VISION$/u.test(stem) && /(?:vision|\uBE44\uC804)/u.test(heading))
+  const visionPath = rolePath("product_vision");
+  if (
+    visionPath !== null &&
+    /(?:^|_)VISION$/u.test(stem) &&
+    /(?:vision|\uBE44\uC804)/u.test(heading)
+  )
     return {
-      toPath: "docs/product/vision.md",
+      toPath: visionPath,
       classification: "product",
       reason: "recognized_root_document_role",
     };
+  const architecturePath = rolePath("system_architecture");
   if (
+    architecturePath !== null &&
     /(?:^|_)ARCHITECTURE$/u.test(stem) &&
     /(?:architecture|\uC544\uD0A4\uD14D\uCC98|\uAD6C\uC870)/u.test(heading)
   )
     return {
-      toPath: "docs/architecture/system.md",
+      toPath: architecturePath,
       classification: "architecture",
       reason: "recognized_root_document_role",
     };
+  const executionPath = rolePath("execution_specification");
   if (
+    executionPath !== null &&
     /(?:^|_)EXECUTION_SPEC$/u.test(stem) &&
     /(?:(?:execution|\uC2E4\uD589).*(?:spec|\uADDC\uACA9)|(?:spec|\uADDC\uACA9).*(?:execution|\uC2E4\uD589))/u.test(
       heading,
     )
   )
     return {
-      toPath: "docs/specifications/execution.md",
+      toPath: executionPath,
       classification: "specification",
       reason: "recognized_root_document_role",
     };
@@ -248,9 +274,14 @@ function classifiedRootDestination(
       classification: "roadmap",
       reason: "recognized_root_document_role",
     };
-  if (/(?:^|_)ROADMAP$/u.test(stem) && /(?:roadmap|\uB85C\uB4DC\uB9F5|\uACC4\uD68D)/u.test(heading))
+  const roadmapPath = rolePath("delivery_roadmap");
+  if (
+    roadmapPath !== null &&
+    /(?:^|_)ROADMAP$/u.test(stem) &&
+    /(?:roadmap|\uB85C\uB4DC\uB9F5|\uACC4\uD68D)/u.test(heading)
+  )
     return {
-      toPath: "docs/roadmap/index.md",
+      toPath: roadmapPath,
       classification: "roadmap",
       reason: "recognized_root_document_role",
     };
@@ -364,6 +395,42 @@ async function machineArtifactMoves(root: string): Promise<RepositoryLayoutMachi
     }
   }
   return moves.sort((left, right) => left.fromPath.localeCompare(right.fromPath));
+}
+
+async function normalizationOwnershipUpgradeOperations(
+  root: string,
+): Promise<KnowledgeFileOperation[]> {
+  const operations: KnowledgeFileOperation[] = [];
+  const paths = await listKnowledgeArtifactPaths({
+    root,
+    directory: ".lervo/knowledge/document-normalizations",
+    extension: "yaml",
+    maximumFiles: 20_000,
+  });
+  for (const path of paths) {
+    const source = await readFile(resolve(root, path), "utf8");
+    const value = parse(source) as Record<string, unknown>;
+    if (value.schemaVersion !== 1) continue;
+    const content = stringify(
+      {
+        ...value,
+        schemaVersion: 2,
+        byteOwnership: { owner: "reviewer", rewritePolicy: "reviewed_exact" },
+      },
+      { lineWidth: 0, sortMapEntries: true },
+    );
+    operations.push({
+      path,
+      action: "update",
+      ownership: "lervo_generated",
+      mediaType: "application/yaml",
+      content,
+      expectedCurrentHash: sha256(source),
+      desiredHash: sha256(content),
+      reason: "upgrade_document_rewrite_ownership",
+    });
+  }
+  return operations;
 }
 
 async function exists(path: string): Promise<boolean> {
@@ -503,6 +570,8 @@ export async function createRepositoryLayoutMigrationPlan(input: {
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
 }): Promise<RepositoryLayoutMigrationPlan> {
   const root = resolve(input.repositoryRoot);
+  const taxonomyPath = resolve(root, ".lervo/knowledge/document-layout.yaml");
+  const taxonomySource = await readFile(taxonomyPath, "utf8");
   const [{ policy, scan }, storedConcepts, generatedPaths, taxonomy] = await Promise.all([
     scanConfiguredRepositoryKnowledge(
       root,
@@ -575,7 +644,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
             reason: "recognized_decision_document" as const,
           },
         ];
-      const classification = classifiedRootDestination(source.path, source.content);
+      const classification = classifiedRootDestination(source.path, source.content, taxonomy);
       if (classification !== null) return [{ source: includedSource, ...classification }];
       const document = classifyRepositoryDocument(source.path, source.content, taxonomy);
       if (document.kind === "blocked") {
@@ -971,8 +1040,28 @@ export async function createRepositoryLayoutMigrationPlan(input: {
           };
         })
       : [];
+  const normalizationOwnershipOperations = await normalizationOwnershipUpgradeOperations(root);
+  const taxonomyUpgradeOperation: KnowledgeFileOperation[] = decisionTaxonomyRequiresUpgrade(
+    parse(taxonomySource),
+  )
+    ? [
+        {
+          path: ".lervo/knowledge/document-layout.yaml",
+          action: "update",
+          ownership: "lervo_generated",
+          mediaType: "application/yaml",
+          content: serializeDecisionTaxonomy(taxonomy),
+          expectedCurrentHash: sha256(taxonomySource),
+          desiredHash: sha256(serializeDecisionTaxonomy(taxonomy)),
+          reason: "upgrade_document_policy",
+        },
+      ]
+    : [];
   const structural =
-    moves.length === 0 && userUpdates.length === 0
+    moves.length === 0 &&
+    userUpdates.length === 0 &&
+    normalizationOwnershipOperations.length === 0 &&
+    taxonomyUpgradeOperation.length === 0
       ? null
       : await createKnowledgeMigrationPlanForScan({
           repositoryRoot: root,
@@ -1078,6 +1167,8 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     expectedCurrentHash: move.contentHash,
   }));
   const operations: RepositoryLayoutMigrationPlan["operations"] = [
+    ...taxonomyUpgradeOperation,
+    ...normalizationOwnershipOperations,
     ...(structural?.operations ?? []),
     ...referenceOperations,
     ...bridgeOperations,
@@ -1092,7 +1183,9 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       ? "blocked"
       : moves.length > 0 || userUpdates.length > 0
         ? "review_required"
-        : machineMoves.length > 0
+        : machineMoves.length > 0 ||
+            taxonomyUpgradeOperation.length > 0 ||
+            normalizationOwnershipOperations.length > 0
           ? "ready"
           : "current";
   const materials = {
@@ -1130,6 +1223,8 @@ export async function createRepositoryLayoutMigrationPlan(input: {
           ];
     }),
   ].sort((left, right) => left.path.localeCompare(right.path));
+  if (blockers.length === 0)
+    await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations });
   return {
     schemaVersion: 1,
     planKind: "repository_layout",
@@ -1233,6 +1328,10 @@ export async function applyRepositoryLayoutMigrationPlan(input: {
     projectId: current.projectId,
     planId: current.planId,
     operations: current.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: current.repositoryRoot,
+      operations: current.operations,
+    }),
     receipt,
     recordApplied: input.recordApplied,
     ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),

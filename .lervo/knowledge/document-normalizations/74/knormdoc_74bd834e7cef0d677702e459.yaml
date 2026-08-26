@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_74bd834e7cef0d677702e459
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:33dcb2ba37d77f46df7b753e095d667fb130017feaec3162abc441ab5fe6d7bd
 sourcePath: docs/decisions/coordination/deliberation/0142-snapshot-bounded-deliberation-event-scan.md
 sourceUnitVersionIds:

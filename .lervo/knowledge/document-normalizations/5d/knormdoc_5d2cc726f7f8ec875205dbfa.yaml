@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_5d2cc726f7f8ec875205dbfa
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:393f5e373c22643732fbedf14d891301bbb724b3867f377e4a31fcd28a7b85c7
 sourcePath: docs/decisions/operations/trace/0079-explicit-trace-page-event-filter.md
 sourceUnitVersionIds:

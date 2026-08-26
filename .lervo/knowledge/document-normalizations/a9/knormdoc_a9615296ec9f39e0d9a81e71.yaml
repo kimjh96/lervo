@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_a9615296ec9f39e0d9a81e71
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:4620d36f0fe08762d88a8ba03cd1ab1586f8a3fccbbb4b7a46451a80c07c052c
 sourcePath: docs/decisions/release/packaging/0090-cli-package-usage-guide.md
 sourceUnitVersionIds:

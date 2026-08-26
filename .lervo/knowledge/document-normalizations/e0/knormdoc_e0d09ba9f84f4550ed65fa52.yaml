@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_19d84dd0d538ec9e0bb7e1ec
 compiler:
   compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
@@ -16,7 +19,7 @@ outputs:
 profile: agent_instruction
 recordId: knormdoc_e0d09ba9f84f4550ed65fa52
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:5bddb7c42fb8a07f894b5ca281b488509adfe81a03f63473d88e02194d7658b4
 sourcePath: AGENTS.md
 sourceUnitVersionIds:

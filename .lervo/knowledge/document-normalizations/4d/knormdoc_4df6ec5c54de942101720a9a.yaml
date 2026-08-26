@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_fcf7c6145ff9d232dcdd5402
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_4df6ec5c54de942101720a9a
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:aa584f33b602cf0614088e919c36bdc6de4166c387acf48262563c746593b621
 sourcePath: docs/decisions/execution/providers/0196-fail-closed-provider-terminal-integration.md
 sourceUnitVersionIds:

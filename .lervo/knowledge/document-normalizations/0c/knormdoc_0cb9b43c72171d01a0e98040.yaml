@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_0cb9b43c72171d01a0e98040
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:2d98d345016a8bf075b4d8fe02be59dee470117c9c6c03261ca8eb065b926818
 sourcePath: docs/decisions/coordination/sync/0037-hub-trace-read-model.md
 sourceUnitVersionIds:

@@ -1,6 +1,6 @@
 # Bounded document layout and rewrite ownership
 
-Status: `planned`
+Status: `completed`
 
 As of: 2026-08-26
 
@@ -49,3 +49,16 @@ This proves the current Prettier adapter protects the repository-owned command p
 ## Non-claims
 
 Passing an adapter contract does not prove that a user invoked the registered tool or that an editor respected repository configuration. Unobserved rewrites remain unmanaged, and later byte changes are detected as lifecycle staleness.
+
+## Completion evidence
+
+Completed on 2026-08-26:
+
+- The tracked document policy is schema version 2 with researched defaults of 32 direct documents, 32 document-bearing children, 4,096 repository documents, and 12 family outputs. Compatibility loading and exact v1-to-v2 migration are covered by repository-layout tests.
+- `@lervo/documents` owns the pure projected-tree evaluator, content-bound permit, rewrite descriptor evaluation, managed-ignore projection, and content-bound dry-run contract. It contains no provider, Orca, Hub, or tool-product dependency.
+- Repository planning, lint, and durable apply use the common evaluator. The durable boundary rejects a Markdown or MDX mutation without a current permit and revalidates snapshot, policy, roles, operation set, counts, and expiry before mutation.
+- Scoped repository roles live in tracked policy. Exact `AGENTS.md` and `CLAUDE.md` paths live in Codex and Claude provider-surface descriptors and enter core as neutral role IDs.
+- Active normalization records are schema version 2 and declare `reviewer` plus `reviewed_exact`. The Prettier adapter projects 265 current lifecycle-owned paths into 17 exact or proven-complete-subtree rules while preserving the user region of `.prettierignore`.
+- Direct `pnpm exec prettier --check .`, the ownership-aware wrapper, and editor-compatible `.prettierignore` agree without `**/*.md`. A structurally different content-bound transform adapter passes the same common contract.
+- The external-repository fixture exercises a root overview, an MDX guide in a non-Lervo layout, both adapter forms, permit issuance, and capacity failure. Pure evaluator tests cover direct-file, child-directory, move, create, repository-total, override, role, tamper, and expiry cases; durable tests cover missing permit, interruption recovery, rollback, and event failure.
+- Lervo self-migration upgraded 262 legacy lifecycle records and refreshed all affected structural projections in one durable transaction. `lervo knowledge lint` then passed with 271 concepts and no issues.

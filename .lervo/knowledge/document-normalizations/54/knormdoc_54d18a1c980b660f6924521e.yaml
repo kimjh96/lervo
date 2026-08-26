@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_1fed6046a419ac4e092ff508
 compiler:
   compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
@@ -16,7 +19,7 @@ outputs:
 profile: specification_document
 recordId: knormdoc_54d18a1c980b660f6924521e
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:ca3956953fbd781a9c65b14869785fe0a1e752325c1a1a00e22a6e9bfffb770f
 sourcePath: docs/specifications/execution/agent-workspaces.md
 sourceUnitVersionIds:

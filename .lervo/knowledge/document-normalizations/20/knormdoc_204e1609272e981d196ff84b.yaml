@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_fcf7c6145ff9d232dcdd5402
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: repository_document
 recordId: knormdoc_204e1609272e981d196ff84b
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:c60ac35f673d29d183eedbc9a1f9728b75a992c144d24be35565c8ef46cd1cb4
 sourcePath: docs/distribution/hub-runtime-distribution.md
 sourceUnitVersionIds:

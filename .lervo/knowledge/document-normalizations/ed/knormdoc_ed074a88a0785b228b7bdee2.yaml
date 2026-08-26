@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_ed074a88a0785b228b7bdee2
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:443f86d2633fe1a93a928cfc048094b2af4c472f0aca8c1109b2d2e508aa3000
 sourcePath: docs/decisions/release/bootstrap/0112-cli-first-publication-arming-authorization.md
 sourceUnitVersionIds:

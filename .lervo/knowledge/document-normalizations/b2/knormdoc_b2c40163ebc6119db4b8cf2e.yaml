@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_b2c40163ebc6119db4b8cf2e
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:fdcf732c52aefa0367745b1f47c1f779865473b98181b268c426d3ea79c78bc1
 sourcePath: docs/decisions/distribution/0058-deterministic-bm25f-search-candidate.md
 sourceUnitVersionIds:

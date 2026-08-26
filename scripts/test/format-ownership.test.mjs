@@ -40,6 +40,19 @@ describe("formatter ownership", () => {
     ]);
   });
 
+  it("requires explicit reviewed byte ownership on version-2 records", async () => {
+    const root = await fixture(
+      "schemaVersion: 2\nbyteOwnership:\n  owner: reviewer\n  rewritePolicy: reviewed_exact\noutputs:\n  - path: docs/reviewed.md\n",
+    );
+    expect([...(await lervoLifecycleOwnedFormatPaths(root))]).toEqual(["docs/reviewed.md"]);
+    const invalid = await fixture(
+      "schemaVersion: 2\nbyteOwnership:\n  owner: reviewer\n  rewritePolicy: repository_tool\noutputs:\n  - path: docs/reviewed.md\n",
+    );
+    await expect(lervoLifecycleOwnedFormatPaths(invalid)).rejects.toThrow(
+      "Invalid Lervo normalization ownership record",
+    );
+  });
+
   it("fails closed on unsafe or malformed lifecycle ownership", async () => {
     const root = await fixture("schemaVersion: 1\noutputs:\n  - path: ../outside.md\n");
     await expect(lervoLifecycleOwnedFormatPaths(root)).rejects.toThrow(

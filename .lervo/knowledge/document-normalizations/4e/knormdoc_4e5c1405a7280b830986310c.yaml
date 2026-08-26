@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_7e23e7b6290d7ea73f700f45
 compiler:
   compilerBuildId: sha256:9379c406145c32f0d28403b180a121c9a9d830f9fd21f72bf39bd2a9761019b8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_4e5c1405a7280b830986310c
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:2e71f3baf0d06a483ab4c58ad73901664b21ce741d60226dca910bf6a87b20b6
 sourcePath: docs/decisions/execution/providers/0197-unmanaged-terminal-context-observation.md
 sourceUnitVersionIds:

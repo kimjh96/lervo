@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_cea1472a8412602749c06891
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:52a27485dd5c4faa92aa22afe4a5f24c1e23e6eb5152ca263300c976c6ea5604
 sourcePath: docs/decisions/coordination/deliberation/0137-deliberation-liveness-and-diagnostics.md
 sourceUnitVersionIds:

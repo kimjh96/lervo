@@ -10,6 +10,7 @@ import {
   type DurableKnowledgeUserFileOperation,
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
+import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { RepositoryKnowledgeError, type KnowledgeFileOperation } from "./types.js";
 
@@ -705,6 +706,10 @@ export async function applyTerminalIntegrationPlan(input: {
     projectId: current.projectId,
     planId: current.planId,
     operations: current.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: current.repositoryRoot,
+      operations: current.operations,
+    }),
     receipt,
     recordApplied: input.recordApplied,
     ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),

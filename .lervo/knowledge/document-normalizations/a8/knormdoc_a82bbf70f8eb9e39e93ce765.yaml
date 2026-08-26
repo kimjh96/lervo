@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_a82bbf70f8eb9e39e93ce765
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:39c9efa0e1c3d3e6ff9fb6f7e5028a3200ed69a4fabb6e6e1f387e8c543dad12
 sourcePath: docs/decisions/release/staging/0130-cli-stage-approval-transition-integration.md
 sourceUnitVersionIds:

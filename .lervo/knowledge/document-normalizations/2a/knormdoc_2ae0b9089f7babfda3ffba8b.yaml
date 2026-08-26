@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_2ae0b9089f7babfda3ffba8b
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:9b80397f403da630a02503e65b7fba613dc2b97ea5750abdce1dd2c1da6145a7
 sourcePath: docs/decisions/execution/providers/0012-provider-result-artifacts.md
 sourceUnitVersionIds:

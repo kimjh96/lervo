@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_f1015d08fa59bfac4206fdae
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:cba8619817ab811f612430b3b30f152a8140eb5f99be7c53ab830daf465a8410
 sourcePath: docs/decisions/execution/verification/0044-signed-approval-managed-write-permit.md
 sourceUnitVersionIds:

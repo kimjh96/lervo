@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_688879b639b4437661a205e2
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:50ea54863ab08ef94682a63f08f66e098a9abb6dcaa0fcf2ecfa23b45274ddaf
 sourcePath: docs/decisions/execution/orchestration/0177-bounded-execution-event-sources.md
 sourceUnitVersionIds:

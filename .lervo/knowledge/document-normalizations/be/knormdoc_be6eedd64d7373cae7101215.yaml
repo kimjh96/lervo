@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6d87357cbc7b1e9ea8b28f11
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_be6eedd64d7373cae7101215
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:1aed029e6727595a1497f9442e30ba46f5faf860a4f398d502f2d9001c593224
 sourcePath: docs/decisions/execution/orchestration/0209-versioned-repository-role-contracts.md
 sourceUnitVersionIds:

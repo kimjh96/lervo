@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_f90a4b7ae5206d13669ede55
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:613a6476101b7524a48791cc3825f0eb59cc3907c418551fbefa5e4b3ecc8ddb
 sourcePath: docs/decisions/release/bootstrap/0110-cli-first-publication-external-requirement-evidence-report.md
 sourceUnitVersionIds:

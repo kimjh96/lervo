@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_a8aa58f8f043b67934b5e6d3
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:4763bd94f3cfd9f49cfc511d7b5964a6bfd01ef179f6fc2b0f083a18246b46ac
 sourcePath: docs/decisions/operations/diagnostics/0073-bounded-doctor-recovery-guidance.md
 sourceUnitVersionIds:

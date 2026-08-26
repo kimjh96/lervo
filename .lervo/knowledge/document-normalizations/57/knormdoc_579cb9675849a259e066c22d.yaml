@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_7ac0121397bfa6749f600683
 compiler:
   compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
@@ -16,7 +19,7 @@ outputs:
 profile: specification_document
 recordId: knormdoc_579cb9675849a259e066c22d
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:0c0326c3c3b1f99f3cf4d7d7e32b35b99aa708800382cb7c1932ec30bffd6bee
 sourcePath: docs/specifications/execution.md
 sourceUnitVersionIds:

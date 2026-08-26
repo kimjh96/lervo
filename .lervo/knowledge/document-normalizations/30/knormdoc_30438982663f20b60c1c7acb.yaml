@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_30438982663f20b60c1c7acb
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:b128dc712a48651bc15b19e9ec0e41e15906e3a4440058c423fb3c2b26e68b33
 sourcePath: docs/decisions/operations/trace/0076-versioned-trace-report-contract.md
 sourceUnitVersionIds:

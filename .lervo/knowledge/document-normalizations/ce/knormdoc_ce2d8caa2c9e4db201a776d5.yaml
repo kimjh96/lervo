@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_ce2d8caa2c9e4db201a776d5
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:8282a98b7d4dc4a34709bc7afcb8307f97e5145edee7c5a545ae7d3273d1c2aa
 sourcePath: docs/decisions/coordination/deliberation/0135-approved-deliberation-resume-boundary.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_c295c6f5c1f082c9d00d24bb
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:3a580952f2588dfe755b738d85324e1197085dea448dd22a2b9124ff8bed693b
 sourcePath: docs/decisions/operations/security/0161-atomic-node-bearer-token-reload.md
 sourceUnitVersionIds:

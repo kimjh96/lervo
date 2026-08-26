@@ -11,6 +11,7 @@ import {
   type DurableKnowledgeDeleteOperation,
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
+import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { normalizationRecordRetirementOperations } from "./document-normalization-record-retirement.js";
 import { loadStoredConcepts } from "./store-reader.js";
@@ -281,6 +282,13 @@ export async function createKnowledgeDocumentDeletionPlan(input: {
     approvalHash,
     operations: operationBindings,
   };
+  const operations = [
+    ...sidecarOperations,
+    ...lineageClosureOperation,
+    ...normalizationRecords.operations,
+    deleteOperation,
+  ];
+  await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations });
   return {
     schemaVersion: 1,
     planId: stableId("kstruct", materials),
@@ -297,12 +305,7 @@ export async function createKnowledgeDocumentDeletionPlan(input: {
     document: { path, contentHash: source.contentHash, byteCount: source.byteCount },
     deprecatedConceptIds: related.map((item) => item.value!.conceptId).sort(),
     removedNormalizationRecords: normalizationRecords.paths,
-    operations: [
-      ...sidecarOperations,
-      ...lineageClosureOperation,
-      ...normalizationRecords.operations,
-      deleteOperation,
-    ],
+    operations,
   };
 }
 
@@ -364,6 +367,10 @@ export async function applyKnowledgeDocumentDeletionPlan(input: {
     projectId: current.projectId,
     planId: current.planId,
     operations: current.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: current.repositoryRoot,
+      operations: current.operations,
+    }),
     receipt,
     recordApplied: input.recordApplied,
     ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),

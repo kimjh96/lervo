@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_7f94d82c521c5b66904acb70
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:bbda478620d7f1e8a7b3ca45e6c5e3f80f9a62af7f77b84ce6c4cf45f792823d
 sourcePath: docs/decisions/knowledge/repository/0185-profiled-provider-instruction-bridge.md
 sourceUnitVersionIds:

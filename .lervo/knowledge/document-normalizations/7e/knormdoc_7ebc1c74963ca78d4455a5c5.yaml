@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_e8251e2c0503fe7a8f848f89
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_7ebc1c74963ca78d4455a5c5
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:df123232eb7b434b25ba839702294c819b5a1c72ac63526afecedc1be72861a9
 sourcePath: docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md
 sourceUnitVersionIds:

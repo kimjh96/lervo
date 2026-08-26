@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_28373fd22ad0c2f506fef88f
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:31339611821a003fcf2261ee8a0d9f637fe7aa17f3587a9567a760de929f15cb
 sourcePath: docs/decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md
 sourceUnitVersionIds:

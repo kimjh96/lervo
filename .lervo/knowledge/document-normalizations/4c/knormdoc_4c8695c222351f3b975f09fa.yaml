@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_4c8695c222351f3b975f09fa
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:3a32c956974cbe12bd092bd365950b35fe353bac0c9112759f301dae2e5e188c
 sourcePath: docs/decisions/search/0053-deterministic-lexical-search-observations.md
 sourceUnitVersionIds:

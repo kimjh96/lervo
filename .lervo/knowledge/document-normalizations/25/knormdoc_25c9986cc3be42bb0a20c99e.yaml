@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_ba2e70b4c10487ee260f047e
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: repository_document
 recordId: knormdoc_25c9986cc3be42bb0a20c99e
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:de25398016e874976674df3b779978938dd0e405f33f04979381dd47e887c79c
 sourcePath: docs/evidence/pilots/shiflo-v0.md
 sourceUnitVersionIds:

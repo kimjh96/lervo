@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_792707adf116589c0eaffa48
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:733e195c363ebf1bace0fb3241fcd45f88cc054e8f273723cbd75bbad9cccb0b
 sourcePath: docs/decisions/search/0064-selection-bound-operational-search-quality.md
 sourceUnitVersionIds:

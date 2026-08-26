@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_c7b3ea9702f3c6a89c541bca
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:8cbc6bed2b145cc668f9359feb5d3ecdb6cc0bc93fdedde6804ae3e617ab26fd
 sourcePath: docs/decisions/distribution/0167-platform-bound-standalone-node-distribution.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_5a52aa38bdaf514f6ac892d1
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:f7f7ed162e7718698f275351dccd072aec06423cf20caee7cbb47a596f85e800
 sourcePath: docs/decisions/execution/providers/0157-claude-sdk-command-lifecycle-input-acknowledgement.md
 sourceUnitVersionIds:

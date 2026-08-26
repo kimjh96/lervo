@@ -29,12 +29,23 @@ async function markdownUnder(directory) {
 const decisionTaxonomy = parse(
   await readFile(resolve(repositoryRoot, ".lervo/knowledge/document-layout.yaml"), "utf8"),
 );
+const documentPolicy = decisionTaxonomy?.documentPolicy;
 if (
-  decisionTaxonomy?.schemaVersion !== 1 ||
+  decisionTaxonomy?.schemaVersion !== 2 ||
   typeof decisionTaxonomy.decisionRoot !== "string" ||
   !Number.isSafeInteger(decisionTaxonomy.maxLeafDocuments) ||
   !Array.isArray(decisionTaxonomy.routes) ||
-  !decisionTaxonomy.routes.every((route) => typeof route?.path === "string")
+  !decisionTaxonomy.routes.every((route) => typeof route?.path === "string") ||
+  !Number.isSafeInteger(documentPolicy?.capacity?.maxDirectDocuments) ||
+  documentPolicy.capacity.maxDirectDocuments < 1 ||
+  !Number.isSafeInteger(documentPolicy.capacity.maxDocumentBearingChildDirectories) ||
+  documentPolicy.capacity.maxDocumentBearingChildDirectories < 1 ||
+  !Number.isSafeInteger(documentPolicy.capacity.maxRepositoryDocuments) ||
+  documentPolicy.capacity.maxRepositoryDocuments < 1 ||
+  !Number.isSafeInteger(documentPolicy.capacity.maxNormalizedFamilyOutputs) ||
+  documentPolicy.capacity.maxNormalizedFamilyOutputs < 1 ||
+  !Array.isArray(documentPolicy.roles) ||
+  !Array.isArray(documentPolicy.capacity.overrides)
 )
   throw new Error(
     ".lervo/knowledge/document-layout.yaml does not satisfy the documentation lifecycle contract.",

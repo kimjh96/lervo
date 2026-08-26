@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_ea662f8c2c48729c6d94a8fc
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:e88bd7c3ed3d0c273c998405dd8833303c519cf4e3688f551617d61e57cf1e30
 sourcePath: docs/decisions/release/bootstrap/0106-cli-first-publication-package-metadata-candidate.md
 sourceUnitVersionIds:

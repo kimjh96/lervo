@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_fcf7c6145ff9d232dcdd5402
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_029a6e4d7d57dbd0faecbc35
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:6afbffa9df8125b824bbb88c8fa5bde1e483eaec4e5beeff664edb3cc25bf489
 sourcePath: docs/decisions/knowledge/documents/0206-public-readme-preservation-and-improvement.md
 sourceUnitVersionIds:

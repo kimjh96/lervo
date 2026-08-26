@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_184aa6a92ad9637741835231
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:02a8ba884f5bf9f23a48b383b9ce4c395275848987bf06f7a503c406b0903177
 sourcePath: docs/decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md
 sourceUnitVersionIds:

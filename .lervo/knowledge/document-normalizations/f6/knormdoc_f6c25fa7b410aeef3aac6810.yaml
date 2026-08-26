@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_f6c25fa7b410aeef3aac6810
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:ff9681249a4adab0c722d3b97101c28d593b1e69c6c30138f9437e62b2119693
 sourcePath: docs/decisions/coordination/conversations/0143-execution-and-conversation-boundary-hardening.md
 sourceUnitVersionIds:

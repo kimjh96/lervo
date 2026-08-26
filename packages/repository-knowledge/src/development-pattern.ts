@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { createManagedBlockPatchCandidate, parseManagedMarkdownBlocks } from "@lervo/documents";
 
 import { applyDurableKnowledgeOperations } from "./durable-apply.js";
+import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import type { KnowledgeFileOperation, RepositoryKnowledgeScan } from "./types.js";
 
@@ -330,6 +331,11 @@ export async function createDevelopmentPatternPromotionPlan(input: {
     blockers,
     operations,
   });
+  if (blockers.length === 0)
+    await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: input.repositoryRoot,
+      operations,
+    });
   return {
     schemaVersion: 1,
     planKind: "development_pattern_promotion",
@@ -376,6 +382,10 @@ export async function applyDevelopmentPatternPromotion<T>(input: {
     projectId: input.plan.projectId,
     planId: input.plan.planId,
     operations: input.plan.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: input.plan.repositoryRoot,
+      operations: input.plan.operations,
+    }),
     receipt: input.receipt,
     recordApplied: input.recordApplied,
   });

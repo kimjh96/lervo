@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_f41aa97f3640f015e2d32a1c
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_e351c68e59e43cb6b27b196f
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:22898ac226c6d5133098e44892a1936ca1968eeed868a53aadb66be9ed06ec65
 sourcePath: docs/decisions/operations/services/0164-user-runtime-service-management-boundary.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_d9c572077e4fab9dd15a2683
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:5578c24fdae808a849d8e110047129b4629730acfc60eafd93e1e0dce954c887
 sourcePath: docs/decisions/coordination/sync/0151-restartable-node-outbound-sync-runtime.md
 sourceUnitVersionIds:

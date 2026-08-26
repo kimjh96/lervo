@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_639a7621715224c091702eda
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:c5aebb062a7bcac426691c64e6238e5d6a23b50246cf52c7c87ea3ca1e0bc65c
 sourcePath: docs/decisions/knowledge/documents/0018-existing-document-adoption.md
 sourceUnitVersionIds:

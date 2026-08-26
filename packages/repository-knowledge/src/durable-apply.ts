@@ -14,6 +14,9 @@ import {
 } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 
+import { validateDocumentLayoutPermit, type DocumentLayoutPermit } from "@lervo/documents";
+
+import { evaluateCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256 } from "./integrity.js";
 import type { KnowledgeFileOperation } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
@@ -480,6 +483,7 @@ export async function applyDurableKnowledgeOperations<T>(input: {
     | DurableKnowledgeMoveUpdateOperation
     | DurableKnowledgeUserFileOperation
   >;
+  documentLayoutPermit?: DocumentLayoutPermit | null;
   receipt: T;
   recordApplied: (receipt: T) => void | Promise<void>;
   failureInjector?: (
@@ -535,6 +539,32 @@ export async function applyDurableKnowledgeOperations<T>(input: {
       "knowledge_plan_stale",
       "The knowledge materialization operation content hash is invalid.",
     );
+  }
+  const hasDocumentMutation = changed.some(
+    (operation) =>
+      /\.mdx?$/iu.test(operation.path) ||
+      ("destinationPath" in operation && /\.mdx?$/iu.test(operation.destinationPath)),
+  );
+  if (hasDocumentMutation && input.documentLayoutPermit == null)
+    throw new RepositoryKnowledgeError(
+      "document_layout_permit_required",
+      "Repository document mutation requires a current projected-layout permit.",
+    );
+  if (hasDocumentMutation) {
+    const evaluation = await evaluateCurrentRepositoryDocumentLayout({
+      repositoryRoot: root,
+      operations: changed,
+    });
+    if (
+      !validateDocumentLayoutPermit({
+        permit: input.documentLayoutPermit!,
+        evaluation,
+      })
+    )
+      throw new RepositoryKnowledgeError(
+        "document_layout_permit_invalid",
+        "The repository document layout permit differs from current bytes, policy, roles, operations, or capacity.",
+      );
   }
   if (changed.length === 0) {
     await input.recordApplied(input.receipt);

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_a1a0d4a616306f302280ce3e
 compiler:
   compilerBuildId: sha256:f7fb962f28afd81c64377d7512fb6ba92163b1fc27770a0b58a85b911c5528cc
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_eb56c4757195295ac93a6c50
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:5b6e1e1ab8b4e7e859c15f9c58f8cfeff96503b8ca10c34de4a8f8fe6d9232d9
 sourcePath: docs/decisions/execution/providers/0198-managed-context-grounding-and-coverage.md
 sourceUnitVersionIds:

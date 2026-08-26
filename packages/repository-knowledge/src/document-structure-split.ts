@@ -14,6 +14,7 @@ import {
   type DurableKnowledgeUserFileOperation,
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
+import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { splitMarkdownHeadingSubtree } from "./markdown-split.js";
 import {
@@ -399,7 +400,7 @@ export async function createKnowledgeDocumentSplitPlan(input: {
     approvalHash,
     operations: operationBindings,
   };
-  return {
+  const plan: KnowledgeDocumentSplitPlan = {
     schemaVersion: 1,
     planId: stableId("kstruct", materials),
     operationId,
@@ -439,6 +440,8 @@ export async function createKnowledgeDocumentSplitPlan(input: {
     lineageId: lineage.value.lineageId,
     operations,
   };
+  await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations });
+  return plan;
 }
 
 export async function applyKnowledgeDocumentSplitPlan(input: {
@@ -501,6 +504,10 @@ export async function applyKnowledgeDocumentSplitPlan(input: {
     projectId: current.projectId,
     planId: current.planId,
     operations: current.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: current.repositoryRoot,
+      operations: current.operations,
+    }),
     receipt,
     recordApplied: input.recordApplied,
     ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_7384abecd0804a90d89e5dc7
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:753640a9b5464445e94c80dc698aaedc164ed1cdde2fecd88b328b0a460c9a32
 sourcePath: docs/decisions/foundation/0002-safe-project-initialization.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_19d84dd0d538ec9e0bb7e1ec
 compiler:
   compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
@@ -16,7 +19,7 @@ outputs:
 profile: pull_request_template
 recordId: knormdoc_80d34d788b2ea7f12bc04521
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:a514a16064957a2e09033615d4d95b0277e3d43f83f764da4e83fea9c2710231
 sourcePath: .github/PULL_REQUEST_TEMPLATE.md
 sourceUnitVersionIds:

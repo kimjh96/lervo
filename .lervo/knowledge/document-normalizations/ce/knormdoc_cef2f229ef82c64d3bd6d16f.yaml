@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_7ac0121397bfa6749f600683
 compiler:
   compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
@@ -16,7 +19,7 @@ outputs:
 profile: roadmap_document
 recordId: knormdoc_cef2f229ef82c64d3bd6d16f
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:cec803e4fa2707ac2565b9539058b0f174f2fb93670952b6fd0b9e6a365ea9fb
 sourcePath: docs/roadmap/onboarding/agent-workforce.md
 sourceUnitVersionIds:

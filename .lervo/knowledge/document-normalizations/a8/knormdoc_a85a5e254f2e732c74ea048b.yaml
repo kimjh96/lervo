@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_a85a5e254f2e732c74ea048b
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:8ff2a0da740edb033ffa06ebfd9204bd70da3f50d2320a6ecbaf0da05104aa87
 sourcePath: docs/decisions/release/assurance/0094-cli-release-attestation-consumer-verification.md
 sourceUnitVersionIds:

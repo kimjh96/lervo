@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_279835b797d3500bb1f99559
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:a4bdffd15773733e0d2b252e299625a28827e18191d24ea50b32999f34f56b66
 sourcePath: docs/decisions/search/0054-search-recommendation-managed-context-boundary.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_7cd34b53637cd4b44590e4b5
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:a89d5048b8ba02eafdd284bc394af46773e38c9e034fd2ad1ec5ca5fcbcc4a70
 sourcePath: docs/decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md
 sourceUnitVersionIds:

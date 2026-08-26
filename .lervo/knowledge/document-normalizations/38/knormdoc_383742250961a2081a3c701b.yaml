@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6d87357cbc7b1e9ea8b28f11
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_383742250961a2081a3c701b
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:62b9865038dfc46ba9194df84b2923bffa20a0f863439b502c6815ed0f3fd005
 sourcePath: docs/decisions/execution/orchestration/0205-conflict-safe-repository-agent-workforce.md
 sourceUnitVersionIds:

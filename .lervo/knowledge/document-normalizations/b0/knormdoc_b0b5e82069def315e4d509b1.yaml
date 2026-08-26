@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_ba2e70b4c10487ee260f047e
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: repository_document
 recordId: knormdoc_b0b5e82069def315e4d509b1
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:d4e6fab390fb5488284c6d0e1781d3fcd23a8261df908b0404e4ffe7bba11408
 sourcePath: docs/research/provider-instruction-entrypoints.md
 sourceUnitVersionIds:

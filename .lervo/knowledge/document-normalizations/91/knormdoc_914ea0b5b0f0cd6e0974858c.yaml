@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_914ea0b5b0f0cd6e0974858c
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:3ed46b0cc0639da9b71b7be3948b522f858ecd3419bf93cb78f97ead19dc416a
 sourcePath: docs/decisions/distribution/0169-user-local-repository-registration-and-resolution.md
 sourceUnitVersionIds:

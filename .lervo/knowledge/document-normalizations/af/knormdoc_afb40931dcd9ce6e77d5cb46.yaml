@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_afb40931dcd9ce6e77d5cb46
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:2652576f244fa12d4d873ac1795a1eeaf184fdf4ff4ca5b1d801b9fbddc83524
 sourcePath: docs/decisions/execution/orchestration/0016-local-skill-resolution-and-lock.md
 sourceUnitVersionIds:

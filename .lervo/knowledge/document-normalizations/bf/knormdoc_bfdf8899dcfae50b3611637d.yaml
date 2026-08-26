@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_7e6e04f2e087cfffd32ec364
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: repository_document
 recordId: knormdoc_bfdf8899dcfae50b3611637d
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:6fd749efefeb2487d186ffa2650af30571183e91c8bc1c0a3813e5983974eeaf
 sourcePath: docs/evidence/pilots/reviewed-document-normalization.md
 sourceUnitVersionIds:

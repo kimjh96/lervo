@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_dd7dda41dde5765033f1884e
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: roadmap_document
 recordId: knormdoc_7062398976c340923cae3309
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:015b64769ab0ae0891504bb4eb06bb79660ab830d5c10c77154a9c12d18c40c1
 sourcePath: docs/roadmap/onboarding/provider-entrypoint-bootstrap.md
 sourceUnitVersionIds:

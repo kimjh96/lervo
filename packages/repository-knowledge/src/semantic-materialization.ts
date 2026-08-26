@@ -9,6 +9,7 @@ import {
   applyDurableKnowledgeOperations,
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
+import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { loadKnowledgeCompilationCandidate } from "./candidate-store.js";
 import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
@@ -600,6 +601,8 @@ export async function createSemanticKnowledgeMaterializationPlan(input: {
     compilerBuildId: loaded.candidate.compiler.compilerBuildId,
     operations: operations.map(({ content: _content, ...operation }) => operation),
   };
+  if (!operations.some((item) => item.action === "conflict"))
+    await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations });
   return {
     schemaVersion: 1,
     planId: stableId("ksmat", materials),
@@ -676,6 +679,10 @@ export async function applySemanticKnowledgeMaterializationPlan(input: {
     projectId: input.plan.projectId,
     planId: input.plan.planId,
     operations: input.plan.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: input.plan.repositoryRoot,
+      operations: input.plan.operations,
+    }),
     receipt,
     recordApplied: input.recordApplied,
     ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),

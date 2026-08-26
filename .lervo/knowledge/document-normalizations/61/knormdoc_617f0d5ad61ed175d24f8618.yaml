@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_fc58b905ca60d623aa0fa5ba
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_617f0d5ad61ed175d24f8618
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:00e47b387c939b53a159b56506afd407c6d9cffe96d236074a2d01f35ddb672c
 sourcePath: docs/decisions/knowledge/documents/0181-durable-hash-bound-user-document-deletion.md
 sourceUnitVersionIds:

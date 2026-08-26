@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_8bdd64133b64fb0cae3dd611
 compiler:
   compilerBuildId: sha256:ad68baffc3159430cb850172b62213e133862097161bc1366f2ff8820d565653
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_05e7afaade1d7c60771ba0e4
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:a4e9cd67edff33d67bbd68666034d67ecaeee9c1d150db8e19175f98d0811a1e
 sourcePath: docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_782ad70fe3ff8a114fd0c19c
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:06f5787d6231280c4e4cdf155bf24a5bbce9ffb385aa71cd90ab3eabf5bf7817
 sourcePath: docs/decisions/knowledge/documents/0184-durable-exact-byte-user-document-merge.md
 sourceUnitVersionIds:

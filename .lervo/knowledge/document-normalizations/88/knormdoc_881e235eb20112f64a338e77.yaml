@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_881e235eb20112f64a338e77
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:d0284991986323b0e11fb6258cd62308f760c42e256a874fc72c4a16cf41f502
 sourcePath: docs/decisions/search/0061-fail-closed-operational-search-engine-resolution.md
 sourceUnitVersionIds:

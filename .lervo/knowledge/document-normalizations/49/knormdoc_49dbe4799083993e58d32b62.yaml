@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_bd7fe7bc0764b9054bbf2704
 compiler:
   compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
@@ -16,7 +19,7 @@ outputs:
 profile: roadmap_document
 recordId: knormdoc_49dbe4799083993e58d32b62
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:4c9b58e781525cb41fd8533b00aef45aaa9fc948b519076dc9c34949e0a4c217
 sourcePath: docs/roadmap/v0.md
 sourceUnitVersionIds:

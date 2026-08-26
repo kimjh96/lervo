@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_c4748ee535c8abd0048bd083
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:8dd451f32097679218c641ef6ae8177fe34abe4ce1b80ec2f29030f1775f7359
 sourcePath: docs/decisions/release/packaging/0047-managed-conversation-responder.md
 sourceUnitVersionIds:

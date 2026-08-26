@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_dcb81bc1932750723c0e29bd
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:0b8ab133222ede79fa4006db43d27770807f5cb99766c67be984081a935ebb12
 sourcePath: docs/decisions/search/0055-reviewed-search-evaluation-cases.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_e51cec5faf09905d7b0ae5a4
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:46325b2cdbe9f580693f27977b5946271e8634079f2c8f4d89c9a9e6f720c964
 sourcePath: docs/decisions/coordination/remote-control/0005-shared-context-and-role-handoff.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_fcf7c6145ff9d232dcdd5402
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_ca09445dfc621f15bf4921dc
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:7aa0d76739696b85f9c7108079c4022623864dfc4342f7acc2e27c07ccb6c43e
 sourcePath: docs/decisions/operations/services/0203-read-only-repository-node-onboarding-reconciliation.md
 sourceUnitVersionIds:

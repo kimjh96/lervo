@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_b7a917c95e2d70839f235c6f
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:1d53eefee91505bcac1d381e8eb4d4f9c47414f7dfc1440524678316bfbc5d7b
 sourcePath: docs/decisions/execution/verification/0176-bounded-verification-result-sources.md
 sourceUnitVersionIds:

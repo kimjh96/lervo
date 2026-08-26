@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_b8ed0f5a53e19bf02a5ac1f3
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: instruction_document
 recordId: knormdoc_ed494f3c4e0594b6b46b2c3a
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:7bb26a19b020595be0099c56143f8dba0e2e651dcb290794277b646a28ffe14d
 sourcePath: docs/instructions/evidence-bound-repository-changes.md
 sourceUnitVersionIds:

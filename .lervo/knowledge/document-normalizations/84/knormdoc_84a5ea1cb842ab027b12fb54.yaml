@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_84a5ea1cb842ab027b12fb54
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:1b4bbc8bc5f989ccfcc064884b77f8ab3c076ed18730b5db28133d3135634c83
 sourcePath: docs/decisions/execution/providers/0155-managed-provider-role-registry.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_d6eb312cb5b2e00862bb38f7
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: repository_document
 recordId: knormdoc_84bdbfc3d827174e984206e1
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:615f87d3d0db8f39c6dc8993c5a18618bbce52370621417449f15cded93a940b
 sourcePath: docs/evidence/quality/repository-code-convention-audit.md
 sourceUnitVersionIds:

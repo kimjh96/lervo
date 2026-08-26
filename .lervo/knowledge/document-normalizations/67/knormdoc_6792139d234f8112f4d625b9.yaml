@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_6792139d234f8112f4d625b9
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:47628f54c0c359a8b3ec7927d8da3f868c7edd361f75ef1b13724d6787e58a0e
 sourcePath: docs/decisions/release/bootstrap/0104-cli-first-publication-activation-blocker-report.md
 sourceUnitVersionIds:

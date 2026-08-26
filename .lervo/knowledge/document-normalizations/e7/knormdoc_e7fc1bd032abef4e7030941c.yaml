@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_e7fc1bd032abef4e7030941c
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:0290fce3544eb1219868912786b61c9366d8304090ed76cb5cd9bc0bcd4c79b6
 sourcePath: docs/decisions/coordination/deliberation/0019-provider-neutral-deliberation.md
 sourceUnitVersionIds:

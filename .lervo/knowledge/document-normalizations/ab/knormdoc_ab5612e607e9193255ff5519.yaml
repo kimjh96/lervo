@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_ab5612e607e9193255ff5519
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:a28d514ee54f33fab602098e8b5dfe2d72a689f458be3b915b261a17ece0405c
 sourcePath: docs/decisions/search/0060-policy-bound-search-engine-selection.md
 sourceUnitVersionIds:

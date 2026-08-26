@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_31382d52eb855a3dfc1b392c
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:c49c196d6efec9c2c78a65f8b38861f7f6165b8ecbe0f73ae67868e4c366fa87
 sourcePath: docs/decisions/operations/diagnostics/0080-shared-diagnostics-report-compatibility.md
 sourceUnitVersionIds:

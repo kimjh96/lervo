@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_17c00b2278e5c0dd9c11ed99
 compiler:
   compilerBuildId: sha256:ad68baffc3159430cb850172b62213e133862097161bc1366f2ff8820d565653
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_27e9a0fe424b097cf61d959c
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:011e8417b3ab9736e1b26b8ce1ebbe5993ace1b2e6d527d3b50bde584f484c0e
 sourcePath: docs/decisions/coordination/sync/0201-repository-scoped-workstream-replication.md
 sourceUnitVersionIds:

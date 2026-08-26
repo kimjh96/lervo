@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_879a15fe961f8b38cb679e0b
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: product_document
 recordId: knormdoc_1cc558d924d7390404753fc3
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:2e81b070e2a8f96ea2d081659ee545da6d345b37e5b745a6e1150da5f2db9459
 sourcePath: docs/product/vision.md
 sourceUnitVersionIds:

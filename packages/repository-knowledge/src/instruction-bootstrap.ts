@@ -6,6 +6,7 @@ import {
   type DurableKnowledgeUserFileOperation,
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
+import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { repositoryInstructionPaths } from "./document-layout.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
@@ -250,6 +251,10 @@ export async function createKnowledgeInstructionBootstrapPlan(input: {
     blocker: null,
     operations: [operation],
   };
+  await authorizeCurrentRepositoryDocumentLayout({
+    repositoryRoot: root,
+    operations: state.operations,
+  });
   return { ...state, planId: stableId("kinstbootplan", state) };
 }
 
@@ -307,6 +312,10 @@ export async function applyKnowledgeInstructionBootstrapPlan(input: {
     projectId: current.projectId,
     planId: current.planId,
     operations: current.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: current.repositoryRoot,
+      operations: current.operations,
+    }),
     receipt,
     recordApplied: input.recordApplied,
     ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_fbabdbc17f62710672ad24b2
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:01e654b99696a0563c7e69b39e8d43b150186dd99e47ce70b0d53f67fe30f659
 sourcePath: docs/decisions/knowledge/documents/0182-durable-identity-preserving-user-document-move.md
 sourceUnitVersionIds:

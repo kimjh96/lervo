@@ -12,7 +12,9 @@ import {
   type DurableKnowledgeUserFileOperation,
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
+import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
+import { projectRepositoryPrettierRewrite } from "./prettier-rewriter-adapter.js";
 import {
   RepositoryKnowledgeError,
   type KnowledgeFileOperation,
@@ -197,7 +199,7 @@ export interface DocumentNormalizationCandidate {
 }
 
 interface DocumentNormalizationRecord {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   recordId: string;
   candidateId: string;
   operationId: string;
@@ -210,6 +212,7 @@ interface DocumentNormalizationRecord {
   sourceUnitVersionIds: string[];
   resourceBindings: Array<{ path: string; contentHash: string }>;
   outputs: Array<{ path: string; contentHash: string; userRegionHash: string; byteCount: number }>;
+  byteOwnership?: { owner: "reviewer"; rewritePolicy: "reviewed_exact" };
 }
 
 export interface DocumentNormalizationPlan {
@@ -1372,7 +1375,7 @@ function normalizationRecord(input: {
     operationId: input.item.operationId,
   });
   const record: DocumentNormalizationRecord = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     recordId,
     candidateId: input.candidate.candidateId,
     operationId: input.item.operationId,
@@ -1384,6 +1387,7 @@ function normalizationRecord(input: {
     compiler: input.candidate.compiler,
     sourceUnitVersionIds: input.item.sourceUnitVersionIds,
     resourceBindings: input.item.resourceBindings,
+    byteOwnership: { owner: "reviewer", rewritePolicy: "reviewed_exact" },
     outputs: input.item.outputs.map((output) => ({
       path: output.path,
       contentHash: output.contentHash,
@@ -1442,7 +1446,10 @@ async function currentNormalizedPaths(root: string, outputLanguage: string): Pro
       );
     }
     if (
-      record.schemaVersion !== 1 ||
+      ![1, 2].includes(record.schemaVersion) ||
+      (record.schemaVersion === 2 &&
+        (record.byteOwnership?.owner !== "reviewer" ||
+          record.byteOwnership.rewritePolicy !== "reviewed_exact")) ||
       record.outputLanguage !== outputLanguage ||
       record.formatVersion !== "lervo.document.v1" ||
       !Array.isArray(record.outputs)
@@ -1519,7 +1526,10 @@ export async function inspectConfiguredDocumentNormalization(input: {
     }
     if (
       record === null ||
-      record.schemaVersion !== 1 ||
+      ![1, 2].includes(record.schemaVersion) ||
+      (record.schemaVersion === 2 &&
+        (record.byteOwnership?.owner !== "reviewer" ||
+          record.byteOwnership.rewritePolicy !== "reviewed_exact")) ||
       !/^knormdoc_[a-f0-9]{24}$/u.test(record.recordId) ||
       path !==
         shardedKnowledgeArtifactPath(
@@ -1814,6 +1824,7 @@ export async function createDocumentNormalizationPlan(input: {
   );
   const replacedSources = new Set(input.candidate.items.map((item) => item.sourcePath));
   const obsoleteRecords: DurableKnowledgeDeleteOperation[] = [];
+  const projectedOwnedPaths = await currentNormalizedPaths(root, policy.publication.language);
   for (const path of await listKnowledgeArtifactPaths({
     root,
     directory: ".lervo/knowledge/document-normalizations",
@@ -1830,8 +1841,11 @@ export async function createDocumentNormalizationPlan(input: {
         typeof record.sourcePath === "string" &&
         replacedSources.has(record.sourcePath) &&
         contentHash !== null
-      )
+      ) {
         obsoleteRecords.push({ path, action: "delete", expectedCurrentHash: contentHash });
+        for (const output of record.outputs ?? [])
+          if (typeof output.path === "string") projectedOwnedPaths.delete(output.path);
+      }
     } catch {
       /* invalid records remain visible to lint and are never silently deleted */
     }
@@ -1861,6 +1875,27 @@ export async function createDocumentNormalizationPlan(input: {
     return outputs;
   });
   operations.push(...obsoleteRecords);
+  const projectedOutputPaths = input.candidate.items.flatMap((item) =>
+    item.outputs.map((output) => output.path),
+  );
+  for (const path of projectedOutputPaths) projectedOwnedPaths.add(path);
+  const prettier = await projectRepositoryPrettierRewrite({
+    repositoryRoot: root,
+    ownedPaths: [...projectedOwnedPaths],
+    supplementalDocumentPaths: projectedOutputPaths,
+  });
+  if ((prettier.beforeContent ?? "") !== prettier.afterContent)
+    operations.push({
+      path: ".prettierignore",
+      action: prettier.beforeContent === null ? "create" : "update",
+      ownership: "user",
+      mediaType: "text/plain",
+      content: prettier.afterContent,
+      ...(prettier.beforeContent === null
+        ? {}
+        : { expectedCurrentHash: sha256(prettier.beforeContent) }),
+      desiredHash: sha256(prettier.afterContent),
+    });
   const materials = {
     projectId: scan.projectId,
     sourceSnapshotId: scan.snapshotId,
@@ -1873,8 +1908,17 @@ export async function createDocumentNormalizationPlan(input: {
       path: operation.path,
       expectedCurrentHash: operation.expectedCurrentHash,
     })),
+    documentRewriter: {
+      rewriterId: prettier.descriptor.rewriterId,
+      configurationHash: prettier.descriptor.configurationHash,
+      userRegionHash: prettier.userRegionHash,
+      desiredHash: sha256(prettier.afterContent),
+      managedRuleCount: prettier.rules.length,
+    },
     blockers,
   };
+  if (blockers.length === 0)
+    await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations });
   return {
     schemaVersion: 1,
     planKind: "document_normalization",
@@ -1980,6 +2024,10 @@ export async function applyDocumentNormalizationPlan(input: {
     projectId: current.projectId,
     planId: current.planId,
     operations: current.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: current.repositoryRoot,
+      operations: current.operations,
+    }),
     receipt,
     recordApplied: input.recordApplied,
     ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),

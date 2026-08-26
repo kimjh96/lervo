@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_d9f3d8bf113f684f524680ed
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:fff9538566a0be74288ad88e21fb54eb0798276615a2ee16f07a004a354eff03
 sourcePath: docs/decisions/coordination/conversations/0048-authenticated-platform-conversation-adapters.md
 sourceUnitVersionIds:

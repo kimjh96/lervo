@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_50260f09cd6729dc207d5ed3
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:5b1de15d8b7a81b5368dd407b1798e6ff8981d67ec9c29fcb265b5f1ebffde23
 sourcePath: docs/decisions/knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_8a279e3b68800c434e7f4bab
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:56c33c7026aebca272ee9bb8af5e8356e369d57c4bd2adb4eb81a2044c0777cd
 sourcePath: docs/decisions/coordination/remote-control/0042-durable-remote-command-delivery.md
 sourceUnitVersionIds:

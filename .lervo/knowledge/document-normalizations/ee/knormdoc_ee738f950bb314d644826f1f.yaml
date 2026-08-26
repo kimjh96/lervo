@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_ee738f950bb314d644826f1f
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:394d70351a409c5fabc5d2e1e4d8bced8a732a453fcf71a72d7454706481df15
 sourcePath: docs/decisions/release/bootstrap/0115-cli-first-publication-transition-evidence-union.md
 sourceUnitVersionIds:

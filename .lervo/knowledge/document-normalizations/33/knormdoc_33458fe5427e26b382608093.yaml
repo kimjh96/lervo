@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_33458fe5427e26b382608093
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:1836cc3ba2ba6497888c9554e0e4fa4eef37516c12d1ce5fe7d8b83044d81db3
 sourcePath: docs/decisions/search/0062-selected-search-candidate-evidence-refresh.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_12e7787f3f49251934d39f18
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:0fe51848a8f92225b2ae950aec42d15b93ed36d38b47da06b4b86e94356f5451
 sourcePath: docs/decisions/foundation/0001-m0-contracts-and-data-defaults.md
 sourceUnitVersionIds:

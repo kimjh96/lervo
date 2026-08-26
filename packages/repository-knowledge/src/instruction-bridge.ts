@@ -15,6 +15,7 @@ import {
   type DurableKnowledgeUserFileOperation,
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
+import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import {
   createInstructionBridgeTarget,
@@ -520,6 +521,7 @@ export async function createKnowledgeInstructionBridgePlan(input: {
     operations: operationBindings,
   });
   const changed = operations.some((item) => item.action === "create" || item.action === "update");
+  await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations });
   return {
     schemaVersion: 1,
     planId,
@@ -633,6 +635,10 @@ export async function applyKnowledgeInstructionBridgePlan(input: {
     projectId: current.projectId,
     planId: current.planId,
     operations: current.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: current.repositoryRoot,
+      operations: current.operations,
+    }),
     receipt,
     recordApplied: input.recordApplied,
     ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_9459a7a374913b0b66d51348
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_b15d9784a99940e7b5262618
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:d6fe402ba5736b701fff50b3150581613f583632600f374a5db993e64f210249
 sourcePath: docs/decisions/release/packaging/0025-writing-publication-gate.md
 sourceUnitVersionIds:

@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_fcf7c6145ff9d232dcdd5402
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_6b7ddf59d3b7a7173db22542
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:75a0530060cc7928b94715ffd09efa7a423ade8c165b6c359440425742132171
 sourcePath: docs/decisions/coordination/remote-control/0162-reloadable-hub-cryptographic-material-and-service-definitions.md
 sourceUnitVersionIds:

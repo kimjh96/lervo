@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_1b8f667b2cc52556bd725ff6
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:c57c5812e687c86b3b86cd440085efd37c1f3b9865b7536a6a4116b451789849
 sourcePath: docs/decisions/knowledge/documents/0031-reviewed-verified-knowledge-lifecycle.md
 sourceUnitVersionIds:

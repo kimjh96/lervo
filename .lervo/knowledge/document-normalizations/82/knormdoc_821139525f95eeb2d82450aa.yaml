@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_821139525f95eeb2d82450aa
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:25a079f3346cb49fc7215168063bed2ae8d98df046ab291c6fcdbb4806600419
 sourcePath: docs/decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md
 sourceUnitVersionIds:

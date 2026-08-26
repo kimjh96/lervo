@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_ad7b2468e54221d1fbfcbee3
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: roadmap_document
 recordId: knormdoc_c30cc6fdc25f1717440391d4
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:298b5975ae1f8bd1952263cc3782b64e2825b5b069c0f4a0424c6f426e3277d4
 sourcePath: docs/roadmap/release/version-management-automation.md
 sourceUnitVersionIds:

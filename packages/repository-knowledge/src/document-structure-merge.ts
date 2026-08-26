@@ -14,6 +14,7 @@ import {
   type DurableKnowledgeUserFileOperation,
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
+import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { mergeRepositoryKnowledgeScanSources } from "./scanner.js";
 import {
@@ -462,7 +463,7 @@ export async function createKnowledgeDocumentMergePlan(input: {
     approvalHash,
     operations: operationBindings,
   };
-  return {
+  const plan: KnowledgeDocumentMergePlan = {
     schemaVersion: 1,
     planId: stableId("kstruct", materials),
     operationId,
@@ -498,6 +499,8 @@ export async function createKnowledgeDocumentMergePlan(input: {
     lineageId: lineage.value.lineageId,
     operations,
   };
+  await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations });
+  return plan;
 }
 
 export async function applyKnowledgeDocumentMergePlan(input: {
@@ -558,6 +561,10 @@ export async function applyKnowledgeDocumentMergePlan(input: {
     projectId: current.projectId,
     planId: current.planId,
     operations: current.operations,
+    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
+      repositoryRoot: current.repositoryRoot,
+      operations: current.operations,
+    }),
     receipt,
     recordApplied: input.recordApplied,
     ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),

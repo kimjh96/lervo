@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_dd8bff2eb352ed458d95a706
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:44e4054e53667f110e1f95d6ab6e8d6d295571b91f46d3a28070e2d601c92c8b
 sourcePath: docs/decisions/execution/providers/0007-provider-neutral-context-delivery.md
 sourceUnitVersionIds:

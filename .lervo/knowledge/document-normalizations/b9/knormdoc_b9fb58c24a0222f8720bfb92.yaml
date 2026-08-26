@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_b9fb58c24a0222f8720bfb92
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:74192273c8702ff13564d07c01ef531a40a45dc0b4d55dd4f49047702c4e6596
 sourcePath: docs/decisions/operations/diagnostics/0072-explicitly-scoped-doctor.md
 sourceUnitVersionIds:

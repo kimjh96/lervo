@@ -8,6 +8,8 @@ import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./arti
 import { sha256, stableId } from "./integrity.js";
 import { analyzeRepositoryKnowledgeImpact } from "./impact.js";
 import { assertNoKnowledgeMaterializationTransaction } from "./durable-apply.js";
+import { evaluateCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
+import { inspectRepositoryDocumentRewriters } from "./document-rewriter-adapters.js";
 import { loadRepositoryKnowledgePolicy } from "./policy.js";
 import { repositoryKnowledgePublicationSnapshotId } from "./publication-snapshot.js";
 import {
@@ -205,6 +207,18 @@ async function lintInstructionBridgeRecords(
 }
 
 async function lintRepositoryLayout(root: string, issues: KnowledgeLintIssue[]): Promise<void> {
+  const layout = await evaluateCurrentRepositoryDocumentLayout({
+    repositoryRoot: root,
+    operations: [],
+  });
+  for (const blocker of layout.blockers) {
+    issues.push({
+      code: blocker.code,
+      severity: "error",
+      path: "directory" in blocker ? blocker.directory : "scope" in blocker ? blocker.scope : ".",
+      message: `The current repository document layout violates ${blocker.code}.`,
+    });
+  }
   const taxonomy = await loadDecisionTaxonomy(root);
   const decisionPaths: string[] = [];
   for (const directory of [taxonomy.decisionRoot, ...taxonomy.legacyRoots]) {
@@ -299,6 +313,27 @@ export async function lintRepositoryKnowledge(
   });
   const issues: KnowledgeLintIssue[] = [];
   await lintRepositoryLayout(root, issues);
+  const rewrite = await inspectRepositoryDocumentRewriters({
+    repositoryRoot: root,
+    ...(options.allowTransactionPlanId === undefined
+      ? {}
+      : { allowTransactionPlanId: options.allowTransactionPlanId }),
+  });
+  for (const blocker of rewrite.blockers) {
+    issues.push({
+      code: blocker.code,
+      severity: "error",
+      path: "path" in blocker ? blocker.path : ".prettierignore",
+      message: `The current repository document rewrite contract violates ${blocker.code}.`,
+    });
+  }
+  if ((rewrite.prettierIgnore.beforeContent ?? "") !== rewrite.prettierIgnore.afterContent)
+    issues.push({
+      code: "document_rewrite_ownership_conflict",
+      severity: "error",
+      path: ".prettierignore",
+      message: "The tracked managed document rewrite block is not current.",
+    });
   await lintSemanticManifests(root, issues);
   const manifestDirectory = resolve(root, ".lervo/generated/manifests");
   const manifests: Array<{

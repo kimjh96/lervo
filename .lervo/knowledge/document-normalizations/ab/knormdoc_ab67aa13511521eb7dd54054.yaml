@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_6ed0bc559b4301ea817b4100
 compiler:
   compilerBuildId: sha256:e9ace814b9f4a37483892651f52034bb4930a5d46930327115b90779283869f8
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_ab67aa13511521eb7dd54054
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:948de155c5dd167102baf358d305e12868f7a4089d5f221ceb343aa1563ffdf5
 sourcePath: docs/decisions/release/staging/0120-cli-stage-only-workflow-post-apply-verification.md
 sourceUnitVersionIds:

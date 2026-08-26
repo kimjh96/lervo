@@ -1,3 +1,6 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
 candidateId: knorm_3b73e7b5abd7559264f30dc8
 compiler:
   compilerBuildId: sha256:a09ec801297fcee15bf91310e80048a6cf0377a299fe5c8ac3c909f2b578bc7a
@@ -16,7 +19,7 @@ outputs:
 profile: decision_record
 recordId: knormdoc_a6674beb581f5778c232dc08
 resourceBindings: []
-schemaVersion: 1
+schemaVersion: 2
 sourceContentHash: sha256:c082b9782def4f67067935cad379f03f58ef12263b7ca3fda04afdcf4545d6a4
 sourcePath: docs/decisions/execution/providers/0024-provider-neutral-project-verification.md
 sourceUnitVersionIds:
