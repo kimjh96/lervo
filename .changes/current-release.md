@@ -1,5 +1,6 @@
-<!-- lervo-release package="@lervo/cli" version="0.2.1" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.2.2" schema="1" -->
 
 ## What's changed
 
-- Keep release workspaces outside repository knowledge normalization.
+- Preserve GitHub pull request body heading levels during document normalization.
+- Prevent SQLite integrity scans from losing lazy statements under memory pressure.
