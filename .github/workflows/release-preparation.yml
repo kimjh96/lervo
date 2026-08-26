@@ -47,9 +47,8 @@ jobs:
             git add apps/cli/package.json apps/cli/release-artifact-manifest.json apps/cli/release-sbom.cdx.json pnpm-lock.yaml .changes
             git -c user.name='lervo-release[bot]' -c user.email='lervo-release[bot]@users.noreply.github.com' commit -m 'chore(cli): prepare release'
             git push --force-with-lease origin lervo/release-cli
-            if ! gh pr view lervo/release-cli --json number >/dev/null 2>&1; then
-              body_file="${RUNNER_TEMP}/lervo-release-pr.md"
-              cat >"${body_file}" <<'EOF'
+            body_file="${RUNNER_TEMP}/lervo-release-pr.md"
+            cat >"${body_file}" <<'EOF'
           ## Summary
 
           Prepare the exact reviewed `@lervo/cli` release version and bounded current release notes.
@@ -88,7 +87,11 @@ jobs:
           - [ ] Relevant tests, `pnpm quality:check`, and required Lervo migration/lint checks pass. Pending pull-request CI.
           - [x] No secret, mutable credential, or unsupported authority is included.
           EOF
+            open_pr_number="$(gh pr list --base main --head lervo/release-cli --state open --json number --jq '.[0].number // empty')"
+            if [ -z "${open_pr_number}" ]; then
               gh pr create --base main --head lervo/release-cli --title 'chore(cli): prepare release' --body-file "${body_file}"
+            else
+              gh pr edit "${open_pr_number}" --title 'chore(cli): prepare release' --body-file "${body_file}"
             fi
             echo 'disposition=release_pr' >>"${GITHUB_OUTPUT}"
           else
