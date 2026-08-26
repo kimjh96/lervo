@@ -11,6 +11,8 @@ import {
   type WorkspaceIntegrationAttempt,
 } from "@lervo/agent-workforce";
 import { repositoryCoordinateDigest } from "@lervo/project-storage";
+import type { VerificationSuite } from "@lervo/schemas";
+import { validateVerificationSuite, verificationSuiteHash } from "@lervo/verification-contract";
 import {
   WorkspaceHostError,
   type WorkspaceIntegrationHostAdapter,
@@ -19,6 +21,7 @@ import {
 } from "@lervo/workspace-host";
 
 import {
+  stableWorkspaceIntegrationJson,
   type WorkspaceIntegrationCollision,
   type WorkspaceIntegrationPlan,
   type WorkspaceIntegrationPlanSource,
@@ -84,6 +87,7 @@ export async function planWorkspaceIntegrationCandidate(input: {
   provider: Exclude<WorkforceProvider, "any">;
   targetRef: string;
   targetGeneration: number;
+  verificationSuites: readonly VerificationSuite[];
   selectedWorkspaceIds?: string[];
   strategies?: Partial<Record<string, WorkspaceIntegrationStrategy>>;
   integrationHost: WorkspaceIntegrationHostAdapter;
@@ -107,6 +111,8 @@ export async function planWorkspaceIntegrationCandidate(input: {
   const assignment = assignments.find(
     (item) => item.assignmentId === storedIntegrator?.workspace.assignmentId,
   );
+  for (const suite of input.verificationSuites) validateVerificationSuite(suite);
+  const verificationSuiteIds = input.verificationSuites.map((suite) => suite.suiteId);
   const targetDigest = repositoryCoordinateDigest(input.targetRef);
   if (
     storedIntegrator === null ||
@@ -122,7 +128,9 @@ export async function planWorkspaceIntegrationCandidate(input: {
       repositoryCoordinateDigest(input.integrationWorkspacePath) ||
     storedIntegrator.workspace.integrationTargetDigest !== targetDigest ||
     storedIntegrator.workspace.host.kind !== input.integrationHost.kind ||
-    storedIntegrator.workspace.host.version !== input.integrationHost.version
+    storedIntegrator.workspace.host.version !== input.integrationHost.version ||
+    stableWorkspaceIntegrationJson(verificationSuiteIds) !==
+      stableWorkspaceIntegrationJson(assignment.verificationSuiteIds)
   )
     throw new WorkspaceHostError(
       "host_coordinate_invalid",
@@ -308,6 +316,10 @@ export async function planWorkspaceIntegrationCandidate(input: {
     targetInspection,
     sources,
     ...report,
+    verificationRequirements: input.verificationSuites.map((suite) => ({
+      suiteId: suite.suiteId,
+      suiteHash: verificationSuiteHash(suite),
+    })),
     attempt: attemptWithoutPlanHash,
     leaseEventId: randomId("evt"),
     candidateEventId: randomId("evt"),

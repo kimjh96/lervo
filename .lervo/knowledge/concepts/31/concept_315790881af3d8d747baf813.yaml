@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_d614b15f442afda633dcc4fd
+  - uv_a5e6b9eea6c17e718f5a0472
 title: Agent workspace, integration, and cleanup specification
 type: concept

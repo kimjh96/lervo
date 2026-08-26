@@ -31,6 +31,11 @@ export interface WorkspaceIntegrationCollision {
   workspaceIds: string[];
 }
 
+export interface WorkspaceIntegrationVerificationRequirement {
+  suiteId: string;
+  suiteHash: string;
+}
+
 export interface WorkspaceIntegrationPlan {
   schemaVersion: 1;
   planKind: "workspace_integration_candidate";
@@ -60,6 +65,7 @@ export interface WorkspaceIntegrationPlan {
   changedPathUnionDigest: string;
   changedPathUnionCount: number;
   collisions: WorkspaceIntegrationCollision[];
+  verificationRequirements: WorkspaceIntegrationVerificationRequirement[];
   attempt: WorkspaceIntegrationAttempt;
   leaseEventId: string;
   candidateEventId: string;

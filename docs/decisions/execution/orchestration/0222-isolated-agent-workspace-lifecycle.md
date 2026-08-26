@@ -7,9 +7,9 @@ Decision date: 2026-08-26
 
 [ADR-0205](0205-conflict-safe-repository-agent-workforce.md) prevents active assignment leases from claiming overlapping repository paths, but it does not isolate checkout bytes, coordinate a local scheduler across Git worktrees, identify one integration authority, or define when completed worktrees may be removed.
 
-Direct terminal `Stop` compares the prompt-time repository revision with the final checkout. When agents share a checkout, another agent's change can block a terminal or make it advance global knowledge or workstream state it does not own. Attributing every changed byte to the stopping terminal is not evidence-bound; ignoring the difference is also unsafe.
+Direct terminal `Stop` compares the prompt-time repository revision with the final checkout. In a shared checkout, another agent's change can block a terminal or make it advance global knowledge or workstream state it does not own. Attributing every changed byte to the stopping terminal is not evidence-bound; ignoring the difference is unsafe.
 
-Separate clones and repository Nodes add another coordination boundary. The Hub may prevent duplicate work, but local execution must remain available without it. Hub coordination must not become repository-write, merge, cleanup, or approval authority.
+Separate clones and repository Nodes introduce another coordination boundary. The Hub may prevent duplicate work, but local execution must remain available without it. Hub coordination must not become repository-write, merge, cleanup, or approval authority.
 
 ## Decision
 
@@ -23,7 +23,7 @@ Unmanaged terminals retain repository-wide fail-closed behavior until attached t
 
 ### Repository-instance coordination home
 
-Per-checkout `.lervo/data/workforce` cannot coordinate sibling worktrees. For each Git repository instance, Lervo resolves the owner-only Git common directory and lazily creates one coordination home within it. Workforce records, assignment leases, workspace records, integration queue state, scheduler locks, cleanup journals, and canonical coordination events move there. This location is excluded from repository snapshots and never published as source.
+Per-checkout `.lervo/data/workforce` cannot coordinate sibling worktrees. For each Git repository instance, Lervo resolves the owner-only Git common directory and lazily creates one coordination home within it. Workforce records, assignment leases, workspace records, integration queue state, scheduler locks, cleanup journals, and canonical coordination events move there. This location is excluded from repository snapshots and is never published as source.
 
 Existing single-checkout workforce state is imported only through an exact, conflict-detecting transaction. Two non-empty authorities, an unsafe common directory, symbolic links, unknown ownership, or mismatched repository identity fail closed. Per-worktree execution artifacts may remain under that checkout's `.lervo/data`; records needed after checkout removal must be copied to the coordination home or content-addressed storage before sealing.
 
@@ -62,7 +62,7 @@ Only state-machine transitions may mutate workspace lifecycle. Process exit, ter
 
 An integration agent is an ordinary durable repository agent with a `repository.integration`-capable assignment, not a privileged provider persona. One exclusive integration lease exists for each target ref and target generation. The integration worktree is separate from every worker worktree.
 
-The integration plan binds the target before commit, ordered sealed workspace generations, exact source heads, dependency graph, merge strategy, expected changed-path union, required verification, and desired target result. Apply rechecks every binding. V1 permits only exact policy-selected Git operations such as fast-forward, merge, or cherry-pick; it does not perform fuzzy semantic conflict resolution.
+The integration plan binds the target before commit, ordered sealed workspace generations, exact source heads, dependency graph, merge strategy, expected changed-path union, required verification suite IDs and hashes, and desired target result. Apply rechecks every binding. V1 permits only exact policy-selected Git operations such as fast-forward, merge, or cherry-pick; it does not perform fuzzy semantic conflict resolution. Candidate verification validates result and output artifacts against CAS and requires identical repository snapshots plus exact host inspection before and after all required suites. Its content-bound receipt is evidence for later durable success, not ref-movement authority.
 
 A conflict records `integration_conflict`, aborts the in-progress Git operation, preserves the worker ref and sealed evidence, and advances neither the target nor global workstream. Target movement is a separate adapter capability after candidate verification: Git rejects refs checked out in any registered worktree, rechecks the candidate tree and target-before ancestry, and uses an old-value-bound ref compare-and-swap. Retry accepts only the exact advanced candidate; rollback uses the inverse compare-and-swap and never overwrites concurrent ref movement.
 

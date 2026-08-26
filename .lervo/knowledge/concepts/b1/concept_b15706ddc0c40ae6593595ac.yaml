@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_8fd23bcefc8d52d675c97ec3
+  - uv_0b63af3f5da849a8430bc550
 title: "ADR-0222: Isolated agent workspace and integration lifecycle"
 type: decision

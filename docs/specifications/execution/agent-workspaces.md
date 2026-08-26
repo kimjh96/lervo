@@ -10,8 +10,8 @@ This planned execution-space contract refines, without replacing, assignment pat
 1. Each write-capable workspace generation has one assignment lease and one writer session.
 2. Worker worktrees, integration worktrees, and unmanaged checkouts are distinct execution kinds.
 3. Sibling worktrees in one Git repository instance share local coordination without requiring a Hub.
-4. Workers own only their assignment-scoped diff and workspace checkpoint; the integrator owns repository-wide convergence and the current workstream.
-5. Removal requires exact local evidence that the result was integrated or explicitly discarded and no live owner remains.
+4. Workers own only their assignment-scoped diff and workspace checkpoint. The integrator owns repository-wide convergence and the current workstream.
+5. Removal requires exact local evidence that the result was integrated or explicitly discarded and that no live owner remains.
 6. Host products such as Orca remain behind an adapter. Git, provider, and Hub details remain outside the lifecycle domain contract.
 
 ## Implementation status
@@ -32,9 +32,11 @@ Immutable sealing uses a read-only, content-bound plan and an exact apply rechec
 
 Candidate-only exact Git integration is implemented behind the provider-neutral integration-host port. A read-only plan binds the integrator assignment and writer, target ref and generation, target-before commit, ordered immutable sources, strategies, changed-path union, and path-private collision report. Apply acquires one exclusive target-generation lease, operates only in the isolated integration worktree, and leaves the target ref unchanged. It records a durable candidate or aborts a Git conflict back to the exact target-before commit. Stale targets acquire no lease; competing plans cannot reuse a target generation; lost-response retry rechecks or resets only the isolated candidate.
 
+Repository-wide candidate verification is implemented as a non-success orchestration phase. The plan binds every required suite ID and exact suite hash. Verification rechecks the assignment, attempt, target-before ref, isolated candidate commit and tree, marker, cleanliness, and Git-operation state; validates every result and output against CAS; and requires the repository snapshot to remain identical before and after execution. A content-bound receipt contains only candidate, snapshot, verification, and result-artifact coordinates.
+
 The Git host port can advance a non-checked-out local target ref with an exact compare-and-swap after rechecking the candidate commit, tree, ancestry, marker, cleanliness, and Git-operation state. The inverse compare-and-swap provides idempotent rollback while retaining the isolated candidate.
 
-Orchestrated target advancement and successful `assignment.integration.recorded` emission remain disabled until repository-wide verification and the durable success transaction compose with the implemented host rollback gate. Checked-out target refs are ineligible for automatic advancement. Automatic cleanup policy, the Orca production adapter, and Hub reservations also remain disabled until their gates pass.
+Orchestrated target advancement and successful `assignment.integration.recorded` emission remain disabled until verified receipt, target movement, state and event persistence, and rollback recovery compose as one durable success transaction. Checked-out target refs are ineligible for automatic advancement. Automatic cleanup policy, the Orca production adapter, and Hub reservations also remain disabled until their gates pass.
 
 ## Identities and storage
 
@@ -56,7 +58,7 @@ The coordination event chain is transactionally serialized with the workforce tr
 6. An integration assignment selects exact sealed generations in a separate worktree, incorporates them, runs focused and repository-wide verification, refreshes canonical knowledge, and advances the current workstream.
 7. Integrated source workspaces become cleanup candidates. An exact local plan removes only clean, quiescent, Lervo-owned worktrees while preserving branches and durable evidence.
 
-Agents perform lifecycle bookkeeping from natural-language requests. Planned inspection and recovery surfaces are:
+Agents perform lifecycle bookkeeping from natural-language requests. The command roadmap includes:
 
 - `lervo workspace inspect` (implemented) and planned `current|list|show|status`
 - `lervo workspace seal|cleanup|recover`, with read-only plan and exact apply
@@ -147,13 +149,15 @@ Apply uses an isolated integration worktree; any changed binding requires a new 
 
 Candidate preparation is a distinct non-success phase. Its local attempt state is `leased`, `candidate`, or `conflict`; it never advances the target ref or marks a source `integrated`. The target-generation lease is deterministic for repository instance, target digest, and generation, while its attempt record separately binds target-before. Candidate and conflict retries require the same plan hash and re-inspect the marker, cleanliness, absence of Git operations, target ref, and isolated-worktree head. A collision report contains only path digests and opaque workspace IDs.
 
-The target-advance host operation is separate from candidate success. It accepts only the recorded target-before commit and candidate commit/tree, rejects a target ref checked out by any registered worktree, proves target-before ancestry, and uses Git's old-value-bound `update-ref` compare-and-swap. Retry accepts only the exact already-advanced candidate. Rollback accepts only target-before or that candidate and performs the inverse compare-and-swap. Concurrent ref movement fails closed and is never overwritten. The orchestrator must not call either operation until full verification and durable success recovery are composed.
+Verification is also non-success. Planning binds ordered suite IDs and hashes. Execution accepts only the exact candidate attempt and suite definitions, emits the existing privacy-bounded verification lifecycle events, validates result and output artifacts against CAS, and compares repository snapshots plus host inspection before and after all suites. Failure, cancellation, suite drift, target drift, dirty bytes, or a changed candidate returns no verification receipt and advances no integration state. The receipt is rebuildable evidence for the later durable success transaction; it does not authorize ref movement.
+
+The target-advance host operation is separate from candidate and verification success. It accepts only the recorded target-before commit and candidate commit/tree, rejects a target ref checked out by any registered worktree, proves target-before ancestry, and uses Git's old-value-bound `update-ref` compare-and-swap. Retry accepts only the exact already-advanced candidate. Rollback accepts only target-before or that candidate and performs the inverse compare-and-swap. Concurrent ref movement fails closed and is never overwritten. The orchestrator must not call either operation until verified receipt and durable success recovery are composed.
 
 ## Cleanup contract
 
 Policy may automatically plan integrated workspaces, but apply remains content-bound. A plan includes workspace and generation, marker and path digests, sealed head and tree, integrated-event ID, target-reachability proof, Git metadata hash, adapter coordinates, process observation, dependent-reference count, and exact removal operations.
 
-A plan is `ready` only when all of these conditions hold:
+A plan is `ready` only when:
 
 - the workspace is Lervo-owned, `cleanup_eligible`, clean, and unchanged since sealing;
 - its exact head is reachable from the durable integration target;

@@ -15,6 +15,13 @@ import {
 } from "@lervo/agent-workforce";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { repositoryCoordinateDigest } from "@lervo/project-storage";
+import type { VerificationResult, VerificationSuite } from "@lervo/schemas";
+import {
+  calculateVerificationId,
+  verificationCommandDigest,
+  verificationResultBytes,
+  verificationSuiteHash,
+} from "@lervo/verification-contract";
 import { GitWorkspaceHostAdapter, GitWorkspaceIntegrationAdapter } from "@lervo/workspace-host-git";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -25,13 +32,33 @@ import {
   planWorkspaceIntegrationCandidate,
   planWorkspaceProvision,
   planWorkspaceSeal,
+  verifyWorkspaceIntegrationCandidate,
+  type ManagedProjectVerification,
 } from "../src/index.js";
+import type { ManagedEventSpec } from "../src/telemetry.js";
+import { MemoryArtifactStore } from "./fixture.js";
 import { workspaceIntegrationCollisionReport } from "../src/workspace-integration-plan.js";
 
 const execute = promisify(execFile);
 const roots: string[] = [];
 const hash = `sha256:${"a".repeat(64)}`;
 const targetRef = "refs/heads/main";
+const integrationSuite: VerificationSuite = {
+  schemaVersion: 1,
+  suiteId: "project.full",
+  stopOnFailure: true,
+  commands: [
+    {
+      commandId: "full-check",
+      executable: "pnpm",
+      arguments: ["check"],
+      cwd: ".",
+      timeoutMs: 120_000,
+      maxOutputBytes: 16_384,
+      environmentVariableNames: [],
+    },
+  ],
+};
 
 async function git(root: string, ...arguments_: string[]): Promise<string> {
   const { stdout } = await execute("git", ["-C", root, ...arguments_]);
@@ -243,10 +270,57 @@ async function plan(current: Awaited<ReturnType<typeof fixture>>) {
     provider: "codex",
     targetRef,
     targetGeneration: 1,
+    verificationSuites: [integrationSuite],
     selectedWorkspaceIds: [current.worker.workspaceId],
     integrationHost: current.integrationHost,
     now: new Date("2026-08-26T00:00:16Z"),
   });
+}
+
+async function passingVerification(
+  artifacts: MemoryArtifactStore,
+  suite: VerificationSuite,
+  repositoryRevision: string,
+): Promise<ManagedProjectVerification> {
+  const output = await artifacts.put(new Uint8Array());
+  const outputArtifact = {
+    artifactId: `art_${output.contentHash.slice(7)}`,
+    ...output,
+  };
+  const resultWithoutId: Omit<VerificationResult, "verificationId"> = {
+    schemaVersion: 1,
+    suiteId: suite.suiteId,
+    suiteHash: verificationSuiteHash(suite),
+    repositoryRevision,
+    startedAt: "2026-08-26T00:00:18Z",
+    completedAt: "2026-08-26T00:00:19Z",
+    status: "passed",
+    commands: suite.commands.map((command) => ({
+      commandId: command.commandId,
+      commandDigest: verificationCommandDigest(command),
+      status: "passed" as const,
+      exitCode: 0,
+      startedAt: "2026-08-26T00:00:18Z",
+      completedAt: "2026-08-26T00:00:19Z",
+      durationMs: 1_000,
+      stdoutArtifact: outputArtifact,
+      stderrArtifact: outputArtifact,
+      failureCode: null,
+    })),
+  };
+  const result: VerificationResult = {
+    ...resultWithoutId,
+    verificationId: calculateVerificationId(resultWithoutId),
+  };
+  const stored = await artifacts.put(verificationResultBytes(result));
+  return {
+    result,
+    resultArtifact: {
+      artifactId: `art_${stored.contentHash.slice(7)}`,
+      mediaType: "application/vnd.lervo.verification-result+json; charset=utf-8",
+      ...stored,
+    },
+  };
 }
 
 afterEach(async () => {
@@ -290,6 +364,91 @@ describe("workspace integration candidate orchestration", () => {
         now: new Date("2026-08-26T00:00:18Z"),
       }),
     ).resolves.toEqual(result);
+    const artifacts = new MemoryArtifactStore();
+    const events: ManagedEventSpec[] = [];
+    const verification = await verifyWorkspaceIntegrationCandidate({
+      plan: integrationPlan,
+      integrationHost: current.integrationHost,
+      suites: [integrationSuite],
+      verifier: {
+        verify: ({ suite, repositoryRevision }) =>
+          passingVerification(artifacts, suite, repositoryRevision),
+      },
+      artifactStore: artifacts,
+      append: (specs) => events.push(...specs),
+      now: () => new Date("2026-08-26T00:00:20Z"),
+    });
+    expect(verification).toMatchObject({
+      attemptId: integrationPlan.attempt.attemptId,
+      candidateCommit: result.candidateCommit,
+      candidateTreeHash: result.candidateTreeHash,
+      results: [{ suiteId: "project.full", suiteHash: verificationSuiteHash(integrationSuite) }],
+    });
+    expect(verification.contentHash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(events.map((event) => event.type)).toEqual([
+      "verification.started",
+      "verification.completed",
+    ]);
+    expect(await git(current.root, "rev-parse", targetRef)).toBe(current.targetBeforeCommit);
+  }, 20_000);
+
+  it("rejects verification suite drift before invoking the verifier", async () => {
+    const current = await fixture();
+    const integrationPlan = await plan(current);
+    await applyWorkspaceIntegrationCandidate({
+      plan: integrationPlan,
+      integrationHost: current.integrationHost,
+      now: new Date("2026-08-26T00:00:17Z"),
+    });
+    const changedSuite = structuredClone(integrationSuite);
+    changedSuite.commands[0]!.timeoutMs += 1;
+    let invoked = false;
+    await expect(
+      verifyWorkspaceIntegrationCandidate({
+        plan: integrationPlan,
+        integrationHost: current.integrationHost,
+        suites: [changedSuite],
+        verifier: {
+          verify: async () => {
+            invoked = true;
+            throw new Error("must not run");
+          },
+        },
+        artifactStore: new MemoryArtifactStore(),
+        append: () => undefined,
+        now: () => new Date("2026-08-26T00:00:20Z"),
+      }),
+    ).rejects.toMatchObject({ code: "host_coordinate_invalid" });
+    expect(invoked).toBe(false);
+  }, 20_000);
+
+  it("rejects candidate bytes changed during verification", async () => {
+    const current = await fixture();
+    const integrationPlan = await plan(current);
+    await applyWorkspaceIntegrationCandidate({
+      plan: integrationPlan,
+      integrationHost: current.integrationHost,
+      now: new Date("2026-08-26T00:00:17Z"),
+    });
+    const artifacts = new MemoryArtifactStore();
+    await expect(
+      verifyWorkspaceIntegrationCandidate({
+        plan: integrationPlan,
+        integrationHost: current.integrationHost,
+        suites: [integrationSuite],
+        verifier: {
+          verify: async ({ suite, repositoryRevision }) => {
+            const verification = await passingVerification(artifacts, suite, repositoryRevision);
+            await writeFile(resolve(current.integrationPath, "src/tampered.ts"), "tampered\n");
+            return verification;
+          },
+        },
+        artifactStore: artifacts,
+        append: () => undefined,
+        now: () => new Date("2026-08-26T00:00:20Z"),
+      }),
+    ).rejects.toMatchObject({ code: "host_effect_uncertain" });
+    expect(await git(current.root, "rev-parse", targetRef)).toBe(current.targetBeforeCommit);
   }, 20_000);
 
   it("rejects a stale target before acquiring the integration attempt", async () => {
