@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_67366f9a30d3d83d7e4d98a3"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Prevent SQLite integrity scans from losing lazy statements under memory pressure."
