@@ -31,8 +31,14 @@ describe("CLI release preparation workflow", () => {
     assert.match(prepare.run, /pnpm release:prepare --apply --approval "\$\{plan_id\}" --json/u);
     assert.match(prepare.run, /pnpm check/u);
     assert.match(prepare.run, /pnpm lervo knowledge lint --json/u);
+    assert.match(
+      prepare.run,
+      /gh api --method PATCH "repos\/\$\{GITHUB_REPOSITORY\}\/git\/refs\/\$\{release_ref\}"/u,
+    );
+    assert.match(prepare.run, /-f sha="\$\{GITHUB_SHA\}" -F force=true/u);
     assert.match(prepare.run, /git switch -C lervo\/release-cli/u);
-    assert.match(prepare.run, /git push --force-with-lease origin lervo\/release-cli/u);
+    assert.match(prepare.run, /git push origin lervo\/release-cli/u);
+    assert.doesNotMatch(prepare.run, /git push --force/u);
     assert.match(prepare.run, /gh pr list .*--state open/u);
     assert.match(prepare.run, /gh pr create .*--body-file "\$\{body_file\}"/u);
     assert.match(prepare.run, /gh pr edit .*--body-file "\$\{body_file\}"/u);
