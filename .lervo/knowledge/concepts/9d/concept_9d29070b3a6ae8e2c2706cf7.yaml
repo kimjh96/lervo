@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_9d29070b3a6ae8e2c2706cf7
+freshness: current
+ownership: user
+path: docs/roadmap/knowledge/bounded-document-layout.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_ada2669fa6abcf72296355eb
+title: Bounded document layout and rewrite ownership
+type: concept

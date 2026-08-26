@@ -7,6 +7,7 @@
 - [ADR-0199: Structured workstream continuation state](../../decisions/knowledge/repository/0199-structured-workstream-continuation-state.md) — `docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md`
 - [ADR-0218: Content-bound provider-entrypoint bootstrap](../../decisions/knowledge/repository/0218-content-bound-provider-entrypoint-bootstrap.md) — `docs/decisions/knowledge/repository/0218-content-bound-provider-entrypoint-bootstrap.md`
 - [ADR-0220: Evidence-bound development-pattern promotion](../../decisions/knowledge/repository/0220-evidence-bound-development-pattern-promotion.md) — `docs/decisions/knowledge/repository/0220-evidence-bound-development-pattern-promotion.md`
+- [ADR-0222: Bounded role-based document layout and rewrite ownership](../../decisions/knowledge/repository/0222-bounded-role-based-document-layout.md) — `docs/decisions/knowledge/repository/0222-bounded-role-based-document-layout.md`
 - [ADR-0052: Rebuildable explicit knowledge graph](../../decisions/knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md) — `docs/decisions/knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md`
 - [ADR-0180: Hash-Bound Human Duplicate and Contradiction Resolution](../../decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md) — `docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md`
 - [ADR-0186: Content-Bound Codex–Claude Compilation Comparison](../../decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md) — `docs/decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md`
@@ -26,4 +27,3 @@
 - [ADR-0214: Bounded Repository Upgrade Orchestration](../../decisions/operations/services/0214-bounded-repository-upgrade-orchestration.md) — `docs/decisions/operations/services/0214-bounded-repository-upgrade-orchestration.md`
 - [ADR-0003: Local Event Store, Outbox, and Content-Addressed Storage](../../decisions/operations/storage/0003-local-event-store-and-cas.md) — `docs/decisions/operations/storage/0003-local-event-store-and-cas.md`
 - [ADR-0004: Project Storage Bootstrap](../../decisions/operations/storage/0004-project-storage-bootstrap.md) — `docs/decisions/operations/storage/0004-project-storage-bootstrap.md`
-- [ADR-0213: Deletable Derived State Boundary](../../decisions/operations/storage/0213-deletable-derived-state-boundary.md) — `docs/decisions/operations/storage/0213-deletable-derived-state-boundary.md`
