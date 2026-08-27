@@ -48,14 +48,17 @@ export type DeliberationRuntimeErrorReason =
   | "writing_publication_blocked";
 
 export class DeliberationRuntimeError extends Error {
+  readonly diagnostics: Readonly<Record<string, unknown>> | null;
+
   constructor(
     readonly code: DeliberationRuntimeErrorCode,
     readonly reason: DeliberationRuntimeErrorReason,
     message: string,
-    options?: ErrorOptions,
+    options?: ErrorOptions & { diagnostics?: Readonly<Record<string, unknown>> },
   ) {
     super(message, options);
     this.name = "DeliberationRuntimeError";
+    this.diagnostics = options?.diagnostics ?? null;
   }
 }
 
@@ -104,6 +107,8 @@ export interface ExecuteDeliberationTurnInput<K extends DeliberationArtifactKind
   writingContract: WritingContract;
   semanticEvaluator: WritingSemanticEvaluator;
   verificationEvidence?: DeliberationVerificationEvidence;
+  publicationAttempt?: number;
+  semanticEvaluatorProvider?: "codex" | "claude" | "unknown";
 }
 
 export interface DeliberationTurnResult {

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8bae63913bf2bd405ec7dd83"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Bind approved organization Node rollout execution to exact local plans."

@@ -182,6 +182,14 @@ routes:
       - session
       - codex
       - claude
+  - id: execution.grounding
+    path: execution/grounding
+    priority: 55
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - request grounding
+      - semantic grounding
+      - grounding
   - id: execution.provider-hooks
     path: execution/providers/hooks
     priority: 54

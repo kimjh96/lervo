@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3644f96d99e0aacc117baac9"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add signed organization deployment and runtime credential contracts."

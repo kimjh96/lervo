@@ -6,6 +6,7 @@ export const maximumDeliberationTraceEvents = 1_000;
 export interface DeliberationEventSnapshot {
   started: EventEnvelope[];
   artifacts: EventEnvelope[];
+  failedPublications: EventEnvelope[];
   completed: EventEnvelope[];
   traceEvents: EventEnvelope[];
 }
@@ -46,6 +47,7 @@ export function readDeliberationEventSnapshot(input: {
   }
   const started: EventEnvelope[] = [];
   const artifacts: EventEnvelope[] = [];
+  const failedPublications: EventEnvelope[] = [];
   const completed: EventEnvelope[] = [];
   const relatedRunIds = new Set(input.checkpointRunIds);
   const matchedCheckpointEventIds = new Set<string>();
@@ -69,11 +71,19 @@ export function readDeliberationEventSnapshot(input: {
       )
         artifacts.push(event);
       if (
+        event.type === "deliberation.artifact.publication_failed" &&
+        event.payload.deliberationId === input.deliberationId
+      )
+        failedPublications.push(event);
+      if (
         event.type === "deliberation.completed" &&
         event.payload.deliberationId === input.deliberationId
       )
         completed.push(event);
-      if (started.length + artifacts.length + completed.length > maximumDeliberationTraceEvents) {
+      if (
+        started.length + artifacts.length + failedPublications.length + completed.length >
+        maximumDeliberationTraceEvents
+      ) {
         throw Object.assign(new Error("The deliberation trace contains more than 1,000 events."), {
           code: "deliberation_trace_too_large",
         });
@@ -88,7 +98,9 @@ export function readDeliberationEventSnapshot(input: {
       },
     );
   }
-  [...started, ...artifacts, ...completed].forEach((event) => relatedRunIds.add(event.runId));
+  [...started, ...artifacts, ...failedPublications, ...completed].forEach((event) =>
+    relatedRunIds.add(event.runId),
+  );
 
   const traceEvents: EventEnvelope[] = [];
   scanSnapshot({
@@ -104,5 +116,5 @@ export function readDeliberationEventSnapshot(input: {
       }
     },
   });
-  return { started, artifacts, completed, traceEvents };
+  return { started, artifacts, failedPublications, completed, traceEvents };
 }

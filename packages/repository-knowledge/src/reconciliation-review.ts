@@ -321,7 +321,14 @@ export async function reviewKnowledgeReconciliation(input: {
         values.push(concept.conceptId);
         groups.set(signature, values);
       }
-      return [...groups.values()].filter((group) => group.length > 1);
+      const exactGroups = [...groups.values()].filter((group) => group.length > 1);
+      const fuzzyGroups =
+        loadedCandidate.candidate.derivation?.kind === "cross_provider_approval_gated_fuzzy_merge"
+          ? loadedCandidate.candidate.derivation.fuzzyConceptPairs.map((pair) => [
+              ...pair.candidateConceptIds,
+            ])
+          : [];
+      return [...exactGroups, ...fuzzyGroups];
     })(),
     policy: input.policy,
     itemApprovals,

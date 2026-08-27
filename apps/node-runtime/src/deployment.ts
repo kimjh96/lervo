@@ -6,6 +6,7 @@ import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
 import {
   AuthenticatedHubHttpTransport,
+  registerProject,
   runOutboundSyncLoop,
   runWorkstreamReplicationCycle,
   type AuthenticatedHubTransport,
@@ -29,6 +30,7 @@ import { loadNodeBearerToken, ReloadableNodeBearerToken } from "./credentials.js
 import { NodeRuntimeError } from "./errors.js";
 import { createNodeRuntimeHealthPublisher } from "./health.js";
 import { createNodeRuntimeDeployment, type NodeRuntimeDeployment } from "./lifecycle.js";
+import { createNodeOrganizationCredentialDelivery } from "./organization-credential-delivery.js";
 import {
   openNodeRemoteControlRuntime,
   type NodeRemoteCommandPorts,
@@ -304,6 +306,29 @@ export async function openNodeRuntime(
         bearerToken.replace(nextToken);
       },
       health,
+      validated.organizationCredentials === undefined
+        ? null
+        : createNodeOrganizationCredentialDelivery({
+            binding: {
+              nodeId: validated.organizationCredentials.nodeId,
+              destinationId: validated.hub.destinationId,
+              target,
+              bearerTokenFile: validated.hub.bearerTokenFile,
+            },
+            bearerToken,
+            async authenticateCandidate(candidate, requestedAt) {
+              await registerProject({
+                options: {
+                  ...worker,
+                  transport: createTransport({
+                    ...transportOptions(),
+                    bearerToken: candidate,
+                  }),
+                },
+                requestedAt,
+              });
+            },
+          }),
     );
   } catch (error) {
     const cleanupErrors: unknown[] = [];

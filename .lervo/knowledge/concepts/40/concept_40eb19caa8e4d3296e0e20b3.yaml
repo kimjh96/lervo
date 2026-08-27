@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_40eb19caa8e4d3296e0e20b3
+freshness: current
+ownership: user
+path: docs/architecture/data-ownership-and-failure.md
+publicationLanguage: en
+publicationProfile: architecture_context
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_bc81594cc7e41eb7c6f084e5
+title: Data Ownership and Failure Boundaries
+type: responsibility

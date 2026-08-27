@@ -1759,6 +1759,32 @@ describe("lervo run CLI arguments", () => {
 });
 
 describe("lervo deliberate CLI", () => {
+  it("reports a missing automatic verification suite as an actionable preflight state", async () => {
+    const root = await temporaryRepository();
+    let called = false;
+    let errors = "";
+    const exitCode = await runCli(
+      ["deliberate", "--auto", "--caller", "codex", "Review this change."],
+      {
+        cwd: root,
+        stdout: () => undefined,
+        stderr: (message) => {
+          errors += message;
+        },
+      },
+      {
+        executeManagedDeliberation: async () => {
+          called = true;
+          throw new Error("must not run");
+        },
+      },
+    );
+    expect(exitCode).toBe(1);
+    expect(called).toBe(false);
+    expect(errors).toContain("deliberation_verification_unconfigured");
+    expect(errors).toContain("provider execution has not started");
+  });
+
   it("resolves a natural terminal request to the repository default cross-provider workflow", async () => {
     const root = await temporaryRepository();
     await mkdir(resolve(root, ".lervo/verifications"), { recursive: true });

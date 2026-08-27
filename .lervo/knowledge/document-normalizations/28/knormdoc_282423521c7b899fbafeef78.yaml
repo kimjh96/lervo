@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8885279253ca2ee9b816a490
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_64367176a42b0af0f1872740
+outputLanguage: en
+outputs:
+  - byteCount: 7371
+    contentHash: sha256:08833d491d9dbb08de4b02aa0cd598a0e6888976774e8e1c86b4e94e1a81c40f
+    path: docs/decisions/operations/security/0233-authenticated-node-rollout-process-delivery.md
+    userRegionHash: sha256:08833d491d9dbb08de4b02aa0cd598a0e6888976774e8e1c86b4e94e1a81c40f
+profile: decision_record
+recordId: knormdoc_282423521c7b899fbafeef78
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2595ad87cb989d709cf69ed2c2d9beef8f0f833865ff33efce9cfa4f0bb04c97
+sourcePath: docs/decisions/operations/security/0233-authenticated-node-rollout-process-delivery.md
+sourceUnitVersionIds:
+  - uv_08f2cc578b74bccf781733d7
+  - uv_0f4e72b11d3575e78e85bf8a
+  - uv_22f091d36caf9871081401c1
+  - uv_4401945e50d5732cb49210b3
+  - uv_8de2468bd547f9afa8d292d8
+  - uv_9e19dc89b773f99f15b0fce6
+  - uv_ca5a05d76f0eea28d606bf42

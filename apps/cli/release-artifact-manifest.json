@@ -60,6 +60,9 @@
       "@lervo/knowledge@0.1.0",
       "@lervo/managed-provider-host@0.1.0",
       "@lervo/orchestrator@0.1.0",
+      "@lervo/organization-credential-source-file@0.1.0",
+      "@lervo/organization-deployment-contract@0.1.0",
+      "@lervo/organization-deployment-sqlite@0.1.0",
       "@lervo/policy-contract@0.1.0",
       "@lervo/policy-sqlite@0.1.0",
       "@lervo/policy@0.1.0",
@@ -71,11 +74,11 @@
       "@lervo/repository-knowledge-compiler@0.1.0",
       "@lervo/repository-knowledge@0.1.0",
       "@lervo/repository-registry@0.1.0",
+      "@lervo/request-grounding@0.1.0",
       "@lervo/roles@0.1.0",
       "@lervo/runtime-security@0.1.0",
       "@lervo/schemas@0.1.0",
       "@lervo/search-adapter-bm25f@0.1.0",
-      "@lervo/search-adapter-local-hybrid@0.1.0",
       "@lervo/search-local@0.1.0",
       "@lervo/search@0.1.0",
       "@lervo/skills@0.1.0",
@@ -131,7 +134,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:8192fa86b7554ffcb44e3115930b95803411dfdf1162c76b7eae135bf3b893ab"
+    "bundleDigest": "sha256:5e979b6ef222b504c9a1a0c1c752c85bc9cbd0dc075727fa146faccca63847e7"
   },
   "archive": {
     "rootFiles": [
@@ -145,22 +148,22 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 4353334,
-        "sha256": "sha256:a38baea9800b09b3e2070e2177c7a98e29eab64aeb34a8d949a0c35ff60b1014"
+        "size": 4560793,
+        "sha256": "sha256:26b5614ea6b4d812ce81b9a659e069760db334f25ccbf937b859e8a15e593342"
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 2418069,
-        "sha256": "sha256:bb8803e06dc87ad8e80259d41d878a26c0813b5ab0bc4f2b1da5378ae7a58cb6"
+        "size": 2484063,
+        "sha256": "sha256:5c9fb12f953461d648820cc7d4a7bf8ad0b72e7946f93371d7424d691d308686"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 2459688,
-        "sha256": "sha256:577912744a068a1b33168b39393e6cccbdc5902eb9b72e9e6f38cac9b53bcf6e"
+        "size": 2561263,
+        "sha256": "sha256:9ffb3fde2634a0fb9e312e667f6ab2a75073e76e73c8f1007ce047a71cd95ac1"
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:b664006b19afb0e1b9c829aafef29c92eb43a62389e9e3203eceea51e7c9cadc"
+    "contentDigest": "sha256:06d70fd2a7a877936f596b20d970b5d37b190ff3769327cf68144215f0bb1a73"
   },
   "dependencies": {
     "portable": [
@@ -273,5 +276,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:b672491eebc88aa8902ad08639301c0edfc2cbe89f81723f73309ff95629d3ae"
+  "artifactDigest": "sha256:6da4038041f7c8590952fc2fe76261bc1be5870229fc990c449cc8a9337ea57a"
 }

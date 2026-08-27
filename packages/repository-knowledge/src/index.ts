@@ -6,6 +6,7 @@ export * from "./compilation-comparison.js";
 export * from "./compilation-binding.js";
 export * from "./compilation-stability.js";
 export * from "./cross-provider-merge.js";
+export * from "./cross-provider-fuzzy-merge.js";
 export * from "./durable-apply.js";
 export * from "./document-structure-delete.js";
 export * from "./document-structure-move.js";

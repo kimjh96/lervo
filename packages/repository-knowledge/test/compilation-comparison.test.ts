@@ -7,9 +7,12 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   canonicalJson,
+  calculateKnowledgeCompilationId,
   compareKnowledgeCompilationCandidates,
   compileRepositoryKnowledgeCandidate,
   createCrossProviderExactMergeCandidate,
+  createCrossProviderFuzzyMergeCandidate,
+  createKnowledgeReconciliationPlan,
   loadKnowledgeCompilationCandidate,
   observeKnowledgeCompilationStability,
   runKnowledgeCompilationStabilityGate,
@@ -264,6 +267,124 @@ describe("Codex-Claude semantic compilation comparison", () => {
         comparisonId: "kcompare_000000000000000000000000",
       }),
     ).rejects.toMatchObject({ code: "knowledge_plan_stale" });
+  });
+
+  it("turns only unambiguous source-backed fuzzy pairs into review-required conflicts", async () => {
+    const root = await repository();
+    const pair = await compilePair({
+      root,
+      codexStatements: ["The runtime remains local first under repository policy."],
+      claudeStatements: ["Repository policy keeps the runtime local first."],
+    });
+    const comparison = await compareKnowledgeCompilationCandidates({
+      repositoryRoot: root,
+      codexCompilationId: pair.codex.compilationId,
+      claudeCompilationId: pair.claude.compilationId,
+    });
+    expect(comparison.status).toBe("disjoint");
+    const merged = await createCrossProviderFuzzyMergeCandidate({
+      repositoryRoot: root,
+      codexCompilationId: pair.codex.compilationId,
+      claudeCompilationId: pair.claude.compilationId,
+      comparisonId: comparison.comparisonId,
+    });
+    expect(merged.matches).toEqual([expect.objectContaining({ scoreBasisPoints: 8000 })]);
+    expect(merged.candidate).toMatchObject({
+      compiler: {
+        compilerId: "lervo.cross-provider.approval-gated-fuzzy-merge",
+        provider: "cross_provider",
+        isolation: "deterministic_local_derivation",
+      },
+      derivation: {
+        kind: "cross_provider_approval_gated_fuzzy_merge",
+        comparisonId: comparison.comparisonId,
+        similarity: {
+          algorithm: "unicode_token_dice_v1",
+          thresholdBasisPoints: 6000,
+          ambiguityMarginBasisPoints: 1000,
+          minimumSharedTokens: 2,
+        },
+      },
+      relations: [],
+    });
+    expect(merged.candidate.concepts).toHaveLength(2);
+    const receipt = await storeKnowledgeCompilationCandidate({
+      repositoryRoot: root,
+      candidate: merged.candidate,
+    });
+    const invalid = structuredClone(merged.candidate);
+    if (invalid.derivation?.kind !== "cross_provider_approval_gated_fuzzy_merge")
+      throw new Error("expected fuzzy derivation");
+    invalid.derivation.fuzzyConceptPairs[0]!.scoreBasisPoints = 5999;
+    const {
+      schemaVersion: _schemaVersion,
+      compilationId: _compilationId,
+      ...invalidMaterials
+    } = invalid;
+    invalid.compilationId = calculateKnowledgeCompilationId(invalidMaterials);
+    await expect(
+      storeKnowledgeCompilationCandidate({ repositoryRoot: root, candidate: invalid }),
+    ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
+    const plan = await createKnowledgeReconciliationPlan({
+      repositoryRoot: root,
+      compilationId: receipt.compilationId,
+    });
+    expect(plan.status).toBe("review_required");
+    expect(plan.dispositions).toHaveLength(2);
+    expect(plan.dispositions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: "conflict",
+          review: "review_required",
+          reasons: expect.arrayContaining(["fuzzy_cross_provider_candidate"]),
+          resolutionOptions: [expect.objectContaining({ action: "create_generated" })],
+        }),
+      ]),
+    );
+  });
+
+  it("fails closed when fuzzy similarity is weak or mutually ambiguous", async () => {
+    const root = await repository();
+    const weak = await compilePair({
+      root,
+      codexStatements: ["Local execution is available."],
+      claudeStatements: ["Credentials rotate through the organization."],
+    });
+    const weakComparison = await compareKnowledgeCompilationCandidates({
+      repositoryRoot: root,
+      codexCompilationId: weak.codex.compilationId,
+      claudeCompilationId: weak.claude.compilationId,
+    });
+    await expect(
+      createCrossProviderFuzzyMergeCandidate({
+        repositoryRoot: root,
+        codexCompilationId: weak.codex.compilationId,
+        claudeCompilationId: weak.claude.compilationId,
+        comparisonId: weakComparison.comparisonId,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_reconciliation_conflict" });
+
+    const ambiguous = await compilePair({
+      root,
+      codexStatements: [
+        "Repository policy keeps runtime execution local first.",
+        "Repository policy keeps runtime operation local first.",
+      ],
+      claudeStatements: ["Repository policy keeps runtime behavior local first."],
+    });
+    const ambiguousComparison = await compareKnowledgeCompilationCandidates({
+      repositoryRoot: root,
+      codexCompilationId: ambiguous.codex.compilationId,
+      claudeCompilationId: ambiguous.claude.compilationId,
+    });
+    await expect(
+      createCrossProviderFuzzyMergeCandidate({
+        repositoryRoot: root,
+        codexCompilationId: ambiguous.codex.compilationId,
+        claudeCompilationId: ambiguous.claude.compilationId,
+        comparisonId: ambiguousComparison.comparisonId,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_reconciliation_conflict" });
   });
 
   it("observes same-build repeatability without claiming semantic truth", async () => {

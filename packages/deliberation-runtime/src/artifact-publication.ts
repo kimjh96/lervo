@@ -63,10 +63,22 @@ export async function publishDeliberationArtifact<K extends DeliberationArtifact
     { now: () => new Date(input.createdAt) },
   );
   if (publication.status !== "allowed") {
+    const failed = publication.evaluation.checks
+      .filter((check) => check.status !== "passed" || check.violationCount > 0)
+      .map((check) => `${check.kind}:${check.checkId}:${check.status}`);
     throw new DeliberationRuntimeError(
       "artifact_publication_failed",
       "writing_publication_blocked",
-      "A provider result that fails writing verification cannot be published as a deliberation artifact.",
+      `Writing publication failed (${failed.join(", ") || "contract mismatch"}); repository verification remains a separate result. The provider artifact is quarantined and recoverable by content hash.`,
+      {
+        diagnostics: {
+          failedChecks: publication.failedChecks,
+          missingChecks: publication.missingChecks,
+          evaluationCheckStates: failed,
+          semanticEvaluationStatus: publication.semanticEvaluationStatus,
+          evaluationArtifactId: publication.evaluationArtifact.artifactId,
+        },
+      },
     );
   }
   const content = await readPublishableWritingArtifact({

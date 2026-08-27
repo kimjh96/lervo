@@ -178,10 +178,10 @@ async function materializeInstalledNodeLauncher(homeDirectory?: string): Promise
     }
     await chmod(path, mode);
   }
-  return assertExecutable(launcher);
+  return assertNodeFleetExecutable(launcher);
 }
 
-async function assertExecutable(path: string): Promise<string> {
+export async function assertNodeFleetExecutable(path: string): Promise<string> {
   if (!safeAbsolute(path))
     fail("node_fleet_executable_invalid", "The installed Node runtime path is invalid.");
   const metadata = await lstat(path).catch((error: unknown) =>
@@ -344,7 +344,7 @@ export async function inspectNodeFleetStatus(input: {
   };
 }
 
-async function observeReadiness(
+export async function observeNodeFleetReadiness(
   path: string,
   notBefore: Date,
   ports: NodeFleetApplyPorts,
@@ -529,7 +529,7 @@ export async function applyNodeFleetOnboarding(input: {
   const executable =
     ports.executablePath === undefined
       ? await materializeInstalledNodeLauncher(input.homeDirectory)
-      : await assertExecutable(resolve(ports.executablePath));
+      : await assertNodeFleetExecutable(resolve(ports.executablePath));
   const temporaryDirectory = await mkdtemp(resolve(tmpdir(), "lervo-node-service-"));
   const definition = resolve(temporaryDirectory, "service-definition");
   const previousDefinition = resolve(temporaryDirectory, "previous-service-definition");
@@ -624,7 +624,7 @@ export async function applyNodeFleetOnboarding(input: {
       service.enabled === false
     )
       fail("node_fleet_service_unavailable", "The repository service did not remain active.");
-    const readiness = await observeReadiness(
+    const readiness = await observeNodeFleetReadiness(
       current.desired.healthPath,
       appliedAt,
       ports,

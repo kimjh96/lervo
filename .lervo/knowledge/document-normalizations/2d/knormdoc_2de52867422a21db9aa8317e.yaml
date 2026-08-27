@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_90fde3dc0dccfa57b38a7213
+compiler:
+  compilerBuildId: sha256:1925f60b250ca43c273e23d26f987e3a8c5ff5989f3691b45ff6b4de85789562
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fc5015d7fcf3222f6373e3c6
+outputLanguage: en
+outputs:
+  - byteCount: 5146
+    contentHash: sha256:b64a4abc48f9ff2388216c69e228690d50df1275128f548bca2a3c2d332e3c04
+    path: docs/evidence/search/natural-language-case-pre-review-v1.md
+    userRegionHash: sha256:b64a4abc48f9ff2388216c69e228690d50df1275128f548bca2a3c2d332e3c04
+profile: repository_document
+recordId: knormdoc_2de52867422a21db9aa8317e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5dbb8e0b8ac9da2a34e9eb1f5acb468812daca40f6ad2470ae357c25b49202df
+sourcePath: docs/evidence/search/natural-language-case-pre-review-v1.md
+sourceUnitVersionIds:
+  - uv_11e96c5fb7eb5227d4db579f
+  - uv_22cd7b626ba48415b028d700
+  - uv_3fbdbce823885d5aaa31104b
+  - uv_7b4d2325b219478b9b378415
+  - uv_7d87f02a0f6cfa969489a41b
+  - uv_b34ad46cbf881063173070df
+  - uv_d09e819af3d853a72d9e407f

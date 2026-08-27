@@ -93,7 +93,8 @@ export async function runKnowledgeCommand(args: string[], io: CliIo): Promise<nu
     subcommand === "compile" ||
     subcommand === "compare" ||
     subcommand === "stability" ||
-    subcommand === "merge-candidate"
+    subcommand === "merge-candidate" ||
+    subcommand === "fuzzy-merge-candidate"
   ) {
     return runKnowledgeCompilationCommand({
       operation: subcommand,

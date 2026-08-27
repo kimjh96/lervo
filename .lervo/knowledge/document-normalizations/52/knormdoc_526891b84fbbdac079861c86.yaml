@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8885279253ca2ee9b816a490
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2c9e78aba33d68ad5c21d14b
+outputLanguage: en
+outputs:
+  - byteCount: 6417
+    contentHash: sha256:531212c1e1172f738f1b00dfd4268fbb43b8ccfc480123fbc6ab1467c84602ee
+    path: docs/decisions/operations/security/0232-approved-node-rollout-local-transaction.md
+    userRegionHash: sha256:531212c1e1172f738f1b00dfd4268fbb43b8ccfc480123fbc6ab1467c84602ee
+profile: decision_record
+recordId: knormdoc_526891b84fbbdac079861c86
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:531212c1e1172f738f1b00dfd4268fbb43b8ccfc480123fbc6ab1467c84602ee
+sourcePath: docs/decisions/operations/security/0232-approved-node-rollout-local-transaction.md
+sourceUnitVersionIds:
+  - uv_18ed34e7fc7a863811b61763
+  - uv_190536dc5d48f20e24b65aae
+  - uv_34ba0846bede9322f1a4b5e1
+  - uv_3e27ef880abf89a77894b117
+  - uv_8ad0c9b0f2c938817ff064fa
+  - uv_afe190e965c5a9525335bbfd
+  - uv_b4b80ee74990f34db41732cd

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_dc408d153f969d8feea74828
+freshness: current
+ownership: user
+path: docs/decisions/execution/grounding/0237-typed-semantic-grounding-and-terminal-stage-evidence.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_299133b0635e9cef6d292286
+title: "ADR-0237: Typed semantic request grounding and terminal stage evidence"
+type: decision

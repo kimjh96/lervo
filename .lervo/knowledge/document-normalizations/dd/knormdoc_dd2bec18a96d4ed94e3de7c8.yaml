@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8d74e3fd93fb95cc960783b3
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c50cc0a3fee1d28aafd0ea3e
+outputLanguage: en
+outputs:
+  - byteCount: 7170
+    contentHash: sha256:b6ed168b8203d7ed2ef0baec34659c90beee4c7d57bb3284feb6b4a586485301
+    path: docs/roadmap/operations/organization-node-fleet-rollout.md
+    userRegionHash: sha256:b6ed168b8203d7ed2ef0baec34659c90beee4c7d57bb3284feb6b4a586485301
+profile: roadmap_document
+recordId: knormdoc_dd2bec18a96d4ed94e3de7c8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e6425584f5b953c6d79c9223cc97eab0660fd3df067f15e6c2be16d75761450f
+sourcePath: docs/roadmap/operations/organization-node-fleet-rollout.md
+sourceUnitVersionIds:
+  - uv_19e592f4d74cdacaa3cfefac
+  - uv_31ddd96701f64a009d45624d
+  - uv_37cfd99c38537ac77ee66a39
+  - uv_4c632e41f33fd5df609fe834
+  - uv_7566d9f2048825ae600474a8
+  - uv_9378a3e5a208a06d7371a558
+  - uv_aa99d4b11a2b8c5043a6209b

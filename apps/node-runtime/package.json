@@ -25,6 +25,8 @@
     "@lervo/event-store-sqlite": "workspace:*",
     "@lervo/event-contract": "workspace:*",
     "@lervo/managed-provider-host": "workspace:*",
+    "@lervo/organization-credential-source-file": "workspace:*",
+    "@lervo/organization-deployment-contract": "workspace:*",
     "@lervo/policy": "workspace:*",
     "@lervo/policy-sqlite": "workspace:*",
     "@lervo/project": "workspace:*",

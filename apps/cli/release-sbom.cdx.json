@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:3ff22b1e-a2af-5e40-89f9-f19dd913bc37",
+  "serialNumber": "urn:uuid:09f33263-519b-57a8-b431-00b11b39fa0b",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "a38baea9800b09b3e2070e2177c7a98e29eab64aeb34a8d949a0c35ff60b1014"
+          "content": "26b5614ea6b4d812ce81b9a659e069760db334f25ccbf937b859e8a15e593342"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:b672491eebc88aa8902ad08639301c0edfc2cbe89f81723f73309ff95629d3ae"
+          "value": "sha256:6da4038041f7c8590952fc2fe76261bc1be5870229fc990c449cc8a9337ea57a"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:8192fa86b7554ffcb44e3115930b95803411dfdf1162c76b7eae135bf3b893ab"
+          "value": "sha256:5e979b6ef222b504c9a1a0c1c752c85bc9cbd0dc075727fa146faccca63847e7"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -710,6 +710,51 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/organization-credential-source-file@0.1.0",
+      "group": "@lervo",
+      "name": "organization-credential-source-file",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/organization-credential-source-file@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/organization-deployment-contract@0.1.0",
+      "group": "@lervo",
+      "name": "organization-deployment-contract",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/organization-deployment-contract@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/organization-deployment-sqlite@0.1.0",
+      "group": "@lervo",
+      "name": "organization-deployment-sqlite",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/organization-deployment-sqlite@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/%40lervo/policy-contract@0.1.0",
       "group": "@lervo",
       "name": "policy-contract",
@@ -875,6 +920,21 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/request-grounding@0.1.0",
+      "group": "@lervo",
+      "name": "request-grounding",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/request-grounding@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/%40lervo/roles@0.1.0",
       "group": "@lervo",
       "name": "roles",
@@ -925,21 +985,6 @@
       "name": "search-adapter-bm25f",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/search-adapter-bm25f@0.1.0",
-      "scope": "required",
-      "properties": [
-        {
-          "name": "lervo:release:bundled",
-          "value": "true"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/%40lervo/search-adapter-local-hybrid@0.1.0",
-      "group": "@lervo",
-      "name": "search-adapter-local-hybrid",
-      "version": "0.1.0",
-      "purl": "pkg:npm/%40lervo/search-adapter-local-hybrid@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -3915,6 +3960,9 @@
         "pkg:npm/%40lervo/knowledge@0.1.0",
         "pkg:npm/%40lervo/managed-provider-host@0.1.0",
         "pkg:npm/%40lervo/orchestrator@0.1.0",
+        "pkg:npm/%40lervo/organization-credential-source-file@0.1.0",
+        "pkg:npm/%40lervo/organization-deployment-contract@0.1.0",
+        "pkg:npm/%40lervo/organization-deployment-sqlite@0.1.0",
         "pkg:npm/%40lervo/policy-contract@0.1.0",
         "pkg:npm/%40lervo/policy-sqlite@0.1.0",
         "pkg:npm/%40lervo/policy@0.1.0",
@@ -3926,11 +3974,11 @@
         "pkg:npm/%40lervo/repository-knowledge-compiler@0.1.0",
         "pkg:npm/%40lervo/repository-knowledge@0.1.0",
         "pkg:npm/%40lervo/repository-registry@0.1.0",
+        "pkg:npm/%40lervo/request-grounding@0.1.0",
         "pkg:npm/%40lervo/roles@0.1.0",
         "pkg:npm/%40lervo/runtime-security@0.1.0",
         "pkg:npm/%40lervo/schemas@0.1.0",
         "pkg:npm/%40lervo/search-adapter-bm25f@0.1.0",
-        "pkg:npm/%40lervo/search-adapter-local-hybrid@0.1.0",
         "pkg:npm/%40lervo/search-local@0.1.0",
         "pkg:npm/%40lervo/search@0.1.0",
         "pkg:npm/%40lervo/skills@0.1.0",

@@ -40,6 +40,7 @@ import type { ResolvedCapability } from "@lervo/capabilities";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 import { recordWorkforceEvent } from "./workforce-events.js";
 import { prepareRunVerification, type PreparedRunVerification } from "./run-verification.js";
+import { groundProductionRequest, type GroundProductionRequest } from "./semantic-grounding.js";
 
 export type RunProvider = "codex" | "claude";
 
@@ -95,6 +96,7 @@ export interface ManagedRunDependencies {
     artifactStore: ProjectStorage["artifacts"];
     now?: () => Date;
   }): Promise<PreparedRunVerification>;
+  groundProductionRequest?: GroundProductionRequest;
 }
 
 export type ExecuteManagedRun = (request: ManagedRunRequest) => Promise<ManagedRunOutcome>;
@@ -123,6 +125,7 @@ const defaultDependencies: ManagedRunDependencies = {
   createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
   now: () => new Date(),
   createSemanticEvaluator: createLocalProviderWritingEvaluator,
+  groundProductionRequest,
 };
 
 export function createManagedRunExecutor(
@@ -198,6 +201,43 @@ export function createManagedRunExecutor(
         role,
         capabilityIds,
         query: instructions,
+        selectGroundedCapabilityIds: async (candidates) => {
+          const grounded = await (
+            dependencies.groundProductionRequest ?? defaultDependencies.groundProductionRequest!
+          )({
+            request: instructions,
+            provider: request.provider,
+            resolutionContext: {
+              priorTurns: [],
+              currentWorkstream: null,
+              pendingAuthorityIds: [],
+              repositoryCondition: "current",
+            },
+            availableCapabilityIds: candidates.map((candidate) => candidate.capabilityId),
+            grantedAuthorities: ["repository_write"],
+            semanticCatalog: {
+              capabilityCandidates: candidates.map((candidate) => ({
+                capabilityId: candidate.capabilityId,
+                kind: candidate.kind,
+                version: candidate.version,
+              })),
+              structuredWorkflowSelection: "managed.run",
+            },
+            workflows: [
+              {
+                workflowId: "managed.run",
+                supportedIntents: ["inspect", "explain", "change", "continue"],
+                supportedDispositions: ["execute", "answer"],
+                effectIds: ["managed.run"],
+                requiredSourceClasses: ["repository_state"],
+                authority: "repository_write",
+                allowedCapabilityIds: candidates.map((candidate) => candidate.capabilityId),
+                crossProviderAllowed: false,
+              },
+            ],
+          });
+          return grounded.decision.status === "ready" ? grounded.decision.capabilityIds : [];
+        },
         generatedAt: (dependencies.now?.() ?? new Date()).toISOString(),
         ...(dependencies.userCapabilityRoot === undefined
           ? {}

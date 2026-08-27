@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_aeb9467158254d3bd446dfe9
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_162524c2fbfc6649e07efcb9
+outputLanguage: en
+outputs:
+  - byteCount: 4086
+    contentHash: sha256:b49019b695368e4722cb5883722613f3c7d8e7b91d6c08a0c5c14b453e659325
+    path: docs/decisions/knowledge/semantics/0227-approval-gated-cross-provider-fuzzy-merge.md
+    userRegionHash: sha256:b49019b695368e4722cb5883722613f3c7d8e7b91d6c08a0c5c14b453e659325
+profile: decision_record
+recordId: knormdoc_15840c979d1bc9759e041bf2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bca7641d9af1e03c79816845dca2bc7545f509087ee7329a98c295fda526c077
+sourcePath: docs/decisions/knowledge/semantics/0227-approval-gated-cross-provider-fuzzy-merge.md
+sourceUnitVersionIds:
+  - uv_15a1c32727d9d86b75060eae
+  - uv_4f44deba95e87a0bb2f86381
+  - uv_a8cda52bc5116dcd15e232cf
+  - uv_a91b909ae2d7053da918debc
+  - uv_d32b7e4f7b3c4371b3b87f1c

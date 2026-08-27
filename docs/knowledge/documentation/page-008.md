@@ -3,6 +3,17 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0091: CLI registry-publish preflight contract](../../decisions/release/assurance/0091-cli-registry-publish-preflight.md) — `docs/decisions/release/assurance/0091-cli-registry-publish-preflight.md`
+- [ADR-0092: CLI release SBOM contract](../../decisions/release/assurance/0092-cli-release-sbom.md) — `docs/decisions/release/assurance/0092-cli-release-sbom.md`
+- [ADR-0093: CLI release provenance-attestation boundary](../../decisions/release/assurance/0093-cli-release-attestation-boundary.md) — `docs/decisions/release/assurance/0093-cli-release-attestation-boundary.md`
+- [ADR-0094: Consumer verification of CLI release attestations](../../decisions/release/assurance/0094-cli-release-attestation-consumer-verification.md) — `docs/decisions/release/assurance/0094-cli-release-attestation-consumer-verification.md`
+- [ADR-0095: CLI release publication eligibility and authority boundary](../../decisions/release/assurance/0095-cli-release-publication-authorization.md) — `docs/decisions/release/assurance/0095-cli-release-publication-authorization.md`
+- [ADR-0096: CLI Trusted Publisher readiness contract](../../decisions/release/assurance/0096-cli-trusted-publisher-readiness.md) — `docs/decisions/release/assurance/0096-cli-trusted-publisher-readiness.md`
+- [ADR-0097: CLI first-publication bootstrap contract](../../decisions/release/bootstrap/0097-cli-first-publication-bootstrap.md) — `docs/decisions/release/bootstrap/0097-cli-first-publication-bootstrap.md`
+- [ADR-0098: CLI first-publication execution and transition receipts](../../decisions/release/bootstrap/0098-cli-first-publication-execution-transition-receipts.md) — `docs/decisions/release/bootstrap/0098-cli-first-publication-execution-transition-receipts.md`
+- [ADR-0099: Durable storage and interactive adapter for CLI first publication](../../decisions/release/bootstrap/0099-cli-first-publication-durable-interactive-adapter.md) — `docs/decisions/release/bootstrap/0099-cli-first-publication-durable-interactive-adapter.md`
+- [ADR-0100: Read-only CLI first-publication preflight report](../../decisions/release/bootstrap/0100-cli-first-publication-read-only-preflight-report.md) — `docs/decisions/release/bootstrap/0100-cli-first-publication-read-only-preflight-report.md`
+- [ADR-0101: CLI first-publication preflight command](../../decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md) — `docs/decisions/release/bootstrap/0101-cli-first-publication-preflight-command.md`
 - [ADR-0102: CLI first-publication execution plan and unarmed boundary](../../decisions/release/bootstrap/0102-cli-first-publication-execution-plan.md) — `docs/decisions/release/bootstrap/0102-cli-first-publication-execution-plan.md`
 - [ADR-0103: CLI first-publication execution-plan command](../../decisions/release/bootstrap/0103-cli-first-publication-execution-plan-command.md) — `docs/decisions/release/bootstrap/0103-cli-first-publication-execution-plan-command.md`
 - [ADR-0104: CLI first-publication activation blocker report](../../decisions/release/bootstrap/0104-cli-first-publication-activation-blocker-report.md) — `docs/decisions/release/bootstrap/0104-cli-first-publication-activation-blocker-report.md`
@@ -16,14 +27,3 @@
 - [ADR-0112: One-time CLI first-publication arming authorization](../../decisions/release/bootstrap/0112-cli-first-publication-arming-authorization.md) — `docs/decisions/release/bootstrap/0112-cli-first-publication-arming-authorization.md`
 - [ADR-0113: Reconcile Unknown CLI First-Publication Outcomes](../../decisions/release/bootstrap/0113-cli-first-publication-unknown-outcome-reconciliation.md) — `docs/decisions/release/bootstrap/0113-cli-first-publication-unknown-outcome-reconciliation.md`
 - [ADR-0114: Resolve Reconciled CLI First-Publication Outcomes](../../decisions/release/bootstrap/0114-cli-first-publication-reconciliation-resolution.md) — `docs/decisions/release/bootstrap/0114-cli-first-publication-reconciliation-resolution.md`
-- [ADR-0115: CLI First-Publication Transition Evidence Union](../../decisions/release/bootstrap/0115-cli-first-publication-transition-evidence-union.md) — `docs/decisions/release/bootstrap/0115-cli-first-publication-transition-evidence-union.md`
-- [ADR-0116: CLI First-Publication Transition Completion Command](../../decisions/release/bootstrap/0116-cli-first-publication-transition-completion-command.md) — `docs/decisions/release/bootstrap/0116-cli-first-publication-transition-completion-command.md`
-- [ADR-0132: Inspect CLI First-Publication Completion Records](../../decisions/release/bootstrap/0132-cli-first-publication-completion-inspection.md) — `docs/decisions/release/bootstrap/0132-cli-first-publication-completion-inspection.md`
-- [ADR-0025: Human-facing publication gate and content-bound permits](../../decisions/release/packaging/0025-writing-publication-gate.md) — `docs/decisions/release/packaging/0025-writing-publication-gate.md`
-- [ADR-0047: Role-scoped managed conversation responses and publication evidence](../../decisions/release/packaging/0047-managed-conversation-responder.md) — `docs/decisions/release/packaging/0047-managed-conversation-responder.md`
-- [ADR-0086: Canonical CLI release artifact manifest](../../decisions/release/packaging/0086-canonical-cli-release-artifact-manifest.md) — `docs/decisions/release/packaging/0086-canonical-cli-release-artifact-manifest.md`
-- [ADR-0089: CLI multi-platform release matrix](../../decisions/release/packaging/0089-cli-multi-platform-release-matrix.md) — `docs/decisions/release/packaging/0089-cli-multi-platform-release-matrix.md`
-- [ADR-0090: CLI package usage-guide contract](../../decisions/release/packaging/0090-cli-package-usage-guide.md) — `docs/decisions/release/packaging/0090-cli-package-usage-guide.md`
-- [ADR-0215: Supported-runtime release portability](../../decisions/release/packaging/0215-supported-runtime-release-portability.md) — `docs/decisions/release/packaging/0215-supported-runtime-release-portability.md`
-- [ADR-0221: Reviewed CLI release preparation](../../decisions/release/packaging/0221-reviewed-cli-release-preparation.md) — `docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md`
-- [ADR-0223: Base-bound CLI release completion](../../decisions/release/packaging/0223-base-bound-cli-release-completion.md) — `docs/decisions/release/packaging/0223-base-bound-cli-release-completion.md`

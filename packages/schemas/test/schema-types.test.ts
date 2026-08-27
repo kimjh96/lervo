@@ -50,6 +50,26 @@ import type {
   ConversationParticipationPolicy,
   ConversationOutboundMessage,
   TraceCapabilitiesReport,
+  OrganizationDeploymentPolicy,
+  OrganizationFleetRolloutApproval,
+  OrganizationFleetRolloutPlan,
+  OrganizationFleetWaveObservation,
+  OrganizationNodeEnrollment,
+  OrganizationNodeRolloutExecutionPlan,
+  OrganizationNodeRolloutExecutionReceipt,
+  OrganizationNodeRolloutDelivery,
+  OrganizationNodeRolloutDeliveryReceipt,
+  OrganizationNodeRolloutRecoveryObservation,
+  OrganizationNodeRolloutRecoveryReceipt,
+  OrganizationNodeRolloutRollbackPlan,
+  OrganizationNodeRolloutRollbackReceipt,
+  OrganizationRuntimeCredentialDeliveryReceipt,
+  SignedOrganizationDeploymentPolicy,
+  SignedOrganizationNodeRolloutDelivery,
+  OrganizationNodeRollbackDelivery,
+  OrganizationNodeRollbackDeliveryReceipt,
+  OrganizationNodeRollbackRecoveryReceipt,
+  SignedOrganizationNodeRollbackDelivery,
 } from "../src/index.js";
 import { describe, expectTypeOf, it } from "vitest";
 
@@ -88,6 +108,80 @@ describe("schema-derived TypeScript contracts", () => {
     expectTypeOf<PolicySnapshot["rules"][number]["decision"]>().toEqualTypeOf<CapabilityDecision>();
     expectTypeOf<PolicyApproval["snapshotId"]>().toEqualTypeOf<string>();
     expectTypeOf<PolicyApprovalRevocation["approvalId"]>().toEqualTypeOf<string>();
+  });
+
+  it("keeps organization authority, runtime secrets, and delivery evidence separate", () => {
+    expectTypeOf<
+      OrganizationDeploymentPolicy["credentialPolicy"]["deliveryMode"]
+    >().toEqualTypeOf<"runtime_only">();
+    expectTypeOf<
+      OrganizationRuntimeCredentialDeliveryReceipt["secretMaterial"]
+    >().toEqualTypeOf<"excluded">();
+    expectTypeOf<
+      SignedOrganizationDeploymentPolicy["signature"]["algorithm"]
+    >().toEqualTypeOf<"ed25519">();
+  });
+
+  it("keeps organization fleet plans, observations, approvals, and effects distinct", () => {
+    expectTypeOf<OrganizationNodeEnrollment["secretMaterial"]>().toEqualTypeOf<"excluded">();
+    expectTypeOf<
+      OrganizationFleetRolloutPlan["effect"]["deployment"]
+    >().toEqualTypeOf<"not_executed">();
+    expectTypeOf<
+      OrganizationFleetWaveObservation["effect"]["decision"]
+    >().toEqualTypeOf<"not_selected">();
+    expectTypeOf<
+      OrganizationFleetRolloutApproval["effect"]["approval"]
+    >().toEqualTypeOf<"granted">();
+    expectTypeOf<
+      OrganizationNodeRolloutExecutionPlan["effect"]["deployment"]
+    >().toEqualTypeOf<"not_executed">();
+    expectTypeOf<
+      OrganizationNodeRolloutExecutionReceipt["effect"]["deployment"]
+    >().toEqualTypeOf<"executed">();
+  });
+
+  it("keeps signed rollout delivery separate from its local execution effect", () => {
+    expectTypeOf<
+      OrganizationNodeRolloutDelivery["effect"]["deployment"]
+    >().toEqualTypeOf<"not_executed">();
+    expectTypeOf<
+      SignedOrganizationNodeRolloutDelivery["signature"]["algorithm"]
+    >().toEqualTypeOf<"ed25519">();
+    expectTypeOf<
+      OrganizationNodeRolloutDeliveryReceipt["effect"]["deployment"]
+    >().toEqualTypeOf<"executed">();
+    expectTypeOf<OrganizationNodeRolloutRecoveryReceipt["classification"]>().toEqualTypeOf<
+      "applied" | "not_applied" | "unknown"
+    >();
+    expectTypeOf<
+      OrganizationNodeRolloutRecoveryReceipt["effect"]["deployment"]
+    >().toEqualTypeOf<"not_executed">();
+    expectTypeOf<
+      OrganizationNodeRolloutRecoveryObservation["privacy"]["absolutePaths"]
+    >().toEqualTypeOf<"excluded">();
+  });
+
+  it("keeps predecessor-bound rollback planning separate from rollback effect", () => {
+    expectTypeOf<OrganizationNodeRolloutRollbackPlan["action"]>().toEqualTypeOf<"rollback_wave">();
+    expectTypeOf<
+      OrganizationNodeRolloutRollbackPlan["effect"]["rollback"]
+    >().toEqualTypeOf<"not_executed">();
+    expectTypeOf<
+      OrganizationNodeRolloutRollbackReceipt["effect"]["rollback"]
+    >().toEqualTypeOf<"executed">();
+    expectTypeOf<
+      OrganizationNodeRollbackDelivery["effect"]["rollback"]
+    >().toEqualTypeOf<"not_executed">();
+    expectTypeOf<
+      SignedOrganizationNodeRollbackDelivery["signature"]["algorithm"]
+    >().toEqualTypeOf<"ed25519">();
+    expectTypeOf<
+      OrganizationNodeRollbackDeliveryReceipt["effect"]["rollback"]
+    >().toEqualTypeOf<"executed">();
+    expectTypeOf<OrganizationNodeRollbackRecoveryReceipt["classification"]>().toEqualTypeOf<
+      "rolled_back" | "not_rolled_back" | "unknown"
+    >();
   });
 
   it("keeps skill trust as a discriminated union", () => {

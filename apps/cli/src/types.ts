@@ -4,6 +4,7 @@ import type { ProjectStorage } from "@lervo/project-storage";
 
 import type { ExecuteManagedRun } from "./managed-run.js";
 import type { ExecuteManagedDeliberation } from "./managed-deliberation.js";
+import type { GroundProductionRequest } from "./semantic-grounding.js";
 
 export interface CliIo {
   cwd: string;
@@ -25,6 +26,7 @@ export interface CliServices {
     source: EnvironmentSourceManifest;
     observedAt?: Date;
   }): Promise<EnvironmentObservation>;
+  groundProductionRequest: GroundProductionRequest;
 }
 
 export type CliServiceOverrides = Partial<CliServices>;

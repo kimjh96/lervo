@@ -6,6 +6,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { runTerminalCommand } from "./terminal-command.js";
+import { groundProductionRequest } from "./semantic-grounding.js";
 
 async function verifiedRuntime(): Promise<boolean> {
   try {
@@ -31,15 +32,19 @@ if (!(await verifiedRuntime())) {
   process.stderr.write("Lervo terminal hook runtime integrity verification failed.\n");
   process.exitCode = 2;
 } else {
-  process.exitCode = await runTerminalCommand(["hook", ...process.argv.slice(2)], {
-    cwd: process.cwd(),
-    stdout: (message) => process.stdout.write(message),
-    stderr: (message) => process.stderr.write(message),
-    stdin: async () => {
-      const chunks: Buffer[] = [];
-      for await (const chunk of process.stdin)
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-      return Buffer.concat(chunks).toString("utf8");
+  process.exitCode = await runTerminalCommand(
+    ["hook", ...process.argv.slice(2)],
+    {
+      cwd: process.cwd(),
+      stdout: (message) => process.stdout.write(message),
+      stderr: (message) => process.stderr.write(message),
+      stdin: async () => {
+        const chunks: Buffer[] = [];
+        for await (const chunk of process.stdin)
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        return Buffer.concat(chunks).toString("utf8");
+      },
     },
-  });
+    { groundProductionRequest },
+  );
 }

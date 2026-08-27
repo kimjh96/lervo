@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "drbench_bounded_fallback.v1",
+  "benchmarkMode": "bounded_fallback_comparison",
+  "provenance": "verification_authored",
+  "reviewStatus": "pending_human_review",
+  "publicQueries": true,
+  "modelResponseLocale": "ko",
+  "lexicalLimit": 3,
+  "repetitionsPerArm": 2,
+  "acceptance": {
+    "minimumCasesPassingEveryRepetition": 6,
+    "requirePassCountNonInferiorityToModelDirect": true,
+    "requireRecallNonInferiorityToModelDirect": true,
+    "maximumTokenRatioToModelDirectBasisPoints": 8500,
+    "maximumDurationRatioToModelDirectBasisPoints": 9500,
+    "maximumFailedFallbackTriggers": 0,
+    "maximumFailedContracts": 0
+  },
+  "corpusRoots": ["README.md", "AGENTS.md", "docs"],
+  "corpusExclusions": [
+    "docs/decisions/search/0224-natural-language-grounding-quality-evaluation.md",
+    "docs/decisions/search/0225-revise-local-hybrid-for-cross-language-recall.md",
+    "docs/decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md",
+    "docs/decisions/knowledge/semantics/0227-approval-gated-cross-provider-fuzzy-merge.md",
+    "docs/evidence/search",
+    "docs/knowledge",
+    "docs/roadmap/natural-language-grounding-quality.md"
+  ],
+  "cases": [
+    {
+      "caseId": "drcase_task_knowledge_compilation",
+      "taskType": "task_start_and_how_to",
+      "fallbackTrigger": "lexical_only",
+      "query": "repository knowledge compilation 개선 작업 하자. canonical spec부터 찾아줘",
+      "expectedPaths": ["docs/specs/repository-knowledge-compilation.md"]
+    },
+    {
+      "caseId": "drcase_rationale_hybrid_search",
+      "taskType": "historical_rationale",
+      "fallbackTrigger": "lexical_only",
+      "query": "예전에 local hybrid search와 reviewed relation context 작업을 왜 했었지?",
+      "expectedPaths": [
+        "docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md"
+      ]
+    },
+    {
+      "caseId": "drcase_status_node_fleet",
+      "taskType": "status_continuation_impact",
+      "fallbackTrigger": "impact_verification",
+      "query": "repository Node fleet 진행하면 architecture와 gradual rollout에 뭐가 영향 받아?",
+      "expectedPaths": [
+        "docs/architecture/system.md",
+        "docs/roadmap/coordination/repository-node-fleet.md"
+      ]
+    },
+    {
+      "caseId": "drcase_boundary_fuzzy_merge",
+      "taskType": "ambiguity_and_contract_boundary",
+      "fallbackTrigger": "approval_boundary_verification",
+      "query": "fuzzy merge를 승인 없이 자동 적용해도 돼? conflict resolution 근거 찾아줘",
+      "expectedPaths": [
+        "docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md",
+        "docs/decisions/execution/providers/0187-review-gated-cross-provider-exact-merge.md"
+      ]
+    },
+    {
+      "caseId": "drcase_boundary_user_owned_block",
+      "taskType": "ambiguity_and_contract_boundary",
+      "fallbackTrigger": "approval_boundary_verification",
+      "query": "managed block 작업할 때 user-owned content 자동으로 덮어써도 돼?",
+      "expectedPaths": ["docs/specifications/execution.md"]
+    },
+    {
+      "caseId": "drcase_rationale_continuation_why",
+      "taskType": "historical_rationale",
+      "fallbackTrigger": "lexical_no_hits",
+      "query": "예전에 왜 이전 작업 상태를 다음 대화에서도 이어가게 했었지?",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md"
+      ]
+    },
+    {
+      "caseId": "drcase_rationale_continuation_state",
+      "taskType": "historical_rationale",
+      "fallbackTrigger": "lexical_no_hits",
+      "query": "왜 작업을 이어서 할 수 있게 현재 상태를 따로 저장하도록 했어?",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md"
+      ]
+    },
+    {
+      "caseId": "drcase_rationale_continuation_conversation",
+      "taskType": "historical_rationale",
+      "fallbackTrigger": "lexical_no_hits",
+      "query": "전에 하던 일을 새 대화에서도 계속할 수 있게 만든 이유가 뭐였지?",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md"
+      ]
+    }
+  ]
+}

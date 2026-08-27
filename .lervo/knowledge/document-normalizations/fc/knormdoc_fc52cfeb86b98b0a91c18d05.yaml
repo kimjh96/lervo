@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_aeb9467158254d3bd446dfe9
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_42fd4ef9ccc07f22b376fe3d
+outputLanguage: en
+outputs:
+  - byteCount: 7458
+    contentHash: sha256:408eaab6943fd8aff25c8567681332f01b63f5d23ab96eb2a5c88f41794f6a9a
+    path: docs/evidence/search/bounded-retrieval-fallback-v1.md
+    userRegionHash: sha256:408eaab6943fd8aff25c8567681332f01b63f5d23ab96eb2a5c88f41794f6a9a
+profile: repository_document
+recordId: knormdoc_fc52cfeb86b98b0a91c18d05
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8fd587f99f7aac77e235f731b927eb276e1b440a70667d392a598a22f21fb87f
+sourcePath: docs/evidence/search/bounded-retrieval-fallback-v1.md
+sourceUnitVersionIds:
+  - uv_07c3822590aa62e9797d5ff6
+  - uv_09b7d9f6156363192b89889d
+  - uv_5fe0c8583be297b37c53e618
+  - uv_921c585e03aa9cdeed579cd2
+  - uv_96afd14c34a93a9e080710e3
+  - uv_a517fbe88db01dbc791e8899
+  - uv_d28bd1ab59e21d9c1ca1e2b5

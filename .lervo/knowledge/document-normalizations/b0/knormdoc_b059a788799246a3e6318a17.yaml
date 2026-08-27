@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_14b005bafde3310ff196d6b6
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4bd2367d94e32bd36608dc55
+outputLanguage: en
+outputs:
+  - byteCount: 1782
+    contentHash: sha256:040285966030eb15fe31ab7bdadac7098aacad00d3a623c071b3227e2f620575
+    path: docs/roadmap/v0-acceptance-gates.md
+    userRegionHash: sha256:040285966030eb15fe31ab7bdadac7098aacad00d3a623c071b3227e2f620575
+profile: roadmap_document
+recordId: knormdoc_b059a788799246a3e6318a17
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:40371c40d78926785d4419ec6cab4a087e99f87cfc93b952f13f3fa8bd095137
+sourcePath: docs/roadmap/v0-acceptance-gates.md
+sourceUnitVersionIds:
+  - uv_d240abd97a303bf92f0eb71b
+  - uv_de764b634c26439abc8f1050

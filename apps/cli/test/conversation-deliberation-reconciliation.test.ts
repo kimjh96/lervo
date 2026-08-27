@@ -19,6 +19,7 @@ function report(
     phase: "completed",
     completionStatus: "converged",
     artifactCount: 5,
+    failedPublications: [],
     lastRound: 1,
     checkpoint: "readable",
     lease: "missing",

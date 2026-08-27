@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_3dbfda96e19c0b48c7d885d6
+freshness: current
+ownership: user
+path: docs/roadmap/natural-language-grounding-quality.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_a5c79391e1760126045ba3ca
+title: Natural-language grounding quality
+type: concept

@@ -1,9 +1,14 @@
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
+import type { OrganizationRuntimeCredentialDeliveryReceipt } from "@lervo/schemas";
 import { type OutboundSyncLoopResult } from "@lervo/sync";
 
 import { type RemoteControlLoopResult } from "./control-loop.js";
 import { NodeRuntimeError } from "./errors.js";
 import type { NodeRuntimeHealthPublisher } from "./health.js";
+import type {
+  NodeOrganizationCredentialDelivery,
+  NodeOrganizationCredentialDeliveryRequest,
+} from "./organization-credential-delivery.js";
 
 export interface NodeRuntimeCloseResult {
   status: "stopped" | "failed";
@@ -17,6 +22,9 @@ export interface NodeRuntimeDeployment {
   start(): Promise<void>;
   reloadBearerToken(): Promise<void>;
   reloadRuntimeMaterials(): Promise<void>;
+  deliverOrganizationCredential(
+    request: NodeOrganizationCredentialDeliveryRequest,
+  ): Promise<OrganizationRuntimeCredentialDeliveryReceipt>;
   close(): Promise<NodeRuntimeCloseResult>;
 }
 
@@ -29,6 +37,8 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
   private closePromise: Promise<NodeRuntimeCloseResult> | null = null;
   private reloadPromise: Promise<void> | null = null;
   private materialReloadPromise: Promise<void> | null = null;
+  private organizationCredentialDeliveryPromise: Promise<OrganizationRuntimeCredentialDeliveryReceipt> | null =
+    null;
   private failureCode: NodeRuntimeCloseResult["failureCode"];
   private resolveClosed!: (result: NodeRuntimeCloseResult) => void;
   private rejectClosed!: (error: unknown) => void;
@@ -43,6 +53,7 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
     private readonly reloadBearerTokenSnapshot: () => Promise<void>,
     private readonly reloadRuntimeMaterialSnapshot: () => Promise<void>,
     private readonly health: Pick<NodeRuntimeHealthPublisher, "stopping"> | null,
+    private readonly organizationCredentialDelivery: NodeOrganizationCredentialDelivery | null,
   ) {
     this.closed = new Promise<NodeRuntimeCloseResult>((resolve, reject) => {
       this.resolveClosed = resolve;
@@ -84,7 +95,7 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
   }
 
   reloadBearerToken(): Promise<void> {
-    if (this.closePromise !== null) {
+    if (this.closePromise !== null || this.organizationCredentialDeliveryPromise !== null) {
       return Promise.reject(
         new NodeRuntimeError(
           "token_reload_failed",
@@ -111,7 +122,7 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
   }
 
   reloadRuntimeMaterials(): Promise<void> {
-    if (this.closePromise !== null) {
+    if (this.closePromise !== null || this.organizationCredentialDeliveryPromise !== null) {
       return Promise.reject(
         new NodeRuntimeError(
           "runtime_material_reload_failed",
@@ -135,6 +146,41 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
         .catch(() => undefined);
     }
     return this.materialReloadPromise;
+  }
+
+  deliverOrganizationCredential(
+    request: NodeOrganizationCredentialDeliveryRequest,
+  ): Promise<OrganizationRuntimeCredentialDeliveryReceipt> {
+    if (
+      this.closePromise !== null ||
+      this.organizationCredentialDelivery === null ||
+      this.reloadPromise !== null ||
+      this.materialReloadPromise !== null
+    ) {
+      return Promise.reject(
+        new NodeRuntimeError(
+          "organization_credential_delivery_failed",
+          "Organization credential delivery is unavailable for this Node runtime.",
+        ),
+      );
+    }
+    if (this.organizationCredentialDeliveryPromise !== null) {
+      return Promise.reject(
+        new NodeRuntimeError(
+          "organization_credential_delivery_failed",
+          "Another organization credential delivery is already in progress.",
+        ),
+      );
+    }
+    const operation = this.organizationCredentialDelivery.deliver(request);
+    this.organizationCredentialDeliveryPromise = operation;
+    void operation
+      .finally(() => {
+        if (this.organizationCredentialDeliveryPromise === operation)
+          this.organizationCredentialDeliveryPromise = null;
+      })
+      .catch(() => undefined);
+    return operation;
   }
 
   private async finish(): Promise<NodeRuntimeCloseResult> {
@@ -184,6 +230,7 @@ export function createNodeRuntimeDeployment(
   reloadBearerToken: () => Promise<void> = async () => undefined,
   reloadRuntimeMaterials: () => Promise<void> = reloadBearerToken,
   health: Pick<NodeRuntimeHealthPublisher, "stopping"> | null = null,
+  organizationCredentialDelivery: NodeOrganizationCredentialDelivery | null = null,
 ): NodeRuntimeDeployment {
   return new DefaultNodeRuntimeDeployment(
     store,
@@ -192,5 +239,6 @@ export function createNodeRuntimeDeployment(
     reloadBearerToken,
     reloadRuntimeMaterials,
     health,
+    organizationCredentialDelivery,
   );
 }

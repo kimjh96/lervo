@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "bundleId": "nlfail_repository_natural_language.v1",
+  "provenance": "verification_authored",
+  "reviewStatus": "pending_human_review",
+  "observationBasis": "owner_only_benchmark_reports_and_operational_attempts",
+  "activationAuthority": "none",
+  "corpusDigest": "sha256:04d7c7df0b257f3ca274a3825699d7c489658303143d669df850f027cba841f5",
+  "sourceReports": [
+    {
+      "language": "ko",
+      "reportId": "spreport_62cb94608ca8c018ff0c5ee6",
+      "suiteId": "spbench_korean_repository_retrieval.v1",
+      "suiteDigest": "sha256:f657d6ed400d9e4503358b84ee4056bd702e62f3cb9034ae0f5fe018a4dd29b9"
+    },
+    {
+      "language": "en",
+      "reportId": "spreport_afb20dfe8cf1a02d007a19d4",
+      "suiteId": "spbench_korean_repository_retrieval_control.v1",
+      "suiteDigest": "sha256:9ca1bd8694696de1ca934bd0f6a7888fd4ddb4818a969e72366f60e91d74ce86"
+    }
+  ],
+  "failures": [
+    {
+      "caseId": "spcase_ko_boundary_user_owned_block",
+      "pairId": "nlpair_boundary_user_owned_block",
+      "language": "ko",
+      "taskType": "ambiguity_and_contract_boundary",
+      "baseline": { "outcome": "failed", "firstExpectedRank": null, "foundSourceCount": 0 },
+      "candidate": { "outcome": "failed", "firstExpectedRank": null, "foundSourceCount": 0 }
+    },
+    {
+      "caseId": "spcase_en_boundary_fuzzy_merge",
+      "pairId": "nlpair_boundary_fuzzy_merge",
+      "language": "en",
+      "taskType": "ambiguity_and_contract_boundary",
+      "baseline": { "outcome": "failed", "firstExpectedRank": null, "foundSourceCount": 0 },
+      "candidate": { "outcome": "failed", "firstExpectedRank": null, "foundSourceCount": 0 }
+    },
+    {
+      "caseId": "spcase_en_status_agent_workspace",
+      "pairId": "nlpair_status_agent_workspace",
+      "language": "en",
+      "taskType": "status_continuation_impact",
+      "baseline": { "outcome": "failed", "firstExpectedRank": null, "foundSourceCount": 0 },
+      "candidate": { "outcome": "recovered", "firstExpectedRank": 5, "foundSourceCount": 1 }
+    },
+    {
+      "caseId": "spcase_en_task_commit_convention",
+      "pairId": "nlpair_task_commit_convention",
+      "language": "en",
+      "taskType": "task_start_and_how_to",
+      "baseline": { "outcome": "failed", "firstExpectedRank": null, "foundSourceCount": 0 },
+      "candidate": { "outcome": "failed", "firstExpectedRank": null, "foundSourceCount": 0 }
+    }
+  ],
+  "rankingRegressions": [
+    {
+      "caseId": "spcase_en_boundary_skill_use",
+      "pairId": "nlpair_boundary_skill_use",
+      "language": "en",
+      "taskType": "ambiguity_and_contract_boundary",
+      "baselineFirstExpectedRank": 5,
+      "candidateFirstExpectedRank": 10
+    }
+  ],
+  "discoveryProbes": [
+    {
+      "probeId": "nlprobe_ko_rationale_continuation_why_v1",
+      "taskType": "historical_rationale",
+      "provenance": "verification_authored",
+      "reviewStatus": "pending_human_review",
+      "query": "예전에 왜 이전 작업 상태를 다음 대화에서도 이어가게 했었지?",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md"
+      ],
+      "operationalObservation": {
+        "attemptId": "sat_aa53e1dd30b8e04f50d0df5b",
+        "engine": { "id": "lexical", "version": 1 },
+        "outcome": "no_hits",
+        "queryDigest": "sha256:3890f07c86d4f7942fda3a21b41966c279de3e5301a13b8f7ef51c2be2670118",
+        "resultSetHash": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    {
+      "probeId": "nlprobe_ko_rationale_continuation_state_v1",
+      "taskType": "historical_rationale",
+      "provenance": "verification_authored",
+      "reviewStatus": "pending_human_review",
+      "query": "왜 작업을 이어서 할 수 있게 현재 상태를 따로 저장하도록 했어?",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md"
+      ],
+      "operationalObservation": {
+        "attemptId": "sat_40ef7bd83e7205981e49ff72",
+        "engine": { "id": "lexical", "version": 1 },
+        "outcome": "no_hits",
+        "queryDigest": "sha256:bc4b7743ea38ff12e5008c96a43bb6fafe0a4833ab28d41a1d04696cf57cd457",
+        "resultSetHash": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    {
+      "probeId": "nlprobe_ko_rationale_continuation_conversation_v1",
+      "taskType": "historical_rationale",
+      "provenance": "verification_authored",
+      "reviewStatus": "pending_human_review",
+      "query": "전에 하던 일을 새 대화에서도 계속할 수 있게 만든 이유가 뭐였지?",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md"
+      ],
+      "operationalObservation": {
+        "attemptId": "sat_6f4b8089131af03debb80ecd",
+        "engine": { "id": "lexical", "version": 1 },
+        "outcome": "no_hits",
+        "queryDigest": "sha256:4197e4d7042bec284d6cb6110187b6e4d1372068490bc1ba06cc6d877f521855",
+        "resultSetHash": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    }
+  ],
+  "taskTypeCoverage": [
+    { "taskType": "task_start_and_how_to", "failureCount": 1 },
+    { "taskType": "historical_rationale", "failureCount": 0 },
+    { "taskType": "status_continuation_impact", "failureCount": 1 },
+    { "taskType": "ambiguity_and_contract_boundary", "failureCount": 2 }
+  ],
+  "allTaskTypesCovered": false,
+  "privacy": {
+    "benchmarkReportQueries": "excluded",
+    "discoveryProbeText": "checked_in_public",
+    "sourcePathsAndBodies": "expected_coordinates_only"
+  }
+}

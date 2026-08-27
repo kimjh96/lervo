@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_289ba56137a4aaad51708341
+freshness: current
+ownership: user
+path: docs/specifications/execution/semantic-grounding.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_3b632164657c03baec7ba634
+title: Typed Semantic Request Grounding
+type: concept

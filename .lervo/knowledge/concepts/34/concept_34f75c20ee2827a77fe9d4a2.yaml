@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_34f75c20ee2827a77fe9d4a2
+freshness: current
+ownership: user
+path: docs/decisions/operations/security/0232-approved-node-rollout-local-transaction.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_dfa50d774cfa418f3acdfe13
+title: "ADR-0232: Approved Node Rollout Local Transaction"
+type: decision

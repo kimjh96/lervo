@@ -232,4 +232,212 @@ describe("Codex-Claude knowledge comparison CLI", () => {
     }
     expect(errors).toEqual([]);
   });
+
+  it("requires hash-bound selection of exactly one fuzzy pair member", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-fuzzy-comparison-"));
+    roots.push(root);
+    await writeFile(resolve(root, "README.md"), "# Runtime\n\nLocal policy fixture.\n");
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
+    expect(await runCli(["init"], io)).toBe(0);
+    const { policy, scan } = await scanConfiguredRepositoryKnowledge(root);
+    const policyHash = sha256(canonicalJson(policy));
+    const statements = {
+      codex: "The runtime remains local first under repository policy.",
+      claude: "Repository policy keeps the runtime local first.",
+    };
+    const candidates: Record<"codex" | "claude", string> = { codex: "", claude: "" };
+    for (const provider of ["codex", "claude"] as const) {
+      const compiler: RepositorySemanticCompiler = {
+        descriptor: {
+          compilerId: `fixture.${provider}.fuzzy-comparison`,
+          compilerVersion: "1",
+          compilerBuildId: `sha256:${(provider === "codex" ? "e" : "f").repeat(64)}`,
+          provider,
+          isolation: "external_no_capabilities",
+        },
+        compile: async (envelope): Promise<SemanticCompilerResponse> => ({
+          schemaVersion: 1,
+          concepts: [
+            {
+              localKey: "runtime",
+              title: `${provider} runtime candidate`,
+              type: "concept",
+              summary: "A provider-specific paraphrase awaiting review.",
+              claims: [
+                {
+                  localKey: "local",
+                  statement: statements[provider],
+                  evidenceUnitVersionIds: [envelope.sourceUnits[0]!.unitVersionId],
+                },
+              ],
+            },
+          ],
+          relations: [],
+          telemetry: {
+            filesystemReads: 0,
+            filesystemWrites: 0,
+            shellProcesses: 0,
+            networkRequests: 0,
+            externalActions: 0,
+            toolCalls: 0,
+            complete: true,
+          },
+        }),
+      };
+      const candidate = await compileRepositoryKnowledgeCandidate({
+        scan,
+        policyHash,
+        compiler,
+        signal: new AbortController().signal,
+      });
+      await storeKnowledgeCompilationCandidate({ repositoryRoot: root, candidate });
+      candidates[provider] = candidate.compilationId;
+    }
+
+    messages.length = 0;
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "compare",
+          "--codex",
+          candidates.codex,
+          "--claude",
+          candidates.claude,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
+    const comparisonId = (JSON.parse(messages.join("")) as { comparisonId: string }).comparisonId;
+    messages.length = 0;
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "fuzzy-merge-candidate",
+          "--comparison",
+          comparisonId,
+          "--codex",
+          candidates.codex,
+          "--claude",
+          candidates.claude,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
+    const fuzzy = JSON.parse(messages.join("")) as {
+      receipt: { compilationId: string; assurance: string };
+      matches: Array<{ matchId: string; scoreBasisPoints: number }>;
+    };
+    expect(fuzzy).toMatchObject({
+      receipt: { assurance: "unreviewed" },
+      matches: [expect.objectContaining({ scoreBasisPoints: 8000 })],
+    });
+    messages.length = 0;
+    expect(
+      await runCli(["knowledge", "reconcile", fuzzy.receipt.compilationId, "--json"], io),
+    ).toBe(0);
+    const reconciliation = JSON.parse(messages.join("")) as {
+      reconciliationPlanId: string;
+      dispositions: Array<{
+        dispositionId: string;
+        action: string;
+        reasons: string[];
+        resolutionOptions: Array<{ resolutionHash: string }>;
+      }>;
+    };
+    expect(reconciliation.dispositions).toHaveLength(2);
+    expect(
+      reconciliation.dispositions.every(
+        (item) =>
+          item.action === "conflict" && item.reasons.includes("fuzzy_cross_provider_candidate"),
+      ),
+    ).toBe(true);
+    const selections = reconciliation.dispositions.map(
+      (item) => `${item.dispositionId}=${item.resolutionOptions[0]!.resolutionHash}`,
+    );
+    messages.length = 0;
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review-policy",
+          "--reviewer",
+          "human.fuzzy",
+          "--policy-id",
+          "knowledge_fuzzy.resolve",
+          "--allow-conflict-resolution",
+          "--write",
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
+    const policyPath = (JSON.parse(messages.join("")) as { path: string }).path;
+    messages.length = 0;
+    errors.length = 0;
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review",
+          fuzzy.receipt.compilationId,
+          "--plan",
+          reconciliation.reconciliationPlanId,
+          "--policy",
+          policyPath,
+          "--reviewer",
+          "human.fuzzy",
+          ...selections.flatMap((selection) => ["--resolve-item", selection]),
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(1);
+    expect(errors.join("")).toContain("Only one concept");
+
+    messages.length = 0;
+    errors.length = 0;
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "review",
+          fuzzy.receipt.compilationId,
+          "--plan",
+          reconciliation.reconciliationPlanId,
+          "--policy",
+          policyPath,
+          "--reviewer",
+          "human.fuzzy",
+          "--resolve-item",
+          selections[0]!,
+          "--json",
+        ],
+        io,
+      ),
+    ).toBe(0);
+    const review = JSON.parse(messages.join("")) as { review: { reviewId: string } };
+    messages.length = 0;
+    expect(await runCli(["knowledge", "materialize", review.review.reviewId, "--json"], io)).toBe(
+      0,
+    );
+    const planId = (JSON.parse(messages.join("")) as { planId: string }).planId;
+    messages.length = 0;
+    expect(
+      await runCli(
+        ["knowledge", "materialize", review.review.reviewId, "--apply", planId, "--json"],
+        io,
+      ),
+    ).toBe(0);
+    expect(errors).toEqual([]);
+  });
 });

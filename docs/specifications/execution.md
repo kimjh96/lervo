@@ -9,6 +9,8 @@ Defines provider-neutral contracts for managed runs, evidence, documents, knowle
 
 ## 2. Managed run lifecycle
 
+[Typed semantic grounding](execution/semantic-grounding.md) precedes selection and effects.
+
 ```text
 requested -> resolved -> documents/capabilities recommended and selected
 -> bytes loaded -> context prepared -> provider started
@@ -18,11 +20,9 @@ requested -> resolved -> documents/capabilities recommended and selected
 
 Completion requires agreement among contracts, capability decisions, context evidence, provider results, repository snapshots, and verification. Other provider work is `unmanaged`.
 
-Direct Codex and Claude hooks use a repository-local, self-verifying contract-v2 runtime. Before preparation is committed and `UserPromptSubmit` returns, they may query, exact-hash load, and prepare at most 28 KiB of UTF-8 context. This creates no managed run and proves no acceptance, understanding, or use. Fail-closed `Stop` requires current migration, bridge, knowledge, lint, and normalization, and compares prepared and current repository-authored revisions. Unchanged turns create no artificial workstream history. After a changed turn, the working agent—not the user—must create or advance the workstream with an agent/provider coordinate and emit an exact-revision turn declaration. Stop records only bounded coordinates and exact output-reference tokens matching the prepared session and turn. If activated after the turn began, Stop requests one JSON continuation; if the turn already continued without context, Stop succeeds without evidence and remains unmanaged. New tokens are standalone Markdown HTML comments; legacy plain v1 tokens remain valid for in-flight sessions.
+Direct Codex and Claude hooks use a repository-local, self-verifying contract-v2 runtime. Before preparation commits and `UserPromptSubmit` returns, they may query, exact-hash load, and prepare at most 28 KiB of UTF-8 context. This creates no managed run and proves no acceptance, understanding, or use. Fail-closed `Stop` requires current migration, bridge, knowledge, lint, and normalization, and compares prepared and current repository-authored revisions. Unchanged turns create no artificial workstream history. After a changed turn, the working agent—not the user—must create or advance the workstream with an agent/provider coordinate and emit an exact-revision turn declaration. Stop records only bounded coordinates and exact output-reference tokens matching the prepared session and turn. If activated after the turn began, Stop requests one JSON continuation; if the turn already continued without context, Stop succeeds without evidence and remains unmanaged. New tokens are standalone Markdown HTML comments; legacy plain v1 tokens remain valid for in-flight sessions.
 
 A current workstream must match its latest `workstream.snapshot.recorded` event and CAS artifact. Managed runs select it through required rule `repository.workstream` and load exact bytes before E3. Direct hooks prepend at most 8 KiB and record only ID, revision, snapshot hash, delivered bytes, and full or prefix scope. Absence is valid only for an unchanged turn before the first checkpoint; invalid state fails immediately. After repository bytes change, direct completion fails until a verified first revision exists or the current revision exceeds the prompt-time revision. Bounded pending decisions and approvals are unresolved current state; resolved history belongs in canonical documents.
-
-Managed search records operational and repository-knowledge recommendations separately. If an AGENTS instruction or registered document appears in both, injection discovery must resolve one canonical document ID with identical metadata; unproven same-path identity fails before the turn.
 
 Managed sessions suppress native project hooks. Graph-selected registered documents use bounded post-search projections and ordinary E1–E3 evidence (ADR-0216, ADR-0217).
 
@@ -66,7 +66,7 @@ The validated result is the E4 source. Before publication, remove only exact evi
 
 Plans bind state, expected paths, before and desired hashes, and verification. Apply rejects symlinks, escape, changed targets, unapproved paths, and stale plans.
 
-Snapshots cover repository-authored files, excluding Lervo runtime data and state, dependencies, and conventional generated build or cache directories. Source and tracked generated files remain covered.
+Snapshots cover repository-authored files, including source and tracked generated files, but exclude Lervo runtime data and state, dependencies, and conventional generated build or cache directories.
 
 User content changes only through explicit content-bound operations. Managed blocks preserve outside bytes. Generated files may change or be deleted only when recorded generation proves current-hash ownership.
 
@@ -102,9 +102,9 @@ The owner-only journal validates the plan and current bytes, stages outputs, bac
 
 ## 12. Hub and remote execution
 
-Hub and Node coordination remains authenticated, project-scoped, local-policy-bound, and independent of a specific network. Event streams, repository-scoped workstream replication, remote authority, runtime health, and service stability are defined in the [Hub and Node coordination specification](coordination/hub-and-node.md).
+Hub and Node coordination is authenticated, scoped, policy-bound, and network-neutral. Signed organization policy adds tenancy and split issuance/delivery authority. Secret-free grants bind policy, target, permissions, generation, and time. Inactive or revoked grants fail before load; source bytes are cleared after loading, and receipts exclude material. Local execution remains independent. See [Hub and Node coordination](coordination/hub-and-node.md).
 
-Repository Node apply revalidates a secret-free plan, installed payload, owner-only config, canonical service hash, and identity. It requires three stable manager and complete runtime observations before fleet registration; failure restores the prior verified state or remains unknown. `lervo upgrade` also binds the CLI build and subsystem plans, permits at most sixteen generated-only stages before lint, and compares registered Node payload hashes. User/provider bytes, trust, credentials, publication, onboarding, and legacy transitions retain separate authority. Local output excludes secrets, and no wrapper event duplicates inner evidence.
+Repository Node apply revalidates inputs and registers after three stable complete observations. Organization enrollment binds that evidence to active credential delivery. Rollout uses a one-Node canary, at-most-twofold waves, zero unavailable tolerance, and separate planning, approval, execution, and rollback; records claim no effect. Failure restores the predecessor or requires explicit rollback. User/provider bytes, trust, credentials, publication, onboarding, and legacy transitions retain separate authority.
 
 Repository workforce state uses durable role and agent identity, bounded parent depth, assignments, dependency and path scopes, short scheduler locks, renewable generation-bound leases, exact evidence handoffs, and CAS finalization. Same-role and mixed-role agents execute concurrently only on disjoint scopes. Root agents and subagents use identical transitions. `assignment.lease.renewed` retains assignment, agent, lease, generation, and expiry only; it excludes task prose, paths, prompts, output, reasoning, and credentials. Missing or rejected renewal leaves the prior lease authoritative until its recorded expiry.
 

@@ -18,6 +18,9 @@ export async function resolveRunCapabilities(input: {
   capabilityIds: readonly string[];
   generatedAt: string;
   query: string;
+  selectGroundedCapabilityIds?: (
+    candidates: readonly CapabilityRecommendation[],
+  ) => Promise<readonly string[]>;
   userRoot?: string;
 }): Promise<{
   capabilities: ResolvedCapability[];
@@ -35,9 +38,13 @@ export async function resolveRunCapabilities(input: {
           ...(input.userRoot === undefined ? {} : { userRoot: input.userRoot }),
         })
       : [];
+  const groundedCapabilityIds =
+    input.capabilityIds.length === 0 && recommendations.length > 0
+      ? await input.selectGroundedCapabilityIds?.(recommendations)
+      : undefined;
   const capabilityIds =
     input.capabilityIds.length === 0
-      ? recommendations.map((item) => item.capabilityId)
+      ? [...(groundedCapabilityIds ?? [])]
       : [...input.capabilityIds];
   if (capabilityIds.length === 0)
     return { capabilities: [], skillIds: [], activations: [], recommendations };

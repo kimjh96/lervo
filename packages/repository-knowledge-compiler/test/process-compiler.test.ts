@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   createProcessDocumentNormalizationCompiler,
   createProcessSemanticCompiler,
+  createNoCapabilityProviderJsonRunner,
 } from "../src/index.js";
 
 const policyHash = sha256(canonicalJson(defaultRepositoryKnowledgePolicy));
@@ -52,8 +53,9 @@ for await (const chunk of process.stdin) input += chunk;
 writeFileSync(${JSON.stringify(log)}, JSON.stringify({ args, cwd: process.cwd(), input }));
 if (${JSON.stringify(behavior)} === "hang") { setInterval(() => {}, 1000); }
 const parsed = JSON.parse(input);
-const evidence = parsed.envelope.sourceUnits[0].unitVersionId;
-const response = { schemaVersion: 1, concepts: [{ localKey: "runtime", title: "Runtime", type: "concept", summary: "A source-backed runtime candidate.", claims: [{ localKey: "local_first", statement: "The runtime is described as local-first.", evidenceUnitVersionIds: [evidence] }] }], relations: [] };
+const response = parsed.envelope === undefined
+  ? { schemaVersion: 1, decision: "typed" }
+  : { schemaVersion: 1, concepts: [{ localKey: "runtime", title: "Runtime", type: "concept", summary: "A source-backed runtime candidate.", claims: [{ localKey: "local_first", statement: "The runtime is described as local-first.", evidenceUnitVersionIds: [parsed.envelope.sourceUnits[0].unitVersionId] }] }], relations: [] };
 if (${JSON.stringify(provider)} === "claude") {
   console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), permission_denials: [], stop_reason: ${JSON.stringify(behavior)} === "tool" ? "tool_use" : "end_turn", num_turns: ${JSON.stringify(behavior)} === "tool" ? 2 : 1, usage: { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } } }));
 } else {
@@ -79,6 +81,27 @@ afterEach(async () => {
 });
 
 describe("generate-only process semantic compilers", () => {
+  for (const provider of ["codex", "claude"] as const) {
+    it(`${provider} runs provider-neutral JSON through the common no-capability contract`, async () => {
+      const item = await fixture(provider);
+      const runner = await createNoCapabilityProviderJsonRunner({
+        provider,
+        executable: item.executable,
+        timeoutMs: 5_000,
+      });
+      await expect(runner.resolve({ instruction: "return typed JSON" })).resolves.toEqual({
+        schemaVersion: 1,
+        decision: "typed",
+      });
+      const invocation = JSON.parse(await readFile(item.log, "utf8")) as {
+        args: string[];
+        cwd: string;
+      };
+      expect(invocation.cwd).not.toBe(item.repository);
+      expect(invocation.args).toContain(provider === "codex" ? "--ignore-user-config" : "--tools");
+    });
+  }
+
   for (const provider of ["codex", "claude"] as const) {
     it(`${provider} compiles in an empty temporary cwd with no model tools`, async () => {
       const item = await fixture(provider);

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5130c1ebe9dca9cde2728f4e"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add approval-gated fuzzy cross-provider knowledge merge candidates."

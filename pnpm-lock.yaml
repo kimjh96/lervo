@@ -128,6 +128,12 @@ importers:
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
+      '@lervo/organization-deployment-contract':
+        specifier: workspace:*
+        version: link:../../packages/organization-deployment-contract
+      '@lervo/organization-deployment-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/organization-deployment-sqlite
       '@lervo/project':
         specifier: workspace:*
         version: link:../../packages/project
@@ -143,9 +149,15 @@ importers:
       '@lervo/repository-registry':
         specifier: workspace:*
         version: link:../../packages/repository-registry
+      '@lervo/request-grounding':
+        specifier: workspace:*
+        version: link:../../packages/request-grounding
       '@lervo/roles':
         specifier: workspace:*
         version: link:../../packages/roles
+      '@lervo/runtime-security':
+        specifier: workspace:*
+        version: link:../../packages/runtime-security
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -155,9 +167,6 @@ importers:
       '@lervo/search-adapter-bm25f':
         specifier: workspace:*
         version: link:../../packages/search-adapter-bm25f
-      '@lervo/search-adapter-local-hybrid':
-        specifier: workspace:*
-        version: link:../../packages/search-adapter-local-hybrid
       '@lervo/search-local':
         specifier: workspace:*
         version: link:../../packages/search-local
@@ -167,6 +176,9 @@ importers:
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../../packages/storage-contract
+      '@lervo/sync-contract':
+        specifier: workspace:*
+        version: link:../../packages/sync-contract
       '@lervo/verification':
         specifier: workspace:*
         version: link:../../packages/verification
@@ -341,6 +353,12 @@ importers:
       '@lervo/managed-provider-host':
         specifier: workspace:*
         version: link:../../packages/managed-provider-host
+      '@lervo/organization-credential-source-file':
+        specifier: workspace:*
+        version: link:../../packages/organization-credential-source-file
+      '@lervo/organization-deployment-contract':
+        specifier: workspace:*
+        version: link:../../packages/organization-deployment-contract
       '@lervo/policy':
         specifier: workspace:*
         version: link:../../packages/policy
@@ -489,6 +507,9 @@ importers:
       '@lervo/project-storage':
         specifier: workspace:*
         version: link:../project-storage
+      '@lervo/request-grounding':
+        specifier: workspace:*
+        version: link:../request-grounding
       '@lervo/roles':
         specifier: workspace:*
         version: link:../roles
@@ -1124,6 +1145,37 @@ importers:
         specifier: workspace:*
         version: link:../workspace-host-git
 
+  packages/organization-credential-source-file:
+    dependencies:
+      '@lervo/organization-deployment-contract':
+        specifier: workspace:*
+        version: link:../organization-deployment-contract
+      '@lervo/runtime-security':
+        specifier: workspace:*
+        version: link:../runtime-security
+
+  packages/organization-deployment-contract:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
+  packages/organization-deployment-sqlite:
+    dependencies:
+      '@lervo/organization-deployment-contract':
+        specifier: workspace:*
+        version: link:../organization-deployment-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+    devDependencies:
+      '@lervo/repository-registry':
+        specifier: workspace:*
+        version: link:../repository-registry
+
   packages/policy:
     dependencies:
       '@lervo/policy-contract':
@@ -1271,6 +1323,8 @@ importers:
         specifier: workspace:*
         version: link:../sync-contract
 
+  packages/request-grounding: {}
+
   packages/roles:
     dependencies:
       '@lervo/deliberation':
@@ -1308,12 +1362,6 @@ importers:
         version: link:../event-contract
 
   packages/search-adapter-bm25f:
-    dependencies:
-      '@lervo/search':
-        specifier: workspace:*
-        version: link:../search
-
-  packages/search-adapter-local-hybrid:
     dependencies:
       '@lervo/search':
         specifier: workspace:*

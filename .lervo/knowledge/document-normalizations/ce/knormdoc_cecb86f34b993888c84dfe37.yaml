@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f9af4697ef2b46a72c45467c
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0646627884ac3a4f2f1e748f
+outputLanguage: en
+outputs:
+  - byteCount: 7789
+    contentHash: sha256:9dcaef80b53de673413b963fd2d66310450bfcacf1f7953d6b0ae2c203c1ca9b
+    path: docs/decisions/operations/security/0229-organization-node-enrollment-and-gradual-rollout.md
+    userRegionHash: sha256:9dcaef80b53de673413b963fd2d66310450bfcacf1f7953d6b0ae2c203c1ca9b
+profile: decision_record
+recordId: knormdoc_cecb86f34b993888c84dfe37
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6d5a22f6ecc8a8fb34ac395846963b7512d88a18d49469543e3c939d088e32fb
+sourcePath: docs/decisions/operations/security/0229-organization-node-enrollment-and-gradual-rollout.md
+sourceUnitVersionIds:
+  - uv_0f3bb11761e7fd64cb7a2840
+  - uv_2bfc093731d6c9502b49f8ca
+  - uv_3b0186161d2d62461fa2be03
+  - uv_b252a928e10a7c5d12f104b7
+  - uv_c9de855fa774d3f72dea8d0e
+  - uv_d6ddb5bf25a2d6317eb6f09f
+  - uv_e8d116d04f652c5a6d9c0932

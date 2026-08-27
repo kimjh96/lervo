@@ -61,7 +61,7 @@ export async function executeDeliberationRounds(input: {
         instructions,
         documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
       }),
-    record: (run) =>
+    record: (run, publicationAttempt) =>
       recordDeliberationTurn({
         runtime: input.runtime,
         runner: input.runner,
@@ -76,6 +76,7 @@ export async function executeDeliberationRounds(input: {
         },
         previousArtifactIds: [],
         recipientRoleIds: input.recipientRoleIds,
+        publicationAttempt,
       }),
   });
   let currentClaim = {
@@ -102,7 +103,7 @@ export async function executeDeliberationRounds(input: {
             instructions,
             documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
           }),
-        record: async (run) => {
+        record: async (run, publicationAttempt) => {
           const details = reviewDetails({
             content: run.content,
             contentHash: run.run.resultArtifact.contentHash,
@@ -125,6 +126,7 @@ export async function executeDeliberationRounds(input: {
               ...roundReviews.map((item) => item.artifact.deliberationArtifactId),
             ],
             recipientRoleIds: input.recipientRoleIds,
+            publicationAttempt,
           });
           return { turn, details };
         },
@@ -176,7 +178,7 @@ export async function executeDeliberationRounds(input: {
           instructions,
           documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
         }),
-      record: (run) => {
+      record: (run, publicationAttempt) => {
         const nextClaim = {
           claimId,
           claimDigest: run.run.resultArtifact.contentHash,
@@ -200,6 +202,7 @@ export async function executeDeliberationRounds(input: {
             ...roundReviews.map((item) => item.artifact.deliberationArtifactId),
           ],
           recipientRoleIds: input.recipientRoleIds,
+          publicationAttempt,
         });
       },
     });

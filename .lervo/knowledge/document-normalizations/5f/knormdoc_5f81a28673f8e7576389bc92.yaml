@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_14b005bafde3310ff196d6b6
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_92202ee3661f13e6e580d7c4
+outputLanguage: en
+outputs:
+  - byteCount: 1187
+    contentHash: sha256:35e5e1ea91ddfbfb695580be8c3a62019656fd47efeb528310954c5f93e6fb79
+    path: docs/architecture/data-ownership-and-failure.md
+    userRegionHash: sha256:35e5e1ea91ddfbfb695580be8c3a62019656fd47efeb528310954c5f93e6fb79
+profile: architecture_document
+recordId: knormdoc_5f81a28673f8e7576389bc92
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9a9153d041b65e6f5c5e2c9fe0de8a3032040419620fe7be52e495fb9453c1cf
+sourcePath: docs/architecture/data-ownership-and-failure.md
+sourceUnitVersionIds:
+  - uv_1407519e485d2ee14344f3b1
+  - uv_501ba2f199a322f247e46bb4
+  - uv_a211974bec769a7d8c2d3289
+  - uv_eb649cb6140157c6b869f44a

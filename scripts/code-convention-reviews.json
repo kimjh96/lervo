@@ -25,21 +25,21 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:d631fab3222c36aa64191c972711d7b3a02ef7f84d047c83813a6a3bec63eec4",
+      "contentHash": "sha256:6710afb3fb7460e5e87688bdd1c86993d23312533170e49d46bb66f141755075",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The module composes one managed provider-run boundary; provider differences remain injected dependencies and no unrelated CLI subcommand or persistence policy is owned here.",
       "disposition": "cohesive"
     },
     {
       "path": "apps/cli/src/node-fleet-apply.ts",
-      "contentHash": "sha256:2576d9675ac21e73aa95a282a8cd11ddc6e061fd5483b21be9f02d3e8c8d7dee",
+      "contentHash": "sha256:90ba584088b4b2fb6fcc2cef2c5f01d76ffe96e0d5548bd767df7c33c3ef68a4",
       "responsibility": "Repository Node fleet onboarding transaction",
       "rationale": "Status inspection, readiness observation, installation, and legacy transition are phases of one transactional fleet-apply contract with shared compensation and health evidence.",
       "disposition": "cohesive"
     },
     {
       "path": "apps/cli/src/terminal-command-runtime.ts",
-      "contentHash": "sha256:85baa0f3322448fad4dd113843893df9d11f0c51b6b9a4bcb163b6053c123f73",
+      "contentHash": "sha256:16e358f76d5dd02864add0bed29356d52b754acb18c31ee72ebaa55a54596e64",
       "responsibility": "Direct terminal-integration command runtime",
       "rationale": "The stable terminal command is a one-line facade; this implementation owns direct terminal hook preparation, evidence recording, execution-kind routing, declaration, coverage, and completion gating while workspace policy remains in a linked module.",
       "disposition": "cohesive"
@@ -53,7 +53,7 @@
     },
     {
       "path": "apps/cli/src/workforce-command.ts",
-      "contentHash": "sha256:ff623c89ff3c11986980bf1046887e5ef761c9bbcad67e7c43ab98be2bbebaf2",
+      "contentHash": "sha256:859285c3c960c1520a048cc6269262dc535c1d90644b6ac2423ddcaac9d48c83",
       "responsibility": "Repository workforce CLI adapter",
       "rationale": "The command parses and translates one workforce lifecycle surface; durable agent, assignment, lease, and handoff policy remains in the workforce package rather than this adapter.",
       "disposition": "cohesive"
@@ -94,8 +94,15 @@
       "disposition": "cohesive"
     },
     {
+      "path": "packages/deliberation-runtime/src/runtime.ts",
+      "contentHash": "sha256:be0377ada90c87444dccc0bb3835dd2747f7258fdcafef94d9d810ddd42e281b",
+      "responsibility": "Stateful deliberation lifecycle coordinator",
+      "rationale": "The module owns one in-memory deliberation state machine; artifact publication failure recording and handoff materialization remain in linked modules, while methods enforce shared history and event invariants.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:5e082f57e58fba914437c2d48a1f05c6508a605d5930abca7f729f1218c5c4ca",
+      "contentHash": "sha256:0f7659cb90d8f6713833d20ce67d24f978bc253af78d13bbb987fce7f97ff690",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
       "disposition": "cohesive"
@@ -129,6 +136,13 @@
       "disposition": "cohesive"
     },
     {
+      "path": "packages/organization-deployment-sqlite/src/rollback-store.ts",
+      "contentHash": "sha256:6ec6c6de41520cb70e6f5799c24e2ad4f10455e84251433bbddca08c4abbc807",
+      "responsibility": "Organization rollback replay SQLite persistence",
+      "rationale": "Reservation, completion, recovery projection, target binding, and integrity checks all operate on one immutable rollback replay table and transaction lifecycle; authorization and rollback policy remain outside the adapter.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "packages/policy-sqlite/src/store.ts",
       "contentHash": "sha256:5e6e9a01e5084ea11e73a380f74136518597242ddf6b34dd7efc9479a2434d3c",
       "responsibility": "Policy state SQLite adapter",
@@ -137,16 +151,9 @@
     },
     {
       "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
-      "contentHash": "sha256:f01c665a2eda146283f58b86b5ed319dc299ba3cced6b91d270424f9e9368a5d",
-      "responsibility": "Isolated provider compiler process adapter",
-      "rationale": "Process control and Codex or Claude response parsing are contained within one capability-free compiler adapter boundary that returns provider-neutral compiler contracts.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/repository-knowledge/src/candidate-store.ts",
-      "contentHash": "sha256:1cdc0f4dbbe707104674a59cac361535bdc2b4986dcc9cdc5977d368463ecc16",
-      "responsibility": "Knowledge compilation candidate storage",
-      "rationale": "Validation, safe directory handling, content-addressed persistence, and loading serve one candidate-store contract with no domain decision outside candidate integrity.",
+      "contentHash": "sha256:f5bc0abdf0587090c774672e98e86c976e6519e289a4c327cf79667f1497e394",
+      "responsibility": "Isolated no-capability provider process adapter",
+      "rationale": "Process control and Codex or Claude response parsing implement one capability-free provider boundary for typed JSON, semantic compilation, and document normalization contracts.",
       "disposition": "cohesive"
     },
     {
@@ -214,14 +221,14 @@
     },
     {
       "path": "packages/repository-knowledge/src/reconciliation-review.ts",
-      "contentHash": "sha256:67e061aadbd9d3cab68a97c9783cd3f74ef5f9844e3cc2ba70a3b9b5bd43db21",
+      "contentHash": "sha256:3a21489ac0d9e8cb172c9b28bd45dbb60db1e5863f44404721e4e63749e485d5",
       "responsibility": "Semantic reconciliation review lifecycle",
       "rationale": "Policy validation, review identity, disposition validation, artifact persistence, and event recording form one exact-review responsibility.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/reconciliation.ts",
-      "contentHash": "sha256:a356eecd7f7eda46a3823268cae8f6048b84a2d6fd9153bbc4ee9ae5da68467a",
+      "contentHash": "sha256:833a90612baa44cbcd5a6adbfe9cdda61db8f590d419f18dcfd0261c14caf498",
       "responsibility": "Semantic candidate reconciliation planning",
       "rationale": "Existing registry inspection, candidate signatures, conflict options, and dispositions jointly produce one read-only reconciliation plan.",
       "disposition": "cohesive"
@@ -242,7 +249,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/semantic-compiler.ts",
-      "contentHash": "sha256:b48b9ef14d6777aff8bd19cf033ef67c19ae2e93c328f689993f6b3384cfe6f2",
+      "contentHash": "sha256:b74fc329979f8c786252bf6261b17ba60bbbdf588713743aefe0dbdfedb83473",
       "responsibility": "Semantic knowledge candidate compiler",
       "rationale": "Compilation identity, bounded sharding, provider response validation, and candidate assembly are phases of one semantic compiler contract.",
       "disposition": "cohesive"
@@ -297,10 +304,10 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/search-adapter-local-hybrid/src/indexer.ts",
-      "contentHash": "sha256:b33a87619b3a1148af9da9f186791c0b9deb28e054f47711e947a261a8913bde",
-      "responsibility": "Local hybrid search index",
-      "rationale": "Feature hashing, sparse embedding, postings construction, ranking, response hashing, and evaluation adapter implement one deterministic search-index boundary.",
+      "path": "packages/schemas/src/validate.ts",
+      "contentHash": "sha256:6efc1319f24e123ace0d3e4af29981cfc2b904f63d077da8f6ded5d926a3ed1c",
+      "responsibility": "Repository schema validator registry",
+      "rationale": "The module declaratively registers and exposes validators for the versioned schema catalog; its length follows schema inventory and it owns no domain workflow or external effect.",
       "disposition": "cohesive"
     },
     {

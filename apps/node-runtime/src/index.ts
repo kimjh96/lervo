@@ -9,6 +9,7 @@ export * from "./errors.js";
 export * from "./health.js";
 export * from "./lifecycle.js";
 export * from "./managed-provider-runtime.js";
+export * from "./organization-credential-delivery.js";
 export * from "./process-runtime.js";
 export * from "./trust.js";
 export * from "./workstream-replication.js";

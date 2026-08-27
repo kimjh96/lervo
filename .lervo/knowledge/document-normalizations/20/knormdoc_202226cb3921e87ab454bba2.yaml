@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_aeb9467158254d3bd446dfe9
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_458783949998ac3c000e5b3f
+outputLanguage: en
+outputs:
+  - byteCount: 7676
+    contentHash: sha256:27c191f9c477c9847648fe22940225d3e1e606717e1c4d4f3e4a68e861714f76
+    path: docs/decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md
+    userRegionHash: sha256:27c191f9c477c9847648fe22940225d3e1e606717e1c4d4f3e4a68e861714f76
+profile: decision_record
+recordId: knormdoc_202226cb3921e87ab454bba2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f9c29ea57beaa6fb72a1117454dbb0e10565c5311fbe10c157351a44f6737f3b
+sourcePath: docs/decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md
+sourceUnitVersionIds:
+  - uv_0facf2e34701ede9e922b987
+  - uv_3f70c5b20db830a2d025f313
+  - uv_709b5ebb27d4c1faf0d96c5d
+  - uv_84ac70860f6d4dd937b3b67e
+  - uv_dfc08c536f6112d67564eb84
+  - uv_fbb4d006c94ad6e3bc389d9a

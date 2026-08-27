@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a46634edb5b67ec7a3a544aa"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add authenticated installed organization Node rollout delivery with durable replay fencing."

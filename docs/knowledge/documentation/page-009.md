@@ -3,6 +3,17 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0115: CLI First-Publication Transition Evidence Union](../../decisions/release/bootstrap/0115-cli-first-publication-transition-evidence-union.md) — `docs/decisions/release/bootstrap/0115-cli-first-publication-transition-evidence-union.md`
+- [ADR-0116: CLI First-Publication Transition Completion Command](../../decisions/release/bootstrap/0116-cli-first-publication-transition-completion-command.md) — `docs/decisions/release/bootstrap/0116-cli-first-publication-transition-completion-command.md`
+- [ADR-0132: Inspect CLI First-Publication Completion Records](../../decisions/release/bootstrap/0132-cli-first-publication-completion-inspection.md) — `docs/decisions/release/bootstrap/0132-cli-first-publication-completion-inspection.md`
+- [ADR-0025: Human-facing publication gate and content-bound permits](../../decisions/release/packaging/0025-writing-publication-gate.md) — `docs/decisions/release/packaging/0025-writing-publication-gate.md`
+- [ADR-0047: Role-scoped managed conversation responses and publication evidence](../../decisions/release/packaging/0047-managed-conversation-responder.md) — `docs/decisions/release/packaging/0047-managed-conversation-responder.md`
+- [ADR-0086: Canonical CLI release artifact manifest](../../decisions/release/packaging/0086-canonical-cli-release-artifact-manifest.md) — `docs/decisions/release/packaging/0086-canonical-cli-release-artifact-manifest.md`
+- [ADR-0089: CLI multi-platform release matrix](../../decisions/release/packaging/0089-cli-multi-platform-release-matrix.md) — `docs/decisions/release/packaging/0089-cli-multi-platform-release-matrix.md`
+- [ADR-0090: CLI package usage-guide contract](../../decisions/release/packaging/0090-cli-package-usage-guide.md) — `docs/decisions/release/packaging/0090-cli-package-usage-guide.md`
+- [ADR-0215: Supported-runtime release portability](../../decisions/release/packaging/0215-supported-runtime-release-portability.md) — `docs/decisions/release/packaging/0215-supported-runtime-release-portability.md`
+- [ADR-0221: Reviewed CLI release preparation](../../decisions/release/packaging/0221-reviewed-cli-release-preparation.md) — `docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md`
+- [ADR-0223: Base-bound CLI release completion](../../decisions/release/packaging/0223-base-bound-cli-release-completion.md) — `docs/decisions/release/packaging/0223-base-bound-cli-release-completion.md`
 - [ADR-0117: CLI First-Publication Stage-Only Workflow Candidate](../../decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md) — `docs/decisions/release/staging/0117-cli-first-publication-stage-only-workflow-candidate.md`
 - [ADR-0118: CLI Stage-Publication Command Boundary](../../decisions/release/staging/0118-cli-stage-publication-command-boundary.md) — `docs/decisions/release/staging/0118-cli-stage-publication-command-boundary.md`
 - [ADR-0119: Stage-Only Workflow Activation Permit and Transaction](../../decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md) — `docs/decisions/release/staging/0119-cli-stage-only-workflow-activation-permit-transaction.md`
@@ -16,14 +27,3 @@
 - [ADR-0127: Durable npm Stage-Approval Records](../../decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md) — `docs/decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md`
 - [ADR-0128: Interactive npm Stage-Approval Execution](../../decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md) — `docs/decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md`
 - [ADR-0129: npm Stage-Approval Reconciliation Evidence](../../decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md) — `docs/decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md`
-- [ADR-0130: Integrate Stage Approval into Publication Transition](../../decisions/release/staging/0130-cli-stage-approval-transition-integration.md) — `docs/decisions/release/staging/0130-cli-stage-approval-transition-integration.md`
-- [ADR-0131: Stage-Evidence Bundle Manifest](../../decisions/release/staging/0131-cli-stage-evidence-bundle-manifest.md) — `docs/decisions/release/staging/0131-cli-stage-evidence-bundle-manifest.md`
-- [ADR-0053: Deterministic lexical search with explicit failure observations](../../decisions/search/0053-deterministic-lexical-search-observations.md) — `docs/decisions/search/0053-deterministic-lexical-search-observations.md`
-- [ADR-0054: Boundary between search recommendations and managed context selection](../../decisions/search/0054-search-recommendation-managed-context-boundary.md) — `docs/decisions/search/0054-search-recommendation-managed-context-boundary.md`
-- [ADR-0055: Reviewed search evaluation cases and repeat measurement](../../decisions/search/0055-reviewed-search-evaluation-cases.md) — `docs/decisions/search/0055-reviewed-search-evaluation-cases.md`
-- [ADR-0056: Search evaluation bundles and sample sufficiency](../../decisions/search/0056-search-evaluation-sample-bundles.md) — `docs/decisions/search/0056-search-evaluation-sample-bundles.md`
-- [ADR-0057: Provider-neutral search candidate comparison](../../decisions/search/0057-provider-neutral-search-candidate-comparison.md) — `docs/decisions/search/0057-provider-neutral-search-candidate-comparison.md`
-- [ADR-0059: Search candidate review with replay verification](../../decisions/search/0059-replayed-search-candidate-review.md) — `docs/decisions/search/0059-replayed-search-candidate-review.md`
-- [ADR-0060: Policy-bound search-engine selection and rollback](../../decisions/search/0060-policy-bound-search-engine-selection.md) — `docs/decisions/search/0060-policy-bound-search-engine-selection.md`
-- [ADR-0061: Fail-closed operational search-engine resolution](../../decisions/search/0061-fail-closed-operational-search-engine-resolution.md) — `docs/decisions/search/0061-fail-closed-operational-search-engine-resolution.md`
-- [ADR-0062: Refreshing evidence for a selected search candidate](../../decisions/search/0062-selected-search-candidate-evidence-refresh.md) — `docs/decisions/search/0062-selected-search-candidate-evidence-refresh.md`

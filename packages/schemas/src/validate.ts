@@ -23,6 +23,7 @@ import {
 import { deliberationArtifactSchema } from "./deliberation-artifact.js";
 import {
   deliberationArtifactRecordedEventPayloadSchema,
+  deliberationArtifactPublicationFailedEventPayloadSchema,
   deliberationCompletedEventPayloadSchema,
   deliberationStartedEventPayloadSchema,
 } from "./deliberation-event.js";
@@ -79,6 +80,42 @@ import {
   managedContextReferencedEventPayloadSchema,
 } from "./managed-context-event.js";
 import { knowledgeCandidateSchema } from "./knowledge.js";
+import {
+  organizationDeploymentPolicySchema,
+  organizationRuntimeCredentialDeliveryReceiptSchema,
+  organizationRuntimeCredentialGrantSchema,
+  organizationRuntimeCredentialRevocationSchema,
+  signedOrganizationDeploymentPolicySchema,
+} from "./organization-deployment.js";
+import {
+  organizationFleetRolloutApprovalSchema,
+  organizationFleetRolloutPlanSchema,
+  organizationFleetWaveObservationSchema,
+  organizationNodeEnrollmentSchema,
+} from "./organization-fleet.js";
+import {
+  organizationNodeRolloutExecutionPlanSchema,
+  organizationNodeRolloutExecutionReceiptSchema,
+} from "./organization-rollout-execution.js";
+import {
+  organizationNodeRolloutDeliveryReceiptSchema,
+  organizationNodeRolloutDeliverySchema,
+  signedOrganizationNodeRolloutDeliverySchema,
+} from "./organization-rollout-delivery.js";
+import {
+  organizationNodeRolloutRecoveryObservationSchema,
+  organizationNodeRolloutRecoveryReceiptSchema,
+} from "./organization-rollout-recovery.js";
+import {
+  organizationNodeRolloutRollbackPlanSchema,
+  organizationNodeRolloutRollbackReceiptSchema,
+} from "./organization-rollout-rollback.js";
+import {
+  organizationNodeRollbackDeliveryReceiptSchema,
+  organizationNodeRollbackDeliverySchema,
+  organizationNodeRollbackRecoveryReceiptSchema,
+  signedOrganizationNodeRollbackDeliverySchema,
+} from "./organization-rollback-delivery.js";
 import {
   knowledgeCandidateCreatedEventPayloadSchema,
   knowledgeCandidateReviewedEventPayloadSchema,
@@ -169,6 +206,25 @@ ajv.addSchema(signedRemoteCommandSchema);
 ajv.addSchema(remoteCommandExecutionReceiptSchema);
 ajv.addSchema(deliberationPolicySchema);
 ajv.addSchema(managedContextCoverageReportSchema);
+ajv.addSchema(organizationDeploymentPolicySchema);
+ajv.addSchema(signedOrganizationDeploymentPolicySchema);
+ajv.addSchema(organizationFleetRolloutPlanSchema);
+ajv.addSchema(organizationFleetRolloutApprovalSchema);
+ajv.addSchema(organizationFleetWaveObservationSchema);
+ajv.addSchema(organizationNodeEnrollmentSchema);
+ajv.addSchema(organizationNodeRolloutExecutionPlanSchema);
+ajv.addSchema(organizationNodeRolloutExecutionReceiptSchema);
+ajv.addSchema(organizationNodeRolloutDeliverySchema);
+ajv.addSchema(signedOrganizationNodeRolloutDeliverySchema);
+ajv.addSchema(organizationNodeRolloutDeliveryReceiptSchema);
+ajv.addSchema(organizationNodeRolloutRecoveryObservationSchema);
+ajv.addSchema(organizationNodeRolloutRecoveryReceiptSchema);
+ajv.addSchema(organizationNodeRolloutRollbackPlanSchema);
+ajv.addSchema(organizationNodeRolloutRollbackReceiptSchema);
+ajv.addSchema(organizationNodeRollbackDeliverySchema);
+ajv.addSchema(signedOrganizationNodeRollbackDeliverySchema);
+ajv.addSchema(organizationNodeRollbackDeliveryReceiptSchema);
+ajv.addSchema(organizationNodeRollbackRecoveryReceiptSchema);
 
 const validators = {
   capabilityPackageManifest: ajv.compile(capabilityPackageManifestSchema),
@@ -223,6 +279,9 @@ const validators = {
   deliberationArtifactRecordedEventPayload: ajv.compile(
     deliberationArtifactRecordedEventPayloadSchema,
   ),
+  deliberationArtifactPublicationFailedEventPayload: ajv.compile(
+    deliberationArtifactPublicationFailedEventPayloadSchema,
+  ),
   deliberationCompletedEventPayload: ajv.compile(deliberationCompletedEventPayloadSchema),
   developmentPatternObservedEventPayload: ajv.compile(developmentPatternObservedEventPayloadSchema),
   developmentPatternTransitionedEventPayload: ajv.compile(
@@ -269,6 +328,52 @@ const validators = {
   managedBlockPatchCandidate: ajv.compile(managedBlockPatchCandidateSchema),
   managedBlockPatchCandidateArtifact: ajv.compile(managedBlockPatchCandidateArtifactSchema),
   knowledgeCandidate: ajv.compile(knowledgeCandidateSchema),
+  organizationDeploymentPolicy: ajv.getSchema(organizationDeploymentPolicySchema.$id)!,
+  signedOrganizationDeploymentPolicy: ajv.getSchema(signedOrganizationDeploymentPolicySchema.$id)!,
+  organizationRuntimeCredentialGrant: ajv.compile(organizationRuntimeCredentialGrantSchema),
+  organizationRuntimeCredentialRevocation: ajv.compile(
+    organizationRuntimeCredentialRevocationSchema,
+  ),
+  organizationRuntimeCredentialDeliveryReceipt: ajv.compile(
+    organizationRuntimeCredentialDeliveryReceiptSchema,
+  ),
+  organizationNodeEnrollment: ajv.compile(organizationNodeEnrollmentSchema),
+  organizationFleetRolloutPlan: ajv.compile(organizationFleetRolloutPlanSchema),
+  organizationFleetWaveObservation: ajv.compile(organizationFleetWaveObservationSchema),
+  organizationFleetRolloutApproval: ajv.compile(organizationFleetRolloutApprovalSchema),
+  organizationNodeRolloutExecutionPlan: ajv.compile(organizationNodeRolloutExecutionPlanSchema),
+  organizationNodeRolloutExecutionReceipt: ajv.compile(
+    organizationNodeRolloutExecutionReceiptSchema,
+  ),
+  organizationNodeRolloutDelivery: ajv.getSchema(organizationNodeRolloutDeliverySchema.$id)!,
+  signedOrganizationNodeRolloutDelivery: ajv.getSchema(
+    signedOrganizationNodeRolloutDeliverySchema.$id,
+  )!,
+  organizationNodeRolloutDeliveryReceipt: ajv.getSchema(
+    organizationNodeRolloutDeliveryReceiptSchema.$id,
+  )!,
+  organizationNodeRolloutRecoveryObservation: ajv.getSchema(
+    organizationNodeRolloutRecoveryObservationSchema.$id,
+  )!,
+  organizationNodeRolloutRecoveryReceipt: ajv.getSchema(
+    organizationNodeRolloutRecoveryReceiptSchema.$id,
+  )!,
+  organizationNodeRolloutRollbackPlan: ajv.getSchema(
+    organizationNodeRolloutRollbackPlanSchema.$id,
+  )!,
+  organizationNodeRolloutRollbackReceipt: ajv.getSchema(
+    organizationNodeRolloutRollbackReceiptSchema.$id,
+  )!,
+  organizationNodeRollbackDelivery: ajv.getSchema(organizationNodeRollbackDeliverySchema.$id)!,
+  signedOrganizationNodeRollbackDelivery: ajv.getSchema(
+    signedOrganizationNodeRollbackDeliverySchema.$id,
+  )!,
+  organizationNodeRollbackDeliveryReceipt: ajv.getSchema(
+    organizationNodeRollbackDeliveryReceiptSchema.$id,
+  )!,
+  organizationNodeRollbackRecoveryReceipt: ajv.getSchema(
+    organizationNodeRollbackRecoveryReceiptSchema.$id,
+  )!,
   knowledgePromotionPolicy: ajv.compile(knowledgePromotionPolicySchema),
   knowledgeReviewApproval: ajv.compile(knowledgeReviewApprovalSchema),
   verifiedKnowledge: ajv.compile(verifiedKnowledgeSchema),

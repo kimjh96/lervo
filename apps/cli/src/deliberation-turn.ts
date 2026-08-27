@@ -24,13 +24,13 @@ function opposite(provider: RunProvider): RunProvider {
 export async function executeWithPublicationRepair<T, R>(input: {
   instructions: string;
   execute(instructions: string): Promise<R>;
-  record(run: R): Promise<T>;
+  record(run: R, publicationAttempt: number): Promise<T>;
 }): Promise<{ run: R; recorded: T }> {
   let instructions = input.instructions;
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     const run = await input.execute(instructions);
     try {
-      return { run, recorded: await input.record(run) };
+      return { run, recorded: await input.record(run, attempt) };
     } catch (error) {
       const repairable =
         error instanceof DeliberationRuntimeError &&
@@ -56,6 +56,7 @@ export async function recordDeliberationTurn<K extends DeliberationArtifact["kin
   previousArtifactIds: readonly string[];
   verificationEvidence?: DeliberationVerificationEvidence;
   recipientRoleIds: readonly string[];
+  publicationAttempt?: number;
 }): Promise<DeliberationTurnResult> {
   const turn = await input.runtime.executeTurn<K>({
     kind: input.kind,
@@ -66,6 +67,8 @@ export async function recordDeliberationTurn<K extends DeliberationArtifact["kin
     executeManagedRun: async () => input.run.run,
     writingContract: input.workspace.writingContract,
     semanticEvaluator: input.runner.semanticEvaluator(opposite(input.provider)),
+    semanticEvaluatorProvider: opposite(input.provider),
+    publicationAttempt: input.publicationAttempt ?? 1,
     ...(input.verificationEvidence === undefined
       ? {}
       : { verificationEvidence: input.verificationEvidence }),

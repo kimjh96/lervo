@@ -18,17 +18,17 @@ user or platform
 
 The local project is the execution authority. The Hub coordinates but cannot weaken project policy or replace repository source truth.
 
-Direct provider terminals use a narrower native-hook path. Each prompt performs a fail-closed query and receives exact-hash context. Stop checks knowledge currency and may observe exact context-reference markers. New markers are standalone Markdown HTML comments; legacy plain v1 tokens remain accepted. Privacy-bounded preparation, reference, and turn events prove neither provider acceptance nor internal use and cannot satisfy managed E1–E4 because Lervo did not create or fully observe the provider process.
+Direct provider terminals use a narrower native-hook path. Each prompt performs a fail-closed query and receives exact-hash context. Stop checks knowledge currency and may observe exact context-reference markers. New markers are standalone Markdown HTML comments; legacy plain v1 tokens remain accepted. Privacy-bounded preparation, reference, and turn events prove neither provider acceptance nor internal use. They cannot satisfy managed E1–E4 because Lervo did not create or fully observe the provider process.
 
 ## Major boundaries
 
 ### Project and storage
 
-`.lervo/project.yaml` identifies the repository and privacy defaults. Durable records are under gitignored `.lervo/data`; rebuildable projections are under `.lervo/state`. Runtime directories are lazy. Legacy relocation is atomic and fails closed on conflicting copies.
+`.lervo/project.yaml` identifies the repository and privacy defaults. Durable records reside in gitignored `.lervo/data`; rebuildable projections reside in `.lervo/state`. Runtime directories are created lazily. Legacy relocation is atomic and fails closed on conflicting copies.
 
-Active continuation is `.lervo/state/workstreams/current.json`. CAS under `.lervo/data/cas` stores exact snapshots and optional legacy-source bytes; `workstream.snapshot.recorded` binds revision and content coordinates without event prose. Migration discovers candidates from bounded content structure, not required names or locations. Before returning context, a missing projection is rebuilt from the latest event and CAS bytes. Canonical Markdown retains long-term facts.
+Active continuation is `.lervo/state/workstreams/current.json`. CAS in `.lervo/data/cas` stores exact snapshots and optional legacy-source bytes. `workstream.snapshot.recorded` binds revision and content coordinates without event prose. Migration discovers candidates from bounded content structure, not required names or locations. Before returning context, Lervo rebuilds a missing projection from the latest event and CAS bytes. Canonical Markdown retains long-term facts.
 
-Owner-only workforce and workspace coordination state resides under the Git common directory so sibling worktrees share one scheduler; non-Git checkouts use a standalone compatibility home. Legacy migration rejects competing non-empty authorities. Versioned role contracts, ancestry hashes, bounded delegation, atomic path leases, and exact handoff evidence apply to root agents and subagents.
+Owner-only workforce and workspace coordination state resides under the Git common directory so sibling worktrees share one scheduler; non-Git checkouts use a standalone compatibility home. Legacy migration rejects competing non-empty authorities. Versioned role contracts, ancestry hashes, bounded delegation, atomic path leases, and exact handoff evidence govern root agents and subagents.
 
 Workspace lifecycle is local; Orca and Hub are optional. Apply rechecks authority, and uncertainty requires recovery. See the [workspace specification](../specifications/execution/agent-workspaces.md).
 
@@ -38,7 +38,7 @@ Decisions: [project initialization](../decisions/foundation/0002-safe-project-in
 
 ### Managed execution
 
-Before completion, orchestration resolves role, policy, skills, capability packages, context, provider adapter, write authorization, and verification. Adapters isolate provider behavior and normalize native telemetry. Activation confirmation occurs once after E3 and before the write bridge or task turn; failure closes the session without an activation-success event.
+Before effects, the provider grounds requests into validated typed decisions. Orchestration then resolves role, policy, skills, capabilities, context, write authorization, and verification. Adapters normalize native telemetry. Activation is confirmed once after E3 and before the write bridge or task turn; failure closes the session without an activation-success event.
 
 `@lervo/context-coverage` projects managed coverage once from canonical events. Enhanced E3 binds injected receipts to exact document versions. Validated adapter results retain only their digest and turn coordinates; exact returned tokens may create E4 output citations. Evidence-bearing sources and human publication have separate coordinates: only current-envelope evidence metadata is removed before publication evaluation and storage. Local and Hub projections use the same projector and never equate delivery or citation with understanding or internal use.
 
@@ -89,11 +89,13 @@ Decisions: [lexical search](../decisions/search/0053-deterministic-lexical-searc
 
 ### Hub and node runtimes
 
-Hub endpoints authenticate before project access. Remote commands are signed, time-bound, replay-protected, and bound to a target node and project. Before managed execution, a node revalidates its repository manifest, local policy, approval, and current snapshot. The protocol supports direct TLS, private overlays, loopback proxies, or another authenticated network and is not tied to Tailscale.
+Hub endpoints authenticate before access. Signed organization policies enforce project scopes and separate credential issuance from delivery. Secret-free grants bind their Node, destination, permissions, generation, and lifetime; runtime sources provide bearer bytes. The owner-only file source performs bounded no-follow reads, clears raw buffers, and activates a candidate only after authenticated project registration. It is not an external secret authority.
+
+Approved rollout execution and rollback are exact one-Node transactions. Forward delivery authenticates, fences replay, and records a recovery baseline; recovery classifies without applying. Rollback binds the failed artifact to the enrolled predecessor and commits the registry after readiness. It lacks authenticated process delivery. None is Hub, daemon, or multi-Node transport.
 
 Bounded workstream revisions replicate separately from event streams, keyed by project and repository identity. Authorized nodes see the same append-only head set. Each event-producing node uses a distinct destination coordinate because each destination owns one canonical hash chain. A node publishes local ancestry, imports only a newer unique head through CAS, projection, and a system event, and exposes divergence without choosing a winner. Pending approvals transfer only as unresolved state, never authority.
 
-Installed Node services are independently addressable per repository-node identity. Their deterministic instance ID derives from project ID, repository identity hash, and node ID, never the checkout name. An owner-only local fleet registry binds identity to canonical root, destination, runtime version, manager service identity, and per-repository health path without credentials. Read-only onboarding revalidates the manifest, compares registry and content-hashed service-file coordinates, and separates local-state, service, legacy-transition, external-registration, and runtime-observation authority. Exact apply installs or transactionally upgrades the shipped runtime, requires three stable manager observations and complete component observations, then commits the registry. Fleet status reports every project and recovery action independently.
+Installed Nodes use deterministic project, repository, and Node identity. An owner-only local registry binds root, destination, runtime, service, and health coordinates without credentials. Exact apply transactionally installs or upgrades, requires three stable complete observations, then registers. Organization enrollment binds that evidence to active credential delivery. Rollout begins with one canary, grows at most twofold, and separates planning, observation, approval, execution, and rollback. Plans and approvals claim no effect; a Node execution receipt claims only its exact local transaction.
 
 Local event producers do not know Hub endpoints or device credentials. When policy permits and a Node selects a destination, it authenticates registration, checks the Hub cursor against local truth, and durably reconciles the next bounded event prefix into that destination's outbox.
 
@@ -101,27 +103,11 @@ Optional Hub coordination reserves path digests before local leases. Summaries a
 
 The optional Hub capability registry accepts only explicit content-bound publication. Project packages require matching project scope; public packages require explicit public selection. Separate read and publish permissions protect immutable envelopes. Local packages and execution do not depend on this registry.
 
-Decisions: [signed commands](../decisions/coordination/remote-control/0041-signed-scoped-remote-command.md), [Hub runtime](../decisions/coordination/remote-control/0149-owner-only-loopback-hub-runtime.md), [destination reconciliation](../decisions/coordination/sync/0194-destination-bound-local-event-reconciliation.md), [node control](../decisions/coordination/remote-control/0152-fail-closed-node-remote-control-runtime.md), [managed provider node host](../decisions/execution/providers/0153-managed-provider-node-host.md), [direct TLS](../decisions/coordination/remote-control/0158-direct-tls-hub-runtime.md), [workstream replication](../decisions/coordination/sync/0201-repository-scoped-workstream-replication.md), [fleet identity](../decisions/operations/services/0202-repository-node-fleet-identity-and-registry.md), [onboarding](../decisions/operations/services/0203-read-only-repository-node-onboarding-reconciliation.md), [apply and readiness](../decisions/operations/services/0207-transactional-repository-node-apply-and-readiness.md), and [repository upgrade](../decisions/operations/services/0214-bounded-repository-upgrade-orchestration.md).
+Decisions: [signed commands](../decisions/coordination/remote-control/0041-signed-scoped-remote-command.md), [Hub runtime](../decisions/coordination/remote-control/0149-owner-only-loopback-hub-runtime.md), [destination reconciliation](../decisions/coordination/sync/0194-destination-bound-local-event-reconciliation.md), [node control](../decisions/coordination/remote-control/0152-fail-closed-node-remote-control-runtime.md), [direct TLS](../decisions/coordination/remote-control/0158-direct-tls-hub-runtime.md), [workstream replication](../decisions/coordination/sync/0201-repository-scoped-workstream-replication.md), [fleet identity](../decisions/operations/services/0202-repository-node-fleet-identity-and-registry.md), [apply](../decisions/operations/services/0207-transactional-repository-node-apply-and-readiness.md), [organization rollout](../decisions/operations/security/0229-organization-node-enrollment-and-gradual-rollout.md), [owner-only credential source](../decisions/operations/security/0230-owner-only-file-organization-credential-source.md), [authenticated Node credential activation](../decisions/operations/security/0231-authenticated-node-organization-credential-activation.md), [approved Node rollout transaction](../decisions/operations/security/0232-approved-node-rollout-local-transaction.md), [authenticated rollout delivery](../decisions/operations/security/0233-authenticated-node-rollout-process-delivery.md), [bounded rollout recovery](../decisions/operations/security/0234-bounded-node-rollout-effect-recovery.md), [predecessor-bound rollback](../decisions/operations/security/0235-predecessor-bound-node-rollout-rollback.md), and [upgrade](../decisions/operations/services/0214-bounded-repository-upgrade-orchestration.md).
 
-## Data ownership
+## Data ownership and failure
 
-| Data | Canonical owner | Sync default |
-| --- | --- | --- |
-| Repository files and tracked Lervo policy | Git repository | User-controlled |
-| Local event chain and CAS | Project node | Off |
-| Generated knowledge indexes | Rebuildable from tracked sources | Git-capable |
-| Credentials and mutable observations | Local runtime | Never as source docs |
-| Repository Node fleet registry | User-local deployment state | Never; contains no credentials |
-| Hub read models and command queue | Hub | Explicitly authorized |
-| Capability packages and derived lock | Project or user local storage | Off; explicit Hub publish only |
-
-## Failure posture
-
-- Invalid contracts fail closed.
-- Uncertain external effects are not automatically retried as if nothing happened.
-- Event failure before commit rolls back a managed write.
-- Failure after a committed event preserves exact output and requires recovery.
-- Missing telemetry lowers assurance and never upgrades a claim.
+Canonical ownership, sync defaults, and fail-closed recovery rules are defined in [Data ownership and failure boundaries](data-ownership-and-failure.md).
 
 ## Package direction
 

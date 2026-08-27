@@ -36,6 +36,7 @@ export interface KnowledgeReconciliationDisposition {
     | "source_identity_match"
     | "new_source_identity"
     | "duplicate_candidate"
+    | "fuzzy_cross_provider_candidate"
     | "contradiction_candidate"
     | "ambiguous_existing_identity"
     | "new_relation"
@@ -198,6 +199,11 @@ export async function createKnowledgeReconciliationPlan(input: {
       .filter((relation) => relation.type === "contradicts")
       .flatMap((relation) => [relation.fromConceptId, relation.toConceptId]),
   );
+  const fuzzyCandidateConceptIds = new Set(
+    candidate.derivation?.kind === "cross_provider_approval_gated_fuzzy_merge"
+      ? candidate.derivation.fuzzyConceptPairs.flatMap((pair) => pair.candidateConceptIds)
+      : [],
+  );
   const dispositions: KnowledgeReconciliationDisposition[] = [];
   const patchDispositionIndexByPath = new Map<string, number>();
   for (const concept of candidate.concepts) {
@@ -217,6 +223,7 @@ export async function createKnowledgeReconciliationPlan(input: {
     const matches =
       evidencePaths.size === 1 ? (existingByPath.get([...evidencePaths][0] ?? "") ?? []) : [];
     const duplicate = (bySignature.get(candidateSignature(concept))?.length ?? 0) > 1;
+    const fuzzy = fuzzyCandidateConceptIds.has(concept.conceptId);
     const contradiction = contradicted.has(concept.conceptId);
     let action: KnowledgeReconciliationDisposition["action"];
     let existingConceptId: string | null = null;
@@ -233,10 +240,11 @@ export async function createKnowledgeReconciliationPlan(input: {
       reasons.push("ambiguous_existing_identity");
     }
     if (duplicate) reasons.push("duplicate_candidate");
+    if (fuzzy) reasons.push("fuzzy_cross_provider_candidate");
     if (contradiction) reasons.push("contradiction_candidate");
-    if (duplicate || contradiction) action = "conflict";
+    if (duplicate || fuzzy || contradiction) action = "conflict";
     const review =
-      duplicate || contradiction || matches.length > 1
+      duplicate || fuzzy || contradiction || matches.length > 1
         ? ("review_required" as const)
         : ("not_required" as const);
     const resolutionOptions =

@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8d74e3fd93fb95cc960783b3
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4cb0f5b9b135cb6278efb292
+outputLanguage: en
+outputs:
+  - byteCount: 5999
+    contentHash: sha256:e10fc8b3c5f6df364befc997172285695e998ca3f11c39b04debb7cc0b92d1ec
+    path: docs/decisions/operations/security/0236-authenticated-node-rollback-process-delivery.md
+    userRegionHash: sha256:e10fc8b3c5f6df364befc997172285695e998ca3f11c39b04debb7cc0b92d1ec
+profile: decision_record
+recordId: knormdoc_8810bce04890c47dab8588bb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:abc6f76feeee643870e264f6271106f88bd4d8eb1a5f40902c09cb7673d3f08b
+sourcePath: docs/decisions/operations/security/0236-authenticated-node-rollback-process-delivery.md
+sourceUnitVersionIds:
+  - uv_34300e7df50588a81960f6c1
+  - uv_49d6cfcea1a4ae4bc2f70f57
+  - uv_62eb280e237f25ee084c24fe
+  - uv_7f7e144924d14608b79f3dc2
+  - uv_c9805e923584b6919bea5f7b
+  - uv_cf98b04af16629b4b6105fef
+  - uv_db71050b924f182eb62a5edf

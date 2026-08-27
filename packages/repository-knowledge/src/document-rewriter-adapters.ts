@@ -6,7 +6,7 @@ import {
   type DocumentRewriteOwnership,
   type DocumentRewriterDescriptor,
 } from "@lervo/documents";
-import { loadDecisionTaxonomy } from "@lervo/project";
+import { loadDecisionTaxonomy, loadDocumentRegistry } from "@lervo/project";
 
 import { inspectConfiguredDocumentNormalization } from "./document-normalization.js";
 import { sha256 } from "./integrity.js";
@@ -49,7 +49,7 @@ export async function inspectRepositoryDocumentRewriters(input: {
   blockers: ReturnType<typeof evaluateDocumentRewriters>["blockers"];
 }> {
   const root = resolve(input.repositoryRoot);
-  const [taxonomy, lifecycle] = await Promise.all([
+  const [taxonomy, lifecycle, registry] = await Promise.all([
     loadDecisionTaxonomy(root),
     inspectConfiguredDocumentNormalization({
       repositoryRoot: root,
@@ -57,22 +57,30 @@ export async function inspectRepositoryDocumentRewriters(input: {
         ? {}
         : { allowTransactionPlanId: input.allowTransactionPlanId }),
     }),
+    loadDocumentRegistry(root),
   ]);
-  const ownedPaths = [
-    ...new Set(
-      lifecycle.records.flatMap((record) =>
-        record.status === "current" ? record.outputPaths : [],
-      ),
-    ),
-  ].sort();
-  const ownership: DocumentRewriteOwnership[] = ownedPaths.map((path) => ({
-    path,
-    owner: "reviewer",
-    rewritePolicy: "reviewed_exact",
-  }));
+  const ownershipByPath = new Map<string, DocumentRewriteOwnership>();
+  for (const record of Object.values(registry.documents)) {
+    if (record.ownership.mode === "user") continue;
+    ownershipByPath.set(record.path, {
+      path: record.path,
+      owner: record.ownership.mode === "managed_blocks" ? "shared_regions" : "lervo",
+      rewritePolicy: "lervo_exact",
+    });
+  }
+  for (const path of lifecycle.records.flatMap((record) =>
+    record.status === "current" ? record.outputPaths : [],
+  )) {
+    ownershipByPath.set(path, { path, owner: "reviewer", rewritePolicy: "reviewed_exact" });
+  }
+  const ownership = [...ownershipByPath.values()].sort((left, right) =>
+    left.path.localeCompare(right.path),
+  );
+  const ownedPaths = ownership.map((item) => item.path);
   const prettier = await projectRepositoryPrettierRewrite({
     repositoryRoot: root,
     ownedPaths,
+    supplementalDocumentPaths: Object.values(registry.documents).map((record) => record.path),
   });
   const prettierDescriptor = prettier.descriptor;
   const rewriters = [

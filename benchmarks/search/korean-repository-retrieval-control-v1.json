@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "spbench_korean_repository_retrieval_control.v1",
+  "publicQueries": true,
+  "corpusRoots": ["README.md", "AGENTS.md", "docs"],
+  "corpusExclusions": [
+    "docs/decisions/search/0224-natural-language-grounding-quality-evaluation.md",
+    "docs/evidence/search",
+    "docs/knowledge",
+    "docs/roadmap/natural-language-grounding-quality.md"
+  ],
+  "taskTypes": [
+    { "taskType": "task_start_and_how_to", "minimumCases": 5 },
+    { "taskType": "historical_rationale", "minimumCases": 5 },
+    { "taskType": "status_continuation_impact", "minimumCases": 5 },
+    { "taskType": "ambiguity_and_contract_boundary", "minimumCases": 5 }
+  ],
+  "cases": [
+    {
+      "caseId": "spcase_en_task_commit_convention",
+      "pairId": "nlpair_task_commit_convention",
+      "taskType": "task_start_and_how_to",
+      "provenance": "verification_authored",
+      "query": "Let's work on the commit convention. Find the governing rules first.",
+      "expectedPaths": ["docs/foundation/commit-convention.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_task_hook_isolation",
+      "pairId": "nlpair_task_hook_isolation",
+      "taskType": "task_start_and_how_to",
+      "provenance": "verification_authored",
+      "query": "Let's work on managed provider terminal hook isolation. Start with its design rationale.",
+      "expectedPaths": [
+        "docs/decisions/execution/providers/hooks/0216-managed-provider-terminal-hook-isolation.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_task_knowledge_compilation",
+      "pairId": "nlpair_task_knowledge_compilation",
+      "taskType": "task_start_and_how_to",
+      "provenance": "verification_authored",
+      "query": "Let's improve repository knowledge compilation. Find the canonical specification first.",
+      "expectedPaths": ["docs/specs/repository-knowledge-compilation.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_task_node_fleet",
+      "pairId": "nlpair_task_node_fleet",
+      "taskType": "task_start_and_how_to",
+      "provenance": "verification_authored",
+      "query": "Let's work on organization Node fleet gradual rollout. Check the current roadmap first.",
+      "expectedPaths": ["docs/roadmap/coordination/repository-node-fleet.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_task_terminal_flow",
+      "pairId": "nlpair_task_terminal_flow",
+      "taskType": "task_start_and_how_to",
+      "provenance": "verification_authored",
+      "query": "Let's improve the natural-language terminal development flow. Find its completion criteria.",
+      "expectedPaths": ["docs/roadmap/natural-language-terminal-flow.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_rationale_hybrid_search",
+      "pairId": "nlpair_rationale_hybrid_search",
+      "taskType": "historical_rationale",
+      "provenance": "verification_authored",
+      "query": "Why did we previously implement local hybrid search and reviewed relation context?",
+      "expectedPaths": [
+        "docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_rationale_entrypoint_bootstrap",
+      "pairId": "nlpair_rationale_entrypoint_bootstrap",
+      "taskType": "historical_rationale",
+      "provenance": "verification_authored",
+      "query": "Why did we introduce content-bound provider entrypoint bootstrap?",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0218-content-bound-provider-entrypoint-bootstrap.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_rationale_state_retention",
+      "pairId": "nlpair_rationale_state_retention",
+      "taskType": "historical_rationale",
+      "provenance": "verification_authored",
+      "query": "Why did we define the typed derived state retention boundary?",
+      "expectedPaths": ["docs/decisions/operations/storage/0219-typed-derived-state-retention.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_rationale_document_layout",
+      "pairId": "nlpair_rationale_document_layout",
+      "taskType": "historical_rationale",
+      "provenance": "verification_authored",
+      "query": "Why did we choose the bounded role-based document layout?",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0222-bounded-role-based-document-layout.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_rationale_release_completion",
+      "pairId": "nlpair_rationale_release_completion",
+      "taskType": "historical_rationale",
+      "provenance": "verification_authored",
+      "query": "Why did we add a separate base-bound CLI release completion check?",
+      "expectedPaths": [
+        "docs/decisions/release/packaging/0223-base-bound-cli-release-completion.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_status_v0_roadmap",
+      "pairId": "nlpair_status_v0_roadmap",
+      "taskType": "status_continuation_impact",
+      "provenance": "verification_authored",
+      "query": "What work remains on the v0 roadmap? Check its completion status first.",
+      "expectedPaths": ["docs/roadmap/v0.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_status_context_grounding",
+      "pairId": "nlpair_status_context_grounding",
+      "taskType": "status_continuation_impact",
+      "provenance": "verification_authored",
+      "query": "What is the current status and completion evidence for managed context grounding and coverage?",
+      "expectedPaths": ["docs/roadmap/context-grounding-coverage.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_status_agent_workspace",
+      "pairId": "nlpair_status_agent_workspace",
+      "taskType": "status_continuation_impact",
+      "provenance": "verification_authored",
+      "query": "How far is the agent workspace lifecycle and what are its acceptance criteria?",
+      "expectedPaths": ["docs/roadmap/onboarding/agent-workspace-lifecycle.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_impact_node_fleet",
+      "pairId": "nlpair_impact_node_fleet",
+      "taskType": "status_continuation_impact",
+      "provenance": "verification_authored",
+      "query": "What architecture and gradual rollout areas are affected by repository Node fleet work?",
+      "expectedPaths": [
+        "docs/architecture/system.md",
+        "docs/roadmap/coordination/repository-node-fleet.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_status_cli_release",
+      "pairId": "nlpair_status_cli_release",
+      "taskType": "status_continuation_impact",
+      "provenance": "verification_authored",
+      "query": "What is the next release preparation sequence in CLI version management?",
+      "expectedPaths": ["docs/distribution/cli-version-management.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_boundary_user_owned_block",
+      "pairId": "nlpair_boundary_user_owned_block",
+      "taskType": "ambiguity_and_contract_boundary",
+      "provenance": "verification_authored",
+      "query": "May managed block work automatically overwrite user-owned content?",
+      "expectedPaths": ["docs/specifications/execution.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_boundary_evidence_levels",
+      "pairId": "nlpair_boundary_evidence_levels",
+      "taskType": "ambiguity_and_contract_boundary",
+      "provenance": "verification_authored",
+      "query": "What is the difference between selected, loaded, injected, and used? Are they the same evidence?",
+      "expectedPaths": ["AGENTS.md", "docs/specifications/execution.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_boundary_graph_score",
+      "pairId": "nlpair_boundary_graph_score",
+      "taskType": "ambiguity_and_contract_boundary",
+      "provenance": "verification_authored",
+      "query": "Does a graph recommendation alter a search score or SearchAttempt?",
+      "expectedPaths": [
+        "docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_boundary_fuzzy_merge",
+      "pairId": "nlpair_boundary_fuzzy_merge",
+      "taskType": "ambiguity_and_contract_boundary",
+      "provenance": "verification_authored",
+      "query": "May fuzzy merge apply automatically without approval? Find the conflict resolution rationale.",
+      "expectedPaths": [
+        "docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md",
+        "docs/decisions/execution/providers/0187-review-gated-cross-provider-exact-merge.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_en_boundary_skill_use",
+      "pairId": "nlpair_boundary_skill_use",
+      "taskType": "ambiguity_and_contract_boundary",
+      "provenance": "verification_authored",
+      "query": "May a selected skill be recorded as used? Find the telemetry contract.",
+      "expectedPaths": ["docs/specifications/execution.md"],
+      "maximumRank": 10
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_84edcb349141a41c035753a8
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_71d6ea84665fafa11435d256
+outputLanguage: en
+outputs:
+  - byteCount: 7342
+    contentHash: sha256:6ee016dee07de644b2e55eb3dc66d733ff651de4df9162f4bef3baef29c4a3ab
+    path: docs/decisions/operations/security/0228-organization-deployment-policy-and-runtime-credentials.md
+    userRegionHash: sha256:6ee016dee07de644b2e55eb3dc66d733ff651de4df9162f4bef3baef29c4a3ab
+profile: decision_record
+recordId: knormdoc_b57d6573fdad7e443c9ca69a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e25819dcbc1b28ed2ee1f557139b08e295b77d8d7d4fad61c4fa0d4637d1820d
+sourcePath: docs/decisions/operations/security/0228-organization-deployment-policy-and-runtime-credentials.md
+sourceUnitVersionIds:
+  - uv_10117104bfc45753b8195c1c
+  - uv_136d34d18c0af68dc042b51a
+  - uv_8378b433cedb9a3b58df8faa
+  - uv_8f6d4b813095acae78e6ac30
+  - uv_af36241a81c81e4649187a14
+  - uv_dce65024469e7572244784e3
+  - uv_f25fa55b4d66a46bd2d1d98c

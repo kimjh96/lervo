@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_30d39371b990223e8609d7ec
+freshness: current
+ownership: user
+path: docs/decisions/operations/security/0233-authenticated-node-rollout-process-delivery.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_8bca2c2ab129ddc9bc5a2295
+title: "ADR-0233: Authenticated Node Rollout Process Delivery"
+type: decision

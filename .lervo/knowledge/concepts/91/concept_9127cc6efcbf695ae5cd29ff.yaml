@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_9127cc6efcbf695ae5cd29ff
+freshness: current
+ownership: user
+path: docs/evidence/search/delegated-retrieval-pilot-v1.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_5a0d5c1ee0e3f9d22e78e1a7
+title: Delegated repository retrieval pilot v1
+type: concept

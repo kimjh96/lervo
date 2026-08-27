@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_62de5733b598ee870363656e
+freshness: current
+ownership: user
+path: docs/decisions/search/0225-revise-local-hybrid-for-cross-language-recall.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_b8c8e6fa570acd9c8eb9447e
+title: "ADR-0225: Revise the local hybrid candidate for cross-language recall"
+type: decision

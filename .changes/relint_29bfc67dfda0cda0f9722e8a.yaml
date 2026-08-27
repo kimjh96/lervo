@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_29bfc67dfda0cda0f9722e8a"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add exact predecessor-bound organization Node rollback planning and local apply."

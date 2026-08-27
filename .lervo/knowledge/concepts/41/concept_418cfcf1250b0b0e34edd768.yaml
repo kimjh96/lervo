@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_418cfcf1250b0b0e34edd768
+freshness: current
+ownership: user
+path: docs/decisions/operations/security/0236-authenticated-node-rollback-process-delivery.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_8e1ebf01a916ef3a9be82a3d
+title: "ADR-0236: Authenticated Node rollback process delivery"
+type: decision

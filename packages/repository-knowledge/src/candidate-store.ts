@@ -5,15 +5,9 @@ import { resolve } from "node:path";
 import { resolveProjectPaths } from "@lervo/project";
 
 import { knowledgeArtifactShard, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
-import {
-  candidateConceptSignatureEntries,
-  candidateRelationSignatureEntries,
-} from "./candidate-signatures.js";
+import { validKnowledgeCompilationCandidate } from "./candidate-validation.js";
 import { canonicalJson, sha256 } from "./integrity.js";
-import {
-  calculateKnowledgeCompilationId,
-  type KnowledgeCompilationCandidate,
-} from "./semantic-compiler.js";
+import type { KnowledgeCompilationCandidate } from "./semantic-compiler.js";
 import { RepositoryKnowledgeError } from "./types.js";
 
 export interface KnowledgeCompilationCandidateReceipt {
@@ -30,183 +24,6 @@ export interface LoadedKnowledgeCompilationCandidate {
   candidate: KnowledgeCompilationCandidate;
   artifactPath: string;
   artifactHash: string;
-}
-
-function validCandidate(value: unknown): value is KnowledgeCompilationCandidate {
-  const item = value as KnowledgeCompilationCandidate | null;
-  if (
-    item === null ||
-    typeof item !== "object" ||
-    item.schemaVersion !== 1 ||
-    !/^kcomp_[a-f0-9]{24}$/.test(item.compilationId) ||
-    !/^ksnap_[a-f0-9]{24}$/.test(item.sourceSnapshotId) ||
-    item.source?.scannerBuild !== "repository-scanner-v1" ||
-    typeof item.source.policyId !== "string" ||
-    !/^sha256:[a-f0-9]{64}$/.test(item.source.policyHash) ||
-    item.source.partitionerBuild !== "semantic-shards-v1" ||
-    !/^[a-z][a-z0-9._-]{2,63}$/.test(item.compiler?.compilerId) ||
-    typeof item.compiler.compilerVersion !== "string" ||
-    !/^sha256:[a-f0-9]{64}$/.test(item.compiler.compilerBuildId) ||
-    (item.compiler.isolation !== "external_no_capabilities" &&
-      item.compiler.isolation !== "deterministic_local_derivation") ||
-    (item.compiler.provider !== "codex" &&
-      item.compiler.provider !== "claude" &&
-      item.compiler.provider !== "cross_provider") ||
-    !Array.isArray(item.shardIds) ||
-    item.shardIds.some((id) => !/^kshard_[a-f0-9]{24}$/.test(id)) ||
-    new Set(item.shardIds).size !== item.shardIds.length ||
-    item.inventoryCoverage?.complete !== true ||
-    item.coverage?.complete !== true ||
-    item.coverage.shardCount !== item.shardIds.length ||
-    item.coverage.compiledShardCount !== item.shardIds.length ||
-    !/^sha256:[a-f0-9]{64}$/.test(item.coverageDigest) ||
-    !Array.isArray(item.concepts) ||
-    !Array.isArray(item.relations)
-  )
-    return false;
-  if (item.compiler.provider === "cross_provider") {
-    const derivation = item.derivation;
-    if (
-      item.compiler.compilerId !== "lervo.cross-provider.exact-merge" ||
-      item.compiler.compilerVersion !== "1" ||
-      item.compiler.isolation !== "deterministic_local_derivation" ||
-      derivation?.kind !== "cross_provider_exact_merge" ||
-      !/^kcompare_[a-f0-9]{24}$/.test(derivation.comparisonId) ||
-      !/^kcomp_[a-f0-9]{24}$/.test(derivation.sourceCandidates?.codex?.compilationId) ||
-      !/^sha256:[a-f0-9]{64}$/.test(derivation.sourceCandidates.codex.artifactHash) ||
-      !/^kcomp_[a-f0-9]{24}$/.test(derivation.sourceCandidates?.claude?.compilationId) ||
-      !/^sha256:[a-f0-9]{64}$/.test(derivation.sourceCandidates.claude.artifactHash) ||
-      !Array.isArray(derivation.selectedConceptSignatures) ||
-      !Array.isArray(derivation.selectedClaimSignatures) ||
-      !Array.isArray(derivation.selectedRelationSignatures) ||
-      derivation.selectedConceptSignatures.length + derivation.selectedClaimSignatures.length < 1 ||
-      [...derivation.selectedConceptSignatures].sort().join("\u0000") !==
-        derivation.selectedConceptSignatures.join("\u0000") ||
-      [...derivation.selectedClaimSignatures].sort().join("\u0000") !==
-        derivation.selectedClaimSignatures.join("\u0000") ||
-      [...derivation.selectedRelationSignatures].sort().join("\u0000") !==
-        derivation.selectedRelationSignatures.join("\u0000") ||
-      new Set(derivation.selectedConceptSignatures).size !==
-        derivation.selectedConceptSignatures.length ||
-      new Set(derivation.selectedClaimSignatures).size !==
-        derivation.selectedClaimSignatures.length ||
-      new Set(derivation.selectedRelationSignatures).size !==
-        derivation.selectedRelationSignatures.length ||
-      [
-        ...derivation.selectedConceptSignatures,
-        ...derivation.selectedClaimSignatures,
-        ...derivation.selectedRelationSignatures,
-      ].some((value) => !/^sha256:[a-f0-9]{64}$/.test(value))
-    )
-      return false;
-  } else if (
-    item.derivation !== undefined ||
-    item.compiler.isolation !== "external_no_capabilities"
-  )
-    return false;
-  if (
-    sha256(
-      canonicalJson({
-        inventoryCoverage: item.inventoryCoverage,
-        coverage: item.coverage,
-        shardIds: item.shardIds,
-      }),
-    ) !== item.coverageDigest
-  )
-    return false;
-  const conceptIds = new Set<string>();
-  for (const concept of item.concepts) {
-    if (
-      concept === null ||
-      typeof concept !== "object" ||
-      !/^concept_candidate_[a-f0-9]{24}$/.test(concept.conceptId) ||
-      conceptIds.has(concept.conceptId) ||
-      typeof concept.title !== "string" ||
-      typeof concept.summary !== "string" ||
-      ![
-        "concept",
-        "decision",
-        "invariant",
-        "procedure",
-        "responsibility",
-        "dependency",
-        "open_question",
-      ].includes(concept.type) ||
-      concept.assurance !== "unreviewed" ||
-      !Array.isArray(concept.claims)
-    )
-      return false;
-    conceptIds.add(concept.conceptId);
-    const claimIds = new Set<string>();
-    for (const claim of concept.claims) {
-      if (
-        claim === null ||
-        typeof claim !== "object" ||
-        !/^claim_candidate_[a-f0-9]{24}$/.test(claim.claimId) ||
-        claimIds.has(claim.claimId) ||
-        typeof claim.statement !== "string" ||
-        sha256(claim.statement) !== claim.statementDigest ||
-        claim.assurance !== "unreviewed" ||
-        !Array.isArray(claim.evidenceUnitVersionIds) ||
-        claim.evidenceUnitVersionIds.length < 1 ||
-        claim.evidenceUnitVersionIds.some((id) => !/^uv_[a-f0-9]{24}$/.test(id)) ||
-        new Set(claim.evidenceUnitVersionIds).size !== claim.evidenceUnitVersionIds.length
-      )
-        return false;
-      claimIds.add(claim.claimId);
-    }
-  }
-  for (const relation of item.relations) {
-    if (
-      relation === null ||
-      typeof relation !== "object" ||
-      !/^relation_candidate_[a-f0-9]{24}$/.test(relation.relationId) ||
-      !item.concepts.some((concept) => concept.conceptId === relation.fromConceptId) ||
-      !item.concepts.some((concept) => concept.conceptId === relation.toConceptId) ||
-      !["depends_on", "constrains", "related_to", "supersedes", "contradicts"].includes(
-        relation.type,
-      ) ||
-      relation.assurance !== "unreviewed" ||
-      !Array.isArray(relation.evidenceUnitVersionIds) ||
-      relation.evidenceUnitVersionIds.length < 1 ||
-      relation.evidenceUnitVersionIds.some((id) => !/^uv_[a-f0-9]{24}$/.test(id)) ||
-      new Set(relation.evidenceUnitVersionIds).size !== relation.evidenceUnitVersionIds.length
-    )
-      return false;
-  }
-  if (item.compiler.provider === "cross_provider") {
-    const conceptSignatures = [
-      ...new Set(candidateConceptSignatureEntries(item).map((entry) => entry.signature)),
-    ].sort();
-    const claimSignatures = [
-      ...new Set(
-        item.concepts.flatMap((concept) =>
-          concept.claims.map((claim) =>
-            sha256(
-              canonicalJson({
-                statementDigest: claim.statementDigest,
-                evidenceUnitVersionIds: [...claim.evidenceUnitVersionIds].sort(),
-              }),
-            ),
-          ),
-        ),
-      ),
-    ].sort();
-    const relationSignatures = [
-      ...new Set(candidateRelationSignatureEntries(item).map((entry) => entry.signature)),
-    ].sort();
-    if (
-      item.derivation!.selectedConceptSignatures.some(
-        (signature) => !conceptSignatures.includes(signature),
-      ) ||
-      canonicalJson(claimSignatures) !== canonicalJson(item.derivation!.selectedClaimSignatures) ||
-      canonicalJson(relationSignatures) !==
-        canonicalJson(item.derivation!.selectedRelationSignatures)
-    )
-      return false;
-  }
-  const { schemaVersion: _schemaVersion, compilationId: _compilationId, ...materials } = item;
-  return calculateKnowledgeCompilationId(materials) === item.compilationId;
 }
 
 async function actualDirectory(path: string): Promise<boolean> {
@@ -264,7 +81,7 @@ export async function storeKnowledgeCompilationCandidate(input: {
   repositoryRoot: string;
   candidate: KnowledgeCompilationCandidate;
 }): Promise<KnowledgeCompilationCandidateReceipt> {
-  if (!validCandidate(input.candidate)) {
+  if (!validKnowledgeCompilationCandidate(input.candidate)) {
     throw new RepositoryKnowledgeError(
       "knowledge_compile_failed",
       "Only a complete semantic compilation candidate can be stored.",
@@ -396,7 +213,10 @@ export async function loadKnowledgeCompilationCandidate(input: {
       "The knowledge candidate artifact is not valid JSON.",
     );
   }
-  if (!validCandidate(candidate) || `${canonicalJson(candidate)}\n` !== bytes.toString("utf8")) {
+  if (
+    !validKnowledgeCompilationCandidate(candidate) ||
+    `${canonicalJson(candidate)}\n` !== bytes.toString("utf8")
+  ) {
     throw new RepositoryKnowledgeError(
       "knowledge_compile_failed",
       "The knowledge candidate artifact has invalid identity, provenance, or canonical bytes.",

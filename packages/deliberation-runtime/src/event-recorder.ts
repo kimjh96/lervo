@@ -11,6 +11,7 @@ export interface DeliberationEventSpec {
     EventDraft["type"],
     | "deliberation.started"
     | "deliberation.artifact.recorded"
+    | "deliberation.artifact.publication_failed"
     | "deliberation.completed"
     | "context.published"
     | "handoff.created"

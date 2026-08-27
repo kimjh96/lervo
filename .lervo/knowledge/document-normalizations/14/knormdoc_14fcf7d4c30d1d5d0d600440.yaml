@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_84edcb349141a41c035753a8
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_73cdcd9b88e81b865c7d6d82
+outputLanguage: en
+outputs:
+  - byteCount: 5379
+    contentHash: sha256:3d1cc1ec1289eba0cb0604bb2463d8337a8c8fac9c0d88e06190f0796ee7a655
+    path: docs/decisions/operations/security/0231-authenticated-node-organization-credential-activation.md
+    userRegionHash: sha256:3d1cc1ec1289eba0cb0604bb2463d8337a8c8fac9c0d88e06190f0796ee7a655
+profile: decision_record
+recordId: knormdoc_14fcf7d4c30d1d5d0d600440
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:907adb1767817d0329e57607f90b8947b9e4752f52601bc26dd8188c49fede0e
+sourcePath: docs/decisions/operations/security/0231-authenticated-node-organization-credential-activation.md
+sourceUnitVersionIds:
+  - uv_0a5d73fe3c95fc4d93d44bb6
+  - uv_3dc77f4ebc31558bf4aa3196
+  - uv_45cacc8be678854d3d16de54
+  - uv_81af1c64b7d23444be8fbdba
+  - uv_86db6590439bb26f98bfb369
+  - uv_b85c760aa251e9ed92c5a9b0
+  - uv_e819e56e18c8a013d34e01e2

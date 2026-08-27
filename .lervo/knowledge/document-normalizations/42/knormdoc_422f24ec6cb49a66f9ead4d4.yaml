@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8885279253ca2ee9b816a490
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5289ee35cfbc44986914a402
+outputLanguage: en
+outputs:
+  - byteCount: 5546
+    contentHash: sha256:d4767e13bb381bc9dfa7012d2b3a3e23b548e84a95e5cf92e1c7aa8c3b091ff5
+    path: docs/decisions/operations/security/0235-predecessor-bound-node-rollout-rollback.md
+    userRegionHash: sha256:d4767e13bb381bc9dfa7012d2b3a3e23b548e84a95e5cf92e1c7aa8c3b091ff5
+profile: decision_record
+recordId: knormdoc_422f24ec6cb49a66f9ead4d4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f27c7258f8e0f9ee5888ebf0b441c23886b4eec90166eb511b12065db9b143b2
+sourcePath: docs/decisions/operations/security/0235-predecessor-bound-node-rollout-rollback.md
+sourceUnitVersionIds:
+  - uv_11d0afbc508c0dab75f8559c
+  - uv_299fe18e30c459c9481c0d43
+  - uv_380c3dd007fc81aa51e7a623
+  - uv_65f44fc5fa031f798d8960d6
+  - uv_9a7273b145f4cc74edb32af2
+  - uv_d4caa5967b90a63a6243ab36
+  - uv_d9d0176476d5ce694a6a0d3e

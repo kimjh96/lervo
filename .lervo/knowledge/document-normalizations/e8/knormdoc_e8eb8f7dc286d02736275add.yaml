@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e93ff5de466382e8d9e9882f
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2ef86a7cc9b04a6ae8e51ef6
+outputLanguage: en
+outputs:
+  - byteCount: 3290
+    contentHash: sha256:c926c58f1564e49a90799b89f4783e9a7a1dc51627d7ad02f2b2cca2eca73ec2
+    path: docs/evidence/operations/organization-node-multi-device-rollout-v1.md
+    userRegionHash: sha256:c926c58f1564e49a90799b89f4783e9a7a1dc51627d7ad02f2b2cca2eca73ec2
+profile: repository_document
+recordId: knormdoc_e8eb8f7dc286d02736275add
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a3483ade577420ac9bdfb6e6ab3c1362bf1300519781d5a8dfe080b0725d2660
+sourcePath: docs/evidence/operations/organization-node-multi-device-rollout-v1.md
+sourceUnitVersionIds:
+  - uv_00aad4a53cf5ed70309cadb0
+  - uv_116d2d139590f5b1131ddbf9
+  - uv_3c1013e8aab93fe9adcfcfc9
+  - uv_3d9dda0056d74cc10fa039e6
+  - uv_9f9fb0c3b6f292412016ff73
+  - uv_b912a4e580acaf07f422ff9b

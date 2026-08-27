@@ -15,7 +15,48 @@ export const deliberateUsage =
   "  lervo deliberate --policy <deliberation-policy-id> [--root <path>] [--json] <topic>\n" +
   "  lervo deliberate --auto --caller <codex|claude> [--root <path>] [--json] <topic>\n" +
   "  lervo deliberate --resume <deliberation-id> [--root <path>] [--json]\n" +
+  "  lervo deliberate artifact --content-hash <sha256> [--root <path>] [--json]\n" +
   "  lervo deliberate status <deliberation-id> [--root <path>] [--json]";
+
+async function runDeliberationArtifactCommand(
+  args: string[],
+  io: CliIo,
+  services: CliServices,
+): Promise<number> {
+  let storage;
+  try {
+    const parsed = parseArgs({
+      args,
+      strict: true,
+      allowPositionals: false,
+      options: {
+        root: { type: "string" },
+        json: { type: "boolean" },
+        "content-hash": { type: "string" },
+      },
+    });
+    const contentHash = parsed.values["content-hash"];
+    if (contentHash === undefined || !/^sha256:[a-f0-9]{64}$/u.test(contentHash)) {
+      throw new Error("An exact provider artifact --content-hash is required.");
+    }
+    storage = await services.openProjectStorage(resolve(io.cwd, parsed.values.root ?? "."));
+    const bytes = await storage.artifacts.get(`lervo-cas://sha256/${contentHash.slice(7)}`);
+    const content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify({ schemaVersion: 1, contentHash, recoveryStatus: "recovered", content }, null, 2)}\n`
+        : content,
+    );
+    return 0;
+  } catch (error) {
+    io.stderr(
+      `Could not recover the quarantined provider artifact. (${errorCode(error)}) ${error instanceof Error ? error.message : "Unknown error."}\n`,
+    );
+    return 1;
+  } finally {
+    await storage?.close().catch(() => undefined);
+  }
+}
 
 async function runDeliberationStatusCommand(
   args: string[],
@@ -65,6 +106,9 @@ async function runDeliberationStatusCommand(
 }
 
 function errorCode(error: unknown): string {
+  const reason = (error as { reason?: unknown } | null)?.reason;
+  if (reason === "writing_publication_blocked") return "deliberation_writing_publication_failed";
+  if (reason === "provider_not_allowed") return "deliberation_provider_policy_failed";
   const code = (error as { code?: unknown } | null)?.code;
   return typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(code)
     ? code
@@ -72,9 +116,20 @@ function errorCode(error: unknown): string {
 }
 
 async function automaticVerificationSuite(repositoryRoot: string): Promise<string> {
-  const entries = await readdir(resolve(repositoryRoot, ".lervo/verifications"), {
-    withFileTypes: true,
-  });
+  let entries;
+  try {
+    entries = await readdir(resolve(repositoryRoot, ".lervo/verifications"), {
+      withFileTypes: true,
+    });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    throw Object.assign(
+      new Error(
+        "Automatic deliberation has no configured verification suite. Add .lervo/verifications/repository.default.yaml or pass an explicit configured suite; provider execution has not started.",
+      ),
+      { code: "deliberation_verification_unconfigured" },
+    );
+  }
   const suiteIds = entries
     .filter((entry) => entry.isFile() && !entry.isSymbolicLink() && entry.name.endsWith(".yaml"))
     .map((entry) => entry.name.slice(0, -".yaml".length))
@@ -129,6 +184,9 @@ export async function runDeliberateCommand(
   io: CliIo,
   services: CliServices,
 ): Promise<number> {
+  if (args[0] === "artifact") {
+    return runDeliberationArtifactCommand(args.slice(1), io, services);
+  }
   if (args[0] === "status") {
     return runDeliberationStatusCommand(args.slice(1), io, services);
   }

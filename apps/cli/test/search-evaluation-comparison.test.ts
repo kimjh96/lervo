@@ -40,11 +40,6 @@ describe("local search evaluation candidate comparison", () => {
           engine: { id: "bm25f", version: 1 },
           adapterBuildId: expect.stringMatching(/^sebuild_[a-f0-9]{24}$/),
         },
-        {
-          candidateId: "local-hybrid-v1",
-          engine: { id: "local-hybrid", version: 1 },
-          adapterBuildId: expect.stringMatching(/^sebuild_[a-f0-9]{24}$/),
-        },
       ],
     });
 

@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e3c1cba7baab0658d9e73a35
+compiler:
+  compilerBuildId: sha256:1925f60b250ca43c273e23d26f987e3a8c5ff5989f3691b45ff6b4de85789562
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_87148d1dae78096481e54f1e
+outputLanguage: en
+outputs:
+  - byteCount: 3891
+    contentHash: sha256:b5e7d9fbe01d816ebe7f24dec72a9b2ecb0141753bf14f88fb1f2d0a90562831
+    path: docs/decisions/search/0225-revise-local-hybrid-for-cross-language-recall.md
+    userRegionHash: sha256:b5e7d9fbe01d816ebe7f24dec72a9b2ecb0141753bf14f88fb1f2d0a90562831
+profile: decision_record
+recordId: knormdoc_362123da768692ecd1bcca86
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8196adf5e9dc5a641cdb038e7c5ba71fc69a4e9aa55bc1f9eb53c32adeda3762
+sourcePath: docs/decisions/search/0225-revise-local-hybrid-for-cross-language-recall.md
+sourceUnitVersionIds:
+  - uv_0f6a7cceb5ea003e797301c8
+  - uv_3a39c336714fecce0a5b6d53
+  - uv_6399cf6350e5b6ad7a79b3f5
+  - uv_ca52d72b7725da1ffec50cea
+  - uv_ce751f3fc4f1d27a6362378a

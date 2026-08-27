@@ -6,6 +6,7 @@ export type NodeRuntimeErrorCode =
   | "startup_failed"
   | "sync_runtime_failed"
   | "token_reload_failed"
+  | "organization_credential_delivery_failed"
   | "runtime_material_reload_failed"
   | "shutdown_failed";
 

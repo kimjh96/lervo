@@ -19,6 +19,17 @@ export interface DeliberationInspectionReport {
   phase: "rounds" | "running_after_approval" | "interrupted_after_approval" | "completed";
   completionStatus: "converged" | "no_consensus" | "failed" | null;
   artifactCount: number;
+  failedPublications: Array<{
+    artifactId: string;
+    contentHash: string;
+    roleId: string;
+    producerProvider: string;
+    evaluatorProvider: string;
+    attempt: number;
+    repositoryVerificationStatus: string;
+    writingPublicationStatus: "failed";
+    recoveryCommand: string;
+  }>;
   lastRound: number | null;
   checkpoint: "missing" | "readable" | "invalid";
   lease: "missing" | "active" | "stale";
@@ -71,15 +82,16 @@ export async function inspectManagedDeliberation(input: {
           ...checkpointValue.runtime.handoffs.map((item) => item.eventId),
           ...checkpointValue.runtime.artifacts.flatMap((artifact) => artifact.evidenceEventIds),
         ];
-  const { started, artifacts, completed, traceEvents } = readDeliberationEventSnapshot({
-    events: input.storage.events,
-    eventCount: integrity.eventCount,
-    deliberationId: input.deliberationId,
-    checkpointEventIds: new Set(checkpointEventIds),
-    checkpointRunIds: new Set(
-      checkpointValue?.runtime.artifacts.map((artifact) => artifact.producer.runId) ?? [],
-    ),
-  });
+  const { started, artifacts, failedPublications, completed, traceEvents } =
+    readDeliberationEventSnapshot({
+      events: input.storage.events,
+      eventCount: integrity.eventCount,
+      deliberationId: input.deliberationId,
+      checkpointEventIds: new Set(checkpointEventIds),
+      checkpointRunIds: new Set(
+        checkpointValue?.runtime.artifacts.map((artifact) => artifact.producer.runId) ?? [],
+      ),
+    });
   if (started.length === 0 && artifacts.length === 0 && completed.length === 0) {
     throw Object.assign(new Error("No events exist for the requested deliberation ID."), {
       code: "deliberation_not_found",
@@ -154,6 +166,17 @@ export async function inspectManagedDeliberation(input: {
     phase,
     completionStatus,
     artifactCount: artifacts.length,
+    failedPublications: failedPublications.map((event) => ({
+      artifactId: String(event.payload.artifactId),
+      contentHash: String(event.payload.contentHash),
+      roleId: String(event.payload.producerRoleId),
+      producerProvider: String(event.payload.producerProvider),
+      evaluatorProvider: String(event.payload.semanticEvaluatorProvider),
+      attempt: Number(event.payload.attempt),
+      repositoryVerificationStatus: String(event.payload.repositoryVerificationStatus),
+      writingPublicationStatus: "failed",
+      recoveryCommand: `lervo deliberate artifact --content-hash ${String(event.payload.contentHash)}`,
+    })),
     lastRound,
     checkpoint,
     lease,
@@ -186,6 +209,15 @@ export function formatDeliberationInspection(report: DeliberationInspectionRepor
     `Source check: ${report.sourceStatus === "consistent" ? "consistent" : report.sourceStatus === "incomplete" ? "completion needs confirmation" : "inconsistent"}`,
     `Resume assessment: ${report.resume === "candidate" ? "revalidate every source when resuming" : report.resume === "blocked_running" ? "blocked because a process is active" : report.resume === "completed" ? "unavailable because deliberation completed" : "unavailable because no approved checkpoint exists"}`,
   ];
+  if (report.failedPublications.length > 0) {
+    lines.push(
+      "Quarantined publication failures:",
+      ...report.failedPublications.map(
+        (item) =>
+          `  ${item.roleId}/${item.producerProvider} attempt ${item.attempt}: repository verification=${item.repositoryVerificationStatus}; writing publication=failed; recover with ${item.recoveryCommand}`,
+      ),
+    );
+  }
   if (report.issues.length > 0) {
     lines.push(
       "Items to inspect:",

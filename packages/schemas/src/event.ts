@@ -45,6 +45,7 @@ export const eventTypes = [
   "verification.completed",
   "deliberation.started",
   "deliberation.artifact.recorded",
+  "deliberation.artifact.publication_failed",
   "deliberation.completed",
   "development.pattern.observed",
   "development.pattern.transitioned",

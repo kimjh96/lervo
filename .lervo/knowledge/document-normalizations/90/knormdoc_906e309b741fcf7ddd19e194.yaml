@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8885279253ca2ee9b816a490
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4b224ee11f61702574274830
+outputLanguage: en
+outputs:
+  - byteCount: 4627
+    contentHash: sha256:e88519f65884695422960f4c3929ab981ce72d97f87710127f4863274368d2d3
+    path: docs/decisions/operations/security/0234-bounded-node-rollout-effect-recovery.md
+    userRegionHash: sha256:e88519f65884695422960f4c3929ab981ce72d97f87710127f4863274368d2d3
+profile: decision_record
+recordId: knormdoc_906e309b741fcf7ddd19e194
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2613730bb4796b70033ed8711ff4d520cc17d55c605b64c0146389228d3f01ab
+sourcePath: docs/decisions/operations/security/0234-bounded-node-rollout-effect-recovery.md
+sourceUnitVersionIds:
+  - uv_2adc6de2ff64ab03982137c4
+  - uv_48b6f21b5feda020da842fa6
+  - uv_797f143501f5d64fba201e41
+  - uv_8a2ce36c3403c31ce9a4ffc8
+  - uv_acde7b22f6021adca213d871
+  - uv_ef083f9d2bbd909e4b694a83
+  - uv_f22f0a383dfa1a896d3726fa

@@ -16,6 +16,7 @@ const MAX_CONFIG_BYTES = 1_048_576;
 const DESTINATION_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u;
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 const WORKER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
+const ORGANIZATION_NODE_PATTERN = /^node_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 
 function httpsUrl(value: unknown): string {
   const raw = configText(value, "hub.baseUrl");
@@ -46,7 +47,15 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
   const source = configRecord(value, "Node runtime config");
   exactConfigKeys(
     source,
-    ["schemaVersion", "repositoryRoot", "hub", "sync", "workspaceCoordination", "remoteCommands"],
+    [
+      "schemaVersion",
+      "repositoryRoot",
+      "hub",
+      "sync",
+      "organizationCredentials",
+      "workspaceCoordination",
+      "remoteCommands",
+    ],
     "Node runtime config",
   );
   if (source.schemaVersion !== 1) {
@@ -91,6 +100,23 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
     source.remoteCommands === undefined
       ? undefined
       : parseRemoteCommandConfig(source.remoteCommands, baseDirectory);
+  const organizationCredentials =
+    source.organizationCredentials === undefined
+      ? undefined
+      : configRecord(source.organizationCredentials, "organizationCredentials");
+  if (organizationCredentials !== undefined) {
+    exactConfigKeys(organizationCredentials, ["nodeId"], "organizationCredentials");
+    if (
+      !ORGANIZATION_NODE_PATTERN.test(
+        configText(organizationCredentials.nodeId, "organizationCredentials.nodeId"),
+      )
+    ) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "organizationCredentials must bind a valid organization Node ID.",
+      );
+    }
+  }
   const workspaceCoordination =
     source.workspaceCoordination === undefined
       ? undefined
@@ -130,6 +156,13 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
       ...(maxRequestBytes === undefined ? {} : { maxRequestBytes }),
       ...(maxResponseBytes === undefined ? {} : { maxResponseBytes }),
     },
+    ...(organizationCredentials === undefined
+      ? {}
+      : {
+          organizationCredentials: {
+            nodeId: organizationCredentials.nodeId as string,
+          },
+        }),
     ...(workspaceCoordination === undefined
       ? {}
       : {

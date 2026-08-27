@@ -53,6 +53,29 @@ describe("formatter ownership", () => {
     );
   });
 
+  it("projects generated and shared-block registry ownership for every rewriter adapter", async () => {
+    const root = await fixture("schemaVersion: 1\noutputs:\n  - path: docs/reviewed.md\n");
+    const directory = resolve(root, ".lervo/documents");
+    await mkdir(directory, { recursive: true });
+    await writeFile(
+      resolve(directory, "doc_generated.yaml"),
+      "schemaVersion: 1\nrecord:\n  path: docs/generated.md\n  ownership:\n    mode: lervo_generated\n",
+    );
+    await writeFile(
+      resolve(directory, "doc_shared.yaml"),
+      "schemaVersion: 1\nrecord:\n  path: AGENTS.md\n  ownership:\n    mode: managed_blocks\n",
+    );
+    await writeFile(
+      resolve(directory, "doc_user.yaml"),
+      "schemaVersion: 1\nrecord:\n  path: README.md\n  ownership:\n    mode: user\n",
+    );
+    expect([...(await lervoLifecycleOwnedFormatPaths(root))].sort()).toEqual([
+      "AGENTS.md",
+      "docs/generated.md",
+      "docs/reviewed.md",
+    ]);
+  });
+
   it("fails closed on unsafe or malformed lifecycle ownership", async () => {
     const root = await fixture("schemaVersion: 1\noutputs:\n  - path: ../outside.md\n");
     await expect(lervoLifecycleOwnedFormatPaths(root)).rejects.toThrow(

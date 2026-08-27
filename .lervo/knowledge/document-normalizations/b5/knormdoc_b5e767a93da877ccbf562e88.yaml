@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_aeb9467158254d3bd446dfe9
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_366f27bbc608bb3635b66dbf
+outputLanguage: en
+outputs:
+  - byteCount: 5182
+    contentHash: sha256:3a23b5fb0d9d7be155def1af2458142e35274a50b5493a80e52db3f30cf40ce3
+    path: docs/evidence/search/delegated-retrieval-pilot-v1.md
+    userRegionHash: sha256:3a23b5fb0d9d7be155def1af2458142e35274a50b5493a80e52db3f30cf40ce3
+profile: repository_document
+recordId: knormdoc_b5e767a93da877ccbf562e88
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:86733180a8c1f62433e27834bd4699f041c1f1c11df543e19c5d687cadfe1519
+sourcePath: docs/evidence/search/delegated-retrieval-pilot-v1.md
+sourceUnitVersionIds:
+  - uv_006e4aac39b6c37a4039519e
+  - uv_0359a57a8cf598cfce8d7da8
+  - uv_4d5dc77fb6ebaab64c8d120b
+  - uv_9ae7365a02d95601a666e4c5
+  - uv_a24013f450277efe99d51d25

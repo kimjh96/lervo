@@ -8,7 +8,7 @@ import {
   createAssignment,
   listAgents,
   listAssignments,
-  planNaturalLanguageWorkforceRequest,
+  planGroundedWorkforceRequest,
   recordAssignmentHandoff,
   renewAssignmentLease,
   registerAgent,
@@ -18,11 +18,11 @@ import {
 import { openProjectStorage } from "@lervo/project-storage";
 import { listRoleContracts, resolveRoleContract } from "@lervo/roles";
 
-import type { CliIo } from "./types.js";
+import type { CliIo, CliServices } from "./types.js";
 import { recordWorkforceEvent } from "./workforce-events.js";
 
 export const workforceUsage = [
-  "  lervo workforce plan --request <natural-language-request> [--root <path>] [--json]",
+  "  lervo workforce plan --request <natural-language-request> --provider <codex|claude> [--root <path>] [--json]",
   "  lervo agent list [--root <path>] [--json]",
   "  lervo agent hire --role <role> [--provider <codex|claude|any>] [--scope <path>] [--capability <package-id>] [--parent <agent-id>] --write [--root <path>] [--json]",
   "  lervo agent status --agent <agent-id> --status <active|suspended|retired> --revision <n> --write [--root <path>] [--json]",
@@ -121,6 +121,7 @@ export async function runWorkforceCommand(
   namespace: "workforce" | "agent" | "assignment",
   args: string[],
   io: CliIo,
+  services: Pick<CliServices, "groundProductionRequest">,
 ): Promise<number> {
   try {
     const parsed = parse(args);
@@ -134,20 +135,72 @@ export async function runWorkforceCommand(
     if (namespace === "workforce" && action === "plan") {
       if (parsed.values.write || parsed.values.request === undefined)
         throw new Error("Natural-language workforce planning is read-only and requires --request.");
+      if (parsed.values.provider !== "codex" && parsed.values.provider !== "claude")
+        throw new Error("Natural-language workforce planning requires the current --provider.");
       const [agents, assignments, contracts] = await Promise.all([
         listAgents(root),
         listAssignments(root),
         listRoleContracts(root),
       ]);
-      const plan = planNaturalLanguageWorkforceRequest({
+      const roles = contracts.map((contract) => ({
+        roleId: contract.roleId,
+        name: contract.definition.profile.name,
+        sourceKind: contract.sourceKind,
+      }));
+      const grounded = await services.groundProductionRequest({
         request: parsed.values.request,
+        provider: parsed.values.provider,
+        resolutionContext: {
+          priorTurns: [],
+          currentWorkstream: null,
+          pendingAuthorityIds: [],
+          repositoryCondition: "current",
+        },
+        grantedAuthorities: ["read", "repository_write", "user_approval"],
+        semanticCatalog: {
+          roleIds: roles.map((role) => role.roleId),
+          agentIds: agents.map((agent) => agent.agentId),
+          assignmentIds: assignments.map((assignment) => assignment.assignmentId),
+        },
+        workflows: [
+          {
+            workflowId: "workforce.inspect",
+            supportedIntents: ["inspect"],
+            supportedDispositions: ["answer"],
+            effectIds: ["workforce.inspect"],
+            requiredSourceClasses: ["repository_state"],
+            authority: "read",
+            allowedCapabilityIds: [],
+            crossProviderAllowed: false,
+          },
+          ...["hire", "assign", "handoff", "retire"].map((kind) => ({
+            workflowId: `workforce.${kind}`,
+            supportedIntents: ["coordinate_agents" as const],
+            supportedDispositions: ["execute" as const],
+            effectIds: [`workforce.${kind}`],
+            requiredSourceClasses: ["repository_state" as const],
+            authority: "repository_write" as const,
+            allowedCapabilityIds: [],
+            crossProviderAllowed: false,
+          })),
+          {
+            workflowId: "workforce.resolve",
+            supportedIntents: ["resolve_approval"],
+            supportedDispositions: ["execute"],
+            effectIds: ["workforce.resolve"],
+            requiredSourceClasses: ["current_workstream"],
+            authority: "user_approval",
+            allowedCapabilityIds: [],
+            crossProviderAllowed: false,
+          },
+        ],
+      });
+      const plan = planGroundedWorkforceRequest({
+        proposal: grounded.proposal,
+        decision: grounded.decision,
         agents,
         assignments,
-        roles: contracts.map((contract) => ({
-          roleId: contract.roleId,
-          name: contract.definition.profile.name,
-          sourceKind: contract.sourceKind,
-        })),
+        roles,
       });
       output(
         io,

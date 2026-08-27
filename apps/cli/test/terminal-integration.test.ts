@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -22,7 +23,53 @@ import { openProjectStorage, RepositoryCoordinationRecords } from "@lervo/projec
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { runCli } from "../src/main.js";
+import { runCli as runCliBase } from "../src/main.js";
+
+const runCli: typeof runCliBase = (args, io, overrides = {}) =>
+  runCliBase(args, io, {
+    groundProductionRequest: async ({ request, provider }) => {
+      const requestDigest = `sha256:${createHash("sha256").update(request).digest("hex")}` as const;
+      return {
+        proposal: {
+          schemaVersion: 1,
+          requestDigest,
+          resolver: {
+            kind: "provider_adapter",
+            providerId: provider,
+            resultDigest: `sha256:${"b".repeat(64)}`,
+          },
+          intent: "explain",
+          subjectIds: ["repository.context"],
+          references: [],
+          protocolCoordinates: [],
+          requestedEffectIds: ["terminal.answer"],
+          prohibitedEffectIds: [],
+          sourceClasses: ["repository_state"],
+          retrievalQueries: [request],
+          workflowCandidateIds: ["terminal.answer"],
+          capabilityCandidateIds: [],
+          authorityRequirement: "read",
+          providerRoute: { mode: "current_provider_only", providerIds: [] },
+          disposition: "answer",
+          ambiguityReasons: [],
+        },
+        decision: {
+          schemaVersion: 1,
+          status: "ready",
+          workflowId: "terminal.answer",
+          effectIds: ["terminal.answer"],
+          capabilityIds: [],
+          providerIds: [provider],
+          authority: "read",
+          sourceClasses: ["repository_state"],
+          subjectIds: ["repository.context"],
+          retrievalQueries: [request],
+          reasons: [],
+        },
+      };
+    },
+    ...overrides,
+  });
 
 const roots: string[] = [];
 const execute = promisify(execFile);

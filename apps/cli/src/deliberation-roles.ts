@@ -186,6 +186,14 @@ export function createInlineDeliberationExecutionPlan(input: {
   verificationSuiteIds: readonly string[];
   writingContract: WritingContract;
 }): DeliberationExecutionPlan {
+  if (input.proposerProvider === input.reviewerProvider) {
+    throw Object.assign(
+      new Error(
+        "two-provider-v1 requires different proposer and reviewer providers; use an explicitly named single-provider degradation policy if diversity is unavailable.",
+      ),
+      { code: "deliberation_provider_diversity_required" },
+    );
+  }
   const language = deliberationLanguageFor(input.writingContract.locale);
   return executionPlan({
     projectId: input.projectId,

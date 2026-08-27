@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fb40131e8929b84ffe0376c8"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Ground natural-language requests through typed same-provider decisions and preserve failed deliberation artifacts."

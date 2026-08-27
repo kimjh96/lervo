@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_d297e805d1ae5fa6ddaf0542
+freshness: current
+ownership: user
+path: docs/roadmap/operations/organization-node-fleet-rollout.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_1899f1d78f5dcca63b59e659
+title: Organization Node fleet enrollment and gradual rollout
+type: concept

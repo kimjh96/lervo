@@ -18,6 +18,7 @@ import { collectRunEventsBounded } from "@lervo/storage-contract";
 import { publishDeliberationArtifact } from "./artifact-publication.js";
 import { DeliberationEventRecorder } from "./event-recorder.js";
 import { publishDeliberationHandoff } from "./handoff-publication.js";
+import { recordPublicationFailure } from "./publication-failure.js";
 import { restoreDeliberationRuntimeSnapshot } from "./runtime-snapshot.js";
 import {
   DeliberationRuntimeError,
@@ -166,23 +167,45 @@ export class DeliberationRuntime {
         ? this.verificationEvidence
         : [...this.verificationEvidence, clone(evidence)];
     const createdAt = this.time();
-    const published = await publishDeliberationArtifact({
-      deliberationId: this.options.deliberationId,
-      policy: this.options.policy,
-      round: input.round,
-      kind: input.kind,
-      details: input.details,
-      previousArtifacts,
-      history: this.artifacts,
-      verificationEvidence: nextEvidence,
-      sharedContextPublications: input.sharedContextPublications,
-      run,
-      runEvents,
-      writingContract: input.writingContract,
-      semanticEvaluator: input.semanticEvaluator,
-      artifactStore: this.options.artifactStore,
-      createdAt,
-    });
+    let published;
+    try {
+      published = await publishDeliberationArtifact({
+        deliberationId: this.options.deliberationId,
+        policy: this.options.policy,
+        round: input.round,
+        kind: input.kind,
+        details: input.details,
+        previousArtifacts,
+        history: this.artifacts,
+        verificationEvidence: nextEvidence,
+        sharedContextPublications: input.sharedContextPublications,
+        run,
+        runEvents,
+        writingContract: input.writingContract,
+        semanticEvaluator: input.semanticEvaluator,
+        artifactStore: this.options.artifactStore,
+        createdAt,
+      });
+    } catch (error) {
+      if (
+        error instanceof DeliberationRuntimeError &&
+        error.code === "artifact_publication_failed"
+      ) {
+        recordPublicationFailure({
+          error,
+          recorder: this.recorder,
+          coordinates: this.options.coordinates,
+          deliberationId: this.options.deliberationId,
+          kind: input.kind,
+          round: input.round,
+          run,
+          occurredAt: createdAt,
+          attempt: input.publicationAttempt ?? 1,
+          semanticEvaluatorProvider: input.semanticEvaluatorProvider ?? "unknown",
+        });
+      }
+      throw error;
+    }
     const recordedEvent = this.recorder.append({
       type: "deliberation.artifact.recorded",
       coordinates: {

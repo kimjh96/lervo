@@ -1,7 +1,7 @@
 import { constants } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
-import { dirname, relative, resolve, sep } from "node:path";
+import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { createTerminalCoverageReport } from "@lervo/diagnostics";
@@ -23,14 +23,16 @@ import {
   inspectTerminalIntegration,
   inspectConfiguredDocumentNormalization,
   lintRepositoryKnowledge,
-  queryRepositoryKnowledge,
   sha256,
   type KnowledgeQueryHit,
   type TerminalIntegrationProvider,
 } from "@lervo/repository-knowledge";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
-import type { CliIo } from "./types.js";
+import { assembleTerminalHookContext } from "./terminal-context-assembly.js";
+import { loadSelectedTerminalDocument } from "./terminal-context-loading.js";
+import { selectTerminalContextCandidates } from "./terminal-context-selection.js";
+import type { CliIo, CliServices } from "./types.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 import {
   attachTerminalWorkspace,
@@ -167,51 +169,13 @@ function truncateUtf8(value: string, maximumBytes: number): string {
   return value.slice(0, end);
 }
 
-async function loadHit(
-  root: string,
-  hit: KnowledgeQueryHit,
-  remainingBytes: number,
-): Promise<{ content: string; scope: "full" | "prefix" } | null> {
-  const target = resolve(root, hit.path);
-  const child = relative(root, target);
-  if (child === ".." || child.startsWith(`..${sep}`) || remainingBytes <= 0) return null;
-  let handle;
-  try {
-    handle = await open(target, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-    const before = await handle.stat();
-    if (!before.isFile() || before.isSymbolicLink() || before.size > 131_072) return null;
-    const bytes = await handle.readFile();
-    const after = await handle.stat();
-    if (
-      before.dev !== after.dev ||
-      before.ino !== after.ino ||
-      before.size !== after.size ||
-      before.mtimeMs !== after.mtimeMs ||
-      bytes.byteLength !== before.size ||
-      sha256(bytes) !== hit.contentHash
-    )
-      return null;
-    const content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    if (Buffer.byteLength(content) <= remainingBytes) return { content, scope: "full" };
-    const noticeBytes = Buffer.byteLength(TRUNCATION_NOTICE);
-    if (remainingBytes <= noticeBytes) return null;
-    return {
-      content: `${truncateUtf8(content, remainingBytes - noticeBytes)}${TRUNCATION_NOTICE}`,
-      scope: "prefix",
-    };
-  } catch {
-    return null;
-  } finally {
-    await handle?.close();
-  }
-}
-
 async function promptContext(
   root: string,
   prompt: string,
   provider: TerminalIntegrationProvider,
   observationId: string,
   workspaceBinding: TerminalWorkspaceBinding | null,
+  services: Pick<CliServices, "groundProductionRequest">,
 ): Promise<{
   additionalContext: string;
   sourceSnapshotId: string;
@@ -226,17 +190,22 @@ async function promptContext(
     deliveredByteCount: number;
     context: string;
   } | null;
+  grounding: {
+    requestDigest: string;
+    queryDigest: string;
+    status: "ready" | "clarify" | "abstain" | "approval_required";
+    workflowId: string | null;
+    sourceClasses: string[];
+    subjectIds: string[];
+    retrievalQueries: string[];
+    providerIds: string[];
+    reasons: string[];
+  };
 }> {
   const [supplementalSources, repositorySnapshot] = await Promise.all([
     collectLocalKnowledgeSources(root),
     captureRepositorySnapshot(root),
   ]);
-  const result = await queryRepositoryKnowledge({
-    repositoryRoot: root,
-    query: prompt,
-    limit: 6,
-    supplementalSources,
-  });
   const workstreamStorage = await openProjectStorage(root);
   let currentWorkstream;
   try {
@@ -244,6 +213,75 @@ async function promptContext(
   } finally {
     await workstreamStorage.close();
   }
+  const grounded = await services.groundProductionRequest({
+    request: prompt,
+    provider,
+    resolutionContext: {
+      priorTurns: [],
+      currentWorkstream:
+        currentWorkstream === null
+          ? null
+          : {
+              workstreamId: currentWorkstream.workstreamId,
+              revision: currentWorkstream.revision,
+            },
+      pendingAuthorityIds: [],
+      repositoryCondition: "current",
+    },
+    grantedAuthorities: ["read", "repository_write", "user_approval"],
+    workflows: [
+      {
+        workflowId: "terminal.answer",
+        supportedIntents: ["inspect", "explain"],
+        supportedDispositions: ["answer"],
+        effectIds: ["terminal.answer"],
+        requiredSourceClasses: ["repository_state"],
+        authority: "read",
+        allowedCapabilityIds: [],
+        crossProviderAllowed: false,
+      },
+      {
+        workflowId: "terminal.repository_change",
+        supportedIntents: ["change", "continue"],
+        supportedDispositions: ["execute"],
+        effectIds: ["repository.change"],
+        requiredSourceClasses: ["repository_state"],
+        authority: "repository_write",
+        allowedCapabilityIds: [],
+        crossProviderAllowed: false,
+      },
+      {
+        workflowId: "terminal.resolve_approval",
+        supportedIntents: ["resolve_approval"],
+        supportedDispositions: ["execute"],
+        effectIds: ["authority.resolve"],
+        requiredSourceClasses: ["current_workstream"],
+        authority: "user_approval",
+        allowedCapabilityIds: [],
+        crossProviderAllowed: false,
+      },
+      {
+        workflowId: "terminal.deliberate",
+        supportedIntents: ["deliberate"],
+        supportedDispositions: ["execute"],
+        effectIds: ["deliberation.request"],
+        requiredSourceClasses: ["repository_state"],
+        authority: "user_approval",
+        allowedCapabilityIds: [],
+        crossProviderAllowed: true,
+      },
+    ],
+  });
+  const retrievalQuery =
+    grounded.decision.retrievalQueries.join("\n") ||
+    grounded.decision.subjectIds.join(" ") ||
+    "repository context";
+  const selection = await selectTerminalContextCandidates({
+    repositoryRoot: root,
+    retrievalQuery,
+    groundingStatus: grounded.decision.status,
+    supplementalSources,
+  });
   const workstream =
     currentWorkstream === null
       ? null
@@ -263,6 +301,12 @@ async function promptContext(
             context,
           };
         })();
+  const deliberationInstruction =
+    grounded.decision.status === "ready" &&
+    grounded.decision.workflowId === "terminal.deliberate" &&
+    grounded.decision.providerIds.length >= 2
+      ? `The validated typed request authorizes cross-provider deliberation. Run \`lervo deliberate --auto --caller ${provider} "<bounded topic>"\` and bind the result to the terminal declaration.`
+      : "No validated cross-provider deliberation request is present for this turn; do not switch providers or infer deliberation from wording.";
   const finalizationInstruction =
     workspaceBinding?.executionKind === "worker"
       ? [
@@ -270,7 +314,7 @@ async function promptContext(
           "Change only assignment-scoped paths. Worker Stop rechecks the ownership marker, writer session, assignment lease, exact workspace revision, and path-scoped diff, then records a workspace checkpoint. It does not advance the repository-wide workstream or repair knowledge movement owned by another workspace.",
           "Commit only when the task or sealing flow requires it; Lervo never invents or silently commits unfinished bytes.",
         ].join("\n\n")
-      : `For a repository-changing turn, finish repository verification and knowledge refresh first, then declare the bounded disposition with \`lervo terminal declare --provider ${provider} --observation ${observationId} --stdin\`. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. If the user explicitly requests or mentions Codex-Claude deliberation for the task, run \`lervo deliberate --auto --caller ${provider} "<bounded topic>"\` and bind its result instead of declaring not_requested. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; it is not proof of internal reasoning. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
+      : `For a repository-changing turn, finish repository verification and knowledge refresh first, then declare the bounded disposition with \`lervo terminal declare --provider ${provider} --observation ${observationId} --stdin\`. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. ${deliberationInstruction} This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; it is not proof of internal reasoning. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
   const workstreamInstruction =
     workspaceBinding?.executionKind === "worker"
       ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping."
@@ -278,8 +322,9 @@ async function promptContext(
         ? "If this turn changes repository-authored bytes, the agent must create a bounded checkpoint through the `lervo workstream start --actor agent --provider <current-provider>` plan/apply flow before completion. A read-only inquiry does not create artificial continuation state. The user must not be asked to run bookkeeping commands."
         : "If this turn changes repository-authored bytes, the agent must record the next bounded revision through the `lervo workstream update --actor agent --provider <current-provider>` plan/apply flow before completion. Preserve identity and origin, replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.";
   const preamble = [
-    "Lervo terminal integration v1 queried this repository for the current user prompt.",
-    `sourceSnapshotId: ${result.sourceSnapshotId}`,
+    "Lervo terminal integration v2 resolved the request through the current provider adapter, then used only the validated typed source plan for candidate retrieval.",
+    `groundingStatus: ${grounded.decision.status}; workflowId: ${grounded.decision.workflowId ?? "none"}; reasons: ${grounded.decision.reasons.join(",") || "none"}`,
+    `sourceSnapshotId: ${selection.sourceSnapshotId}`,
     "The following exact-hash publications were loaded and prepared for return through the provider hook. This proves hook-side preparation, not provider acceptance, managed delivery, understanding, or later use.",
     "Use current repository bytes as authority, follow AGENTS.md, and do not treat a recommendation as semantic truth.",
     "If the final response explicitly relies on a supplied publication, append its exact Lervo evidence marker as a standalone Markdown HTML comment. Keep the marker out of prose and code. Markdown renderers hide the comment, while raw output retains verifiable evidence. A marker proves only an output reference, never understanding or internal use.",
@@ -291,7 +336,7 @@ async function promptContext(
   let usedBytes =
     Buffer.byteLength(preamble) +
     (workstream === null ? 0 : Buffer.byteLength("\n\n") + workstream.deliveredByteCount);
-  for (const hit of result.hits) {
+  for (const hit of selection.selected) {
     const sectionPrefix = [
       `## ${hit.path}`,
       `Lervo recommendation: score=${hit.score}; freshness=${hit.freshness}; assurance=${hit.assurance}; contentHash=${hit.contentHash}`,
@@ -301,11 +346,11 @@ async function promptContext(
     const separatorBytes = Buffer.byteLength("\n\n");
     const availableBytes =
       MAXIMUM_CONTEXT_BYTES - usedBytes - separatorBytes - Buffer.byteLength(sectionPrefix);
-    const content = await loadHit(
-      root,
+    const content = await loadSelectedTerminalDocument({
+      repositoryRoot: root,
       hit,
-      Math.min(availableBytes, MAXIMUM_DOCUMENT_CONTEXT_BYTES),
-    );
+      maximumBytes: Math.min(availableBytes, MAXIMUM_DOCUMENT_CONTEXT_BYTES),
+    });
     if (content === null) continue;
     const section = `${sectionPrefix}${content.content}`;
     sections.push(section);
@@ -323,20 +368,31 @@ async function promptContext(
   }
   const fallback =
     "No matching publication was found. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes.";
-  const additionalContext = [
+  const additionalContext = assembleTerminalHookContext({
     preamble,
-    ...(workstream === null ? [] : [workstream.context]),
-    sections.length === 0 ? fallback : sections.join("\n\n"),
-  ].join("\n\n");
-  if (Buffer.byteLength(additionalContext) > MAXIMUM_CONTEXT_BYTES)
-    throw new Error("Prepared provider context exceeds the bounded output limit.");
+    workstreamContext: workstream?.context ?? null,
+    documentSections: sections,
+    fallback,
+    maximumBytes: MAXIMUM_CONTEXT_BYTES,
+  });
   return {
     additionalContext,
-    sourceSnapshotId: result.sourceSnapshotId,
-    recommendationCount: result.hits.length,
+    sourceSnapshotId: selection.sourceSnapshotId,
+    recommendationCount: selection.candidates.length,
     documents,
     repositoryRevision: repositorySnapshot.revision,
     workstream,
+    grounding: {
+      requestDigest: sha256(prompt),
+      queryDigest: sha256(retrievalQuery),
+      status: grounded.decision.status,
+      workflowId: grounded.decision.workflowId,
+      sourceClasses: grounded.decision.sourceClasses,
+      subjectIds: grounded.decision.subjectIds,
+      retrievalQueries: grounded.decision.retrievalQueries,
+      providerIds: grounded.decision.providerIds,
+      reasons: grounded.decision.reasons,
+    },
   };
 }
 
@@ -878,7 +934,6 @@ async function recordPreparedContext(input: {
   root: string;
   provider: TerminalIntegrationProvider;
   coordinates: UnmanagedCoordinates;
-  prompt: string;
   observationId: string;
   context: Awaited<ReturnType<typeof promptContext>>;
   workspaceBinding: TerminalWorkspaceBinding | null;
@@ -901,7 +956,19 @@ async function recordPreparedContext(input: {
           providerTurnDigest: input.coordinates.providerTurnDigest,
           sourceSnapshotId: input.context.sourceSnapshotId,
           repositoryRevision: input.context.repositoryRevision,
-          queryDigest: sha256(input.prompt),
+          requestDigest: input.context.grounding.requestDigest,
+          queryDigest: input.context.grounding.queryDigest,
+          groundingStatus: input.context.grounding.status,
+          groundingWorkflowId: input.context.grounding.workflowId,
+          groundingSourceClasses: input.context.grounding.sourceClasses,
+          groundingSubjectIds: input.context.grounding.subjectIds,
+          groundingProviderIds: input.context.grounding.providerIds,
+          groundingReasons: input.context.grounding.reasons,
+          selectionStatus: input.context.grounding.status === "ready" ? "selected" : "not_selected",
+          loadingStatus: input.context.grounding.status === "ready" ? "observed" : "not_run",
+          hookPreparationStatus: "observed",
+          providerInjectionStatus: "unobserved",
+          providerUseStatus: "unknown",
           contextHash: sha256(input.context.additionalContext),
           recommendationCount: input.context.recommendationCount,
           loadedDocuments: input.context.documents,
@@ -1321,7 +1388,11 @@ async function runDeclare(args: string[], io: CliIo): Promise<number> {
   }
 }
 
-async function runHook(args: string[], io: CliIo): Promise<number> {
+async function runHook(
+  args: string[],
+  io: CliIo,
+  services: Pick<CliServices, "groundProductionRequest">,
+): Promise<number> {
   try {
     const parsed = parseArgs({
       args,
@@ -1369,12 +1440,12 @@ async function runHook(args: string[], io: CliIo): Promise<number> {
         provider,
         observationId,
         workspaceBinding,
+        services,
       );
       const observationEventId = await recordPreparedContext({
         root,
         provider,
         coordinates,
-        prompt: input.prompt!,
         observationId,
         context,
         workspaceBinding,
@@ -1556,8 +1627,12 @@ async function runCoverage(args: string[], io: CliIo): Promise<number> {
   }
 }
 
-export async function runTerminalCommand(args: string[], io: CliIo): Promise<number> {
-  if (args[0] === "hook") return runHook(args.slice(1), io);
+export async function runTerminalCommand(
+  args: string[],
+  io: CliIo,
+  services: Pick<CliServices, "groundProductionRequest">,
+): Promise<number> {
+  if (args[0] === "hook") return runHook(args.slice(1), io, services);
   if (args[0] === "declare") return runDeclare(args.slice(1), io);
   if (args[0] === "coverage") return runCoverage(args.slice(1), io);
   if (args[0] === "status") {

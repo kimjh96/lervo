@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "reviewId": "nlreview_repository_natural_language.v1",
+  "reviewKind": "agent_pre_review",
+  "provenance": "verification_authored",
+  "reviewStatus": "pending_human_review",
+  "humanApproval": false,
+  "subjects": {
+    "koreanRetrieval": {
+      "suiteId": "spbench_korean_repository_retrieval.v1",
+      "suiteDigest": "sha256:f657d6ed400d9e4503358b84ee4056bd702e62f3cb9034ae0f5fe018a4dd29b9"
+    },
+    "englishControl": {
+      "suiteId": "spbench_korean_repository_retrieval_control.v1",
+      "suiteDigest": "sha256:9ca1bd8694696de1ca934bd0f6a7888fd4ddb4818a969e72366f60e91d74ce86"
+    },
+    "grounding": {
+      "suiteId": "ngsuite_repository_natural_language.v1",
+      "suiteDigest": "sha256:dfbeb1a24f82a382fe00438e73e5e9004477f0dd68f7238a17351738c1cd1bb6"
+    }
+  },
+  "criteria": [
+    "naturalistic_prompt",
+    "canonical_source_grounding",
+    "task_or_category_fit",
+    "case_distinctness",
+    "context_sufficiency",
+    "authority_coherence",
+    "fail_closed_behavior",
+    "evidence_claim_boundary"
+  ],
+  "retrieval": {
+    "readyPairIds": [
+      "nlpair_task_hook_isolation",
+      "nlpair_task_knowledge_compilation",
+      "nlpair_task_node_fleet",
+      "nlpair_task_terminal_flow",
+      "nlpair_rationale_hybrid_search",
+      "nlpair_rationale_entrypoint_bootstrap",
+      "nlpair_rationale_state_retention",
+      "nlpair_rationale_document_layout",
+      "nlpair_rationale_release_completion",
+      "nlpair_status_v0_roadmap",
+      "nlpair_status_context_grounding",
+      "nlpair_impact_node_fleet",
+      "nlpair_status_cli_release",
+      "nlpair_boundary_graph_score"
+    ],
+    "attention": [
+      {
+        "pairId": "nlpair_task_commit_convention",
+        "reasonCodes": ["english_lexical_and_candidate_failure"]
+      },
+      {
+        "pairId": "nlpair_status_agent_workspace",
+        "reasonCodes": ["english_lexical_failure_candidate_recovery"]
+      },
+      {
+        "pairId": "nlpair_boundary_user_owned_block",
+        "reasonCodes": ["korean_lexical_and_candidate_failure"]
+      },
+      {
+        "pairId": "nlpair_boundary_evidence_levels",
+        "reasonCodes": ["partial_expected_path_recall_both_languages"]
+      },
+      {
+        "pairId": "nlpair_boundary_fuzzy_merge",
+        "reasonCodes": ["english_lexical_and_candidate_failure"]
+      },
+      {
+        "pairId": "nlpair_boundary_skill_use",
+        "reasonCodes": ["english_candidate_rank_regression"]
+      }
+    ],
+    "humanDecisionRequiredForAll": true
+  },
+  "grounding": {
+    "readyCaseIds": [
+      "ngcase_task_opaque_current_scope",
+      "ngcase_task_explicit_hybrid_quality",
+      "ngcase_task_explicit_readme",
+      "ngcase_rationale_prior_hybrid",
+      "ngcase_rationale_node_local_first",
+      "ngcase_rationale_fuzzy_approval",
+      "ngcase_status_remaining_roadmap",
+      "ngcase_status_where_are_we",
+      "ngcase_continue_bare_progress",
+      "ngcase_status_next_sequence",
+      "ngcase_deictic_unique_action",
+      "ngcase_deictic_second_option",
+      "ngcase_deictic_impact",
+      "ngcase_deictic_why_recent",
+      "ngcase_ambiguous_two_targets",
+      "ngcase_ambiguous_historical_decision",
+      "ngcase_ambiguous_opaque_without_state",
+      "ngcase_ambiguous_related_document",
+      "ngcase_mixed_hybrid_go",
+      "ngcase_shorthand_progress_question",
+      "ngcase_typo_commit_convention",
+      "ngcase_approval_exact_second_option",
+      "ngcase_approval_multiple_pending",
+      "ngcase_approval_deploy_unbound",
+      "ngcase_approval_fuzzy_auto",
+      "ngcase_fail_no_anchor",
+      "ngcase_fail_no_workstream",
+      "ngcase_fail_hash_drift",
+      "ngcase_fail_unreviewed_graph"
+    ],
+    "attention": [
+      {
+        "caseId": "ngcase_rationale_terminal_runtime",
+        "reasonCodes": ["non_durable_rationale_source_boundary"]
+      },
+      {
+        "caseId": "ngcase_shorthand_researcher_go",
+        "reasonCodes": ["role_without_task_policy_choice"]
+      },
+      {
+        "caseId": "ngcase_task_next_work",
+        "reasonCodes": ["fresh_clone_roadmap_recovery_boundary"]
+      }
+    ],
+    "humanDecisionRequiredForAll": true
+  }
+}

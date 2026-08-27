@@ -1,17 +1,10 @@
-import { createHash } from "node:crypto";
-
-import type { BuiltInRoleId } from "@lervo/roles";
+import type {
+  GroundingDecision,
+  ProtocolCoordinate,
+  SemanticGroundingProposal,
+} from "@lervo/request-grounding";
 
 import type { WorkforceAgent, WorkforceAssignment } from "./types.js";
-
-const roleTerms: Record<BuiltInRoleId, readonly string[]> = {
-  developer: ["developer", "engineer", "개발자", "개발"],
-  researcher: ["researcher", "research", "리서처", "연구자", "연구"],
-  marketer: ["marketer", "marketing", "마케터", "마케팅"],
-  designer: ["designer", "design", "디자이너", "디자인"],
-  writer: ["writer", "writing", "작가", "라이터", "문서"],
-  ideation: ["ideation", "brainstorm", "아이디어", "브레인스토밍"],
-};
 
 export interface NaturalLanguageWorkforcePlan {
   schemaVersion: 1;
@@ -34,56 +27,80 @@ export interface NaturalLanguageWorkforcePlan {
   privacy: { rawRequestPersisted: false; eventPayload: "digest_and_coordinates_only" };
 }
 
-function digest(value: string): string {
-  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
-}
-
 export interface NaturalLanguageRoleDescriptor {
   roleId: string;
   name: string;
   sourceKind: "built_in" | "repository";
 }
 
-function matchingRoles(request: string, roles: readonly NaturalLanguageRoleDescriptor[]): string[] {
-  const lower = request.toLocaleLowerCase();
-  const custom = roles
-    .filter(
-      (role) =>
-        role.sourceKind === "repository" &&
-        [role.roleId, role.name].some((term) => lower.includes(term.toLocaleLowerCase())),
-    )
-    .map((role) => role.roleId);
-  if (custom.length > 0) return [...new Set(custom)];
-  return (Object.entries(roleTerms) as Array<[BuiltInRoleId, readonly string[]]>)
-    .filter(([, terms]) => terms.some((term) => lower.includes(term)))
-    .map(([role]) => role);
+const operations = {
+  "workforce.inspect": {
+    intent: "inspect",
+    namespace: "assignment",
+    action: "list",
+    authority: "read",
+  },
+  "workforce.hire": {
+    intent: "hire",
+    namespace: "agent",
+    action: "hire",
+    authority: "local_state_write",
+  },
+  "workforce.assign": {
+    intent: "assign",
+    namespace: "assignment",
+    action: "create",
+    authority: "local_state_write",
+  },
+  "workforce.resolve": {
+    intent: "resolve",
+    namespace: "workstream",
+    action: "resolve_pending",
+    authority: "user_approval",
+  },
+  "workforce.handoff": {
+    intent: "handoff",
+    namespace: "assignment",
+    action: "handoff",
+    authority: "local_state_write",
+  },
+  "workforce.retire": {
+    intent: "retire",
+    namespace: "agent",
+    action: "retire",
+    authority: "local_state_write",
+  },
+} as const;
+
+function coordinates(
+  proposal: SemanticGroundingProposal,
+  kind: ProtocolCoordinate["kind"],
+): string[] {
+  return proposal.protocolCoordinates
+    .filter((coordinate) => coordinate.kind === kind)
+    .map((coordinate) => coordinate.value);
 }
 
-function intent(request: string): NaturalLanguageWorkforcePlan["intent"] {
-  const lower = request.toLocaleLowerCase();
-  if (/\b(?:hire|recruit)\b|채용|고용/u.test(lower)) return "hire";
-  if (/\b(?:retire|dismiss)\b|퇴직|은퇴|해고/u.test(lower)) return "retire";
-  if (/\b(?:handoff|hand over)\b|인계/u.test(lower)) return "handoff";
-  if (/\b(?:resolve|approve)\b|결정|승인/u.test(lower)) return "resolve";
-  if (/\b(?:status|progress|inspect)\b|진행\s*(?:상황|상태)|상태/u.test(lower)) return "inspect";
-  if (/\b(?:assign|delegate)\b|배정|맡(?:겨|기|아)/u.test(lower)) return "assign";
-  return "unrecognized";
-}
-
-export function planNaturalLanguageWorkforceRequest(input: {
-  request: string;
+/** Deterministically maps a validated semantic decision; it never receives raw request text. */
+export function planGroundedWorkforceRequest(input: {
+  proposal: SemanticGroundingProposal;
+  decision: GroundingDecision;
   agents: readonly WorkforceAgent[];
   assignments: readonly WorkforceAssignment[];
   roles?: readonly NaturalLanguageRoleDescriptor[];
 }): NaturalLanguageWorkforcePlan {
-  const request = input.request.trim();
-  if (request.length < 1 || request.length > 4_096)
-    throw new TypeError("The natural-language workforce request must be 1 to 4096 characters.");
-  const selectedIntent = intent(request);
-  const roles = matchingRoles(request, input.roles ?? []);
-  const agentIds = [...request.matchAll(/\bagt_[a-f0-9]{24}\b/gu)].map((match) => match[0]!);
-  const assignmentIds = [...request.matchAll(/\basn_[a-f0-9]{24}\b/gu)].map((match) => match[0]!);
-  const roleId = roles.length === 1 ? roles[0]! : null;
+  const operation =
+    input.decision.workflowId === null
+      ? null
+      : (operations[input.decision.workflowId as keyof typeof operations] ?? null);
+  const roleIds = input.proposal.subjectIds
+    .filter((subject) => subject.startsWith("role."))
+    .map((subject) => subject.slice("role.".length))
+    .filter((roleId) => input.roles?.some((role) => role.roleId === roleId) ?? false);
+  const agentIds = coordinates(input.proposal, "agent_id");
+  const assignmentIds = coordinates(input.proposal, "assignment_id");
+  const scopePaths = coordinates(input.proposal, "repository_path");
+  const roleId = roleIds.length === 1 ? roleIds[0]! : null;
   const agentId =
     agentIds.length === 1 && input.agents.some((agent) => agent.agentId === agentIds[0])
       ? agentIds[0]!
@@ -94,20 +111,19 @@ export function planNaturalLanguageWorkforceRequest(input: {
       ? assignmentIds[0]!
       : null;
   const pending: NaturalLanguageWorkforcePlan["pending"] = [];
-  if (selectedIntent === "unrecognized")
+  if (operation === null)
     pending.push({
       field: "intent",
-      reason: "No single supported workforce lifecycle intent was explicit.",
+      reason: input.decision.reasons[0] ?? "No validated workforce workflow was selected.",
     });
-  if (["hire", "assign"].includes(selectedIntent) && roles.length !== 1)
+  if ((operation?.intent === "hire" || operation?.intent === "assign") && roleId === null)
     pending.push({
       field: "role",
-      reason:
-        roles.length === 0 ? "The requested role is missing." : "More than one role is named.",
+      reason: "One role subject from the supplied role catalog is required.",
     });
-  if (selectedIntent === "retire" && agentId === null)
+  if (operation?.intent === "retire" && agentId === null)
     pending.push({ field: "agent", reason: "Retirement requires one existing exact agent ID." });
-  if (selectedIntent === "handoff" && (agentIds.length !== 2 || assignmentId === null)) {
+  if (operation?.intent === "handoff" && (agentIds.length !== 2 || assignmentId === null)) {
     if (assignmentId === null)
       pending.push({
         field: "assignment",
@@ -119,62 +135,46 @@ export function planNaturalLanguageWorkforceRequest(input: {
         reason: "Handoff requires exact source and recipient agent IDs.",
       });
   }
-  if (selectedIntent === "resolve" && assignmentId === null)
+  if (operation?.intent === "resolve" && assignmentId === null)
     pending.push({
       field: "assignment",
-      reason: "Resolution requires one exact pending assignment or workstream item coordinate.",
+      reason: "Resolution requires one exact pending assignment coordinate.",
     });
-  if (selectedIntent === "assign" && !/(?:`[^`]+`|\bpath\s*[:=]|경로\s*[:=])/u.test(request))
+  if (operation?.intent === "assign" && scopePaths.length === 0)
     pending.push({
       field: "scope",
-      reason: "The assignment write or evidence scope is not explicit.",
+      reason: "Assignment requires an exact safe repository_path coordinate.",
     });
-  const operation =
-    selectedIntent === "unrecognized"
-      ? null
-      : selectedIntent === "inspect"
-        ? { namespace: "assignment" as const, action: "list", authority: "read" as const }
-        : selectedIntent === "resolve"
-          ? {
-              namespace: "workstream" as const,
-              action: "resolve_pending",
-              authority: "user_approval" as const,
-            }
-          : selectedIntent === "handoff"
-            ? {
-                namespace: "assignment" as const,
-                action: "handoff",
-                authority: "local_state_write" as const,
-              }
-            : selectedIntent === "assign"
-              ? {
-                  namespace: "assignment" as const,
-                  action: "create",
-                  authority: "local_state_write" as const,
-                }
-              : {
-                  namespace: "agent" as const,
-                  action: selectedIntent,
-                  authority: "local_state_write" as const,
-                };
+  if (input.decision.status === "approval_required")
+    pending.push({
+      field: "authority",
+      reason: "The validated operation requires explicit authority.",
+    });
   return {
     schemaVersion: 1,
     planKind: "natural_language_workforce_request",
-    requestDigest: digest(request),
-    intent: selectedIntent,
+    requestDigest: input.proposal.requestDigest,
+    intent: operation?.intent ?? "unrecognized",
     status:
-      selectedIntent === "unrecognized"
+      operation === null
         ? "unrecognized"
         : pending.length > 0
           ? "pending_decision"
-          : selectedIntent === "inspect"
+          : operation.intent === "inspect"
             ? "read_only"
             : "ready",
     roleId,
     agentId,
     assignmentId,
     pending,
-    operation,
+    operation:
+      operation === null
+        ? null
+        : {
+            namespace: operation.namespace,
+            action: operation.action,
+            authority: operation.authority,
+          },
     privacy: { rawRequestPersisted: false, eventPayload: "digest_and_coordinates_only" },
   };
 }

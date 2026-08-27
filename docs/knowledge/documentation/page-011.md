@@ -3,22 +3,27 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [CLI version and release management](../../distribution/cli-version-management.md) — `docs/distribution/cli-version-management.md`
+- [Lervo Hub standalone distribution](../../distribution/hub-runtime-distribution.md) — `docs/distribution/hub-runtime-distribution.md`
+- [Lervo Node standalone distribution](../../distribution/node-runtime-distribution.md) — `docs/distribution/node-runtime-distribution.md`
+- [Installed organization Node multi-device rollout acceptance v1](../../evidence/operations/organization-node-multi-device-rollout-v1.md) — `docs/evidence/operations/organization-node-multi-device-rollout-v1.md`
+- [Managed context grounding acceptance pilot](../../evidence/pilots/managed-context-grounding.md) — `docs/evidence/pilots/managed-context-grounding.md`
+- [Reviewed document normalization acceptance](../../evidence/pilots/reviewed-document-normalization.md) — `docs/evidence/pilots/reviewed-document-normalization.md`
+- [Shiflo v0 acceptance pilot](../../evidence/pilots/shiflo-v0.md) — `docs/evidence/pilots/shiflo-v0.md`
+- [WSL Hub and Shiflo release acceptance](../../evidence/pilots/wsl-hub-shiflo-release-acceptance.md) — `docs/evidence/pilots/wsl-hub-shiflo-release-acceptance.md`
+- [Repository code-convention audit](../../evidence/quality/repository-code-convention-audit.md) — `docs/evidence/quality/repository-code-convention-audit.md`
+- [Bounded repository retrieval fallback v1](../../evidence/search/bounded-retrieval-fallback-v1.md) — `docs/evidence/search/bounded-retrieval-fallback-v1.md`
+- [Delegated repository retrieval pilot v1](../../evidence/search/delegated-retrieval-pilot-v1.md) — `docs/evidence/search/delegated-retrieval-pilot-v1.md`
+- [Korean-framed repository retrieval observation v1](../../evidence/search/korean-repository-retrieval-v1.md) — `docs/evidence/search/korean-repository-retrieval-v1.md`
+- [Natural-language case pre-review v1](../../evidence/search/natural-language-case-pre-review-v1.md) — `docs/evidence/search/natural-language-case-pre-review-v1.md`
+- [Provider-neutral grounding runner observation v1](../../evidence/search/provider-neutral-grounding-runner-v1.md) — `docs/evidence/search/provider-neutral-grounding-runner-v1.md`
+- [Repository retrieval performance observation v1](../../evidence/search/repository-retrieval-v1.md) — `docs/evidence/search/repository-retrieval-v1.md`
+- [Code convention](../../foundation/code-convention.md) — `docs/foundation/code-convention.md`
+- [Commit convention](../../foundation/commit-convention.md) — `docs/foundation/commit-convention.md`
+- [Provider instruction entrypoint research](../../research/provider-instruction-entrypoints.md) — `docs/research/provider-instruction-entrypoints.md`
+- [Repository knowledge systems research](../../research/repository-knowledge-systems.md) — `docs/research/repository-knowledge-systems.md`
+- [Managed Context Grounding and Coverage](../../roadmap/context-grounding-coverage.md) — `docs/roadmap/context-grounding-coverage.md`
 - [Repository Node fleet and automatic Hub replication](../../roadmap/coordination/repository-node-fleet.md) — `docs/roadmap/coordination/repository-node-fleet.md`
 - [Bounded document layout and rewrite ownership](../../roadmap/knowledge/bounded-document-layout.md) — `docs/roadmap/knowledge/bounded-document-layout.md`
 - [Evidence-bound development-pattern promotion](../../roadmap/knowledge/development-pattern-promotion.md) — `docs/roadmap/knowledge/development-pattern-promotion.md`
 - [Public README migration](../../roadmap/knowledge/public-readme-migration.md) — `docs/roadmap/knowledge/public-readme-migration.md`
-- [Natural-language terminal development flow](../../roadmap/natural-language-terminal-flow.md) — `docs/roadmap/natural-language-terminal-flow.md`
-- [Repository onboarding and agent workforce](../../roadmap/onboarding/agent-workforce.md) — `docs/roadmap/onboarding/agent-workforce.md`
-- [Isolated agent workspace lifecycle](../../roadmap/onboarding/agent-workspace-lifecycle.md) — `docs/roadmap/onboarding/agent-workspace-lifecycle.md`
-- [Provider-entrypoint bootstrap convergence](../../roadmap/onboarding/provider-entrypoint-bootstrap.md) — `docs/roadmap/onboarding/provider-entrypoint-bootstrap.md`
-- [Repository upgrade orchestration](../../roadmap/onboarding/repository-upgrade.md) — `docs/roadmap/onboarding/repository-upgrade.md`
-- [Typed derived-state retention and bounded pruning](../../roadmap/operations/state-retention.md) — `docs/roadmap/operations/state-retention.md`
-- [Automated version and release preparation](../../roadmap/release/version-management-automation.md) — `docs/roadmap/release/version-management-automation.md`
-- [Lervo v0 roadmap](../../roadmap/v0.md) — `docs/roadmap/v0.md`
-- [Hub and Node coordination specification](../../specifications/coordination/hub-and-node.md) — `docs/specifications/coordination/hub-and-node.md`
-- [Lervo Execution and Evidence Specification](../../specifications/execution.md) — `docs/specifications/execution.md`
-- [Agent workspace, integration, and cleanup specification](../../specifications/execution/agent-workspaces.md) — `docs/specifications/execution/agent-workspaces.md`
-- [Capability package supply chain](../../specifications/execution/capabilities.md) — `docs/specifications/execution/capabilities.md`
-- [Execution events and privacy](../../specifications/execution/events-and-privacy.md) — `docs/specifications/execution/events-and-privacy.md`
-- [Local data and state lifecycle](../../specifications/execution/state-lifecycle.md) — `docs/specifications/execution/state-lifecycle.md`
-- [Lervo](../../../README.md) — `README.md`

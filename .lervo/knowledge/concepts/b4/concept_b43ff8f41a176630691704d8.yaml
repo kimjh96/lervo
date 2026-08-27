@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_b43ff8f41a176630691704d8
+freshness: current
+ownership: user
+path: docs/decisions/operations/security/0230-owner-only-file-organization-credential-source.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_2cc41363f3ee072740cfa09d
+title: "ADR-0230: Owner-Only File Organization Credential Source"
+type: decision

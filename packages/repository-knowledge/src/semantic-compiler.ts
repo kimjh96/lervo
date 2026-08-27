@@ -93,6 +93,27 @@ export interface CrossProviderExactMergeDerivation {
   selectedRelationSignatures: string[];
 }
 
+export interface CrossProviderFuzzyConceptPair {
+  matchId: string;
+  scoreBasisPoints: number;
+  codexSourceConceptId: string;
+  claudeSourceConceptId: string;
+  candidateConceptIds: [string, string];
+}
+
+export interface CrossProviderFuzzyMergeDerivation {
+  kind: "cross_provider_approval_gated_fuzzy_merge";
+  comparisonId: string;
+  sourceCandidates: CrossProviderExactMergeDerivation["sourceCandidates"];
+  similarity: {
+    algorithm: "unicode_token_dice_v1";
+    thresholdBasisPoints: 6000;
+    ambiguityMarginBasisPoints: 1000;
+    minimumSharedTokens: 2;
+  };
+  fuzzyConceptPairs: CrossProviderFuzzyConceptPair[];
+}
+
 export interface KnowledgeCompilationCandidate {
   schemaVersion: 1;
   compilationId: string;
@@ -104,7 +125,7 @@ export interface KnowledgeCompilationCandidate {
     partitionerBuild: "semantic-shards-v1";
   };
   compiler: SemanticCompilerDescriptor;
-  derivation?: CrossProviderExactMergeDerivation;
+  derivation?: CrossProviderExactMergeDerivation | CrossProviderFuzzyMergeDerivation;
   shardIds: string[];
   inventoryCoverage: RepositoryKnowledgeScan["coverage"];
   coverage: {

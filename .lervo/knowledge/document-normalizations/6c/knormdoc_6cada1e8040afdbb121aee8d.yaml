@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_90fde3dc0dccfa57b38a7213
+compiler:
+  compilerBuildId: sha256:1925f60b250ca43c273e23d26f987e3a8c5ff5989f3691b45ff6b4de85789562
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_583d554682d490d66b47beb8
+outputLanguage: en
+outputs:
+  - byteCount: 3750
+    contentHash: sha256:a46d9b5967d8955c5c8ffaeb520a51f0d1dabf38fc585486baf2bf2989100c6e
+    path: docs/evidence/search/provider-neutral-grounding-runner-v1.md
+    userRegionHash: sha256:a46d9b5967d8955c5c8ffaeb520a51f0d1dabf38fc585486baf2bf2989100c6e
+profile: repository_document
+recordId: knormdoc_6cada1e8040afdbb121aee8d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1ffcd742e88f9da0985b43024648e417afd8bc8b2baababa06d98703d80627b0
+sourcePath: docs/evidence/search/provider-neutral-grounding-runner-v1.md
+sourceUnitVersionIds:
+  - uv_2da2471c1351a44e770594b5
+  - uv_31e84d7f953a4fb49f4c1fe5
+  - uv_466f96186ef32f5ddb1a25e3
+  - uv_4c5fdef646f4177fe1d0dcc3
+  - uv_5e4787c9fc0b1ff667dd2411
+  - uv_d6ded7a4d0ea2925fe4ff842

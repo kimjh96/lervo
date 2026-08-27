@@ -32,6 +32,7 @@ const eventLabels = {
   "verification.completed": "Verification completed",
   "deliberation.started": "Deliberation started",
   "deliberation.artifact.recorded": "Deliberation artifact recorded",
+  "deliberation.artifact.publication_failed": "Deliberation artifact publication failed",
   "deliberation.completed": "Deliberation completed",
   "knowledge.candidate.created": "Knowledge candidate created",
   "knowledge.candidate.reviewed": "Knowledge candidate reviewed",

@@ -33,6 +33,75 @@ const CLAUDE_RESULT_ID = "44444444-4444-4444-8444-444444444444";
 afterEach(cleanupFixtures);
 
 describe("cross-provider deliberation runtime", () => {
+  it("quarantines a provider artifact and separates repository verification from writing publication", async () => {
+    const fixture = await createRuntimeFixture();
+    const now = clock();
+    const runtime = new DeliberationRuntime({
+      deliberationId,
+      policy: policyWithProviders("codex", "claude"),
+      policyVersion,
+      coordinates: {
+        projectId,
+        runId: "run_publication_failure",
+        sessionId: "ses_publication_failure",
+      },
+      events: fixture.events,
+      artifactStore: fixture.artifacts,
+      now,
+      createEventId: sequence("evt_publication_failure"),
+    });
+    runtime.start();
+    const client = new DeliberationCodexClient(
+      "codex-thread-publication-failure",
+      "codex-turn-publication-failure",
+      "# Proposal\n\n## Empty section\n",
+    );
+    const run = coordinator({
+      fixture,
+      adapter: new CodexAdapter({
+        repositoryRoot: fixture.root,
+        clientFactory: async () => client,
+        resolveArtifact: (uri) => fixture.artifacts.get(uri),
+        now,
+        createEventId: sequence("evt_codex_publication_failure"),
+        createReceiptId: sequence("ctx_codex_publication_failure"),
+      }),
+      role: proposerRole,
+      runId: "run_publication_failure_provider",
+      sessionId: "ses_publication_failure_provider",
+      now,
+    });
+    await expect(
+      runtime.executeTurn({
+        kind: "proposal",
+        round: 1,
+        details: { claims: [{ claimId, claimDigest: hash("publication-failure") }] },
+        previousArtifactIds: [],
+        sharedContextPublications: [],
+        executeManagedRun: () => run.run(managedInput({ root: fixture.root, role: proposerRole })),
+        writingContract: defaultEnglishWritingContract,
+        semanticEvaluator: passingEvaluator(),
+        semanticEvaluatorProvider: "claude",
+        publicationAttempt: 2,
+      }),
+    ).rejects.toMatchObject({ reason: "writing_publication_blocked" });
+    const failed = fixture.events
+      .list()
+      .find((event) => event.type === "deliberation.artifact.publication_failed");
+    expect(failed?.payload).toMatchObject({
+      producerRoleId: proposerRole.roleId,
+      producerProvider: "codex",
+      semanticEvaluatorProvider: "claude",
+      attempt: 2,
+      repositoryVerificationStatus: "not_run",
+      writingPublicationStatus: "failed",
+      recoveryStatus: "quarantined",
+      failedChecks: expect.arrayContaining(["no_empty_sections"]),
+    });
+    expect(runtime.history()).toEqual([]);
+    fixture.events.close();
+  });
+
   it("reloads a Codex proposal into an independent Claude review session", async () => {
     const fixture = await createRuntimeFixture();
     const now = clock();

@@ -6,6 +6,7 @@ import {
   compareKnowledgeCompilationCandidates,
   compileRepositoryKnowledgeCandidate,
   createCrossProviderExactMergeCandidate,
+  createCrossProviderFuzzyMergeCandidate,
   observeKnowledgeCompilationStability,
   runKnowledgeCompilationStabilityGate,
   scanConfiguredRepositoryKnowledge,
@@ -17,7 +18,8 @@ import { createProcessSemanticCompiler } from "@lervo/repository-knowledge-compi
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import type { CliIo } from "./types.js";
 
-type CompilationOperation = "compile" | "compare" | "stability" | "merge-candidate";
+type CompilationOperation =
+  "compile" | "compare" | "stability" | "merge-candidate" | "fuzzy-merge-candidate";
 
 async function compile(args: string[], io: CliIo, usage: string): Promise<number> {
   const parsed = parseArgs({
@@ -260,6 +262,56 @@ async function mergeCandidate(args: string[], io: CliIo): Promise<number> {
   return 0;
 }
 
+async function fuzzyMergeCandidate(args: string[], io: CliIo): Promise<number> {
+  const parsed = parseArgs({
+    args,
+    strict: true,
+    allowPositionals: false,
+    options: {
+      root: { type: "string" },
+      comparison: { type: "string" },
+      codex: { type: "string" },
+      claude: { type: "string" },
+      json: { type: "boolean" },
+    },
+  });
+  if (
+    parsed.values.comparison === undefined ||
+    parsed.values.codex === undefined ||
+    parsed.values.claude === undefined
+  ) {
+    throw new Error("fuzzy-merge-candidate requires --comparison, --codex, and --claude.");
+  }
+  const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+  const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
+  const result = await createCrossProviderFuzzyMergeCandidate({
+    repositoryRoot,
+    codexCompilationId: parsed.values.codex,
+    claudeCompilationId: parsed.values.claude,
+    comparisonId: parsed.values.comparison,
+    supplementalSources,
+  });
+  const receipt = await storeKnowledgeCompilationCandidate({
+    repositoryRoot,
+    candidate: result.candidate,
+  });
+  const output = {
+    receipt,
+    comparisonId: result.comparison.comparisonId,
+    derivation: result.candidate.derivation,
+    coverage: result.candidate.coverage,
+    matches: result.matches,
+    concepts: result.candidate.concepts.length,
+    relations: result.candidate.relations.length,
+  };
+  io.stdout(
+    parsed.values.json
+      ? `${JSON.stringify(output, null, 2)}\n`
+      : `Approval-gated fuzzy candidate ${receipt.created ? "created" : "reused"}.\ncomparison: ${result.comparison.comparisonId}\ncompilation: ${receipt.compilationId}\nfuzzy pairs: ${result.matches.length} · candidate concepts ${result.candidate.concepts.length} · assurance unreviewed\nEvery pair remains a conflict. Resolve exactly one member with a hash-bound review before materialization; accept-all-safe does not merge it.\n`,
+  );
+  return 0;
+}
+
 export async function runKnowledgeCompilationCommand(input: {
   operation: CompilationOperation;
   args: string[];
@@ -270,7 +322,8 @@ export async function runKnowledgeCompilationCommand(input: {
     if (input.operation === "compile") return await compile(input.args, input.io, input.usage);
     if (input.operation === "compare") return await compare(input.args, input.io);
     if (input.operation === "stability") return await stability(input.args, input.io);
-    return await mergeCandidate(input.args, input.io);
+    if (input.operation === "merge-candidate") return await mergeCandidate(input.args, input.io);
+    return await fuzzyMergeCandidate(input.args, input.io);
   } catch (error) {
     input.io.stderr(`${error instanceof Error ? error.message : String(error)}\n${input.usage}\n`);
     return 1;

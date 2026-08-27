@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8dcd5852925c8a86a50444df"
+"package": "@lervo/cli"
+"impact": "major"
+"summary": "Remove the retired local-hybrid search candidate and its dedicated benchmark command."

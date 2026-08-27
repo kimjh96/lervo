@@ -5,11 +5,13 @@ Observation date: 2026-08-25
 
 ## Scope
 
-This repository regression observation compares the deterministic `lexical-v1` baseline with the inactive `local-hybrid-v1` candidate using the public suite at `benchmarks/search/repository-retrieval-v1.json`. It is not a human-reviewed production-query sample.
+This historical repository regression observation compares the deterministic `lexical-v1` baseline with the inactive `local-hybrid-v1` candidate using the public suite at `benchmarks/search/repository-retrieval-v1.json`. It is not a human-reviewed production-query sample.
+
+ADR-0226 later retired the candidate and removed the dedicated `lervo search benchmark` command. The command below records the historical procedure, not a current CLI instruction.
 
 The corpus contains the repository README, AGENTS instructions, and canonical Markdown documentation. It excludes this search-evidence directory to prevent self-influence and the rebuildable `docs/knowledge` projection to avoid duplicate sources and lifecycle-driven invalidation.
 
-The suite has 20 verification-authored `maximumRank=10` cases: five each for exact repository terminology, wording or morphology variation, multiple expected sources, and ambiguous near-neighbors.
+The suite contains 20 verification-authored `maximumRank=10` cases: five each for exact repository terminology, wording or morphology variation, multiple expected sources, and ambiguous near-neighbors.
 
 ## Protocol
 
@@ -39,7 +41,7 @@ The candidate improved first relevant rank in six cases, regressed in two, and t
 
 The aggregate coverage threshold failed: there were no additional successful cases, Success@10 did not increase, and Recall@10 improved by 4.17 rather than the required 5 points. All four coverage-win task gates failed. The separate ranking observation was `aggregate_gain_with_case_regressions`. Warm-query p95 met the enforced 1.5x bound and preferred 1.1x objective. Build p95 met the 3x bound, so the combined observed-cost gate passed. Cost acceptance does not satisfy the quality or activation gates; adoption remains undetermined.
 
-The preceding recorded implementation used report `spreport_9a7ae6993a39e598d25948c9` and candidate build `sebuild_58babf63434c6e3606fd860b`. Its candidate build p95 was 152.199 ms and warm-query p95 was 2.936 ms. The optimized candidate reduced those observed latencies by approximately 63% and 12%, respectively. The current corpus is 2,301 bytes larger because the canonical decision and roadmap now document the optimization, making this historical comparison observational rather than a byte-identical A/B run. Exact differential tests separately establish response equivalence for the representation change.
+The preceding implementation used report `spreport_9a7ae6993a39e598d25948c9` and candidate build `sebuild_58babf63434c6e3606fd860b`. Its candidate build p95 was 152.199 ms and warm-query p95 was 2.936 ms. The optimized candidate reduced those observed latencies by approximately 63% and 12%, respectively. The current corpus is 2,301 bytes larger because the canonical decision and roadmap now document the optimization, so this historical comparison is observational rather than a byte-identical A/B run. Exact differential tests separately establish response equivalence for the representation change.
 
 The run used macOS 25.5.0 on arm64, an Apple M5 with 10 logical processors and 24 GiB total memory, and Node v26.5.1 without runtime flags. The baseline adapter build was `sebuild_073b0780d99e88826883758a`; the candidate build was `sebuild_d6030922734befd7cc0ac85b`.
 

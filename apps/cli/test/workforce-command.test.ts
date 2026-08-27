@@ -64,8 +64,58 @@ describe("workforce CLI", () => {
     const planOutput: string[] = [];
     expect(
       await runCli(
-        ["workforce", "plan", "--request", "법률 연구자를 고용해 주세요", "--root", root, "--json"],
+        [
+          "workforce",
+          "plan",
+          "--request",
+          "법률 연구자를 고용해 주세요",
+          "--provider",
+          "codex",
+          "--root",
+          root,
+          "--json",
+        ],
         io(root, planOutput),
+        {
+          groundProductionRequest: async ({ request }) => ({
+            proposal: {
+              schemaVersion: 1,
+              requestDigest: `sha256:${(await import("node:crypto")).createHash("sha256").update(request).digest("hex")}`,
+              resolver: {
+                kind: "provider_adapter",
+                providerId: "codex",
+                resultDigest: `sha256:${"b".repeat(64)}`,
+              },
+              intent: "coordinate_agents",
+              subjectIds: ["role.legal-researcher"],
+              references: [],
+              protocolCoordinates: [],
+              requestedEffectIds: ["workforce.hire"],
+              prohibitedEffectIds: [],
+              sourceClasses: ["repository_state"],
+              retrievalQueries: [],
+              workflowCandidateIds: ["workforce.hire"],
+              capabilityCandidateIds: [],
+              authorityRequirement: "repository_write",
+              providerRoute: { mode: "current_provider_only", providerIds: [] },
+              disposition: "execute",
+              ambiguityReasons: [],
+            },
+            decision: {
+              schemaVersion: 1,
+              status: "ready",
+              workflowId: "workforce.hire",
+              effectIds: ["workforce.hire"],
+              capabilityIds: [],
+              providerIds: ["codex"],
+              authority: "repository_write",
+              sourceClasses: ["repository_state"],
+              subjectIds: ["role.legal-researcher"],
+              retrievalQueries: [],
+              reasons: [],
+            },
+          }),
+        },
       ),
     ).toBe(0);
     expect(JSON.parse(planOutput.join(""))).toMatchObject({

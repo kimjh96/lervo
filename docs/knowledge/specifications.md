@@ -3,4 +3,5 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [Document content normalization](../specs/document-content-normalization.md) — `docs/specs/document-content-normalization.md`
 - [Repository Knowledge Compilation Specification](../specs/repository-knowledge-compilation.md) — `docs/specs/repository-knowledge-compilation.md`

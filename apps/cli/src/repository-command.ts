@@ -17,6 +17,10 @@ import {
   inspectNodeFleetStatus,
   NodeFleetApplyError,
 } from "./node-fleet-apply.js";
+import {
+  repositoryNodeRolloutUsage,
+  runRepositoryNodeRolloutCommand,
+} from "./repository-node-rollout-command.js";
 
 export const repositoryUsage = [
   "  lervo repository register --root <absolute-path> [--registry <absolute-path>] --write [--json]",
@@ -25,6 +29,7 @@ export const repositoryUsage = [
   "  lervo repository node plan --root <absolute-path> --node <node-id> --destination <destination-id> --runtime-version <semver> --manager <systemd|launchd> [--registry <absolute-path>] [--home <absolute-path>] [--json]",
   "  lervo repository node apply --root <absolute-path> --node <node-id> --destination <destination-id> --runtime-version <semver> --manager <systemd|launchd> --config <absolute-path> --apply <plan-id> --write [--transition-legacy] [--registry <absolute-path>] [--home <absolute-path>] [--json]",
   "  lervo repository node status [--registry <absolute-path>] [--home <absolute-path>] [--json]",
+  repositoryNodeRolloutUsage,
 ].join("\n");
 
 function registryPath(value: string | undefined): string {
@@ -62,6 +67,9 @@ function parse(args: string[]) {
 }
 
 export async function runRepositoryCommand(args: string[], io: CliIo): Promise<number> {
+  if (args[0] === "node" && args[1] === "rollout") {
+    return runRepositoryNodeRolloutCommand(args, io);
+  }
   let parsed;
   try {
     parsed = parse(args);

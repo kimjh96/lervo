@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_4e0834c09c67848806e3d428
+freshness: current
+ownership: user
+path: docs/decisions/operations/security/0229-organization-node-enrollment-and-gradual-rollout.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_aef4ac143723abbe5c0053cc
+title: "ADR-0229: Organization Node Enrollment and Gradual Rollout"
+type: decision

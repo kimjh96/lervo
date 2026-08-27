@@ -57,7 +57,7 @@ export async function completeApprovedDeliberation(input: {
           documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
           verificationSuiteId: suiteId,
         }),
-      record: async (run) => {
+      record: async (run, publicationAttempt) => {
         const verification = run.run.verifications[0];
         if (verification === undefined || verification.result.suiteId !== suiteId) {
           throw new Error(
@@ -97,6 +97,7 @@ export async function completeApprovedDeliberation(input: {
           ],
           verificationEvidence: evidence,
           recipientRoleIds: input.recipientRoleIds,
+          publicationAttempt,
         });
         return { turn, verification };
       },
@@ -136,7 +137,7 @@ export async function completeApprovedDeliberation(input: {
         instructions,
         documentRules: { "writing.policy": [input.workspace.writingPolicyDocumentId] },
       }),
-    record: (run) =>
+    record: (run, publicationAttempt) =>
       recordDeliberationTurn({
         runtime: input.runtime,
         runner: input.runner,
@@ -160,6 +161,7 @@ export async function completeApprovedDeliberation(input: {
           ...verificationTurns.map((turn) => turn.artifact.deliberationArtifactId),
         ],
         recipientRoleIds: input.recipientRoleIds,
+        publicationAttempt,
       }),
   });
   const decision = decisionAttempt.recorded;

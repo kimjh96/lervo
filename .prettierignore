@@ -16,6 +16,7 @@ CLAUDE.md
 AGENTS.md
 CLAUDE.md
 apps/cli/README.md
+docs/architecture/data-ownership-and-failure.md
 docs/architecture/system.md
 docs/decisions/
 docs/distribution/
@@ -28,5 +29,6 @@ docs/research/provider-instruction-entrypoints.md
 docs/research/repository-knowledge-systems.md
 docs/roadmap/
 docs/specifications/
+docs/specs/document-content-normalization.md
 docs/specs/repository-knowledge-compilation.md
 # lervo:end document-rewrite-ownership

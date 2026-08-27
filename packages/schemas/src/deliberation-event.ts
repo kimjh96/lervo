@@ -61,6 +61,72 @@ export const deliberationArtifactRecordedEventPayloadSchema = {
   additionalProperties: false,
 } as const;
 
+export const deliberationArtifactPublicationFailedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/deliberation-artifact-publication-failed-event-payload.schema.json",
+  type: "object",
+  properties: {
+    deliberationId: deliberationIdSchema,
+    kind: { type: "string", enum: deliberationArtifactKinds },
+    round: { type: "integer", minimum: 1, maximum: 20 },
+    producerRoleId: roleIdSchema,
+    producerProvider: { type: "string", enum: ["codex", "claude"] },
+    semanticEvaluatorProvider: { type: "string", enum: ["codex", "claude", "unknown"] },
+    attempt: { type: "integer", minimum: 1, maximum: 2 },
+    artifactId: artifactIdSchema,
+    contentHash: sha256Schema,
+    repositoryVerificationStatus: { type: "string", enum: ["passed", "failed", "not_run"] },
+    writingPublicationStatus: { const: "failed" },
+    recoveryStatus: { const: "quarantined" },
+    failureReason: {
+      type: "string",
+      enum: [
+        "writing_policy_mismatch",
+        "writing_publication_blocked",
+        "artifact_history_invalid",
+        "provider_not_allowed",
+      ],
+    },
+    failedChecks: {
+      type: "array",
+      maxItems: 32,
+      uniqueItems: true,
+      items: { type: "string", pattern: "^[a-z][a-z0-9_.-]{0,149}$" },
+    },
+    missingChecks: {
+      type: "array",
+      maxItems: 32,
+      uniqueItems: true,
+      items: { type: "string", pattern: "^[a-z][a-z0-9_.-]{0,149}$" },
+    },
+    semanticEvaluationStatus: {
+      type: "string",
+      enum: ["completed", "not_run", "failed", "invalid", "unknown"],
+    },
+    repairAttemptLimit: { const: 2 },
+  },
+  required: [
+    "deliberationId",
+    "kind",
+    "round",
+    "producerRoleId",
+    "producerProvider",
+    "semanticEvaluatorProvider",
+    "attempt",
+    "artifactId",
+    "contentHash",
+    "repositoryVerificationStatus",
+    "writingPublicationStatus",
+    "recoveryStatus",
+    "failureReason",
+    "failedChecks",
+    "missingChecks",
+    "semanticEvaluationStatus",
+    "repairAttemptLimit",
+  ],
+  additionalProperties: false,
+} as const;
+
 const completedCommon = {
   deliberationId: deliberationIdSchema,
   outcomeId: deliberationOutcomeIdSchema,
@@ -148,6 +214,9 @@ export type DeliberationStartedEventPayload = FromSchema<
 >;
 export type DeliberationArtifactRecordedEventPayload = FromSchema<
   typeof deliberationArtifactRecordedEventPayloadSchema
+>;
+export type DeliberationArtifactPublicationFailedEventPayload = FromSchema<
+  typeof deliberationArtifactPublicationFailedEventPayloadSchema
 >;
 export type DeliberationCompletedEventPayload = FromSchema<
   typeof deliberationCompletedEventPayloadSchema

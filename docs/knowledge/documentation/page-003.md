@@ -5,6 +5,7 @@
 
 - [ADR-0167: Platform-Bound Standalone Lervo Node Distribution](../../decisions/distribution/0167-platform-bound-standalone-node-distribution.md) — `docs/decisions/distribution/0167-platform-bound-standalone-node-distribution.md`
 - [ADR-0169: User-Local Repository Registration and Revalidation](../../decisions/distribution/0169-user-local-repository-registration-and-resolution.md) — `docs/decisions/distribution/0169-user-local-repository-registration-and-resolution.md`
+- [ADR-0237: Typed semantic request grounding and terminal stage evidence](../../decisions/execution/grounding/0237-typed-semantic-grounding-and-terminal-stage-evidence.md) — `docs/decisions/execution/grounding/0237-typed-semantic-grounding-and-terminal-stage-evidence.md`
 - [ADR-0006: Deterministic context preparation](../../decisions/execution/orchestration/0006-deterministic-context-preparation.md) — `docs/decisions/execution/orchestration/0006-deterministic-context-preparation.md`
 - [ADR-0008: Managed context-gate orchestration](../../decisions/execution/orchestration/0008-managed-context-gate-orchestration.md) — `docs/decisions/execution/orchestration/0008-managed-context-gate-orchestration.md`
 - [ADR-0015: One-file `lervo run` CLI vertical slice](../../decisions/execution/orchestration/0015-lervo-run-cli-vertical-slice.md) — `docs/decisions/execution/orchestration/0015-lervo-run-cli-vertical-slice.md`
@@ -26,4 +27,3 @@
 - [ADR-0014: Managed adapter session hardening](../../decisions/execution/providers/0014-managed-adapter-session-hardening.md) — `docs/decisions/execution/providers/0014-managed-adapter-session-hardening.md`
 - [ADR-0024: Provider-neutral project verification and result artifacts](../../decisions/execution/providers/0024-provider-neutral-project-verification.md) — `docs/decisions/execution/providers/0024-provider-neutral-project-verification.md`
 - [ADR-0029: Codex–Claude cross-review and role-specific provider enforcement](../../decisions/execution/providers/0029-cross-provider-deliberation-runtime.md) — `docs/decisions/execution/providers/0029-cross-provider-deliberation-runtime.md`
-- [ADR-0153: Approval-Bound Managed Provider Node Host](../../decisions/execution/providers/0153-managed-provider-node-host.md) — `docs/decisions/execution/providers/0153-managed-provider-node-host.md`

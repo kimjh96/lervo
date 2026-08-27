@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_23b9db11d2cf5afb12e83144
+freshness: current
+ownership: user
+path: docs/evidence/search/provider-neutral-grounding-runner-v1.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_0009deda6b74bf669b8610ec
+title: Provider-neutral grounding runner observation v1
+type: concept

@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_84edcb349141a41c035753a8
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_376de5c1e8ddb11a21d9da3b
+outputLanguage: en
+outputs:
+  - byteCount: 4038
+    contentHash: sha256:c6e837b4a41d119e1c9d696967e7b9656270ca5623759199cb3fae5028703d53
+    path: docs/decisions/operations/security/0230-owner-only-file-organization-credential-source.md
+    userRegionHash: sha256:c6e837b4a41d119e1c9d696967e7b9656270ca5623759199cb3fae5028703d53
+profile: decision_record
+recordId: knormdoc_bc04c097e0c844a5354ad68d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:986188e2c6413629f035ff91e9c8678d79c75a36d2846136bc3f497ef8c09145
+sourcePath: docs/decisions/operations/security/0230-owner-only-file-organization-credential-source.md
+sourceUnitVersionIds:
+  - uv_424f3df53c02ac308aaf434d
+  - uv_a7dee67be52b77c611f5df91
+  - uv_a816d6c830ad13c2207dda6c
+  - uv_aa62440e498a79c6e0f750c5
+  - uv_cfb0c732129d059e55e1aeca
+  - uv_f78c3d917d742d66e79cd380

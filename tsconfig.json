@@ -5,6 +5,7 @@
     "noEmit": true,
     "paths": {
       "@lervo/agent-workforce": ["packages/agent-workforce/src/index.ts"],
+      "@lervo/request-grounding": ["packages/request-grounding/src/index.ts"],
       "@lervo/adapter-contract": ["packages/adapter-contract/src/index.ts"],
       "@lervo/adapter-claude": ["packages/adapter-claude/src/index.ts"],
       "@lervo/adapter-codex": ["packages/adapter-codex/src/index.ts"],
@@ -56,6 +57,15 @@
       "@lervo/managed-provider-host": ["packages/managed-provider-host/src/index.ts"],
       "@lervo/node-runtime": ["apps/node-runtime/src/index.ts"],
       "@lervo/orchestrator": ["packages/orchestrator/src/index.ts"],
+      "@lervo/organization-credential-source-file": [
+        "packages/organization-credential-source-file/src/index.ts"
+      ],
+      "@lervo/organization-deployment-contract": [
+        "packages/organization-deployment-contract/src/index.ts"
+      ],
+      "@lervo/organization-deployment-sqlite": [
+        "packages/organization-deployment-sqlite/src/index.ts"
+      ],
       "@lervo/policy": ["packages/policy/src/index.ts"],
       "@lervo/policy-contract": ["packages/policy-contract/src/index.ts"],
       "@lervo/policy-sqlite": ["packages/policy-sqlite/src/index.ts"],
@@ -74,7 +84,6 @@
       "@lervo/runtime-security": ["packages/runtime-security/src/index.ts"],
       "@lervo/search": ["packages/search/src/index.ts"],
       "@lervo/search-adapter-bm25f": ["packages/search-adapter-bm25f/src/index.ts"],
-      "@lervo/search-adapter-local-hybrid": ["packages/search-adapter-local-hybrid/src/index.ts"],
       "@lervo/search-local": ["packages/search-local/src/index.ts"],
       "@lervo/schemas": ["packages/schemas/src/index.ts"],
       "@lervo/skills": ["packages/skills/src/index.ts"],

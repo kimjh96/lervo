@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6b86deade892bced114aa3f0"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add bounded authenticated recovery for uncertain organization Node rollout delivery effects."

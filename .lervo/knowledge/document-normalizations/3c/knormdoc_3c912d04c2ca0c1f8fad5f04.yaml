@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8d74e3fd93fb95cc960783b3
+compiler:
+  compilerBuildId: sha256:d3168aef47bc469fe67f518fce675a821b2e6bbe5b97aeec64dc8fb5a7a088b9
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_28dd8348d58485ed305ee4de
+outputLanguage: en
+outputs:
+  - byteCount: 15852
+    contentHash: sha256:be99c510c1d71077213b8ed0700a3d3d7262ad6e8dca2c888dd2dbf08336bf95
+    path: docs/specifications/coordination/hub-and-node.md
+    userRegionHash: sha256:be99c510c1d71077213b8ed0700a3d3d7262ad6e8dca2c888dd2dbf08336bf95
+profile: specification_document
+recordId: knormdoc_3c912d04c2ca0c1f8fad5f04
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:78af8ae5716f398a37502f7ebab5ac15aaf58d0ff1e475a54b0b4263a2896309
+sourcePath: docs/specifications/coordination/hub-and-node.md
+sourceUnitVersionIds:
+  - uv_2737541be712297430452615
+  - uv_3e0f80a881078824b51d35c0
+  - uv_508e652bebe3ba66ec967595
+  - uv_76ffbbc66b3f65a70c684b03
+  - uv_795caad779b0a7029c9c1d57
+  - uv_ba8145ff623f57b979cf0d8b
+  - uv_c1e97f6bfde135ac1e512898
+  - uv_f028b2b9722df523eb458efb
+  - uv_f442c668b01996bb0f03285f

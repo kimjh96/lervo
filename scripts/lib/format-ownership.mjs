@@ -4,6 +4,8 @@ import { posix, resolve } from "node:path";
 import { parse } from "yaml";
 
 const normalizationRoot = ".lervo/knowledge/document-normalizations";
+const documentManifestRoot = ".lervo/documents";
+const legacyDocumentRegistry = ".lervo/documents.yaml";
 
 function validRepositoryPath(path) {
   return (
@@ -32,8 +34,61 @@ async function normalizationRecordPaths(repositoryRoot) {
   }
 }
 
+async function registryRecords(repositoryRoot) {
+  let sharded = [];
+  let legacy = null;
+  try {
+    const entries = await readdir(resolve(repositoryRoot, documentManifestRoot), {
+      withFileTypes: true,
+    });
+    sharded = await Promise.all(
+      entries
+        .filter(
+          (entry) => entry.isFile() && !entry.isSymbolicLink() && entry.name.endsWith(".yaml"),
+        )
+        .sort((left, right) => left.name.localeCompare(right.name))
+        .map(async (entry) => {
+          const manifest = parse(
+            await readFile(resolve(repositoryRoot, documentManifestRoot, entry.name), "utf8"),
+          );
+          if (manifest?.schemaVersion !== 1 || manifest?.record === undefined)
+            throw new Error(`Invalid Lervo document manifest: ${entry.name}`);
+          return manifest.record;
+        }),
+    );
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  try {
+    legacy = parse(await readFile(resolve(repositoryRoot, legacyDocumentRegistry), "utf8"));
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  if (sharded.length > 0 && legacy !== null)
+    throw new Error("Lervo document ownership storage is ambiguous.");
+  if (legacy !== null) {
+    if (
+      legacy?.schemaVersion !== 1 ||
+      typeof legacy?.documents !== "object" ||
+      legacy.documents === null
+    )
+      throw new Error("Invalid legacy Lervo document ownership registry.");
+    return Object.values(legacy.documents);
+  }
+  return sharded;
+}
+
 export async function lervoLifecycleOwnedFormatPaths(repositoryRoot) {
   const paths = new Set();
+  for (const record of await registryRecords(repositoryRoot)) {
+    const mode = record?.ownership?.mode;
+    if (
+      !validRepositoryPath(record?.path) ||
+      !["user", "managed_blocks", "lervo_generated"].includes(mode)
+    )
+      throw new Error("Invalid Lervo document ownership record.");
+    if (mode !== "user") paths.add(record.path);
+  }
   for (const recordPath of await normalizationRecordPaths(repositoryRoot)) {
     const record = parse(await readFile(recordPath, "utf8"));
     if (

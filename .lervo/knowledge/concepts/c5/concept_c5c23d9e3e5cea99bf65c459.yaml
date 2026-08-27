@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_c5c23d9e3e5cea99bf65c459
+freshness: current
+ownership: user
+path: docs/decisions/search/0224-natural-language-grounding-quality-evaluation.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_fb52ff01a9c3b7a3102a2ec2
+title: "ADR-0224: Natural-language grounding quality evaluation"
+type: decision

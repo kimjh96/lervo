@@ -22,6 +22,11 @@ export interface CreateProcessSemanticCompilerOptions {
   timeoutMs?: number;
 }
 
+export interface NoCapabilityProviderJsonRunner {
+  provider: Provider;
+  resolve(input: unknown, signal?: AbortSignal): Promise<unknown>;
+}
+
 interface ProcessResult {
   status:
     "completed" | "failed" | "timed_out" | "cancelled" | "output_limit_exceeded" | "spawn_failed";
@@ -632,7 +637,7 @@ export async function createProcessSemanticCompiler(
           arguments: arguments_,
           cwd: directory,
           stdin: prompt,
-          signal,
+          ...(signal === undefined ? {} : { signal }),
           timeoutMs,
         });
         if (result.status === "cancelled")
@@ -652,6 +657,102 @@ export async function createProcessSemanticCompiler(
 }
 
 export const semanticCompilerProviderResponseSchema = providerResponseSchema;
+
+/**
+ * Runs one provider turn with the same no-tool boundary used by repository
+ * semantic compilation. The caller owns the response schema and validation;
+ * this runner only proves the provider/isolation boundary and returns JSON.
+ */
+export async function createNoCapabilityProviderJsonRunner(
+  options: CreateProcessSemanticCompilerOptions,
+): Promise<NoCapabilityProviderJsonRunner> {
+  const executable = options.executable ?? options.provider;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 600_000) {
+    throw compileFailure("The provider JSON runner timeout is invalid.");
+  }
+  const probeDirectory = await mkdtemp(resolve(tmpdir(), "lervo-provider-json-probe-"));
+  try {
+    await compilerVersion({ executable, cwd: probeDirectory, timeoutMs });
+    if (options.provider === "codex") {
+      await assertCodexHasNoModelTools({ executable, cwd: probeDirectory, timeoutMs });
+    }
+  } finally {
+    await rm(probeDirectory, { recursive: true, force: true });
+  }
+  return {
+    provider: options.provider,
+    async resolve(input, signal) {
+      const directory = await mkdtemp(resolve(tmpdir(), `lervo-${options.provider}-json-`));
+      try {
+        const prompt = canonicalJson(input);
+        const arguments_ =
+          options.provider === "claude"
+            ? [
+                "--print",
+                "--output-format",
+                "json",
+                "--input-format",
+                "text",
+                "--tools",
+                "",
+                "--safe-mode",
+                "--disable-slash-commands",
+                "--strict-mcp-config",
+                "--mcp-config",
+                '{"mcpServers":{}}',
+                "--setting-sources",
+                "",
+                "--no-session-persistence",
+                "--no-chrome",
+                "--permission-mode",
+                "dontAsk",
+                ...(options.model === undefined ? [] : ["--model", options.model]),
+              ]
+            : [
+                "exec",
+                "--ignore-user-config",
+                "--ignore-rules",
+                "--strict-config",
+                "--ephemeral",
+                "--sandbox",
+                "read-only",
+                "--skip-git-repo-check",
+                "--json",
+                "-c",
+                "mcp_servers={}",
+                ...codexFeatureArguments(),
+                ...(options.model === undefined ? [] : ["--model", options.model]),
+                "-",
+              ];
+        const result = await runProcess({
+          executable,
+          arguments: arguments_,
+          cwd: directory,
+          stdin: prompt,
+          ...(signal === undefined ? {} : { signal }),
+          timeoutMs,
+          maxOutputBytes: MAX_OUTPUT_BYTES,
+        });
+        if (result.status !== "completed") {
+          throw compileFailure(`The provider JSON runner did not complete (${result.status}).`);
+        }
+        const observed =
+          options.provider === "claude"
+            ? parseClaudeOutput<
+                Record<string, unknown> & { telemetry: SemanticCompilerResponse["telemetry"] }
+              >(result.stdout)
+            : parseCodexOutput<
+                Record<string, unknown> & { telemetry: SemanticCompilerResponse["telemetry"] }
+              >(result.stdout);
+        const { telemetry: _telemetry, ...value } = observed;
+        return value;
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+  };
+}
 
 export async function createProcessDocumentNormalizationCompiler(
   options: CreateProcessSemanticCompilerOptions,

@@ -20,6 +20,7 @@ import { runStateCommand, stateUsage } from "./state-command.js";
 import { runTraceCommand, traceUsage } from "./trace-command.js";
 import { runTerminalCommand, terminalUsage } from "./terminal-command.js";
 import type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
+import { groundProductionRequest } from "./semantic-grounding.js";
 import { runUpgradeCommand, upgradeUsage } from "./upgrade-command.js";
 import { runVersionCommand, versionUsage } from "./version-command.js";
 import { runWorkstreamCommand, workstreamUsage } from "./workstream-command.js";
@@ -55,6 +56,7 @@ const defaultServices: CliServices = {
   openProjectStorage,
   inspectDoctorEnvironment,
   executeEnvironmentQuery,
+  groundProductionRequest,
 };
 
 export async function runCli(
@@ -84,11 +86,11 @@ export async function runCli(
   if (command === "capability") return runCapabilityCommand(args.slice(1), io);
   if (command === "environment") return runEnvironmentCommand(args.slice(1), io, services);
   if (command === "repository") return runRepositoryCommand(args.slice(1), io);
-  if (command === "terminal") return runTerminalCommand(args.slice(1), io);
+  if (command === "terminal") return runTerminalCommand(args.slice(1), io, services);
   if (command === "workstream") return runWorkstreamCommand(args.slice(1), io);
   if (command === "workspace") return runWorkspaceCommand(args.slice(1), io);
   if (command === "workforce" || command === "agent" || command === "assignment")
-    return runWorkforceCommand(command, args.slice(1), io);
+    return runWorkforceCommand(command, args.slice(1), io, services);
   if (command === "role") return runRoleCommand(args.slice(1), io);
   if (command === "readme") return runReadmeCommand(args.slice(1), io);
   io.stderr(`Unknown command: ${command}\n${usage}`);
