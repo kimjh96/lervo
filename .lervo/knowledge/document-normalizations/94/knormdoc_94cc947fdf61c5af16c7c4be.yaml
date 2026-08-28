@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_66101f7e7fc377acb9a304e7
+compiler:
+  compilerBuildId: sha256:1925f60b250ca43c273e23d26f987e3a8c5ff5989f3691b45ff6b4de85789562
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c8c27adc1592e33ee1634856
+outputLanguage: en
+outputs:
+  - byteCount: 8700
+    contentHash: sha256:a56ed0828050d36474160dac0054bf15e51a2e6db55c23989c00e66d6bd44cf7
+    path: docs/evidence/search/lexical-assisted-v2.md
+    userRegionHash: sha256:a56ed0828050d36474160dac0054bf15e51a2e6db55c23989c00e66d6bd44cf7
+profile: repository_document
+recordId: knormdoc_94cc947fdf61c5af16c7c4be
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:984e3140ca68ede10279c67d61b7ba9c43335584d9cc1fc7c40946c306e33a1f
+sourcePath: docs/evidence/search/lexical-assisted-v2.md
+sourceUnitVersionIds:
+  - uv_0b3eb2a3b0e5a0c8594a153b
+  - uv_5bb0654e2dd67cf1f2f22e4f
+  - uv_6627a75074d681641666673b
+  - uv_89fdca43ca4e7b710e5bc9e7
+  - uv_a19e8bd2d48521020ad075e0
+  - uv_bc60317a1609c9ca79a01349
+  - uv_e83f20ae346e1d057281c8ff
+  - uv_f0375752ed86957b57ec876a

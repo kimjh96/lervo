@@ -5,9 +5,19 @@ As of: 2026-08-27
 
 ## Boundary
 
-Natural-language execution begins at the current provider adapter. Only that adapter may transiently see the raw request and bounded prior turns. It returns an exact-key `RequestGroundingV1` proposal. Core execution never receives raw prompt text, routing keyword lists, aliases, or synonyms.
+Natural-language execution begins at the current provider adapter. Only that adapter may transiently access the raw request and bounded prior turns. It returns an exact-key `RequestGroundingV1` proposal. Core execution never receives raw prompt text, routing keyword lists, aliases, or synonyms.
 
-The deterministic resolver validates request and provider binding, exact protocol coordinates, intent, subjects and references, requested and prohibited effects, source needs, workflows, capability candidates, authority, ambiguity, and provider routes. Unknown intent, unresolved references, invented coordinates, unavailable authority, and unapproved cross-provider routing fail closed.
+The deterministic resolver validates:
+
+- request and provider binding;
+- exact protocol coordinates;
+- intent, subjects, and references;
+- requested and prohibited effects;
+- source needs and workflows;
+- capability candidates and authority;
+- ambiguity and provider routes.
+
+Unknown intent, unresolved references, invented coordinates, unavailable authority, and unapproved cross-provider routing fail closed.
 
 ## Pipeline
 
@@ -21,9 +31,21 @@ raw request + bounded prior turns + current workstream + authority
 -> exact approved apply
 ```
 
-Only agent, assignment, workstream, approval, and deliberation IDs; safe explicit `repo-path:` coordinates; and CLI or schema enums may be recognized by exact syntax. Lexical processing may retrieve or rank candidate documents and capability packages only after typed source and capability needs exist. It cannot establish semantic truth, target, workflow, effect, authority, provider choice, or activation.
+Only the following may be recognized by exact syntax:
+
+- agent, assignment, workstream, approval, and deliberation IDs;
+- safe explicit `repo-path:` coordinates;
+- CLI or schema enums.
+
+Lexical processing may retrieve or rank candidate documents and capability packages only after typed source and capability needs exist. It cannot establish semantic truth, target, workflow, effect, authority, provider choice, or activation.
 
 The same provider handles grounding by default. Cross-provider execution requires a typed deliberation workflow, explicit policy and authority, and distinct proposer and reviewer providers. Any approved single-provider degradation must be explicit, not inferred.
+
+The provider adapter receives the complete nested response schema and deterministically validates the returned proposal. Process, parsing, binding, or proposal-validation failure produces the stable adapter failure `semantic_resolution_failed`. This failure contains no raw request, provider output, configuration, or unrestricted error.
+
+Managed consumers reject `semantic_resolution_failed`. Only unmanaged direct terminal preparation translates it to `abstain`, with empty workflow, effect, capability, provider, authority, source, subject, and retrieval coordinates. This permits conversation without authorizing semantic action or publication selection.
+
+Direct terminal provider resolution is limited to 20 seconds within the 30-second hook budget. Repository, evidence, and workspace failures remain blocking.
 
 ## Consumers and Evidence
 
@@ -31,6 +53,15 @@ Workforce planning, managed capability selection, terminal knowledge selection, 
 
 Managed search records operational and repository-knowledge recommendations separately. If an AGENTS instruction or registered document appears in both, injection discovery must resolve one canonical document ID with identical metadata. Unproven same-path identity fails before the turn.
 
-Terminal context stages remain distinct: candidates, selection, loading, hook-side preparation, provider delivery or injection, and provider use. Preparation is observable; direct-provider delivery is unobserved, and use is unknown. Neither may be inferred from earlier stages.
+Terminal context stages remain distinct:
 
-See [ADR-0237](../../decisions/execution/grounding/0237-typed-semantic-grounding-and-terminal-stage-evidence.md) for the decision and verification evidence.
+1. candidates;
+2. selection;
+3. loading;
+4. hook-side preparation;
+5. provider delivery or injection;
+6. provider use.
+
+Preparation is observable. Direct-provider delivery is unobserved, and provider use is unknown. Neither may be inferred from an earlier stage.
+
+See [ADR-0237](../../decisions/execution/grounding/0237-typed-semantic-grounding-and-terminal-stage-evidence.md) and [ADR-0239](../../decisions/execution/grounding/0239-unmanaged-terminal-grounding-failure-abstention.md) for the decisions and verification evidence.

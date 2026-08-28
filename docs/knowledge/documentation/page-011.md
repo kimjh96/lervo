@@ -3,6 +3,8 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0226: Retire local hybrid and evaluate a bounded model fallback](../../decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md) — `docs/decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md`
+- [ADR-0238: Evaluate evidence-gap lexical assistance v2](../../decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md) — `docs/decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md`
 - [CLI version and release management](../../distribution/cli-version-management.md) — `docs/distribution/cli-version-management.md`
 - [Lervo Hub standalone distribution](../../distribution/hub-runtime-distribution.md) — `docs/distribution/hub-runtime-distribution.md`
 - [Lervo Node standalone distribution](../../distribution/node-runtime-distribution.md) — `docs/distribution/node-runtime-distribution.md`
@@ -15,6 +17,7 @@
 - [Bounded repository retrieval fallback v1](../../evidence/search/bounded-retrieval-fallback-v1.md) — `docs/evidence/search/bounded-retrieval-fallback-v1.md`
 - [Delegated repository retrieval pilot v1](../../evidence/search/delegated-retrieval-pilot-v1.md) — `docs/evidence/search/delegated-retrieval-pilot-v1.md`
 - [Korean-framed repository retrieval observation v1](../../evidence/search/korean-repository-retrieval-v1.md) — `docs/evidence/search/korean-repository-retrieval-v1.md`
+- [Lexical-assisted repository retrieval v2](../../evidence/search/lexical-assisted-v2.md) — `docs/evidence/search/lexical-assisted-v2.md`
 - [Natural-language case pre-review v1](../../evidence/search/natural-language-case-pre-review-v1.md) — `docs/evidence/search/natural-language-case-pre-review-v1.md`
 - [Provider-neutral grounding runner observation v1](../../evidence/search/provider-neutral-grounding-runner-v1.md) — `docs/evidence/search/provider-neutral-grounding-runner-v1.md`
 - [Repository retrieval performance observation v1](../../evidence/search/repository-retrieval-v1.md) — `docs/evidence/search/repository-retrieval-v1.md`
@@ -24,6 +27,3 @@
 - [Repository knowledge systems research](../../research/repository-knowledge-systems.md) — `docs/research/repository-knowledge-systems.md`
 - [Managed Context Grounding and Coverage](../../roadmap/context-grounding-coverage.md) — `docs/roadmap/context-grounding-coverage.md`
 - [Repository Node fleet and automatic Hub replication](../../roadmap/coordination/repository-node-fleet.md) — `docs/roadmap/coordination/repository-node-fleet.md`
-- [Bounded document layout and rewrite ownership](../../roadmap/knowledge/bounded-document-layout.md) — `docs/roadmap/knowledge/bounded-document-layout.md`
-- [Evidence-bound development-pattern promotion](../../roadmap/knowledge/development-pattern-promotion.md) — `docs/roadmap/knowledge/development-pattern-promotion.md`
-- [Public README migration](../../roadmap/knowledge/public-readme-migration.md) — `docs/roadmap/knowledge/public-readme-migration.md`

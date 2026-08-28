@@ -15,6 +15,8 @@ const excludedWorkspaceRoots = [
   "docs/decisions/search/0224-natural-language-grounding-quality-evaluation.md",
   "docs/decisions/search/0225-revise-local-hybrid-for-cross-language-recall.md",
   "docs/decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md",
+  "docs/decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md",
+  "docs/decisions/search/0240-evaluate-catalog-assisted-retrieval-v3.md",
   "docs/decisions/knowledge/semantics/0227-approval-gated-cross-provider-fuzzy-merge.md",
   "docs/roadmap/natural-language-grounding-quality.md",
 ];

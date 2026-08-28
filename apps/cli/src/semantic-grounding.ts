@@ -1,6 +1,15 @@
 import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
-import { createNoCapabilityProviderJsonRunner } from "@lervo/repository-knowledge-compiler";
 import {
+  createNoCapabilityProviderJsonRunner,
+  type NoCapabilityProviderJsonRunner,
+} from "@lervo/repository-knowledge-compiler";
+import {
+  groundingAuthorities,
+  groundingDispositions,
+  groundingIntents,
+  groundingReferenceKinds,
+  groundingSourceClasses,
+  protocolCoordinateKinds,
   resolveGroundedRequest,
   type GroundingDecisionContext,
   type GroundingResolutionContext,
@@ -27,6 +36,99 @@ const bodyKeys = [
   "disposition",
   "ambiguityReasons",
 ] as const;
+
+const identifierPattern = "^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$";
+const providerIdPattern = "^[a-z][a-z0-9._-]{0,63}$";
+const identifierArray = (maximum: number) => ({
+  type: "array",
+  maxItems: maximum,
+  uniqueItems: true,
+  items: { type: "string", maxLength: 160, pattern: identifierPattern },
+});
+const groundingResponseSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    schemaVersion: { const: 1 },
+    intent: { type: "string", enum: groundingIntents },
+    subjectIds: identifierArray(16),
+    references: {
+      type: "array",
+      maxItems: 16,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          referenceId: { type: "string", maxLength: 160, pattern: identifierPattern },
+          kind: { type: "string", enum: groundingReferenceKinds },
+          resolution: { type: "string", enum: ["resolved", "unresolved"] },
+        },
+        required: ["referenceId", "kind", "resolution"],
+      },
+    },
+    protocolCoordinates: {
+      type: "array",
+      maxItems: 16,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          kind: { type: "string", enum: protocolCoordinateKinds },
+          value: { type: "string", minLength: 1, maxLength: 1_024 },
+        },
+        required: ["kind", "value"],
+      },
+    },
+    requestedEffectIds: identifierArray(16),
+    prohibitedEffectIds: identifierArray(16),
+    sourceClasses: {
+      type: "array",
+      maxItems: groundingSourceClasses.length,
+      uniqueItems: true,
+      items: { type: "string", enum: groundingSourceClasses },
+    },
+    retrievalQueries: {
+      type: "array",
+      maxItems: 8,
+      uniqueItems: true,
+      items: { type: "string", minLength: 1, maxLength: 512 },
+    },
+    workflowCandidateIds: identifierArray(8),
+    capabilityCandidateIds: identifierArray(16),
+    authorityRequirement: { type: "string", enum: groundingAuthorities },
+    providerRoute: {
+      oneOf: [
+        {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            mode: { const: "current_provider_only" },
+            providerIds: { type: "array", maxItems: 0 },
+          },
+          required: ["mode", "providerIds"],
+        },
+        {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            mode: { const: "cross_provider_deliberation" },
+            providerIds: {
+              type: "array",
+              minItems: 2,
+              maxItems: 8,
+              uniqueItems: true,
+              items: { type: "string", pattern: providerIdPattern },
+            },
+          },
+          required: ["mode", "providerIds"],
+        },
+      ],
+    },
+    disposition: { type: "string", enum: groundingDispositions },
+    ambiguityReasons: identifierArray(16),
+  },
+  required: bodyKeys,
+} as const;
 
 const groundingInstruction = [
   "Resolve the current natural-language request semantically; never decide intent, workflow, target, provider, capability, or authority by keyword, substring, regular expression, alias, or synonym-list matching.",
@@ -61,8 +163,19 @@ export async function createProcessGroundingResolver(
     grantedAuthorities: GroundingDecisionContext["grantedAuthorities"];
     semanticCatalog?: unknown;
   },
+  options: {
+    timeoutMs?: number;
+    createRunner?: (input: {
+      provider: RunProvider;
+      timeoutMs?: number;
+    }) => Promise<NoCapabilityProviderJsonRunner>;
+  } = {},
 ): Promise<SemanticGroundingResolverPort> {
-  const runner = await createNoCapabilityProviderJsonRunner({ provider });
+  const createRunner = options.createRunner ?? createNoCapabilityProviderJsonRunner;
+  const runner = await createRunner({
+    provider,
+    ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
+  });
   return {
     providerId: provider,
     async resolve(input) {
@@ -71,8 +184,7 @@ export async function createProcessGroundingResolver(
           instruction: groundingInstruction,
           responseContract: {
             schemaVersion: 1,
-            exactFields: bodyKeys,
-            identifiers: "lowercase bounded protocol identifiers",
+            schema: groundingResponseSchema,
             rawRequestOrKeywordFieldsForbidden: true,
           },
           allowedWorkflows: catalog.workflows,
@@ -97,6 +209,15 @@ export async function createProcessGroundingResolver(
   };
 }
 
+export class GroundProductionRequestError extends Error {
+  readonly code = "semantic_resolution_failed";
+
+  constructor(cause: unknown) {
+    super("The current provider did not return a valid semantic grounding proposal.", { cause });
+    this.name = "GroundProductionRequestError";
+  }
+}
+
 export async function groundProductionRequest(input: {
   request: string;
   provider: RunProvider;
@@ -106,27 +227,39 @@ export async function groundProductionRequest(input: {
   grantedAuthorities: GroundingDecisionContext["grantedAuthorities"];
   resolver?: SemanticGroundingResolverPort;
   semanticCatalog?: unknown;
+  timeoutMs?: number;
 }) {
-  const resolver =
-    input.resolver ??
-    (await createProcessGroundingResolver(input.provider, {
-      workflows: input.workflows,
-      capabilityIds: input.availableCapabilityIds ?? [],
-      grantedAuthorities: input.grantedAuthorities,
-      semanticCatalog: input.semanticCatalog,
-    }));
-  return resolveGroundedRequest({
-    request: input.request,
-    resolutionContext: input.resolutionContext,
-    decisionContext: {
-      currentProviderId: input.provider,
-      availableProviderIds: ["codex", "claude"],
-      availableCapabilityIds: input.availableCapabilityIds ?? [],
-      grantedAuthorities: input.grantedAuthorities,
-      workflows: input.workflows,
-    },
-    resolver,
-  });
+  try {
+    const resolver =
+      input.resolver ??
+      (await createProcessGroundingResolver(
+        input.provider,
+        {
+          workflows: input.workflows,
+          capabilityIds: input.availableCapabilityIds ?? [],
+          grantedAuthorities: input.grantedAuthorities,
+          semanticCatalog: input.semanticCatalog,
+        },
+        {
+          ...(input.timeoutMs === undefined ? {} : { timeoutMs: input.timeoutMs }),
+        },
+      ));
+    return await resolveGroundedRequest({
+      request: input.request,
+      resolutionContext: input.resolutionContext,
+      decisionContext: {
+        currentProviderId: input.provider,
+        availableProviderIds: ["codex", "claude"],
+        availableCapabilityIds: input.availableCapabilityIds ?? [],
+        grantedAuthorities: input.grantedAuthorities,
+        workflows: input.workflows,
+      },
+      resolver,
+    });
+  } catch (error) {
+    if (error instanceof GroundProductionRequestError) throw error;
+    throw new GroundProductionRequestError(error);
+  }
 }
 
 export type GroundProductionRequest = typeof groundProductionRequest;

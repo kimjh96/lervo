@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [Architecture decisions](../../decisions/index.md) — `docs/decisions/index.md`
 - [ADR-0017: Sharded document manifests and no append-only documents](../../decisions/knowledge/documents/0017-sharded-document-manifests.md) — `docs/decisions/knowledge/documents/0017-sharded-document-manifests.md`
 - [ADR-0018: Existing-document adoption and safe migration](../../decisions/knowledge/documents/0018-existing-document-adoption.md) — `docs/decisions/knowledge/documents/0018-existing-document-adoption.md`
 - [ADR-0021: CommonMark managed-block parsing](../../decisions/knowledge/documents/0021-commonmark-managed-block-parser.md) — `docs/decisions/knowledge/documents/0021-commonmark-managed-block-parser.md`
@@ -26,4 +27,3 @@
 - [ADR-0188: Command-Driven Repository Layout Migration](../../decisions/knowledge/repository/0188-command-driven-repository-layout-migration.md) — `docs/decisions/knowledge/repository/0188-command-driven-repository-layout-migration.md`
 - [ADR-0189: Typed Repository Agent-Surface Inventory](../../decisions/knowledge/repository/0189-typed-repository-agent-surface-inventory.md) — `docs/decisions/knowledge/repository/0189-typed-repository-agent-surface-inventory.md`
 - [ADR-0190: Language-aware bounded repository publication](../../decisions/knowledge/repository/0190-language-aware-bounded-repository-publication.md) — `docs/decisions/knowledge/repository/0190-language-aware-bounded-repository-publication.md`
-- [ADR-0191: Bounded hierarchical repository layout](../../decisions/knowledge/repository/0191-bounded-hierarchical-repository-layout.md) — `docs/decisions/knowledge/repository/0191-bounded-hierarchical-repository-layout.md`

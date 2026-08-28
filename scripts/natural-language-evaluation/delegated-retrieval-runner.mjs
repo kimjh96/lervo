@@ -129,6 +129,7 @@ export async function runDelegatedRetrievalArm(input) {
     const documents = [
       protocolDocument(input.protocol ?? delegatedRetrievalProtocol),
       ...(includeRecommendations ? lexicalDocuments(input.recommendations) : []),
+      ...(input.additionalDocuments ?? []),
     ];
     const envelope = {
       kind: "context_envelope",
@@ -189,6 +190,7 @@ export async function runDelegatedRetrievalArm(input) {
     const answer = parseDelegatedRetrievalAnswer(
       managedContextPublicationContent(result.content, documents),
     );
+    const protocolObservation = input.observeAnswer?.(answer);
     stopReason = "completed";
     const score = scoreDelegatedRetrievalAnswer(input.item.expectedPaths, answer);
     const repositoryInspectionObserved = observations.tools.size + observations.commands.size > 0;
@@ -211,6 +213,10 @@ export async function runDelegatedRetrievalArm(input) {
       injectedRecommendationPaths: includeRecommendations
         ? input.recommendations.map((source) => source.path)
         : [],
+      injectedAdditionalDocumentPaths: (input.additionalDocuments ?? []).map(
+        (document) => document.path,
+      ),
+      ...(protocolObservation === undefined ? {} : { protocolObservation }),
     };
   } finally {
     if (session !== undefined) {

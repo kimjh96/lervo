@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0232: Approved Node Rollout Local Transaction](../../decisions/operations/security/0232-approved-node-rollout-local-transaction.md) — `docs/decisions/operations/security/0232-approved-node-rollout-local-transaction.md`
 - [ADR-0233: Authenticated Node Rollout Process Delivery](../../decisions/operations/security/0233-authenticated-node-rollout-process-delivery.md) — `docs/decisions/operations/security/0233-authenticated-node-rollout-process-delivery.md`
 - [ADR-0234: Bounded Node Rollout Effect Recovery](../../decisions/operations/security/0234-bounded-node-rollout-effect-recovery.md) — `docs/decisions/operations/security/0234-bounded-node-rollout-effect-recovery.md`
 - [ADR-0235: Predecessor-Bound Node Rollout Rollback](../../decisions/operations/security/0235-predecessor-bound-node-rollout-rollback.md) — `docs/decisions/operations/security/0235-predecessor-bound-node-rollout-rollback.md`
@@ -26,4 +27,3 @@
 - [ADR-0081: Trace default-output transition contract](../../decisions/operations/trace/0081-trace-output-mode-deprecation.md) — `docs/decisions/operations/trace/0081-trace-output-mode-deprecation.md`
 - [ADR-0082: Machine-readable trace capabilities](../../decisions/operations/trace/0082-machine-readable-trace-capabilities.md) — `docs/decisions/operations/trace/0082-machine-readable-trace-capabilities.md`
 - [ADR-0083: Trace default-transition compatibility fixture](../../decisions/operations/trace/0083-trace-default-transition-fixture.md) — `docs/decisions/operations/trace/0083-trace-default-transition-fixture.md`
-- [ADR-0084: 0.1.0 bounded trace default](../../decisions/operations/trace/0084-trace-bounded-default-release.md) — `docs/decisions/operations/trace/0084-trace-bounded-default-release.md`

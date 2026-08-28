@@ -132,6 +132,7 @@ export const groundingDecisionReasons = [
   "provider_route_not_allowed",
   "provider_unavailable",
   "current_provider_missing",
+  "semantic_resolution_failed",
 ] as const;
 
 export type GroundingDecisionReason = (typeof groundingDecisionReasons)[number];

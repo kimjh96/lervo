@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_66101f7e7fc377acb9a304e7
+compiler:
+  compilerBuildId: sha256:1925f60b250ca43c273e23d26f987e3a8c5ff5989f3691b45ff6b4de85789562
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.149.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b0b8a3e3f827ae8633aa24a4
+outputLanguage: en
+outputs:
+  - byteCount: 3707
+    contentHash: sha256:a434e73752cfd17bdd6df958b2b3ae83ec4e6266202b0e831ded436cdbf336ec
+    path: docs/decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md
+    userRegionHash: sha256:a434e73752cfd17bdd6df958b2b3ae83ec4e6266202b0e831ded436cdbf336ec
+profile: decision_record
+recordId: knormdoc_41fba85b26f2dd6c1f2017e9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:65cad0059b7222a1c69ce52f8530fa2ed2af579f1828ab790159a43658a014ae
+sourcePath: docs/decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md
+sourceUnitVersionIds:
+  - uv_70172815783440055894a894
+  - uv_7646fbe3bdc206a4981c2744
+  - uv_857e83313cb2b2bedf8bea30
+  - uv_a7c8de9140a34b7e789a48b0
+  - uv_ddcc879b3cfe12207bebfee8

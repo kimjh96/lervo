@@ -24,6 +24,7 @@ import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli as runCliBase } from "../src/main.js";
+import { GroundProductionRequestError } from "../src/semantic-grounding.js";
 
 const runCli: typeof runCliBase = (args, io, overrides = {}) =>
   runCliBase(args, io, {
@@ -176,6 +177,49 @@ afterEach(async () => {
 });
 
 describe("terminal integration CLI", () => {
+  it("returns bounded abstain context instead of blocking on an invalid provider proposal", async () => {
+    const root = await initializedRepository();
+    const messages: string[] = [];
+    const errors: string[] = [];
+    expect(
+      await runCli(
+        ["terminal", "hook", "--provider", "codex", "--contract", "2"],
+        {
+          cwd: root,
+          stdout: (message) => messages.push(message),
+          stderr: (message) => errors.push(message),
+          stdin: async () =>
+            JSON.stringify({
+              hook_event_name: "UserPromptSubmit",
+              session_id: "invalid-provider-proposal-session",
+              turn_id: "invalid-provider-proposal-turn",
+              prompt: "뭐가 문제일까요",
+            }),
+        },
+        {
+          groundProductionRequest: async () => {
+            throw new GroundProductionRequestError(
+              new TypeError("references[0] contains unsupported or missing fields."),
+            );
+          },
+        },
+      ),
+      errors.join(""),
+    ).toBe(0);
+    expect(errors).toEqual([]);
+    const result = JSON.parse(messages.join("")) as {
+      decision?: string;
+      hookSpecificOutput?: { additionalContext: string };
+    };
+    expect(result.decision).toBeUndefined();
+    expect(result.hookSpecificOutput?.additionalContext).toContain(
+      "groundingStatus: abstain; workflowId: none; reasons: semantic_resolution_failed",
+    );
+    expect(result.hookSpecificOutput?.additionalContext).toContain(
+      "No matching publication was found.",
+    );
+  });
+
   it("checkpoints an attached worker without requiring foreign global lifecycle updates", async () => {
     const fixture = await managedWorkerRepository();
     const invoke = async (event: "UserPromptSubmit" | "Stop", turnId: string) => {

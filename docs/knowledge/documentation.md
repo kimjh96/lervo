@@ -14,4 +14,4 @@
 - [Page 9](documentation/page-009.md) — 24 documents
 - [Page 10](documentation/page-010.md) — 24 documents
 - [Page 11](documentation/page-011.md) — 24 documents
-- [Page 12](documentation/page-012.md) — 20 documents
+- [Page 12](documentation/page-012.md) — 23 documents

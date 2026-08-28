@@ -39,9 +39,9 @@
     },
     {
       "path": "apps/cli/src/terminal-command-runtime.ts",
-      "contentHash": "sha256:16e358f76d5dd02864add0bed29356d52b754acb18c31ee72ebaa55a54596e64",
+      "contentHash": "sha256:1c8d9206e72099a710bbb77f0bd5fa48d1efd8b13287f261743cbee356d1a4a9",
       "responsibility": "Direct terminal-integration command runtime",
-      "rationale": "The stable terminal command is a one-line facade; this implementation owns direct terminal hook preparation, evidence recording, execution-kind routing, declaration, coverage, and completion gating while workspace policy remains in a linked module.",
+      "rationale": "The stable terminal command is a one-line facade; this implementation owns direct terminal hook preparation, evidence recording, execution-kind routing, declaration, coverage, and completion gating while workspace policy and terminal semantic-grounding policy remain in linked modules.",
       "disposition": "cohesive"
     },
     {

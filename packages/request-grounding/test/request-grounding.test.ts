@@ -4,6 +4,7 @@ import {
   decideGroundedRequest,
   parseSemanticGroundingProposal,
   resolveGroundedRequest,
+  semanticResolutionFailureDecision,
   validateProtocolCoordinate,
   extractProtocolCoordinates,
   type GroundingDecisionContext,
@@ -57,6 +58,22 @@ const context: GroundingDecisionContext = {
 };
 
 describe("typed semantic grounding", () => {
+  it("fails closed without selecting any effect when semantic resolution fails", () => {
+    expect(semanticResolutionFailureDecision()).toEqual({
+      schemaVersion: 1,
+      status: "abstain",
+      workflowId: null,
+      effectIds: [],
+      capabilityIds: [],
+      providerIds: [],
+      authority: null,
+      sourceClasses: [],
+      subjectIds: [],
+      retrievalQueries: [],
+      reasons: ["semantic_resolution_failed"],
+    });
+  });
+
   it("makes the same decision for semantically grounded requests regardless of request digest", () => {
     const first = decideGroundedRequest({
       proposal: parseSemanticGroundingProposal(proposal()),

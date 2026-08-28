@@ -26,6 +26,22 @@ function terminalDecision(
   };
 }
 
+export function semanticResolutionFailureDecision(): GroundingDecision {
+  return {
+    schemaVersion: 1,
+    status: "abstain",
+    workflowId: null,
+    effectIds: [],
+    capabilityIds: [],
+    providerIds: [],
+    authority: null,
+    sourceClasses: [],
+    subjectIds: [],
+    retrievalQueries: [],
+    reasons: ["semantic_resolution_failed"],
+  };
+}
+
 function workflowFor(
   proposal: SemanticGroundingProposal,
   context: GroundingDecisionContext,

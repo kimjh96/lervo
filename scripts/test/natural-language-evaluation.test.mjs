@@ -11,12 +11,21 @@ import {
   validateRetrievalPair,
   validateBoundedFallbackAlignment,
   validateDelegatedRetrievalSuite,
+  validateLexicalAssistedV2Suite,
 } from "../check-natural-language-evaluation.mjs";
 import {
   boundedFallbackProtocol,
   evaluateFallbackAcceptance,
   validateFallbackRecommendations,
 } from "../natural-language-evaluation/bounded-retrieval-runner.mjs";
+import {
+  parseLexicalAssistedV2EvidenceGap,
+  validateLexicalAssistedV2Recommendations,
+} from "../natural-language-evaluation/lexical-assisted-v2-contract.mjs";
+import {
+  evaluateLexicalAssistedV2Acceptance,
+  lexicalAssistedV2Protocol,
+} from "../natural-language-evaluation/lexical-assisted-v2-runner.mjs";
 
 const root = resolve(import.meta.dirname, "../..");
 const load = (path) => JSON.parse(readFileSync(resolve(root, path), "utf8"));
@@ -36,7 +45,80 @@ describe("natural-language evaluation corpus", () => {
       lexicalDiscoveryProbeCount: 3,
       delegatedRetrievalCaseCount: 8,
       boundedFallbackCaseCount: 8,
+      lexicalAssistedV2CaseCount: 8,
       groundingReportId: expect.stringMatching(/^ngreport_[a-f0-9]{24}$/u),
+    });
+  });
+
+  it("pre-registers v2 evidence-gap and relevant-recommendation contracts", () => {
+    const suite = load("benchmarks/search/lexical-assisted-v2.json");
+    expect(validateLexicalAssistedV2Suite(suite, root).repetitionsPerArm).toBe(3);
+    expect(lexicalAssistedV2Protocol).toContain("concrete evidence gap");
+    expect(
+      parseLexicalAssistedV2EvidenceGap({
+        evidenceGap: { status: "none", code: null, reason: null },
+      }),
+    ).toEqual({ status: "none", code: null, reason: null });
+    expect(() =>
+      parseLexicalAssistedV2EvidenceGap({
+        evidenceGap: {
+          status: "named",
+          code: "lexical_no_hits",
+          reason: "No lexical recommendations were supplied.",
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects v2 lexical recommendation drift", () => {
+    const suite = load("benchmarks/search/lexical-assisted-v2.json");
+    const hitCase = suite.cases.find((item) => item.lexicalExpectation === "recommendations");
+    const noHitCase = suite.cases.find((item) => item.lexicalExpectation === "no_hits");
+    expect(() => validateLexicalAssistedV2Recommendations(hitCase, [])).toThrow(
+      "drifted from pre-registration",
+    );
+    expect(() => validateLexicalAssistedV2Recommendations(noHitCase, [{}])).toThrow(
+      "drifted from pre-registration",
+    );
+  });
+
+  it("rejects lexical-assisted v2 protocol drift", () => {
+    const suite = load("benchmarks/search/lexical-assisted-v2.json");
+    suite.protocolDigest = `sha256:${"0".repeat(64)}`;
+    expect(() => validateLexicalAssistedV2Suite(suite, root)).toThrow("suite header is invalid");
+  });
+
+  it("does not accept v2 resource savings with worse no-hit variance", () => {
+    const acceptance = load("benchmarks/search/lexical-assisted-v2.json").acceptance;
+    const modelDirect = {
+      observations: 24,
+      passed: 21,
+      casesPassingEveryRepetition: 6,
+      expectedPathRecall: 0.9,
+      failedContracts: 0,
+      failedEvidenceGapContracts: 0,
+      droppedRelevantRecommendations: 0,
+      totalDurationMs: 100_000,
+      totalTokens: 100_000,
+      usageObservedCases: 24,
+      noHitDuration: { p95Ms: 20_000, standardDeviationMs: 2_000 },
+    };
+    const lexicalAssistedV2 = {
+      ...modelDirect,
+      totalDurationMs: 80_000,
+      totalTokens: 70_000,
+      noHitDuration: { p95Ms: 19_000, standardDeviationMs: 3_000 },
+    };
+    expect(
+      evaluateLexicalAssistedV2Acceptance(acceptance, { modelDirect, lexicalAssistedV2 }),
+    ).toMatchObject({
+      passed: false,
+      criteria: {
+        tokenRatio: true,
+        durationRatio: true,
+        noHitP95Ratio: true,
+        noHitStandardDeviationRatio: false,
+      },
     });
   });
 
