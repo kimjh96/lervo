@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0191: Bounded hierarchical repository layout](../../decisions/knowledge/repository/0191-bounded-hierarchical-repository-layout.md) — `docs/decisions/knowledge/repository/0191-bounded-hierarchical-repository-layout.md`
 - [ADR-0192: Repository-scoped fail-closed decision taxonomy](../../decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md) — `docs/decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md`
 - [ADR-0193: Semantic Repository and Agent-Surface Migration](../../decisions/knowledge/repository/0193-semantic-repository-and-agent-surface-migration.md) — `docs/decisions/knowledge/repository/0193-semantic-repository-and-agent-surface-migration.md`
 - [ADR-0195: Reviewed document content normalization](../../decisions/knowledge/repository/0195-reviewed-document-content-normalization.md) — `docs/decisions/knowledge/repository/0195-reviewed-document-content-normalization.md`
@@ -26,4 +27,3 @@
 - [ADR-0229: Organization Node Enrollment and Gradual Rollout](../../decisions/operations/security/0229-organization-node-enrollment-and-gradual-rollout.md) — `docs/decisions/operations/security/0229-organization-node-enrollment-and-gradual-rollout.md`
 - [ADR-0230: Owner-Only File Organization Credential Source](../../decisions/operations/security/0230-owner-only-file-organization-credential-source.md) — `docs/decisions/operations/security/0230-owner-only-file-organization-credential-source.md`
 - [ADR-0231: Authenticated Node Organization Credential Activation](../../decisions/operations/security/0231-authenticated-node-organization-credential-activation.md) — `docs/decisions/operations/security/0231-authenticated-node-organization-credential-activation.md`
-- [ADR-0232: Approved Node Rollout Local Transaction](../../decisions/operations/security/0232-approved-node-rollout-local-transaction.md) — `docs/decisions/operations/security/0232-approved-node-rollout-local-transaction.md`

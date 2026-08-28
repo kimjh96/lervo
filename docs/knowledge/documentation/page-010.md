@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0129: npm Stage-Approval Reconciliation Evidence](../../decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md) — `docs/decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md`
 - [ADR-0130: Integrate Stage Approval into Publication Transition](../../decisions/release/staging/0130-cli-stage-approval-transition-integration.md) — `docs/decisions/release/staging/0130-cli-stage-approval-transition-integration.md`
 - [ADR-0131: Stage-Evidence Bundle Manifest](../../decisions/release/staging/0131-cli-stage-evidence-bundle-manifest.md) — `docs/decisions/release/staging/0131-cli-stage-evidence-bundle-manifest.md`
 - [ADR-0053: Deterministic lexical search with explicit failure observations](../../decisions/search/0053-deterministic-lexical-search-observations.md) — `docs/decisions/search/0053-deterministic-lexical-search-observations.md`
@@ -26,4 +27,3 @@
 - [ADR-0217: Local hybrid search and reviewed relation context](../../decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md) — `docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md`
 - [ADR-0224: Natural-language grounding quality evaluation](../../decisions/search/0224-natural-language-grounding-quality-evaluation.md) — `docs/decisions/search/0224-natural-language-grounding-quality-evaluation.md`
 - [ADR-0225: Revise the local hybrid candidate for cross-language recall](../../decisions/search/0225-revise-local-hybrid-for-cross-language-recall.md) — `docs/decisions/search/0225-revise-local-hybrid-for-cross-language-recall.md`
-- [ADR-0226: Retire local hybrid and evaluate a bounded model fallback](../../decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md) — `docs/decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md`

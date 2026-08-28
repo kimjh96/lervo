@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_92bd7cac3ad260070e2a5c49
+compiler:
+  compilerBuildId: sha256:8d288d20c0d2eb5d6514d531ee951785b45f97e6528f30af3f0156dbd602ded6
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_791e8c77ccb29749c9992cfd
+outputLanguage: en
+outputs:
+  - byteCount: 16107
+    contentHash: sha256:729844b7a2ea8ba72b4f75b3fa99c3ba17ec59745c7d30f3e13f1e6bf56b6a85
+    path: docs/specifications/execution.md
+    userRegionHash: sha256:729844b7a2ea8ba72b4f75b3fa99c3ba17ec59745c7d30f3e13f1e6bf56b6a85
+profile: specification_document
+recordId: knormdoc_24818ace701b9a9d238647ba
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:56c95e88d3bc3905de095702776f1a1fd476da84d270e577a34c7fccbabe6970
+sourcePath: docs/specifications/execution.md
+sourceUnitVersionIds:
+  - uv_1b5be341906d6c39eaad4694
+  - uv_333e92c57e3d2022d13d3af4
+  - uv_365b663b5f3c6b20a4ab1d74
+  - uv_38e646f0c3ce8bca83195d3c
+  - uv_5e694d8f6b5688b7e61dff6c
+  - uv_653aa88323a599215edb7c4f
+  - uv_76e6a5c80a9e5443b856ea87
+  - uv_890aa673a2cf1484ae0f6de4
+  - uv_9f41f560639ddfe13143c47a
+  - uv_a48afeeb64fc1dafaaa8a711
+  - uv_a81381bd2332c1cf8761dbba
+  - uv_acc7a62879ddf3683aeb0851
+  - uv_b558e34c0278d72334051ed4
+  - uv_d67aa80d24e0fd5bc4fc6f36
+  - uv_d78c5a075d96ced5e6762827
+  - uv_ea834cf84caf2c7fc56d8e80

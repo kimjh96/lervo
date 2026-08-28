@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_751d94aeea73fd9613b19201
+freshness: current
+ownership: user
+path: docs/evidence/search/lexical-assisted-v2.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_123209d1e267c90e3f31129b
+title: Lexical-assisted repository retrieval v2
+type: concept

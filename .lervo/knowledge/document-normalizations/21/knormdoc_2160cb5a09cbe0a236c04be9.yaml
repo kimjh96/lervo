@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_bd6ced93d0f446b7774f42af
+compiler:
+  compilerBuildId: sha256:8d288d20c0d2eb5d6514d531ee951785b45f97e6528f30af3f0156dbd602ded6
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_72b22d3cf27e8ce2eda58303
+outputLanguage: en
+outputs:
+  - byteCount: 3862
+    contentHash: sha256:22b621e16c0243673fed7409e9f4ff2c3c9b9add8d5875218891843ea03f8a66
+    path: docs/decisions/execution/grounding/0239-unmanaged-terminal-grounding-failure-abstention.md
+    userRegionHash: sha256:22b621e16c0243673fed7409e9f4ff2c3c9b9add8d5875218891843ea03f8a66
+profile: decision_record
+recordId: knormdoc_2160cb5a09cbe0a236c04be9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9b0e844d2bb22d92edc4225feeeda9af30931e25be0ea5fd6d66097b0bf68700
+sourcePath: docs/decisions/execution/grounding/0239-unmanaged-terminal-grounding-failure-abstention.md
+sourceUnitVersionIds:
+  - uv_01234f3bd7599bc064a40411
+  - uv_31ab3bede26467eebae6acfc
+  - uv_4256001a97ccea933b3c2d96
+  - uv_6cc8a97b7ede5f3ffe0dc225
+  - uv_9df93d02be4093e1d5984f46
+  - uv_ffe09b1e9b5c86ebbd0e34d8

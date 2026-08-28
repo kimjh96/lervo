@@ -14,6 +14,7 @@ import {
   validateBoundedFallbackAlignment,
   validateDelegatedRetrievalSuite,
 } from "./natural-language-evaluation/delegated-retrieval-contract.mjs";
+import { validateLexicalAssistedV2Suite } from "./natural-language-evaluation/lexical-assisted-v2-contract.mjs";
 
 function loadJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
@@ -27,6 +28,7 @@ export {
   validateRetrievalPair,
   validateBoundedFallbackAlignment,
   validateDelegatedRetrievalSuite,
+  validateLexicalAssistedV2Suite,
 };
 
 export function checkNaturalLanguageEvaluation(repositoryRoot) {
@@ -58,6 +60,10 @@ export function checkNaturalLanguageEvaluation(repositoryRoot) {
     repositoryRoot,
     "benchmarks/search/bounded-retrieval-fallback-v1.json",
   );
+  const lexicalAssistedV2Path = resolve(
+    repositoryRoot,
+    "benchmarks/search/lexical-assisted-v2.json",
+  );
   const koreanSuite = loadJson(koreanPath);
   const controlSuite = loadJson(controlPath);
   const paired = validateRetrievalPair(repositoryRoot, koreanSuite, controlSuite);
@@ -86,6 +92,10 @@ export function checkNaturalLanguageEvaluation(repositoryRoot) {
     loadJson(boundedFallbackPath),
   );
   validateDelegatedRetrievalSuite(boundedFallback, repositoryRoot);
+  const lexicalAssistedV2 = validateLexicalAssistedV2Suite(
+    loadJson(lexicalAssistedV2Path),
+    repositoryRoot,
+  );
   assertGroundingEvaluationPassed(groundingReport);
   return {
     ...paired,
@@ -95,6 +105,7 @@ export function checkNaturalLanguageEvaluation(repositoryRoot) {
     groundingReportId: groundingReport.reportId,
     delegatedRetrievalCaseCount: delegatedRetrieval.cases.length,
     boundedFallbackCaseCount: boundedFallback.cases.length,
+    lexicalAssistedV2CaseCount: lexicalAssistedV2.cases.length,
   };
 }
 
@@ -102,6 +113,6 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const result = checkNaturalLanguageEvaluation(repositoryRoot);
   console.log(
-    `Natural-language evaluation check passed (${result.pairCount} retrieval pairs, ${result.caseCount} grounding cases across ${result.categoryCount} categories, ${result.lexicalFailureCandidateCount} lexical failure candidates across ${result.lexicalFailureTaskTypeCount} task types, ${result.lexicalDiscoveryProbeCount} discovery probes, ${result.delegatedRetrievalCaseCount} delegated retrieval cases, ${result.boundedFallbackCaseCount} bounded fallback cases, ${result.preReviewAttentionCount} pre-review attention items, report ${result.groundingReportId})`,
+    `Natural-language evaluation check passed (${result.pairCount} retrieval pairs, ${result.caseCount} grounding cases across ${result.categoryCount} categories, ${result.lexicalFailureCandidateCount} lexical failure candidates across ${result.lexicalFailureTaskTypeCount} task types, ${result.lexicalDiscoveryProbeCount} discovery probes, ${result.delegatedRetrievalCaseCount} delegated retrieval cases, ${result.boundedFallbackCaseCount} bounded fallback cases, ${result.lexicalAssistedV2CaseCount} lexical-assisted v2 cases, ${result.preReviewAttentionCount} pre-review attention items, report ${result.groundingReportId})`,
   );
 }

@@ -32,6 +32,7 @@ import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { assembleTerminalHookContext } from "./terminal-context-assembly.js";
 import { loadSelectedTerminalDocument } from "./terminal-context-loading.js";
 import { selectTerminalContextCandidates } from "./terminal-context-selection.js";
+import { resolveTerminalRequestGrounding } from "./terminal-request-grounding.js";
 import type { CliIo, CliServices } from "./types.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 import {
@@ -213,73 +214,24 @@ async function promptContext(
   } finally {
     await workstreamStorage.close();
   }
-  const grounded = await services.groundProductionRequest({
+  const grounding = await resolveTerminalRequestGrounding({
     request: prompt,
     provider,
-    resolutionContext: {
-      priorTurns: [],
-      currentWorkstream:
-        currentWorkstream === null
-          ? null
-          : {
-              workstreamId: currentWorkstream.workstreamId,
-              revision: currentWorkstream.revision,
-            },
-      pendingAuthorityIds: [],
-      repositoryCondition: "current",
-    },
-    grantedAuthorities: ["read", "repository_write", "user_approval"],
-    workflows: [
-      {
-        workflowId: "terminal.answer",
-        supportedIntents: ["inspect", "explain"],
-        supportedDispositions: ["answer"],
-        effectIds: ["terminal.answer"],
-        requiredSourceClasses: ["repository_state"],
-        authority: "read",
-        allowedCapabilityIds: [],
-        crossProviderAllowed: false,
-      },
-      {
-        workflowId: "terminal.repository_change",
-        supportedIntents: ["change", "continue"],
-        supportedDispositions: ["execute"],
-        effectIds: ["repository.change"],
-        requiredSourceClasses: ["repository_state"],
-        authority: "repository_write",
-        allowedCapabilityIds: [],
-        crossProviderAllowed: false,
-      },
-      {
-        workflowId: "terminal.resolve_approval",
-        supportedIntents: ["resolve_approval"],
-        supportedDispositions: ["execute"],
-        effectIds: ["authority.resolve"],
-        requiredSourceClasses: ["current_workstream"],
-        authority: "user_approval",
-        allowedCapabilityIds: [],
-        crossProviderAllowed: false,
-      },
-      {
-        workflowId: "terminal.deliberate",
-        supportedIntents: ["deliberate"],
-        supportedDispositions: ["execute"],
-        effectIds: ["deliberation.request"],
-        requiredSourceClasses: ["repository_state"],
-        authority: "user_approval",
-        allowedCapabilityIds: [],
-        crossProviderAllowed: true,
-      },
-    ],
+    currentWorkstream:
+      currentWorkstream === null
+        ? null
+        : {
+            workstreamId: currentWorkstream.workstreamId,
+            revision: currentWorkstream.revision,
+          },
+    services,
   });
   const retrievalQuery =
-    grounded.decision.retrievalQueries.join("\n") ||
-    grounded.decision.subjectIds.join(" ") ||
-    "repository context";
+    grounding.retrievalQueries.join("\n") || grounding.subjectIds.join(" ") || "repository context";
   const selection = await selectTerminalContextCandidates({
     repositoryRoot: root,
     retrievalQuery,
-    groundingStatus: grounded.decision.status,
+    groundingStatus: grounding.status,
     supplementalSources,
   });
   const workstream =
@@ -302,9 +254,9 @@ async function promptContext(
           };
         })();
   const deliberationInstruction =
-    grounded.decision.status === "ready" &&
-    grounded.decision.workflowId === "terminal.deliberate" &&
-    grounded.decision.providerIds.length >= 2
+    grounding.status === "ready" &&
+    grounding.workflowId === "terminal.deliberate" &&
+    grounding.providerIds.length >= 2
       ? `The validated typed request authorizes cross-provider deliberation. Run \`lervo deliberate --auto --caller ${provider} "<bounded topic>"\` and bind the result to the terminal declaration.`
       : "No validated cross-provider deliberation request is present for this turn; do not switch providers or infer deliberation from wording.";
   const finalizationInstruction =
@@ -323,7 +275,7 @@ async function promptContext(
         : "If this turn changes repository-authored bytes, the agent must record the next bounded revision through the `lervo workstream update --actor agent --provider <current-provider>` plan/apply flow before completion. Preserve identity and origin, replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.";
   const preamble = [
     "Lervo terminal integration v2 resolved the request through the current provider adapter, then used only the validated typed source plan for candidate retrieval.",
-    `groundingStatus: ${grounded.decision.status}; workflowId: ${grounded.decision.workflowId ?? "none"}; reasons: ${grounded.decision.reasons.join(",") || "none"}`,
+    `groundingStatus: ${grounding.status}; workflowId: ${grounding.workflowId ?? "none"}; reasons: ${grounding.reasons.join(",") || "none"}`,
     `sourceSnapshotId: ${selection.sourceSnapshotId}`,
     "The following exact-hash publications were loaded and prepared for return through the provider hook. This proves hook-side preparation, not provider acceptance, managed delivery, understanding, or later use.",
     "Use current repository bytes as authority, follow AGENTS.md, and do not treat a recommendation as semantic truth.",
@@ -385,13 +337,13 @@ async function promptContext(
     grounding: {
       requestDigest: sha256(prompt),
       queryDigest: sha256(retrievalQuery),
-      status: grounded.decision.status,
-      workflowId: grounded.decision.workflowId,
-      sourceClasses: grounded.decision.sourceClasses,
-      subjectIds: grounded.decision.subjectIds,
-      retrievalQueries: grounded.decision.retrievalQueries,
-      providerIds: grounded.decision.providerIds,
-      reasons: grounded.decision.reasons,
+      status: grounding.status,
+      workflowId: grounding.workflowId,
+      sourceClasses: grounding.sourceClasses,
+      subjectIds: grounding.subjectIds,
+      retrievalQueries: grounding.retrievalQueries,
+      providerIds: grounding.providerIds,
+      reasons: grounding.reasons,
     },
   };
 }

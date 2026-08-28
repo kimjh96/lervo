@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0114: Resolve Reconciled CLI First-Publication Outcomes](../../decisions/release/bootstrap/0114-cli-first-publication-reconciliation-resolution.md) — `docs/decisions/release/bootstrap/0114-cli-first-publication-reconciliation-resolution.md`
 - [ADR-0115: CLI First-Publication Transition Evidence Union](../../decisions/release/bootstrap/0115-cli-first-publication-transition-evidence-union.md) — `docs/decisions/release/bootstrap/0115-cli-first-publication-transition-evidence-union.md`
 - [ADR-0116: CLI First-Publication Transition Completion Command](../../decisions/release/bootstrap/0116-cli-first-publication-transition-completion-command.md) — `docs/decisions/release/bootstrap/0116-cli-first-publication-transition-completion-command.md`
 - [ADR-0132: Inspect CLI First-Publication Completion Records](../../decisions/release/bootstrap/0132-cli-first-publication-completion-inspection.md) — `docs/decisions/release/bootstrap/0132-cli-first-publication-completion-inspection.md`
@@ -26,4 +27,3 @@
 - [ADR-0126: npm Stage-Approval Authorization](../../decisions/release/staging/0126-cli-npm-stage-approval-authorization.md) — `docs/decisions/release/staging/0126-cli-npm-stage-approval-authorization.md`
 - [ADR-0127: Durable npm Stage-Approval Records](../../decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md) — `docs/decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md`
 - [ADR-0128: Interactive npm Stage-Approval Execution](../../decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md) — `docs/decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md`
-- [ADR-0129: npm Stage-Approval Reconciliation Evidence](../../decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md) — `docs/decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md`

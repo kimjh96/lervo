@@ -18,6 +18,11 @@ import {
   validateFallbackRecommendations,
 } from "./natural-language-evaluation/bounded-retrieval-runner.mjs";
 import {
+  validateLexicalAssistedV2Recommendations,
+  validateLexicalAssistedV2Suite,
+} from "./natural-language-evaluation/lexical-assisted-v2-contract.mjs";
+import { runLexicalAssistedV2Benchmark } from "./natural-language-evaluation/lexical-assisted-v2-runner.mjs";
+import {
   copySanitizedEvaluationWorkspace,
   isWithinPath,
   loadDelegatedRetrievalCorpus,
@@ -69,7 +74,11 @@ async function main() {
     throw new TypeError("Use --provider <codex|claude> and an explicit --model <model-id>.");
   }
   const suitePath = resolve(sourceRoot, parsed.values.suite);
-  const suite = validateDelegatedRetrievalSuite(JSON.parse(await readFile(suitePath, "utf8")));
+  const suiteSource = JSON.parse(await readFile(suitePath, "utf8"));
+  const suite =
+    suiteSource.suiteId === "drbench_lexical_assisted_v2.v1"
+      ? validateLexicalAssistedV2Suite(suiteSource, sourceRoot)
+      : validateDelegatedRetrievalSuite(suiteSource, sourceRoot);
   const temporaryRoot = await mkdtemp(resolve(tmpdir(), "lervo-delegated-retrieval-"));
   const repositoryRoot = resolve(temporaryRoot, basename(sourceRoot));
   try {
@@ -81,6 +90,9 @@ async function main() {
         const sources = lexicalRecommendations(corpus, item.query, suite.lexicalLimit);
         if (suite.suiteId === "drbench_bounded_fallback.v1") {
           validateFallbackRecommendations(item.fallbackTrigger, sources);
+        }
+        if (suite.suiteId === "drbench_lexical_assisted_v2.v1") {
+          validateLexicalAssistedV2Recommendations(item, sources);
         }
         return {
           caseId: item.caseId,
@@ -103,7 +115,9 @@ async function main() {
     const runBenchmark =
       suite.suiteId === "drbench_bounded_fallback.v1"
         ? runBoundedFallbackBenchmark
-        : runDelegatedRetrievalBenchmark;
+        : suite.suiteId === "drbench_lexical_assisted_v2.v1"
+          ? runLexicalAssistedV2Benchmark
+          : runDelegatedRetrievalBenchmark;
     const report = await runBenchmark({
       suite,
       provider: parsed.values.provider,

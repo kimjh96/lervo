@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_8cb7bfa6729127e21e159c16
+freshness: current
+ownership: user
+path: docs/decisions/execution/grounding/0239-unmanaged-terminal-grounding-failure-abstention.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_8153bb782bd3f2c2d3e9aa03
+title: "ADR-0239: Unmanaged terminal grounding failure abstention"
+type: decision

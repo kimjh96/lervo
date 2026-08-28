@@ -1,0 +1,123 @@
+import { describe, expect, it } from "vitest";
+
+import type { NoCapabilityProviderJsonRunner } from "@lervo/repository-knowledge-compiler";
+
+import {
+  createProcessGroundingResolver,
+  groundProductionRequest,
+} from "../src/semantic-grounding.js";
+
+const responseBody = {
+  schemaVersion: 1,
+  intent: "explain",
+  subjectIds: ["terminal.integration"],
+  references: [{ referenceId: "reported_failure", kind: "prior_turn", resolution: "resolved" }],
+  protocolCoordinates: [],
+  requestedEffectIds: ["terminal.answer"],
+  prohibitedEffectIds: [],
+  sourceClasses: ["repository_state"],
+  retrievalQueries: ["terminal integration failure"],
+  workflowCandidateIds: ["terminal.answer"],
+  capabilityCandidateIds: [],
+  authorityRequirement: "read",
+  providerRoute: { mode: "current_provider_only", providerIds: [] },
+  disposition: "answer",
+  ambiguityReasons: [],
+};
+
+const workflow = {
+  workflowId: "terminal.answer",
+  supportedIntents: ["explain" as const],
+  supportedDispositions: ["answer" as const],
+  effectIds: ["terminal.answer"],
+  requiredSourceClasses: ["repository_state" as const],
+  authority: "read" as const,
+  allowedCapabilityIds: [],
+  crossProviderAllowed: false,
+};
+
+describe("production semantic grounding adapter", () => {
+  it("supplies the provider with the complete nested response schema", async () => {
+    let observedInput: unknown;
+    const runner: NoCapabilityProviderJsonRunner = {
+      provider: "codex",
+      resolve: async (input) => {
+        observedInput = input;
+        return responseBody;
+      },
+    };
+    const resolver = await createProcessGroundingResolver(
+      "codex",
+      { workflows: [workflow], capabilityIds: [], grantedAuthorities: ["read"] },
+      { createRunner: async () => runner },
+    );
+    await resolver.resolve({
+      request: "What failed?",
+      requestDigest: `sha256:${"a".repeat(64)}`,
+      context: {
+        priorTurns: [],
+        currentWorkstream: null,
+        pendingAuthorityIds: [],
+        repositoryCondition: "current",
+      },
+    });
+
+    expect(observedInput).toMatchObject({
+      responseContract: {
+        schema: {
+          additionalProperties: false,
+          properties: {
+            references: {
+              items: {
+                additionalProperties: false,
+                required: ["referenceId", "kind", "resolution"],
+              },
+            },
+          },
+        },
+        rawRequestOrKeywordFieldsForbidden: true,
+      },
+    });
+  });
+
+  it("translates an invalid provider proposal into a stable adapter failure", async () => {
+    await expect(
+      groundProductionRequest({
+        request: "뭐가 문제일까요",
+        provider: "codex",
+        resolutionContext: {
+          priorTurns: [],
+          currentWorkstream: null,
+          pendingAuthorityIds: [],
+          repositoryCondition: "current",
+        },
+        workflows: [workflow],
+        grantedAuthorities: ["read"],
+        resolver: {
+          providerId: "codex",
+          resolve: async ({ requestDigest }) => ({
+            ...responseBody,
+            requestDigest,
+            resolver: {
+              kind: "provider_adapter",
+              providerId: "codex",
+              resultDigest: `sha256:${"b".repeat(64)}`,
+            },
+            references: [
+              {
+                referenceId: "reported_failure",
+                kind: "prior_turn",
+                resolution: "resolved",
+                unsupported: true,
+              },
+            ],
+          }),
+        },
+      }),
+    ).rejects.toMatchObject({
+      name: "GroundProductionRequestError",
+      code: "semantic_resolution_failed",
+      message: "The current provider did not return a valid semantic grounding proposal.",
+    });
+  });
+});

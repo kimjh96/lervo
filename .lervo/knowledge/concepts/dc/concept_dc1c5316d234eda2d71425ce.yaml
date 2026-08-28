@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_dc1c5316d234eda2d71425ce
+freshness: current
+ownership: user
+path: docs/decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_2b8fdd55b8713ddc1bbd0b8d
+title: "ADR-0238: Evaluate evidence-gap lexical assistance v2"
+type: decision

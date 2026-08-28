@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0084: 0.1.0 bounded trace default](../../decisions/operations/trace/0084-trace-bounded-default-release.md) — `docs/decisions/operations/trace/0084-trace-bounded-default-release.md`
 - [ADR-0091: CLI registry-publish preflight contract](../../decisions/release/assurance/0091-cli-registry-publish-preflight.md) — `docs/decisions/release/assurance/0091-cli-registry-publish-preflight.md`
 - [ADR-0092: CLI release SBOM contract](../../decisions/release/assurance/0092-cli-release-sbom.md) — `docs/decisions/release/assurance/0092-cli-release-sbom.md`
 - [ADR-0093: CLI release provenance-attestation boundary](../../decisions/release/assurance/0093-cli-release-attestation-boundary.md) — `docs/decisions/release/assurance/0093-cli-release-attestation-boundary.md`
@@ -26,4 +27,3 @@
 - [ADR-0111: CLI first-publication bootstrap v2 evidence binding](../../decisions/release/bootstrap/0111-cli-first-publication-bootstrap-v2-evidence-integration.md) — `docs/decisions/release/bootstrap/0111-cli-first-publication-bootstrap-v2-evidence-integration.md`
 - [ADR-0112: One-time CLI first-publication arming authorization](../../decisions/release/bootstrap/0112-cli-first-publication-arming-authorization.md) — `docs/decisions/release/bootstrap/0112-cli-first-publication-arming-authorization.md`
 - [ADR-0113: Reconcile Unknown CLI First-Publication Outcomes](../../decisions/release/bootstrap/0113-cli-first-publication-unknown-outcome-reconciliation.md) — `docs/decisions/release/bootstrap/0113-cli-first-publication-unknown-outcome-reconciliation.md`
-- [ADR-0114: Resolve Reconciled CLI First-Publication Outcomes](../../decisions/release/bootstrap/0114-cli-first-publication-reconciliation-resolution.md) — `docs/decisions/release/bootstrap/0114-cli-first-publication-reconciliation-resolution.md`
