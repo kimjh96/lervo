@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_277800472d434bf6c522fe4b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep direct terminal chat available when semantic grounding fails safely."
