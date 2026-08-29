@@ -10,6 +10,7 @@ import {
   reviewedManagedCanaryCheckpointContractDigest,
 } from "../natural-language-evaluation/linked-evidence-managed-canary-checkpoint-contract.mjs";
 import { valueDigest } from "../natural-language-evaluation/linked-evidence-shadow-phase-a-pilot-contract.mjs";
+import { reviewedProviderShadowV18ScheduleFixture } from "./linked-evidence-managed-canary-source-fixture.mjs";
 
 const repositoryRoot = new URL("../..", import.meta.url).pathname;
 const roots = [];
@@ -21,18 +22,10 @@ afterEach(async () => {
 describe("managed linked-evidence canary v1 checkpoint", () => {
   it("binds an exact default-off 16-run paired schedule and 32-call ceiling", async () => {
     const loaded = await loadManagedCanaryCheckpointContract(repositoryRoot);
-    const v18 = JSON.parse(
-      await readFile(
-        resolve(
-          repositoryRoot,
-          ".lervo/state/search/linked-evidence-provider-shadow-pilots",
-          loaded.contract.sourcePopulation.sourceProviderShadowPilotId,
-          "controller/prepared.json",
-        ),
-        "utf8",
-      ),
+    const schedule = createManagedCanaryCheckpointSchedule(
+      loaded.contract,
+      reviewedProviderShadowV18ScheduleFixture,
     );
-    const schedule = createManagedCanaryCheckpointSchedule(loaded.contract, v18.manifest.schedule);
 
     expect(loaded.contractDigest).toBe(reviewedManagedCanaryCheckpointContractDigest);
     expect(schedule).toHaveLength(16);

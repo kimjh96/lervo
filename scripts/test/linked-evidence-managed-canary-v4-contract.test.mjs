@@ -11,6 +11,7 @@ import {
   reviewedManagedCanaryV4CheckpointContractDigest,
 } from "../natural-language-evaluation/linked-evidence-managed-canary-checkpoint-contract.mjs";
 import { valueDigest } from "../natural-language-evaluation/linked-evidence-shadow-phase-a-pilot-contract.mjs";
+import { reviewedProviderShadowV18ScheduleFixture } from "./linked-evidence-managed-canary-source-fixture.mjs";
 
 const repositoryRoot = new URL("../..", import.meta.url).pathname;
 const roots = [];
@@ -25,18 +26,10 @@ describe("managed linked-evidence canary v4 checkpoint", () => {
       repositoryRoot,
       managedCanaryV4CheckpointContractPath,
     );
-    const v18 = JSON.parse(
-      await readFile(
-        resolve(
-          repositoryRoot,
-          ".lervo/state/search/linked-evidence-provider-shadow-pilots",
-          loaded.contract.sourcePopulation.sourceProviderShadowPilotId,
-          "controller/prepared.json",
-        ),
-        "utf8",
-      ),
+    const schedule = createManagedCanaryCheckpointSchedule(
+      loaded.contract,
+      reviewedProviderShadowV18ScheduleFixture,
     );
-    const schedule = createManagedCanaryCheckpointSchedule(loaded.contract, v18.manifest.schedule);
 
     expect(loaded.contractDigest).toBe(reviewedManagedCanaryV4CheckpointContractDigest);
     expect(schedule).toHaveLength(16);
