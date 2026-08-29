@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_cdd6d9613b51a6cf248a12ac"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep exact document rewrite ownership current during structure moves."

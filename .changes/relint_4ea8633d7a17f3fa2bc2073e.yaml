@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4ea8633d7a17f3fa2bc2073e"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Finalize the locally deployed CLI correction and refreshed release knowledge."

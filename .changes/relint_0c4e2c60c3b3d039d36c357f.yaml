@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0c4e2c60c3b3d039d36c357f"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep Claude local metrics out of generated knowledge publications."

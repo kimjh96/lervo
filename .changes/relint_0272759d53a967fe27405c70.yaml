@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0272759d53a967fe27405c70"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Observe bounded linked-evidence shadow projections without changing managed run behavior."
