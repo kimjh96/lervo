@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_784b723123731c9e098b782b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Retain bounded managed-canary evidence safely across successive evaluations."
