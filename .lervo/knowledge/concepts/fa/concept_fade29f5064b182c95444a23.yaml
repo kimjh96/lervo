@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_fade29f5064b182c95444a23
+freshness: current
+ownership: user
+path: docs/evidence/search/linked-evidence-provider-shadow-v10-codex-omission-diagnosis.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_4debc9b9d5f8d719eb5a9906
+title: V10 Codex omission diagnosis
+type: concept

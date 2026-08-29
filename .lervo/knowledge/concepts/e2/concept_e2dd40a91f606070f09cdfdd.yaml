@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_e2dd40a91f606070f09cdfdd
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/0287-use-read-only-machine-role-for-key-free-managed-canary-v8.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_457ad4a55397fcd906130122
+title: "ADR-0287: Use a read-only machine role for key-free managed canary v8"
+type: decision

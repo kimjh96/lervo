@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c70ea1a64d347e4d008dc504
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f6a68d31554d32412882a0ba
+outputLanguage: en
+outputs:
+  - byteCount: 3711
+    contentHash: sha256:019fc8146541223f398ef5284027822f4585f3e85620502850de173797ce73e4
+    path: docs/decisions/search/activation/0256-correct-claude-provider-shadow-observability-v3.md
+    userRegionHash: sha256:019fc8146541223f398ef5284027822f4585f3e85620502850de173797ce73e4
+profile: decision_record
+recordId: knormdoc_d3c45c092d0367b7389440fa
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c232a77e0b51baa9db3be77a2e372ccdbcd972712d39cd3bbca6c57c8bef0b3d
+sourcePath: docs/decisions/search/activation/0256-correct-claude-provider-shadow-observability-v3.md
+sourceUnitVersionIds:
+  - uv_408110c499847abd1efe4257
+  - uv_6d21ab1c60f6ac1796c4deef
+  - uv_9bc292881fcbac5f17af2312
+  - uv_cbe5c513b6b915db819d8d04
+  - uv_e721a01622d7b7a3bc85f9d1
+  - uv_f34334c027ff71498ec8ee35

@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_90742a9e45ad705241d15e49
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_326bc42e00373a36d91079dd
+outputLanguage: en
+outputs:
+  - byteCount: 1294
+    contentHash: sha256:6fa03c0e397f3323402ac94cfc5fecfeb2a3c851a59aabf7ebcca1d72cb0332f
+    path: docs/evidence/search/provider-shadow/linked-evidence-managed-canary-v9.md
+    userRegionHash: sha256:6fa03c0e397f3323402ac94cfc5fecfeb2a3c851a59aabf7ebcca1d72cb0332f
+profile: repository_document
+recordId: knormdoc_1b88b67b75774e158101ca17
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:262204de308a2b8e842e40388a285b3c2a1f593b82baea8835d3b8439d6ecdf0
+sourcePath: docs/evidence/search/provider-shadow/linked-evidence-managed-canary-v9.md
+sourceUnitVersionIds:
+  - uv_bde8f121f3ee17f00cbd0653
+  - uv_f407ffbb5c20c35b66d9e576
+  - uv_fb20061773e261ab70eef94b

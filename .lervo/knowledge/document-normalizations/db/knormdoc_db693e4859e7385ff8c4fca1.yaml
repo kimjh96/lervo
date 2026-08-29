@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_90742a9e45ad705241d15e49
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_67eb186d49b1b67da984abda
+outputLanguage: en
+outputs:
+  - byteCount: 1983
+    contentHash: sha256:b90b7e0edc569bafe1caad60aaee070c9899fb8070fd2fb25d72197d7b6e8e82
+    path: docs/decisions/search/activation/provider-shadow-structured/0290-forward-linked-selections-for-key-free-managed-canary-v11.md
+    userRegionHash: sha256:b90b7e0edc569bafe1caad60aaee070c9899fb8070fd2fb25d72197d7b6e8e82
+profile: decision_record
+recordId: knormdoc_db693e4859e7385ff8c4fca1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ec698a48ba217df417dc02bf1b04e2ca05afe4dfa07c70e076c31ca3cb756fc7
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0290-forward-linked-selections-for-key-free-managed-canary-v11.md
+sourceUnitVersionIds:
+  - uv_6eb78628ff1485b3038c6a18
+  - uv_972bb7c49814a78ec56fbb7e
+  - uv_a6e7509b3634f59dd29c71db
+  - uv_b767811dd1cbc697c62e2416
+  - uv_d4ee3ad7e6becfc35b8f0af3
+  - uv_dedb19280da9a2a3fc136a8b

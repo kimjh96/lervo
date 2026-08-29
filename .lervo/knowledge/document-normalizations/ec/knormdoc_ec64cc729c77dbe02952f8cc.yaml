@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_aa33ab33f6899e7ff40bee9b
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_355e2e2a3619546fc32d899d
+outputLanguage: en
+outputs:
+  - byteCount: 7869
+    contentHash: sha256:42d1bfe46bd4bc2fe8f49a1801a8aab0c0929ae6020a2b7413354a7ab253bc95
+    path: docs/evidence/search/staged-evidence-v7.md
+    userRegionHash: sha256:42d1bfe46bd4bc2fe8f49a1801a8aab0c0929ae6020a2b7413354a7ab253bc95
+profile: repository_document
+recordId: knormdoc_ec64cc729c77dbe02952f8cc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b3495318ce1cab827921aba6727961514d0d41e92ab9ab2233e4bc2c3e205ba5
+sourcePath: docs/evidence/search/staged-evidence-v7.md
+sourceUnitVersionIds:
+  - uv_58ba654623f479e68f7f1c26
+  - uv_6b4996ed01e2d6f920d031b8
+  - uv_7c007fe89c25cbb562a0b9db
+  - uv_c402a692ca7a90f558c9ad6e
+  - uv_cd38f649e5d1875b837cdc7a
+  - uv_ce3eb88be5f84ab3a644986c
+  - uv_dc9163af8afae213c026b02a

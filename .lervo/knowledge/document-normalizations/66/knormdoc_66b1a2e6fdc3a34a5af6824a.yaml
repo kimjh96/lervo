@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_12a59c843133f34eadc1c064
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7e0d12010232a5cae9f6fc5c
+outputLanguage: en
+outputs:
+  - byteCount: 3042
+    contentHash: sha256:029c9cf76ab1451ac63cc59296ed454f3898ba0a03ad9acfe5ab2b41b5eb4cad
+    path: docs/decisions/search/activation/0267-retain-bounded-selection-violation-codes.md
+    userRegionHash: sha256:029c9cf76ab1451ac63cc59296ed454f3898ba0a03ad9acfe5ab2b41b5eb4cad
+profile: decision_record
+recordId: knormdoc_66b1a2e6fdc3a34a5af6824a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e910d41c0a5bedf1f7177e5708003c1a1573ce873a6b7d6cc6e9448cfc8ec685
+sourcePath: docs/decisions/search/activation/0267-retain-bounded-selection-violation-codes.md
+sourceUnitVersionIds:
+  - uv_2b32655687f0a35a7a5b2ca9
+  - uv_7d149d0eb4b59463f32fba02
+  - uv_90d627bb6331ab773be16465
+  - uv_91661312d15a615c6689a5a3
+  - uv_b576dab628cfca0ddb030c89
+  - uv_ca4ee09e7ae16fbe8e13c6af

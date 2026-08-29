@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_4a61fa38af559245068ae6eb
+freshness: current
+ownership: user
+path: docs/evidence/search/provider-shadow/codex-claude-linked-evidence-provider-shadow-history.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_07b388d5b02393ff5011d1b5
+title: Provider measurements
+type: concept

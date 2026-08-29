@@ -236,7 +236,10 @@ export class ClaudeEventNormalizer {
       ];
     }
     if (message.subtype === "success" && message.is_error === false) {
+      const occurredAt = eventTime(message, this.options.now);
+      const usage = this.usage(message, providerTurnId, occurredAt);
       return [
+        usage,
         this.event(
           "provider.turn.completed",
           {
@@ -244,7 +247,7 @@ export class ClaudeEventNormalizer {
             status: "completed",
             durationMs: integer(message.duration_ms),
           },
-          eventTime(message, this.options.now),
+          occurredAt,
         ),
       ];
     }
@@ -260,6 +263,55 @@ export class ClaudeEventNormalizer {
         eventTime(message, this.options.now),
       ),
     ];
+  }
+
+  private usage(
+    message: Record<string, unknown>,
+    providerTurnId: string,
+    occurredAt: string,
+  ): AdapterNormalizedEvent {
+    const modelUsage = asRecord(message.modelUsage);
+    const totals = {
+      inputTokens: 0,
+      cachedInputTokens: 0,
+      outputTokens: 0,
+      reasoningOutputTokens: 0,
+      totalTokens: 0,
+      contextWindow: null as number | null,
+    };
+    if (modelUsage === undefined || Object.keys(modelUsage).length === 0)
+      return this.providerError("invalid_provider_usage", message.modelUsage, occurredAt);
+    for (const value of Object.values(modelUsage)) {
+      const row = asRecord(value);
+      const inputTokens = integer(row?.inputTokens);
+      const outputTokens = integer(row?.outputTokens);
+      const cacheReadInputTokens = integer(row?.cacheReadInputTokens);
+      const cacheCreationInputTokens = integer(row?.cacheCreationInputTokens);
+      const contextWindow = integer(row?.contextWindow);
+      if (
+        inputTokens === null ||
+        outputTokens === null ||
+        cacheReadInputTokens === null ||
+        cacheCreationInputTokens === null ||
+        contextWindow === null ||
+        [
+          inputTokens,
+          outputTokens,
+          cacheReadInputTokens,
+          cacheCreationInputTokens,
+          contextWindow,
+        ].some((count) => count < 0)
+      ) {
+        return this.providerError("invalid_provider_usage", message.modelUsage, occurredAt);
+      }
+      const completeInputTokens = inputTokens + cacheReadInputTokens + cacheCreationInputTokens;
+      totals.inputTokens += completeInputTokens;
+      totals.cachedInputTokens += cacheReadInputTokens;
+      totals.outputTokens += outputTokens;
+      totals.totalTokens += completeInputTokens + outputTokens;
+      totals.contextWindow = Math.max(totals.contextWindow ?? 0, contextWindow);
+    }
+    return this.event("provider.usage.updated", { providerTurnId, ...totals }, occurredAt);
   }
 
   private providerError(

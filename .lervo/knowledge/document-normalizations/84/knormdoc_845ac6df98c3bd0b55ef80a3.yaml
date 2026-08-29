@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b7f0de1dc54a84467eb2cf5a
+compiler:
+  compilerBuildId: sha256:8d288d20c0d2eb5d6514d531ee951785b45f97e6528f30af3f0156dbd602ded6
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5a120d22b771ea49d876926f
+outputLanguage: en
+outputs:
+  - byteCount: 8140
+    contentHash: sha256:7933e17f3ef0ef8f3508d6b1288da989e81a12d996c0178e674546ac09856265
+    path: docs/evidence/search/catalog-assisted-v3.md
+    userRegionHash: sha256:7933e17f3ef0ef8f3508d6b1288da989e81a12d996c0178e674546ac09856265
+profile: repository_document
+recordId: knormdoc_845ac6df98c3bd0b55ef80a3
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:cadecc55880227e8cc8f8354efb24ab8aab1b21f2e64269e4df2cf2eb088c5c9
+sourcePath: docs/evidence/search/catalog-assisted-v3.md
+sourceUnitVersionIds:
+  - uv_18123514bbe091cb1e098d38
+  - uv_370f647e3e604080dfb00c7e
+  - uv_44f45acd20998b34ef977014
+  - uv_4ec7558d9f4bfa4bb54a32dd
+  - uv_5f8994622a30969aa4741fe2
+  - uv_828f47e274d6ce14f17df955
+  - uv_c2187e19440fed2c5390f05a
+  - uv_da51b1f1c0739ab893b36d86

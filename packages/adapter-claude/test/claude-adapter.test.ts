@@ -35,6 +35,8 @@ class FakeClaudeClient implements ClaudeAgentClient {
   readonly messageList: unknown[] = [];
   closed = false;
   failClose = false;
+  invalidUsage = false;
+  structuredOutput: unknown = undefined;
   toolUseHandler?: ClaudeToolUseHandler;
 
   attachToolUseHandler(handler: ClaudeToolUseHandler) {
@@ -148,7 +150,20 @@ class FakeClaudeClient implements ClaudeAgentClient {
         session_id: PROVIDER_SESSION_ID,
         duration_ms: 20,
         result: "super-secret-result",
-        modelUsage: { "claude-test": { inputTokens: 10, outputTokens: 2 } },
+        ...(this.structuredOutput === undefined
+          ? {}
+          : { structured_output: this.structuredOutput }),
+        modelUsage: this.invalidUsage
+          ? {}
+          : {
+              "claude-test": {
+                inputTokens: 10,
+                outputTokens: 2,
+                cacheReadInputTokens: 7,
+                cacheCreationInputTokens: 3,
+                contextWindow: 200_000,
+              },
+            },
       },
     );
   }
@@ -207,6 +222,7 @@ function adapter(
 function fixture() {
   const agents = "All specialist agents receive the same verified context.\n";
   const writing = "Write natural English sentences and cohesive paragraphs.\n";
+  const taskEvidence = "The task requires the bounded architecture decision.\n";
   const startRequest: AdapterStartRequest = {
     kind: "start_request",
     schemaVersion: 1,
@@ -240,6 +256,8 @@ function fixture() {
         contentHash: sha(agents),
         byteCount: Buffer.byteLength(agents),
         scope: { kind: "full" },
+        documentRole: "governance_context",
+        referenceEligible: false,
         delivery: { kind: "inline", content: agents },
       },
       {
@@ -248,7 +266,19 @@ function fixture() {
         contentHash: sha(writing),
         byteCount: Buffer.byteLength(writing),
         scope: { kind: "full" },
+        documentRole: "governance_context",
+        referenceEligible: false,
         delivery: { kind: "inline", content: writing },
+      },
+      {
+        documentId: "doc_task_evidence1",
+        path: "docs/task-evidence.md",
+        contentHash: sha(taskEvidence),
+        byteCount: Buffer.byteLength(taskEvidence),
+        scope: { kind: "full" },
+        documentRole: "task_evidence",
+        referenceEligible: true,
+        delivery: { kind: "inline", content: taskEvidence },
       },
     ],
     createdAt: "2026-08-18T00:00:01Z",
@@ -265,7 +295,7 @@ function fixture() {
     instructions: "Implement a small feature.",
     requestedAt: "2026-08-18T00:00:02Z",
   };
-  return { startRequest, contextEnvelope, turnRequest, agents, writing };
+  return { startRequest, contextEnvelope, turnRequest, agents, writing, taskEvidence };
 }
 
 async function start(instance: ClaudeAdapter): Promise<AdapterSession> {
@@ -302,18 +332,69 @@ describe("Claude managed adapter", () => {
     expect(client.closed).toBe(true);
   });
 
+  it("captures requested structured output instead of the provider prose result", async () => {
+    const client = new FakeClaudeClient();
+    client.structuredOutput = { evidenceTokens: ["lervo-e4:doc:sha256:abc"] };
+    const report = await evaluateAdapterContract(
+      adapter(client, {
+        structuredOutputSchema: {
+          type: "object",
+          properties: { evidenceTokens: { type: "array", items: { type: "string" } } },
+          required: ["evidenceTokens"],
+        },
+      }),
+      {
+        expectedProvider: "claude",
+        ...fixture(),
+        stopReason: "completed",
+        expectedEventCount: 6,
+        expectedResultContent: JSON.stringify(client.structuredOutput),
+      },
+    );
+
+    expect(report).toEqual({ passed: true, violations: [] });
+  });
+
+  it("fails closed when requested structured output is absent", async () => {
+    const client = new FakeClaudeClient();
+    const instance = adapter(client, {
+      structuredOutputSchema: { type: "object" },
+    });
+    const data = fixture();
+    const session = await instance.start(data.startRequest);
+    await instance.injectContext(session, data.contextEnvelope);
+    const turn = await instance.startTurn(session, data.turnRequest, () => undefined);
+    const controller = new AbortController();
+    for await (const event of instance.events(session, controller.signal)) {
+      if (event.type === "provider.turn.completed") break;
+    }
+    controller.abort();
+
+    await expect(instance.getTurnResult(session, turn)).rejects.toMatchObject({
+      code: "provider_protocol_failed",
+    });
+  });
+
   it("reports only the capabilities effective for the selected session mode", async () => {
     const readOnly = await start(adapter(new FakeClaudeClient()));
+    const withoutTools = await start(adapter(new FakeClaudeClient(), { tools: [] }));
     const managed = await adapter(new FakeClaudeClient()).start({
       ...fixture().startRequest,
       executionMode: "managed_write",
     });
 
     expect(readOnly.effectiveCapabilities).toMatchObject({
+      toolCalls: "supported",
+      commandExecution: "unsupported",
+      fileChanges: "unsupported",
+    });
+    expect(withoutTools.effectiveCapabilities).toMatchObject({
+      toolCalls: "unsupported",
       commandExecution: "unsupported",
       fileChanges: "unsupported",
     });
     expect(managed.effectiveCapabilities).toMatchObject({
+      toolCalls: "supported",
       commandExecution: "unsupported",
       fileChanges: "supported",
     });
@@ -505,7 +586,7 @@ describe("Claude managed adapter", () => {
     const controller = new AbortController();
     const iterator = instance.events(session, controller.signal)[Symbol.asyncIterator]();
     const events = [];
-    for (let index = 0; index < 6; index += 1) {
+    for (let index = 0; index < 7; index += 1) {
       const next = await iterator.next();
       expect(next.done).toBe(false);
       events.push(next.value!);
@@ -519,6 +600,7 @@ describe("Claude managed adapter", () => {
       "provider.command.executed",
       "provider.tool.called",
       "provider.context.compacted",
+      "provider.usage.updated",
       "provider.turn.completed",
     ]);
     const serialized = JSON.stringify(events);
@@ -531,12 +613,20 @@ describe("Claude managed adapter", () => {
     ]) {
       expect(serialized).not.toContain(secret);
     }
-    expect(events.some((event) => event.type === "provider.usage.updated")).toBe(false);
+    expect(events.find((event) => event.type === "provider.usage.updated")?.payload).toEqual({
+      providerTurnId: PROVIDER_TURN_ID,
+      inputTokens: 20,
+      cachedInputTokens: 7,
+      outputTokens: 2,
+      reasoningOutputTokens: 0,
+      totalTokens: 22,
+      contextWindow: 200_000,
+    });
     expect(events.some((event) => event.type === "provider.file_change.reported")).toBe(false);
     expect(instance.descriptor.capabilities).toMatchObject({
       contextCompaction: "supported",
       fileChanges: "supported",
-      usage: "unknown",
+      usage: "supported",
     });
   });
 
@@ -562,6 +652,30 @@ describe("Claude managed adapter", () => {
     await expect(instance.injectContext(session, data.contextEnvelope)).rejects.toMatchObject({
       code: "session_not_found",
     });
+  });
+
+  it("fails malformed SDK usage without exposing the provider result", async () => {
+    const client = new FakeClaudeClient();
+    client.invalidUsage = true;
+    const instance = adapter(client);
+    const data = fixture();
+    const session = await instance.start(data.startRequest);
+    await instance.injectContext(session, data.contextEnvelope);
+    await instance.startTurn(session, data.turnRequest, () => undefined);
+    const controller = new AbortController();
+    const events = [];
+    for await (const event of instance.events(session, controller.signal)) {
+      events.push(event);
+      if (event.type === "provider.turn.completed") break;
+    }
+    controller.abort();
+
+    expect(events.find((event) => event.type === "provider.error")?.payload).toMatchObject({
+      failureCode: "invalid_provider_usage",
+      retryable: false,
+    });
+    expect(JSON.stringify(events)).not.toContain("super-secret-result");
+    expect(events.some((event) => event.type === "provider.usage.updated")).toBe(false);
   });
 
   it("releases session state even when the provider close operation fails", async () => {

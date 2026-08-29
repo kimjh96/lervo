@@ -5,7 +5,10 @@ import { describe, expect, it } from "vitest";
 
 import { defaultRepositoryKnowledgePolicy } from "../src/policy.js";
 import { scanRepositoryKnowledge } from "../src/scanner.js";
-import { collectExecutionEventSources } from "../src/execution-event-source.js";
+import {
+  collectExecutionEventSources,
+  EXECUTION_EVENT_SOURCE_MAX_EVENTS,
+} from "../src/execution-event-source.js";
 
 function event(
   payload: Record<string, unknown> = {
@@ -41,6 +44,10 @@ function store(value: EventEnvelope): Pick<EventStore, "latest" | "list" | "veri
 }
 
 describe("execution event knowledge source", () => {
+  it("retains a bounded complete-event capacity for successive managed evaluations", () => {
+    expect(EXECUTION_EVENT_SOURCE_MAX_EVENTS).toBe(8_192);
+  });
+
   it("turns one validated privacy-allowlisted chain event into a canonical supplemental unit", async () => {
     const value = event();
     const sources = collectExecutionEventSources({ events: store(value) });

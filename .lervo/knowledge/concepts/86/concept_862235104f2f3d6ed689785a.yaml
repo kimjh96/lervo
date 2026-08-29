@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_862235104f2f3d6ed689785a
+freshness: current
+ownership: user
+path: docs/decisions/search/0248-stage-linked-evidence-reconciliation-activation.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_75a29cd662ab4868b2f27625
+title: "ADR-0248: Stage linked-evidence reconciliation activation"
+type: decision

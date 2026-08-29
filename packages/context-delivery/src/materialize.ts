@@ -68,6 +68,8 @@ export async function materializeContextDocuments(input: {
       contentHash: document.contentHash,
       byteCount: document.byteCount,
       scope: cloneContextScope(document.scope),
+      documentRole: document.documentRole,
+      referenceEligible: document.referenceEligible,
       sharedContextIds: [...document.sharedContextIds],
       ...(document.knowledgeContext === undefined
         ? {}
@@ -87,6 +89,8 @@ export async function materializeContextDocuments(input: {
           contentHash: snapshot.contentHash,
           byteCount: snapshot.byteCount,
           scope: cloneContextScope(snapshot.scope),
+          documentRole: snapshot.documentRole,
+          referenceEligible: snapshot.referenceEligible,
           sharedContextIds: [...snapshot.sharedContextIds],
           inlineContentAvailable: inline !== null,
         });
@@ -131,6 +135,8 @@ export async function materializeContextDocuments(input: {
         contentHash: snapshot.contentHash,
         byteCount: snapshot.byteCount,
         scope: cloneContextScope(snapshot.scope),
+        documentRole: snapshot.documentRole,
+        referenceEligible: snapshot.referenceEligible,
         ...(snapshot.knowledgeContext === undefined
           ? {}
           : { knowledgeContext: structuredClone(snapshot.knowledgeContext) }),

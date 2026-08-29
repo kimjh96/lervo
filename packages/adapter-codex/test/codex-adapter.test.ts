@@ -55,8 +55,12 @@ class FakeCodexClient implements CodexAppServerClient {
     return ["research-search"];
   }
 
-  async startTurn(threadId: string, instructions: string) {
-    this.calls.push({ method: "startTurn", value: { threadId, instructions } });
+  async startTurn(
+    threadId: string,
+    instructions: string,
+    options?: { outputSchema?: Record<string, unknown> },
+  ) {
+    this.calls.push({ method: "startTurn", value: { threadId, instructions, options } });
     this.notificationsList.push(
       {
         method: "turn/started",
@@ -180,6 +184,57 @@ class FakeCodexClient implements CodexAppServerClient {
   }
 }
 
+class NoToolFakeCodexClient extends FakeCodexClient {
+  readonly toolBoundary = "no_tools" as const;
+
+  override async startTurn(
+    threadId: string,
+    instructions: string,
+    options?: { outputSchema?: Record<string, unknown> },
+  ) {
+    this.calls.push({ method: "startTurn", value: { threadId, instructions, options } });
+    this.notificationsList.push(
+      {
+        method: "turn/started",
+        params: { threadId, turn: { id: "codex-turn-1" } },
+      },
+      {
+        method: "thread/tokenUsage/updated",
+        params: {
+          threadId,
+          turnId: "codex-turn-1",
+          tokenUsage: {
+            total: {
+              inputTokens: 10,
+              cachedInputTokens: 2,
+              outputTokens: 4,
+              reasoningOutputTokens: 1,
+              totalTokens: 14,
+            },
+            modelContextWindow: 100,
+          },
+        },
+      },
+      {
+        method: "item/completed",
+        params: {
+          threadId,
+          turnId: "codex-turn-1",
+          item: { type: "agentMessage", id: "message-1", text: "super-secret-result" },
+        },
+      },
+      {
+        method: "turn/completed",
+        params: {
+          threadId,
+          turn: { id: "codex-turn-1", status: "completed", durationMs: 20 },
+        },
+      },
+    );
+    return { turnId: "codex-turn-1" };
+  }
+}
+
 function clock() {
   let value = Date.parse("2026-08-18T00:00:01Z");
   return () => {
@@ -207,6 +262,7 @@ function adapter(
 function fixture() {
   const agents = "All agents read this document.\n";
   const writing = "Write clear English sentences for human readers.\n";
+  const taskEvidence = "The task requires the bounded architecture decision.\n";
   const startRequest: AdapterStartRequest = {
     kind: "start_request",
     schemaVersion: 1,
@@ -240,6 +296,8 @@ function fixture() {
         contentHash: sha(agents),
         byteCount: Buffer.byteLength(agents),
         scope: { kind: "full" },
+        documentRole: "governance_context",
+        referenceEligible: false,
         delivery: { kind: "inline", content: agents },
       },
       {
@@ -248,7 +306,19 @@ function fixture() {
         contentHash: sha(writing),
         byteCount: Buffer.byteLength(writing),
         scope: { kind: "full" },
+        documentRole: "governance_context",
+        referenceEligible: false,
         delivery: { kind: "inline", content: writing },
+      },
+      {
+        documentId: "doc_task_evidence1",
+        path: "docs/task-evidence.md",
+        contentHash: sha(taskEvidence),
+        byteCount: Buffer.byteLength(taskEvidence),
+        scope: { kind: "full" },
+        documentRole: "task_evidence",
+        referenceEligible: true,
+        delivery: { kind: "inline", content: taskEvidence },
       },
     ],
     createdAt: "2026-08-18T00:00:01Z",
@@ -265,7 +335,7 @@ function fixture() {
     instructions: "Implement a small feature.",
     requestedAt: "2026-08-18T00:00:02Z",
   };
-  return { startRequest, contextEnvelope, turnRequest, agents, writing };
+  return { startRequest, contextEnvelope, turnRequest, agents, writing, taskEvidence };
 }
 
 async function started(adapterInstance: CodexAdapter): Promise<AdapterSession> {
@@ -306,6 +376,51 @@ describe("Codex managed adapter", () => {
     expect(client.closed).toBe(true);
   });
 
+  it("passes the common adapter contract at the no-tool capability boundary", async () => {
+    const client = new NoToolFakeCodexClient();
+    const instance = adapter(client, {
+      transport: {
+        kind: "responses_api_no_tools",
+        apiKey: "fixture-key",
+        model: "codex-fixture",
+      },
+    });
+    const report = await evaluateAdapterContract(instance, {
+      expectedProvider: "codex",
+      ...fixture(),
+      stopReason: "completed",
+      expectedEventCount: 4,
+      expectedResultContent: "super-secret-result",
+    });
+
+    expect(report).toEqual({ passed: true, violations: [] });
+  });
+
+  it("passes an opt-in structured result schema to the Codex turn boundary", async () => {
+    const client = new FakeCodexClient();
+    const outputSchema = {
+      type: "object",
+      properties: { evidenceTokens: { type: "array", items: { type: "string" } } },
+      required: ["evidenceTokens"],
+      additionalProperties: false,
+    };
+    const instance = adapter(client, { structuredOutputSchema: outputSchema });
+    const data = fixture();
+    const session = await instance.start(data.startRequest);
+    await instance.injectContext(session, data.contextEnvelope);
+
+    await instance.startTurn(session, data.turnRequest, () => undefined);
+
+    expect(client.calls.find((call) => call.method === "startTurn")).toEqual({
+      method: "startTurn",
+      value: {
+        threadId: session.providerSessionId,
+        instructions: data.turnRequest.instructions,
+        options: { outputSchema },
+      },
+    });
+  });
+
   it("reports only the capabilities effective for the selected session mode", async () => {
     const readOnly = await started(adapter(new FakeCodexClient()));
     const managed = await adapter(new FakeCodexClient()).start({
@@ -315,6 +430,43 @@ describe("Codex managed adapter", () => {
 
     expect(readOnly.effectiveCapabilities.fileChanges).toBe("unsupported");
     expect(managed.effectiveCapabilities.fileChanges).toBe("supported");
+  });
+
+  it("reports a Responses no-tool session only when its explicit transport is available", async () => {
+    const client = new NoToolFakeCodexClient();
+    const session = await adapter(client, {
+      transport: {
+        kind: "responses_api_no_tools",
+        apiKey: "fixture-key",
+        model: "codex-fixture",
+      },
+    }).start(fixture().startRequest);
+
+    expect(session.effectiveCapabilities).toMatchObject({
+      toolCalls: "unsupported",
+      commandExecution: "unsupported",
+      fileChanges: "unsupported",
+      contextCompaction: "unsupported",
+    });
+  });
+
+  it("fails before a Responses request when its explicit credentials are unavailable", async () => {
+    let requests = 0;
+    const instance = new CodexAdapter({
+      repositoryRoot: "/repo",
+      transport: {
+        kind: "responses_api_no_tools",
+        fetch: async () => {
+          requests += 1;
+          return new Response(null, { status: 500 });
+        },
+      },
+    });
+
+    await expect(instance.start(fixture().startRequest)).rejects.toMatchObject({
+      code: "capability_activation_failed",
+    });
+    expect(requests).toBe(0);
   });
 
   it("passes exact MCP and plugin configuration and returns provider-bound activation receipts", async () => {

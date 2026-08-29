@@ -162,7 +162,7 @@ export async function runKnowledgeStructure(args: string[], io: CliIo): Promise<
         io.stdout(
           parsed.values.json
             ? `${JSON.stringify(receipt, null, 2)}\n`
-            : `Moved the user document while preserving concept identity and source-unit lineage.\nplan: ${receipt.planId}\npreserved concepts: ${receipt.preservedConceptIds.length}\nsource digest: ${receipt.fromPathDigest}\ndestination digest: ${receipt.toPathDigest}\n`,
+            : `Moved the user document while preserving concept identity, source-unit lineage, and ${receipt.relocatedNormalizationRecords.length} normalization records.\nplan: ${receipt.planId}\npreserved concepts: ${receipt.preservedConceptIds.length}\nsource digest: ${receipt.fromPathDigest}\ndestination digest: ${receipt.toPathDigest}\n`,
         );
       } finally {
         await storage.close();

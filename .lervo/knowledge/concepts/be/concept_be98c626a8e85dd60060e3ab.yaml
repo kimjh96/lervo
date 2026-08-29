@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_be98c626a8e85dd60060e3ab
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/0253-pre-register-effect-free-provider-shadow-pilot.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_eea50ed223af8942e937224f
+title: "ADR-0253: Pre-register an effect-free provider-shadow pilot"
+type: decision

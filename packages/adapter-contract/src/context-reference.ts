@@ -1,7 +1,29 @@
 import type { AdapterContextEnvelope } from "@lervo/schemas";
 
 export const managedContextReferenceInstruction =
-  "If the final response explicitly relies on a supplied document, append that document's exact evidenceToken as a standalone Markdown HTML comment in the form <!-- evidenceToken -->. The comment is machine evidence and is removed from the human-facing publication. It proves only an observable output citation, not understanding, correctness, or internal use.";
+  "Documents are typed as task_evidence or governance_context and separately declare referenceEligible. If the final response explicitly relies on a reference-eligible task_evidence document, append that document's exact evidenceToken as a standalone Markdown HTML comment in the form <!-- evidenceToken -->. Task_evidence with referenceEligible=false is supporting context, and governance_context controls behavior; neither has an evidenceToken and neither may be cited. The comment is machine evidence and is removed from the human-facing publication. It proves only an observable output citation, not understanding, correctness, or internal use.";
+
+export function managedContextDocumentReferenceMetadata(
+  document: AdapterContextEnvelope["documents"][number],
+):
+  | { documentRole: "task_evidence"; referenceEligible: true; evidenceToken: string }
+  | {
+      documentRole: "task_evidence" | "governance_context";
+      referenceEligible: false;
+      evidenceToken: null;
+    } {
+  return document.documentRole === "task_evidence" && document.referenceEligible
+    ? {
+        documentRole: "task_evidence",
+        referenceEligible: true,
+        evidenceToken: managedContextReferenceToken(document),
+      }
+    : {
+        documentRole: document.documentRole,
+        referenceEligible: false,
+        evidenceToken: null,
+      };
+}
 
 export function managedContextReferenceToken(input: {
   documentId: string;
@@ -22,7 +44,12 @@ export function referencedManagedContextDocuments(
   documents: AdapterContextEnvelope["documents"],
 ): AdapterContextEnvelope["documents"] {
   return documents
-    .filter((document) => content.includes(managedContextReferenceToken(document)))
+    .filter(
+      (document) =>
+        document.documentRole === "task_evidence" &&
+        document.referenceEligible &&
+        content.includes(managedContextReferenceToken(document)),
+    )
     .map((document) => structuredClone(document));
 }
 

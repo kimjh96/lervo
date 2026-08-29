@@ -5,7 +5,12 @@ import { assertAssignmentExecutionAuthority, completeAssignment } from "@lervo/a
 import type { WorkforceAgent } from "@lervo/agent-workforce";
 import { ClaudeAdapter } from "@lervo/adapter-claude";
 import { CodexAdapter } from "@lervo/adapter-codex";
-import { documentIdForPath, normalizeRepositoryPath } from "@lervo/context";
+import {
+  documentIdForPath,
+  managedLinkedEvidenceDefaultPolicy,
+  normalizeRepositoryPath,
+  type ManagedLinkedEvidenceSelection,
+} from "@lervo/context";
 import { writingContractForLanguage } from "@lervo/core";
 import {
   ManagedProviderRunCoordinator,
@@ -29,6 +34,15 @@ import {
   createLocalProviderWritingEvaluator,
   type LocalProviderWritingEvaluatorInput,
 } from "./managed-writing-evaluator.js";
+import {
+  executeManagedLinkedEvidenceCanary,
+  recordManagedLinkedEvidenceCanaryCompletion,
+  recordManagedLinkedEvidenceCanaryFailure,
+  type ManagedLinkedEvidenceCanaryAuthorization,
+  type ManagedLinkedEvidenceCanaryOutcome,
+} from "./managed-linked-evidence-canary.js";
+import { resolveDeterministicManagedLinkedEvidenceSelection } from "./managed-linked-evidence-deterministic-selection.js";
+import { resolveDefaultManagedLinkedEvidenceSelection } from "./managed-linked-evidence-default-selection.js";
 import {
   prepareManagedSearchContext,
   summarizeManagedSearchContext,
@@ -55,6 +69,7 @@ export interface ManagedRunRequest {
   verificationSuiteIds: readonly string[];
   workforce?: { assignmentId: string; agentId: string; leaseId: string };
   roleId?: string;
+  linkedEvidenceCanaryAuthorization?: ManagedLinkedEvidenceCanaryAuthorization;
 }
 
 export interface ManagedRunOutcome {
@@ -82,6 +97,8 @@ export interface ManagedRunDependencies {
     provider: RunProvider;
     repositoryRoot: string;
     resolveArtifact: (uri: string) => Promise<Uint8Array>;
+    structuredOutputSchema?: Record<string, unknown>;
+    selectionBoundary?: "read_only_no_tools";
   }): ProviderAdapter;
   createId(prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn"): string;
   userSkillRoot?: string;
@@ -118,10 +135,42 @@ function digest(value: string): string {
 
 const defaultDependencies: ManagedRunDependencies = {
   openStorage: openProjectStorage,
-  createAdapter: ({ provider, repositoryRoot, resolveArtifact }) =>
+  createAdapter: ({
+    provider,
+    repositoryRoot,
+    resolveArtifact,
+    structuredOutputSchema,
+    selectionBoundary,
+  }) =>
     provider === "codex"
-      ? new CodexAdapter({ repositoryRoot, resolveArtifact })
-      : new ClaudeAdapter({ repositoryRoot, resolveArtifact }),
+      ? new CodexAdapter({
+          repositoryRoot,
+          resolveArtifact,
+          ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
+          ...(selectionBoundary === "read_only_no_tools"
+            ? {
+                sandbox: "read-only",
+                approvalPolicy: "never",
+                transport: {
+                  kind: "responses_api_no_tools",
+                  ...(process.env.OPENAI_API_KEY === undefined
+                    ? {}
+                    : { apiKey: process.env.OPENAI_API_KEY }),
+                  ...(process.env.LERVO_CODEX_NO_TOOL_MODEL === undefined
+                    ? {}
+                    : { model: process.env.LERVO_CODEX_NO_TOOL_MODEL }),
+                } as const,
+              }
+            : {}),
+        })
+      : new ClaudeAdapter({
+          repositoryRoot,
+          resolveArtifact,
+          ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
+          ...(selectionBoundary === "read_only_no_tools"
+            ? { permissionMode: "plan", tools: [] }
+            : {}),
+        }),
   createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
   now: () => new Date(),
   createSemanticEvaluator: createLocalProviderWritingEvaluator,
@@ -155,6 +204,9 @@ export function createManagedRunExecutor(
 
     let storage: ProjectStorage | undefined;
     let outcome: ManagedRunOutcome | undefined;
+    let linkedEvidenceCanary: ManagedLinkedEvidenceCanaryOutcome | undefined;
+    let linkedEvidenceSelections: readonly ManagedLinkedEvidenceSelection[] = [];
+    let linkedEvidenceCanaryFinalizationStarted = false;
     let executionFailure: unknown;
     try {
       storage = await dependencies.openStorage(request.repositoryRoot);
@@ -318,6 +370,7 @@ export function createManagedRunExecutor(
       const searchContext = await prepareManagedSearchContext({
         repositoryRoot: storage.paths.repositoryRoot,
         projectId: storage.manifest.projectId,
+        runId,
         observedAt: dependencies.now?.() ?? new Date(),
         query: instructions,
         fallbackQuery: expectedPath,
@@ -327,6 +380,44 @@ export function createManagedRunExecutor(
           : { nonce: dependencies.createSearchNonce() }),
         documentRegistry: registry,
       });
+      if (request.linkedEvidenceCanaryAuthorization !== undefined) {
+        const authorization = request.linkedEvidenceCanaryAuthorization;
+        linkedEvidenceCanary =
+          authorization.maximumProviderCalls === 0
+            ? await resolveDeterministicManagedLinkedEvidenceSelection({
+                repositoryRoot: storage.paths.repositoryRoot,
+                projectId: storage.manifest.projectId,
+                runId,
+                provider: request.provider,
+                authorization,
+                operationalBatch: searchContext.recommendationBatch,
+                recommendationBatches: searchContext.recommendationBatches,
+                graphRecommendations: searchContext.graphRecommendations,
+              })
+            : await executeManagedLinkedEvidenceCanary({
+                repositoryRoot: storage.paths.repositoryRoot,
+                projectId: storage.manifest.projectId,
+                runId,
+                provider: request.provider,
+                request: instructions,
+                authorization,
+                operationalBatch: searchContext.recommendationBatch,
+                recommendationBatches: searchContext.recommendationBatches,
+                graphRecommendations: searchContext.graphRecommendations,
+                resolveArtifact: (uri) => storage!.artifacts.get(uri),
+                createAdapter: dependencies.createAdapter,
+                now: dependencies.now ?? (() => new Date()),
+              });
+        linkedEvidenceSelections = linkedEvidenceCanary.selections;
+      } else if (managedLinkedEvidenceDefaultPolicy.enabledByDefault) {
+        linkedEvidenceSelections = await resolveDefaultManagedLinkedEvidenceSelection({
+          repositoryRoot: storage.paths.repositoryRoot,
+          runId,
+          operationalBatch: searchContext.recommendationBatch,
+          recommendationBatches: searchContext.recommendationBatches,
+          graphRecommendations: searchContext.graphRecommendations,
+        });
+      }
       const adapter = dependencies.createAdapter({
         provider: request.provider,
         repositoryRoot: storage.paths.repositoryRoot,
@@ -360,6 +451,11 @@ export function createManagedRunExecutor(
           handoffs: [],
           recommendationBatches: searchContext.recommendationBatches,
           graphRecommendations: searchContext.graphRecommendations,
+          ...(linkedEvidenceSelections.length === 0
+            ? {}
+            : linkedEvidenceCanary === undefined
+              ? { defaultLinkedEvidenceSelections: linkedEvidenceSelections }
+              : { linkedEvidenceSelections }),
           documentRules:
             currentWorkstream === null ? {} : { "repository.workstream": [workstreamDocumentId] },
           additionalCandidates: [
@@ -372,6 +468,8 @@ export function createManagedRunExecutor(
                     path: workstreamPath,
                     connectedPaths: [],
                     source: "workstream" as const,
+                    documentRole: "governance_context" as const,
+                    referenceEligible: false,
                   },
                 ]),
           ],
@@ -408,6 +506,15 @@ export function createManagedRunExecutor(
         createEnvelopeId: () => dependencies.createId("envelope"),
         createEvidenceReceiptId: () => dependencies.createId("ctx"),
       });
+      if (linkedEvidenceCanary !== undefined) {
+        linkedEvidenceCanaryFinalizationStarted = true;
+        await recordManagedLinkedEvidenceCanaryCompletion({
+          repositoryRoot: storage.paths.repositoryRoot,
+          outcome: linkedEvidenceCanary,
+          evidence: result.contextEvidence,
+          recordedAt: dependencies.now?.() ?? new Date(),
+        });
+      }
       const writingPublication = await evaluateWritingPublication(
         {
           artifact: result.resultArtifact,
@@ -478,6 +585,24 @@ export function createManagedRunExecutor(
       }
     } catch (error) {
       executionFailure = error;
+      if (
+        storage !== undefined &&
+        linkedEvidenceCanary !== undefined &&
+        !linkedEvidenceCanaryFinalizationStarted
+      ) {
+        try {
+          await recordManagedLinkedEvidenceCanaryFailure({
+            repositoryRoot: storage.paths.repositoryRoot,
+            outcome: linkedEvidenceCanary,
+            recordedAt: dependencies.now?.() ?? new Date(),
+          });
+        } catch (recordError) {
+          executionFailure = new AggregateError(
+            [error, recordError],
+            "The managed run and its canary failure record both failed.",
+          );
+        }
+      }
     }
 
     let cleanupFailure: unknown;

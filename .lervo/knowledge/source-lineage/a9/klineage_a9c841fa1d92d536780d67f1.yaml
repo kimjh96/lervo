@@ -1,0 +1,11 @@
+fromPath: docs/decisions/search/activation/0274-test-relational-coverage-provider-shadow-v17.md
+identityPath: docs/decisions/search/activation/0274-test-relational-coverage-provider-shadow-v17.md
+kind: document_move
+lineageId: klineage_a9c841fa1d92d536780d67f1
+operationId: kdocop_63b428c02762eae1328e7160
+schemaVersion: 1
+sourceContentHash: sha256:81daa0176e05ce3c402be02e938bd972c0e1c02441e298a152bde4e3beb40429
+sourceId: src_7adf8387de33bb5ea19732cc
+sourceUnitBindingDigest: sha256:2983f5d241bfdb7d3112ad7ddaabaa1a0bd7b8abb32ce33ee89b3745968ff9d4
+sourceUnitCount: 6
+toPath: docs/decisions/search/activation/provider-shadow-structured/0274-test-relational-coverage-provider-shadow-v17.md

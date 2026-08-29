@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8fa381ea49140eca51192651
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bce8668672f602c3eae99a2a
+outputLanguage: en
+outputs:
+  - byteCount: 4690
+    contentHash: sha256:6f59223483d0b09f1a10bc93898ea9020e68ebf2e99345aeff6f52f12053b8e7
+    path: docs/decisions/search/activation/provider-shadow-structured/0279-stop-managed-context-canary-v1-on-command-signal.md
+    userRegionHash: sha256:6f59223483d0b09f1a10bc93898ea9020e68ebf2e99345aeff6f52f12053b8e7
+profile: decision_record
+recordId: knormdoc_994ef9c63574e380ca053ff1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:fd6eb41f199fecf7c7354085912b7e0990a3f5359310771a135e409d0fcefd4a
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0279-stop-managed-context-canary-v1-on-command-signal.md
+sourceUnitVersionIds:
+  - uv_10be1ad4167b6e3ef870e505
+  - uv_1f90bf44eb2df9f30b95573e
+  - uv_2286da247de19dc2a1072b73
+  - uv_442c9838439f12740102cf9f
+  - uv_56bd22ad237ba8030851dbee
+  - uv_bf37818c8bbd9e630e9e5dd1

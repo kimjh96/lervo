@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_90742a9e45ad705241d15e49
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_774dcf30381b62c5485f1c6d
+outputLanguage: en
+outputs:
+  - byteCount: 3634
+    contentHash: sha256:e58712de9101647e58090c51f3ca3b6b2a9bd2b13404e0327009a7bc1ec25cfa
+    path: docs/decisions/search/activation/provider-shadow-structured/0285-authorize-exact-key-free-managed-canary-v6.md
+    userRegionHash: sha256:e58712de9101647e58090c51f3ca3b6b2a9bd2b13404e0327009a7bc1ec25cfa
+profile: decision_record
+recordId: knormdoc_82e0730111885cd2323776e6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:07b1ad2d2fb9be375d60fd64d2113205b18d9f2b065821d28ccc765a9043833f
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0285-authorize-exact-key-free-managed-canary-v6.md
+sourceUnitVersionIds:
+  - uv_2e3d6cbfa5f243aed73fecaa
+  - uv_47b5a8fbcc273d69afec59d5
+  - uv_6791ab327b86150b4b88895f
+  - uv_709341a3f604b95208e1de22
+  - uv_a6e291471656d34f2d1740a9
+  - uv_d672c95bbb24b6160c1a22c8

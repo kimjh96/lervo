@@ -2,11 +2,17 @@ import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promise
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { applyInitPlan, createInitPlan } from "@lervo/project";
+import {
+  applyInitPlan,
+  createInitPlan,
+  defaultDecisionTaxonomy,
+  type DecisionTaxonomy,
+} from "@lervo/project";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
   applyRepositoryLayoutMigrationPlan,
+  classifyRepositoryDocument,
   createDocumentMoveLineage,
   createRepositoryLayoutMigrationPlan,
   inspectRepositoryDocumentRewriters,
@@ -156,6 +162,57 @@ describe("repository layout migration", () => {
     expect(plan.blockers).toContainEqual(
       expect.objectContaining({ code: "unclassified_document", path: "misc/purple-zebra.md" }),
     );
+  });
+
+  it("preserves canonical archive and inherited collection boundaries", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/archive"), { recursive: true });
+    await mkdir(resolve(root, "docs/inherited/legacy/knowledge"), { recursive: true });
+    await writeFile(
+      resolve(root, "docs/archive/purple-zebra.md"),
+      "# Purple zebra quorum\n\nPreserved [architecture](../../EXAMPLE_ARCHITECTURE.md).\n",
+    );
+    await writeFile(
+      resolve(root, "docs/inherited/legacy/knowledge/finding.md"),
+      ["---", "lervo:", "  document: invalid", "---", "# Legacy finding", ""].join("\n"),
+    );
+
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+
+    for (const path of [
+      "docs/archive/purple-zebra.md",
+      "docs/inherited/legacy/knowledge/finding.md",
+    ]) {
+      expect(plan.moves.some((move) => move.fromPath === path)).toBe(false);
+      expect(plan.blockers.some((blocker) => blocker.path === path)).toBe(false);
+      expect(plan.referenceUpdates.some((update) => update.path === path)).toBe(false);
+    }
+  });
+
+  it("preserves exact repository role paths whose relocation policy is preserve", () => {
+    const taxonomy: DecisionTaxonomy = {
+      ...defaultDecisionTaxonomy,
+      documentPolicy: {
+        ...defaultDecisionTaxonomy.documentPolicy,
+        roles: [
+          ...defaultDecisionTaxonomy.documentPolicy.roles,
+          {
+            roleId: "current_status",
+            scopePath: ".",
+            path: "docs/STATUS.md",
+            cardinality: "one",
+            lifecycleOwner: "user",
+            relocation: "preserve",
+            rewritePolicy: "repository_tool",
+            required: false,
+          },
+        ],
+      },
+    };
+
+    expect(classifyRepositoryDocument("docs/STATUS.md", "# Current status\n", taxonomy)).toEqual({
+      kind: "not_migration_candidate",
+    });
   });
 
   it("uses explicit document route metadata when title inference is unavailable", async () => {

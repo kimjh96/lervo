@@ -14,6 +14,8 @@ export * from "./evaluation-runner.js";
 export * from "./evaluation-review-runner.js";
 export * from "./evaluation-review-store.js";
 export * from "./evaluation-store.js";
+export * from "./linked-evidence-shadow-store.js";
+export * from "./linked-evidence-managed-canary-store.js";
 export * from "./store.js";
 export * from "./selection-quality-report.js";
 export * from "./rollout-review-runner.js";

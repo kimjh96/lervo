@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "ADR-0263",
+  "auditId": "linked-evidence-provider-shadow-v9-ground-truth-v1",
+  "status": "authorized_packet_generation_only",
+  "source": {
+    "v9PreparedPath": ".lervo/state/search/linked-evidence-provider-shadow-pilots/linked-evidence-provider-shadow-v9-minimal-sufficient-paired-20260829/controller/prepared.json",
+    "v9PreparedManifestDigest": "sha256:6b6daf8de550d27242b974333282955c1d593a07b7fa442d3c498503715637de",
+    "phasePreparedPath": ".lervo/state/search/linked-evidence-shadow-pilots/linked-evidence-shadow-phase-a-registered-v8-corrected-target-v3-20260828/controller/prepared.json",
+    "phasePreparedManifestDigest": "sha256:a6f113f7999d5e52c50016faa269e71bf048c08642735fa06dd80ff05d8897c7",
+    "sourceCorpusDigest": "sha256:b14fcad0ca434b582c718b6db8d730261fb985e0a9fb8ff7fa4adf212af5ef2b",
+    "sourceSnapshotDigest": "sha256:9c335da8c99c811debc97c5befc0c2f545eb3261c41b52cf00900d6ed064d702",
+    "sourceRepositoryPath": ".lervo/state/search/linked-evidence-shadow-pilots/linked-evidence-shadow-phase-a-registered-v8-corrected-target-v3-20260828/repository",
+    "sourceRepositoryCommit": "42908470d0aa3818df55390f4e16017b8846a1b4"
+  },
+  "cases": [
+    {
+      "caseId": "drv8case_status_node_fleet",
+      "requiredClaims": [
+        {
+          "claimId": "architecture_impact",
+          "description": "The repository Node fleet architecture impact is directly supported."
+        },
+        {
+          "claimId": "gradual_rollout_impact",
+          "description": "The gradual rollout impact is directly supported."
+        }
+      ],
+      "expectedCandidateCount": 16,
+      "expectedProviderVisibleSourceBytes": 130302
+    },
+    {
+      "caseId": "drv8case_boundary_user_owned_block",
+      "requiredClaims": [
+        {
+          "claimId": "automatic_overwrite_boundary",
+          "description": "The automatic-overwrite boundary between managed blocks and user-owned content is directly supported."
+        }
+      ],
+      "expectedCandidateCount": 13,
+      "expectedProviderVisibleSourceBytes": 103433
+    }
+  ],
+  "blinding": {
+    "candidateOrder": "content_hash_ascending",
+    "includeFullCandidateEnvelope": true,
+    "omitFields": [
+      "provider",
+      "model",
+      "sampleId",
+      "shadowRunId",
+      "sessionId",
+      "targetTurnId",
+      "selectedDocumentIds",
+      "expectedDocumentIds",
+      "precisionBasisPoints",
+      "recallBasisPoints",
+      "durationMs",
+      "usage"
+    ]
+  },
+  "review": {
+    "candidateClassifications": [
+      "required_direct",
+      "acceptable_alternative",
+      "supporting_only",
+      "not_relevant"
+    ],
+    "caseDispositions": [
+      "ground_truth_confirmed",
+      "ground_truth_revision_proposed",
+      "insufficient_evidence"
+    ],
+    "reviewerKind": "human",
+    "requireEveryCandidate": true,
+    "requireEveryClaimCoverage": true,
+    "requireProviderOutcomesUnavailable": true,
+    "requireCurrentExpectedPathsUnavailable": true,
+    "allowModelAssistance": false
+  },
+  "authority": {
+    "maximumProviderInvocationsAuthorized": 0,
+    "groundTruthMutationAuthorized": false,
+    "measurementAuthorized": false,
+    "managedContextEffectsAuthorized": false,
+    "canaryAuthorized": false,
+    "productionActivationAuthorized": false
+  },
+  "output": {
+    "packetPath": ".lervo/state/search/ground-truth-audits/linked-evidence-provider-shadow-v9-ground-truth-v1/audit-packet.json",
+    "reviewTemplatePath": ".lervo/state/search/ground-truth-audits/linked-evidence-provider-shadow-v9-ground-truth-v1/human-review-template.json",
+    "maximumCases": 2,
+    "maximumCandidatesPerCase": 16,
+    "maximumCandidateBodyBytes": 260000
+  }
+}

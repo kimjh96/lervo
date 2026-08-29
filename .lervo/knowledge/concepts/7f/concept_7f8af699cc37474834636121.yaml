@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_7f8af699cc37474834636121
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/typed-context/0300-stop-v17-and-expand-complete-event-capacity.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_87674d11e3c4e88901cff71b
+title: "ADR-0300: Stop v17 and expand complete-event capacity"
+type: decision

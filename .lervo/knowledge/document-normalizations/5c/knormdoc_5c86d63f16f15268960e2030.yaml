@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_de1ed5aa81dc1d9c05ef8b04
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bdb68c7701fa05b896e0b19e
+outputLanguage: en
+outputs:
+  - byteCount: 10544
+    contentHash: sha256:1ef51ee54d5b7f160b1a19e6515474c32c86c7ced592db2a19aa33ed4f5b9bbd
+    path: docs/evidence/search/codex-claude-linked-evidence-measurement-report.md
+    userRegionHash: sha256:1ef51ee54d5b7f160b1a19e6515474c32c86c7ced592db2a19aa33ed4f5b9bbd
+profile: repository_document
+recordId: knormdoc_5c86d63f16f15268960e2030
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1b9249132aa90131bbaae2fef358501c32c22508223684308ba08b3eb4cbebbe
+sourcePath: docs/evidence/search/codex-claude-linked-evidence-measurement-report.md
+sourceUnitVersionIds:
+  - uv_02b72b8bfd2207e147d46364
+  - uv_108e63314a38885a333b5751
+  - uv_5dd554dd6f1a632be8f30489
+  - uv_649f8b674b38cd261f7ca72d
+  - uv_e322da78871292c85ce93730

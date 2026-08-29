@@ -45,8 +45,10 @@ const CONVENTIONAL_ENTRYPOINTS = new Set([
 
 const RESERVED_DOCUMENT_TREES = [
   "architecture",
+  "archive",
   "decisions",
   "evidence",
+  "inherited",
   "instructions",
   "knowledge",
   "product",
@@ -55,6 +57,8 @@ const RESERVED_DOCUMENT_TREES = [
   "specifications",
   "specs",
 ];
+
+const BYTE_PRESERVED_DOCUMENT_TREES = new Set(["archive", "inherited"]);
 
 function normalizedWords(value: string): string {
   return value
@@ -75,8 +79,20 @@ function documentRoot(taxonomy: DecisionTaxonomy): string {
   return posix.dirname(taxonomy.decisionRoot);
 }
 
+function preservedRolePath(path: string, taxonomy: DecisionTaxonomy): boolean {
+  return taxonomy.documentPolicy.roles.some(
+    (role) => role.relocation === "preserve" && role.path === path,
+  );
+}
+
+export function bytePreservedDocumentCollection(path: string, taxonomy: DecisionTaxonomy): boolean {
+  const root = documentRoot(taxonomy);
+  return [...BYTE_PRESERVED_DOCUMENT_TREES].some((tree) => path.startsWith(`${root}/${tree}/`));
+}
+
 function alreadyCanonical(path: string, taxonomy: DecisionTaxonomy): boolean {
   const root = documentRoot(taxonomy);
+  if (preservedRolePath(path, taxonomy)) return true;
   if (taxonomy.routes.some((route) => path.startsWith(`${root}/${route.path}/`))) return true;
   return RESERVED_DOCUMENT_TREES.some((tree) => path.startsWith(`${root}/${tree}/`));
 }

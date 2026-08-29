@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0098727449717a9a06dbb8d1
+compiler:
+  compilerBuildId: sha256:8d288d20c0d2eb5d6514d531ee951785b45f97e6528f30af3f0156dbd602ded6
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_35a4e62df4ecab46e97a315b
+outputLanguage: en
+outputs:
+  - byteCount: 7960
+    contentHash: sha256:ce01d77afceb5df3bf7805ea0519b2a9ffe17b0617ca87336eae8c77676a78c0
+    path: docs/evidence/search/reference-marker-assisted-v5.md
+    userRegionHash: sha256:ce01d77afceb5df3bf7805ea0519b2a9ffe17b0617ca87336eae8c77676a78c0
+profile: repository_document
+recordId: knormdoc_72ff926cd9880c8977fde2c1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5ee9d5c0a82bbc10976ca9913387ab6d3630352ae336f52de9077ee1c091c5ec
+sourcePath: docs/evidence/search/reference-marker-assisted-v5.md
+sourceUnitVersionIds:
+  - uv_336ec1826df5f6e9d4c7d791
+  - uv_66ca96511efb085aafe30bf5
+  - uv_8c9da51c7edc54f30a805633
+  - uv_952ada8028e95e0f80766d21
+  - uv_af0b7d75c12b7b15f946f7b2
+  - uv_c7dbb7c2cc1428037bc25ea7
+  - uv_fe23223881d2f827c4e338e0

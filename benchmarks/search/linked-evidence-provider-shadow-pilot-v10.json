@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 4,
+  "pilotId": "linked-evidence-provider-shadow-v10-unambiguous-paired-20260829",
+  "decisionId": "ADR-0264",
+  "decisionPath": "docs/decisions/search/activation/0264-measure-only-unambiguous-provider-shadow-cases-v10.md",
+  "baseContractPath": "benchmarks/search/linked-evidence-provider-shadow-pilot-v7.json",
+  "contractComposition": "exact_v7_base_plus_exact_v10_overlay",
+  "authorization": {
+    "status": "authorized_exact_unambiguous_paired_measurement",
+    "executionAuthority": "explicit_user_authorization_to_exclude_ambiguous_cases_and_continue",
+    "providerCallsAuthorized": true,
+    "maximumProviderInvocationsAuthorized": 32,
+    "managedContextEffectsAuthorized": false,
+    "canaryAuthorized": false,
+    "productionActivationAuthorized": false
+  },
+  "predecessor": {
+    "pilotId": "linked-evidence-provider-shadow-v9-minimal-sufficient-paired-20260829",
+    "evidencePath": "docs/evidence/search/linked-evidence-provider-shadow-pilot-v9.md",
+    "observedProviderInvocations": 12
+  },
+  "sourcePopulation": {
+    "populationKind": "fresh_v10_paired_all_four_nonempty_repetitions_from_immutable_phase_a_population",
+    "coordinatePrefix": "psv10",
+    "selection": "four_reviewed_unambiguous_nonempty_linked_projection_cases_all_four_repetitions",
+    "selectedCaseIds": [
+      "drv8case_implementation_release",
+      "drv8case_terse_release",
+      "drv8case_rationale_hybrid_search",
+      "drv8case_boundary_fuzzy_merge"
+    ],
+    "excludedCaseIds": ["drv8case_status_node_fleet", "drv8case_boundary_user_owned_block"],
+    "exclusionDisposition": "excluded_from_numerator_and_denominator_without_reclassification",
+    "repetitionStart": 1,
+    "expectedShadowSampleCount": 16,
+    "expectedProviderObservationCount": 32,
+    "expectedCaseCount": 4,
+    "expectedRepetitionsPerCase": 4,
+    "sampleIdFormat": "psv10_<case_id>_r<repetition>",
+    "providerAttemptIdFormat": "psv10_<provider>_<case_id>_r<repetition>"
+  },
+  "groundTruth": {
+    "ambiguityExclusionPolicy": "exclude_without_reclassification",
+    "excludedCasesAreSuccesses": false,
+    "humanAuditRequiredForIncludedPopulation": false
+  },
+  "selectionProtocol": {
+    "protocolId": "linked-evidence-provider-shadow-minimal-sufficient-v9",
+    "protocolDigest": "sha256:3bf0e347fa9236a3c077beab9fda686c1c1dcceafbe3a346337686f563b187e3",
+    "output": "provider_native_exact_e4_token_set",
+    "maximumSelectedSources": 8,
+    "minimalSufficientSelectionRequired": true,
+    "groundTruthExposure": "prohibited",
+    "caseSpecificRouting": "prohibited"
+  },
+  "candidateIdentity": {
+    "recordKind": "linked_evidence_provider_shadow_candidate.v10"
+  },
+  "candidateEnvelope": {
+    "expectedMaximumCandidateSources": 14,
+    "expectedMaximumProviderVisibleSourceBytes": 117813
+  },
+  "provider": {
+    "comparisonKind": "paired_same_sample_cross_provider_unambiguous_expansion",
+    "arms": [
+      { "provider": "codex", "model": "gpt-5.6-sol", "maximumProviderInvocations": 16 },
+      { "provider": "claude", "model": "opus", "maximumProviderInvocations": 16 }
+    ],
+    "ordering": "alternate_starting_provider_by_source_sample_codex_first",
+    "maximumProviderInvocations": 32,
+    "maximumProviderInvocationsPerArm": 16,
+    "maximumStructuredOutputFramingToolsPerInvocation": 1,
+    "cumulativeMaximumProviderInvocationsIncludingPredecessors": 107
+  },
+  "attemptJournal": {
+    "recordKind": "linked_evidence_provider_shadow_attempt.v10"
+  },
+  "observation": {
+    "recordKind": "linked_evidence_provider_shadow_observation.v10",
+    "maximumPilots": 10,
+    "maximumObservations": 32
+  },
+  "acceptance": {
+    "requiredEligibleObservations": 32,
+    "requiredEligibleObservationsPerProvider": 16,
+    "requiredProviderInvocations": 32,
+    "requiredProviderInvocationsPerProvider": 16,
+    "maximumProviderInvocations": 32,
+    "maximumSelectedSourcesPerObservation": 8
+  },
+  "passingDisposition": "separate_managed_context_canary_design_review_only",
+  "failingDisposition": "reject_without_retry_or_threshold_change"
+}

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_8cf1782ea7461dc13cda340f
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/0279-stop-managed-context-canary-v1-on-command-signal.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_953d5050e40d126e7c774a7a
+title: "ADR-0279: Stop managed-context canary v1 on a command signal"
+type: decision

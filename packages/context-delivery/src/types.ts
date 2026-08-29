@@ -1,5 +1,6 @@
 import type { LoadedContext } from "@lervo/context";
 import type {
+  AdapterContextDocumentRole,
   AdapterContextEnvelope,
   AdapterContextReceipt,
   AdapterSession,
@@ -68,6 +69,8 @@ export interface ContextDeliveryCandidate {
   contentHash: string;
   byteCount: number;
   scope: ContextScope;
+  documentRole: AdapterContextDocumentRole;
+  referenceEligible: boolean;
   sharedContextIds: readonly string[];
   inlineContentAvailable: boolean;
 }

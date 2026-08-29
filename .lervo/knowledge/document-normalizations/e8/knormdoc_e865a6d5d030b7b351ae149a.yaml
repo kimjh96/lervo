@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0cb2d2f275d70f45a5895547
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0d96af015bf8e77f057e9927
+outputLanguage: en
+outputs:
+  - byteCount: 3322
+    contentHash: sha256:7029d6bf8e0405468f9dc1db120932f905166e18f7ecc3c1f379c2ee984c52b0
+    path: docs/decisions/search/activation/0263-require-blind-human-ground-truth-audit-after-v9.md
+    userRegionHash: sha256:7029d6bf8e0405468f9dc1db120932f905166e18f7ecc3c1f379c2ee984c52b0
+profile: decision_record
+recordId: knormdoc_e865a6d5d030b7b351ae149a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5b990afab5c46c352b596212cc6f61f452413f848b793a33ea2232e0948cb89c
+sourcePath: docs/decisions/search/activation/0263-require-blind-human-ground-truth-audit-after-v9.md
+sourceUnitVersionIds:
+  - uv_07a705e58bda49ab9bc2a435
+  - uv_135266ba38ce44a1479144bd
+  - uv_647e4ea27aecd722732a28c4
+  - uv_a0fa3634161768e94364b5f4
+  - uv_bdbdd7367314418cf5d6e757

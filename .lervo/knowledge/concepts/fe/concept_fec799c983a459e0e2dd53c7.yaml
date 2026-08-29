@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_fec799c983a459e0e2dd53c7
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/0264-measure-only-unambiguous-provider-shadow-cases-v10.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_31010be0f10d0d199147d5d0
+title: "ADR-0264: Measure only unambiguous provider-shadow cases in v10"
+type: decision

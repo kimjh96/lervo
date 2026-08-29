@@ -23,7 +23,14 @@ describe("Codex stdio app-server client", () => {
     await expect(client.listConnectedMcpServers(thread.threadId)).resolves.toEqual([
       "research-search",
     ]);
-    const turn = await client.startTurn(thread.threadId, "fixture task");
+    const turn = await client.startTurn(thread.threadId, "fixture task", {
+      outputSchema: {
+        type: "object",
+        properties: { evidenceTokens: { type: "array", items: { type: "string" } } },
+        required: ["evidenceTokens"],
+        additionalProperties: false,
+      },
+    });
     const controller = new AbortController();
     const iterator = client.notifications(controller.signal)[Symbol.asyncIterator]();
     await expect(iterator.next()).resolves.toMatchObject({

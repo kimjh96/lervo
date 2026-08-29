@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_ca0de68b8bb6e5e16824865e
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ce4f9197bcc32a810264b623
+outputLanguage: en
+outputs:
+  - byteCount: 8752
+    contentHash: sha256:b69acb8535b6602ab619d973a9cb9d84b3e959f37f2735b7e90f17114ccb76ef
+    path: docs/decisions/search/activation/0249-authorize-isolated-registered-corpus-phase-a-pilot.md
+    userRegionHash: sha256:b69acb8535b6602ab619d973a9cb9d84b3e959f37f2735b7e90f17114ccb76ef
+profile: decision_record
+recordId: knormdoc_4a723a9fcce83bd9b3fdeb85
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:903e51f870f15d574f44ab17f5e8189ee55299f2704a0f1f10af8ee93b52a8a3
+sourcePath: docs/decisions/search/activation/0249-authorize-isolated-registered-corpus-phase-a-pilot.md
+sourceUnitVersionIds:
+  - uv_44764abe647fd75032dddafd
+  - uv_5b33fa069e5081179a4e8461
+  - uv_8d0aca9bcde8ed6953810222
+  - uv_a2dfb59201b54213ad9cd4a4
+  - uv_a51502c992c611f910aee7ac
+  - uv_c0b32752ce7feb725c7e8bfa
+  - uv_c3ad74bf7e36196b46b80960
+  - uv_c9a14e2784e2c4d13455b93b
+  - uv_d5c1e38bbe5c646df00015b8
+  - uv_da3c630ed4bdeedee99dd8e8

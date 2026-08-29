@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_1b00efaa04b1087db3772e60
+freshness: current
+ownership: user
+path: docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v12.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_ecf1a7ed0e926d9eed6a1f4d
+title: Four-case claim-coverage provider-shadow v12
+type: concept

@@ -5,6 +5,36 @@ legacyRoots:
   - docs/adr
 maxLeafDocuments: 24
 routes:
+  - id: search.activation.provider-shadow-structured.typed-context
+    path: search/activation/provider-shadow-structured/typed-context
+    priority: 104
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - typed-context managed canary
+      - task evidence and governance context
+  - id: search.activation.provider-shadow-structured
+    path: search/activation/provider-shadow-structured
+    priority: 103
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - structured codex provider-shadow
+      - structured-selection
+      - compatible structured provider-shadow
+      - relational coverage
+  - id: search.activation
+    path: search/activation
+    priority: 102
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - activation
+      - phase a pilot
+      - registered corpus pilot
+  - id: search.rollout
+    path: search/rollout
+    priority: 101
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - search rollout
   - id: search
     path: search
     priority: 100

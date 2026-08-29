@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c70ea1a64d347e4d008dc504
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_215572da7614a66762fe4b1b
+outputLanguage: en
+outputs:
+  - byteCount: 10354
+    contentHash: sha256:56c9369aee4798d09bd63092620f3f5eb9620761d1385372ebff43201850abcf
+    path: docs/decisions/search/activation/0254-pre-register-recoverable-provider-shadow-pilot-v2.md
+    userRegionHash: sha256:56c9369aee4798d09bd63092620f3f5eb9620761d1385372ebff43201850abcf
+profile: decision_record
+recordId: knormdoc_8f315edcc2ea330aa3834b24
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c82d08fc33b8db0be4b671e917352277c3f40110f52b5cd7acba67127ff7f7a6
+sourcePath: docs/decisions/search/activation/0254-pre-register-recoverable-provider-shadow-pilot-v2.md
+sourceUnitVersionIds:
+  - uv_0321a441e73790b87cb18f6d
+  - uv_26a786db42170a5adcfa2424
+  - uv_348cb40d5697d30e4e71fdfb
+  - uv_3effa5c1f2114b26b8296800
+  - uv_4d13a5b7880b0211226e9f58
+  - uv_4efc9b189cc4b161133d2938
+  - uv_77a13f9c294e20a97b7d9625
+  - uv_8aaf8ed5b273d23498d20bfb
+  - uv_8d13492b558a878362d55fb7
+  - uv_a988c18859ad3f96dca87a8d
+  - uv_c48b5b22371bd661ce384268
+  - uv_c6621bc0cab99f4ae985dc97
+  - uv_d02da99e12fc4ce4dd2ef67a

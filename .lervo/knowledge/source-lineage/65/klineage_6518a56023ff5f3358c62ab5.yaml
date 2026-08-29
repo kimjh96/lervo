@@ -1,0 +1,18 @@
+destinationHash: sha256:aa45d09719e118e5ecc16098aa5c6a8c791ae8f47b7bf31923e2012390640149
+destinationPath: docs/evidence/search/provider-shadow/codex-claude-linked-evidence-speed-history.md
+extractedRange:
+  endByte: 8985
+  startByte: 7359
+identityPath: docs/evidence/search/codex-claude-linked-evidence-measurement-report.md
+kind: document_split
+lineageId: klineage_6518a56023ff5f3358c62ab5
+operationId: kdocop_3bbac64ac9957a0acd4ebec4
+schemaVersion: 1
+selectedHeadingLocator: heading:Codex and Claude linked-evidence measurement report > Speed and accuracy
+sourceAfterHash: sha256:733d81581d5233fcbfa0cae63f51fafcb04a7dcab346fc4837e8726d9d0add4e
+sourceBeforeByteCount: 20608
+sourceBeforeHash: sha256:6c9cefbe3982f8cfa8b95634fa4a19334995de2982eaa660dce1174630063cc7
+sourceId: src_fc9dac6dbf64c676a62a1de2
+sourcePath: docs/evidence/search/codex-claude-linked-evidence-measurement-report.md
+sourceUnitBindingDigest: sha256:a9fa2e802e99cf86e149f9487fcb4acf48999c619ce5a37ac8bd7603b16c10ac
+sourceUnitCount: 10

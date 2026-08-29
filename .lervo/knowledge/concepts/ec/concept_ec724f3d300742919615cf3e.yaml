@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_ec724f3d300742919615cf3e
+freshness: current
+ownership: user
+path: docs/evidence/search/provider-shadow/linked-evidence-managed-canary-v3.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_a668d3ac5e28877a1f11a51f
+title: Managed-context canary v3 preparation rejection
+type: concept

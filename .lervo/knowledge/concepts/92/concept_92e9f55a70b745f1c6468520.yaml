@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_92e9f55a70b745f1c6468520
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/typed-context/0295-authorize-typed-context-managed-canary-v14.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_0c05c56690fd0670d478ebfd
+title: "ADR-0295: Authorize typed-context managed canary v14"
+type: decision

@@ -28,6 +28,8 @@ A current workstream must match its latest `workstream.snapshot.recorded` event 
 
 Managed sessions suppress native project hooks. Graph-selected registered documents use bounded post-search projections and ordinary E1–E3 evidence (ADR-0216, ADR-0217).
 
+The [managed linked-evidence specification](execution/managed-linked-evidence-canary.md) defines the default deterministic key-free path, separate exact canary authorization, E1–E4 separation, bounded records, and activation evidence.
+
 ## 3. Context evidence
 
 | Level | Meaning |
@@ -38,9 +40,13 @@ Managed sessions suppress native project hooks. Graph-selected registered docume
 | E3 | Adapter acknowledged the exact delivered envelope. |
 | E4 | Validated provider result explicitly cited the exact injected version. |
 
-E3 proves controlled injection, not understanding or use. E4 requires a structured result matching E3 on run, session, provider session, target and provider turns, adapter receipt, context generation, document ID, content hash, and scope. The exact `lervo-e4:<documentId>:<contentHash>` token must be a standalone Markdown HTML comment. It proves only bounded output citation, not attention, semantic reliance, understanding, agreement, correctness, or internal use. Internal use is unsupported.
+E3 proves controlled injection, not understanding or use. Every envelope and receipt document has one provider-neutral `documentRole`: `task_evidence` or `governance_context`, plus required `referenceEligible` state. Instructions, workstreams, writing policies, and protocols are governance; substantive task sources are task evidence. Governance wins when one exact document has both roles and is never reference eligible. Direct task selection is eligible; task evidence selected only as managed linked support is not. Direct provenance wins when both occur. A missing, unknown, changed, or role-inconsistent value fails the delivery contract before E3 evidence is accepted.
+
+E4 requires a structured result matching E3 coordinates, document version, role, and eligibility. Only eligible task evidence receives the exact standalone `lervo-e4:<documentId>:<contentHash>` token; supporting task context and governance context receive null. The runtime does not rewrite output or compare it with hidden evaluation identifiers. E4 proves bounded output citation, not attention, reliance, understanding, correctness, or internal use. The linked-evidence specification records the rejected prompt-only attempt, typed boundary, claim eligibility, and activation evidence.
 
 `@lervo/context-coverage` rebuilds one report from canonical events, retaining every E1 reason, E2 version and revision, enhanced E3 coordinate, valid E4, highest evidence, and missing stage. Delivery, reference, relevance, and selection ratios remain separate. Unknown denominators are `null` with a reason; no combined score exists.
+
+The managed-run search summary may project only the count and sorted unique document IDs from canonical E4 evidence as `referencedDocuments` and `referencedDocumentIds`. This bounded derived view excludes bodies, paths, prompts, provider output, credentials, and expected evaluation identifiers; evidence events remain canonical.
 
 Unmanaged observations use `prepared -> referenced`, never E1–E4. Preparation proves hook-side construction; reference proves only a matching marker in bounded Stop output. Lervo neither rewrites nor stores that output.
 
@@ -50,27 +56,19 @@ Every role declares `allow`, `deny`, or `require_approval` for filesystem reads 
 
 [Capability packages](execution/capabilities.md) cover skills, MCP servers, plugins, and bundles. Verified metadata supports deterministic natural-language selection. Recommendation, selection, load, activation, and invocation remain separate evidence; none proves semantic model use.
 
-Built-in `1.0.0` templates are developer, researcher, marketer, designer, writer, and ideation. Lazy tracked repository roles under `.lervo/roles/` may be complete, specialize one exact version, or compose multiple exact versions. Final profiles and evaluation bundles must validate; ancestry must be acyclic and no more than eight levels deep. Capabilities and verification-failure policy merge to the most restrictive result. The resolved definition and ancestry receive a deterministic contract hash. Agent, assignment, handoff, and managed-run transitions fail before provider creation when the bound version, contract hash, profile hash, or capability hash is stale.
+Built-in `1.0.0` templates are developer, researcher, marketer, designer, writer, and ideation. Lazy tracked repository roles under `.lervo/roles/` may be complete, specialize one exact version, or compose multiple exact versions. Final profiles and evaluation bundles must validate; ancestry must be acyclic and at most eight levels deep. Capabilities and verification-failure policy merge to the most restrictive result. The resolved definition and ancestry receive a deterministic contract hash. Agent, assignment, handoff, and managed-run transitions fail before provider creation when the bound version, contract hash, profile hash, or capability hash is stale.
 
 Write approval binds project, run, session, provider, role, risk, request digest, repository snapshot, expected paths, verification suite, policy snapshot, validity interval, and revocation. Revalidate it immediately before mutation.
 
 ## 5. Provider adapters
 
-Codex and Claude share contract tests and normalize native session, capability activation, tool, usage, error, and result events without inventing telemetry. Provider-specific MCP configuration, plugin loading, and confirmation remain behind adapter boundaries.
-
-Terminal profiles merge approved handlers into project arrays while preserving settings and hooks. Handlers resolve the Git root from the provider working directory and invoke the generated terminal-only bundle through Node, never a PATH-resolved global `lervo`. The bundle verifies its exact manifest before handling input.
-
-Legacy contract-v1 handlers migrate in place; generated-only runtime upgrades reconcile automatically. Reconciliation plan IDs bind exact target bytes and the latest canonical terminal-application event ID, allowing an old-to-new transition to recur safely after an intervening version without colliding with earlier recovery evidence. A changed event head makes the plan stale. User-owned provider configuration changes retain exact approval.
-
-Invalid JSON or shapes, conflicting Lervo commands, Claude disablement, or Codex project-hook disablement blocks migration. Authority excludes local, global, and organization settings. Successful apply is installation evidence, not activation readiness: human and JSON output must immediately disclose Codex's one-time `/hooks` review. `terminal status` remains `action_required` until canonical contract-v2 invocations for both events are observed, distinguishing an unreviewed or unobserved Codex hook from a stale repository lifecycle.
-
-Managed runs use a role-bound English machine-result protocol. A separate read-only session of the selected local provider evaluates human-facing publication in an empty temporary repository without documents, tools, or write access. Its exact JSON is content-bound evidence, not independent cross-provider or human review, proof of understanding, or writing-policy E3. Failure blocks publication and CLI success, but not an already verified file change.
-
-The validated result is the E4 source. Before publication, remove only exact evidence tokens for current E3 versions and store the human artifact under a separate digest. Writing checks, permits, `run.completed`, and display bind to that projection. `adapter.result.captured` retains the unprojected digest without content. Unknown tokens remain visible; an empty projection fails closed.
+Codex and Claude share provider-neutral contracts without invented telemetry. Provider-specific configuration, terminal integration, usage normalization, publication evaluation, and result projection follow the [provider adapter specification](execution/provider-adapters.md).
 
 ## 6. Repository snapshots and writes
 
 Plans bind state, expected paths, before and desired hashes, and verification. Apply rejects symlinks, escape, changed targets, unapproved paths, and stale plans.
+
+Every managed-write provider turn receives the exact repository-relative target path and an explicit instruction to change only that path. This applies to single-file and multi-file schedules; write authorization and byte verification remain the enforcement boundary.
 
 Snapshots cover repository-authored files, including source and tracked generated files. They exclude Lervo runtime data and state, dependencies, and conventional generated build or cache directories.
 
@@ -103,6 +101,8 @@ Durable local data and rebuildable projections follow the [state lifecycle speci
 ## 10. Events and privacy
 
 The [execution events and privacy specification](execution/events-and-privacy.md) defines allowlisted payloads, workforce events, knowledge and terminal integration events, additive terminal observation compatibility, workstream snapshots, activation receipts, coverage, privacy exclusions, and failure meaning. Events remain canonical hash-chained evidence; absent telemetry never becomes inferred success or provider-use claims.
+
+Managed linked-evidence canary record bounds and privacy exclusions are defined in its linked specification.
 
 ## 11. Durable apply and recovery
 

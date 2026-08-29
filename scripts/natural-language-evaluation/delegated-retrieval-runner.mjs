@@ -4,6 +4,7 @@ import {
   createManagedWriteDecision,
   inspectTurnResultBinding,
   managedContextPublicationContent,
+  referencedManagedContextDocuments,
 } from "../../packages/adapter-contract/dist/index.js";
 
 import {
@@ -40,6 +41,8 @@ function protocolDocument(content = delegatedRetrievalProtocol) {
     contentHash: digest(content),
     byteCount: Buffer.byteLength(content, "utf8"),
     scope: { kind: "full" },
+    documentRole: "governance_context",
+    referenceEligible: false,
     delivery: { kind: "inline", content },
   };
 }
@@ -51,6 +54,8 @@ function lexicalDocuments(recommendations) {
     contentHash: source.contentHash,
     byteCount: Buffer.byteLength(source.text, "utf8"),
     scope: { kind: "full" },
+    documentRole: "task_evidence",
+    referenceEligible: true,
     delivery: { kind: "inline", content: source.text },
   }));
 }
@@ -129,7 +134,13 @@ export async function runDelegatedRetrievalArm(input) {
     const documents = [
       protocolDocument(input.protocol ?? delegatedRetrievalProtocol),
       ...(includeRecommendations ? lexicalDocuments(input.recommendations) : []),
-      ...(input.additionalDocuments ?? []),
+      ...(input.additionalDocuments ?? []).map((document) => ({
+        ...document,
+        documentRole: document.documentRole ?? "task_evidence",
+        referenceEligible:
+          (document.documentRole ?? "task_evidence") === "task_evidence" &&
+          (document.referenceEligible ?? true),
+      })),
     ];
     const envelope = {
       kind: "context_envelope",
@@ -187,16 +198,22 @@ export async function runDelegatedRetrievalArm(input) {
     if (!inspectTurnResultBinding({ session, turn, result }).passed) {
       throw new Error("The provider result differs from its adapter coordinates.");
     }
-    const answer = parseDelegatedRetrievalAnswer(
-      managedContextPublicationContent(result.content, documents),
-    );
-    const protocolObservation = input.observeAnswer?.(answer);
+    const referencedDocuments = referencedManagedContextDocuments(result.content, documents);
+    const publicationContent = managedContextPublicationContent(result.content, documents);
+    const parsedResult = input.parseResult?.({
+      rawContent: result.content,
+      publicationContent,
+      referencedDocumentPaths: referencedDocuments.map((document) => document.path),
+      documents,
+    });
+    const answer = parsedResult?.answer ?? parseDelegatedRetrievalAnswer(publicationContent);
+    const protocolObservation = parsedResult?.protocolObservation ?? input.observeAnswer?.(answer);
     stopReason = "completed";
     const score = scoreDelegatedRetrievalAnswer(input.item.expectedPaths, answer);
     const repositoryInspectionObserved = observations.tools.size + observations.commands.size > 0;
     return {
       arm: input.arm,
-      passedContract: true,
+      passedContract: parsedResult?.passedContract ?? true,
       ...score,
       answerPassed: score.passed,
       sourcePaths: answer.sourcePaths,
@@ -210,6 +227,7 @@ export async function runDelegatedRetrievalArm(input) {
       providerErrors: observations.errors,
       usage: observations.usage,
       repositoryInspectionObserved,
+      referencedDocumentPaths: referencedDocuments.map((document) => document.path),
       injectedRecommendationPaths: includeRecommendations
         ? input.recommendations.map((source) => source.path)
         : [],

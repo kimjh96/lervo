@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_c414c86f3e326660f312133e
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/0288-share-execution-clock-for-key-free-managed-canary-v9.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_38557aa45617a281724270d2
+title: "ADR-0288: Use the runtime clock for key-free managed canary v9"
+type: decision

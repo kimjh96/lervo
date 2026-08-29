@@ -133,6 +133,11 @@ export const adapterSessionSchema = {
   additionalProperties: false,
 } as const;
 
+export const adapterContextDocumentRoleSchema = {
+  type: "string",
+  enum: ["task_evidence", "governance_context"],
+} as const;
+
 const contextDocumentSchema = {
   type: "object",
   properties: {
@@ -141,6 +146,8 @@ const contextDocumentSchema = {
     contentHash: sha256Schema,
     byteCount: { type: "integer", minimum: 0 },
     scope: scopeSchema,
+    documentRole: adapterContextDocumentRoleSchema,
+    referenceEligible: { type: "boolean" },
     knowledgeContext: knowledgeContextSchema,
     delivery: {
       oneOf: [
@@ -165,7 +172,27 @@ const contextDocumentSchema = {
       ],
     },
   },
-  required: ["documentId", "path", "contentHash", "byteCount", "scope", "delivery"],
+  required: [
+    "documentId",
+    "path",
+    "contentHash",
+    "byteCount",
+    "scope",
+    "documentRole",
+    "referenceEligible",
+    "delivery",
+  ],
+  allOf: [
+    {
+      if: {
+        properties: { documentRole: { const: "governance_context" } },
+        required: ["documentRole"],
+      },
+      then: {
+        properties: { referenceEligible: { const: false } },
+      },
+    },
+  ],
   additionalProperties: false,
 } as const;
 
@@ -234,9 +261,22 @@ const injectedDocumentSchema = {
     documentId: { type: "string", pattern: "^doc_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$" },
     contentHash: sha256Schema,
     scope: scopeSchema,
+    documentRole: adapterContextDocumentRoleSchema,
+    referenceEligible: { type: "boolean" },
     status: { const: "injected" },
   },
-  required: ["documentId", "contentHash", "scope", "status"],
+  required: ["documentId", "contentHash", "scope", "documentRole", "referenceEligible", "status"],
+  allOf: [
+    {
+      if: {
+        properties: { documentRole: { const: "governance_context" } },
+        required: ["documentRole"],
+      },
+      then: {
+        properties: { referenceEligible: { const: false } },
+      },
+    },
+  ],
   additionalProperties: false,
 } as const;
 
@@ -486,6 +526,7 @@ export type AdapterExecutionMode = AdapterStartRequest["executionMode"];
 export type AdapterCapabilityMatrix = AdapterDescriptor["capabilities"];
 export type AdapterContextEnvelope = FromSchema<typeof adapterContextEnvelopeSchema>;
 export type AdapterContextReceipt = FromSchema<typeof adapterContextReceiptSchema>;
+export type AdapterContextDocumentRole = FromSchema<typeof adapterContextDocumentRoleSchema>;
 export type AdapterTurnRequest = FromSchema<typeof adapterTurnRequestSchema>;
 export type AdapterTurn = FromSchema<typeof adapterTurnSchema>;
 export type AdapterTurnResult = FromSchema<typeof adapterTurnResultSchema>;

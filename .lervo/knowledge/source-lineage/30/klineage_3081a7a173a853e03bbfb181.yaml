@@ -1,0 +1,11 @@
+fromPath: docs/decisions/search/0069-bounded-search-rollout-action-status.md
+identityPath: docs/adr/0069-bounded-search-rollout-action-status.md
+kind: document_move
+lineageId: klineage_3081a7a173a853e03bbfb181
+operationId: kdocop_ff63f1604bdcf3c8476eb9e6
+schemaVersion: 1
+sourceContentHash: sha256:3924d1c273eb1027ff75de34b91b47909b9ce8c0714f1a96a53d1949f73bc2e2
+sourceId: src_31180f971ffdcc571f42d4c2
+sourceUnitBindingDigest: sha256:e3e48aa570f458234e285ded018ed79bb1ccf5471fb72f95cdd624ebec550487
+sourceUnitCount: 5
+toPath: docs/decisions/search/rollout/0069-bounded-search-rollout-action-status.md

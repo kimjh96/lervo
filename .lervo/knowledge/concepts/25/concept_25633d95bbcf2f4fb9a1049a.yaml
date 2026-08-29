@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_25633d95bbcf2f4fb9a1049a
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/0256-correct-claude-provider-shadow-observability-v3.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_76960202e5b508fcb9c71587
+title: "ADR-0256: Correct Claude provider-shadow observability in v3"
+type: decision

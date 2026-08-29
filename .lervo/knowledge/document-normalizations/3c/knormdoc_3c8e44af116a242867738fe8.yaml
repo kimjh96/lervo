@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0ea6c27ad8a92c7fdbf4af8f
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_981462012da6669e5864011c
+outputLanguage: en
+outputs:
+  - byteCount: 3936
+    contentHash: sha256:6ab6b6c6d272318eb4397308f9b7ba7f81bb524611a7682fea20dc940f383bf8
+    path: docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-v14-codex-carrier-diagnosis.md
+    userRegionHash: sha256:6ab6b6c6d272318eb4397308f9b7ba7f81bb524611a7682fea20dc940f383bf8
+profile: repository_document
+recordId: knormdoc_3c8e44af116a242867738fe8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e30ba30e0d0b1bbf25e5d0177b113d34ccb7e230d000235924e75886d81717c7
+sourcePath: docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-v14-codex-carrier-diagnosis.md
+sourceUnitVersionIds:
+  - uv_048e0bd734bca0f1455c44fb
+  - uv_4fdb2350826b48385f8d496a
+  - uv_8875bee3db18061c8566c7cb
+  - uv_b97b3be3fe08110f3cf6259a
+  - uv_dd3cf04fc639e07e64f96467
+  - uv_e26d0d5b2d4eeba89df8008d
+  - uv_f2f4c34840a158c6ce08971b

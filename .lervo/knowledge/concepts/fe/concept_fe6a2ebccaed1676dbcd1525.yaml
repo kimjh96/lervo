@@ -3,7 +3,7 @@ bundleId: bundle_451efff12346a56316cb37e3
 conceptId: concept_fe6a2ebccaed1676dbcd1525
 freshness: current
 ownership: user
-path: docs/decisions/search/0071-search-rollout-operational-doctor.md
+path: docs/decisions/search/rollout/0071-search-rollout-operational-doctor.md
 publicationLanguage: en
 publicationProfile: explanation
 publicationStatus: stable

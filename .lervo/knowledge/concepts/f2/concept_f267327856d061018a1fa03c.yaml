@@ -3,7 +3,7 @@ bundleId: bundle_451efff12346a56316cb37e3
 conceptId: concept_f267327856d061018a1fa03c
 freshness: current
 ownership: user
-path: docs/decisions/search/0070-read-only-search-rollout-action-preflight.md
+path: docs/decisions/search/rollout/0070-read-only-search-rollout-action-preflight.md
 publicationLanguage: en
 publicationProfile: explanation
 publicationStatus: stable

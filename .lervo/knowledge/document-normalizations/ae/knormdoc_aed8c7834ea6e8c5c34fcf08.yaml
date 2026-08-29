@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c70ea1a64d347e4d008dc504
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2fef33ae60f70ae960478bc1
+outputLanguage: en
+outputs:
+  - byteCount: 3643
+    contentHash: sha256:2a98e7d8396249a1febc8a5087b8cbc0d76fe87fcd5400ff9821c27209c67958
+    path: docs/decisions/search/activation/0257-observe-claude-sdk-usage-provider-shadow-v4.md
+    userRegionHash: sha256:2a98e7d8396249a1febc8a5087b8cbc0d76fe87fcd5400ff9821c27209c67958
+profile: decision_record
+recordId: knormdoc_aed8c7834ea6e8c5c34fcf08
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d5035230566dbe209746c090fce5cb277ee67996ab0f88624725c44abc94f341
+sourcePath: docs/decisions/search/activation/0257-observe-claude-sdk-usage-provider-shadow-v4.md
+sourceUnitVersionIds:
+  - uv_02417daf64ee819e6ca032a2
+  - uv_0e7be99ba294332d5eaf502c
+  - uv_52bebd49979d2ac2fe28c414
+  - uv_8783aed3d759fa5121e6fbe1
+  - uv_d81cbb3669e8b44d82ff8c16
+  - uv_de16ce3af351c840824a6c60

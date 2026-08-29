@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_92798319b37741581c3b8a0e
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_36246a3aed4303507de23a24
+outputLanguage: en
+outputs:
+  - byteCount: 2120
+    contentHash: sha256:bf87764a28522365fe481859e5f9446849a49edc6ee9260ec4708ba5595ba7a9
+    path: docs/decisions/search/activation/0261-bound-provider-shadow-selection-to-two-sources-v8.md
+    userRegionHash: sha256:bf87764a28522365fe481859e5f9446849a49edc6ee9260ec4708ba5595ba7a9
+profile: decision_record
+recordId: knormdoc_95dfa30bb717b79a621efc64
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:91b9195cd269bdb49fc3d758169444eb8ec3507f1b72f1962154238a7e0fc791
+sourcePath: docs/decisions/search/activation/0261-bound-provider-shadow-selection-to-two-sources-v8.md
+sourceUnitVersionIds:
+  - uv_0e24d4a080bcf84827ea4649
+  - uv_10e420361003e6b257de9e0f
+  - uv_7a70857b48756c8aac89fe0b
+  - uv_c5bf23bd94be06f74d0d6c12
+  - uv_dbb9cd576fd9d8d10d044064

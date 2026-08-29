@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2f0f44f8622840d19d6bf55b
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_78f1e04a66e4611f2e075da2
+outputLanguage: en
+outputs:
+  - byteCount: 5984
+    contentHash: sha256:e49104c0053c394948ee2350c6af1d45cbe6f812515d8a8a2be24d8fb3c4f61d
+    path: docs/decisions/search/activation/0252-authorize-corrected-target-delivery-phase-a-pilot.md
+    userRegionHash: sha256:e49104c0053c394948ee2350c6af1d45cbe6f812515d8a8a2be24d8fb3c4f61d
+profile: decision_record
+recordId: knormdoc_f797b111bd47a1fbcfb48243
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:fdcd2692a66ad55dd130dde5205d8a4d80e4978740146aca49d950584d482f2d
+sourcePath: docs/decisions/search/activation/0252-authorize-corrected-target-delivery-phase-a-pilot.md
+sourceUnitVersionIds:
+  - uv_05186ca4f3b747e460070826
+  - uv_0b14d7b5ccafce49c26eaafe
+  - uv_67d6a86bd9e0afaf70faa238
+  - uv_a0e4abb363ad04633ecdfb87
+  - uv_c56a91574cbf9d92ca6be527
+  - uv_c95e9868172d5c9107e180e5
+  - uv_c9e9feab5a8986c7de08f2f6
+  - uv_cd2f296f9a58ce663094c6e1

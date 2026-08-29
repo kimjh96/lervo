@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_22ed86078f766ac2e27beac0
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/0290-forward-linked-selections-for-key-free-managed-canary-v11.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_7f7978cde105901ef5ab05c2
+title: "ADR-0290: Forward linked selections for key-free managed canary v11"
+type: decision

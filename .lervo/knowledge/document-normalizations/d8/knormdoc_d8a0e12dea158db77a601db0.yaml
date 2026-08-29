@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_90742a9e45ad705241d15e49
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_dd4a758d2e23a15852322022
+outputLanguage: en
+outputs:
+  - byteCount: 2119
+    contentHash: sha256:f4f72632b92f7c803ab08db9cd301cf63d4d78d909c0cb2a7661794a3316117d
+    path: docs/decisions/search/activation/provider-shadow-structured/0286-use-machine-output-role-for-key-free-managed-canary-v7.md
+    userRegionHash: sha256:f4f72632b92f7c803ab08db9cd301cf63d4d78d909c0cb2a7661794a3316117d
+profile: decision_record
+recordId: knormdoc_d8a0e12dea158db77a601db0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8c667957e5aadce06dbe0c627668bda9056004bbafb191429aa51bc4c3a303a5
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0286-use-machine-output-role-for-key-free-managed-canary-v7.md
+sourceUnitVersionIds:
+  - uv_24f596bd5a3fdbb5a8ec3ec1
+  - uv_2b2e7d58a795e98d60b85336
+  - uv_35b0bc0a90d1e3f4246b386b
+  - uv_5f7db5cd998810e71c50039f
+  - uv_c939423603d8f15426ff0878
+  - uv_f7258d593f931d58336c98f3

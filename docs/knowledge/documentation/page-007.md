@@ -3,6 +3,9 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0229: Organization Node Enrollment and Gradual Rollout](../../decisions/operations/security/0229-organization-node-enrollment-and-gradual-rollout.md) — `docs/decisions/operations/security/0229-organization-node-enrollment-and-gradual-rollout.md`
+- [ADR-0230: Owner-Only File Organization Credential Source](../../decisions/operations/security/0230-owner-only-file-organization-credential-source.md) — `docs/decisions/operations/security/0230-owner-only-file-organization-credential-source.md`
+- [ADR-0231: Authenticated Node Organization Credential Activation](../../decisions/operations/security/0231-authenticated-node-organization-credential-activation.md) — `docs/decisions/operations/security/0231-authenticated-node-organization-credential-activation.md`
 - [ADR-0232: Approved Node Rollout Local Transaction](../../decisions/operations/security/0232-approved-node-rollout-local-transaction.md) — `docs/decisions/operations/security/0232-approved-node-rollout-local-transaction.md`
 - [ADR-0233: Authenticated Node Rollout Process Delivery](../../decisions/operations/security/0233-authenticated-node-rollout-process-delivery.md) — `docs/decisions/operations/security/0233-authenticated-node-rollout-process-delivery.md`
 - [ADR-0234: Bounded Node Rollout Effect Recovery](../../decisions/operations/security/0234-bounded-node-rollout-effect-recovery.md) — `docs/decisions/operations/security/0234-bounded-node-rollout-effect-recovery.md`
@@ -24,6 +27,3 @@
 - [ADR-0077: Bounded trace source reads that expose truncation](../../decisions/operations/trace/0077-bounded-trace-source-reads.md) — `docs/decisions/operations/trace/0077-bounded-trace-source-reads.md`
 - [ADR-0078: Snapshot-bound local trace cursor pages](../../decisions/operations/trace/0078-snapshot-bound-local-trace-pages.md) — `docs/decisions/operations/trace/0078-snapshot-bound-local-trace-pages.md`
 - [ADR-0079: Explicit trace-page event-type filters](../../decisions/operations/trace/0079-explicit-trace-page-event-filter.md) — `docs/decisions/operations/trace/0079-explicit-trace-page-event-filter.md`
-- [ADR-0081: Trace default-output transition contract](../../decisions/operations/trace/0081-trace-output-mode-deprecation.md) — `docs/decisions/operations/trace/0081-trace-output-mode-deprecation.md`
-- [ADR-0082: Machine-readable trace capabilities](../../decisions/operations/trace/0082-machine-readable-trace-capabilities.md) — `docs/decisions/operations/trace/0082-machine-readable-trace-capabilities.md`
-- [ADR-0083: Trace default-transition compatibility fixture](../../decisions/operations/trace/0083-trace-default-transition-fixture.md) — `docs/decisions/operations/trace/0083-trace-default-transition-fixture.md`

@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0024: Provider-neutral project verification and result artifacts](../../decisions/execution/providers/0024-provider-neutral-project-verification.md) — `docs/decisions/execution/providers/0024-provider-neutral-project-verification.md`
 - [ADR-0029: Codex–Claude cross-review and role-specific provider enforcement](../../decisions/execution/providers/0029-cross-provider-deliberation-runtime.md) — `docs/decisions/execution/providers/0029-cross-provider-deliberation-runtime.md`
 - [ADR-0153: Approval-Bound Managed Provider Node Host](../../decisions/execution/providers/0153-managed-provider-node-host.md) — `docs/decisions/execution/providers/0153-managed-provider-node-host.md`
 - [ADR-0154: Multi-File Managed Provider Turns and Context Reinjection](../../decisions/execution/providers/0154-multi-file-managed-provider-turns.md) — `docs/decisions/execution/providers/0154-multi-file-managed-provider-turns.md`
@@ -26,4 +27,3 @@
 - [ADR-0176: Bounded Verification Result Sources](../../decisions/execution/verification/0176-bounded-verification-result-sources.md) — `docs/decisions/execution/verification/0176-bounded-verification-result-sources.md`
 - [ADR-0001: M0 Contracts and Data Defaults](../../decisions/foundation/0001-m0-contracts-and-data-defaults.md) — `docs/decisions/foundation/0001-m0-contracts-and-data-defaults.md`
 - [ADR-0002: Safe Local Project Initialization](../../decisions/foundation/0002-safe-project-initialization.md) — `docs/decisions/foundation/0002-safe-project-initialization.md`
-- [ADR-0020: Unified Lervo product identity](../../decisions/foundation/0020-lervo-product-identity.md) — `docs/decisions/foundation/0020-lervo-product-identity.md`

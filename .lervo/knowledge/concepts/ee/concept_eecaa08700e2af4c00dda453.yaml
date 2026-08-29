@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_eecaa08700e2af4c00dda453
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/0265-test-claim-coverage-before-minimization-v11.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_542c6a0d25785eade927007b
+title: "ADR-0265: Test claim coverage before minimization in v11"
+type: decision

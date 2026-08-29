@@ -37,15 +37,39 @@ export class ContextSelectionAccumulator {
   select(input: {
     candidate: ContextDocumentCandidate;
     reason: ContextSelectionReason;
+    documentRole?: ContextDocumentCandidate["documentRole"];
+    referenceEligible?: boolean;
     sharedContextId?: string;
     expectedContentHash?: string;
   }): void {
     this.discover(input.candidate);
     const document = this.selected.get(input.candidate.documentId) ?? {
-      candidate: input.candidate,
+      candidate: {
+        ...input.candidate,
+        documentRole: input.documentRole ?? input.candidate.documentRole,
+        referenceEligible:
+          (input.documentRole ?? input.candidate.documentRole) === "governance_context"
+            ? false
+            : (input.referenceEligible ?? input.candidate.referenceEligible),
+      },
       reasons: [],
       sharedContextIds: [],
     };
+    if (
+      input.documentRole === "governance_context" &&
+      document.candidate.documentRole !== "governance_context"
+    ) {
+      document.candidate = {
+        ...document.candidate,
+        documentRole: "governance_context",
+        referenceEligible: false,
+      };
+    } else if (
+      document.candidate.documentRole === "task_evidence" &&
+      (input.referenceEligible ?? input.candidate.referenceEligible)
+    ) {
+      document.candidate = { ...document.candidate, referenceEligible: true };
+    }
     if (
       input.expectedContentHash !== undefined &&
       document.expectedContentHash !== undefined &&
@@ -91,6 +115,8 @@ export class ContextSelectionAccumulator {
           path: document.candidate.path,
           required: true as const,
           scope: { kind: "full" as const },
+          documentRole: document.candidate.documentRole,
+          referenceEligible: document.candidate.referenceEligible,
           reasons: [...document.reasons].sort(
             (left, right) =>
               reasonOrder[left.reasonCode] - reasonOrder[right.reasonCode] ||

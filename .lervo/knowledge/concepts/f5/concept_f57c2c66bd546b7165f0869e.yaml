@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_f57c2c66bd546b7165f0869e
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/0257-observe-claude-sdk-usage-provider-shadow-v4.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_d420e5d5a06c0c98d7b29f23
+title: "ADR-0257: Observe Claude SDK usage for provider-shadow v4"
+type: decision

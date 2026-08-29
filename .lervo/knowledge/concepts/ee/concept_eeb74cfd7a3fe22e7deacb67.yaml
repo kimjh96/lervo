@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_eeb74cfd7a3fe22e7deacb67
+freshness: current
+ownership: user
+path: docs/decisions/search/0240-evaluate-catalog-assisted-retrieval-v3.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_ecf99fce276e81d3c24c4e37
+title: "ADR-0240: Evaluate catalog-assisted retrieval v3"
+type: decision

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_908483904cae69dd8c3562fd
+  - uv_6fe62d150619910f20c4b49d
 title: "ADR-0222: Bounded role-based document layout and rewrite ownership"
 type: decision

@@ -14,14 +14,14 @@ outputLanguage: en
 outputs:
   - byteCount: 1747
     contentHash: sha256:22ef07b2f4a4e80cce3c171e31ee386e896d7b625685d47bc9ddf4aceadf23ca
-    path: docs/decisions/search/0066-bounded-search-rollout-review-status.md
+    path: docs/decisions/search/rollout/0066-bounded-search-rollout-review-status.md
     userRegionHash: sha256:22ef07b2f4a4e80cce3c171e31ee386e896d7b625685d47bc9ddf4aceadf23ca
 profile: decision_record
 recordId: knormdoc_f76ff5e5e6506a66dc40c889
 resourceBindings: []
 schemaVersion: 2
 sourceContentHash: sha256:e7c7007964385e379b7dba51118fd23fff2cbfb277d7bdfc6814d37dd222ddf6
-sourcePath: docs/decisions/search/0066-bounded-search-rollout-review-status.md
+sourcePath: docs/decisions/search/rollout/0066-bounded-search-rollout-review-status.md
 sourceUnitVersionIds:
   - uv_2ac248cbbc8fc3643c29c3ad
   - uv_5f161a554e72590142dd4be9

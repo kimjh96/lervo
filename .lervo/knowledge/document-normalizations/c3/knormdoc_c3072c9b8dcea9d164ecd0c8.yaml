@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_4a53b64d3ec12556e553298c
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f72e85103d97cbeca0609923
+outputLanguage: en
+outputs:
+  - byteCount: 4574
+    contentHash: sha256:23e125b1126ece69f6feba59c555f7f90df10e963af3593af8be3747ae4b39ef
+    path: docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-v13-redundancy-diagnosis.md
+    userRegionHash: sha256:23e125b1126ece69f6feba59c555f7f90df10e963af3593af8be3747ae4b39ef
+profile: repository_document
+recordId: knormdoc_c3072c9b8dcea9d164ecd0c8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9d09260fd33ec97084522878412817f317a2247082e23ed0ae9ad3c309693b0b
+sourcePath: docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-v13-redundancy-diagnosis.md
+sourceUnitVersionIds:
+  - uv_2f0738e41e1e3c0b96e5a30f
+  - uv_3ea678f0c806580753ceb807
+  - uv_43e6cd84eed921a5f536c8bc
+  - uv_5e0a30f3d65c900a5affb41f
+  - uv_a9d0ae14f933749cbceb1b5c
+  - uv_e0cebbdecb2a651a7ca18abb

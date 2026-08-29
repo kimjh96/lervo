@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0098727449717a9a06dbb8d1
+compiler:
+  compilerBuildId: sha256:8d288d20c0d2eb5d6514d531ee951785b45f97e6528f30af3f0156dbd602ded6
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5ba6675faf9c852add4e0ef3
+outputLanguage: en
+outputs:
+  - byteCount: 4254
+    contentHash: sha256:5e63796d6439877a1bf2e4d4354c12d2f0d2fc66c09919259391dc197e21a07c
+    path: docs/decisions/search/0243-evaluate-observable-reference-markers-v5.md
+    userRegionHash: sha256:5e63796d6439877a1bf2e4d4354c12d2f0d2fc66c09919259391dc197e21a07c
+profile: decision_record
+recordId: knormdoc_bf319dc51ece7235b00a1e0e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5e63796d6439877a1bf2e4d4354c12d2f0d2fc66c09919259391dc197e21a07c
+sourcePath: docs/decisions/search/0243-evaluate-observable-reference-markers-v5.md
+sourceUnitVersionIds:
+  - uv_625544c65e934db4e48484b5
+  - uv_6b055ddba9ba086c1bf51f1c
+  - uv_8788a619a924306219574716
+  - uv_affd86ac6056a1bd5766f103
+  - uv_b608836007e07ecbafa5c475
+  - uv_d6c8f408b35043e47cf816ad

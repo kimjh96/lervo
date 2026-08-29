@@ -8,6 +8,15 @@ import type {
 export type CodexApprovalPolicy = "untrusted" | "on-request" | "never";
 export type CodexSandboxMode = "read-only" | "workspace-write" | "danger-full-access";
 
+export type CodexTransportOptions =
+  | { kind: "app_server" }
+  | {
+      kind: "responses_api_no_tools";
+      apiKey?: string;
+      model?: string;
+      fetch?: typeof globalThis.fetch;
+    };
+
 export interface CodexThreadStartOptions {
   cwd: string;
   model?: string;
@@ -28,11 +37,20 @@ export interface CodexTurn {
   turnId: string;
 }
 
+export interface CodexTurnStartOptions {
+  outputSchema?: Record<string, unknown>;
+}
+
 export interface CodexAppServerClient {
+  readonly toolBoundary?: "no_tools";
   startThread(options: CodexThreadStartOptions): Promise<CodexThread>;
   injectItems(threadId: string, items: readonly unknown[]): Promise<void>;
   listConnectedMcpServers?(threadId: string): Promise<string[]>;
-  startTurn(threadId: string, instructions: string): Promise<CodexTurn>;
+  startTurn(
+    threadId: string,
+    instructions: string,
+    options?: CodexTurnStartOptions,
+  ): Promise<CodexTurn>;
   respondFileChangeApproval(
     requestId: string | number,
     decision: "accept" | "decline",
@@ -53,10 +71,12 @@ export interface CodexManagedWriteHandler {
 export interface CodexAdapterOptions {
   repositoryRoot: string;
   model?: string;
+  transport?: CodexTransportOptions;
   approvalPolicy?: CodexApprovalPolicy;
   sandbox?: CodexSandboxMode;
   executable?: string;
   requestTimeoutMs?: number;
+  structuredOutputSchema?: Record<string, unknown>;
   clientFactory?: CodexAppServerClientFactory;
   resolveArtifact?: (uri: string) => Promise<Uint8Array>;
   now?: () => Date;

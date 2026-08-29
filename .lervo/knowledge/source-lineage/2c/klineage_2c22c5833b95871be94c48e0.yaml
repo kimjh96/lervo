@@ -1,0 +1,18 @@
+destinationHash: sha256:5bc771287279e236ce1d98c9517e3fa231858494370782c3198a5d0dbe224710
+destinationPath: docs/evidence/search/provider-shadow/codex-claude-linked-evidence-savings-history.md
+extractedRange:
+  endByte: 9225
+  startByte: 7359
+identityPath: docs/evidence/search/codex-claude-linked-evidence-measurement-report.md
+kind: document_split
+lineageId: klineage_2c22c5833b95871be94c48e0
+operationId: kdocop_4b50967a0ad1db14ce31a43c
+schemaVersion: 1
+selectedHeadingLocator: heading:Codex and Claude linked-evidence measurement report > Savings and avoided work
+sourceAfterHash: sha256:d0cb4eb8e214ce05669a8f6d9f2f657577bd71cecb62183197d5b5409387e1df
+sourceBeforeByteCount: 18982
+sourceBeforeHash: sha256:733d81581d5233fcbfa0cae63f51fafcb04a7dcab346fc4837e8726d9d0add4e
+sourceId: src_fc9dac6dbf64c676a62a1de2
+sourcePath: docs/evidence/search/codex-claude-linked-evidence-measurement-report.md
+sourceUnitBindingDigest: sha256:13f6f73fe50a55e9912dde719e940aef3baeea14aa9d20d73ad24d4376443116
+sourceUnitCount: 9

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4d89fd911563c4f38a37c6e7"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Add a default-off exact-authorized managed linked-evidence canary with provider-neutral evidence and bounded records."

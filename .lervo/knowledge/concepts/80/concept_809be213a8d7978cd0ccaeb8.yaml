@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_809be213a8d7978cd0ccaeb8
+freshness: current
+ownership: user
+path: docs/evidence/search/linked-evidence-provider-shadow-pilot-v3.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_656486a7580721a81a9fc050
+title: Paired provider-shadow pilot v3
+type: concept

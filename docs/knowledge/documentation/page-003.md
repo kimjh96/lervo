@@ -19,6 +19,7 @@
 - [ADR-0210: Local-first capability package supply chain](../../decisions/execution/orchestration/0210-local-first-capability-package-supply-chain.md) — `docs/decisions/execution/orchestration/0210-local-first-capability-package-supply-chain.md`
 - [ADR-0212: Natural-language capability lifecycle](../../decisions/execution/orchestration/0212-natural-language-capability-lifecycle.md) — `docs/decisions/execution/orchestration/0212-natural-language-capability-lifecycle.md`
 - [ADR-0222: Isolated agent workspace and integration lifecycle](../../decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md) — `docs/decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md`
+- [ADR-0251: Declare each managed write target to the provider](../../decisions/execution/orchestration/0251-declare-each-managed-write-target-to-provider.md) — `docs/decisions/execution/orchestration/0251-declare-each-managed-write-target-to-provider.md`
 - [ADR-0007: Provider-neutral context delivery and E3](../../decisions/execution/providers/0007-provider-neutral-context-delivery.md) — `docs/decisions/execution/providers/0007-provider-neutral-context-delivery.md`
 - [ADR-0009: Codex app-server managed adapter](../../decisions/execution/providers/0009-codex-app-server-managed-adapter.md) — `docs/decisions/execution/providers/0009-codex-app-server-managed-adapter.md`
 - [ADR-0010: Claude Agent SDK managed adapter](../../decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md) — `docs/decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md`
@@ -26,4 +27,3 @@
 - [ADR-0012: Provider-neutral result artifacts](../../decisions/execution/providers/0012-provider-result-artifacts.md) — `docs/decisions/execution/providers/0012-provider-result-artifacts.md`
 - [ADR-0013: Provider-neutral managed-write bridge](../../decisions/execution/providers/0013-provider-neutral-managed-write-bridge.md) — `docs/decisions/execution/providers/0013-provider-neutral-managed-write-bridge.md`
 - [ADR-0014: Managed adapter session hardening](../../decisions/execution/providers/0014-managed-adapter-session-hardening.md) — `docs/decisions/execution/providers/0014-managed-adapter-session-hardening.md`
-- [ADR-0024: Provider-neutral project verification and result artifacts](../../decisions/execution/providers/0024-provider-neutral-project-verification.md) — `docs/decisions/execution/providers/0024-provider-neutral-project-verification.md`

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_9dc66c4aa85dc27de349a0ae
+freshness: current
+ownership: user
+path: docs/decisions/search/0247-confirm-linked-evidence-reconciliation-v9.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_3f824b7dc25e94a48fa0e924
+title: "ADR-0247: Confirm linked-evidence reconciliation v9"
+type: decision

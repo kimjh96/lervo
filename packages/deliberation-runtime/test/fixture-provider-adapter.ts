@@ -90,6 +90,8 @@ export class FixtureProviderAdapter implements ProviderAdapter {
         documentId: document.documentId,
         contentHash: document.contentHash,
         scope: document.scope,
+        documentRole: document.documentRole,
+        referenceEligible: document.referenceEligible,
         status: "injected" as const,
       })),
       acceptedAt: envelope.createdAt,

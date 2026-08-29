@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_715745634f7e2f1655d57113
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9fccea013f45b441df6e97a0
+outputLanguage: en
+outputs:
+  - byteCount: 6479
+    contentHash: sha256:3d7d9e7a33d2745734f8b8accc1323183f509518f7648e8e7e0221f858e53266
+    path: docs/decisions/search/activation/provider-shadow-structured/0277-stage-managed-context-relational-canary.md
+    userRegionHash: sha256:3d7d9e7a33d2745734f8b8accc1323183f509518f7648e8e7e0221f858e53266
+profile: decision_record
+recordId: knormdoc_8d09807891711df8a072018f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b665aab4f14b2cb43dd48c8291f7db2e9b962eb68b75d96afb4e8d80117f42b9
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0277-stage-managed-context-relational-canary.md
+sourceUnitVersionIds:
+  - uv_396a43d42c6332a4d658cf40
+  - uv_59218b4eee9e528217e53f13
+  - uv_5cf6749b023ba064c13533f1
+  - uv_b60bb9124dd3f4b9db059ce3
+  - uv_ce13d3190cc3fa52ddf2405c
+  - uv_e287a68502b83e04bd584fa4
+  - uv_e291065f856c04565dc72be0

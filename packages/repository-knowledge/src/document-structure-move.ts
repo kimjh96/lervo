@@ -5,12 +5,15 @@ import { dirname, relative, resolve, sep } from "node:path";
 import { parse } from "yaml";
 
 import { canonicalJson, sha256, stableId } from "./integrity.js";
+import { normalizationRecordMoveOperations } from "./document-normalization-record-move.js";
 import {
   applyDurableKnowledgeOperations,
   type DurableKnowledgeMoveOperation,
+  type DurableKnowledgeUserFileOperation,
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
+import { inspectRepositoryDocumentRewriters } from "./document-rewriter-adapters.js";
 import {
   createKnowledgeMigrationPlanForScan,
   recordedGeneratedKnowledgePaths,
@@ -23,6 +26,7 @@ import {
 } from "./scanner.js";
 import { createDocumentMoveLineage, normalizeKnowledgeDocumentPath } from "./source-lineage.js";
 import { loadStoredConcepts } from "./store-reader.js";
+import { projectRepositoryPrettierRewrite } from "./prettier-rewriter-adapter.js";
 import {
   RepositoryKnowledgeError,
   type KnowledgeFileOperation,
@@ -55,7 +59,10 @@ export interface KnowledgeDocumentMovePlan {
   updatedConceptIds: string[];
   deprecatedConceptIds: string[];
   lineageId: string;
-  operations: Array<KnowledgeFileOperation | DurableKnowledgeMoveOperation>;
+  relocatedNormalizationRecords: string[];
+  operations: Array<
+    KnowledgeFileOperation | DurableKnowledgeMoveOperation | DurableKnowledgeUserFileOperation
+  >;
 }
 
 export interface KnowledgeDocumentMoveReceipt {
@@ -72,6 +79,7 @@ export interface KnowledgeDocumentMoveReceipt {
   toPathDigest: string;
   preservedConceptIds: string[];
   lineageId: string;
+  relocatedNormalizationRecords: string[];
   updatedKnowledgeFiles: string[];
   appliedAt: string;
 }
@@ -141,7 +149,11 @@ export function serializableKnowledgeDocumentMovePlan(plan: KnowledgeDocumentMov
   KnowledgeDocumentMovePlan,
   "operations"
 > & {
-  operations: Array<Omit<KnowledgeFileOperation, "content"> | DurableKnowledgeMoveOperation>;
+  operations: Array<
+    | Omit<KnowledgeFileOperation, "content">
+    | Omit<DurableKnowledgeUserFileOperation, "content">
+    | DurableKnowledgeMoveOperation
+  >;
 } {
   return {
     ...plan,
@@ -283,9 +295,38 @@ export async function createKnowledgeDocumentMovePlan(input: {
     action: "move",
     expectedCurrentHash: source.contentHash,
   };
-  const operations: Array<KnowledgeFileOperation | DurableKnowledgeMoveOperation> = [
+  const normalizationRecords = await normalizationRecordMoveOperations(root, fromPath, toPath);
+  const rewriters = await inspectRepositoryDocumentRewriters({ repositoryRoot: root });
+  const prettier = await projectRepositoryPrettierRewrite({
+    repositoryRoot: root,
+    ownedPaths: rewriters.ownership.map((item) => (item.path === fromPath ? toPath : item.path)),
+    supplementalDocumentPaths: virtualScan.sources.flatMap((item) =>
+      item.status === "included" && /\.mdx?$/iu.test(item.path) ? [item.path] : [],
+    ),
+  });
+  const prettierOperations: DurableKnowledgeUserFileOperation[] =
+    (prettier.beforeContent ?? "") === prettier.afterContent
+      ? []
+      : [
+          {
+            path: ".prettierignore",
+            action: prettier.beforeContent === null ? "create" : "update",
+            ownership: "user",
+            mediaType: "text/plain",
+            content: prettier.afterContent,
+            ...(prettier.beforeContent === null
+              ? {}
+              : { expectedCurrentHash: sha256(prettier.beforeContent) }),
+            desiredHash: sha256(prettier.afterContent),
+          },
+        ];
+  const operations: Array<
+    KnowledgeFileOperation | DurableKnowledgeMoveOperation | DurableKnowledgeUserFileOperation
+  > = [
     ...structural.operations,
     lineageOperation,
+    ...normalizationRecords.operations,
+    ...prettierOperations,
     moveOperation,
   ];
   const registryMaterials = await Promise.all(
@@ -380,6 +421,7 @@ export async function createKnowledgeDocumentMovePlan(input: {
     updatedConceptIds,
     deprecatedConceptIds,
     lineageId: lineage.value.lineageId,
+    relocatedNormalizationRecords: normalizationRecords.paths,
     operations,
   };
   await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations });
@@ -434,6 +476,7 @@ export async function applyKnowledgeDocumentMovePlan(input: {
     toPathDigest: sha256(current.document.toPath),
     preservedConceptIds: current.preservedConceptIds,
     lineageId: current.lineageId,
+    relocatedNormalizationRecords: current.relocatedNormalizationRecords,
     updatedKnowledgeFiles: current.operations
       .filter((item) => item.action === "create" || item.action === "update")
       .map((item) => item.path),

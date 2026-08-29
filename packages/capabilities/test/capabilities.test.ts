@@ -178,6 +178,33 @@ it("migrates a loose project skill and recommends it from declared natural-langu
   ]);
 });
 
+it("bounds a long portable skill description independently for discovery intent", async () => {
+  const repositoryRoot = await root();
+  const skillRoot = resolve(repositoryRoot, ".agents/skills/checkup");
+  await mkdir(skillRoot, { recursive: true });
+  const description =
+    "Check the project status — measure the live box and, if a milestone has been reached, do that work immediately. Use this skill when the user asks anything of the kind 현황, 얼마나 됐나, 진행 상황, 이상 무, 확인해줘 (status, how far along, progress, all clear, check for me).";
+  expect([...description].length).toBeGreaterThan(200);
+  await writeFile(
+    resolve(skillRoot, "SKILL.md"),
+    `---\nname: checkup\ndescription: ${description}\n---\n# Checkup\nMeasure current status.\n`,
+  );
+
+  const plan = await createCapabilityMigrationPlan(repositoryRoot);
+  expect(plan).toMatchObject({
+    status: "ready",
+    items: [{ capabilityId: "checkup", action: "create" }],
+  });
+  await applyCapabilityMigration(plan);
+  const installed = await readCapabilityPackage(
+    resolve(capabilityRoot(repositoryRoot, "project"), "checkup@1.0.0"),
+  );
+  expect(installed.manifest.discovery).toMatchObject({
+    summary: description,
+    intents: [[...description].slice(0, 200).join("")],
+  });
+});
+
 it("rejects conventional secret material before installation or publication", async () => {
   const source = await packageAt(resolve(await root(), "package"));
   await writeFile(resolve(source, ".env"), "TOKEN=do-not-publish\n");

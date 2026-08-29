@@ -19,6 +19,8 @@ function registryCandidates(registry: DocumentRegistry): Map<string, ContextDocu
       path: document.path,
       connectedPaths: document.connectedPaths,
       source: "registry" as const,
+      documentRole: "task_evidence" as const,
+      referenceEligible: true,
     });
   }
   return candidates;
@@ -40,14 +42,18 @@ export async function discoverInstructionDocuments(input: {
   for (const path of instructionPathsFor(input.expectedPaths)) {
     if (!(await repositoryFileExists(input.repositoryRoot, path))) continue;
     const registered = candidates.get(path);
-    discovered.push(
-      registered ?? {
+    discovered.push({
+      ...(registered ?? {
         documentId: documentIdForPath(path),
         path,
         connectedPaths: [],
         source: "instruction",
-      },
-    );
+        documentRole: "governance_context",
+        referenceEligible: false,
+      }),
+      documentRole: "governance_context",
+      referenceEligible: false,
+    });
   }
   return discovered;
 }

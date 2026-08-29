@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0cb2d2f275d70f45a5895547
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9b3cf1bbf0439e2a6e3874e1
+outputLanguage: en
+outputs:
+  - byteCount: 4080
+    contentHash: sha256:a087e2c2015bcc5196bc00b5fe62815984d47a54841381972265a85c3a1ec356
+    path: docs/decisions/search/activation/0264-measure-only-unambiguous-provider-shadow-cases-v10.md
+    userRegionHash: sha256:a087e2c2015bcc5196bc00b5fe62815984d47a54841381972265a85c3a1ec356
+profile: decision_record
+recordId: knormdoc_f4e3d6773a012d5239e2e4fb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:98f86c6f1c3e1ffe554059358349e2626a85e590652173f7f659b06d99da9061
+sourcePath: docs/decisions/search/activation/0264-measure-only-unambiguous-provider-shadow-cases-v10.md
+sourceUnitVersionIds:
+  - uv_1022e9dbb8ace58abc8644f0
+  - uv_6bcb21b43dc415e156a1b324
+  - uv_9b35a91e02d5d40d196ff91a
+  - uv_b7d3a9aee6e30880a1eb9b53
+  - uv_d25911ff40e58dc4c07ce3ac
+  - uv_d6486d81b0ecd8d9cdd94117

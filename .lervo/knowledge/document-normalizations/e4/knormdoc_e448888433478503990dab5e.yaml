@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_773bd8ff32ff72d6398f1d75
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_22171ce3783db4dba8dabf39
+outputLanguage: en
+outputs:
+  - byteCount: 3547
+    contentHash: sha256:47cdea09b54e4f5abe95828b14694def26259ec0150666ac52e0eab3304e7ffc
+    path: docs/decisions/search/activation/provider-shadow-structured/0293-type-task-evidence-and-governance-context.md
+    userRegionHash: sha256:47cdea09b54e4f5abe95828b14694def26259ec0150666ac52e0eab3304e7ffc
+profile: decision_record
+recordId: knormdoc_e448888433478503990dab5e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b4ffc78f34b2ac6b6dd825712fbca8666be149dc88824bc71481259c970f3d3a
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0293-type-task-evidence-and-governance-context.md
+sourceUnitVersionIds:
+  - uv_67e1ebd54da13939690b66ea
+  - uv_82302ff3dd46ae67c5ff9e37
+  - uv_8793634074152514d652c23d
+  - uv_c4f687b33162273b00b1fc29
+  - uv_caf9eed8cfed958f08bfb8f5
+  - uv_d133e28821e817eee1f319fb

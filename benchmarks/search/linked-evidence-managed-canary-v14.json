@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 1,
+  "checkpointId": "linked-evidence-managed-canary-v14-typed-execution-20260829",
+  "decisionId": "ADR-0295",
+  "decisionPath": "docs/decisions/search/activation/provider-shadow-structured/typed-context/0295-authorize-typed-context-managed-canary-v14.md",
+  "authorization": {
+    "status": "prepared_for_review",
+    "providerCallsAuthorized": false,
+    "managedContextEffectsAuthorized": false,
+    "productionActivationAuthorized": false,
+    "operatorAuthority": "explicit_user_approval_after_exact_v13_manifest_review"
+  },
+  "preparationPredecessor": {
+    "checkpointId": "linked-evidence-managed-canary-v13-typed-context-20260829",
+    "contractDigest": "sha256:123bf12f49794c45e4e8d14235b2497ea55a94a4a968bbc7f842c91ce8798fd3",
+    "preparedManifestDigest": "sha256:37383ba8a8eff8fd327627e392336371fbe2cedffb5a7665c401aa2e9083b3d7",
+    "sourceHead": "46b36f1a192c3f6e19baa4da5d803900a2a84279",
+    "workingTreeStatusDigest": "sha256:fac9533aed245bdb0b6e6d7ef61aa6fd318ea882fb3a7d8f0ebdc3ad1dfef8fa",
+    "builtCliDigest": "sha256:4272f68bbcf3f6ea557401d0e415f7ed8c17e1045dde5123232d58c2458adc6e",
+    "taskRunCount": 16,
+    "providerCalls": 0,
+    "executionAuthorized": false,
+    "managedContextEffectsAuthorized": false
+  },
+  "measurementPredecessor": {
+    "checkpointId": "linked-evidence-managed-canary-v12-native-session-20260829",
+    "preparedManifestDigest": "sha256:428bb356f2a51d5c2321af454ad451310fd6c6e1e35769fa34c6f4cbd26b35b0",
+    "observationSetDigest": "sha256:5d746c18c28182a71e22234d16eeff936b49b63e3cb32bbe93389e377812be9c",
+    "completedRuns": 16,
+    "technicalFailures": 0,
+    "providerCalls": 16,
+    "selectionCalls": 0,
+    "promptOnlyConstraintRejected": true,
+    "rolledBack": true,
+    "activationBlocked": true,
+    "resume": false,
+    "retry": false,
+    "repair": false,
+    "replacementRuns": false
+  },
+  "terminalPredecessor": {
+    "checkpointId": "linked-evidence-managed-canary-v1-prepared-20260829",
+    "preparedManifestDigest": "sha256:79e872f22eb072e0e75e8292ccff386f683b8979b61a016f49128e5cb60c6182",
+    "failureRecordId": "lcanary_0c3d6b1574a0807612597531",
+    "failureRecordFileDigest": "sha256:19f96b1359ce5976fa03be50e824682274fd126d1828a950505243c52218b60a",
+    "terminallyStopped": true,
+    "resume": false,
+    "retry": false,
+    "repair": false,
+    "replacementRuns": false
+  },
+  "predecessor": {
+    "policyId": "linked-evidence-managed-canary-v1",
+    "enabledByDefault": false,
+    "operationalSearchEngine": "lexical-v1",
+    "disposition": "restore_default_off_after_each_failure",
+    "resume": false,
+    "retry": false,
+    "replacementRuns": false
+  },
+  "sourcePopulation": {
+    "populationKind": "isolated_registered_phase_a_corpus",
+    "phaseAPilotId": "linked-evidence-shadow-phase-a-registered-v8-corrected-target-v3-20260828",
+    "phaseAManifestDigest": "sha256:a6f113f7999d5e52c50016faa269e71bf048c08642735fa06dd80ff05d8897c7",
+    "sourceProviderShadowPilotId": "linked-evidence-provider-shadow-v18-relational-coverage-confirmation-20260829",
+    "sourceProviderShadowManifestDigest": "sha256:a00d3772f9b40ae23a7a30787eb0c2b149d19387a986307f1b91aa5655a73ff3",
+    "sourceSuitePath": "benchmarks/search/linked-evidence-reconciliation-v8.json",
+    "sourceSuiteDigest": "sha256:28775d1126269ce42c961d15c3b7cd8deb5affe6f7e730678f223c0b6dfd2f20",
+    "sourceCorpusDigest": "sha256:b14fcad0ca434b582c718b6db8d730261fb985e0a9fb8ff7fa4adf212af5ef2b",
+    "registeredDocumentCount": 286,
+    "selectedCaseIds": [
+      "drv8case_implementation_release",
+      "drv8case_terse_release",
+      "drv8case_rationale_hybrid_search",
+      "drv8case_boundary_fuzzy_merge"
+    ],
+    "selectedRepetitions": [1, 2],
+    "sourceTaskCount": 8,
+    "taskRunCount": 16,
+    "pairing": "same_source_task_once_per_provider",
+    "ordering": "v18_alternate_starting_provider_by_source_task"
+  },
+  "selection": {
+    "kind": "deterministic_all_current_linked_candidates_v1",
+    "policyId": "managed-linked-evidence-all-candidates-v1",
+    "policyDigest": "sha256:8063ff4d0c1825b3abe35f81a53f245b988b8c6ea1e0cdacf2a690bbea76cb18",
+    "rule": "select_all_current_managed_linked_candidates_in_projection_order",
+    "evidenceBinding": "exact_current_source_snapshot_projection_candidate_versions_and_order",
+    "maximumRecommendations": 3,
+    "maximumCandidates": 8,
+    "maximumProviderVisibleSourceBytes": 117813,
+    "minimumSelectionsPerRun": 1,
+    "maximumSelectionCallsPerRun": 0,
+    "maximumRetries": 0,
+    "maximumRepairTurns": 0,
+    "maximumFallbackCalls": 0
+  },
+  "runtime": {
+    "deterministicSelectionModule": "apps/cli/src/managed-linked-evidence-deterministic-selection.ts",
+    "selectionAdapterCreationsPerRun": 0,
+    "canaryRecordSchemaVersion": 2,
+    "legacyRecordSchemaVersionPreserved": 1,
+    "deterministicSelectionAdapterReceipt": null,
+    "deterministicSelectionUsage": null,
+    "taskAdapterCreationAfterExactSelectionValidation": true,
+    "manifestBoundClockEarlierThanRuntime": true,
+    "linkedEvidenceSelectionsForwardedThroughPrepareContext": true,
+    "documentRoleContract": {
+      "id": "managed-context-document-role-v1",
+      "taskEvidenceRole": "task_evidence",
+      "governanceContextRole": "governance_context",
+      "taskEvidenceToken": "exact_lervo_e4_document_id_content_hash",
+      "governanceEvidenceToken": null,
+      "governanceWinsDualClassification": true,
+      "receiptRoleMatchRequired": true
+    },
+    "executionContract": {
+      "authorizationBinding": "exact_prepared_manifest_digest",
+      "attemptPersistence": "before_provider_call",
+      "terminalObservationPersistence": "after_provider_terminal",
+      "sourceBuildRevalidation": "before_every_task",
+      "technicalFailureDisposition": "persist_bounded_failure_and_stop_without_retry",
+      "maximumConcurrentCalls": 1
+    },
+    "typedBoundarySources": [
+      {
+        "path": "packages/schemas/src/adapter.ts",
+        "digest": "sha256:34eb134ec4cec05e2faa884353dd27d2e39a7c1ade3031849ac91d2341aaaabb"
+      },
+      {
+        "path": "packages/adapter-contract/src/context-reference.ts",
+        "digest": "sha256:5ccd1a0ba33ef587df35174a4792069cc5ebec81576d5889df565e7749ed4f3b"
+      },
+      {
+        "path": "packages/adapter-claude/test/provider-parity.test.ts",
+        "digest": "sha256:dcc716c85ea989ea0344af25040b4c13d5c617b95388ae8ce26b3c5ea371b6e4"
+      }
+    ],
+    "executionBoundarySources": [
+      {
+        "path": "scripts/natural-language-evaluation/linked-evidence-managed-canary-checkpoint-contract.mjs",
+        "digest": "sha256:6d3625d2f897124fda9ff51bc9a9fe7291f5b256d0f585181e329c38dd254847"
+      },
+      {
+        "path": "scripts/natural-language-evaluation/linked-evidence-managed-canary-recent-checkpoints.mjs",
+        "digest": "sha256:d153279f6d171213371df8c85731898070f6f3be0b7031f5cef59512c2d3d226"
+      },
+      {
+        "path": "scripts/natural-language-evaluation/linked-evidence-managed-canary-checkpoint-preparation.mjs",
+        "digest": "sha256:d56d87d5292c9c847ce120ce1bbfaa28b5c5cccc244b419306223d52616100ca"
+      },
+      {
+        "path": "scripts/natural-language-evaluation/linked-evidence-managed-canary-v5-execution.mjs",
+        "digest": "sha256:2363e6080ee92972ce9a2729aa1268d768236a446cd8583068b322c8df8e4635"
+      },
+      {
+        "path": "scripts/natural-language-evaluation/linked-evidence-managed-canary-native-task.mjs",
+        "digest": "sha256:7a11d10196035d93d69c3c5a82770bf1598354d9ebf320ec6a84ea9881cbb6b3"
+      },
+      {
+        "path": "scripts/run-linked-evidence-managed-canary-v14.mjs",
+        "digest": "sha256:1bdf2dcfd4ba15812ebf5944a28869099cab813fd2c6dfbaa140979c9c543712"
+      }
+    ],
+    "providerNeutralReferenceInstructionDigest": "sha256:8609da28861542c1542373a9eafb20f77a2a18c51c3f9f92bb2a950c02e41227",
+    "referenceObservationPolicy": "record_exact_current_tokens_from_raw_provider_output_without_ground_truth_filtering"
+  },
+  "task": {
+    "executionMode": "read_only",
+    "risk": "low",
+    "roleId": "canary-researcher",
+    "expectedPathBinding": "first_reviewed_expected_document",
+    "verificationPolicy": "repository_status_digest_unchanged",
+    "writesAuthorized": false,
+    "externalMessagesAuthorized": false,
+    "hubEffectsAuthorized": false,
+    "directTerminalEffectsAuthorized": false
+  },
+  "providers": {
+    "arms": [
+      {
+        "provider": "codex",
+        "model": "gpt-5.6-sol",
+        "taskTransport": "provider_native_signed_in_session",
+        "taskRuns": 8,
+        "maximumSelectionCalls": 0,
+        "maximumTaskCalls": 8
+      },
+      {
+        "provider": "claude",
+        "model": "opus",
+        "taskTransport": "provider_native_signed_in_session",
+        "taskRuns": 8,
+        "maximumSelectionCalls": 0,
+        "maximumTaskCalls": 8
+      }
+    ],
+    "maximumTaskRuns": 16,
+    "maximumSelectionCalls": 0,
+    "maximumTaskCalls": 16,
+    "maximumProviderCalls": 16
+  },
+  "credentials": {
+    "userApiKeysRequired": false,
+    "codex": "reuse_native_chatgpt_or_codex_session",
+    "claude": "reuse_native_claude_session",
+    "optionalByokSelectionTransportInPrimaryPath": false
+  },
+  "preparation": {
+    "observedAtStart": "2026-08-29T14:40:00.000Z",
+    "manifestPreparedAt": "2026-08-29T14:45:00.000Z",
+    "sourceRevisionBinding": "root_head_working_tree_status_and_built_cli_digest",
+    "workstreamId": "wks_715d83744a212f47e5c6555c",
+    "workstreamRevision": 244,
+    "workstreamTitle": "Authorize and execute typed managed canary",
+    "providerCalls": 0,
+    "executionAuthorized": false
+  },
+  "acceptance": {
+    "requiredCompletedRuns": 16,
+    "maximumAllowlistedFailures": 0,
+    "maximumPrivacyViolations": 0,
+    "exactReplayRequired": true,
+    "identicalNonContextPrimaryInputsRequired": true,
+    "completeE1E4EvidenceRequired": true,
+    "requiredSourceRecall": 1,
+    "minimumPerRunReferencePrecision": 0.5,
+    "minimumMeanReferencePrecisionPerProvider": 0.65,
+    "independentExpectedClaimReviewRequired": true
+  },
+  "retention": {
+    "root": ".lervo/state/search/linked-evidence-managed-canary-pilots",
+    "classification": "owner_only_deletable_derived_state",
+    "maximumPilots": 14,
+    "maximumPreparedManifests": 1
+  },
+  "passingDisposition": "eligible_for_separate_default_off_activation_decision_only",
+  "failingDisposition": "preserve_evidence_and_restore_default_off_without_retry"
+}

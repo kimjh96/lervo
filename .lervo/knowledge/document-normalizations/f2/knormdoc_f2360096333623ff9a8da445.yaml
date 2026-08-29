@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_90742a9e45ad705241d15e49
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_84311b0bf4525d5cb8d21517
+outputLanguage: en
+outputs:
+  - byteCount: 5347
+    contentHash: sha256:2ad1e8bb0cd90486b7dfe46ee1400c8b66abfd9ef18a9a833989227143c421ab
+    path: docs/decisions/search/activation/provider-shadow-structured/0282-remove-api-key-requirement-from-managed-context-canary.md
+    userRegionHash: sha256:2ad1e8bb0cd90486b7dfe46ee1400c8b66abfd9ef18a9a833989227143c421ab
+profile: decision_record
+recordId: knormdoc_f2360096333623ff9a8da445
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3e9025c418137bc9c16b89017d0fe1bcf7f4ddc76a8d75cb0ee4aa38997df3b8
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0282-remove-api-key-requirement-from-managed-context-canary.md
+sourceUnitVersionIds:
+  - uv_31a140b4f2b8a9e36c6a7130
+  - uv_6285a78558b70e982079cd2f
+  - uv_789849adb993d83c75631d96
+  - uv_79be63303484bd3e98e109ea
+  - uv_a69b72274e48da5108cd87ce
+  - uv_acdaea1c516f0eaabe10feed
+  - uv_e6068ac8d7916038724672eb

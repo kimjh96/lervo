@@ -1,0 +1,11 @@
+fromPath: docs/decisions/search/activation/0272-remove-unsupported-structured-selection-unique-items.md
+identityPath: docs/decisions/search/activation/0272-remove-unsupported-structured-selection-unique-items.md
+kind: document_move
+lineageId: klineage_e5dae3c8a834f0c4d1a2df82
+operationId: kdocop_fac201698c839262efdbc9f0
+schemaVersion: 1
+sourceContentHash: sha256:f275791556908096c5066e4046f56f8f24a8330ea7733659b802a65993f7a25d
+sourceId: src_ead8eb164c77535417d6417a
+sourceUnitBindingDigest: sha256:f1c601e087624a0abcbff5913e7a432f28ea1c8772f6de21500b3c22b7fb8629
+sourceUnitCount: 7
+toPath: docs/decisions/search/activation/provider-shadow-structured/0272-remove-unsupported-structured-selection-unique-items.md

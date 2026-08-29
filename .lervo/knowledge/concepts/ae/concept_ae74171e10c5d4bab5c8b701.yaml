@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_ae74171e10c5d4bab5c8b701
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/0291-constrain-provider-neutral-e4-references-for-managed-canary-v12.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_a634a0cdc356ba53d987fe48
+title: "ADR-0291: Constrain provider-neutral E4 references for managed canary v12"
+type: decision

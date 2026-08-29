@@ -1,6 +1,7 @@
-import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { afterEach, describe, expect, it } from "vitest";
@@ -17,6 +18,7 @@ import {
   recoverKnowledgeMaterialization,
   shardedKnowledgeArtifactPath,
 } from "../src/index.js";
+import { projectRepositoryPrettierRewrite } from "../src/prettier-rewriter-adapter.js";
 
 const roots: string[] = [];
 
@@ -47,6 +49,58 @@ afterEach(async () => {
 });
 
 describe("user document structure move", () => {
+  it("moves exact rewrite ownership to the destination in the same plan", async () => {
+    const { root, sourcePath, bytes } = await repository();
+    const destinationPath = "notes/current-note.md";
+    const contentHash = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+    const recordId = "knormdoc_aaaaaaaaaaaaaaaaaaaaaaaa";
+    const recordPath = shardedKnowledgeArtifactPath(
+      ".lervo/knowledge/document-normalizations",
+      recordId,
+      "yaml",
+    );
+    await mkdir(dirname(resolve(root, recordPath)), { recursive: true });
+    await writeFile(
+      resolve(root, recordPath),
+      [
+        "byteOwnership:",
+        "  owner: reviewer",
+        "  rewritePolicy: reviewed_exact",
+        "formatVersion: lervo.document.v1",
+        "outputLanguage: en",
+        "outputs:",
+        `  - contentHash: ${contentHash}`,
+        `    path: ${sourcePath}`,
+        "resourceBindings: []",
+        `recordId: ${recordId}`,
+        "schemaVersion: 2",
+        `sourcePath: ${sourcePath}`,
+        "",
+      ].join("\n"),
+    );
+    const currentRewrite = await projectRepositoryPrettierRewrite({
+      repositoryRoot: root,
+      ownedPaths: [sourcePath],
+    });
+    await writeFile(resolve(root, ".prettierignore"), currentRewrite.afterContent);
+
+    const plan = await createKnowledgeDocumentMovePlan({
+      repositoryRoot: root,
+      fromPath: sourcePath,
+      toPath: destinationPath,
+    });
+    const prettierOperation = plan.operations.find(
+      (item) => item.action === "update" && item.path === ".prettierignore",
+    );
+
+    expect(prettierOperation).toHaveProperty("content");
+    if (prettierOperation === undefined || !("content" in prettierOperation)) {
+      throw new TypeError("The document move did not project exact rewrite ownership.");
+    }
+    expect(prettierOperation?.content).toContain(destinationPath);
+    expect(prettierOperation?.content).not.toContain(`${sourcePath}\n`);
+  });
+
   it("moves exact bytes while preserving concept and source-unit identity", async () => {
     const { root, sourcePath, bytes } = await repository();
     const destinationPath = "notes/current-note.md";

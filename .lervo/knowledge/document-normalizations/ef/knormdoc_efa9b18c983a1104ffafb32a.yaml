@@ -14,14 +14,14 @@ outputLanguage: en
 outputs:
   - byteCount: 1697
     contentHash: sha256:024307bfbe66d590feae5a44be6452ef858846f54e6ce9e1210681a485e5edca
-    path: docs/decisions/search/0070-read-only-search-rollout-action-preflight.md
+    path: docs/decisions/search/rollout/0070-read-only-search-rollout-action-preflight.md
     userRegionHash: sha256:024307bfbe66d590feae5a44be6452ef858846f54e6ce9e1210681a485e5edca
 profile: decision_record
 recordId: knormdoc_efa9b18c983a1104ffafb32a
 resourceBindings: []
 schemaVersion: 2
 sourceContentHash: sha256:b8dc7052d3e31158de8971853b7178f537e583354fade78ec041aa2350610e70
-sourcePath: docs/decisions/search/0070-read-only-search-rollout-action-preflight.md
+sourcePath: docs/decisions/search/rollout/0070-read-only-search-rollout-action-preflight.md
 sourceUnitVersionIds:
   - uv_1b8a1131ea5e2e9a595d4e44
   - uv_4d2e08c4d9bb76603f356c8b

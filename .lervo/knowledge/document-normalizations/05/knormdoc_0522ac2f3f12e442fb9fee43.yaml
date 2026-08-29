@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_773bd8ff32ff72d6398f1d75
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3bed70c7adfa90955621b499
+outputLanguage: en
+outputs:
+  - byteCount: 3958
+    contentHash: sha256:a2ee78ceac1b56b06db32fa2f825f601a41630c9054aa87566b3d848053caab7
+    path: docs/roadmap/natural-language-grounding-quality/evaluation-history/phase-a-delivery.md
+    userRegionHash: sha256:a2ee78ceac1b56b06db32fa2f825f601a41630c9054aa87566b3d848053caab7
+profile: roadmap_document
+recordId: knormdoc_0522ac2f3f12e442fb9fee43
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e235ef74655f23b4023ebc37990b03c5e86ede6e713b771ed225393e4dceed3b
+sourcePath: docs/roadmap/natural-language-grounding-quality/evaluation-history/phase-a-delivery.md
+sourceUnitVersionIds:
+  - uv_d99ccaf046aae98fa2a5c599

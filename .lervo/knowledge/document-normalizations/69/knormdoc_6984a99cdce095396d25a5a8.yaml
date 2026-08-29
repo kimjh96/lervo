@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_17ad1d946824178b3134e7df
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c1e9cca79aabc4d48088e3e4
+outputLanguage: en
+outputs:
+  - byteCount: 3985
+    contentHash: sha256:a436f59a919471d61e978e14323385b55f5bf6156200a730ab2ef8a92143133f
+    path: docs/decisions/search/activation/provider-shadow-structured/typed-context/0295-authorize-typed-context-managed-canary-v14.md
+    userRegionHash: sha256:a436f59a919471d61e978e14323385b55f5bf6156200a730ab2ef8a92143133f
+profile: decision_record
+recordId: knormdoc_6984a99cdce095396d25a5a8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:998af7d653d742e5d134d16f48d185f0c4a67738719c8b1a22f7b2a82fe0fea2
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/typed-context/0295-authorize-typed-context-managed-canary-v14.md
+sourceUnitVersionIds:
+  - uv_0e4a1cb4a44b93e723ebf940
+  - uv_2e39ddb8c8ae4c8a094c96f4
+  - uv_2f1cc436499a7684b91ff63a
+  - uv_4ec8e2d3939ee9c71dcce64e
+  - uv_92a93dfbcc061e84a6b00292
+  - uv_c0b335aabcc73ad0cb506505
+  - uv_cfc8f3275ca23649816eef76

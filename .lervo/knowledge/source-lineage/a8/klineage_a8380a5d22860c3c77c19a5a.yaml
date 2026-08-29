@@ -1,0 +1,18 @@
+destinationHash: sha256:f83650b0a8e330d75cd3d646c12adb1d0c6129f4c91e3aadeecde732448fe7fa
+destinationPath: docs/evidence/search/provider-shadow/codex-claude-linked-evidence-outcome-history.md
+extractedRange:
+  endByte: 13199
+  startByte: 7359
+identityPath: docs/evidence/search/codex-claude-linked-evidence-measurement-report.md
+kind: document_split
+lineageId: klineage_a8380a5d22860c3c77c19a5a
+operationId: kdocop_81dad03813da0657eb221553
+schemaVersion: 1
+selectedHeadingLocator: heading:Codex and Claude linked-evidence measurement report > Outcome and remaining work
+sourceAfterHash: sha256:e9bb5c5e7a337c93d8759a06a982d5bee249f266231552a2f07e518e2db5990f
+sourceBeforeByteCount: 17116
+sourceBeforeHash: sha256:d0cb4eb8e214ce05669a8f6d9f2f657577bd71cecb62183197d5b5409387e1df
+sourceId: src_fc9dac6dbf64c676a62a1de2
+sourcePath: docs/evidence/search/codex-claude-linked-evidence-measurement-report.md
+sourceUnitBindingDigest: sha256:e160a119068bf49d833cd8fa048e3fd776eea9a80babee927ef540ac23bc9e7c
+sourceUnitCount: 8

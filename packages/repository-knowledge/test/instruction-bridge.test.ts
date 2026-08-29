@@ -1,4 +1,4 @@
-import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -121,6 +121,54 @@ describe("provider instruction bridge", () => {
       "claude_agents_import_v1",
     );
     expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
+    const current = await createKnowledgeInstructionBridgePlan({
+      repositoryRoot: root,
+      provider: "claude",
+    });
+    expect(current.status).toBe("current");
+    expect(current.operations.every((item) => item.action === "unchanged")).toBe(true);
+  });
+
+  it("does not regenerate canonical bridge outputs after a Claude hook updates local metrics", async () => {
+    const root = await repository({ migrate: true });
+    const bridge = await createKnowledgeInstructionBridgePlan({
+      repositoryRoot: root,
+      provider: "claude",
+    });
+    await applyKnowledgeInstructionBridgePlan({
+      plan: bridge,
+      approvedOperationId: bridge.operationId,
+      approvedHash: bridge.approvalHash,
+      now: new Date("2026-08-23T00:02:00.000Z"),
+      recordApplied: () => undefined,
+    });
+
+    await mkdir(resolve(root, ".claude/metrics"), { recursive: true });
+    await writeFile(
+      resolve(root, ".claude/metrics/commit_rules.jsonl"),
+      '{"event":"commit-hook"}\n',
+    );
+
+    const localRefresh = await createKnowledgeInstructionBridgePlan({
+      repositoryRoot: root,
+      provider: "claude",
+    });
+    expect(
+      localRefresh.operations
+        .filter((item) => item.action !== "unchanged")
+        .map((item) => ({ path: item.path, action: item.action })),
+    ).toEqual([
+      { path: ".lervo/state/knowledge/current/impact.json", action: "update" },
+      { path: ".lervo/state/knowledge/current/inventory.json", action: "update" },
+      { path: ".lervo/state/knowledge/current/source-units.json", action: "update" },
+    ]);
+    expect(localRefresh.status).toBe("ready");
+    await applyKnowledgeInstructionBridgePlan({
+      plan: localRefresh,
+      now: new Date("2026-08-23T00:03:00.000Z"),
+      recordApplied: () => undefined,
+    });
+
     const current = await createKnowledgeInstructionBridgePlan({
       repositoryRoot: root,
       provider: "claude",

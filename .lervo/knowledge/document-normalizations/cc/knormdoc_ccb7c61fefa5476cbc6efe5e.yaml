@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_29403852026d6666cef1f6ed
+compiler:
+  compilerBuildId: sha256:8d288d20c0d2eb5d6514d531ee951785b45f97e6528f30af3f0156dbd602ded6
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_148fcfe29a5e26d16cd2e6ca
+outputLanguage: en
+outputs:
+  - byteCount: 4704
+    contentHash: sha256:1204de041596bf6f066d6e1c83373c35c1d69ca0a238ac0b21f266b4492048b9
+    path: docs/decisions/search/0241-evaluate-deterministic-core-term-coverage-v4.md
+    userRegionHash: sha256:1204de041596bf6f066d6e1c83373c35c1d69ca0a238ac0b21f266b4492048b9
+profile: decision_record
+recordId: knormdoc_ccb7c61fefa5476cbc6efe5e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ed679cc6c906d3ab42df907e86afbab4d780c245e2f6c3a4ebcdf5aaaa85f3b0
+sourcePath: docs/decisions/search/0241-evaluate-deterministic-core-term-coverage-v4.md
+sourceUnitVersionIds:
+  - uv_3ae1920d82e89dbce3e038a3
+  - uv_86792b0170ce1b8216e684f5
+  - uv_98db8130dcc025233547f8b7
+  - uv_9aa1fc75d10bcdf91fb678a1
+  - uv_b289d70623495bd4cc24f65f
+  - uv_cc3d0b797f7023f1a11a5e0d

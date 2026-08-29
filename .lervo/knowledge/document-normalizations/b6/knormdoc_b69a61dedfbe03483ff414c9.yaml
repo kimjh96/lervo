@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_29403852026d6666cef1f6ed
+compiler:
+  compilerBuildId: sha256:8d288d20c0d2eb5d6514d531ee951785b45f97e6528f30af3f0156dbd602ded6
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_26ddc49a336af1ccb8cfa5fb
+outputLanguage: en
+outputs:
+  - byteCount: 7949
+    contentHash: sha256:eea4547b47ee50e94b04c65f635e332f54840d9dd6e0c36d9df3d364848b0f4a
+    path: docs/evidence/search/core-term-assisted-v4.md
+    userRegionHash: sha256:eea4547b47ee50e94b04c65f635e332f54840d9dd6e0c36d9df3d364848b0f4a
+profile: repository_document
+recordId: knormdoc_b69a61dedfbe03483ff414c9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:950f88e166726bd695fab0a6096a138333cb6eb5a8aaf4ab92a372d88c426d94
+sourcePath: docs/evidence/search/core-term-assisted-v4.md
+sourceUnitVersionIds:
+  - uv_2442847fc0a0738f82f71c4a
+  - uv_4b84375b527b006e2c85d65f
+  - uv_5f3435d0049484b961d6460c
+  - uv_710e488aaa42e7ce85da2273
+  - uv_9c0eea899c105b4531d33977
+  - uv_a03444e538399e0b4165ac71
+  - uv_a5709cf32c2e15b1ba263c00

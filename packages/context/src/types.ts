@@ -1,4 +1,5 @@
 import type {
+  AdapterContextDocumentRole,
   ContextEvidence,
   ContextScope,
   DocumentRegistry,
@@ -22,6 +23,8 @@ export interface ContextDocumentCandidate {
   path: string;
   connectedPaths: readonly string[];
   source: "instruction" | "registry" | "knowledge" | "workstream";
+  documentRole: AdapterContextDocumentRole;
+  referenceEligible: boolean;
   knowledgeContext?: KnowledgeContextMetadata;
 }
 
@@ -40,6 +43,15 @@ export interface GraphDocumentRecommendation {
   selected: boolean;
 }
 
+export interface ManagedLinkedEvidenceSelection {
+  schemaVersion: 1;
+  selectionAttemptId: string;
+  documentId: string;
+  path: string;
+  contentHash: string;
+  rank: number;
+}
+
 export interface ContextSelectionReason {
   reasonCode: SelectionReasonCode;
   ruleId: string;
@@ -50,6 +62,8 @@ export interface PlannedContextDocument {
   path: string;
   required: true;
   scope: ContextScope;
+  documentRole: AdapterContextDocumentRole;
+  referenceEligible: boolean;
   reasons: ContextSelectionReason[];
   sharedContextIds: string[];
   expectedContentHash?: string;
@@ -81,6 +95,8 @@ export interface CreateContextPlanInput {
   handoffs: readonly ContextHandoffInput[];
   recommendationBatches?: readonly SearchRecommendationBatch[];
   graphRecommendations?: readonly GraphDocumentRecommendation[];
+  linkedEvidenceSelections?: readonly ManagedLinkedEvidenceSelection[];
+  defaultLinkedEvidenceSelections?: readonly ManagedLinkedEvidenceSelection[];
   additionalCandidates?: readonly ContextDocumentCandidate[];
   policyVersion: string;
   recordedAt: Date;

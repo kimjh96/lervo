@@ -43,6 +43,13 @@ lines.on("line", (line) => {
     return;
   }
   if (message.method === "turn/start") {
+    if (
+      message.params?.outputSchema?.properties?.evidenceTokens?.type !== "array" ||
+      message.params?.outputSchema?.additionalProperties !== false
+    ) {
+      send({ id: message.id, error: { code: -32602, message: "missing output schema" } });
+      return;
+    }
     send({ id: message.id, result: { turn: { id: "turn-stdio-1" } } });
     send({
       method: "turn/started",

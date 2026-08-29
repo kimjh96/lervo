@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_f18e2e643fe666dcd243588b
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/0278-prepare-exact-managed-context-canary-checkpoint.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_951858ae2f28d25d7cf754bb
+title: "ADR-0278: Prepare the exact managed-context canary checkpoint"
+type: decision

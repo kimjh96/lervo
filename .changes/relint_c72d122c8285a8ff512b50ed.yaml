@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c72d122c8285a8ff512b50ed"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Add an opt-in no-tool Codex Responses transport for managed evidence selection."

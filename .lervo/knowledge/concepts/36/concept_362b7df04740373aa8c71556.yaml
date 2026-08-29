@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_362b7df04740373aa8c71556
+freshness: current
+ownership: user
+path: docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-v14-codex-carrier-diagnosis.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_74315b4e47ee7b179d5b9b75
+title: V14 Codex carrier diagnosis
+type: concept

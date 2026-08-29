@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_e3d0e26d73122cb5279ed119
+freshness: current
+ownership: user
+path: docs/evidence/search/codex-claude-linked-evidence-measurement-report.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_232f9dc770d2cedea9d15d77
+title: Codex and Claude linked-evidence measurement report
+type: concept

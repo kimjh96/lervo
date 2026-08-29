@@ -9,7 +9,10 @@ import {
   createKnowledgeMigrationPlan,
 } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
+import { LocalLinkedEvidenceShadowStore } from "@lervo/search-local";
+import type { SearchRecommendationBatch } from "@lervo/search";
 
+import { observeManagedLinkedEvidenceShadow } from "../src/managed-linked-evidence-shadow.js";
 import { prepareManagedSearchContext } from "../src/managed-search-context.js";
 import { createDeveloperRole } from "../src/developer-role.js";
 
@@ -36,7 +39,7 @@ describe("managed repository knowledge context", () => {
     await applyKnowledgeMigrationPlan(plan, new Date("2026-08-22T01:00:00Z"), () => undefined);
 
     const documentRegistry = await loadDocumentRegistry(root);
-    const prepared = await prepareManagedSearchContext({
+    const searchInput = {
       repositoryRoot: root,
       projectId: "prj_managedknowledge",
       query: "managed provider local first runtime",
@@ -45,8 +48,14 @@ describe("managed repository knowledge context", () => {
       nonce: "d".repeat(32),
       documentRegistry,
       expectedPaths: ["src/result.ts"],
+    } as const;
+    const withoutShadow = await prepareManagedSearchContext(searchInput);
+    const prepared = await prepareManagedSearchContext({
+      ...searchInput,
+      runId: "run_managedknowledge",
     });
 
+    expect(prepared).toEqual(withoutShadow);
     expect(prepared.attempts).toHaveLength(2);
     expect(prepared.knowledgeAttempt.attemptId).not.toBe(prepared.attempt.attemptId);
     expect(prepared.recommendationBatches).toHaveLength(2);
@@ -65,6 +74,14 @@ describe("managed repository knowledge context", () => {
       ]),
     );
     expect(prepared.recommendationBatches[1]!.recommendations.length).toBeGreaterThan(0);
+    const shadow = await LocalLinkedEvidenceShadowStore.open(root);
+    expect(await shadow.list()).toEqual([
+      expect.objectContaining({
+        projectId: "prj_managedknowledge",
+        runId: "run_managedknowledge",
+        status: "observed",
+      }),
+    ]);
     expect(
       prepared.additionalCandidates.find((candidate) => candidate.path === "AGENTS.md"),
     ).toMatchObject({ documentId: documentIdForPath("AGENTS.md"), source: "knowledge" });
@@ -102,5 +119,19 @@ describe("managed repository knowledge context", () => {
         }),
       ]),
     );
+  });
+
+  it("isolates every shadow contract or storage failure from its caller", async () => {
+    await expect(
+      observeManagedLinkedEvidenceShadow({
+        repositoryRoot: "/missing/lervo-shadow-fixture",
+        projectId: "prj_shadow",
+        runId: "run_shadow",
+        observedAt: new Date("2026-08-28T00:00:00.000Z"),
+        operationalBatch: {} as SearchRecommendationBatch,
+        recommendationBatches: [],
+        graphRecommendations: [],
+      }),
+    ).resolves.toBeUndefined();
   });
 });

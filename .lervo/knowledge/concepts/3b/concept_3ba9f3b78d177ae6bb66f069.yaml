@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_3ba9f3b78d177ae6bb66f069
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/0272-remove-unsupported-structured-selection-unique-items.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_23f0a2e9893f79e32551ffae
+title: "ADR-0272: Remove unsupported structured-selection `uniqueItems`"
+type: decision

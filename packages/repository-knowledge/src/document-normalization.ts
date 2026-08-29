@@ -3,6 +3,7 @@ import { lstat, mkdir, open, readFile } from "node:fs/promises";
 import { basename, dirname, posix, resolve } from "node:path";
 
 import { parse, stringify } from "yaml";
+import { loadDecisionTaxonomy, type DecisionTaxonomy } from "@lervo/project";
 
 import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
 import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
@@ -13,8 +14,10 @@ import {
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
+import { bytePreservedDocumentCollection } from "./document-layout.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { projectRepositoryPrettierRewrite } from "./prettier-rewriter-adapter.js";
+import { repositoryPathMatchesPatterns } from "./scanner.js";
 import {
   RepositoryKnowledgeError,
   type KnowledgeFileOperation,
@@ -363,6 +366,34 @@ function protectedMarkdownFragments(
   ];
 }
 
+function markdownLinkTargetIdentities(path: string, content: string): Set<string> {
+  return new Set(
+    [...content.matchAll(/!?(?:\[[^\]]*\])\(([^)\s]+)(?:\s+"[^"]*")?\)/gu)].map((match) =>
+      resolvedMarkdownLinkTargetIdentity(path, match[1]!),
+    ),
+  );
+}
+
+function resolvedMarkdownLinkTargetIdentity(path: string, target: string): string {
+  if (/^(?:[a-z][a-z0-9+.-]*:|\/)/iu.test(target)) return `literal:${target}`;
+  const suffixIndex = [target.indexOf("?"), target.indexOf("#")]
+    .filter((index) => index >= 0)
+    .sort((left, right) => left - right)[0];
+  const targetPath = suffixIndex === undefined ? target : target.slice(0, suffixIndex);
+  const suffix = suffixIndex === undefined ? "" : target.slice(suffixIndex);
+  const resolvedPath =
+    targetPath.length === 0 ? path : posix.normalize(posix.join(dirname(path), targetPath));
+  return `repository:${resolvedPath}${suffix}`;
+}
+
+function outputMarkdownLinkTargetIdentities(
+  outputs: readonly { path: string; content: string }[],
+): Set<string> {
+  return new Set(
+    outputs.flatMap((output) => [...markdownLinkTargetIdentities(output.path, output.content)]),
+  );
+}
+
 function maximumOutputBytes(profile: DocumentNormalizationProfile): number {
   if (profile === "handoff_document") return 12 * 1024;
   if (profile === "provider_bridge") return 2 * 1024;
@@ -427,6 +458,8 @@ function unitsForSource(
 function eligibleDocuments(
   scan: RepositoryKnowledgeScan,
   publicationRoot: string,
+  taxonomy?: DecisionTaxonomy,
+  normalizationExclude: readonly string[] = [],
 ): Array<{
   source: RepositorySource & { content: string; contentHash: string };
   profile: DocumentNormalizationProfile;
@@ -442,7 +475,9 @@ function eligibleDocuments(
         source.contentHash === null ||
         source.path === "README.md" ||
         source.path === publicationRoot ||
-        source.path.startsWith(generatedPrefix)
+        source.path.startsWith(generatedPrefix) ||
+        (taxonomy !== undefined && bytePreservedDocumentCollection(source.path, taxonomy)) ||
+        repositoryPathMatchesPatterns(source.path, normalizationExclude)
       )
         return [];
       const profile = normalizationProfile(source);
@@ -769,13 +804,18 @@ function requiredResponse(
         `The normalized output for ${source.path} retained a non-portable wiki link.`,
       );
     }
-    const missingProtected = source.protectedFragments.filter((fragment) =>
-      fragment.kind === "lifecycle_metadata"
-        ? !document.outputs.some((output) =>
-            output.content.split("\n").includes(fragment.value.replace(/\n$/u, "")),
-          )
-        : !combinedOutput.includes(fragment.value),
-    );
+    const outputLinkTargets = outputMarkdownLinkTargetIdentities(document.outputs);
+    const missingProtected = source.protectedFragments.filter((fragment) => {
+      if (fragment.kind === "lifecycle_metadata")
+        return !document.outputs.some((output) =>
+          output.content.split("\n").includes(fragment.value.replace(/\n$/u, "")),
+        );
+      if (fragment.kind === "link_target")
+        return !outputLinkTargets.has(
+          resolvedMarkdownLinkTargetIdentity(source.path, fragment.value),
+        );
+      return !combinedOutput.includes(fragment.value);
+    });
     if (missingProtected.length > 0) {
       throw new RepositoryKnowledgeError(
         "knowledge_compile_failed",
@@ -1013,9 +1053,16 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
   candidate: DocumentNormalizationCandidate;
   scan: RepositoryKnowledgeScan;
   publicationRoot: string;
+  taxonomy: DecisionTaxonomy;
+  normalizationExclude: readonly string[];
 }): Promise<void> {
   validateDocumentNormalizationCandidate(input.candidate);
-  const eligible = eligibleDocuments(input.scan, input.publicationRoot);
+  const eligible = eligibleDocuments(
+    input.scan,
+    input.publicationRoot,
+    input.taxonomy,
+    input.normalizationExclude,
+  );
   const current = await currentNormalizedPaths(input.root, input.candidate.outputLanguage);
   const expected = eligible.filter((item) => !current.has(item.source.path));
   const expectedByPath = new Map(expected.map((item) => [item.source.path, item]));
@@ -1075,10 +1122,17 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
       invalidCandidate("the root README no longer routes agents to AGENTS.md");
     if (expectedItem.source.content.includes("[[") && /\[\[[^\]\n]+\]\]/u.test(proseOutput))
       invalidCandidate("a non-portable wiki link remains in normalized prose");
+    const outputLinkTargets = outputMarkdownLinkTargetIdentities(item.outputs);
     const missingProtected = protectedMarkdownFragments(
       expectedItem.source.content,
       item.profile,
-    ).filter((fragment) => !combinedOutput.includes(fragment.value));
+    ).filter((fragment) =>
+      fragment.kind === "link_target"
+        ? !outputLinkTargets.has(
+            resolvedMarkdownLinkTargetIdentity(item.sourcePath, fragment.value),
+          )
+        : !combinedOutput.includes(fragment.value),
+    );
     if (missingProtected.length > 0)
       invalidCandidate(
         `protected ${[...new Set(missingProtected.map((fragment) => fragment.kind))].join(", ")} content is missing`,
@@ -1098,6 +1152,8 @@ export async function compileDocumentNormalizationCandidate(input: {
   scan: RepositoryKnowledgeScan;
   publicationRoot: string;
   outputLanguage: string;
+  taxonomy?: DecisionTaxonomy;
+  normalizationExclude?: readonly string[];
   compiler: RepositoryDocumentNormalizationCompiler;
   signal: AbortSignal;
   currentPaths?: ReadonlySet<string>;
@@ -1113,9 +1169,12 @@ export async function compileDocumentNormalizationCandidate(input: {
       "knowledge_compile_policy_violation",
       `Unsupported document normalization language: ${input.outputLanguage}`,
     );
-  const eligible = eligibleDocuments(input.scan, input.publicationRoot).filter(
-    (item) => !input.currentPaths?.has(item.source.path),
-  );
+  const eligible = eligibleDocuments(
+    input.scan,
+    input.publicationRoot,
+    input.taxonomy,
+    input.normalizationExclude,
+  ).filter((item) => !input.currentPaths?.has(item.source.path));
   const envelopes = normalizationEnvelopes({
     scan: input.scan,
     outputLanguage: input.outputLanguage,
@@ -1501,14 +1560,17 @@ export async function inspectConfiguredDocumentNormalization(input: {
   allowTransactionPlanId?: string;
 }): Promise<DocumentNormalizationLifecycleInspection> {
   const root = resolve(input.repositoryRoot);
-  const { policy, scan } = await scanConfiguredRepositoryKnowledge(root, {
-    ...(input.supplementalSources === undefined
-      ? {}
-      : { supplementalSources: input.supplementalSources }),
-    ...(input.allowTransactionPlanId === undefined
-      ? {}
-      : { allowTransactionPlanId: input.allowTransactionPlanId }),
-  });
+  const [{ policy, scan }, taxonomy] = await Promise.all([
+    scanConfiguredRepositoryKnowledge(root, {
+      ...(input.supplementalSources === undefined
+        ? {}
+        : { supplementalSources: input.supplementalSources }),
+      ...(input.allowTransactionPlanId === undefined
+        ? {}
+        : { allowTransactionPlanId: input.allowTransactionPlanId }),
+    }),
+    loadDecisionTaxonomy(root),
+  ]);
   const records: DocumentNormalizationLifecycleInspection["records"] = [];
   const current = new Set<string>();
   const paths = await listKnowledgeArtifactPaths({
@@ -1587,7 +1649,12 @@ export async function inspectConfiguredDocumentNormalization(input: {
       outputPaths: record.outputs.map((output) => output.path),
     });
   }
-  const eligible = eligibleDocuments(scan, policy.publicationRoot);
+  const eligible = eligibleDocuments(
+    scan,
+    policy.publicationRoot,
+    taxonomy,
+    policy.normalization?.exclude,
+  );
   const pendingDocuments = eligible
     .map((item) => item.source.path)
     .filter((path) => !current.has(path));
@@ -1610,12 +1677,15 @@ export async function compileConfiguredDocumentNormalizationCandidate(input: {
   onShardProgress?: (progress: DocumentNormalizationShardProgress) => void;
 }): Promise<DocumentNormalizationCandidate> {
   const root = resolve(input.repositoryRoot);
-  const { policy, scan } = await scanConfiguredRepositoryKnowledge(
-    root,
-    input.supplementalSources === undefined
-      ? {}
-      : { supplementalSources: input.supplementalSources },
-  );
+  const [{ policy, scan }, taxonomy] = await Promise.all([
+    scanConfiguredRepositoryKnowledge(
+      root,
+      input.supplementalSources === undefined
+        ? {}
+        : { supplementalSources: input.supplementalSources },
+    ),
+    loadDecisionTaxonomy(root),
+  ]);
   const cacheInput = (envelope: DocumentNormalizationEnvelope): unknown => ({
     cacheContract: "document-v2",
     compiler: input.compiler.descriptor,
@@ -1689,6 +1759,8 @@ export async function compileConfiguredDocumentNormalizationCandidate(input: {
     scan,
     publicationRoot: policy.publicationRoot,
     outputLanguage: policy.publication.language,
+    taxonomy,
+    normalizationExclude: policy.normalization?.exclude ?? [],
     compiler: input.compiler,
     signal: input.signal,
     currentPaths: await currentNormalizedPaths(root, policy.publication.language),
@@ -1788,17 +1860,22 @@ export async function createDocumentNormalizationPlan(input: {
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
 }): Promise<DocumentNormalizationPlan> {
   const root = resolve(input.repositoryRoot);
-  const { policy, scan } = await scanConfiguredRepositoryKnowledge(
-    root,
-    input.supplementalSources === undefined
-      ? {}
-      : { supplementalSources: input.supplementalSources },
-  );
+  const [{ policy, scan }, taxonomy] = await Promise.all([
+    scanConfiguredRepositoryKnowledge(
+      root,
+      input.supplementalSources === undefined
+        ? {}
+        : { supplementalSources: input.supplementalSources },
+    ),
+    loadDecisionTaxonomy(root),
+  ]);
   await validateDocumentNormalizationCandidateAgainstScan({
     root,
     candidate: input.candidate,
     scan,
     publicationRoot: policy.publicationRoot,
+    taxonomy,
+    normalizationExclude: policy.normalization?.exclude ?? [],
   });
   const blockers: DocumentNormalizationPlan["blockers"] = [];
   if (

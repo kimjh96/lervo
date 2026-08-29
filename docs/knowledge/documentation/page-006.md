@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0190: Language-aware bounded repository publication](../../decisions/knowledge/repository/0190-language-aware-bounded-repository-publication.md) — `docs/decisions/knowledge/repository/0190-language-aware-bounded-repository-publication.md`
 - [ADR-0191: Bounded hierarchical repository layout](../../decisions/knowledge/repository/0191-bounded-hierarchical-repository-layout.md) — `docs/decisions/knowledge/repository/0191-bounded-hierarchical-repository-layout.md`
 - [ADR-0192: Repository-scoped fail-closed decision taxonomy](../../decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md) — `docs/decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md`
 - [ADR-0193: Semantic Repository and Agent-Surface Migration](../../decisions/knowledge/repository/0193-semantic-repository-and-agent-surface-migration.md) — `docs/decisions/knowledge/repository/0193-semantic-repository-and-agent-surface-migration.md`
@@ -11,6 +12,8 @@
 - [ADR-0218: Content-bound provider-entrypoint bootstrap](../../decisions/knowledge/repository/0218-content-bound-provider-entrypoint-bootstrap.md) — `docs/decisions/knowledge/repository/0218-content-bound-provider-entrypoint-bootstrap.md`
 - [ADR-0220: Evidence-bound development-pattern promotion](../../decisions/knowledge/repository/0220-evidence-bound-development-pattern-promotion.md) — `docs/decisions/knowledge/repository/0220-evidence-bound-development-pattern-promotion.md`
 - [ADR-0222: Bounded role-based document layout and rewrite ownership](../../decisions/knowledge/repository/0222-bounded-role-based-document-layout.md) — `docs/decisions/knowledge/repository/0222-bounded-role-based-document-layout.md`
+- [ADR-0242: Refine the search-rollout decision route](../../decisions/knowledge/repository/0242-refine-search-rollout-decision-route.md) — `docs/decisions/knowledge/repository/0242-refine-search-rollout-decision-route.md`
+- [ADR-0275: Refine the provider-shadow decision route](../../decisions/knowledge/repository/0275-refine-provider-shadow-decision-route.md) — `docs/decisions/knowledge/repository/0275-refine-provider-shadow-decision-route.md`
 - [ADR-0052: Rebuildable explicit knowledge graph](../../decisions/knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md) — `docs/decisions/knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md`
 - [ADR-0180: Hash-Bound Human Duplicate and Contradiction Resolution](../../decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md) — `docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md`
 - [ADR-0186: Content-Bound Codex–Claude Compilation Comparison](../../decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md) — `docs/decisions/knowledge/semantics/0186-content-bound-codex-claude-compilation-comparison.md`
@@ -24,6 +27,3 @@
 - [ADR-0161: Atomic Node Bearer-Token Reload](../../decisions/operations/security/0161-atomic-node-bearer-token-reload.md) — `docs/decisions/operations/security/0161-atomic-node-bearer-token-reload.md`
 - [ADR-0163: Atomic Node Trust-Material Reload](../../decisions/operations/security/0163-atomic-node-trust-material-reload.md) — `docs/decisions/operations/security/0163-atomic-node-trust-material-reload.md`
 - [ADR-0228: Organization Deployment Policy and Runtime Credentials](../../decisions/operations/security/0228-organization-deployment-policy-and-runtime-credentials.md) — `docs/decisions/operations/security/0228-organization-deployment-policy-and-runtime-credentials.md`
-- [ADR-0229: Organization Node Enrollment and Gradual Rollout](../../decisions/operations/security/0229-organization-node-enrollment-and-gradual-rollout.md) — `docs/decisions/operations/security/0229-organization-node-enrollment-and-gradual-rollout.md`
-- [ADR-0230: Owner-Only File Organization Credential Source](../../decisions/operations/security/0230-owner-only-file-organization-credential-source.md) — `docs/decisions/operations/security/0230-owner-only-file-organization-credential-source.md`
-- [ADR-0231: Authenticated Node Organization Credential Activation](../../decisions/operations/security/0231-authenticated-node-organization-credential-activation.md) — `docs/decisions/operations/security/0231-authenticated-node-organization-credential-activation.md`

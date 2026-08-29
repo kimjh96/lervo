@@ -12,25 +12,19 @@ const excludedWorkspaceRoots = [
   "node_modules",
   "docs/evidence/search",
   "docs/knowledge",
-  "docs/decisions/search/0224-natural-language-grounding-quality-evaluation.md",
-  "docs/decisions/search/0225-revise-local-hybrid-for-cross-language-recall.md",
-  "docs/decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md",
-  "docs/decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md",
-  "docs/decisions/search/0240-evaluate-catalog-assisted-retrieval-v3.md",
-  "docs/decisions/knowledge/semantics/0227-approval-gated-cross-provider-fuzzy-merge.md",
-  "docs/roadmap/natural-language-grounding-quality.md",
 ];
 
 export function isWithinPath(path, root) {
   return path === root || path.startsWith(`${root}${sep}`);
 }
 
-export async function copySanitizedEvaluationWorkspace(sourceRoot, targetRoot) {
+export async function copySanitizedEvaluationWorkspace(sourceRoot, targetRoot, suite) {
+  const excluded = [...excludedWorkspaceRoots, ...(suite?.corpusExclusions ?? [])];
   await cp(sourceRoot, targetRoot, {
     recursive: true,
     filter: (source) => {
       const path = relative(sourceRoot, source);
-      return !excludedWorkspaceRoots.some((excluded) => isWithinPath(path, excluded));
+      return !excluded.some((root) => isWithinPath(path, root));
     },
   });
 }

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_7d7e241fec2fb33edb14cb61"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Support opt-in Codex JSON Schema results for bounded provider selection."

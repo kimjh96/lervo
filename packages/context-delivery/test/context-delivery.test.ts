@@ -388,7 +388,7 @@ describe("provider-neutral context delivery", () => {
     ).toThrowError(expect.objectContaining<Partial<ContextDeliveryError>>({ code: expectedCode }));
   });
 
-  it("rejects a receipt that omits a document or changes its scope", async () => {
+  it("rejects a receipt that omits a document or changes its scope or document role", async () => {
     const input = await createDeliveryFixture();
     const envelope = await buildContextEnvelope({
       loaded: input.loaded,
@@ -405,8 +405,16 @@ describe("provider-neutral context delivery", () => {
       ...changedScope.documents[0]!,
       scope: { kind: "sections", sections: ["different"] },
     };
+    const changedRole = receiptFor(input.session, envelope);
+    changedRole.documents[0] = {
+      ...changedRole.documents[0]!,
+      documentRole:
+        changedRole.documents[0]!.documentRole === "task_evidence"
+          ? "governance_context"
+          : "task_evidence",
+    };
 
-    for (const receipt of [missing, changedScope]) {
+    for (const receipt of [missing, changedScope, changedRole]) {
       expect(() =>
         verifyContextReceipt({
           envelope,

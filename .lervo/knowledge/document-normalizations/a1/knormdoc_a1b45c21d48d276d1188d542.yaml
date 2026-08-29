@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0cb2d2f275d70f45a5895547
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e08dd02b1697c475cae30cfe
+outputLanguage: en
+outputs:
+  - byteCount: 3594
+    contentHash: sha256:b22db9129707b638b44b081a4bc0e3c634610482c285cc1e590b40cc45f9f0bf
+    path: docs/evidence/search/linked-evidence-provider-shadow-v9-ground-truth-audit.md
+    userRegionHash: sha256:b22db9129707b638b44b081a4bc0e3c634610482c285cc1e590b40cc45f9f0bf
+profile: repository_document
+recordId: knormdoc_a1b45c21d48d276d1188d542
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:34be73f17fb2beeaaa02ae1119663eb301e292a5a00cc39a489ac43529f02e7c
+sourcePath: docs/evidence/search/linked-evidence-provider-shadow-v9-ground-truth-audit.md
+sourceUnitVersionIds:
+  - uv_2cc092b7cf0ffe53c547b2a4
+  - uv_332c1bd04773944797df0db5
+  - uv_457b278e0fa2655d5ba92c18
+  - uv_5591e5742c8561180b2ada9b
+  - uv_b6c4b01fa5451f3079b88610
+  - uv_d8eed5a0080174ed7a3d20b1

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_329a9d2e644f41fb99e1c502
+freshness: current
+ownership: user
+path: docs/evidence/search/linked-evidence-provider-shadow-pilot-v5.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_c2542c463e790a5402259cf6
+title: Claude structured-selection provider-shadow v5
+type: concept

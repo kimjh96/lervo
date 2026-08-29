@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_de1ed5aa81dc1d9c05ef8b04
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f73ad0884f894fb4451dc4d3
+outputLanguage: en
+outputs:
+  - byteCount: 2934
+    contentHash: sha256:2b69142c090808274636b33c432bb75491f70ca90812f7ac477e1d20326074f1
+    path: docs/decisions/search/activation/provider-shadow-structured/typed-context/0300-stop-v17-and-expand-complete-event-capacity.md
+    userRegionHash: sha256:2b69142c090808274636b33c432bb75491f70ca90812f7ac477e1d20326074f1
+profile: decision_record
+recordId: knormdoc_c89579a14cfb40039891f6a2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2deed08da27abbc30f3e3680c5c76ce3958e82afd3e35a28855a389478095e10
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/typed-context/0300-stop-v17-and-expand-complete-event-capacity.md
+sourceUnitVersionIds:
+  - uv_05e264ba3b214cccea72a893
+  - uv_0e669a06789259bf099b53f5
+  - uv_4b91199f7fbd13dc2baf79ee
+  - uv_6c65ee000c014b660531d271
+  - uv_8f6c113629b8e04e830cbdaa
+  - uv_d9f4e25c9efd1dcc858bacb9
