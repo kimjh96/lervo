@@ -1,0 +1,37 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5f27a3f4ab48bd732a8a32e8
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_59517f8b59c8e07975e598d1
+outputLanguage: en
+outputs:
+  - byteCount: 11678
+    contentHash: sha256:f5081e0645c7939e30143094548786c81cefb5821b59a639241f62c341b30e6f
+    path: docs/decisions/search/activation/0253-pre-register-effect-free-provider-shadow-pilot.md
+    userRegionHash: sha256:f5081e0645c7939e30143094548786c81cefb5821b59a639241f62c341b30e6f
+profile: decision_record
+recordId: knormdoc_4f3986d60bf6f5adad1f4a65
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a26fb8d755d79256ff6099588a43864f96e57b1c61fba80ae88e81298f36a9b9
+sourcePath: docs/decisions/search/activation/0253-pre-register-effect-free-provider-shadow-pilot.md
+sourceUnitVersionIds:
+  - uv_0a3695571c3564b90e044fa7
+  - uv_1ccad6b953fb948ab0b128ad
+  - uv_4e21cea6128bae5a822486e2
+  - uv_501d5982f85b264bf266b1eb
+  - uv_60f19b3b37930bd634743bea
+  - uv_87d6e9f14f6e228d9e825c5c
+  - uv_8c36f30506e2ada94055337d
+  - uv_8ea9cf70ff07db15d92ca5b5
+  - uv_97693928c35732de991b4a89
+  - uv_ce86ed83a72f5dfb197ee3f5
+  - uv_de5cfaaabfb56d001c55f0d2
+  - uv_e2e98af25305a835e1e7557d

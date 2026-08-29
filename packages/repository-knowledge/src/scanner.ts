@@ -148,6 +148,10 @@ function excluded(path: string, patterns: readonly string[]): boolean {
   });
 }
 
+export function repositoryPathMatchesPatterns(path: string, patterns: readonly string[]): boolean {
+  return excluded(path, patterns);
+}
+
 export function repositoryPathCanRemainIncluded(
   path: string,
   policy: RepositoryKnowledgePolicy,

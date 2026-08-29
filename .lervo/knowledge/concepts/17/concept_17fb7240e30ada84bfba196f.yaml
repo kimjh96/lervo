@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_17fb7240e30ada84bfba196f
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/repository/0275-refine-provider-shadow-decision-route.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_a48b8620257940e39ec9b3cc
+title: "ADR-0275: Refine the provider-shadow decision route"
+type: decision

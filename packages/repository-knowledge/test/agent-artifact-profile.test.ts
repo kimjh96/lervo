@@ -117,6 +117,13 @@ describe("repository agent artifact profiles", () => {
       "local_inventory_only",
     ],
     [
+      ".claude/metrics/commit_rules.jsonl",
+      "claude",
+      "unknown",
+      "local_preserve",
+      "local_inventory_only",
+    ],
+    [
       ".claude-plugin/plugin.json",
       "claude",
       "client_configuration",
@@ -164,6 +171,9 @@ describe("repository agent artifact profiles", () => {
     expect(repositoryAgentArtifactForPath(".codex/config.toml")).toMatchObject({
       scope: "repository",
     });
+    expect(repositoryAgentArtifactForPath(".claude/metrics/commit_rules.jsonl")).toMatchObject({
+      scope: "local_repository",
+    });
     expect(repositoryAgentArtifactForPath("apps/web/.mcp.json")).toMatchObject({
       scope: "subtree",
     });
@@ -190,6 +200,7 @@ describe("repository agent artifact profiles", () => {
       [".codex/agents/reviewer.toml", 'fixture = "codex-agent-private-fixture"\n'],
       [".claude/settings.json", '{"fixture":"settings-private-fixture"}\n'],
       [".claude/settings.local.json", '{"fixture":"settings-local-private-fixture"}\n'],
+      [".claude/metrics/commit_rules.jsonl", '{"fixture":"metrics-local-private-fixture"}\n'],
       [".claude/agents/reviewer.md", "claude-agent-private-fixture"],
       [".mcp.json", '{"fixture":"mcp-private-fixture"}\n'],
       [".agents/rules/custom.md", "nonstandard-agents-private-fixture"],
@@ -260,11 +271,11 @@ describe("repository agent artifact profiles", () => {
     for (const content of inventoryOnlyFiles.values()) expect(compilerInput).not.toContain(content);
 
     expect(summarizeRepositoryAgentArtifacts(scan)).toMatchObject({
-      total: 13,
+      total: 14,
       semanticSources: 4,
-      localInventoryOnly: 9,
+      localInventoryOnly: 10,
       reviewRequired: 2,
-      nonstandard: 1,
+      nonstandard: 2,
       byRole: {
         behavioral_instruction: 2,
         skill: 1,
@@ -274,19 +285,19 @@ describe("repository agent artifact profiles", () => {
         client_configuration: 3,
         agent_definition: 2,
         tool_configuration: 1,
-        unknown: 1,
+        unknown: 2,
       },
     });
   });
 
-  it("keeps local-only agent configuration changes out of canonical structural publications", async () => {
+  it("keeps Claude local metric changes out of canonical structural publications", async () => {
     const root = await fixtureRepository();
     await put(root, "AGENTS.md", "# Instructions\n\nKeep repository behavior explicit.\n");
-    await put(root, ".claude/settings.local.json", '{"fixture":"first-local-setting"}\n');
+    await put(root, ".claude/metrics/commit_rules.jsonl", '{"fixture":"first-local-metric"}\n');
     await applyInitPlan(await createInitPlan({ root, projectId: "prj_agentsnapshot" }));
 
     const first = await createKnowledgeMigrationPlan({ repositoryRoot: root });
-    await put(root, ".claude/settings.local.json", '{"fixture":"second-local-setting"}\n');
+    await put(root, ".claude/metrics/commit_rules.jsonl", '{"fixture":"second-local-metric"}\n');
     const second = await createKnowledgeMigrationPlan({ repositoryRoot: root });
     const canonical = (plan: typeof first) =>
       plan.operations
@@ -299,12 +310,12 @@ describe("repository agent artifact profiles", () => {
       JSON.stringify(
         first.operations.filter((operation) => !operation.path.startsWith(".lervo/state/")),
       ),
-    ).not.toContain("first-local-setting");
+    ).not.toContain("first-local-metric");
     expect(
       JSON.stringify(
         second.operations.filter((operation) => !operation.path.startsWith(".lervo/state/")),
       ),
-    ).not.toContain("second-local-setting");
+    ).not.toContain("second-local-metric");
 
     await applyKnowledgeMigrationPlan(second, new Date("2026-08-23T00:00:00Z"), () => undefined);
     expect(await lintRepositoryKnowledge(root)).toMatchObject({ valid: true, issues: [] });

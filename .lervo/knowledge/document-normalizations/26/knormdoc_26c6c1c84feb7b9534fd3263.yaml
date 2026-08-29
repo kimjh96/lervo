@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_92798319b37741581c3b8a0e
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5d242c301ceb7a5befd43362
+outputLanguage: en
+outputs:
+  - byteCount: 2514
+    contentHash: sha256:5bb133131dac0231f9f3ce2b703060ac02e4c4cbe925c5d5ef693f511f05661d
+    path: docs/decisions/search/activation/0259-preserve-claude-selection-failure-provider-shadow-v6.md
+    userRegionHash: sha256:5bb133131dac0231f9f3ce2b703060ac02e4c4cbe925c5d5ef693f511f05661d
+profile: decision_record
+recordId: knormdoc_26c6c1c84feb7b9534fd3263
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2e91c0486d0074d467e4df2fcfd1c3397a493178bec143e1c80231b0cf6e5854
+sourcePath: docs/decisions/search/activation/0259-preserve-claude-selection-failure-provider-shadow-v6.md
+sourceUnitVersionIds:
+  - uv_0937df90666c41a2ea7cd646
+  - uv_12dd6c88c5b11bccc13b52af
+  - uv_8eaa423d81e9fed111157b6f
+  - uv_96a25fe033a921b34f707c00
+  - uv_de2d008d8b1299ae1c8e87a3

@@ -165,6 +165,8 @@ export function createLocalProviderWritingEvaluator(
               contentHash: protocolHash,
               byteCount: Buffer.byteLength(PROTOCOL, "utf8"),
               scope: { kind: "full" },
+              documentRole: "governance_context",
+              referenceEligible: false,
               delivery: { kind: "inline", content: PROTOCOL },
             },
           ],

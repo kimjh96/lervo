@@ -13,7 +13,7 @@ import { RepositoryKnowledgeError } from "./types.js";
 export const EXECUTION_EVENT_SOURCE_ADAPTER = "execution-event-v1+event-chain";
 
 const MAX_EVENT_SEQUENCE = 100_000;
-const MAX_EVENTS = 4_096;
+export const EXECUTION_EVENT_SOURCE_MAX_EVENTS = 8_192;
 const MAX_EVENT_BYTES = 256 * 1024;
 const MAX_TOTAL_EVENT_BYTES = 16 * 1024 * 1024;
 
@@ -103,7 +103,8 @@ export function collectExecutionEventSources(input: {
       throughSeq: latest.seq,
       visit: (event) => {
         if (!executionEventTypes.has(event.type)) return;
-        if (eventIds.has(event.eventId) || sources.length >= MAX_EVENTS) return fail();
+        if (eventIds.has(event.eventId) || sources.length >= EXECUTION_EVENT_SOURCE_MAX_EVENTS)
+          return fail();
         const content = canonicalEvent(event);
         const byteCount = Buffer.byteLength(content);
         totalBytes += byteCount;

@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_ba7877340fcf794ca08d55d0
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9049c983c8c485d6a2442d36
+outputLanguage: en
+outputs:
+  - byteCount: 4200
+    contentHash: sha256:602c3d058646da11b1b6b249e3080f379ae519fc29f20bef920610573c8b1c18
+    path: docs/decisions/search/activation/0268-diagnose-and-confirm-claim-coverage-v13.md
+    userRegionHash: sha256:602c3d058646da11b1b6b249e3080f379ae519fc29f20bef920610573c8b1c18
+profile: decision_record
+recordId: knormdoc_cd6af68bb862fb8d3bc75328
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d7330c68bc7ccfc83f8cbce40778906ef0517d1e6be715e6043018573510b1b0
+sourcePath: docs/decisions/search/activation/0268-diagnose-and-confirm-claim-coverage-v13.md
+sourceUnitVersionIds:
+  - uv_4480c1846b22f361c469855d
+  - uv_4eeeb8dd556858aa193ebded
+  - uv_513175148802c454e1d8735d
+  - uv_a8fb6778e759540c352591a8
+  - uv_adfb2bff96e8eda7f83b4ac0
+  - uv_f2eff3628e6d0b0bffbcee03

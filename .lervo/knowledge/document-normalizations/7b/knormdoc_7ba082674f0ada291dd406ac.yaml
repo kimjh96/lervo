@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d86de17b24d7d9b914eaab06
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c41fbeea6d2a936756910256
+outputLanguage: en
+outputs:
+  - byteCount: 4554
+    contentHash: sha256:252b8c5ad5f6dae7bb19c8f5c25da3af05c7eeea9eda070d5d587a3f6acefed4
+    path: docs/decisions/search/activation/0262-test-minimal-sufficient-paired-provider-selection-v9.md
+    userRegionHash: sha256:252b8c5ad5f6dae7bb19c8f5c25da3af05c7eeea9eda070d5d587a3f6acefed4
+profile: decision_record
+recordId: knormdoc_7ba082674f0ada291dd406ac
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:58dce365536a0f00fef4b3acac4e55a389c933bde9cc487fd938475414a7f6d7
+sourcePath: docs/decisions/search/activation/0262-test-minimal-sufficient-paired-provider-selection-v9.md
+sourceUnitVersionIds:
+  - uv_284f4996c66edfb28fa2c0c9
+  - uv_4b09f71add43bf03c25204f4
+  - uv_73fc17ed660266d4300dfe53
+  - uv_9a2b4c35efe74388e5cdaf88
+  - uv_a71f74b51cec36c6b0ac5dd7
+  - uv_a8e0e06b490bd2ca19ee06a0

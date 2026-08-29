@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_90742a9e45ad705241d15e49
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9a9a6435b16b42afc5f7bb30
+outputLanguage: en
+outputs:
+  - byteCount: 2527
+    contentHash: sha256:a945a97b92e37bfb7fd2793d97fa68c867b21466b05c1ad8d0a54e7dad342f8e
+    path: docs/decisions/search/activation/provider-shadow-structured/0287-use-read-only-machine-role-for-key-free-managed-canary-v8.md
+    userRegionHash: sha256:a945a97b92e37bfb7fd2793d97fa68c867b21466b05c1ad8d0a54e7dad342f8e
+profile: decision_record
+recordId: knormdoc_2ced0d5d65e2cf34c5f2772f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b0be827a10e2851b20b4bfad8392d73d3cbdb3539494b5b6ac6f4dbfc0a9ce0c
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0287-use-read-only-machine-role-for-key-free-managed-canary-v8.md
+sourceUnitVersionIds:
+  - uv_6e4ce1345b9c2bc6a6733a78
+  - uv_7eac141cfa8b6efd4e3dc3fa
+  - uv_aa47043954a9645d35f39b7c
+  - uv_ad1cdd2d241381dcde2f3c55
+  - uv_c77f99e3f5d7d998bdd8f94d
+  - uv_eda3c266e4aae72d002dcb22

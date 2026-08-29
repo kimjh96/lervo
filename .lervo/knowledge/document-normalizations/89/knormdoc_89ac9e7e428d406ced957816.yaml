@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_de1ed5aa81dc1d9c05ef8b04
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f9fa12ad6f68f8cc448116c5
+outputLanguage: en
+outputs:
+  - byteCount: 3010
+    contentHash: sha256:9f2883d9ffeaaaaa0f7cfe7153b91d5a6dc08f24a62185aebd12a35d2d326849
+    path: docs/decisions/search/activation/provider-shadow-structured/typed-context/0298-stop-v15-on-measurement-projection-failure.md
+    userRegionHash: sha256:9f2883d9ffeaaaaa0f7cfe7153b91d5a6dc08f24a62185aebd12a35d2d326849
+profile: decision_record
+recordId: knormdoc_89ac9e7e428d406ced957816
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4ced3dabaa79cfe228185615998c4730261465ab152f7cb8109da17c1998061d
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/typed-context/0298-stop-v15-on-measurement-projection-failure.md
+sourceUnitVersionIds:
+  - uv_01c89d1f3fb6c7a2d21ce049
+  - uv_65517873baac0aa2393d7b2d
+  - uv_6a30fdae100efb7395b6433a
+  - uv_a656c8e3279c73f41f2c73d6
+  - uv_d6604ec5b5f11f4e628f266d
+  - uv_f686d3a40cca1cdfc0982550

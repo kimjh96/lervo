@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "checkpointId": "linked-evidence-managed-canary-v1-prepared-20260829",
+  "decisionId": "ADR-0278",
+  "decisionPath": "docs/decisions/search/activation/provider-shadow-structured/0278-prepare-exact-managed-context-canary-checkpoint.md",
+  "authorization": {
+    "status": "prepared_for_review",
+    "providerCallsAuthorized": false,
+    "managedContextEffectsAuthorized": false,
+    "productionActivationAuthorized": false,
+    "operatorAuthority": "pending_exact_manifest_review"
+  },
+  "predecessor": {
+    "policyId": "linked-evidence-managed-canary-v1",
+    "enabledByDefault": false,
+    "operationalSearchEngine": "lexical-v1",
+    "disposition": "restore_default_off_after_each_failure",
+    "resume": false,
+    "retry": false,
+    "replacementRuns": false
+  },
+  "sourcePopulation": {
+    "populationKind": "isolated_registered_phase_a_corpus",
+    "phaseAPilotId": "linked-evidence-shadow-phase-a-registered-v8-corrected-target-v3-20260828",
+    "phaseAManifestDigest": "sha256:a6f113f7999d5e52c50016faa269e71bf048c08642735fa06dd80ff05d8897c7",
+    "sourceProviderShadowPilotId": "linked-evidence-provider-shadow-v18-relational-coverage-confirmation-20260829",
+    "sourceProviderShadowManifestDigest": "sha256:a00d3772f9b40ae23a7a30787eb0c2b149d19387a986307f1b91aa5655a73ff3",
+    "sourceSuitePath": "benchmarks/search/linked-evidence-reconciliation-v8.json",
+    "sourceSuiteDigest": "sha256:28775d1126269ce42c961d15c3b7cd8deb5affe6f7e730678f223c0b6dfd2f20",
+    "sourceCorpusDigest": "sha256:b14fcad0ca434b582c718b6db8d730261fb985e0a9fb8ff7fa4adf212af5ef2b",
+    "registeredDocumentCount": 286,
+    "selectedCaseIds": [
+      "drv8case_implementation_release",
+      "drv8case_terse_release",
+      "drv8case_rationale_hybrid_search",
+      "drv8case_boundary_fuzzy_merge"
+    ],
+    "selectedRepetitions": [1, 2],
+    "sourceTaskCount": 8,
+    "taskRunCount": 16,
+    "pairing": "same_source_task_once_per_provider",
+    "ordering": "v18_alternate_starting_provider_by_source_task"
+  },
+  "selection": {
+    "protocolId": "linked-evidence-provider-shadow-relational-coverage-v17",
+    "protocolDigest": "sha256:b1c9126085f12ce83f1808412d9135d381c31bc8b3df1081a8369593418f29fe",
+    "schemaBinding": "exact_per_run_e4_token_enum_digest",
+    "maximumRecommendations": 3,
+    "maximumCandidates": 8,
+    "maximumProviderVisibleSourceBytes": 117813,
+    "maximumSelectionCallsPerRun": 1,
+    "maximumRetries": 0,
+    "maximumRepairTurns": 0,
+    "maximumFallbackCalls": 0
+  },
+  "task": {
+    "executionMode": "read_only",
+    "risk": "low",
+    "roleId": "researcher",
+    "expectedPathBinding": "first_reviewed_expected_document",
+    "verificationPolicy": "repository_status_digest_unchanged",
+    "writesAuthorized": false,
+    "externalMessagesAuthorized": false,
+    "hubEffectsAuthorized": false,
+    "directTerminalEffectsAuthorized": false
+  },
+  "providers": {
+    "arms": [
+      {
+        "provider": "codex",
+        "model": "gpt-5.6-sol",
+        "taskRuns": 8,
+        "maximumSelectionCalls": 8,
+        "maximumTaskCalls": 8
+      },
+      {
+        "provider": "claude",
+        "model": "opus",
+        "taskRuns": 8,
+        "maximumSelectionCalls": 8,
+        "maximumTaskCalls": 8
+      }
+    ],
+    "maximumTaskRuns": 16,
+    "maximumSelectionCalls": 16,
+    "maximumTaskCalls": 16,
+    "maximumProviderCalls": 32
+  },
+  "preparation": {
+    "observedAtStart": "2026-08-29T08:00:00.000Z",
+    "manifestPreparedAt": "2026-08-29T08:30:00.000Z",
+    "sourceRevisionBinding": "root_head_working_tree_status_and_built_cli_digest",
+    "workstreamId": "wks_715d83744a212f47e5c6555c",
+    "workstreamRevision": 215,
+    "workstreamTitle": "Build provider-free managed-canary checkpoint",
+    "providerCalls": 0,
+    "executionAuthorized": false
+  },
+  "acceptance": {
+    "requiredCompletedRuns": 16,
+    "maximumAllowlistedFailures": 0,
+    "maximumPrivacyViolations": 0,
+    "exactReplayRequired": true,
+    "identicalNonContextPrimaryInputsRequired": true,
+    "completeE1E4EvidenceRequired": true,
+    "requiredSourceRecall": 1,
+    "minimumPerRunReferencePrecision": 0.5,
+    "minimumMeanReferencePrecisionPerProvider": 0.65,
+    "independentExpectedClaimReviewRequired": true
+  },
+  "retention": {
+    "root": ".lervo/state/search/linked-evidence-managed-canary-pilots",
+    "classification": "owner_only_deletable_derived_state",
+    "maximumPilots": 1,
+    "maximumPreparedManifests": 1
+  },
+  "passingDisposition": "eligible_for_separate_exact_operator_authorization_only",
+  "failingDisposition": "preserve_evidence_and_restore_default_off_without_retry"
+}

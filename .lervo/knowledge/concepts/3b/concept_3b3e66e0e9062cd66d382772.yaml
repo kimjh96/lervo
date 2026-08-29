@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_3b3e66e0e9062cd66d382772
+freshness: current
+ownership: user
+path: docs/evidence/search/provider-shadow/linked-evidence-managed-canary-v6.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_6b831ebcbda7a151a5efc024
+title: Managed linked-evidence canary v6 terminal report
+type: concept

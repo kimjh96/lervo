@@ -3,6 +3,9 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0126: npm Stage-Approval Authorization](../../decisions/release/staging/0126-cli-npm-stage-approval-authorization.md) — `docs/decisions/release/staging/0126-cli-npm-stage-approval-authorization.md`
+- [ADR-0127: Durable npm Stage-Approval Records](../../decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md) — `docs/decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md`
+- [ADR-0128: Interactive npm Stage-Approval Execution](../../decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md) — `docs/decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md`
 - [ADR-0129: npm Stage-Approval Reconciliation Evidence](../../decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md) — `docs/decisions/release/staging/0129-cli-npm-stage-approval-reconciliation-evidence.md`
 - [ADR-0130: Integrate Stage Approval into Publication Transition](../../decisions/release/staging/0130-cli-stage-approval-transition-integration.md) — `docs/decisions/release/staging/0130-cli-stage-approval-transition-integration.md`
 - [ADR-0131: Stage-Evidence Bundle Manifest](../../decisions/release/staging/0131-cli-stage-evidence-bundle-manifest.md) — `docs/decisions/release/staging/0131-cli-stage-evidence-bundle-manifest.md`
@@ -17,13 +20,10 @@
 - [ADR-0062: Refreshing evidence for a selected search candidate](../../decisions/search/0062-selected-search-candidate-evidence-refresh.md) — `docs/decisions/search/0062-selected-search-candidate-evidence-refresh.md`
 - [ADR-0063: Search-adapter build identity and rebuildable replay receipts](../../decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md) — `docs/decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md`
 - [ADR-0064: Selection-bound operational search quality observations](../../decisions/search/0064-selection-bound-operational-search-quality.md) — `docs/decisions/search/0064-selection-bound-operational-search-quality.md`
-- [ADR-0065: Human search-rollout review and execution boundary](../../decisions/search/0065-human-search-rollout-review.md) — `docs/decisions/search/0065-human-search-rollout-review.md`
-- [ADR-0066: Bounded search-rollout review status](../../decisions/search/0066-bounded-search-rollout-review-status.md) — `docs/decisions/search/0066-bounded-search-rollout-review-status.md`
-- [ADR-0067: Policy-bound search-rollout review](../../decisions/search/0067-policy-bound-search-rollout-review.md) — `docs/decisions/search/0067-policy-bound-search-rollout-review.md`
-- [ADR-0068: Explicit search-rollout actions and atomic rollback](../../decisions/search/0068-explicit-search-rollout-actions.md) — `docs/decisions/search/0068-explicit-search-rollout-actions.md`
-- [ADR-0069: Bounded search-rollout action status](../../decisions/search/0069-bounded-search-rollout-action-status.md) — `docs/decisions/search/0069-bounded-search-rollout-action-status.md`
-- [ADR-0070: Write-free search-rollout action preflight](../../decisions/search/0070-read-only-search-rollout-action-preflight.md) — `docs/decisions/search/0070-read-only-search-rollout-action-preflight.md`
-- [ADR-0071: Doctor checks for search-rollout operational sources](../../decisions/search/0071-search-rollout-operational-doctor.md) — `docs/decisions/search/0071-search-rollout-operational-doctor.md`
 - [ADR-0217: Local hybrid search and reviewed relation context](../../decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md) — `docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md`
 - [ADR-0224: Natural-language grounding quality evaluation](../../decisions/search/0224-natural-language-grounding-quality-evaluation.md) — `docs/decisions/search/0224-natural-language-grounding-quality-evaluation.md`
 - [ADR-0225: Revise the local hybrid candidate for cross-language recall](../../decisions/search/0225-revise-local-hybrid-for-cross-language-recall.md) — `docs/decisions/search/0225-revise-local-hybrid-for-cross-language-recall.md`
+- [ADR-0226: Retire local hybrid and evaluate a bounded model fallback](../../decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md) — `docs/decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md`
+- [ADR-0238: Evaluate evidence-gap lexical assistance v2](../../decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md) — `docs/decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md`
+- [ADR-0240: Evaluate catalog-assisted retrieval v3](../../decisions/search/0240-evaluate-catalog-assisted-retrieval-v3.md) — `docs/decisions/search/0240-evaluate-catalog-assisted-retrieval-v3.md`
+- [ADR-0241: Evaluate deterministic core-and-term coverage v4](../../decisions/search/0241-evaluate-deterministic-core-term-coverage-v4.md) — `docs/decisions/search/0241-evaluate-deterministic-core-term-coverage-v4.md`

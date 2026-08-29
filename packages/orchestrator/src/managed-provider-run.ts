@@ -380,7 +380,7 @@ export class ManagedProviderRunCoordinator {
           providerSessionId: state.session.providerSessionId,
           targetTurnId,
           instructions:
-            expectedPath === null || scheduledPaths.length === 1
+            expectedPath === null
               ? input.instructions
               : [
                   input.instructions,

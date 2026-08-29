@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0d09fb89ad74f05c31c4269a
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_412728e05fc076fb49b82a30
+outputLanguage: en
+outputs:
+  - byteCount: 2712
+    contentHash: sha256:cdd9a3b02d743c70f100a297a43c0244f45137bc4006edeb1106d78767ccf7f2
+    path: docs/decisions/execution/orchestration/0251-declare-each-managed-write-target-to-provider.md
+    userRegionHash: sha256:cdd9a3b02d743c70f100a297a43c0244f45137bc4006edeb1106d78767ccf7f2
+profile: decision_record
+recordId: knormdoc_ebb11101bcd9698bbfd5da3f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b4cde4e539fa219e49bf2f78f62cc58c1d2fb33b69eab149abb0ada92c5eb930
+sourcePath: docs/decisions/execution/orchestration/0251-declare-each-managed-write-target-to-provider.md
+sourceUnitVersionIds:
+  - uv_4d12bf841e9be9282670524f
+  - uv_742ba8179e9db30aa32a8892
+  - uv_76ec613290d569fe62dad913
+  - uv_8c0a882cf7c493091b103b47
+  - uv_906f9006fc1819a437d460ae
+  - uv_f6e5752fdb34ee163b99e1c5
+  - uv_fd70f8223c8c54fde627a25a

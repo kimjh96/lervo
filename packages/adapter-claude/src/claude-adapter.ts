@@ -63,7 +63,7 @@ export class ClaudeAdapter implements ProviderAdapter {
       fileChanges: "supported",
       contextCompaction: "supported",
       sessionResume: "unsupported",
-      usage: "unknown",
+      usage: "supported",
     },
   };
 
@@ -134,6 +134,7 @@ export class ClaudeAdapter implements ProviderAdapter {
         executionMode: request.executionMode,
         effectiveCapabilities: {
           ...this.descriptor.capabilities,
+          toolCalls: tools.length === 0 ? "unsupported" : "supported",
           commandExecution: "unsupported",
           fileChanges: request.executionMode === "managed_write" ? "supported" : "unsupported",
         },
@@ -212,6 +213,8 @@ export class ClaudeAdapter implements ProviderAdapter {
         documentId: document.documentId,
         contentHash: document.contentHash,
         scope: clone(document.scope),
+        documentRole: document.documentRole,
+        referenceEligible: document.referenceEligible,
         status: "injected" as const,
       })),
       acceptedAt: timestamp(this.now, "Claude context receipt time", envelope.createdAt),
@@ -336,6 +339,7 @@ export class ClaudeAdapter implements ProviderAdapter {
             raw,
             providerSessionId: session.providerSessionId,
             activeProviderTurnId,
+            captureStructuredOutput: this.options.structuredOutputSchema !== undefined,
             now: this.now,
           });
           if (captured !== null) {
@@ -455,6 +459,14 @@ export class ClaudeAdapter implements ProviderAdapter {
       requestTimeoutMs: this.options.requestTimeoutMs ?? 30_000,
       createMessageId: this.createProviderMessageId,
       tools: [...tools],
+      ...(this.options.structuredOutputSchema === undefined
+        ? {}
+        : {
+            outputFormat: {
+              type: "json_schema" as const,
+              schema: structuredClone(this.options.structuredOutputSchema),
+            },
+          }),
       capabilityActivations: structuredClone(capabilityActivations),
     };
     if (this.options.clientFactory !== undefined) return this.options.clientFactory(clientOptions);

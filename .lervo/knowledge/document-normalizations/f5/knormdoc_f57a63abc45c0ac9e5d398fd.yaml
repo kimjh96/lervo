@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_90742a9e45ad705241d15e49
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_56da3ac9e2486bb2217c9341
+outputLanguage: en
+outputs:
+  - byteCount: 1710
+    contentHash: sha256:79fcd3d5bdb7be6b2b8ed7a4bbfb75873bb04a05e0ab98464fbb50ea0c710010
+    path: docs/decisions/search/activation/provider-shadow-structured/0289-use-past-manifest-clock-for-key-free-managed-canary-v10.md
+    userRegionHash: sha256:79fcd3d5bdb7be6b2b8ed7a4bbfb75873bb04a05e0ab98464fbb50ea0c710010
+profile: decision_record
+recordId: knormdoc_f57a63abc45c0ac9e5d398fd
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f9daab86cd97e8819c043a743e31eac318c5954f7e31bb9b6f345827a929c073
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0289-use-past-manifest-clock-for-key-free-managed-canary-v10.md
+sourceUnitVersionIds:
+  - uv_0c8abf40ab77c9abe1f16e56
+  - uv_0e22cc58563d1fe28b63f13b
+  - uv_3afb69f76183671b4647040e
+  - uv_79a2a2df1206349ed0d08fff
+  - uv_8b0296d87fc97601d147f6a3
+  - uv_c87c061dc5519776b27c1854

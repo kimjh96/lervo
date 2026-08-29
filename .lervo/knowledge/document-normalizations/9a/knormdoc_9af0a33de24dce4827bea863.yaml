@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_90742a9e45ad705241d15e49
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_acaf9b7707b7d3ec33ccc3cc
+outputLanguage: en
+outputs:
+  - byteCount: 1753
+    contentHash: sha256:fcea88408602ff58aead83ae5a397b1b4dec8b7f41a6088bce85a77ff3560689
+    path: docs/decisions/search/activation/provider-shadow-structured/0288-share-execution-clock-for-key-free-managed-canary-v9.md
+    userRegionHash: sha256:fcea88408602ff58aead83ae5a397b1b4dec8b7f41a6088bce85a77ff3560689
+profile: decision_record
+recordId: knormdoc_9af0a33de24dce4827bea863
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:09947a4fceaa456787c2b2ffae409611b8417c62dfe3910b442ba5fc4439a162
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0288-share-execution-clock-for-key-free-managed-canary-v9.md
+sourceUnitVersionIds:
+  - uv_02e7e9ccd0cfc9fa0eac2343
+  - uv_0823ba172fdd747791a03740
+  - uv_8f26c4e95200f276a6284778
+  - uv_9caeea40e800c56251c5cbd8
+  - uv_ad411ef948dbbb53ded32b7e
+  - uv_ba03db6d845551d1b4872a3f

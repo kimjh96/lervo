@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_7c3fe1746e13f9a9c2de5fc4
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/0280-add-an-opt-in-codex-responses-no-tool-transport.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_1ef89ec3175febd70e2ab144
+title: "ADR-0280: Add an opt-in Codex Responses no-tool transport"
+type: decision

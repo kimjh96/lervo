@@ -27,6 +27,12 @@ export async function prepareContext(input: PrepareContextInput): Promise<Loaded
     ...(input.graphRecommendations === undefined
       ? {}
       : { graphRecommendations: input.graphRecommendations }),
+    ...(input.linkedEvidenceSelections === undefined
+      ? {}
+      : { linkedEvidenceSelections: input.linkedEvidenceSelections }),
+    ...(input.defaultLinkedEvidenceSelections === undefined
+      ? {}
+      : { defaultLinkedEvidenceSelections: input.defaultLinkedEvidenceSelections }),
     policyVersion: input.policyVersion,
     recordedAt: input.recordedAt,
     ...(input.createReceiptId === undefined ? {} : { createReceiptId: input.createReceiptId }),

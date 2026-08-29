@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 3,
+  "pilotId": "linked-evidence-shadow-phase-a-registered-v8-corrected-target-v3-20260828",
+  "decisionId": "ADR-0252",
+  "decisionPath": "docs/decisions/search/activation/0252-authorize-corrected-target-delivery-phase-a-pilot.md",
+  "provider": "codex",
+  "sourceSuitePath": "benchmarks/search/linked-evidence-reconciliation-v8.json",
+  "sourceSuiteDigest": "sha256:28775d1126269ce42c961d15c3b7cd8deb5affe6f7e730678f223c0b6dfd2f20",
+  "additionalCorpusExclusions": [
+    "docs/decisions/search/activation/0249-authorize-isolated-registered-corpus-phase-a-pilot.md",
+    "docs/decisions/search/activation/0250-authorize-two-pass-registered-corpus-phase-a-pilot.md",
+    "docs/decisions/search/activation/0252-authorize-corrected-target-delivery-phase-a-pilot.md",
+    "docs/decisions/execution/orchestration/0251-declare-each-managed-write-target-to-provider.md",
+    "docs/evidence/search/linked-evidence-shadow-phase-a-registered-pilot-v1.md",
+    "docs/evidence/search/linked-evidence-shadow-phase-a-registered-pilot-v2.md"
+  ],
+  "schedule": {
+    "ordinaryRepetitionsPerCase": 3,
+    "additionalRepetitionsForExpectation": "recommendations",
+    "additionalRepetitionsPerEligibleCase": 1,
+    "expectedRunCount": 30
+  },
+  "managedRun": {
+    "roleId": "developer",
+    "risk": "medium",
+    "targetPathPrefix": "pilot-output-",
+    "verificationSuitePrefix": "pilot.shadow.",
+    "maximumPrimaryTaskCalls": 30,
+    "maximumSemanticPublicationCalls": 30,
+    "maximumProviderInvocations": 60
+  },
+  "eligibility": {
+    "requiredRunEvent": "run.completed",
+    "requiredVerificationStatus": "passed",
+    "writingPublicationDisposition": "record_only",
+    "requiredSemanticEvaluationStatus": "completed"
+  },
+  "shadowGate": {
+    "minimumEligibleRuns": 30,
+    "minimumNonemptyProjections": 10,
+    "maximumUnavailableObservations": 0,
+    "maximumReplayMismatches": 0,
+    "maximumPrivacyFailures": 0
+  },
+  "stopConditions": [
+    "prepared_manifest_drift",
+    "managed_run_ineligible",
+    "semantic_publication_evaluation_incomplete",
+    "shadow_observation_unavailable",
+    "privacy_failure",
+    "replay_mismatch"
+  ],
+  "retention": {
+    "root": ".lervo/state/search/linked-evidence-shadow-pilots",
+    "classification": "deletable_derived_state",
+    "maximumPilots": 3,
+    "maximumActivePilots": 1
+  }
+}

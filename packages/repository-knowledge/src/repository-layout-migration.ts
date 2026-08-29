@@ -41,6 +41,7 @@ import {
   type DecisionLayoutBlockerCode,
 } from "./decision-layout.js";
 import {
+  bytePreservedDocumentCollection,
   classifyClaudeRule,
   classifyRepositoryDocument,
   repositoryInstructionPaths,
@@ -771,6 +772,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       source.content === undefined ||
       source.contentHash === null ||
       generatedPaths.has(source.path) ||
+      bytePreservedDocumentCollection(source.path, taxonomy) ||
       source.path.startsWith(".lervo/") ||
       source.path.startsWith("knowledge/")
     )

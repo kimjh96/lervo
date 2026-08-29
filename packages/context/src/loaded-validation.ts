@@ -136,6 +136,8 @@ export function assertLoadedContextIntegrity(loaded: LoadedContext): void {
       document.path !== planned.path ||
       document.required !== planned.required ||
       !contextScopesEqual(document.scope, planned.scope) ||
+      document.documentRole !== planned.documentRole ||
+      document.referenceEligible !== planned.referenceEligible ||
       !reasonsEqual(document.reasons, planned.reasons) ||
       !stringSetsEqual(document.sharedContextIds, planned.sharedContextIds) ||
       document.expectedContentHash !== planned.expectedContentHash ||

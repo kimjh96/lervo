@@ -1,0 +1,11 @@
+fromPath: docs/decisions/search/activation/0271-test-structured-codex-provider-shadow-carrier-v15.md
+identityPath: docs/decisions/search/activation/0271-test-structured-codex-provider-shadow-carrier-v15.md
+kind: document_move
+lineageId: klineage_4f35fab54798780dafbed65a
+operationId: kdocop_f577783320c9e19f00c80b24
+schemaVersion: 1
+sourceContentHash: sha256:3c509e12c53f15d4606394fdffc65aa7210193504399dabd1b0c1e387ad9c9a9
+sourceId: src_a1ab29e6b8fc1c65ae79b58c
+sourceUnitBindingDigest: sha256:0ab28edf6a7acc7b6b9ec4fc79ed6cb27e49dcc4b6e85d8bc1c4b3210e5e11f4
+sourceUnitCount: 8
+toPath: docs/decisions/search/activation/provider-shadow-structured/0271-test-structured-codex-provider-shadow-carrier-v15.md

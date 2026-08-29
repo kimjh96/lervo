@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "pilotId": "linked-evidence-shadow-phase-a-registered-v8-20260828",
+  "decisionId": "ADR-0249",
+  "provider": "codex",
+  "sourceSuitePath": "benchmarks/search/linked-evidence-reconciliation-v8.json",
+  "sourceSuiteDigest": "sha256:28775d1126269ce42c961d15c3b7cd8deb5affe6f7e730678f223c0b6dfd2f20",
+  "additionalCorpusExclusions": [
+    "docs/decisions/search/0249-authorize-isolated-registered-corpus-phase-a-pilot.md"
+  ],
+  "schedule": {
+    "ordinaryRepetitionsPerCase": 3,
+    "additionalRepetitionsForExpectation": "recommendations",
+    "additionalRepetitionsPerEligibleCase": 1,
+    "expectedRunCount": 30
+  },
+  "managedRun": {
+    "roleId": "developer",
+    "risk": "medium",
+    "targetPathPrefix": "pilot-output-",
+    "verificationSuitePrefix": "pilot.shadow.",
+    "maximumProviderTaskCalls": 30
+  },
+  "shadowGate": {
+    "minimumEligibleRuns": 30,
+    "minimumNonemptyProjections": 10,
+    "maximumUnavailableObservations": 0,
+    "maximumReplayMismatches": 0,
+    "maximumPrivacyFailures": 0
+  },
+  "stopConditions": [
+    "prepared_manifest_drift",
+    "provider_run_failure",
+    "shadow_observation_unavailable",
+    "privacy_failure",
+    "replay_mismatch"
+  ],
+  "retention": {
+    "root": ".lervo/state/search/linked-evidence-shadow-pilots",
+    "classification": "deletable_derived_state",
+    "maximumPilots": 1
+  }
+}

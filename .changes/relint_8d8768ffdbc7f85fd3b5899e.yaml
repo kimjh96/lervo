@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8d8768ffdbc7f85fd3b5899e"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Preserve resolved Markdown link targets when normalized documents split."

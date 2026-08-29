@@ -214,6 +214,8 @@ export function receiptFor(
       documentId: document.documentId,
       contentHash: document.contentHash,
       scope: document.scope,
+      documentRole: document.documentRole,
+      referenceEligible: document.referenceEligible,
       status: "injected" as const,
     })),
     acceptedAt: "2026-08-18T01:03:00Z",

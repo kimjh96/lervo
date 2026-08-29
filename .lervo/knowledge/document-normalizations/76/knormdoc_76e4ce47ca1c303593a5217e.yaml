@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_9ee2b354591396e537527b15
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_04205087ff3945cdc8d343cc
+outputLanguage: en
+outputs:
+  - byteCount: 5069
+    contentHash: sha256:dd21375ee38b1b3197c93cf7e6d4b5f18038ce21a7c106057b2b75c627a050c2
+    path: docs/decisions/search/activation/0269-test-request-scoped-claim-coverage-v14.md
+    userRegionHash: sha256:dd21375ee38b1b3197c93cf7e6d4b5f18038ce21a7c106057b2b75c627a050c2
+profile: decision_record
+recordId: knormdoc_76e4ce47ca1c303593a5217e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9ce8a8b1a205a37b2c8b2a75609a91f3152f6fbb17bd7f887145cf54a0ef95b2
+sourcePath: docs/decisions/search/activation/0269-test-request-scoped-claim-coverage-v14.md
+sourceUnitVersionIds:
+  - uv_05a9fe0bb61ab22e76a7aab8
+  - uv_3a5da907f022be7015fc741f
+  - uv_6d3c4c2d5d5c7836a8d65b93
+  - uv_84c6926cb6e7ae6048fba030
+  - uv_9b5abc1fdf880bbc4152645c
+  - uv_9d01406f9ad427e94ed49a63
+  - uv_feb64d4edc1dc1907cc373ff

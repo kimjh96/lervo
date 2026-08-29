@@ -23,6 +23,7 @@ import type { DocumentRegistry } from "@lervo/schemas";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { searchCandidateRegistry } from "./search-candidate-registry.js";
+import { observeManagedLinkedEvidenceShadow } from "./managed-linked-evidence-shadow.js";
 
 export interface ManagedSearchContextSummary {
   attemptId: string;
@@ -35,6 +36,8 @@ export interface ManagedSearchContextSummary {
   selectedKnowledgeConceptIds: string[];
   recommendedGraphDocuments: number;
   selectedGraphDocuments: number;
+  referencedDocuments: number;
+  referencedDocumentIds: string[];
 }
 
 export interface PreparedManagedSearchContext {
@@ -94,6 +97,7 @@ export async function prepareManagedSearchContext(input: {
   registry?: SearchCandidateEngineResolver;
   documentRegistry?: DocumentRegistry;
   expectedPaths?: readonly string[];
+  runId?: string;
 }): Promise<PreparedManagedSearchContext> {
   const query = managedSearchQuery(input.query, input.fallbackQuery);
   const nonce = input.nonce ?? randomBytes(16).toString("hex");
@@ -144,6 +148,8 @@ export async function prepareManagedSearchContext(input: {
         path: hit.path,
         connectedPaths: [],
         source: "knowledge",
+        documentRole: "task_evidence",
+        referenceEligible: true,
         knowledgeContext: {
           conceptId: hit.conceptId,
           assurance: hit.assurance,
@@ -208,6 +214,8 @@ export async function prepareManagedSearchContext(input: {
         path: recommendation.path,
         connectedPaths: [],
         source: "knowledge",
+        documentRole: "task_evidence",
+        referenceEligible: true,
         knowledgeContext: {
           conceptId: recommendation.targetConceptId,
           assurance: "human_reviewed",
@@ -230,6 +238,17 @@ export async function prepareManagedSearchContext(input: {
       impactReportId: recommendation.impactReportId,
       rank: index + 1,
       selected: index < knowledge.relationProjection.limits.maximumSelections,
+    });
+  }
+  if (input.runId !== undefined) {
+    await observeManagedLinkedEvidenceShadow({
+      repositoryRoot: input.repositoryRoot,
+      projectId: input.projectId,
+      runId: input.runId,
+      observedAt: input.observedAt,
+      operationalBatch: recommendationBatch,
+      recommendationBatches: [recommendationBatch, knowledgeRecommendationBatch],
+      graphRecommendations,
     });
   }
   return {
@@ -277,6 +296,11 @@ export function summarizeManagedSearchContext(
         item.knowledgeContext === undefined ? [] : [item.knowledgeContext.conceptId],
       ),
   );
+  const referencedDocumentIds = [
+    ...new Set(
+      evidence.filter((item) => item.state === "referenced").map((item) => item.documentId),
+    ),
+  ].sort();
   return {
     attemptId,
     knowledgeAttemptId,
@@ -288,5 +312,7 @@ export function summarizeManagedSearchContext(
     selectedKnowledgeConceptIds,
     recommendedGraphDocuments: graphRecommendations.length,
     selectedGraphDocuments: graphRecommendations.filter((item) => item.selected).length,
+    referencedDocuments: referencedDocumentIds.length,
+    referencedDocumentIds,
   };
 }

@@ -220,6 +220,17 @@ export function repositoryAgentArtifactForPath(path: string): RepositoryAgentArt
       contentHandling: "local_inventory_only",
     });
   }
+  if (/(^|\/)\.claude\/metrics\//.test(normalized)) {
+    return artifact(normalized, {
+      profileId: "claude-local-metrics-v1",
+      provider: "claude",
+      role: "unknown",
+      discovery: "not_current_standard",
+      migrationDisposition: "local_preserve",
+      contentHandling: "local_inventory_only",
+      local: true,
+    });
+  }
   if (/(^|\/)\.codex\/config\.toml$/.test(normalized)) {
     return artifact(normalized, {
       profileId: "codex-project-config-v1",

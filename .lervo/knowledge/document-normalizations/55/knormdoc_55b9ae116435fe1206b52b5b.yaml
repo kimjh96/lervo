@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0d09fb89ad74f05c31c4269a
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d87717ab08ebb8319a5f5158
+outputLanguage: en
+outputs:
+  - byteCount: 4537
+    contentHash: sha256:80356acacea89718e185d2fddaa737cda7c3773741c6016295c320f80f0e39f8
+    path: docs/evidence/search/linked-evidence-shadow-phase-a-registered-pilot-v2.md
+    userRegionHash: sha256:80356acacea89718e185d2fddaa737cda7c3773741c6016295c320f80f0e39f8
+profile: repository_document
+recordId: knormdoc_55b9ae116435fe1206b52b5b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2d4af515258ecfea72bb496184fd492f839746ed97a11645ad610e21cc5dcfb5
+sourcePath: docs/evidence/search/linked-evidence-shadow-phase-a-registered-pilot-v2.md
+sourceUnitVersionIds:
+  - uv_0be4d92569254f64878cb0f0
+  - uv_3c811a515a6e347720391369
+  - uv_7faf7b445b040148230af378
+  - uv_a06e5897d6885be6bd17a33b
+  - uv_c5e40f50e239a8f1aa7b81a3
+  - uv_e8a9933d09b841a4f7b5e9b2
+  - uv_eadcf77e14917bf0c4ca4ea5

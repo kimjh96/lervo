@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_92798319b37741581c3b8a0e
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d99205b496a796ebe9370597
+outputLanguage: en
+outputs:
+  - byteCount: 2396
+    contentHash: sha256:1b7ecd0874a1cdcdd00cbfd7b30bc4ac4d5016b8d2ac7efcdc21d2bd0d4870d5
+    path: docs/decisions/search/activation/0260-classify-claude-structured-output-framing-provider-shadow-v7.md
+    userRegionHash: sha256:1b7ecd0874a1cdcdd00cbfd7b30bc4ac4d5016b8d2ac7efcdc21d2bd0d4870d5
+profile: decision_record
+recordId: knormdoc_bc58341cc19c4e4fce1644b1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:fec1aef7346c949f1d842b14c9ffe5ce10919ff7fc1bf8f45bc660be95054d1c
+sourcePath: docs/decisions/search/activation/0260-classify-claude-structured-output-framing-provider-shadow-v7.md
+sourceUnitVersionIds:
+  - uv_01bc6cb9b6211d5ad44413f8
+  - uv_168d9f1ef1d9f9b737d8fb7c
+  - uv_7b08368aaf2b3b05f74079dc
+  - uv_ae596ee100550813359345cf
+  - uv_fc77b41ecfe6ddac76cde44b

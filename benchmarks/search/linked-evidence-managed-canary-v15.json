@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 1,
+  "checkpointId": "linked-evidence-managed-canary-v15-claim-eligibility-20260830",
+  "decisionId": "ADR-0297",
+  "decisionPath": "docs/decisions/search/activation/provider-shadow-structured/typed-context/0297-separate-claim-reference-eligibility-from-task-evidence.md",
+  "authorization": {
+    "status": "prepared_for_review",
+    "providerCallsAuthorized": false,
+    "managedContextEffectsAuthorized": false,
+    "productionActivationAuthorized": false,
+    "operatorAuthority": "explicit_user_autonomous_completion_after_exact_v15_manifest_review"
+  },
+  "measurementPredecessor": {
+    "checkpointId": "linked-evidence-managed-canary-v14-typed-execution-20260829",
+    "preparedManifestDigest": "sha256:d743509f0645116cb04645b3548fa01c10884c0631e9955cb89c98423b501ebe",
+    "observationSetDigest": "sha256:3352f205dcf8051791430e69a707e8e00c0b379fce05ca93eb306efe79fdacd7",
+    "completedRuns": 16,
+    "technicalFailures": 0,
+    "providerCalls": 16,
+    "selectionCalls": 0,
+    "codexMeanPrecision": 0.875,
+    "claudeMeanPrecision": 0.6006944444444444,
+    "claudePerRunPrecisionFailures": 2,
+    "activationRejected": true,
+    "immutable": true,
+    "rescore": false,
+    "retry": false,
+    "replacementRuns": false
+  },
+  "diagnostic": {
+    "kind": "counterfactual_explicit_link_reference_eligibility",
+    "v14Rescored": false,
+    "linkedDocumentsRemainInjected": true,
+    "codexMeanPrecision": 0.875,
+    "claudeMeanPrecision": 0.7916666666666666,
+    "codexPerRunPrecisionFailures": 0,
+    "claudePerRunPrecisionFailures": 0,
+    "bothProviderRecall": 1
+  },
+  "predecessor": {
+    "policyId": "linked-evidence-managed-canary-v1",
+    "enabledByDefault": false,
+    "operationalSearchEngine": "lexical-v1",
+    "disposition": "activate_only_after_all_v15_gates_pass",
+    "resume": false,
+    "retry": false,
+    "replacementRuns": false
+  },
+  "sourcePopulation": {
+    "populationKind": "isolated_registered_phase_a_corpus",
+    "phaseAPilotId": "linked-evidence-shadow-phase-a-registered-v8-corrected-target-v3-20260828",
+    "phaseAManifestDigest": "sha256:a6f113f7999d5e52c50016faa269e71bf048c08642735fa06dd80ff05d8897c7",
+    "sourceProviderShadowPilotId": "linked-evidence-provider-shadow-v18-relational-coverage-confirmation-20260829",
+    "sourceProviderShadowManifestDigest": "sha256:a00d3772f9b40ae23a7a30787eb0c2b149d19387a986307f1b91aa5655a73ff3",
+    "sourceSuitePath": "benchmarks/search/linked-evidence-reconciliation-v8.json",
+    "sourceSuiteDigest": "sha256:28775d1126269ce42c961d15c3b7cd8deb5affe6f7e730678f223c0b6dfd2f20",
+    "sourceCorpusDigest": "sha256:b14fcad0ca434b582c718b6db8d730261fb985e0a9fb8ff7fa4adf212af5ef2b",
+    "registeredDocumentCount": 286,
+    "selectedCaseIds": [
+      "drv8case_implementation_release",
+      "drv8case_terse_release",
+      "drv8case_rationale_hybrid_search",
+      "drv8case_boundary_fuzzy_merge"
+    ],
+    "selectedRepetitions": [1, 2],
+    "sourceTaskCount": 8,
+    "taskRunCount": 16,
+    "pairing": "same_source_task_once_per_provider",
+    "ordering": "v18_alternate_starting_provider_by_source_task"
+  },
+  "selection": {
+    "kind": "deterministic_all_current_linked_candidates_v1",
+    "policyId": "managed-linked-evidence-all-candidates-v1",
+    "policyDigest": "sha256:8063ff4d0c1825b3abe35f81a53f245b988b8c6ea1e0cdacf2a690bbea76cb18",
+    "rule": "select_all_current_managed_linked_candidates_in_projection_order",
+    "evidenceBinding": "exact_current_source_snapshot_projection_candidate_versions_and_order",
+    "maximumRecommendations": 3,
+    "maximumCandidates": 8,
+    "maximumProviderVisibleSourceBytes": 117813,
+    "minimumSelectionsPerRun": 1,
+    "maximumSelectionCallsPerRun": 0,
+    "maximumRetries": 0,
+    "maximumRepairTurns": 0,
+    "maximumFallbackCalls": 0
+  },
+  "runtime": {
+    "selectionAdapterCreationsPerRun": 0,
+    "canaryRecordSchemaVersion": 2,
+    "legacyRecordSchemaVersionPreserved": 1,
+    "deterministicSelectionAdapterReceipt": null,
+    "deterministicSelectionUsage": null,
+    "taskAdapterCreationAfterExactSelectionValidation": true,
+    "manifestBoundClockEarlierThanRuntime": true,
+    "linkedEvidenceSelectionsForwardedThroughPrepareContext": true,
+    "documentRoleContract": {
+      "id": "managed-context-document-role-v1",
+      "taskEvidenceRole": "task_evidence",
+      "governanceContextRole": "governance_context",
+      "governanceWinsDualClassification": true,
+      "receiptRoleMatchRequired": true
+    },
+    "referenceEligibilityContract": {
+      "id": "managed-context-reference-eligibility-v1",
+      "field": "referenceEligible",
+      "directTaskEvidence": true,
+      "explicitLinkOnlyTaskEvidence": false,
+      "directProvenanceWins": true,
+      "governanceContext": false,
+      "eligibleTaskEvidenceToken": "exact_lervo_e4_document_id_content_hash",
+      "ineligibleEvidenceToken": null,
+      "receiptEligibilityMatchRequired": true,
+      "fabricatedIneligibleTokenProducesE4": false
+    },
+    "executionContract": {
+      "authorizationBinding": "exact_prepared_manifest_digest",
+      "attemptPersistence": "before_provider_call",
+      "terminalObservationPersistence": "after_provider_terminal",
+      "sourceBuildRevalidation": "before_every_task",
+      "technicalFailureDisposition": "persist_bounded_failure_and_stop_without_retry",
+      "maximumConcurrentCalls": 1
+    },
+    "claimEligibilitySources": [
+      {
+        "path": "packages/schemas/src/adapter.ts",
+        "digest": "sha256:396a1f8357eee912ec5644dfdfc15af3a0dec5053b3ac5f88c3a19caceb66d0a"
+      },
+      {
+        "path": "packages/adapter-contract/src/context-reference.ts",
+        "digest": "sha256:685be865bfb39dae5f43d22878f818ddfcdb059a5852422ee4d93f339431aebb"
+      },
+      {
+        "path": "packages/context/src/managed-linked-evidence-selection.ts",
+        "digest": "sha256:6158323bbf7ca41d977e95353ec59f0d262a93851283bd9eb353ff725fd7c1b6"
+      },
+      {
+        "path": "packages/context/src/accumulator.ts",
+        "digest": "sha256:ecc42751cbfb40967498025e16b0c09400e1c15511eb7d81163e2b83aaef6841"
+      },
+      {
+        "path": "packages/adapter-claude/test/provider-parity.test.ts",
+        "digest": "sha256:d1be3dc328008707008599e14d46f8d52b4391b2bb323c7648fd676c91d2008d"
+      }
+    ],
+    "executionBoundarySources": [
+      {
+        "path": "scripts/natural-language-evaluation/linked-evidence-managed-canary-checkpoint-contract.mjs",
+        "digest": "sha256:9f3827031f37f19cb86e1ef7128e779b2f30897ad473a762aba60187129ca19c"
+      },
+      {
+        "path": "scripts/natural-language-evaluation/linked-evidence-managed-canary-recent-checkpoints.mjs",
+        "digest": "sha256:a43e52ee7f89c28dbf6b6f3d6e56b61097f85b4666a11095da2cdadce8fd36f9"
+      },
+      {
+        "path": "scripts/natural-language-evaluation/linked-evidence-managed-canary-checkpoint-preparation.mjs",
+        "digest": "sha256:d56d87d5292c9c847ce120ce1bbfaa28b5c5cccc244b419306223d52616100ca"
+      },
+      {
+        "path": "scripts/natural-language-evaluation/linked-evidence-managed-canary-v5-execution.mjs",
+        "digest": "sha256:2363e6080ee92972ce9a2729aa1268d768236a446cd8583068b322c8df8e4635"
+      },
+      {
+        "path": "scripts/natural-language-evaluation/linked-evidence-managed-canary-native-task.mjs",
+        "digest": "sha256:49640d8c7408cc531c161cb1482bc375ce9a1ead9cbc95982b07fce0d7bbbfcb"
+      },
+      {
+        "path": "scripts/run-linked-evidence-managed-canary-v15.mjs",
+        "digest": "sha256:94e79c602d478043099ed8c2ede338490f2c8f07afc2ebf480abeff1f3bf4e1e"
+      }
+    ],
+    "providerNeutralReferenceInstructionDigest": "sha256:c5264794ff020589bae9035463fbb4ef64aba44307afe3f39e0d3819e7ac9b57",
+    "referenceObservationPolicy": "record_predeclared_eligible_e4_from_raw_provider_output_without_ground_truth_filtering"
+  },
+  "task": {
+    "executionMode": "read_only",
+    "risk": "low",
+    "roleId": "canary-researcher",
+    "expectedPathBinding": "first_reviewed_expected_document",
+    "verificationPolicy": "repository_status_digest_unchanged",
+    "writesAuthorized": false,
+    "externalMessagesAuthorized": false,
+    "hubEffectsAuthorized": false,
+    "directTerminalEffectsAuthorized": false
+  },
+  "providers": {
+    "arms": [
+      {
+        "provider": "codex",
+        "model": "gpt-5.6-sol",
+        "taskTransport": "provider_native_signed_in_session",
+        "taskRuns": 8,
+        "maximumSelectionCalls": 0,
+        "maximumTaskCalls": 8
+      },
+      {
+        "provider": "claude",
+        "model": "opus",
+        "taskTransport": "provider_native_signed_in_session",
+        "taskRuns": 8,
+        "maximumSelectionCalls": 0,
+        "maximumTaskCalls": 8
+      }
+    ],
+    "maximumTaskRuns": 16,
+    "maximumSelectionCalls": 0,
+    "maximumTaskCalls": 16,
+    "maximumProviderCalls": 16
+  },
+  "credentials": {
+    "userApiKeysRequired": false,
+    "codex": "reuse_native_chatgpt_or_codex_session",
+    "claude": "reuse_native_claude_session",
+    "optionalByokSelectionTransportInPrimaryPath": false
+  },
+  "preparation": {
+    "observedAtStart": "2026-08-29T16:00:00.000Z",
+    "manifestPreparedAt": "2026-08-29T16:05:00.000Z",
+    "sourceRevisionBinding": "root_head_working_tree_status_and_built_cli_digest",
+    "workstreamId": "wks_715d83744a212f47e5c6555c",
+    "workstreamRevision": 246,
+    "workstreamTitle": "Activate claim-eligible managed linked context",
+    "providerCalls": 0,
+    "executionAuthorized": false
+  },
+  "acceptance": {
+    "requiredCompletedRuns": 16,
+    "maximumAllowlistedFailures": 0,
+    "maximumPrivacyViolations": 0,
+    "exactReplayRequired": true,
+    "identicalNonContextPrimaryInputsRequired": true,
+    "completeE1E4EvidenceRequired": true,
+    "requiredSourceRecall": 1,
+    "minimumPerRunReferencePrecision": 0.5,
+    "minimumMeanReferencePrecisionPerProvider": 0.65,
+    "independentExpectedClaimReviewRequired": true
+  },
+  "retention": {
+    "root": ".lervo/state/search/linked-evidence-managed-canary-pilots",
+    "classification": "owner_only_deletable_derived_state",
+    "maximumPilots": 15,
+    "maximumPreparedManifests": 1
+  },
+  "passingDisposition": "eligible_for_activation_under_explicit_user_authority",
+  "failingDisposition": "preserve_evidence_and_restore_default_off_without_retry"
+}

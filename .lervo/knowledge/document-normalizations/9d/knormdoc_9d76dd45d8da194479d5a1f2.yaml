@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_90742a9e45ad705241d15e49
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_546611c874b8ed832234c56e
+outputLanguage: en
+outputs:
+  - byteCount: 4269
+    contentHash: sha256:0ecb3230bb14b20fed6e76a49f597ef7c34d4665201cbfbde1874aaee5aec36f
+    path: docs/decisions/search/activation/provider-shadow-structured/0283-prepare-deterministic-linked-context-canary-v4.md
+    userRegionHash: sha256:0ecb3230bb14b20fed6e76a49f597ef7c34d4665201cbfbde1874aaee5aec36f
+profile: decision_record
+recordId: knormdoc_9d76dd45d8da194479d5a1f2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bea62d13d56388edc6ac797986f313233ce47df228c5ec5fbfa22f85bab3c6a6
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0283-prepare-deterministic-linked-context-canary-v4.md
+sourceUnitVersionIds:
+  - uv_181ab53307c9bbf5b8e82121
+  - uv_253a8616e0c289aa6f2f4007
+  - uv_499a23a01538f7bc249fcb18
+  - uv_9777c89cb71bd2a018cbddb8
+  - uv_c3c3f942d70cc61a9bd8fcbd
+  - uv_e0defafb3a84c54e28e9bf37

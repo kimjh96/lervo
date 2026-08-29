@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_d1b9ebcf86c8cf192f98f47f
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/0269-test-request-scoped-claim-coverage-v14.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_594319dcbdfd7780d71f4608
+title: "ADR-0269: Test request-scoped claim coverage in v14"
+type: decision

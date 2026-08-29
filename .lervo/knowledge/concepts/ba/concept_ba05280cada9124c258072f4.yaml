@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_ba05280cada9124c258072f4
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/0286-use-machine-output-role-for-key-free-managed-canary-v7.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_723447eb7e209b7a8811ef62
+title: "ADR-0286: Use a machine-output role for key-free managed canary v7"
+type: decision

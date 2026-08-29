@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_6b6f85654d49953ac9aa2ef9
+freshness: current
+ownership: user
+path: docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v17.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_16702b3dc340dcd17b5a3790
+title: Relational-coverage provider-shadow v17
+type: concept

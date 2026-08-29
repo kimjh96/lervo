@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_30bab61992c8aeab0555b651
+freshness: current
+ownership: user
+path: docs/evidence/search/linked-evidence-reconciliation-v8.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_6e809842315af8eb0af2661f
+title: Linked-evidence reconciliation v8 observation
+type: concept

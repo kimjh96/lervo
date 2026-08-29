@@ -1,0 +1,18 @@
+destinationHash: sha256:6b801c6e261a2263659f677a7630dc06878a3481cb09280d18c386d4fa852e78
+destinationPath: docs/evidence/search/provider-shadow/codex-claude-linked-evidence-provider-shadow-history.md
+extractedRange:
+  endByte: 10291
+  startByte: 7359
+identityPath: docs/evidence/search/codex-claude-linked-evidence-measurement-report.md
+kind: document_split
+lineageId: klineage_93c8f06ca6a4d943c3b6cd17
+operationId: kdocop_4a36a331fca6b9815091347f
+schemaVersion: 1
+selectedHeadingLocator: heading:Codex and Claude linked-evidence measurement report > Provider measurements
+sourceAfterHash: sha256:6c9cefbe3982f8cfa8b95634fa4a19334995de2982eaa660dce1174630063cc7
+sourceBeforeByteCount: 23540
+sourceBeforeHash: sha256:ed8e84f0e09f3e2e7213bbe848a2f16961630e6fc0b8d563e0fef0553403c569
+sourceId: src_fc9dac6dbf64c676a62a1de2
+sourcePath: docs/evidence/search/codex-claude-linked-evidence-measurement-report.md
+sourceUnitBindingDigest: sha256:adc205356bee22c038b0122e1ce418cf0118349d5de4f12526f3b2c821ffab5b
+sourceUnitCount: 11

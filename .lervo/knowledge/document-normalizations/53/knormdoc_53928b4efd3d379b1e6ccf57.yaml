@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_de1ed5aa81dc1d9c05ef8b04
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2a7e541e77148ede87e3b649
+outputLanguage: en
+outputs:
+  - byteCount: 2836
+    contentHash: sha256:ae3aa750a119cf84d008619b602852448cdd276d6acf1dd1e5c6d7dc8065005e
+    path: docs/decisions/search/activation/provider-shadow-structured/typed-context/0299-stop-v16-and-expand-canary-observation-capacity.md
+    userRegionHash: sha256:ae3aa750a119cf84d008619b602852448cdd276d6acf1dd1e5c6d7dc8065005e
+profile: decision_record
+recordId: knormdoc_53928b4efd3d379b1e6ccf57
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5fc57208f1e30ebc0d91671d075a700fe7c11f97e39e3f57058c0373fc0e21f9
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/typed-context/0299-stop-v16-and-expand-canary-observation-capacity.md
+sourceUnitVersionIds:
+  - uv_0b6a1700d8be8ba0d1bb1e27
+  - uv_30b01ba90dd8f1bcdac88ed2
+  - uv_42b3afd76f1efcc29a82b64c
+  - uv_82da2f982e3d0632f0a67bf6
+  - uv_8e00e9b0b0b78dea7ce3b847
+  - uv_f4db48fa9710b55fe700bce1

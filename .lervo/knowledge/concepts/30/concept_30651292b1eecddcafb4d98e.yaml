@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_30651292b1eecddcafb4d98e
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/0274-test-relational-coverage-provider-shadow-v17.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_b94d9c33cb375909ac131cd1
+title: "ADR-0274: Test relational coverage in provider-shadow v17"
+type: decision

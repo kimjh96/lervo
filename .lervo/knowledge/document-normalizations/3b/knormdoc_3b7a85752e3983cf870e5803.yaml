@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0f18725bcf9df2e7b2f42dd0
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f263a20979f31cbf674174ad
+outputLanguage: en
+outputs:
+  - byteCount: 15627
+    contentHash: sha256:f629339dca6f56ce64798bd6d8fd0572541f30556e00683d03285fc92398f752
+    path: docs/decisions/knowledge/repository/0222-bounded-role-based-document-layout.md
+    userRegionHash: sha256:f629339dca6f56ce64798bd6d8fd0572541f30556e00683d03285fc92398f752
+profile: decision_record
+recordId: knormdoc_3b7a85752e3983cf870e5803
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f629339dca6f56ce64798bd6d8fd0572541f30556e00683d03285fc92398f752
+sourcePath: docs/decisions/knowledge/repository/0222-bounded-role-based-document-layout.md
+sourceUnitVersionIds:
+  - uv_13f9f5d1276df0e0b2824773
+  - uv_2f84079c0e1d49b6dc8d40ec
+  - uv_38e030e7d3e4ac131090cb83
+  - uv_4b4e25505d9f963029c76baa
+  - uv_6e1af6c7a5e9807e7c384c1c
+  - uv_9ffe6853da252eda53c5c118
+  - uv_abfde425d63fa447c3f1e4d9
+  - uv_d4967c66d2d142500eaa1ac0
+  - uv_d51220d966c6ca6def2783d9
+  - uv_de9551d64810693a27932e15

@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_564ed5a25f21b18d5227d1c9
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_673ba163fc5f48bbeceacf8c
+outputLanguage: en
+outputs:
+  - byteCount: 3507
+    contentHash: sha256:d261be7f7fd97de708c54cb12fec407cab1e7d25ca745f4ee5bdc36701783273
+    path: docs/decisions/search/activation/provider-shadow-structured/0276-confirm-relational-coverage-provider-shadow-v18.md
+    userRegionHash: sha256:d261be7f7fd97de708c54cb12fec407cab1e7d25ca745f4ee5bdc36701783273
+profile: decision_record
+recordId: knormdoc_4da1b546012c85068f461d1f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f7d6111c3edfb40114cde83725af7d79f1f9d54534a9557559952fdc31cb8c8d
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0276-confirm-relational-coverage-provider-shadow-v18.md
+sourceUnitVersionIds:
+  - uv_9a87978a9df1a2f32098b60b
+  - uv_acf25fb8e1daca2a9398e27b
+  - uv_c5c7c395c145cd52621f0616
+  - uv_d1c96b0e7ac2dc37488f97c6
+  - uv_e28b16b5c92402a380fc28da
+  - uv_ed1697670a2dd78665bc5ec7

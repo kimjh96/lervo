@@ -37,8 +37,9 @@ import { buildManagedContextItems } from "./context-items.js";
 import { CodexEventNormalizer } from "./normalize.js";
 import { CodexSessionRegistry } from "./session-registry.js";
 import { CodexManagedWriteController } from "./managed-write.js";
+import { CodexResponsesNoToolClient } from "./responses-no-tool-client.js";
 import { captureCodexTurnResult } from "./turn-result.js";
-import { CodexAdapterError, type CodexAdapterOptions } from "./types.js";
+import { CodexAdapterError, type CodexAdapterOptions, type CodexAppServerClient } from "./types.js";
 
 export class CodexAdapter implements ProviderAdapter {
   readonly descriptor: AdapterDescriptor = {
@@ -95,7 +96,25 @@ export class CodexAdapter implements ProviderAdapter {
         "The Codex managed session execution mode is inconsistent with its sandbox and approval settings.",
       );
     }
+    const requestedNoToolTransport = this.options.transport?.kind === "responses_api_no_tools";
+    if (
+      requestedNoToolTransport &&
+      (request.executionMode !== "read_only" || request.capabilityActivations?.length)
+    ) {
+      throw new CodexAdapterError(
+        "invalid_request",
+        "The Codex Responses no-tool transport accepts only a read-only session without capability activations.",
+      );
+    }
     const client = await this.createClient();
+    const noToolTransport = client.toolBoundary === "no_tools";
+    if (requestedNoToolTransport !== noToolTransport) {
+      await client.close().catch(() => undefined);
+      throw new CodexAdapterError(
+        "capability_activation_failed",
+        "The selected Codex client did not attest the requested tool boundary.",
+      );
+    }
     try {
       const activations = request.capabilityActivations ?? [];
       const mcpServers: Record<string, unknown> = {};
@@ -170,7 +189,19 @@ export class CodexAdapter implements ProviderAdapter {
         executionMode: request.executionMode,
         effectiveCapabilities: {
           ...this.descriptor.capabilities,
-          fileChanges: request.executionMode === "managed_write" ? "supported" : "unsupported",
+          ...(noToolTransport
+            ? {
+                toolCalls: "unsupported" as const,
+                commandExecution: "unsupported" as const,
+                fileChanges: "unsupported" as const,
+                contextCompaction: "unsupported" as const,
+              }
+            : {
+                fileChanges:
+                  request.executionMode === "managed_write"
+                    ? ("supported" as const)
+                    : ("unsupported" as const),
+              }),
         },
         startedAt: timestamp(this.now, "Codex session start time", request.requestedAt),
       };
@@ -261,6 +292,8 @@ export class CodexAdapter implements ProviderAdapter {
         documentId: document.documentId,
         contentHash: document.contentHash,
         scope: clone(document.scope),
+        documentRole: document.documentRole,
+        referenceEligible: document.referenceEligible,
         status: "injected" as const,
       })),
       acceptedAt,
@@ -324,6 +357,9 @@ export class CodexAdapter implements ProviderAdapter {
     const providerTurn = await state.client.startTurn(
       session.providerSessionId,
       request.instructions,
+      this.options.structuredOutputSchema === undefined
+        ? undefined
+        : { outputSchema: structuredClone(this.options.structuredOutputSchema) },
     );
     state.activeProviderTurnId = providerTurn.turnId;
     state.startedTargetTurnIds.add(request.targetTurnId);
@@ -481,8 +517,23 @@ export class CodexAdapter implements ProviderAdapter {
     return clone(result);
   }
 
-  private async createClient() {
+  private async createClient(): Promise<CodexAppServerClient> {
     if (this.options.clientFactory !== undefined) return this.options.clientFactory();
+    if (this.options.transport?.kind === "responses_api_no_tools") {
+      return new CodexResponsesNoToolClient({
+        ...(this.options.transport.apiKey === undefined
+          ? {}
+          : { apiKey: this.options.transport.apiKey }),
+        ...(this.options.transport.model === undefined
+          ? {}
+          : { model: this.options.transport.model }),
+        ...(this.options.transport.fetch === undefined
+          ? {}
+          : { fetch: this.options.transport.fetch }),
+        requestTimeoutMs: this.options.requestTimeoutMs ?? 30_000,
+        now: this.now,
+      });
+    }
     return CodexStdioAppServerClient.connect({
       executable: this.options.executable ?? "codex",
       cwd: this.repositoryRoot,

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_42d907559befd40d23a24d67
+freshness: current
+ownership: user
+path: docs/decisions/search/0245-evaluate-staged-evidence-selection-v7.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_25f45fcde7a69fce2a8d3d8c
+title: "ADR-0245: Evaluate staged evidence selection v7"
+type: decision

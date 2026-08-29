@@ -181,6 +181,8 @@
           "documentId": "doc_01234567",
           "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "scope": { "kind": "full" },
+          "documentRole": "task_evidence",
+          "referenceEligible": true,
           "status": "injected"
         }
       ],

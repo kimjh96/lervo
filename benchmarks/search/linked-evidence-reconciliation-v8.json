@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "drbench_linked_evidence_reconciliation_v8.v1",
+  "benchmarkMode": "linked_evidence_reconciliation_v8_comparison",
+  "protocolId": "linked-evidence-reconciliation-v8",
+  "protocolDigest": "sha256:442a90ce92cbc511bc23b69d83d01585fb747abe361351ee2c15986bb1379fe4",
+  "provenance": "human_reviewed",
+  "reviewStatus": "human_reviewed",
+  "groundTruthReview": {
+    "reviewedAt": "2026-08-28",
+    "reviewBasis": "explicit_user_approval",
+    "correctedCaseId": "drv8case_boundary_fuzzy_merge",
+    "retainedCaseCount": 7
+  },
+  "publicQueries": true,
+  "modelResponseLocale": "ko",
+  "lexicalLimit": 3,
+  "repetitionsPerArm": 3,
+  "coverage": {
+    "corePaths": ["README.md", "docs/architecture/system.md", "docs/specifications/execution.md"],
+    "maximumAsciiTerms": 8,
+    "termLexicalLimit": 1,
+    "maximumInjectedCoverageBytes": 98304,
+    "noHitCatalogFormat": "repository_path_title_opaque_selection_v1",
+    "maximumNoHitCatalogBytes": 65536,
+    "maximumNoHitCandidates": 4
+  },
+  "linkedEvidence": {
+    "sourceClass": "lexical_recommendations_only",
+    "traversal": "repository_markdown_inline_links_v1",
+    "maximumDepth": 1,
+    "maximumLinkedSources": 8,
+    "maximumLinkedSourceBytes": 65536,
+    "ordering": "recommendation_then_link_occurrence_prefix_v1"
+  },
+  "stages": {
+    "selectionOutput": "e4_or_opaque_catalog_selection_v1",
+    "answerOutput": "bounded_korean_prose_e4_v1",
+    "maximumSelectedSources": 8,
+    "loadSelectedBodiesOnly": true,
+    "separateSelectionLoadReferenceEvidence": true,
+    "exactHitSelectionFinalReferenceSet": true,
+    "noHitBehavior": "staged_evidence_v7_unchanged"
+  },
+  "acceptance": {
+    "minimumCasesPassingEveryRepetition": 6,
+    "requirePassCountNonInferiorityToModelDirect": true,
+    "requireRecallNonInferiorityToModelDirect": true,
+    "maximumTokenRatioToModelDirectBasisPoints": 8500,
+    "maximumDurationRatioToModelDirectBasisPoints": 9500,
+    "maximumNoHitP95RatioToModelDirectBasisPoints": 10000,
+    "maximumNoHitStandardDeviationRatioToModelDirectBasisPoints": 10000,
+    "maximumFailedSelectionContracts": 0,
+    "maximumFailedCoverageContracts": 0,
+    "maximumFailedReconciliationContracts": 0,
+    "maximumFailedSourceMarkerContracts": 0,
+    "maximumFailedResponseContracts": 0,
+    "maximumDroppedRelevantRecommendations": 0,
+    "maximumDroppedRelevantLinkedSources": 0,
+    "maximumDroppedRelevantCoverageSources": 0,
+    "maximumDroppedRelevantNoHitCandidates": 0,
+    "maximumFailedContracts": 0
+  },
+  "corpusRoots": ["README.md", "AGENTS.md", "docs"],
+  "corpusExclusions": [
+    "docs/decisions/search/0224-natural-language-grounding-quality-evaluation.md",
+    "docs/decisions/search/0225-revise-local-hybrid-for-cross-language-recall.md",
+    "docs/decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md",
+    "docs/decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md",
+    "docs/decisions/search/0240-evaluate-catalog-assisted-retrieval-v3.md",
+    "docs/decisions/search/0241-evaluate-deterministic-core-term-coverage-v4.md",
+    "docs/evidence/search",
+    "docs/knowledge",
+    "docs/roadmap/natural-language-grounding-quality.md",
+    "docs/decisions/search/0243-evaluate-observable-reference-markers-v5.md",
+    "docs/decisions/search/0244-evaluate-marker-derived-source-paths-v6.md",
+    "docs/decisions/search/0245-evaluate-staged-evidence-selection-v7.md",
+    "docs/decisions/search/0246-evaluate-linked-evidence-reconciliation-v8.md"
+  ],
+  "cases": [
+    {
+      "caseId": "drv8case_implementation_release",
+      "taskType": "task_start_and_how_to",
+      "requestStyle": "ordinary_implementation",
+      "lexicalExpectation": "recommendations",
+      "query": "CLI 릴리스 준비 작업을 진행하려고 해. 먼저 따라야 할 canonical release sources를 찾아줘",
+      "expectedPaths": [
+        "docs/distribution/cli-version-management.md",
+        "docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md"
+      ]
+    },
+    {
+      "caseId": "drv8case_terse_release",
+      "taskType": "task_start_and_how_to",
+      "requestStyle": "terse_do",
+      "lexicalExpectation": "recommendations",
+      "query": "CLI 릴리스 준비해줘",
+      "expectedPaths": [
+        "docs/distribution/cli-version-management.md",
+        "docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md"
+      ]
+    },
+    {
+      "caseId": "drv8case_rationale_hybrid_search",
+      "taskType": "historical_rationale",
+      "requestStyle": "historical_rationale",
+      "lexicalExpectation": "recommendations",
+      "query": "예전에 local hybrid search와 reviewed relation context 작업을 왜 했었지?",
+      "expectedPaths": [
+        "docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md"
+      ]
+    },
+    {
+      "caseId": "drv8case_status_node_fleet",
+      "taskType": "status_continuation_impact",
+      "requestStyle": "impact",
+      "lexicalExpectation": "recommendations",
+      "query": "repository Node fleet 진행하면 architecture와 gradual rollout에 뭐가 영향 받아?",
+      "expectedPaths": [
+        "docs/architecture/system.md",
+        "docs/roadmap/coordination/repository-node-fleet.md"
+      ]
+    },
+    {
+      "caseId": "drv8case_boundary_fuzzy_merge",
+      "taskType": "ambiguity_and_contract_boundary",
+      "requestStyle": "approval_or_ownership_boundary",
+      "lexicalExpectation": "recommendations",
+      "query": "fuzzy merge를 승인 없이 자동 적용해도 돼? conflict resolution 근거 찾아줘",
+      "expectedPaths": [
+        "docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md",
+        "docs/decisions/knowledge/semantics/0227-approval-gated-cross-provider-fuzzy-merge.md"
+      ]
+    },
+    {
+      "caseId": "drv8case_boundary_user_owned_block",
+      "taskType": "ambiguity_and_contract_boundary",
+      "requestStyle": "approval_or_ownership_boundary",
+      "lexicalExpectation": "recommendations",
+      "query": "managed block 작업할 때 user-owned content 자동으로 덮어써도 돼?",
+      "expectedPaths": ["docs/specifications/execution.md"]
+    },
+    {
+      "caseId": "drv8case_rationale_continuation_why",
+      "taskType": "historical_rationale",
+      "requestStyle": "historical_rationale",
+      "lexicalExpectation": "no_hits",
+      "query": "예전에 왜 이전 작업 상태를 다음 대화에서도 이어가게 했었지?",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md"
+      ]
+    },
+    {
+      "caseId": "drv8case_rationale_continuation_conversation",
+      "taskType": "historical_rationale",
+      "requestStyle": "historical_rationale",
+      "lexicalExpectation": "no_hits",
+      "query": "전에 하던 일을 새 대화에서도 계속할 수 있게 만든 이유가 뭐였지?",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md"
+      ]
+    }
+  ]
+}

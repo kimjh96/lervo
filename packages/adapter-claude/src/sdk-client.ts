@@ -108,6 +108,7 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
           ...(options.executable === undefined
             ? {}
             : { pathToClaudeCodeExecutable: options.executable }),
+          ...(options.outputFormat === undefined ? {} : { outputFormat: options.outputFormat }),
           sessionId: options.providerSessionId,
           permissionMode: options.permissionMode,
           settingSources: [],

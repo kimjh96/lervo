@@ -11,9 +11,9 @@
     },
     {
       "path": "apps/cli/src/knowledge-structure-command.ts",
-      "contentHash": "sha256:68e42d51eeefa0930abdfb427bf8624ca55911ed3d35c08bd3146f3a6475b9de",
+      "contentHash": "sha256:ceb08e80142892fca0475b79f2cccfad8316fc89a760219119636a85ec9d12dd",
       "responsibility": "User document structure command adapter",
-      "rationale": "Move, merge, split, and delete are variants of one exact-approved document-structure command contract and share the same validation, materialization event, and rollback boundary.",
+      "rationale": "Move, merge, split, and delete are variants of one exact-approved document-structure command contract and share the same validation, normalization-relocation reporting, materialization event, and rollback boundary.",
       "disposition": "cohesive"
     },
     {
@@ -24,8 +24,15 @@
       "disposition": "cohesive"
     },
     {
+      "path": "apps/cli/src/managed-linked-evidence-canary.ts",
+      "contentHash": "sha256:db08d44e3c5bc37f80b0a0dcb848de4c49be67f4a4fa33d79be71d4d4f036558",
+      "responsibility": "Managed linked-evidence provider selection orchestration",
+      "rationale": "The module owns one read-only selection adapter lifecycle; pure projection and authorization, durable record construction, and managed-run composition remain in separate modules.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:6710afb3fb7460e5e87688bdd1c86993d23312533170e49d46bb66f141755075",
+      "contentHash": "sha256:e6b9dd37345e844499cf396d054315aa32983e0d9df3b8e3af320e9adc22c08e",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The module composes one managed provider-run boundary; provider differences remain injected dependencies and no unrelated CLI subcommand or persistence policy is owned here.",
       "disposition": "cohesive"
@@ -67,16 +74,16 @@
     },
     {
       "path": "packages/adapter-claude/src/claude-adapter.ts",
-      "contentHash": "sha256:32ec984e679117d6ca7e82438dfc9e87c40c77618a8eaf6207005d757dc1f722",
+      "contentHash": "sha256:ef4481dcff198ac840716c47db627b54ca4f6b2fc5e6a654dc71a9349c7284ea",
       "responsibility": "Claude managed-provider adapter",
       "rationale": "The class owns one external Claude protocol boundary and translates native session, tool, telemetry, stop, and result behavior into common adapter contracts.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/adapter-codex/src/codex-adapter.ts",
-      "contentHash": "sha256:23f864ac5f4075818a7fc746d9eabc3919e629fdbfe276d05f07a78368976bfd",
+      "contentHash": "sha256:bfb0fd142df3adc09a9a1faf4ba8f7128f67c9fcb4314d8ed2e5c8cc4c5e14ee",
       "responsibility": "Codex managed-provider adapter",
-      "rationale": "The class owns one external Codex protocol boundary and translates native thread, turn, telemetry, stop, and result behavior into common adapter contracts.",
+      "rationale": "The class owns the Codex provider boundary, selects one injected native transport, and translates thread, turn, telemetry, stop, and result behavior into common adapter contracts; the app-server and Responses clients retain their own transport parsing.",
       "disposition": "cohesive"
     },
     {
@@ -130,7 +137,7 @@
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:34a4c1fbfcc6cf06be3a62a40861d7570c7dce2b39f53354bfefc5a0029205dd",
+      "contentHash": "sha256:ee1f935863fa819d9c944139004986274dbb25bc268e2baa06d1d32e5ce5119e",
       "responsibility": "Managed provider-run coordinator",
       "rationale": "Snapshotting, abort handling, context delivery, turn execution, validation, and stop are phases of one provider-neutral managed-run state machine.",
       "disposition": "cohesive"
@@ -165,7 +172,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:1c69af12025f5e328a98e388501f34289738bf37de15e9deee51efd44e79cd3e",
+      "contentHash": "sha256:2187dbc993ee57474e86dd8c0bce41e15036274055fe60de57167f9057946f00",
       "responsibility": "Reviewed document normalization lifecycle",
       "rationale": "Profiles, envelopes, candidate validation, compiler invocation, storage, inspection, plan, and exact-approved apply all share one content-bound normalization contract.",
       "disposition": "cohesive"
@@ -179,9 +186,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-move.ts",
-      "contentHash": "sha256:e5418ab53cfcf0d3547f343b7c5c7f71e1ed497e6f7e6a62ff87ba56ad42b259",
+      "contentHash": "sha256:b6007c309c2ffc51f440bbea460dbcbe47656c782c98874f43e622e3274e0ac3",
       "responsibility": "Exact-approved document move operation",
-      "rationale": "Destination safety, plan serialization, lineage preservation, plan creation, and apply are one atomic document-move responsibility.",
+      "rationale": "Destination safety, plan serialization, lineage, single-output normalization-record preservation, exact rewrite-ownership projection, plan creation, and apply are one atomic document-move responsibility; normalization record and Prettier projection mechanics remain in separate bounded modules.",
       "disposition": "cohesive"
     },
     {
@@ -235,14 +242,14 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:24a88084a1a2c45184711fb8948eee5f731e76681f0b0c13be437d8c5ae7caa9",
+      "contentHash": "sha256:f0dd4e0c10a27f156449658957f55630a58dc181e25f4df312586ecef459af34",
       "responsibility": "Repository document-layout migration",
       "rationale": "Classification, link rebasing, rewrite-ownership reconciliation, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:d130a37ebcf8619f00e047b88bfa2ffebc5505b849147fa425396e15273039dd",
+      "contentHash": "sha256:41dbb77aefaf23377964e5b0f100ff52742321da895fc91d54c4461bfee483bc",
       "responsibility": "Bounded repository knowledge scanner",
       "rationale": "Classification, safe reads, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate.",
       "disposition": "cohesive"
@@ -298,7 +305,7 @@
     },
     {
       "path": "packages/schemas/src/adapter.ts",
-      "contentHash": "sha256:b16e4b35ff43028a0c907e7386ecb7ebf32eae1f19922c7d303bd469c1e870fb",
+      "contentHash": "sha256:396a1f8357eee912ec5644dfdfc15af3a0dec5053b3ac5f88c3a19caceb66d0a",
       "responsibility": "Managed provider adapter schema catalog",
       "rationale": "The file is a declarative schema catalog for one adapter protocol; its length is data-shaped and contains no independent executable workflow.",
       "disposition": "cohesive"
@@ -336,6 +343,20 @@
       "contentHash": "sha256:30674fa0a7b486e5d749157694a257c5d8d68266d50012fec7c9567f1f715360",
       "responsibility": "Runtime service lifecycle manager",
       "rationale": "Parsing, definition validation, status stabilization, install, compensate, remove, activate, and upgrade operate on one service transaction boundary.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "scripts/natural-language-evaluation/linked-evidence-managed-canary-recent-checkpoints.mjs",
+      "contentHash": "sha256:448575575da38837be4a3791169762037a07b7e7bc4302821c3f3cd8c88c44b9",
+      "responsibility": "Recent managed-canary checkpoint validation",
+      "rationale": "The module declaratively validates one lineage of recent immutable canary checkpoints; preparation, execution, storage, and reporting remain in separate modules, while the length follows explicit version-bound predecessor evidence.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "scripts/natural-language-evaluation/linked-evidence-provider-shadow-pilot-v2-contract.mjs",
+      "contentHash": "sha256:1da19d9d9cde816be48cb6930341ac4230f36b906a7369c7ff4395871d774721",
+      "responsibility": "Versioned provider-shadow pilot contract validation",
+      "rationale": "The module composes and validates one lineage of immutable provider-shadow contracts; policy, preparation I/O, execution, observation, and review remain in separate modules, while the length follows explicit historical contract variants.",
       "disposition": "cohesive"
     },
     {

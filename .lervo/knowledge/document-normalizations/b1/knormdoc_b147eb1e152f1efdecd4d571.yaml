@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_39f5db912349b49519317cae
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1e9739900505d1be57bc5033
+outputLanguage: en
+outputs:
+  - byteCount: 3048
+    contentHash: sha256:ee6370d21bd2239bdcca7c458bc0a44ee96676a944bf9703d3a0aefc15df3652
+    path: docs/decisions/search/activation/provider-shadow-structured/typed-context/0296-reject-activation-after-typed-context-managed-canary-v14.md
+    userRegionHash: sha256:ee6370d21bd2239bdcca7c458bc0a44ee96676a944bf9703d3a0aefc15df3652
+profile: decision_record
+recordId: knormdoc_b147eb1e152f1efdecd4d571
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2b2f70fe0cf82e80c53005a78ba29f6deb80ed5935228ca09942399edaf75c2a
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/typed-context/0296-reject-activation-after-typed-context-managed-canary-v14.md
+sourceUnitVersionIds:
+  - uv_17fa861f13d5e70f417fd6eb
+  - uv_3e42482530c2d11e027da606
+  - uv_768725d78a6aeafa8a78f784
+  - uv_7f0f424aefd70020b0dcc808
+  - uv_7fd9ddd6513e7a4eaac79c0e
+  - uv_a1b2b2b2f29e602800824484

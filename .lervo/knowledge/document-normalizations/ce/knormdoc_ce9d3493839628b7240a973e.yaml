@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_90742a9e45ad705241d15e49
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ea5615462854b849cfe5f061
+outputLanguage: en
+outputs:
+  - byteCount: 3933
+    contentHash: sha256:c56e6887abdc01f8790a7a84eb4a06b44ad96cf4a5b08ce2192427e48f86f2f5
+    path: docs/decisions/search/activation/provider-shadow-structured/0284-prepare-exact-deterministic-native-session-canary-v5.md
+    userRegionHash: sha256:c56e6887abdc01f8790a7a84eb4a06b44ad96cf4a5b08ce2192427e48f86f2f5
+profile: decision_record
+recordId: knormdoc_ce9d3493839628b7240a973e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:aa2bf240d94103fb4ccdb8991e8dbbe3d096e8766d5db6c604f3c2e711df4603
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0284-prepare-exact-deterministic-native-session-canary-v5.md
+sourceUnitVersionIds:
+  - uv_1b4752044fc27bc371ab1e36
+  - uv_23cd4c29ce347adc1be71101
+  - uv_707c2cb8882f2644a2111a88
+  - uv_7c12834d16941c8e5def1476
+  - uv_8669c068c5fbcd20aa583b27
+  - uv_a1e5dd88a871f69690a26613

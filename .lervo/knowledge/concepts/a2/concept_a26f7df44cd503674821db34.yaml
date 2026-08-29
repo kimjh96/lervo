@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a26f7df44cd503674821db34
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/typed-context/0299-stop-v16-and-expand-canary-observation-capacity.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_ca0fc2c3777a7508695c6b41
+title: "ADR-0299: Stop v16 and expand canary observation capacity"
+type: decision

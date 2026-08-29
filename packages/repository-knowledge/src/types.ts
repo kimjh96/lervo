@@ -16,7 +16,6 @@ export type RepositorySourceKind =
   | "execution_event"
   | "log"
   | "other";
-
 export type SourceInventoryStatus = "included" | "excluded" | "unsupported";
 export type SourceClassification = "ordinary" | "sensitive" | "secret_candidate" | "unsupported";
 export type SourceUnitKind =
@@ -82,6 +81,7 @@ export interface RepositoryKnowledgePolicy {
     maxNavigationEntries: number;
     maxNavigationBytes: number;
   };
+  normalization?: { exclude: string[] };
   exclude: string[];
   limits: {
     maxFiles: number;

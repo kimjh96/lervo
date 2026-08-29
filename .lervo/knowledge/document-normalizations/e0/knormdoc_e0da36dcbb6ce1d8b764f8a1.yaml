@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_850d959e25c6470774bc98b5
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d7316f2c8852c819b3657913
+outputLanguage: en
+outputs:
+  - byteCount: 2548
+    contentHash: sha256:2017c4bdb8e4879d8b6f0391632bd45f4d464c5a635d5effc1de60146855838d
+    path: docs/decisions/search/activation/provider-shadow-structured/0292-reject-prompt-only-e4-constraint-after-managed-canary-v12.md
+    userRegionHash: sha256:2017c4bdb8e4879d8b6f0391632bd45f4d464c5a635d5effc1de60146855838d
+profile: decision_record
+recordId: knormdoc_e0da36dcbb6ce1d8b764f8a1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:aed0f826276085dc7371f7277b8c23765c30cba75fc81aefa095e01e14436c31
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0292-reject-prompt-only-e4-constraint-after-managed-canary-v12.md
+sourceUnitVersionIds:
+  - uv_53b720822d7bf51819113ba6
+  - uv_68da3419162ad20e608e9806
+  - uv_87e7f7722c2faf039495665f
+  - uv_ab9a387c0792a50f6d6195f0
+  - uv_b230dc6c8e508a12f026713a
+  - uv_d4c40ff15587e27c52924005

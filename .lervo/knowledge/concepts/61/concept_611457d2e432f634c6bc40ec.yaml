@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_611457d2e432f634c6bc40ec
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/0285-authorize-exact-key-free-managed-canary-v6.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_cbbfcde8bb037adc6be34608
+title: "ADR-0285: Authorize the exact key-free managed canary v6"
+type: decision

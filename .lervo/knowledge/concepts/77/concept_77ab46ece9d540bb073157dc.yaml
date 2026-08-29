@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_77ab46ece9d540bb073157dc
+freshness: current
+ownership: user
+path: docs/evidence/search/marker-derived-paths-v6.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_e9b98d3e1c2d85b4a29ef85c
+title: Marker-derived repository retrieval v6
+type: concept

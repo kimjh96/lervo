@@ -24,6 +24,7 @@ const requestDigest = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 export class FakeManagedAdapter implements ProviderAdapter {
   readonly descriptor: AdapterDescriptor;
   readonly calls: string[] = [];
+  readonly turnRequests: AdapterTurnRequest[] = [];
   stopReason: AdapterStopRequest["reason"] | undefined;
   private session: AdapterSession | undefined;
   private turnId: string | undefined;
@@ -171,6 +172,8 @@ export class FakeManagedAdapter implements ProviderAdapter {
         documentId: document.documentId,
         contentHash: document.contentHash,
         scope: document.scope,
+        documentRole: document.documentRole,
+        referenceEligible: document.referenceEligible,
         status: "injected" as const,
       })),
       acceptedAt: envelope.createdAt,
@@ -191,6 +194,7 @@ export class FakeManagedAdapter implements ProviderAdapter {
     accepted: (turn: import("@lervo/schemas").AdapterTurn) => void,
   ) {
     this.calls.push("startTurn");
+    this.turnRequests.push(structuredClone(request));
     this.turnId = `${this.descriptor.provider}-turn-1`;
     this.turn = {
       kind: "turn" as const,

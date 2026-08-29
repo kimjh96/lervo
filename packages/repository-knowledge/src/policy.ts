@@ -16,10 +16,15 @@ export const defaultRepositoryKnowledgePolicy: RepositoryKnowledgePolicy = {
     maxNavigationEntries: 24,
     maxNavigationBytes: 8192,
   },
+  normalization: { exclude: [] },
   exclude: [
     ".git/**",
     ".lervo/**",
     ".changes/**",
+    ".venv/**",
+    "**/.venv/**",
+    "venv/**",
+    "**/venv/**",
     "node_modules/**",
     "**/node_modules/**",
     "dist/**",
@@ -67,6 +72,7 @@ function isStringArray(value: unknown): value is string[] {
 export function validateRepositoryKnowledgePolicy(value: unknown): RepositoryKnowledgePolicy {
   const item = value as Partial<RepositoryKnowledgePolicy> | null;
   const publication = item?.publication ?? defaultRepositoryKnowledgePolicy.publication;
+  const normalization = item?.normalization ?? defaultRepositoryKnowledgePolicy.normalization!;
   if (
     item === null ||
     typeof item !== "object" ||
@@ -87,6 +93,9 @@ export function validateRepositoryKnowledgePolicy(value: unknown): RepositoryKno
     !Number.isSafeInteger(publication.maxNavigationBytes) ||
     publication.maxNavigationBytes < 1024 ||
     publication.maxNavigationBytes > 65_536 ||
+    typeof normalization !== "object" ||
+    normalization === null ||
+    !isStringArray(normalization.exclude) ||
     !isStringArray(item.exclude) ||
     item.limits === undefined ||
     !Number.isSafeInteger(item.limits.maxFiles) ||
@@ -101,7 +110,11 @@ export function validateRepositoryKnowledgePolicy(value: unknown): RepositoryKno
       ".lervo/knowledge/policy.yaml does not satisfy the repository knowledge policy contract.",
     );
   }
-  return { ...(item as RepositoryKnowledgePolicy), publication: { ...publication } };
+  return {
+    ...(item as RepositoryKnowledgePolicy),
+    publication: { ...publication },
+    normalization: { exclude: [...normalization.exclude] },
+  };
 }
 
 export async function loadRepositoryKnowledgePolicy(

@@ -45,3 +45,82 @@ export async function registerSearchContextDocument(root: string): Promise<void>
     serializeYaml(manifest),
   );
 }
+
+export async function registerLinkedSearchContextDocuments(root: string): Promise<void> {
+  await registerSearchContextDocument(root);
+  await writeFile(
+    resolve(root, "docs/search-context.md"),
+    [
+      "# Implement a small file",
+      "",
+      "Implement a small file with zephyrcontext. Implement a small file as tinyartifact.",
+      "Implement a small file using the exact tinyartifact guide.",
+      "",
+      "Apply the [bounded linked constraint](linked-constraint.md).",
+      "",
+    ].join("\n"),
+  );
+  const linkedManifest: DocumentManifest = {
+    schemaVersion: 1,
+    documentId: "doc_zzz_linked_constraint",
+    record: {
+      path: "docs/linked-constraint.md",
+      kind: "canonical",
+      responsibleParty: { kind: "team", id: "platform" },
+      connectedPaths: ["unrelated/**"],
+      verifiedRevision: "fixture-linked-v1",
+      verifiedAt: "2026-08-19T00:00:00Z",
+      reviewIntervalDays: 30,
+      ownership: { mode: "user" },
+    },
+    contentPolicy: {
+      mode: "user_managed",
+      mediaType: "text/markdown; charset=utf-8",
+      profileId: "search/context",
+      locale: "en",
+      audience: "human",
+      metadataPlacement: "sidecar",
+      historyMode: "separate_documents",
+      splitStrategy: "topic_documents",
+      automaticWrites: false,
+      splitRecommendedAtBytes: 32768,
+      oversizeReviewAtBytes: 65536,
+      overflowAction: "report_split_recommended",
+    },
+    relations: { supersedesDocumentIds: [], relatedDocumentIds: [] },
+  };
+  await writeFile(
+    resolve(root, "docs/linked-constraint.md"),
+    "# Bounded linked constraint\n\nPreserve the exact repository boundary.\n",
+  );
+  await writeFile(
+    resolve(root, ".lervo/documents/doc_zzz_linked_constraint.yaml"),
+    serializeYaml(linkedManifest),
+  );
+  for (let index = 1; index <= 8; index += 1) {
+    const suffix = String(index).padStart(2, "0");
+    const fillerManifest: DocumentManifest = {
+      ...structuredClone(linkedManifest),
+      documentId: `doc_fixture_context_${suffix}`,
+      record: {
+        ...structuredClone(linkedManifest.record),
+        path: `docs/context-fixture-${suffix}.md`,
+        verifiedRevision: `fixture-context-${suffix}`,
+      },
+    };
+    await writeFile(
+      resolve(root, fillerManifest.record.path),
+      [
+        `# Implement context fixture ${suffix}`,
+        "",
+        `Implement a small file for reserved observation material ${suffix}.`,
+        "Implement a small file for the bounded fixture.",
+        "",
+      ].join("\n"),
+    );
+    await writeFile(
+      resolve(root, `.lervo/documents/${fillerManifest.documentId}.yaml`),
+      serializeYaml(fillerManifest),
+    );
+  }
+}

@@ -123,6 +123,8 @@ class FixtureAdapter implements ProviderAdapter {
         documentId: document.documentId,
         contentHash: this.receiptHash ?? document.contentHash,
         scope: document.scope,
+        documentRole: document.documentRole,
+        referenceEligible: document.referenceEligible,
         status: "injected" as const,
       })),
       acceptedAt: "2026-08-18T00:00:02Z",
@@ -244,6 +246,8 @@ function fixture(provider: string) {
         contentHash,
         byteCount: 42,
         scope: { kind: "full" },
+        documentRole: "task_evidence",
+        referenceEligible: true,
         delivery: { kind: "inline", content: "fixture document" },
       },
       {
@@ -252,6 +256,8 @@ function fixture(provider: string) {
         contentHash: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         byteCount: 84,
         scope: { kind: "full" },
+        documentRole: "governance_context",
+        referenceEligible: false,
         delivery: { kind: "inline", content: "fixture writing policy" },
       },
     ],
@@ -401,6 +407,55 @@ describe("adapter contract evidence integrity", () => {
 
     const report = await evaluateAdapterContract(
       new ScopeChangingAdapter("codex"),
+      fixture("codex"),
+    );
+    expect(report.violations).toContainEqual(
+      expect.objectContaining({ code: "context_receipt_mismatch" }),
+    );
+  });
+
+  it("rejects a receipt that changes the typed document role", async () => {
+    class RoleChangingAdapter extends FixtureAdapter {
+      override async injectContext(
+        session: AdapterSession,
+        envelope: AdapterContextEnvelope,
+      ): Promise<AdapterContextReceipt> {
+        const receipt = await super.injectContext(session, envelope);
+        receipt.documents[0] = {
+          ...receipt.documents[0]!,
+          documentRole: "governance_context",
+          referenceEligible: false,
+        };
+        return receipt;
+      }
+    }
+
+    const report = await evaluateAdapterContract(
+      new RoleChangingAdapter("codex"),
+      fixture("codex"),
+    );
+    expect(report.violations).toContainEqual(
+      expect.objectContaining({ code: "context_receipt_mismatch" }),
+    );
+  });
+
+  it("rejects a receipt that changes claim reference eligibility", async () => {
+    class EligibilityChangingAdapter extends FixtureAdapter {
+      override async injectContext(
+        session: AdapterSession,
+        envelope: AdapterContextEnvelope,
+      ): Promise<AdapterContextReceipt> {
+        const receipt = await super.injectContext(session, envelope);
+        receipt.documents[0] = {
+          ...receipt.documents[0]!,
+          referenceEligible: false,
+        };
+        return receipt;
+      }
+    }
+
+    const report = await evaluateAdapterContract(
+      new EligibilityChangingAdapter("codex"),
       fixture("codex"),
     );
     expect(report.violations).toContainEqual(

@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_9c6856c7fcdc2900264b8ec0
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c89ba633ef0de2061340ef12
+outputLanguage: en
+outputs:
+  - byteCount: 7702
+    contentHash: sha256:909a464e1cb1d71d358d9d7f821cb0738fb279f5c884a888efbf8f7fba53f0f7
+    path: docs/evidence/search/marker-derived-paths-v6.md
+    userRegionHash: sha256:909a464e1cb1d71d358d9d7f821cb0738fb279f5c884a888efbf8f7fba53f0f7
+profile: repository_document
+recordId: knormdoc_442bc849b77e9cf373f00f11
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f51fd06222a3df9d54221c31b7afc127350ad2c5d3f0f5a3a414e9e9141646e6
+sourcePath: docs/evidence/search/marker-derived-paths-v6.md
+sourceUnitVersionIds:
+  - uv_4e60bccdfb9bb458cf37dcde
+  - uv_6a93fe199cf86c704c76426c
+  - uv_80806f1a89a6e8acec0c4b69
+  - uv_8a232322e02c31aec7041ea5
+  - uv_8d3f667bd8e686b1d7e74ead
+  - uv_cb2c364d391f40a82a9d762d
+  - uv_f58e5ae2d4e430bb79963806

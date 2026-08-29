@@ -8,6 +8,7 @@ import {
   type CodexThread,
   type CodexThreadStartOptions,
   type CodexTurn,
+  type CodexTurnStartOptions,
 } from "./types.js";
 
 interface PendingRequest {
@@ -130,11 +131,18 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
     await this.request("thread/inject_items", { threadId, items: structuredClone(items) });
   }
 
-  async startTurn(threadId: string, instructions: string): Promise<CodexTurn> {
+  async startTurn(
+    threadId: string,
+    instructions: string,
+    options: CodexTurnStartOptions = {},
+  ): Promise<CodexTurn> {
     const result = requiredRecord(
       await this.request("turn/start", {
         threadId,
         input: [{ type: "text", text: instructions }],
+        ...(options.outputSchema === undefined
+          ? {}
+          : { outputSchema: structuredClone(options.outputSchema) }),
       }),
     );
     const turn = requiredRecord(result.turn);

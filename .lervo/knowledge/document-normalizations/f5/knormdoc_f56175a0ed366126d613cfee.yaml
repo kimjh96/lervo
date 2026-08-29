@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_12a59c843133f34eadc1c064
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_984b19086ef61ecb758cf77d
+outputLanguage: en
+outputs:
+  - byteCount: 3596
+    contentHash: sha256:d8d631b99b1b394510bf4e90486b8e58a8e6e6d513b83483b68b46b80dab7e0e
+    path: docs/decisions/search/activation/0266-confirm-claim-coverage-over-four-cases-v12.md
+    userRegionHash: sha256:d8d631b99b1b394510bf4e90486b8e58a8e6e6d513b83483b68b46b80dab7e0e
+profile: decision_record
+recordId: knormdoc_f56175a0ed366126d613cfee
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:49f98dfac124d313d81b233155e1c693c79de2349134b4d4e4ace39b1574bca7
+sourcePath: docs/decisions/search/activation/0266-confirm-claim-coverage-over-four-cases-v12.md
+sourceUnitVersionIds:
+  - uv_1e3858a90ec2d8f3cb24ca0b
+  - uv_3305ba482cc753dc9327bb93
+  - uv_38ef975dcd97151c659e79bd
+  - uv_81f653e98e991463805a6af8
+  - uv_c984ce446e35d61790a16e12
+  - uv_dce2038351724a670fd35229

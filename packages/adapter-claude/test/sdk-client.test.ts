@@ -147,6 +147,21 @@ describe("Claude Agent SDK client", () => {
     await client.close();
   });
 
+  it("passes an explicit structured-output schema to the SDK", async () => {
+    const fake = fakeSdk();
+    const outputFormat = {
+      type: "json_schema" as const,
+      schema: { type: "object", required: ["evidenceTokens"] },
+    };
+    const client = await ClaudeSdkAgentClient.connect(
+      { ...clientOptions(), outputFormat },
+      fake.sdkStartup,
+    );
+
+    expect(fake.state.startupParams?.options?.outputFormat).toEqual(outputFormat);
+    await client.close();
+  });
+
   it("uses an isolated fail-closed SDK session and waits for exact input replays", async () => {
     const fake = fakeSdk();
     const client = await ClaudeSdkAgentClient.connect(clientOptions(), fake.sdkStartup);

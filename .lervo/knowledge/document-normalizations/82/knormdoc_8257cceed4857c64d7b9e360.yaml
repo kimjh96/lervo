@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_564ed5a25f21b18d5227d1c9
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_29b05c3c680e020f8fe37413
+outputLanguage: en
+outputs:
+  - byteCount: 2408
+    contentHash: sha256:c05f32de0a5565dc3075bb6b5285d6c6849c51c0e5fb19edf5e1020a94242d0b
+    path: docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v17.md
+    userRegionHash: sha256:c05f32de0a5565dc3075bb6b5285d6c6849c51c0e5fb19edf5e1020a94242d0b
+profile: repository_document
+recordId: knormdoc_8257cceed4857c64d7b9e360
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c05f32de0a5565dc3075bb6b5285d6c6849c51c0e5fb19edf5e1020a94242d0b
+sourcePath: docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v17.md
+sourceUnitVersionIds:
+  - uv_1a1cdd38ba2c49edc2a4feec
+  - uv_3cbf76a4e6673994c022639c
+  - uv_60ec399578223e4bf27a4f84
+  - uv_6ee17f311aac5a5ed4660321
+  - uv_b31ab0c9769dc3a73b8bb36b

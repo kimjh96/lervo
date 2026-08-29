@@ -123,6 +123,56 @@ function normalizedResponse(
 }
 
 describe("document content normalization", () => {
+  it("keeps dependency environments and preservation collections outside normalization", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, ".venv/licenses"), { recursive: true });
+    await mkdir(resolve(root, "docs/archive"), { recursive: true });
+    await mkdir(resolve(root, "docs/inherited/legacy"), { recursive: true });
+    await writeFile(resolve(root, ".venv/licenses/dependency.md"), "# Dependency license\n");
+    await writeFile(resolve(root, "docs/archive/status.md"), "# Archived status\n");
+    await writeFile(resolve(root, "docs/inherited/legacy/finding.md"), "# Inherited finding\n");
+    const calls: DocumentNormalizationEnvelope[] = [];
+
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: compiler(calls),
+      signal: new AbortController().signal,
+    });
+
+    expect(candidate.coverage).toEqual({
+      eligibleDocuments: 0,
+      normalizedDocuments: 0,
+      sourceUnits: 0,
+      complete: true,
+    });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("honors tracked normalization-only exclusions without removing sources from scanning", async () => {
+    const root = await repository();
+    const policyPath = resolve(root, ".lervo/knowledge/policy.yaml");
+    await writeFile(
+      policyPath,
+      (await readFile(policyPath, "utf8")).replace(
+        "normalization:\n  exclude: []",
+        "normalization:\n  exclude:\n    - docs/knowledge/**",
+      ),
+    );
+    await mkdir(resolve(root, "docs/knowledge"), { recursive: true });
+    await writeFile(resolve(root, "docs/knowledge/decision.md"), "# Existing decision\n");
+    const calls: DocumentNormalizationEnvelope[] = [];
+
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: compiler(calls),
+      signal: new AbortController().signal,
+    });
+
+    expect(candidate.sourceSnapshotId).toMatch(/^ksnap_/u);
+    expect(candidate.coverage.eligibleDocuments).toBe(0);
+    expect(calls).toHaveLength(0);
+  });
+
   it("keeps the bounded release-intent workspace outside provider normalization", async () => {
     const root = await repository();
     await mkdir(resolve(root, ".changes"), { recursive: true });
@@ -659,6 +709,67 @@ describe("document content normalization", () => {
         signal: new AbortController().signal,
       }),
     ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
+  });
+
+  it("requires split documents to rebase relative Markdown links to the same repository target", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/roadmap"), { recursive: true });
+    await writeFile(
+      resolve(root, "docs/roadmap/quality.md"),
+      "# Quality\n\n## Evaluation history\n\nSee [evidence](../evidence/result.md).\n",
+    );
+    let correctlyRebased = false;
+    const normalizer: RepositoryDocumentNormalizationCompiler = {
+      descriptor: compiler([]).descriptor,
+      async normalize(envelope) {
+        return {
+          schemaVersion: 1,
+          documents: envelope.documents.map((document) => ({
+            sourcePath: document.path,
+            outputs: [
+              {
+                path: document.path,
+                content: "# Quality\n\nSee [evaluation history](quality/history.md).\n",
+                coveredUnitIndexes: [document.sourceUnits[0]!.index],
+              },
+              {
+                path: "docs/roadmap/quality/history.md",
+                content: `# Evaluation history\n\nSee [evidence](${correctlyRebased ? "../../" : "../"}evidence/result.md).\n`,
+                coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+              },
+            ],
+          })),
+          telemetry: {
+            filesystemReads: 0,
+            filesystemWrites: 0,
+            shellProcesses: 0,
+            networkRequests: 0,
+            externalActions: 0,
+            toolCalls: 0,
+            complete: true,
+          },
+        };
+      },
+    };
+
+    await expect(
+      compileConfiguredDocumentNormalizationCandidate({
+        repositoryRoot: root,
+        compiler: normalizer,
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
+
+    correctlyRebased = true;
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
+    expect(candidate.items[0]?.outputs.map((output) => output.path)).toEqual([
+      "docs/roadmap/quality.md",
+      "docs/roadmap/quality/history.md",
+    ]);
   });
 
   it("keeps lifecycle current across managed-block refreshes and replaces stale records", async () => {

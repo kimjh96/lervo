@@ -199,11 +199,25 @@ describe("managed provider run lifecycle", () => {
     "records exact managed E4 output citations for %s without retaining the result body",
     async (provider) => {
       const data = await createManagedFixture();
+      await writeFile(resolve(data.root, "task-evidence.md"), "Direct task evidence.\n");
       const artifactStore = new MemoryArtifactStore();
       const adapter = new FakeManagedAdapter(provider, {
         resultContent: (envelope) =>
-          `Applied repository guidance.\n\n${managedContextReferenceComment(envelope.documents[0]!)}`,
+          `Applied repository guidance.\n\n${managedContextReferenceComment(
+            envelope.documents.find((document) => document.referenceEligible)!,
+          )}`,
       });
+      const input = providerRunInput();
+      input.context.registry.documents.doc_task_evidence1 = {
+        path: "task-evidence.md",
+        kind: "canonical",
+        responsibleParty: { kind: "team", id: "team_fixture" },
+        connectedPaths: ["src/**"],
+        verifiedRevision: "fixture-v1",
+        verifiedAt: "2026-08-18T00:00:00Z",
+        reviewIntervalDays: 30,
+        ownership: { mode: "user" },
+      };
       const result = await coordinator(
         adapter,
         data.root,
@@ -211,13 +225,15 @@ describe("managed provider run lifecycle", () => {
         undefined,
         artifactStore,
       ).run({
-        ...providerRunInput(),
+        ...input,
         repositoryRoot: data.root,
       });
       const referenced = result.contextEvidence.filter((item) => item.state === "referenced");
       expect(referenced).toHaveLength(1);
       expect(referenced[0]).toMatchObject({
-        documentId: result.contextEvidence.find((item) => item.state === "injected")?.documentId,
+        documentId: result.contextEvidence.find(
+          (item) => item.state === "injected" && item.documentId === referenced[0]!.documentId,
+        )?.documentId,
         referenceKind: "output_citation",
       });
       const events = data.store.list({ runId });
@@ -544,6 +560,15 @@ describe("managed provider run lifecycle", () => {
           changeKind: "created",
         }),
       ]);
+      expect(adapter.turnRequests).toHaveLength(1);
+      expect(adapter.turnRequests[0]?.instructions).toBe(
+        [
+          input.instructions,
+          "",
+          "Lervo managed file 1/1: src/result.ts",
+          "Change only the repository-relative path above in this turn.",
+        ].join("\n"),
+      );
       const events = data.store.list({ runId });
       expect(events.map((event) => event.type)).toContain("file.changed");
       expect(events.map((event) => event.type)).not.toContain("unmanaged_change.detected");

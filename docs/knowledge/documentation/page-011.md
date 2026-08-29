@@ -3,27 +3,27 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
-- [ADR-0226: Retire local hybrid and evaluate a bounded model fallback](../../decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md) — `docs/decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md`
-- [ADR-0238: Evaluate evidence-gap lexical assistance v2](../../decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md) — `docs/decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md`
-- [CLI version and release management](../../distribution/cli-version-management.md) — `docs/distribution/cli-version-management.md`
-- [Lervo Hub standalone distribution](../../distribution/hub-runtime-distribution.md) — `docs/distribution/hub-runtime-distribution.md`
-- [Lervo Node standalone distribution](../../distribution/node-runtime-distribution.md) — `docs/distribution/node-runtime-distribution.md`
-- [Installed organization Node multi-device rollout acceptance v1](../../evidence/operations/organization-node-multi-device-rollout-v1.md) — `docs/evidence/operations/organization-node-multi-device-rollout-v1.md`
-- [Managed context grounding acceptance pilot](../../evidence/pilots/managed-context-grounding.md) — `docs/evidence/pilots/managed-context-grounding.md`
-- [Reviewed document normalization acceptance](../../evidence/pilots/reviewed-document-normalization.md) — `docs/evidence/pilots/reviewed-document-normalization.md`
-- [Shiflo v0 acceptance pilot](../../evidence/pilots/shiflo-v0.md) — `docs/evidence/pilots/shiflo-v0.md`
-- [WSL Hub and Shiflo release acceptance](../../evidence/pilots/wsl-hub-shiflo-release-acceptance.md) — `docs/evidence/pilots/wsl-hub-shiflo-release-acceptance.md`
-- [Repository code-convention audit](../../evidence/quality/repository-code-convention-audit.md) — `docs/evidence/quality/repository-code-convention-audit.md`
-- [Bounded repository retrieval fallback v1](../../evidence/search/bounded-retrieval-fallback-v1.md) — `docs/evidence/search/bounded-retrieval-fallback-v1.md`
-- [Delegated repository retrieval pilot v1](../../evidence/search/delegated-retrieval-pilot-v1.md) — `docs/evidence/search/delegated-retrieval-pilot-v1.md`
-- [Korean-framed repository retrieval observation v1](../../evidence/search/korean-repository-retrieval-v1.md) — `docs/evidence/search/korean-repository-retrieval-v1.md`
-- [Lexical-assisted repository retrieval v2](../../evidence/search/lexical-assisted-v2.md) — `docs/evidence/search/lexical-assisted-v2.md`
-- [Natural-language case pre-review v1](../../evidence/search/natural-language-case-pre-review-v1.md) — `docs/evidence/search/natural-language-case-pre-review-v1.md`
-- [Provider-neutral grounding runner observation v1](../../evidence/search/provider-neutral-grounding-runner-v1.md) — `docs/evidence/search/provider-neutral-grounding-runner-v1.md`
-- [Repository retrieval performance observation v1](../../evidence/search/repository-retrieval-v1.md) — `docs/evidence/search/repository-retrieval-v1.md`
-- [Code convention](../../foundation/code-convention.md) — `docs/foundation/code-convention.md`
-- [Commit convention](../../foundation/commit-convention.md) — `docs/foundation/commit-convention.md`
-- [Provider instruction entrypoint research](../../research/provider-instruction-entrypoints.md) — `docs/research/provider-instruction-entrypoints.md`
-- [Repository knowledge systems research](../../research/repository-knowledge-systems.md) — `docs/research/repository-knowledge-systems.md`
-- [Managed Context Grounding and Coverage](../../roadmap/context-grounding-coverage.md) — `docs/roadmap/context-grounding-coverage.md`
-- [Repository Node fleet and automatic Hub replication](../../roadmap/coordination/repository-node-fleet.md) — `docs/roadmap/coordination/repository-node-fleet.md`
+- [ADR-0243: Evaluate observable reference markers v5](../../decisions/search/0243-evaluate-observable-reference-markers-v5.md) — `docs/decisions/search/0243-evaluate-observable-reference-markers-v5.md`
+- [ADR-0244: Evaluate marker-derived source paths v6](../../decisions/search/0244-evaluate-marker-derived-source-paths-v6.md) — `docs/decisions/search/0244-evaluate-marker-derived-source-paths-v6.md`
+- [ADR-0245: Evaluate staged evidence selection v7](../../decisions/search/0245-evaluate-staged-evidence-selection-v7.md) — `docs/decisions/search/0245-evaluate-staged-evidence-selection-v7.md`
+- [ADR-0246: Evaluate linked-evidence reconciliation v8](../../decisions/search/0246-evaluate-linked-evidence-reconciliation-v8.md) — `docs/decisions/search/0246-evaluate-linked-evidence-reconciliation-v8.md`
+- [ADR-0247: Confirm linked-evidence reconciliation v9](../../decisions/search/0247-confirm-linked-evidence-reconciliation-v9.md) — `docs/decisions/search/0247-confirm-linked-evidence-reconciliation-v9.md`
+- [ADR-0248: Stage linked-evidence reconciliation activation](../../decisions/search/0248-stage-linked-evidence-reconciliation-activation.md) — `docs/decisions/search/0248-stage-linked-evidence-reconciliation-activation.md`
+- [ADR-0249: Authorize isolated registered-corpus phase A pilot](../../decisions/search/activation/0249-authorize-isolated-registered-corpus-phase-a-pilot.md) — `docs/decisions/search/activation/0249-authorize-isolated-registered-corpus-phase-a-pilot.md`
+- [ADR-0250: Authorize two-pass registered-corpus phase A pilot](../../decisions/search/activation/0250-authorize-two-pass-registered-corpus-phase-a-pilot.md) — `docs/decisions/search/activation/0250-authorize-two-pass-registered-corpus-phase-a-pilot.md`
+- [ADR-0252: Authorize corrected-target-delivery phase A pilot](../../decisions/search/activation/0252-authorize-corrected-target-delivery-phase-a-pilot.md) — `docs/decisions/search/activation/0252-authorize-corrected-target-delivery-phase-a-pilot.md`
+- [ADR-0253: Pre-register an effect-free provider-shadow pilot](../../decisions/search/activation/0253-pre-register-effect-free-provider-shadow-pilot.md) — `docs/decisions/search/activation/0253-pre-register-effect-free-provider-shadow-pilot.md`
+- [ADR-0254: Pre-register a recoverable provider-shadow pilot v2](../../decisions/search/activation/0254-pre-register-recoverable-provider-shadow-pilot-v2.md) — `docs/decisions/search/activation/0254-pre-register-recoverable-provider-shadow-pilot-v2.md`
+- [ADR-0255: Authorize paired Codex-Claude provider-shadow v2](../../decisions/search/activation/0255-authorize-paired-codex-claude-provider-shadow-v2.md) — `docs/decisions/search/activation/0255-authorize-paired-codex-claude-provider-shadow-v2.md`
+- [ADR-0256: Correct Claude provider-shadow observability in v3](../../decisions/search/activation/0256-correct-claude-provider-shadow-observability-v3.md) — `docs/decisions/search/activation/0256-correct-claude-provider-shadow-observability-v3.md`
+- [ADR-0257: Observe Claude SDK usage for provider-shadow v4](../../decisions/search/activation/0257-observe-claude-sdk-usage-provider-shadow-v4.md) — `docs/decisions/search/activation/0257-observe-claude-sdk-usage-provider-shadow-v4.md`
+- [ADR-0258: Correct Claude structured selection for provider-shadow v5](../../decisions/search/activation/0258-correct-claude-structured-selection-provider-shadow-v5.md) — `docs/decisions/search/activation/0258-correct-claude-structured-selection-provider-shadow-v5.md`
+- [ADR-0259: Preserve Claude selection failures for provider-shadow v6](../../decisions/search/activation/0259-preserve-claude-selection-failure-provider-shadow-v6.md) — `docs/decisions/search/activation/0259-preserve-claude-selection-failure-provider-shadow-v6.md`
+- [ADR-0260: Classify Claude structured-output framing for provider-shadow v7](../../decisions/search/activation/0260-classify-claude-structured-output-framing-provider-shadow-v7.md) — `docs/decisions/search/activation/0260-classify-claude-structured-output-framing-provider-shadow-v7.md`
+- [ADR-0261: Bound provider-shadow selection to two sources in v8](../../decisions/search/activation/0261-bound-provider-shadow-selection-to-two-sources-v8.md) — `docs/decisions/search/activation/0261-bound-provider-shadow-selection-to-two-sources-v8.md`
+- [ADR-0262: Test minimal-sufficient paired provider selection in v9](../../decisions/search/activation/0262-test-minimal-sufficient-paired-provider-selection-v9.md) — `docs/decisions/search/activation/0262-test-minimal-sufficient-paired-provider-selection-v9.md`
+- [ADR-0263: Require a blind human ground-truth audit after v9](../../decisions/search/activation/0263-require-blind-human-ground-truth-audit-after-v9.md) — `docs/decisions/search/activation/0263-require-blind-human-ground-truth-audit-after-v9.md`
+- [ADR-0264: Measure only unambiguous provider-shadow cases in v10](../../decisions/search/activation/0264-measure-only-unambiguous-provider-shadow-cases-v10.md) — `docs/decisions/search/activation/0264-measure-only-unambiguous-provider-shadow-cases-v10.md`
+- [ADR-0265: Test claim coverage before minimization in v11](../../decisions/search/activation/0265-test-claim-coverage-before-minimization-v11.md) — `docs/decisions/search/activation/0265-test-claim-coverage-before-minimization-v11.md`
+- [ADR-0266: Confirm claim coverage over four cases in v12](../../decisions/search/activation/0266-confirm-claim-coverage-over-four-cases-v12.md) — `docs/decisions/search/activation/0266-confirm-claim-coverage-over-four-cases-v12.md`
+- [ADR-0267: Retain bounded selection-violation codes](../../decisions/search/activation/0267-retain-bounded-selection-violation-codes.md) — `docs/decisions/search/activation/0267-retain-bounded-selection-violation-codes.md`

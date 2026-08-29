@@ -14,14 +14,14 @@ outputLanguage: en
 outputs:
   - byteCount: 1907
     contentHash: sha256:7fef91abf57bd10a31fd2a9f5097ed5bf76c5faa89dacd3dd26c2d549a33b445
-    path: docs/decisions/search/0065-human-search-rollout-review.md
+    path: docs/decisions/search/rollout/0065-human-search-rollout-review.md
     userRegionHash: sha256:7fef91abf57bd10a31fd2a9f5097ed5bf76c5faa89dacd3dd26c2d549a33b445
 profile: decision_record
 recordId: knormdoc_8b8739454f3380979b47de29
 resourceBindings: []
 schemaVersion: 2
 sourceContentHash: sha256:bf261b49787a9df43eae950de3ce3903531c7a05781aacd20f7fc0936eb8d890
-sourcePath: docs/decisions/search/0065-human-search-rollout-review.md
+sourcePath: docs/decisions/search/rollout/0065-human-search-rollout-review.md
 sourceUnitVersionIds:
   - uv_2ca358cccba7829e409dea5f
   - uv_5aed1357043560e8d258c8d8

@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c70ea1a64d347e4d008dc504
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e5594b4c3f642089bddf1ad1
+outputLanguage: en
+outputs:
+  - byteCount: 6677
+    contentHash: sha256:29a237ef8795dc613ac2b4c2fad5995e8867aa8d8cb54a6fe1bf20cc68b60c8c
+    path: docs/decisions/search/activation/0255-authorize-paired-codex-claude-provider-shadow-v2.md
+    userRegionHash: sha256:29a237ef8795dc613ac2b4c2fad5995e8867aa8d8cb54a6fe1bf20cc68b60c8c
+profile: decision_record
+recordId: knormdoc_0a235317c9ca213953921c39
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7e39d0a69a3365a43ce08fca07ca86cb3c4f7c540a877d972cc82b0737351ab7
+sourcePath: docs/decisions/search/activation/0255-authorize-paired-codex-claude-provider-shadow-v2.md
+sourceUnitVersionIds:
+  - uv_2b4c5536130e209ef7046a7f
+  - uv_2c1c52548e0b949a2ce7b43f
+  - uv_2e67a751c812bbcc10311426
+  - uv_4eb16b4bb86c2f098643bdf4
+  - uv_6e289e720d679f4c750d8a1d
+  - uv_9f139039ba36e5595baa3355
+  - uv_a36c7fae4b7a420449706ca0
+  - uv_b7efe8c9d480252c54a0707f
+  - uv_c6347b5a778d58630b31f956
+  - uv_eb096e7033f38a208cb9144a

@@ -166,6 +166,8 @@ export function inspectContextReceiptBinding(input: {
       expected === undefined ||
       expected.contentHash !== document.contentHash ||
       !contextScopesEqual(expected.scope, document.scope) ||
+      expected.documentRole !== document.documentRole ||
+      expected.referenceEligible !== document.referenceEligible ||
       document.status !== "injected"
     ) {
       documentsMatch = false;

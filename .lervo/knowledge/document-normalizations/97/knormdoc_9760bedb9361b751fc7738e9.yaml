@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_12a59c843133f34eadc1c064
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d2298b07a7cf6e65b0306ba3
+outputLanguage: en
+outputs:
+  - byteCount: 4011
+    contentHash: sha256:19a72e31dd30d51f2cd935104783d1694a0e77f29a626d64b41b939659c03a20
+    path: docs/decisions/search/activation/0265-test-claim-coverage-before-minimization-v11.md
+    userRegionHash: sha256:19a72e31dd30d51f2cd935104783d1694a0e77f29a626d64b41b939659c03a20
+profile: decision_record
+recordId: knormdoc_9760bedb9361b751fc7738e9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:76b2d78f378d005611966806051e6e5c27e7202805f1917f6632979e7c561cce
+sourcePath: docs/decisions/search/activation/0265-test-claim-coverage-before-minimization-v11.md
+sourceUnitVersionIds:
+  - uv_09340fc0ee44aa4a6ea259a6
+  - uv_1851e14a0df1f11314fe8daf
+  - uv_329cd9c146d98defa5cf82e9
+  - uv_482a7f891d677a1a1ee427c4
+  - uv_97b8537b985faed03fc48339
+  - uv_afcff1119868d43da7097097

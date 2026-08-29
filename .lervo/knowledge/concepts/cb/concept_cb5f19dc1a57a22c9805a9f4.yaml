@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_cb5f19dc1a57a22c9805a9f4
+freshness: current
+ownership: user
+path: docs/evidence/search/linked-evidence-provider-shadow-pilot-v9.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_2ef031b8b78ad43213ab986e
+title: Paired minimal-sufficient provider-shadow v9
+type: concept

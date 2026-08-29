@@ -40,6 +40,10 @@ function digest(value: unknown): string {
   return `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
 }
 
+function boundedText(value: string, maximumCharacters: number): string {
+  return [...value].slice(0, maximumCharacters).join("");
+}
+
 async function exists(path: string): Promise<boolean> {
   try {
     await lstat(path);
@@ -53,7 +57,7 @@ async function exists(path: string): Promise<boolean> {
 function description(content: string): string | null {
   const frontmatter = /^---\s*\n([\s\S]*?)\n---/u.exec(content)?.[1];
   const value = frontmatter?.match(/^description:\s*["']?(.+?)["']?\s*$/mu)?.[1]?.trim();
-  return value === undefined || value.length < 3 ? null : value.slice(0, 500);
+  return value === undefined || value.length < 3 ? null : boundedText(value, 500);
 }
 
 function skillName(content: string, directoryPath: string): string {
@@ -164,7 +168,7 @@ async function migratedSkillPackage(
             displayName: skill.skillId,
             summary,
             keywords,
-            intents: [summary],
+            intents: [boundedText(summary, 200)],
             autoSelect: true,
           },
         }),

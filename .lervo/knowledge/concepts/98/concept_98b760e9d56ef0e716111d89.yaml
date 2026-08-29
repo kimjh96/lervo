@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_30d988e2cad91e7fc03100e0
+  - uv_8ee5d418483174e6df9ae821
 title: "ADR-0195: Reviewed document content normalization"
 type: decision

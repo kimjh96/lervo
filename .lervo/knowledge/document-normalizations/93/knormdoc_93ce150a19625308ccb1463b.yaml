@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_29403852026d6666cef1f6ed
+compiler:
+  compilerBuildId: sha256:8d288d20c0d2eb5d6514d531ee951785b45f97e6528f30af3f0156dbd602ded6
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8ef2b6d460c39f79ed61f555
+outputLanguage: en
+outputs:
+  - byteCount: 1964
+    contentHash: sha256:9dd420eb9a47c76e24a339234cc0d1681bf1f57764fa43af44eecaa5f89f3f65
+    path: docs/decisions/knowledge/repository/0242-refine-search-rollout-decision-route.md
+    userRegionHash: sha256:9dd420eb9a47c76e24a339234cc0d1681bf1f57764fa43af44eecaa5f89f3f65
+profile: decision_record
+recordId: knormdoc_93ce150a19625308ccb1463b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:55e5fa02b0444c81a0eea6313b5ffb38ef20ea21dce3f11e32826985e73cbb72
+sourcePath: docs/decisions/knowledge/repository/0242-refine-search-rollout-decision-route.md
+sourceUnitVersionIds:
+  - uv_1c1d98050fa2f835c0f93c36
+  - uv_a1b898143629ead92fa6420a
+  - uv_a50cca8e82a43033a7f444e9
+  - uv_d97af2122b9ed660cb2745a8

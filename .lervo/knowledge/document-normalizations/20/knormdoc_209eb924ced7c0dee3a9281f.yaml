@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_773bd8ff32ff72d6398f1d75
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6fb8f7e4c05d6287f42a210c
+outputLanguage: en
+outputs:
+  - byteCount: 1215
+    contentHash: sha256:abafdc9e1de83dcf63637fb5e44ebb4bf6b515bcbc837714d5c9d89e535620b1
+    path: docs/roadmap/natural-language-grounding-quality/evaluation-history/delegated-and-bounded-retrieval.md
+    userRegionHash: sha256:abafdc9e1de83dcf63637fb5e44ebb4bf6b515bcbc837714d5c9d89e535620b1
+profile: roadmap_document
+recordId: knormdoc_209eb924ced7c0dee3a9281f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:994ced65bc805001f08ddfc9ab01f09d1581636c1c9557d06193aa9acff90362
+sourcePath: docs/roadmap/natural-language-grounding-quality/evaluation-history/delegated-and-bounded-retrieval.md
+sourceUnitVersionIds:
+  - uv_8591830d1f39e295b77c8954

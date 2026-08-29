@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_33b71523fc86b648397c7eab
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/0262-test-minimal-sufficient-paired-provider-selection-v9.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_6852031a3caa04748f907828
+title: "ADR-0262: Test minimal-sufficient paired provider selection in v9"
+type: decision

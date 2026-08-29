@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0d09fb89ad74f05c31c4269a
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_231b2dff700526f7884fbe59
+outputLanguage: en
+outputs:
+  - byteCount: 7874
+    contentHash: sha256:2d8409ac1dd97da2b3da953cf3323f5d1f933e65d609bb767f2d22d7c6aea81d
+    path: docs/decisions/search/activation/0250-authorize-two-pass-registered-corpus-phase-a-pilot.md
+    userRegionHash: sha256:2d8409ac1dd97da2b3da953cf3323f5d1f933e65d609bb767f2d22d7c6aea81d
+profile: decision_record
+recordId: knormdoc_8582158c7d989eb05b76b384
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a02046f4e89d53370d4bca81cdee97b9d467474315905a448b8b9f7de6e5472f
+sourcePath: docs/decisions/search/activation/0250-authorize-two-pass-registered-corpus-phase-a-pilot.md
+sourceUnitVersionIds:
+  - uv_047a2f90c3471ac3b39fe6e1
+  - uv_12e340dbd96d50852722ed66
+  - uv_23a53761a2019e38d7bbae01
+  - uv_29c034f392c8fcb814c31662
+  - uv_3307db169188be787eabb40a
+  - uv_5f7399cdfa162fd4a058f95a
+  - uv_716e7fa0ae27f633ce311d35
+  - uv_bceb50792dbb3655724f066b
+  - uv_c27e50bf1e32c32b90523556
+  - uv_df894ab51d673d89fc11b062
+  - uv_e4670221ff12c24944057aa6

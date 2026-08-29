@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 4,
+  "pilotId": "linked-evidence-provider-shadow-v14-request-scoped-claim-coverage-20260829",
+  "decisionId": "ADR-0269",
+  "decisionPath": "docs/decisions/search/activation/0269-test-request-scoped-claim-coverage-v14.md",
+  "baseContractPath": "benchmarks/search/linked-evidence-provider-shadow-pilot-v7.json",
+  "contractComposition": "exact_v7_base_plus_exact_v14_overlay",
+  "authorization": {
+    "status": "authorized_exact_request_scoped_claim_coverage_paired_micro_pilot",
+    "executionAuthority": "explicit_user_authorization_to_continue_provider_neutral_diagnosis",
+    "providerCallsAuthorized": true,
+    "maximumProviderInvocationsAuthorized": 16,
+    "managedContextEffectsAuthorized": false,
+    "canaryAuthorized": false,
+    "productionActivationAuthorized": false
+  },
+  "predecessor": {
+    "pilotId": "linked-evidence-provider-shadow-v13-diagnostic-confirmation-20260829",
+    "evidencePath": "docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v13.md",
+    "observedProviderInvocations": 32,
+    "disposition": "preserve_completed_rejected",
+    "resume": false,
+    "retry": false,
+    "reuseProviderResults": false,
+    "borrowCoordinates": false
+  },
+  "sourcePopulation": {
+    "populationKind": "fresh_v14_paired_request_scoped_diagnosed_cases_all_four_repetitions",
+    "coordinatePrefix": "psv14",
+    "selection": "two_diagnosed_unambiguous_cases_all_four_repetitions",
+    "selectedCaseIds": ["drv8case_implementation_release", "drv8case_boundary_fuzzy_merge"],
+    "nonTargetCaseIds": [
+      "drv8case_terse_release",
+      "drv8case_rationale_hybrid_search",
+      "drv8case_status_node_fleet",
+      "drv8case_boundary_user_owned_block"
+    ],
+    "nonTargetDisposition": "not_evaluated_without_reclassification",
+    "repetitionStart": 1,
+    "expectedShadowSampleCount": 8,
+    "expectedProviderObservationCount": 16,
+    "expectedCaseCount": 2,
+    "expectedRepetitionsPerCase": 4,
+    "sampleIdFormat": "psv14_<case_id>_r<repetition>",
+    "providerAttemptIdFormat": "psv14_<provider>_<case_id>_r<repetition>"
+  },
+  "groundTruth": {
+    "preserveV10ExpectedDocumentIds": true,
+    "providerOutputMayChangeGroundTruth": false,
+    "caseSpecificRouting": "prohibited"
+  },
+  "selectionProtocol": {
+    "protocolId": "linked-evidence-provider-shadow-request-scoped-claim-coverage-v14",
+    "protocolDigest": "sha256:b0cd93604d67d05b29f49c312bbc94ff25d644c60cdec8b60b866b6af62ce2ee",
+    "output": "provider_native_exact_e4_token_set",
+    "maximumSelectedSources": 8,
+    "requestScopeBeforeClaimCoverageRequired": true,
+    "claimCoverageBeforeMinimizationRequired": true,
+    "groundTruthExposure": "prohibited",
+    "caseSpecificRouting": "prohibited"
+  },
+  "candidateIdentity": {
+    "recordKind": "linked_evidence_provider_shadow_candidate.v14"
+  },
+  "candidateEnvelope": {
+    "expectedMaximumCandidateSources": 14,
+    "expectedMaximumProviderVisibleSourceBytes": 97037
+  },
+  "provider": {
+    "comparisonKind": "paired_same_sample_cross_provider_request_scoped_claim_coverage_micro",
+    "arms": [
+      { "provider": "codex", "model": "gpt-5.6-sol", "maximumProviderInvocations": 8 },
+      { "provider": "claude", "model": "opus", "maximumProviderInvocations": 8 }
+    ],
+    "ordering": "alternate_starting_provider_by_source_sample_codex_first",
+    "maximumProviderInvocations": 16,
+    "maximumProviderInvocationsPerArm": 8,
+    "maximumStructuredOutputFramingToolsPerInvocation": 1,
+    "cumulativeMaximumProviderInvocationsIncludingPredecessors": 203
+  },
+  "failureDiagnostics": {
+    "selectionViolationCodesRequired": true,
+    "selectionViolationCodeSource": "provider_neutral_parser",
+    "rawProviderOutputRetained": false,
+    "priorFailureReclassificationAuthorized": false
+  },
+  "attemptJournal": {
+    "recordKind": "linked_evidence_provider_shadow_attempt.v14"
+  },
+  "observation": {
+    "recordKind": "linked_evidence_provider_shadow_observation.v14",
+    "maximumPilots": 14,
+    "maximumObservations": 16
+  },
+  "acceptance": {
+    "requiredEligibleObservations": 16,
+    "requiredEligibleObservationsPerProvider": 8,
+    "requiredProviderInvocations": 16,
+    "requiredProviderInvocationsPerProvider": 8,
+    "maximumProviderInvocations": 16,
+    "maximumSelectedSourcesPerObservation": 8
+  },
+  "passingDisposition": "separate_four_case_confirmation_design_review_only",
+  "failingDisposition": "reject_without_retry_or_threshold_change"
+}

@@ -9,7 +9,7 @@ Lervo compiles bounded repository evidence whether or not `docs/` exists. Portab
 
 ## 2. Sources
 
-The scanner walks repository files outside explicit VCS, dependency, generated, state, secret, size, and count exclusions. It classifies documentation, instructions, code, configuration, schemas, tests, automation, skills, workflows, agents, policies, hooks, client and tool configuration, revision identity, verified artifacts, allowlisted events, sensitive logs and traces, and unsupported binaries.
+The scanner walks repository files outside explicit VCS, dependency, generated, state, secret, size, and count exclusions. Common Python `.venv` and `venv` dependency environments are excluded at any repository depth, like `node_modules`. It classifies documentation, instructions, code, configuration, schemas, tests, automation, skills, workflows, agents, policies, hooks, client and tool configuration, revision identity, verified artifacts, allowlisted events, sensitive logs and traces, and unsupported binaries.
 
 Ordinary bytes may enter structural extraction. Sensitive log bytes never enter publication or external compilation. Secret candidates are excluded before reading. Presence proves discovery only, not loading, trust, injection, or use.
 
@@ -27,11 +27,15 @@ publication:
   language: en
   maxNavigationEntries: 24
   maxNavigationBytes: 8192
+normalization:
+  exclude: []
 ```
 
-V1 supports only `en`. Language changes generated prose and titles, not identities or user bytes. Neutral localized labels preserve exact encoded paths. Unsupported values fail before planning.
+V1 supports only `en`. Language changes generated prose and titles, not identities or user bytes. Neutral localized labels preserve exact encoded paths. Unsupported values fail before planning. A bounded tracked `normalization.exclude` list may keep governed user documents in structural compilation and query while excluding them only from provider rewriting. Exact patterns remain policy-hash inputs and do not become scanner exclusions.
 
 `.lervo/knowledge/document-layout.yaml` declares decision roots, leaf bounds, and semantic routes. Explicit ADR metadata outranks title terms. No match or tie blocks migration; there is no implicit `foundation` fallback. Initialization writes a product-neutral taxonomy. Reviewed route changes bind the plan and taxonomy hash.
+
+`docs/archive/**`, `docs/inherited/**`, and exact repository role paths with `relocation: preserve` are canonical preservation boundaries. Their sources remain included in scanning, structural compilation, capacity evaluation, and query. Generic layout migration never relocates them, interprets preserved collection frontmatter as current Lervo route metadata, or rewrites archive or inherited collection bytes through reference repair or provider normalization.
 
 ```yaml
 ---
@@ -57,6 +61,8 @@ Initialization invents no root documents. Before structural publication, canonic
 `knowledge instruction bridge --provider claude` accepts AGENTS only from a bounded instruction or structural hash. An adopted exact duplicate may become the approved thin bridge; mixed user content retains its bytes around one managed import. Structural migration never translates existing bytes.
 
 An active continuation document is not a permanent entrypoint. Before layout migration, a repository-wide bounded scan scores safely included Markdown using name, title, current objective, next action, blocker, state, and active-language signals. Name and location alone never establish the role. One unambiguous or explicitly selected source enters an exact-approved stage that preserves its bytes in CAS, creates `.lervo/state/workstreams/current.json`, and updates resolvable Markdown references. Only the dedicated root legacy `HANDOFF.md` is deleted during continuation migration. Every reviewed user-document deletion retires normalization lifecycle records owned by that exact source path in the same durable operation, preventing stale formatter or lint ownership. An arbitrary continuation source may contain durable knowledge, so its user bytes remain for reviewed normalization and splitting. Multiple candidates block without merging or deletion. With no source, the working agent creates the first snapshot during its terminal turn. The structured snapshot remains outside structural publication; lasting facts belong in routed Markdown.
+
+A byte-preserving exact structure move relocates one current single-output normalization record from source to destination in the same durable transaction, preserving reviewed hashes and compiler provenance. A split normalization family fails closed because a plain move has no reviewed mapping from multiple owned outputs to the destination.
 
 ## 7. Bounded Publication Lifecycle
 

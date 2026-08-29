@@ -1,4 +1,4 @@
-import type { startup } from "@anthropic-ai/claude-agent-sdk";
+import type { OutputFormat, startup } from "@anthropic-ai/claude-agent-sdk";
 import type {
   AdapterCapabilityActivationRequest,
   AdapterSession,
@@ -30,6 +30,7 @@ export interface ClaudeAgentClientStartOptions {
   requestTimeoutMs: number;
   createMessageId: () => string;
   tools?: string[];
+  outputFormat?: OutputFormat;
   capabilityActivations?: readonly AdapterCapabilityActivationRequest[];
 }
 
@@ -54,6 +55,7 @@ export interface ClaudeAdapterOptions {
   permissionMode?: ClaudePermissionMode;
   requestTimeoutMs?: number;
   tools?: string[];
+  structuredOutputSchema?: Record<string, unknown>;
   clientFactory?: ClaudeAgentClientFactory;
   sdkStartup?: typeof startup;
   resolveArtifact?: (uri: string) => Promise<Uint8Array>;

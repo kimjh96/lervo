@@ -1,0 +1,11 @@
+fromPath: docs/decisions/search/activation/0273-test-compatible-structured-provider-shadow-carrier-v16.md
+identityPath: docs/decisions/search/activation/0273-test-compatible-structured-provider-shadow-carrier-v16.md
+kind: document_move
+lineageId: klineage_ef58545276dd966176553d3f
+operationId: kdocop_670eb9abfef918e8d9fe0bfe
+schemaVersion: 1
+sourceContentHash: sha256:f053535294dce090515821e101fa1e2c4b6e645f31da63a0d364abf90d8bf976
+sourceId: src_16eb07596650381d0f73326d
+sourceUnitBindingDigest: sha256:f898948d7b01116ea094ece17a124f02a4a2d7dc8cea8b868568f519c6b6ed99
+sourceUnitCount: 7
+toPath: docs/decisions/search/activation/provider-shadow-structured/0273-test-compatible-structured-provider-shadow-carrier-v16.md

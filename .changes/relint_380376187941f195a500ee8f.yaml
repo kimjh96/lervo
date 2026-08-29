@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_380376187941f195a500ee8f"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Report Claude provider token usage from cumulative SDK model totals."

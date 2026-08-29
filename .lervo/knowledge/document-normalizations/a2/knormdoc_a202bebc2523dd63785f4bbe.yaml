@@ -14,14 +14,14 @@ outputLanguage: en
 outputs:
   - byteCount: 1665
     contentHash: sha256:b7a7c9f598559acfbb8b3f40d58f0cc444787a8a4cbb167ffd22a43aa39e30db
-    path: docs/decisions/search/0071-search-rollout-operational-doctor.md
+    path: docs/decisions/search/rollout/0071-search-rollout-operational-doctor.md
     userRegionHash: sha256:b7a7c9f598559acfbb8b3f40d58f0cc444787a8a4cbb167ffd22a43aa39e30db
 profile: decision_record
 recordId: knormdoc_a202bebc2523dd63785f4bbe
 resourceBindings: []
 schemaVersion: 2
 sourceContentHash: sha256:7b8291e3becd40236064ee696afaa10faeed0fd5e50330bff2b1bdf44e97946d
-sourcePath: docs/decisions/search/0071-search-rollout-operational-doctor.md
+sourcePath: docs/decisions/search/rollout/0071-search-rollout-operational-doctor.md
 sourceUnitVersionIds:
   - uv_1b9704b7b1b97057080f5ac1
   - uv_3f3e011d9304b009411f76c8

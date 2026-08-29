@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_e1222e7d7656917fe26f702a
+freshness: current
+ownership: user
+path: docs/roadmap/natural-language-grounding-quality/evaluation-history.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_047ca4d3f31a15a40a231a70
+title: Natural-language grounding evaluation history
+type: concept

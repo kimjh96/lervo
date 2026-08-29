@@ -56,6 +56,8 @@ export type ObservationSubdirectory =
   | "evaluation-results"
   | "evaluation-reviews"
   | "evaluation-runs"
+  | "linked-evidence-shadow"
+  | "linked-evidence-managed-canary"
   | "rollout-acknowledgements"
   | "rollout-reviews";
 

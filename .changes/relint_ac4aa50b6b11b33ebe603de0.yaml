@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ac4aa50b6b11b33ebe603de0"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Support opt-in Claude JSON Schema results with strict bounded selection evidence."

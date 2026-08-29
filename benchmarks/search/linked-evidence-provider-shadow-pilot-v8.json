@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 4,
+  "pilotId": "linked-evidence-provider-shadow-v8-two-source-claude-20260829",
+  "decisionId": "ADR-0261",
+  "decisionPath": "docs/decisions/search/activation/0261-bound-provider-shadow-selection-to-two-sources-v8.md",
+  "baseContractPath": "benchmarks/search/linked-evidence-provider-shadow-pilot-v7.json",
+  "contractComposition": "exact_v7_base_plus_exact_v8_overlay",
+  "authorization": {
+    "executionAuthority": "explicit_user_instruction_to_complete_without_waiting"
+  },
+  "predecessor": {
+    "pilotId": "linked-evidence-provider-shadow-v7-claude-output-framing-20260829",
+    "evidencePath": "docs/evidence/search/linked-evidence-provider-shadow-pilot-v7.md",
+    "observedProviderInvocations": 3
+  },
+  "sourcePopulation": {
+    "populationKind": "fresh_v8_two-source_claude_samples_from_immutable_phase_a_population",
+    "coordinatePrefix": "psv8",
+    "selection": "three_distinct_nonempty_linked_projection_cases_repetition_three",
+    "selectedCaseIds": [
+      "drv8case_status_node_fleet",
+      "drv8case_boundary_fuzzy_merge",
+      "drv8case_boundary_user_owned_block"
+    ],
+    "repetitionStart": 3,
+    "sampleIdFormat": "psv8_<case_id>_r3",
+    "providerAttemptIdFormat": "psv8_claude_<case_id>_r3"
+  },
+  "selectionProtocol": {
+    "maximumSelectedSources": 2
+  },
+  "candidateIdentity": {
+    "recordKind": "linked_evidence_provider_shadow_candidate.v8"
+  },
+  "candidateEnvelope": {
+    "expectedMaximumCandidateSources": 16,
+    "expectedMaximumProviderVisibleSourceBytes": 130302
+  },
+  "provider": {
+    "cumulativeMaximumProviderInvocationsIncludingPredecessors": 63
+  },
+  "attemptJournal": {
+    "recordKind": "linked_evidence_provider_shadow_attempt.v8"
+  },
+  "observation": {
+    "recordKind": "linked_evidence_provider_shadow_observation.v8",
+    "maximumPilots": 8
+  },
+  "acceptance": {
+    "maximumSelectedSourcesPerObservation": 2
+  },
+  "passingDisposition": "separate_fresh_paired_measurement_authorization_only",
+  "failingDisposition": "reject_without_retry_or_threshold_change"
+}

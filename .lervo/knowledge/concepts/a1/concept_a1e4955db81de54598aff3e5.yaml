@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_a1e4955db81de54598aff3e5
+freshness: current
+ownership: user
+path: docs/evidence/search/reference-marker-assisted-v5.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_b1ccf5ff99e72ad0d200d3c7
+title: Observable reference-marker repository retrieval v5
+type: concept

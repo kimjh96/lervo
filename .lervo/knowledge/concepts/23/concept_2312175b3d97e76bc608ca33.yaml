@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_2312175b3d97e76bc608ca33
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/0267-retain-bounded-selection-violation-codes.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_6eab29cd8167aa287dc96ef4
+title: "ADR-0267: Retain bounded selection-violation codes"
+type: decision

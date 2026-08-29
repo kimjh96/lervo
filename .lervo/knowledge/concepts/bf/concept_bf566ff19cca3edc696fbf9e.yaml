@@ -3,7 +3,7 @@ bundleId: bundle_451efff12346a56316cb37e3
 conceptId: concept_bf566ff19cca3edc696fbf9e
 freshness: current
 ownership: user
-path: docs/decisions/search/0066-bounded-search-rollout-review-status.md
+path: docs/decisions/search/rollout/0066-bounded-search-rollout-review-status.md
 publicationLanguage: en
 publicationProfile: explanation
 publicationStatus: stable

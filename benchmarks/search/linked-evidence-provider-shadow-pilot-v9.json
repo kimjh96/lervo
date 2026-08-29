@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 4,
+  "pilotId": "linked-evidence-provider-shadow-v9-minimal-sufficient-paired-20260829",
+  "decisionId": "ADR-0262",
+  "decisionPath": "docs/decisions/search/activation/0262-test-minimal-sufficient-paired-provider-selection-v9.md",
+  "baseContractPath": "benchmarks/search/linked-evidence-provider-shadow-pilot-v7.json",
+  "contractComposition": "exact_v7_base_plus_exact_v9_overlay",
+  "authorization": {
+    "status": "authorized_exact_paired_selection_quality_micro_pilot",
+    "executionAuthority": "explicit_user_instruction_to_resume",
+    "providerCallsAuthorized": true,
+    "maximumProviderInvocationsAuthorized": 12,
+    "managedContextEffectsAuthorized": false,
+    "canaryAuthorized": false,
+    "productionActivationAuthorized": false
+  },
+  "predecessor": {
+    "pilotId": "linked-evidence-provider-shadow-v8-two-source-claude-20260829",
+    "evidencePath": "docs/evidence/search/linked-evidence-provider-shadow-pilot-v8.md",
+    "observedProviderInvocations": 3
+  },
+  "sourcePopulation": {
+    "populationKind": "fresh_v9_paired_repetition_four_from_immutable_phase_a_population",
+    "coordinatePrefix": "psv9",
+    "selection": "all_six_distinct_nonempty_linked_projection_cases_repetition_four",
+    "selectedCaseIds": [
+      "drv8case_implementation_release",
+      "drv8case_terse_release",
+      "drv8case_rationale_hybrid_search",
+      "drv8case_status_node_fleet",
+      "drv8case_boundary_fuzzy_merge",
+      "drv8case_boundary_user_owned_block"
+    ],
+    "repetitionStart": 4,
+    "expectedShadowSampleCount": 6,
+    "expectedProviderObservationCount": 12,
+    "expectedCaseCount": 6,
+    "expectedRepetitionsPerCase": 1,
+    "sampleIdFormat": "psv9_<case_id>_r4",
+    "providerAttemptIdFormat": "psv9_<provider>_<case_id>_r4"
+  },
+  "selectionProtocol": {
+    "protocolId": "linked-evidence-provider-shadow-minimal-sufficient-v9",
+    "protocolDigest": "sha256:3bf0e347fa9236a3c077beab9fda686c1c1dcceafbe3a346337686f563b187e3",
+    "output": "provider_native_exact_e4_token_set",
+    "maximumSelectedSources": 8,
+    "minimalSufficientSelectionRequired": true,
+    "groundTruthExposure": "prohibited",
+    "caseSpecificRouting": "prohibited"
+  },
+  "candidateIdentity": {
+    "recordKind": "linked_evidence_provider_shadow_candidate.v9"
+  },
+  "candidateEnvelope": {
+    "expectedMaximumCandidateSources": 16,
+    "expectedMaximumProviderVisibleSourceBytes": 130302
+  },
+  "provider": {
+    "comparisonKind": "paired_same_sample_cross_provider_micro",
+    "arms": [
+      { "provider": "codex", "model": "gpt-5.6-sol", "maximumProviderInvocations": 6 },
+      { "provider": "claude", "model": "opus", "maximumProviderInvocations": 6 }
+    ],
+    "ordering": "alternate_starting_provider_by_source_sample_codex_first",
+    "maximumProviderInvocations": 12,
+    "maximumProviderInvocationsPerArm": 6,
+    "maximumStructuredOutputFramingToolsPerInvocation": 1,
+    "cumulativeMaximumProviderInvocationsIncludingPredecessors": 75
+  },
+  "attemptJournal": {
+    "recordKind": "linked_evidence_provider_shadow_attempt.v9"
+  },
+  "observation": {
+    "recordKind": "linked_evidence_provider_shadow_observation.v9",
+    "maximumPilots": 9,
+    "maximumObservations": 12
+  },
+  "acceptance": {
+    "requiredEligibleObservations": 12,
+    "requiredEligibleObservationsPerProvider": 6,
+    "requiredProviderInvocations": 12,
+    "requiredProviderInvocationsPerProvider": 6,
+    "maximumProviderInvocations": 12,
+    "maximumSelectedSourcesPerObservation": 8
+  },
+  "passingDisposition": "separate_fresh_24_by_24_paired_measurement_authorization_only",
+  "failingDisposition": "reject_without_retry_or_threshold_change"
+}

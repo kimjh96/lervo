@@ -1,0 +1,11 @@
+fromPath: docs/decisions/search/0065-human-search-rollout-review.md
+identityPath: docs/adr/0065-human-search-rollout-review.md
+kind: document_move
+lineageId: klineage_c7e17bcc0696b487a38c8717
+operationId: kdocop_707bb5846133f1870878128e
+schemaVersion: 1
+sourceContentHash: sha256:7fef91abf57bd10a31fd2a9f5097ed5bf76c5faa89dacd3dd26c2d549a33b445
+sourceId: src_dec0bec23f53f268980fe477
+sourceUnitBindingDigest: sha256:6037579ebea4df84d776234d17a7d2a26c7f650dbd54b6debb20bcd5d920af2a
+sourceUnitCount: 5
+toPath: docs/decisions/search/rollout/0065-human-search-rollout-review.md

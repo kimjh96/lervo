@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5c8f7b1a3ef0e5557cdd96e7
+compiler:
+  compilerBuildId: sha256:8d288d20c0d2eb5d6514d531ee951785b45f97e6528f30af3f0156dbd602ded6
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_68865117521bb047dae76c00
+outputLanguage: en
+outputs:
+  - byteCount: 6747
+    contentHash: sha256:216369da8cdb3dadc7db2b26dcc8e17762e490ab7e20470bb2ccf4585e43f5e0
+    path: docs/decisions/search/0246-evaluate-linked-evidence-reconciliation-v8.md
+    userRegionHash: sha256:216369da8cdb3dadc7db2b26dcc8e17762e490ab7e20470bb2ccf4585e43f5e0
+profile: decision_record
+recordId: knormdoc_bad9aca3b4326cd77e6722b2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2940fb5cce01f3305b75fa594c3c93d26d40cfe136b9b3c82b0c08ad9186d328
+sourcePath: docs/decisions/search/0246-evaluate-linked-evidence-reconciliation-v8.md
+sourceUnitVersionIds:
+  - uv_018b73662684177089707c44
+  - uv_acc42fa15ec38c86c2d54e04
+  - uv_c0947f9219f993ee540edd54
+  - uv_d445a159d68cfdf2a593d615
+  - uv_dda147da60bc406dc53ebce8
+  - uv_e65e136b8be5f68a6754d50a

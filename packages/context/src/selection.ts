@@ -9,6 +9,8 @@ import { candidatesFromRegistry } from "./discovery.js";
 import { ContextEvidenceCollector, defaultReceiptId } from "./evidence.js";
 import { normalizeRepositoryPath } from "./paths.js";
 import { applyGraphRecommendations } from "./graph-recommendations.js";
+import { applyManagedLinkedEvidenceSelections } from "./managed-linked-evidence-selection.js";
+import { applyDefaultManagedLinkedEvidenceSelections } from "./managed-linked-evidence-default-selection.js";
 import {
   applySearchRecommendationBatches,
   recordSearchRecommendationEvidence,
@@ -104,6 +106,16 @@ function indexCandidates(input: CreateContextPlanInput): Map<string, ContextDocu
       const augmented = {
         ...sameId,
         source: "knowledge" as const,
+        documentRole:
+          sameId.documentRole === "governance_context" ||
+          candidate.documentRole === "governance_context"
+            ? ("governance_context" as const)
+            : ("task_evidence" as const),
+        referenceEligible:
+          sameId.documentRole === "governance_context" ||
+          candidate.documentRole === "governance_context"
+            ? false
+            : sameId.referenceEligible || candidate.referenceEligible,
         knowledgeContext: structuredClone(candidate.knowledgeContext),
       };
       byId.set(candidate.documentId, augmented);
@@ -120,6 +132,16 @@ function indexCandidates(input: CreateContextPlanInput): Map<string, ContextDocu
         "invalid_context_plan",
         `The context candidate ID references different documents: ${candidate.documentId}`,
       );
+    }
+    if (sameId !== undefined && sameId.documentRole !== candidate.documentRole) {
+      const merged = {
+        ...sameId,
+        documentRole: "governance_context" as const,
+        referenceEligible: false,
+      };
+      byId.set(candidate.documentId, merged);
+      byPath.set(candidate.path, merged);
+      continue;
     }
     const samePath = byPath.get(candidate.path);
     if (samePath !== undefined && samePath.documentId !== candidate.documentId) {
@@ -193,6 +215,9 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
       accumulator.select({
         candidate,
         reason: { reasonCode: "role_required", ruleId },
+        ...(ruleId === "writing.policy"
+          ? { documentRole: "governance_context", referenceEligible: false }
+          : {}),
       });
     }
   }
@@ -271,6 +296,16 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
   });
   applyGraphRecommendations({
     recommendations: input.graphRecommendations ?? [],
+    candidates,
+    accumulator,
+  });
+  applyManagedLinkedEvidenceSelections({
+    selections: input.linkedEvidenceSelections ?? [],
+    candidates,
+    accumulator,
+  });
+  applyDefaultManagedLinkedEvidenceSelections({
+    selections: input.defaultLinkedEvidenceSelections ?? [],
     candidates,
     accumulator,
   });

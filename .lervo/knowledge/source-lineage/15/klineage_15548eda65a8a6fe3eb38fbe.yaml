@@ -1,0 +1,11 @@
+fromPath: docs/decisions/search/activation/0270-enforce-structured-codex-provider-shadow-carriers.md
+identityPath: docs/decisions/search/activation/0270-enforce-structured-codex-provider-shadow-carriers.md
+kind: document_move
+lineageId: klineage_15548eda65a8a6fe3eb38fbe
+operationId: kdocop_0dbacd0fa174f1a93c42bfea
+schemaVersion: 1
+sourceContentHash: sha256:e45aeaa199c7f24e5c68821bc66b035ff10b7c38a57aaac4671354fc03c433b8
+sourceId: src_a6458142cddc4527ce5b6397
+sourceUnitBindingDigest: sha256:b315ace961d0d4bab5dd530ee985c9e24e635d43c4bdc33b3d20fe6e3e18f5be
+sourceUnitCount: 7
+toPath: docs/decisions/search/activation/provider-shadow-structured/0270-enforce-structured-codex-provider-shadow-carriers.md

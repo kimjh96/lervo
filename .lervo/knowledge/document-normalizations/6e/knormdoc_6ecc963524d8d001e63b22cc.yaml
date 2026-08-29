@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_0ea6c27ad8a92c7fdbf4af8f
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_247c24b5ea83cceaa91b9f8e
+outputLanguage: en
+outputs:
+  - byteCount: 4128
+    contentHash: sha256:e732297d0d2c15303a66b1f8fc0ce7b7201d37fb6d4a12e9bfa36bdf964ed9be
+    path: docs/decisions/search/activation/provider-shadow-structured/0271-test-structured-codex-provider-shadow-carrier-v15.md
+    userRegionHash: sha256:e732297d0d2c15303a66b1f8fc0ce7b7201d37fb6d4a12e9bfa36bdf964ed9be
+profile: decision_record
+recordId: knormdoc_6ecc963524d8d001e63b22cc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2b0c70043e0ed86ba8c604d543ca4beaa3d6b67996fb61ebcc960c19b49e567e
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0271-test-structured-codex-provider-shadow-carrier-v15.md
+sourceUnitVersionIds:
+  - uv_4d9df6d25a066ff6c27a6de3
+  - uv_76015babfc5d626645fbadf6
+  - uv_8a8eeaf99bb8e073f0c42fbe
+  - uv_8eca9be6119f12b444de1c87
+  - uv_ce23ed0250bbf45abbc67517
+  - uv_f22bbf67d33f11044a903558
+  - uv_f873275de9424221545bcba9

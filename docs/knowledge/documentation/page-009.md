@@ -3,6 +3,9 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0111: CLI first-publication bootstrap v2 evidence binding](../../decisions/release/bootstrap/0111-cli-first-publication-bootstrap-v2-evidence-integration.md) — `docs/decisions/release/bootstrap/0111-cli-first-publication-bootstrap-v2-evidence-integration.md`
+- [ADR-0112: One-time CLI first-publication arming authorization](../../decisions/release/bootstrap/0112-cli-first-publication-arming-authorization.md) — `docs/decisions/release/bootstrap/0112-cli-first-publication-arming-authorization.md`
+- [ADR-0113: Reconcile Unknown CLI First-Publication Outcomes](../../decisions/release/bootstrap/0113-cli-first-publication-unknown-outcome-reconciliation.md) — `docs/decisions/release/bootstrap/0113-cli-first-publication-unknown-outcome-reconciliation.md`
 - [ADR-0114: Resolve Reconciled CLI First-Publication Outcomes](../../decisions/release/bootstrap/0114-cli-first-publication-reconciliation-resolution.md) — `docs/decisions/release/bootstrap/0114-cli-first-publication-reconciliation-resolution.md`
 - [ADR-0115: CLI First-Publication Transition Evidence Union](../../decisions/release/bootstrap/0115-cli-first-publication-transition-evidence-union.md) — `docs/decisions/release/bootstrap/0115-cli-first-publication-transition-evidence-union.md`
 - [ADR-0116: CLI First-Publication Transition Completion Command](../../decisions/release/bootstrap/0116-cli-first-publication-transition-completion-command.md) — `docs/decisions/release/bootstrap/0116-cli-first-publication-transition-completion-command.md`
@@ -24,6 +27,3 @@
 - [ADR-0123: Stage-Only Workflow Execution Evidence](../../decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md) — `docs/decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md`
 - [ADR-0124: npm Stage-Result Artifact Evidence](../../decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md) — `docs/decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md`
 - [ADR-0125: npm Staged-Package Review Evidence](../../decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md) — `docs/decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md`
-- [ADR-0126: npm Stage-Approval Authorization](../../decisions/release/staging/0126-cli-npm-stage-approval-authorization.md) — `docs/decisions/release/staging/0126-cli-npm-stage-approval-authorization.md`
-- [ADR-0127: Durable npm Stage-Approval Records](../../decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md) — `docs/decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md`
-- [ADR-0128: Interactive npm Stage-Approval Execution](../../decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md) — `docs/decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md`

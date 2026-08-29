@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_12a59c843133f34eadc1c064
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d5ec218a41e0d0b3926bbd1b
+outputLanguage: en
+outputs:
+  - byteCount: 3631
+    contentHash: sha256:3dbc60d2a921bca47949b83a1c5730b9d4f67f79a4fa3890fe04ea7a327714bf
+    path: docs/evidence/search/linked-evidence-provider-shadow-v10-codex-omission-diagnosis.md
+    userRegionHash: sha256:3dbc60d2a921bca47949b83a1c5730b9d4f67f79a4fa3890fe04ea7a327714bf
+profile: repository_document
+recordId: knormdoc_673582437b52755aed114479
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:41ec3d114f790d3c528e65f421b7ada7c419c6b3dece4ba876956369b4ffc2a5
+sourcePath: docs/evidence/search/linked-evidence-provider-shadow-v10-codex-omission-diagnosis.md
+sourceUnitVersionIds:
+  - uv_24fbfcd33da589b5ee473f9d
+  - uv_54908412aa8e2876fe07b759
+  - uv_6e74a8479cbf71bdd0656a8b
+  - uv_7e5b41fb025b3fade94813e2
+  - uv_d13ffd12806272eee4eead95
+  - uv_f9a2038df2b731c2e5b3ca6d

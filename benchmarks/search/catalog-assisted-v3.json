@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "drbench_catalog_assisted_v3.v1",
+  "benchmarkMode": "catalog_assisted_v3_comparison",
+  "protocolId": "catalog-assisted-coverage-v3",
+  "protocolDigest": "sha256:07aaeda1e93252f2fb2194aa2ebce3910900da3e39a5a83d762811dd7099cff5",
+  "provenance": "verification_authored",
+  "reviewStatus": "pending_human_review",
+  "publicQueries": true,
+  "modelResponseLocale": "ko",
+  "lexicalLimit": 3,
+  "repetitionsPerArm": 3,
+  "catalog": {
+    "format": "repository_path_title_v1",
+    "maximumBytes": 65536,
+    "maximumCandidates": 4
+  },
+  "acceptance": {
+    "minimumCasesPassingEveryRepetition": 6,
+    "requirePassCountNonInferiorityToModelDirect": true,
+    "requireRecallNonInferiorityToModelDirect": true,
+    "maximumTokenRatioToModelDirectBasisPoints": 8500,
+    "maximumDurationRatioToModelDirectBasisPoints": 9500,
+    "maximumNoHitP95RatioToModelDirectBasisPoints": 10000,
+    "maximumNoHitStandardDeviationRatioToModelDirectBasisPoints": 10000,
+    "maximumFailedCatalogContracts": 0,
+    "maximumDroppedRelevantRecommendations": 0,
+    "maximumDroppedRelevantCatalogCandidates": 0,
+    "maximumFailedContracts": 0
+  },
+  "corpusRoots": ["README.md", "AGENTS.md", "docs"],
+  "corpusExclusions": [
+    "docs/decisions/search/0224-natural-language-grounding-quality-evaluation.md",
+    "docs/decisions/search/0225-revise-local-hybrid-for-cross-language-recall.md",
+    "docs/decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md",
+    "docs/decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md",
+    "docs/decisions/search/0240-evaluate-catalog-assisted-retrieval-v3.md",
+    "docs/decisions/knowledge/semantics/0227-approval-gated-cross-provider-fuzzy-merge.md",
+    "docs/evidence/search",
+    "docs/knowledge",
+    "docs/roadmap/natural-language-grounding-quality.md"
+  ],
+  "cases": [
+    {
+      "caseId": "drv3case_implementation_release",
+      "taskType": "task_start_and_how_to",
+      "requestStyle": "ordinary_implementation",
+      "lexicalExpectation": "recommendations",
+      "query": "CLI 릴리스 준비 작업을 진행하려고 해. 먼저 따라야 할 canonical release sources를 찾아줘",
+      "expectedPaths": [
+        "docs/distribution/cli-version-management.md",
+        "docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md"
+      ]
+    },
+    {
+      "caseId": "drv3case_terse_release",
+      "taskType": "task_start_and_how_to",
+      "requestStyle": "terse_do",
+      "lexicalExpectation": "recommendations",
+      "query": "CLI 릴리스 준비해줘",
+      "expectedPaths": [
+        "docs/distribution/cli-version-management.md",
+        "docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md"
+      ]
+    },
+    {
+      "caseId": "drv3case_rationale_hybrid_search",
+      "taskType": "historical_rationale",
+      "requestStyle": "historical_rationale",
+      "lexicalExpectation": "recommendations",
+      "query": "예전에 local hybrid search와 reviewed relation context 작업을 왜 했었지?",
+      "expectedPaths": [
+        "docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md"
+      ]
+    },
+    {
+      "caseId": "drv3case_status_node_fleet",
+      "taskType": "status_continuation_impact",
+      "requestStyle": "impact",
+      "lexicalExpectation": "recommendations",
+      "query": "repository Node fleet 진행하면 architecture와 gradual rollout에 뭐가 영향 받아?",
+      "expectedPaths": [
+        "docs/architecture/system.md",
+        "docs/roadmap/coordination/repository-node-fleet.md"
+      ]
+    },
+    {
+      "caseId": "drv3case_boundary_fuzzy_merge",
+      "taskType": "ambiguity_and_contract_boundary",
+      "requestStyle": "approval_or_ownership_boundary",
+      "lexicalExpectation": "recommendations",
+      "query": "fuzzy merge를 승인 없이 자동 적용해도 돼? conflict resolution 근거 찾아줘",
+      "expectedPaths": [
+        "docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md",
+        "docs/decisions/execution/providers/0187-review-gated-cross-provider-exact-merge.md"
+      ]
+    },
+    {
+      "caseId": "drv3case_boundary_user_owned_block",
+      "taskType": "ambiguity_and_contract_boundary",
+      "requestStyle": "approval_or_ownership_boundary",
+      "lexicalExpectation": "recommendations",
+      "query": "managed block 작업할 때 user-owned content 자동으로 덮어써도 돼?",
+      "expectedPaths": ["docs/specifications/execution.md"]
+    },
+    {
+      "caseId": "drv3case_rationale_continuation_why",
+      "taskType": "historical_rationale",
+      "requestStyle": "historical_rationale",
+      "lexicalExpectation": "no_hits",
+      "query": "예전에 왜 이전 작업 상태를 다음 대화에서도 이어가게 했었지?",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md"
+      ]
+    },
+    {
+      "caseId": "drv3case_rationale_continuation_conversation",
+      "taskType": "historical_rationale",
+      "requestStyle": "historical_rationale",
+      "lexicalExpectation": "no_hits",
+      "query": "전에 하던 일을 새 대화에서도 계속할 수 있게 만든 이유가 뭐였지?",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_29609ee2273789f26b9deba3
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/typed-context/0296-reject-activation-after-typed-context-managed-canary-v14.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_758f45d1f694aeba8f6ec8e0
+title: "ADR-0296: Reject activation after typed-context managed canary v14"
+type: decision

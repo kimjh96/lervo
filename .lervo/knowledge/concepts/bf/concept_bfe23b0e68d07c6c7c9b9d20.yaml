@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_bfe23b0e68d07c6c7c9b9d20
+freshness: current
+ownership: user
+path: docs/evidence/search/provider-shadow/codex-claude-linked-evidence-outcome-history.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_190d5c66e0363a346e2dbdc7
+title: Outcome and remaining work
+type: concept

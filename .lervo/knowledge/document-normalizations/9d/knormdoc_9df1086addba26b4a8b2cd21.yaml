@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1ef66debe47c31fc18a2172a
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_06eff2dd1f736fa278f5b3b9
+outputLanguage: en
+outputs:
+  - byteCount: 3809
+    contentHash: sha256:231e70ae232528e2959c16c801d857a7ab315029db789a0a96d0f70d66aed9d9
+    path: docs/evidence/search/linked-evidence-shadow-phase-a-preflight.md
+    userRegionHash: sha256:231e70ae232528e2959c16c801d857a7ab315029db789a0a96d0f70d66aed9d9
+profile: repository_document
+recordId: knormdoc_9df1086addba26b4a8b2cd21
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d376750597b685f568aa011b2ec80db468c423e295c4c4feeb5f7f0db6dfe03b
+sourcePath: docs/evidence/search/linked-evidence-shadow-phase-a-preflight.md
+sourceUnitVersionIds:
+  - uv_253fe1fd81aee6c344210008
+  - uv_7d2fd87191347cf2705e198f
+  - uv_8d0575913509551a2397e4b2
+  - uv_8d21ed383bad87900e9d5385
+  - uv_94520b3294db16a8d9550cbf
+  - uv_dd4db467a1c07ee99fdb23a6
+  - uv_e10293cad5dab551dd2d7f61

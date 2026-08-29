@@ -83,6 +83,8 @@ function envelope(adapterId: string): AdapterContextEnvelope {
         contentHash: sha(agents),
         byteCount: Buffer.byteLength(agents),
         scope: { kind: "full" },
+        documentRole: "governance_context",
+        referenceEligible: false,
         delivery: { kind: "inline", content: agents },
       },
       {
@@ -91,7 +93,29 @@ function envelope(adapterId: string): AdapterContextEnvelope {
         contentHash: sha(writing),
         byteCount: Buffer.byteLength(writing),
         scope: { kind: "full" },
+        documentRole: "governance_context",
+        referenceEligible: false,
         delivery: { kind: "inline", content: writing },
+      },
+      {
+        documentId: "doc_task_evidence1",
+        path: "docs/task-evidence.md",
+        contentHash: sha("Substantive task evidence.\n"),
+        byteCount: Buffer.byteLength("Substantive task evidence.\n"),
+        scope: { kind: "full" },
+        documentRole: "task_evidence",
+        referenceEligible: true,
+        delivery: { kind: "inline", content: "Substantive task evidence.\n" },
+      },
+      {
+        documentId: "doc_supporting0001",
+        path: "docs/supporting-context.md",
+        contentHash: sha("Supporting linked context.\n"),
+        byteCount: Buffer.byteLength("Supporting linked context.\n"),
+        scope: { kind: "full" },
+        documentRole: "task_evidence",
+        referenceEligible: false,
+        delivery: { kind: "inline", content: "Supporting linked context.\n" },
       },
     ],
     createdAt: "2026-08-18T00:00:01Z",
@@ -137,5 +161,44 @@ describe("managed provider parity", () => {
       expect(JSON.stringify(codexClient.injected)).toContain(content);
       expect(claudeClient.injected).toContain(content);
     }
+
+    const codexDocuments = (
+      codexClient.injected as Array<{ content: Array<{ text: string }> }>
+    ).map((item) => JSON.parse(item.content[0]!.text).document);
+    const claudeDocuments = JSON.parse(claudeClient.injected!).documents;
+    const referenceMetadata = (documents: Array<Record<string, unknown>>) =>
+      documents.map(({ documentId, documentRole, referenceEligible, evidenceToken }) => ({
+        documentId,
+        documentRole,
+        referenceEligible,
+        evidenceToken,
+      }));
+    expect(referenceMetadata(claudeDocuments)).toEqual(referenceMetadata(codexDocuments));
+    expect(referenceMetadata(codexDocuments)).toEqual([
+      {
+        documentId: "doc_agents0001",
+        documentRole: "governance_context",
+        referenceEligible: false,
+        evidenceToken: null,
+      },
+      {
+        documentId: "doc_writing_policy",
+        documentRole: "governance_context",
+        referenceEligible: false,
+        evidenceToken: null,
+      },
+      {
+        documentId: "doc_task_evidence1",
+        documentRole: "task_evidence",
+        referenceEligible: true,
+        evidenceToken: `lervo-e4:doc_task_evidence1:${sha("Substantive task evidence.\n")}`,
+      },
+      {
+        documentId: "doc_supporting0001",
+        documentRole: "task_evidence",
+        referenceEligible: false,
+        evidenceToken: null,
+      },
+    ]);
   });
 });

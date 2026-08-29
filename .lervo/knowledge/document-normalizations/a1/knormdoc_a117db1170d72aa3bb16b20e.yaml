@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_850d959e25c6470774bc98b5
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_daf395c86b7bfa08286019b7
+outputLanguage: en
+outputs:
+  - byteCount: 3035
+    contentHash: sha256:e413f681d33ebb0f062fbe8b01918885d430b5798e3cb0625fc8234f8e7e7069
+    path: docs/decisions/search/activation/provider-shadow-structured/0291-constrain-provider-neutral-e4-references-for-managed-canary-v12.md
+    userRegionHash: sha256:e413f681d33ebb0f062fbe8b01918885d430b5798e3cb0625fc8234f8e7e7069
+profile: decision_record
+recordId: knormdoc_a117db1170d72aa3bb16b20e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7dea6d2906363580ce1266247413c8ea1987f4db799ee3f028eebcef8b637029
+sourcePath: docs/decisions/search/activation/provider-shadow-structured/0291-constrain-provider-neutral-e4-references-for-managed-canary-v12.md
+sourceUnitVersionIds:
+  - uv_8948af79328d1fa1a06564f6
+  - uv_95964b8099bcefe766e5d02d
+  - uv_a674d2808851ad8c51784395
+  - uv_e552fb9833d729b56f2ffcb3
+  - uv_ed72a796e7adbc6f47c1d509
+  - uv_ee184fe7d38a09e13eabcbca

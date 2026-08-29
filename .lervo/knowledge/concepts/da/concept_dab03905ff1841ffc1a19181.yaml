@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_dab03905ff1841ffc1a19181
+freshness: current
+ownership: user
+path: docs/evidence/search/provider-shadow/linked-evidence-managed-canary-v12.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_9b4e3e99bb34b7def5a78fb7
+title: Managed linked-evidence canary v12 report
+type: concept

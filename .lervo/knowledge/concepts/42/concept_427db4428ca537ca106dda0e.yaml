@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_427db4428ca537ca106dda0e
+freshness: current
+ownership: user
+path: docs/evidence/search/linked-evidence-provider-shadow-pilot-v7.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_1d6e46b401947a9dbd4f8338
+title: Claude output-framing provider-shadow v7
+type: concept

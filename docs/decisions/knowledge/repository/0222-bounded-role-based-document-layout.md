@@ -5,23 +5,23 @@
 
 ## Context
 
-Lervo requires bounded growth and retention for every repository-authored collection. Existing controls limit profile-specific file sizes, normalization outputs to 12 per source, and decision-leaf capacity, but no single projected-capacity evaluation covers every document-bearing directory. Independently migrated bounded documents can therefore accumulate without bound in an ordinary route.
+Lervo requires bounded growth and retention for every repository-authored collection. Existing controls bound profile-specific file sizes, normalization outputs to 12 per source, and decision-leaf capacity, but no single projected-capacity evaluation covers every document-bearing directory. Independently migrated bounded documents can therefore accumulate without bound in an ordinary route.
 
-Some lifecycle decisions also depend on root filenames. Provider entrypoints such as `AGENTS.md` and `CLAUDE.md` have externally defined path semantics, but public overviews, continuation sources, product documents, and migration exclusions are repository roles rather than universal root filenames. Combining both categories in repository-knowledge core makes arbitrary layouts exceptional and lets new commands omit a structural invariant.
+Some lifecycle decisions depend on root filenames. Provider entrypoints such as `AGENTS.md` and `CLAUDE.md` have externally defined path semantics, but public overviews, continuation sources, product documents, and migration exclusions are repository roles rather than universal root filenames. Combining these categories in repository-knowledge core makes arbitrary layouts exceptional and lets new commands omit a structural invariant.
 
-Document bytes may also be rewritten outside Lervo. Although the repository wrapper excludes active normalization outputs from its formatter, direct formatter commands, editor saves, autofix linters, Markdown transforms, and documentation generators do not share an ownership contract. Tool-specific exceptions cannot establish byte ownership.
+Document bytes can also be rewritten outside Lervo. The repository wrapper excludes active normalization outputs from its formatter, but direct formatter commands, editor saves, autofix linters, Markdown transforms, and documentation generators share no ownership contract. Tool-specific exceptions cannot establish byte ownership.
 
 ## Decision
 
 ### One projected document-layout evaluator
 
-Introduce one pure domain evaluator for the final document tree. It receives the current included-document snapshot, tracked policy, ownership and role coordinates, and proposed creates, moves, updates, and deletions. It returns a bounded projected layout or typed blockers without reading the filesystem, invoking providers, or mutating state.
+Introduce one pure domain evaluator for the final document tree. It receives the current included-document snapshot, tracked policy, ownership and role coordinates, and proposed creates, moves, updates, and deletions. Without reading the filesystem, invoking providers, or mutating state, it returns a bounded projected layout or typed blockers.
 
-Every repository-document authoring path must call it: initialization, repository-layout migration, document normalization, document structure operations, entrypoint bootstrap, public-document improvement, managed instruction routes, development-pattern promotion, generated publication refresh, and future document writers. Lint calls it without proposed operations. Apply recomputes it from current bytes immediately before mutation. Commands may not duplicate or weaken its capacity rules.
+Every repository-document authoring path must call it: initialization, repository-layout migration, document normalization, document structure operations, entrypoint bootstrap, public-document improvement, managed instruction routes, development-pattern promotion, generated publication refresh, and all future document writers. Lint calls it without proposed operations. Apply recomputes it from current bytes immediately before mutation. Commands may not duplicate or weaken its capacity rules.
 
-The evaluator issues a `DocumentLayoutPermit` binding its version, the complete proposed Markdown and MDX operation set, current document snapshot, policy hash, role-registry hash, projected counts, and expiration. The common durable-apply boundary rejects every repository-document create, update, move, or delete lacking that exact permit. Direct user and external-tool filesystem changes remain outside Lervo authority; lint observes their next state without retroactively claiming a permit.
+The evaluator issues a `DocumentLayoutPermit` binding its version, complete proposed Markdown and MDX operation set, current document snapshot, policy hash, role-registry hash, projected counts, and expiration. The common durable-apply boundary rejects every repository-document create, update, move, or delete without that exact permit. Direct user and external-tool filesystem changes remain outside Lervo authority; lint observes their next state without retroactively claiming a permit.
 
-Evaluation covers the projected after-state, not merely the current scan. Moves into full directories, normalization splits, and generated refreshes must fail during planning rather than publish and depend on rollback-time lint.
+Evaluate the projected after-state, not only the current scan. Moves into full directories, normalization splits, and generated refreshes must fail during planning rather than publish and depend on rollback-time lint.
 
 ### Finite capacity for every document-bearing directory
 
@@ -44,15 +44,17 @@ The direct-directory defaults derive from a 2026-08-26 tree-only measurement of 
 | [Rust](https://github.com/rust-lang/rust/tree/3ffb26fbf5bf232cf59e314e75ea325973f4f583) | 1,468 | 131 | 518 | 24 |
 | Lervo before enforcement | 283 | 24 | 24 | 13 |
 
-Thirty-two gives Lervo one-third growth headroom and covers ordinary authored distributions in Docusaurus and VS Code. Larger sampled maxima represent append-only changelogs, command references, error-code catalogs, package fans, or skill catalogs. Raising the universal default for them would prevent detection of ordinary routes needing semantic refinement. Such trees require an explicit `archive`, `catalog`, or `generated_reference` override, capped at 1,024 direct documents and 256 document-bearing children. The repository total remains 4,096; the measured maximum is 1,617.
+Thirty-two gives Lervo one-third growth headroom and covers ordinary authored distributions in Docusaurus and VS Code. Larger sampled maxima are append-only changelogs, command references, error-code catalogs, package fans, or skill catalogs. Raising the universal default for them would hide ordinary routes needing semantic refinement. Such trees require an explicit `archive`, `catalog`, or `generated_reference` override, capped at 1,024 direct documents and 256 document-bearing children. The repository total remains 4,096; the measured maximum is 1,617.
 
-GitHub separately recommends at most [3,000 entries per directory and 50 levels of depth](https://docs.github.com/en/enterprise-cloud@latest/repositories/creating-and-managing-repositories/repository-limits), but that is a Git performance ceiling rather than a human documentation-layout target. Docusaurus maps every folder to a category and every file to a document link in [autogenerated sidebars](https://docusaurus.io/docs/sidebar/autogenerated), supporting a lower navigation-oriented default.
+GitHub separately recommends at most [3,000 entries per directory and 50 levels of depth](https://docs.github.com/en/enterprise-cloud@latest/repositories/creating-and-managing-repositories/repository-limits), but this is a Git performance ceiling, not a human documentation-layout target. Docusaurus maps every folder to a category and every file to a document link in [autogenerated sidebars](https://docusaurus.io/docs/sidebar/autogenerated), supporting a lower navigation-oriented default.
 
 Schema validation permits bounded repository overrides, but never absent, infinite, zero, or scanner-exceeding capacity. Existing repositories require a reviewed policy-upgrade plan that materializes their effective v1 behavior before v2 enforcement. Initialization writes policy only and creates no speculative document directories.
 
 All included Markdown and MDX count, whether in `docs`, the repository root, or a package subtree. Excluded dependencies, unsafe sources, and local inventory remain outside the document snapshot rather than becoming capacity exceptions.
 
-User-owned and Lervo-generated trees share the cardinality evaluator. A generated projection must additionally declare a finite maximum output count, maximum depth, and a replacement or pruning rule in its generator contract. Sharded machine registries retain separate finite sharding and retention contracts and are not documentation.
+Canonical archive and inherited collections remain migration-stable at `docs/archive/**` and `docs/inherited/**`. Exact repository role paths with relocation policy `preserve` have the same path stability. Their documents remain included in discovery, compilation, query, and projected-capacity evaluation. The generic semantic-route classifier neither relocates them nor reinterprets preserved legacy metadata as current routing authority. Migration reference repair and provider normalization do not rewrite archive or inherited collection bytes.
+
+User-owned and Lervo-generated trees share the cardinality evaluator. A generated projection must additionally declare a finite maximum output count, maximum depth, and replacement or pruning rule in its generator contract. Sharded machine registries retain separate finite sharding and retention contracts and are not documentation.
 
 Reaching a limit never creates automatic date buckets, numbered overflow folders, catch-all routes, or arbitrary nested paths. Planning fails closed pending semantic route refinement, consolidation, deletion, or an explicitly reviewed finite policy change. A child directory created for a normalized source is a bounded document family and cannot recursively create another family.
 
@@ -107,7 +109,7 @@ Use these stable local blocker codes:
 | `document_directory_child_capacity_exceeded` | directory, observed, projected, limit, operation IDs | The projected document-bearing child count is not permitted. |
 | `document_repository_capacity_exceeded` | observed, projected, limit, operation IDs | The projected included-document total is not permitted. |
 | `document_layout_permit_required` | operation-set hash, document mutation count | A Lervo document writer reached durable apply without a permit. |
-| `document_layout_permit_invalid` | snapshot, policy, role, operation, count, expiry hashes | The supplied permit is stale, expired, or bound to different inputs. |
+| `document_layout_permit_invalid` | snapshot, policy, role, operation, count, expiry hashes | The permit is stale, expired, or bound to different inputs. |
 | `document_role_conflict` | scope, role ID, candidate path digests | A role is missing, duplicated, or disagrees across authorities. |
 | `document_role_policy_unresolved` | policy hash, role ID, evidence digests | Current policy cannot resolve a required role. |
 | `document_rewrite_ownership_conflict` | path, owner, rewriter ID, policy hash | Two current authorities could rewrite the same bytes incompatibly. |

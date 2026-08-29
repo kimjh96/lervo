@@ -10,6 +10,7 @@ export function captureClaudeTurnResult(input: {
   raw: unknown;
   providerSessionId: string;
   activeProviderTurnId: string | undefined;
+  captureStructuredOutput: boolean;
   now: () => Date;
 }): CapturedClaudeTurnResult | null {
   const message = asRecord(input.raw);
@@ -23,7 +24,17 @@ export function captureClaudeTurnResult(input: {
   }
   const reported = text(message.user_message_uuid);
   const providerTurnId = reported ?? input.activeProviderTurnId;
-  const content = text(message.result);
+  let content = text(message.result);
+  if (input.captureStructuredOutput) {
+    try {
+      content =
+        message.structured_output === undefined
+          ? undefined
+          : JSON.stringify(message.structured_output);
+    } catch {
+      content = undefined;
+    }
+  }
   if (
     providerTurnId === undefined ||
     content === undefined ||

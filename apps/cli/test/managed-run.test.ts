@@ -24,7 +24,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createManagedRunExecutor, type RunProvider } from "../src/managed-run.js";
 import { collectLocalKnowledgeSources } from "../src/knowledge-sources.js";
 import { runCli } from "../src/main.js";
-import { registerSearchContextDocument } from "./search-context-fixture.js";
+import { registerLinkedSearchContextDocuments } from "./search-context-fixture.js";
 
 const CLAUDE_SESSION_ID = "11111111-1111-4111-8111-111111111111";
 const CLAUDE_TURN_ID = "22222222-2222-4222-8222-222222222222";
@@ -564,15 +564,17 @@ describe("lervo run vertical slice", () => {
     "runs one managed %s change through project storage and the production adapter",
     async (provider) => {
       const root = await createRepository();
-      await registerSearchContextDocument(root);
+      await registerLinkedSearchContextDocuments(root);
       const client =
         provider === "codex" ? new ManagedCodexClient(root) : new ManagedClaudeClient(root);
+      let adapterCreations = 0;
       const executeManagedRun = createManagedRunExecutor({
         openStorage: openProjectStorage,
         createId: identifierFactory(),
         semanticEvaluator: passingSemanticEvaluator,
-        createAdapter: ({ repositoryRoot, resolveArtifact }) =>
-          provider === "codex"
+        createAdapter: ({ repositoryRoot, resolveArtifact }) => {
+          adapterCreations += 1;
+          return provider === "codex"
             ? new CodexAdapter({
                 repositoryRoot,
                 resolveArtifact,
@@ -584,7 +586,8 @@ describe("lervo run vertical slice", () => {
                 clientFactory: async () => client as ManagedClaudeClient,
                 createProviderSessionId: () => CLAUDE_SESSION_ID,
                 createProviderMessageId: () => CLAUDE_TURN_ID,
-              }),
+              });
+        },
       });
       let output = "";
       let errorOutput = "";
@@ -617,7 +620,9 @@ describe("lervo run vertical slice", () => {
       expect(output).toContain("Functional verification: passed");
       expect(output).toContain("project.default: passed");
       expect(output).toContain("Writing publication verification: passed");
-      expect(output).toContain("recommended 1 · selected 1");
+      expect(output).toMatch(/recommended \d+ · selected \d+/u);
+      expect(adapterCreations).toBe(1);
+      expect(output).not.toContain("linked-evidence-managed-canary");
       expect(output).toContain("Documents selected from search: doc_cli_search_context");
       expect(output).toContain("--selected document:doc_cli_search_context");
       expect(await readFile(resolve(root, "src/result.ts"), "utf8")).toBe(
@@ -640,6 +645,27 @@ describe("lervo run vertical slice", () => {
       expect(events.find((event) => event.type === "run.completed")?.payload).toMatchObject({
         verificationStatus: "passed",
       });
+      expect(
+        events.find(
+          (event) =>
+            event.type === "context.selected" &&
+            event.payload.documentId === "doc_zzz_linked_constraint" &&
+            event.payload.reasonCode === "explicit_link",
+        )?.payload,
+      ).toMatchObject({
+        reasonCode: "explicit_link",
+        ruleId: expect.stringMatching(/^managed_linked_evidence_default:lsel_[a-f0-9]{24}$/u),
+      });
+      expect(
+        events.find(
+          (event) =>
+            event.type === "document.loaded" &&
+            event.payload.documentId === "doc_zzz_linked_constraint",
+        ),
+      ).toBeDefined();
+      expect(
+        events.find((event) => event.type === "context.injected")?.payload.documentIds,
+      ).toContain("doc_zzz_linked_constraint");
       const knowledgeSources = await collectLocalKnowledgeSources(root);
       expect(knowledgeSources.filter((source) => source.kind === "verification_result")).toEqual([
         expect.objectContaining({

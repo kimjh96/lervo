@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_dd2bcc07aaaf0dec6ca28f2a
+freshness: current
+ownership: user
+path: docs/decisions/search/0246-evaluate-linked-evidence-reconciliation-v8.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_7462397c26cf77b432bbea44
+title: "ADR-0246: Evaluate linked-evidence reconciliation v8"
+type: decision

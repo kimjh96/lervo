@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e1984b8beb8f9398b1a94bc1"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Activate deterministic linked supporting context while preserving direct claim eligibility in managed provider runs."

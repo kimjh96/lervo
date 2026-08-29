@@ -98,6 +98,39 @@
     }
   },
   {
+    "name": "governance context cannot be reference eligible",
+    "schema": "adapter",
+    "value": {
+      "kind": "context_receipt",
+      "schemaVersion": 1,
+      "receiptId": "ctx_34567890",
+      "envelopeId": "envelope-1",
+      "adapterId": "lervo/codex",
+      "projectId": "prj_01234567",
+      "runId": "run_01234567",
+      "sessionId": "ses_01234567",
+      "roleId": "developer",
+      "writingPolicyId": null,
+      "writingPolicyDocumentId": null,
+      "provider": "codex",
+      "providerSessionId": "provider-session-1",
+      "targetTurnId": "turn-1",
+      "contextGeneration": 0,
+      "controlledInput": true,
+      "documents": [
+        {
+          "documentId": "doc_01234567",
+          "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "scope": { "kind": "full" },
+          "documentRole": "governance_context",
+          "referenceEligible": true,
+          "status": "injected"
+        }
+      ],
+      "acceptedAt": "2026-08-18T00:00:02Z"
+    }
+  },
+  {
     "name": "descriptor must disclose every capability",
     "schema": "adapter",
     "value": {

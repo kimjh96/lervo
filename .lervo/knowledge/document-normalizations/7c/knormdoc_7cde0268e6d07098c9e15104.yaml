@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_92798319b37741581c3b8a0e
+compiler:
+  compilerBuildId: sha256:372e27cd51634b3b992d956380bf67c37375fdb0368583bfe2a07dc3699d0f7e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.150.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e213bb034d8179e35f673f5d
+outputLanguage: en
+outputs:
+  - byteCount: 3825
+    contentHash: sha256:e8989ac0be5f29f39ff6570c4d48d0c19fbd330bd0362f13039ac2e63f3ccd43
+    path: docs/decisions/search/activation/0258-correct-claude-structured-selection-provider-shadow-v5.md
+    userRegionHash: sha256:e8989ac0be5f29f39ff6570c4d48d0c19fbd330bd0362f13039ac2e63f3ccd43
+profile: decision_record
+recordId: knormdoc_7cde0268e6d07098c9e15104
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7fb69b9065b7bc411ee31101d143f81ee1f643296b1765fb3de0f8a2b0f4b8eb
+sourcePath: docs/decisions/search/activation/0258-correct-claude-structured-selection-provider-shadow-v5.md
+sourceUnitVersionIds:
+  - uv_1745634c0bb56d515fc141ce
+  - uv_5fdffddb55b1a725ca5c6da9
+  - uv_ab234568a3cd746820d881b0
+  - uv_c33ffa2c41fd628fad3d26c7
+  - uv_ca907c6799d9daecaf22037d
+  - uv_e3d302996cfb7f7b5f8eb814
