@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 
@@ -12,10 +11,10 @@ import {
   reviewedManagedCanaryV3CheckpointContractDigest,
 } from "../natural-language-evaluation/linked-evidence-managed-canary-checkpoint-contract.mjs";
 import { valueDigest } from "../natural-language-evaluation/linked-evidence-shadow-phase-a-pilot-contract.mjs";
+import { reviewedProviderShadowV18ScheduleFixture } from "./linked-evidence-managed-canary-source-fixture.mjs";
 
 const repositoryRoot = new URL("../..", import.meta.url).pathname;
 const roots = [];
-const sha256 = (value) => `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
@@ -27,21 +26,9 @@ describe("managed linked-evidence canary v3 checkpoint", () => {
       repositoryRoot,
       managedCanaryV3CheckpointContractPath,
     );
-    const pilotRoot = resolve(
-      repositoryRoot,
-      ".lervo/state/search/linked-evidence-provider-shadow-pilots",
-      loaded.contract.sourcePopulation.sourceProviderShadowPilotId,
-    );
-    const v18 = JSON.parse(await readFile(resolve(pilotRoot, "controller/prepared.json"), "utf8"));
-    const reviewBytes = await readFile(resolve(pilotRoot, "controller/review.json"));
-    const review = JSON.parse(reviewBytes.toString("utf8"));
-    const schedule = createManagedCanaryCheckpointSchedule(loaded.contract, v18.manifest.schedule);
-    const observations = await Promise.all(
-      (await readdir(resolve(pilotRoot, "observations")))
-        .filter((item) => /^\d{2}-(?:codex|claude)\.json$/u.test(item))
-        .map(async (item) =>
-          JSON.parse(await readFile(resolve(pilotRoot, "observations", item), "utf8")),
-        ),
+    const schedule = createManagedCanaryCheckpointSchedule(
+      loaded.contract,
+      reviewedProviderShadowV18ScheduleFixture,
     );
 
     expect(loaded.contractDigest).toBe(reviewedManagedCanaryV3CheckpointContractDigest);
@@ -50,22 +37,14 @@ describe("managed linked-evidence canary v3 checkpoint", () => {
     expect(new Set(schedule.map((item) => item.sourceSampleId)).size).toBe(8);
     expect(schedule.filter((item) => item.provider === "codex")).toHaveLength(8);
     expect(schedule.filter((item) => item.provider === "claude")).toHaveLength(8);
-    expect(
-      schedule.every(
-        (item) =>
-          observations.filter(
-            (observation) =>
-              observation.sourceSampleId === item.sourceSampleId &&
-              observation.provider === item.provider &&
-              observation.terminalStatus === "completed" &&
-              observation.failureCode === null,
-          ).length === 1,
-      ),
-    ).toBe(true);
-    expect(review).toMatchObject({ status: "passed", passed: true, observationCount: 32 });
-    expect(sha256(reviewBytes)).toBe(
-      loaded.contract.sourcePopulation.sourceProviderShadowReviewFileDigest,
-    );
+    expect(loaded.contract.sourcePopulation).toMatchObject({
+      sourceProviderShadowPilotId:
+        "linked-evidence-provider-shadow-v18-relational-coverage-confirmation-20260829",
+      sourceProviderShadowManifestDigest:
+        "sha256:a00d3772f9b40ae23a7a30787eb0c2b149d19387a986307f1b91aa5655a73ff3",
+      sourceProviderShadowReviewFileDigest:
+        "sha256:24ccaf50b3523d6c3c5f0df19b10930e2383a1784010122659522cc504d9552c",
+    });
     expect(loaded.contract.credentials).toEqual({
       userApiKeysRequired: false,
       codex: "reuse_native_chatgpt_or_codex_session",

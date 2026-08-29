@@ -1,5 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -11,6 +10,7 @@ import {
   managedCanaryV13CheckpointContractPath,
   reviewedManagedCanaryV13CheckpointContractDigest,
 } from "../natural-language-evaluation/linked-evidence-managed-canary-checkpoint-contract.mjs";
+import { reviewedProviderShadowV18ScheduleFixture } from "./linked-evidence-managed-canary-source-fixture.mjs";
 
 const repositoryRoot = new URL("../..", import.meta.url).pathname;
 
@@ -20,16 +20,10 @@ describe("managed linked-evidence canary v13 checkpoint", () => {
       loadManagedCanaryCheckpointContract(repositoryRoot, managedCanaryV12CheckpointContractPath),
       loadManagedCanaryCheckpointContract(repositoryRoot, managedCanaryV13CheckpointContractPath),
     ]);
-    const source = JSON.parse(
-      await readFile(
-        new URL(
-          `../../.lervo/state/search/linked-evidence-provider-shadow-pilots/${v13.contract.sourcePopulation.sourceProviderShadowPilotId}/controller/prepared.json`,
-          import.meta.url,
-        ),
-        "utf8",
-      ),
+    const schedule = createManagedCanaryCheckpointSchedule(
+      v13.contract,
+      reviewedProviderShadowV18ScheduleFixture,
     );
-    const schedule = createManagedCanaryCheckpointSchedule(v13.contract, source.manifest.schedule);
 
     expect(v13.contractDigest).toBe(reviewedManagedCanaryV13CheckpointContractDigest);
     expect(schedule).toHaveLength(16);
