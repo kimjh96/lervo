@@ -1,8 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { createManagedBlockPatchCandidate, parseManagedMarkdownBlocks } from "@lervo/documents";
-
 import { applyDurableKnowledgeOperations } from "./durable-apply.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
@@ -73,7 +71,6 @@ export interface DevelopmentPatternPromotionPlan {
 }
 
 const safeRelativePath = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))(?!.*\\)[^\0]+$/u;
-const routeBlockId = "development_pattern_routes";
 
 async function readBoundedText(
   repositoryRoot: string,
@@ -236,56 +233,6 @@ export function createDevelopmentPatternReview(input: {
   return { review, content, contentHash: sha256(content) };
 }
 
-function routeContent(title: string, targetPath: string): string {
-  const label = title.replace(/[[\]]/gu, "");
-  return `\n## Promoted development patterns\n\n- [${label}](${targetPath})\n`;
-}
-
-async function routeOperation(
-  root: string,
-  candidate: DevelopmentPatternCandidate,
-): Promise<KnowledgeFileOperation | null> {
-  if (candidate.target.kind === "automated_check") return null;
-  const source = await readFile(resolve(root, "AGENTS.md"), "utf8");
-  const sourceHash = sha256(source);
-  const parsed = parseManagedMarkdownBlocks(Buffer.from(source));
-  if (parsed.status !== "valid") throw new Error("AGENTS managed-block structure is invalid.");
-  const desiredRoute = `- [${candidate.title.replace(/[[\]]/gu, "")}](${candidate.target.path})`;
-  const block = parsed.blocks.find((item) => item.blockId === routeBlockId);
-  let output: string;
-  if (block === undefined) {
-    output = `${source.replace(/\n*$/u, "\n")}\n<!-- lervo:begin block=${routeBlockId} schema=1 -->${routeContent(candidate.title, candidate.target.path)}<!-- lervo:end block=${routeBlockId} -->\n`;
-  } else {
-    const current = Buffer.from(source)
-      .subarray(block.contentRange.start, block.contentRange.end)
-      .toString("utf8");
-    if (current.split("\n").includes(desiredRoute)) return null;
-    const replacement = `${current.replace(/\n*$/u, "\n")}${desiredRoute}\n`;
-    output = Buffer.from(
-      createManagedBlockPatchCandidate({
-        source: {
-          path: "AGENTS.md",
-          contentHash: sourceHash,
-          byteCount: Buffer.byteLength(source),
-          bytes: Buffer.from(source),
-        },
-        blockId: routeBlockId,
-        replacementBytes: Buffer.from(replacement),
-      }).outputBytes,
-    ).toString("utf8");
-  }
-  return {
-    path: "AGENTS.md",
-    action: "update",
-    ownership: "managed_blocks",
-    mediaType: "text/markdown",
-    content: output,
-    expectedCurrentHash: sourceHash,
-    desiredHash: sha256(output),
-    reason: "promoted_pattern_agent_route",
-  };
-}
-
 export async function createDevelopmentPatternPromotionPlan(input: {
   repositoryRoot: string;
   projectId: string;
@@ -319,8 +266,7 @@ export async function createDevelopmentPatternPromotionPlan(input: {
     desiredHash,
     reason: `promoted_pattern_${input.candidate.target.kind}`,
   };
-  const route = await routeOperation(input.repositoryRoot, input.candidate);
-  const operations = [targetOperation, ...(route === null ? [] : [route])];
+  const operations = [targetOperation];
   const changed = operations.some((item) => item.action !== "unchanged");
   if (sourceFreshness === "stale" && changed) blockers.push("source_snapshot_changed");
   const planId = stableId("kpatternplan", {
@@ -353,8 +299,16 @@ export async function createDevelopmentPatternPromotionPlan(input: {
       input.candidate.target.kind === "automated_check"
         ? []
         : [
-            { provider: "codex", path: "AGENTS.md", disposition: "managed_route" },
-            { provider: "claude", path: "CLAUDE.md", disposition: "imports_agents_route" },
+            {
+              provider: "codex",
+              path: input.candidate.target.path,
+              disposition: "knowledge_registry_route",
+            },
+            {
+              provider: "claude",
+              path: input.candidate.target.path,
+              disposition: "knowledge_registry_route",
+            },
           ],
     verificationCommands: input.candidate.verificationCommands,
     operations,

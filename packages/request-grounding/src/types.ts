@@ -68,6 +68,23 @@ export interface ProtocolCoordinate {
   value: string;
 }
 
+export interface DurableInstructionIntent {
+  disposition: "none" | "workstream" | "canonical" | "pending";
+  speechAct:
+    "directive" | "example" | "quotation" | "hypothetical" | "complaint" | "question" | "other";
+  authority: "explicit_user" | "inferred";
+  durability: "turn" | "workstream" | "repository" | "unspecified";
+  operation: "none" | "add" | "replace" | "remove";
+  scope: { kind: "repository" | "paths" | "unspecified"; paths: string[] };
+  title: string | null;
+  statement: string | null;
+  exceptions: string[];
+  risk: "low" | "high" | "unknown";
+  conflict: "none" | "covered" | "possible" | "unknown";
+  confidence: "high" | "medium" | "low";
+  reasonIds: string[];
+}
+
 export interface SemanticGroundingProposal {
   schemaVersion: 1;
   requestDigest: string;
@@ -92,6 +109,7 @@ export interface SemanticGroundingProposal {
     | { mode: "cross_provider_deliberation"; providerIds: string[] };
   disposition: GroundingDisposition;
   ambiguityReasons: string[];
+  durableInstruction: DurableInstructionIntent;
 }
 
 export interface GroundingWorkflowDescriptor {

@@ -46,7 +46,7 @@
     },
     {
       "path": "apps/cli/src/terminal-command-runtime.ts",
-      "contentHash": "sha256:51b9d459a01ed661ed317b296d4a20be5623d950978b1cff03a99638308d0c85",
+      "contentHash": "sha256:50fd37cbab02ad229ba65a1fcf9d824bfd2f90ed0983918fd81f226a838172f6",
       "responsibility": "Direct terminal-integration command runtime",
       "rationale": "The stable terminal command is a one-line facade; this implementation owns direct terminal hook preparation, evidence recording, execution-kind routing, declaration, coverage, and completion gating while workspace policy and terminal semantic-grounding policy remain in linked modules.",
       "disposition": "cohesive"
@@ -207,7 +207,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/instruction-bridge.ts",
-      "contentHash": "sha256:86b41665ddeea44a3107f640491dd247a0b81917e4bab0702c07a15c1108c5ca",
+      "contentHash": "sha256:31900d1f585e7dfd776c53863af1d49e847c6ea0bc6f924ead25559b0dccbc59",
       "responsibility": "Provider instruction bridge lifecycle",
       "rationale": "Profile resolution, registry binding, structural refresh, plan creation, and exact-approved apply share one instruction-bridge lifecycle; target construction and classification are extracted.",
       "disposition": "cohesive"
@@ -242,7 +242,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:ef08faa3c0494915d554cba9178ef37a9991cb257b41ed271d12c75935a0dd04",
+      "contentHash": "sha256:c1f8f78160bcb859973041d170af76fe04e010ed02c8bd85c5203599f1931a7f",
       "responsibility": "Repository document-layout migration",
       "rationale": "Classification, link rebasing, neutral ownership-record migration, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction; tool-specific formatter configuration is outside this boundary.",
       "disposition": "cohesive"

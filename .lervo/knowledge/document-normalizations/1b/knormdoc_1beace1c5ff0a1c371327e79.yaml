@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_79f69963182b44d4610780a8
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4c30379c80cb1a9e663d414a
+outputLanguage: en
+outputs:
+  - byteCount: 5614
+    contentHash: sha256:257f873c430dc3be833e2318d7ba030cc6589f54bc005195ea00d27c9766feb0
+    path: docs/decisions/knowledge/semantics/0304-bounded-instruction-registry-and-semantic-durable-rule-intake.md
+    userRegionHash: sha256:257f873c430dc3be833e2318d7ba030cc6589f54bc005195ea00d27c9766feb0
+profile: decision_record
+recordId: knormdoc_1beace1c5ff0a1c371327e79
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a91b889b9412336db8e8994a40874728a552fb2756d48d8c149742b704af42c9
+sourcePath: docs/decisions/knowledge/semantics/0304-bounded-instruction-registry-and-semantic-durable-rule-intake.md
+sourceUnitVersionIds:
+  - uv_06321291cf157bdc8ee5d8c3
+  - uv_427370f829f084c82ca86244
+  - uv_4a7fb6906679ec6874da270f
+  - uv_568c3a1b5dc85b61f5335173
+  - uv_924f4ede9d46048fd7c2f50f
+  - uv_a4121d6686e76473328b2d69
+  - uv_ce1fde6fc8618f5307352e5c
+  - uv_d5384f325cc575aa7f42f8c3

@@ -23,6 +23,21 @@ const responseBody = {
   providerRoute: { mode: "current_provider_only", providerIds: [] },
   disposition: "answer",
   ambiguityReasons: [],
+  durableInstruction: {
+    disposition: "none",
+    speechAct: "other",
+    authority: "inferred",
+    durability: "unspecified",
+    operation: "none",
+    scope: { kind: "unspecified", paths: [] },
+    title: null,
+    statement: null,
+    exceptions: [],
+    risk: "unknown",
+    conflict: "unknown",
+    confidence: "low",
+    reasonIds: [],
+  },
 };
 
 const workflow = {

@@ -35,6 +35,7 @@ const bodyKeys = [
   "providerRoute",
   "disposition",
   "ambiguityReasons",
+  "durableInstruction",
 ] as const;
 
 const identifierPattern = "^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$";
@@ -126,6 +127,67 @@ const groundingResponseSchema = {
     },
     disposition: { type: "string", enum: groundingDispositions },
     ambiguityReasons: identifierArray(16),
+    durableInstruction: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        disposition: { type: "string", enum: ["none", "workstream", "canonical", "pending"] },
+        speechAct: {
+          type: "string",
+          enum: [
+            "directive",
+            "example",
+            "quotation",
+            "hypothetical",
+            "complaint",
+            "question",
+            "other",
+          ],
+        },
+        authority: { type: "string", enum: ["explicit_user", "inferred"] },
+        durability: { type: "string", enum: ["turn", "workstream", "repository", "unspecified"] },
+        operation: { type: "string", enum: ["none", "add", "replace", "remove"] },
+        scope: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            kind: { type: "string", enum: ["repository", "paths", "unspecified"] },
+            paths: {
+              type: "array",
+              maxItems: 16,
+              items: { type: "string", minLength: 1, maxLength: 500 },
+            },
+          },
+          required: ["kind", "paths"],
+        },
+        title: { type: ["string", "null"], maxLength: 160 },
+        statement: { type: ["string", "null"], maxLength: 2000 },
+        exceptions: {
+          type: "array",
+          maxItems: 16,
+          items: { type: "string", minLength: 1, maxLength: 512 },
+        },
+        risk: { type: "string", enum: ["low", "high", "unknown"] },
+        conflict: { type: "string", enum: ["none", "covered", "possible", "unknown"] },
+        confidence: { type: "string", enum: ["high", "medium", "low"] },
+        reasonIds: identifierArray(8),
+      },
+      required: [
+        "disposition",
+        "speechAct",
+        "authority",
+        "durability",
+        "operation",
+        "scope",
+        "title",
+        "statement",
+        "exceptions",
+        "risk",
+        "conflict",
+        "confidence",
+        "reasonIds",
+      ],
+    },
   },
   required: bodyKeys,
 } as const;
@@ -137,6 +199,10 @@ const groundingInstruction = [
   "Separate intent, subjects, references, requested effects, prohibited effects, source needs, workflow, capability, authority, provider route, and ambiguity.",
   "retrievalQueries may paraphrase source needs for candidate retrieval only; they never establish semantic truth, routing, effects, or authority.",
   "Resolve indirect references only when the bounded prior turns or current workstream makes one referent unambiguous. Otherwise use an unresolved reference and disposition clarify.",
+  "Classify durableInstruction semantically in the same pass. Use canonical only for one explicit user-authored directive that clearly establishes a low-risk repository-long rule, adds rather than replaces or removes behavior, has unambiguous repository or path scope, has no conflict with the supplied canonical-instruction catalog, and has high confidence.",
+  "Examples, quotations, hypotheticals, questions, complaints, descriptive reports, current-task commands, inferred preferences, ambiguous scope, possible conflicts, high-risk policy, replacements, and removals must never be canonical. Route temporary directives to workstream, risky or ambiguous durable proposals to pending, and non-rules to none.",
+  "Normalize only the durable rule itself into title, statement, scope, and exceptions. Do not copy conversation prose or include prompt text. Repetition or provider agreement never creates user authority.",
+  "If the supplied canonical-instruction catalog is incomplete, or if its entries cover or may conflict with the proposed rule, use pending or none rather than canonical.",
   "Use current_provider_only unless one deliberation workflow explicitly permits cross-provider routing and the request authorizes it. Never silently switch providers.",
   "Return exactly one raw JSON object with the response fields and no Markdown or commentary.",
 ].join("\n");

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_9130c3149587d2b841aad93c"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add bounded instruction routing and semantic durable-rule intake with safe legacy migration."

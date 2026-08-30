@@ -15,7 +15,8 @@ The deterministic resolver validates:
 - requested and prohibited effects;
 - source needs and workflows;
 - capability candidates and authority;
-- ambiguity and provider routes.
+- ambiguity and provider routes;
+- durable-instruction speech act, authority, duration, operation, scope, risk, conflict, and confidence.
 
 Unknown intent, unresolved references, invented coordinates, unavailable authority, and unapproved cross-provider routing fail closed.
 
@@ -31,7 +32,7 @@ raw request + bounded prior turns + current workstream + authority
 -> exact approved apply
 ```
 
-Only the following may be recognized by exact syntax:
+Only these may be recognized by exact syntax:
 
 - agent, assignment, workstream, approval, and deliberation IDs;
 - safe explicit `repo-path:` coordinates;
@@ -41,11 +42,13 @@ Lexical processing may retrieve or rank candidate documents and capability packa
 
 The same provider handles grounding by default. Cross-provider execution requires a typed deliberation workflow, explicit policy and authority, and distinct proposer and reviewer providers. Any approved single-provider degradation must be explicit, not inferred.
 
-The provider adapter receives the complete nested response schema and deterministically validates the returned proposal. Process, parsing, binding, or proposal-validation failure produces the stable adapter failure `semantic_resolution_failed`. This failure contains no raw request, provider output, configuration, or unrestricted error.
+The provider adapter receives the complete nested response schema and deterministically validates the proposal. Process, parsing, binding, or proposal-validation failure produces the stable adapter failure `semantic_resolution_failed`, containing no raw request, provider output, configuration, or unrestricted error.
 
 Managed consumers reject `semantic_resolution_failed`. Only unmanaged direct terminal preparation translates it to `abstain`, with empty workflow, effect, capability, provider, authority, source, subject, and retrieval coordinates. This permits conversation without authorizing semantic action or publication selection.
 
 Direct terminal provider resolution is limited to 20 seconds within the 30-second hook budget. Repository, evidence, and workspace failures remain blocking.
+
+For direct terminal requests, the adapter receives a bounded catalog of existing canonical instructions. A durable rule may be materialized only when that catalog is complete and the validated proposal identifies one explicit, additive, low-risk, repository-long user directive with high confidence and no ambiguity or conflict. The gate rejects examples, quotations, hypotheticals, complaints, questions, current-task commands, inferred preferences, replacement, removal, and high-risk policy. The provider normalizes rule content, but prompt text and lexical routing fields never cross the grounding boundary or enter the canonical file.
 
 ## Consumers and Evidence
 
@@ -64,4 +67,4 @@ Terminal context stages remain distinct:
 
 Preparation is observable. Direct-provider delivery is unobserved, and provider use is unknown. Neither may be inferred from an earlier stage.
 
-See [ADR-0237](../../decisions/execution/grounding/0237-typed-semantic-grounding-and-terminal-stage-evidence.md) and [ADR-0239](../../decisions/execution/grounding/0239-unmanaged-terminal-grounding-failure-abstention.md) for the decisions and verification evidence.
+See [ADR-0237](../../decisions/execution/grounding/0237-typed-semantic-grounding-and-terminal-stage-evidence.md) and [ADR-0239](../../decisions/execution/grounding/0239-unmanaged-terminal-grounding-failure-abstention.md) for decisions and verification evidence.

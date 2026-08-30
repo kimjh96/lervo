@@ -369,9 +369,9 @@ describe("repository layout migration", () => {
     ).toContain("Keep compatibility explicit.");
     const agents = await readFile(resolve(root, "AGENTS.md"), "utf8");
     expect(agents).toContain("block=repository_instruction_routes");
-    expect(agents).toContain("`apps/api/**/*.{ts,tsx}`");
-    expect(agents).toContain("`packages/api/**/*.ts`");
-    expect(agents).toContain("docs/instructions/architecture/api.md");
+    expect(agents).toContain("lervo knowledge query");
+    expect(agents).not.toContain("`apps/api/**/*.{ts,tsx}`");
+    expect(agents).not.toContain("docs/instructions/architecture/api.md");
     const references = await readFile(resolve(root, "check.mjs"), "utf8");
     expect(references).toContain("'.claude/rules'");
     expect(references).toContain("'docs/instructions/architecture/api.md'");
@@ -424,9 +424,62 @@ describe("repository layout migration", () => {
     expect(await readFile(resolve(root, ".agents/skills/health/SKILL.md"), "utf8")).toContain(
       "Inspect service health",
     );
-    expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toContain(
-      "matches the `health` skill",
+    expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toContain("lervo knowledge query");
+    expect((await createRepositoryLayoutMigrationPlan({ repositoryRoot: root })).status).toBe(
+      "current",
     );
+  });
+
+  it("migrates enumerated and promoted AGENTS routes to one fixed-size registry bootstrap", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/instructions/repository"), { recursive: true });
+    await writeFile(
+      resolve(root, "docs/instructions/repository/commit-messages.md"),
+      "# Commit messages\n\nUse Conventional Commits.\n",
+    );
+    await writeFile(
+      resolve(root, "AGENTS.md"),
+      [
+        "# Repository instructions",
+        "",
+        "Keep this user-owned preface.",
+        "",
+        "<!-- lervo:begin block=repository_instruction_routes schema=1 -->",
+        "## Repository instruction routes",
+        "",
+        "- For all repository work, read [commit-messages](docs/instructions/repository/commit-messages.md).",
+        "<!-- lervo:end block=repository_instruction_routes -->",
+        "",
+        "<!-- lervo:begin block=development_pattern_routes schema=1 -->",
+        "## Promoted development patterns",
+        "",
+        "- [Commit messages](docs/instructions/repository/commit-messages.md)",
+        "<!-- lervo:end block=development_pattern_routes -->",
+        "",
+      ].join("\n"),
+    );
+
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    expect(plan.operations).toContainEqual(
+      expect.objectContaining({ path: "AGENTS.md", ownership: "managed_blocks" }),
+    );
+    await applyRepositoryLayoutMigrationPlan({
+      plan,
+      approvals: plan.moves.map((move) => ({
+        operationId: move.operationId,
+        approvalHash: move.approvalHash,
+      })),
+      now: new Date(),
+      recordApplied: () => undefined,
+    });
+
+    const agents = await readFile(resolve(root, "AGENTS.md"), "utf8");
+    expect(agents).toContain("Keep this user-owned preface.");
+    expect(agents).toContain("block=repository_instruction_routes schema=2");
+    expect(agents).toContain("lervo knowledge query");
+    expect(agents).not.toContain("development_pattern_routes");
+    expect(agents).not.toContain("commit-messages.md");
+    expect(Buffer.byteLength(agents)).toBeLessThan(4 * 1024);
     expect((await createRepositoryLayoutMigrationPlan({ repositoryRoot: root })).status).toBe(
       "current",
     );

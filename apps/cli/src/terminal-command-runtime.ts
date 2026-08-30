@@ -34,6 +34,10 @@ import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { assembleTerminalHookContext } from "./terminal-context-assembly.js";
 import { loadSelectedTerminalDocument } from "./terminal-context-loading.js";
 import { selectTerminalContextCandidates } from "./terminal-context-selection.js";
+import {
+  inspectTerminalInstructionCatalog,
+  materializeTerminalDurableInstruction,
+} from "./terminal-durable-instruction.js";
 import { resolveTerminalRequestGrounding } from "./terminal-request-grounding.js";
 import {
   readPreparedRepositorySnapshot,
@@ -201,6 +205,7 @@ async function promptContext(
   provider: TerminalIntegrationProvider,
   observationId: string,
   workspaceBinding: TerminalWorkspaceBinding | null,
+  coordinates: UnmanagedCoordinates,
   services: Pick<CliServices, "groundProductionRequest">,
 ): Promise<{
   additionalContext: string;
@@ -228,13 +233,21 @@ async function promptContext(
     providerIds: string[];
     reasons: string[];
   };
+  durableInstruction: {
+    status: "ignored" | "workstream" | "current" | "pending" | "applied" | "blocked";
+    ruleId: string | null;
+    targetPath: string | null;
+    reasonIds: string[];
+  };
 }> {
-  const [supplementalSources, repositorySnapshot] = await Promise.all([
-    collectLocalKnowledgeSources(root),
-    captureRepositorySnapshot(root),
-  ]);
+  const supplementalSources = await collectLocalKnowledgeSources(root);
+  const instructionCatalog = await inspectTerminalInstructionCatalog({
+    repositoryRoot: root,
+    supplementalSources,
+  });
   const workstreamStorage = await openProjectStorage(root);
   let currentWorkstream;
+  const projectId = workstreamStorage.manifest.projectId;
   try {
     currentWorkstream = await verifiedCurrentWorkstream(workstreamStorage);
   } finally {
@@ -251,7 +264,39 @@ async function promptContext(
             revision: currentWorkstream.revision,
           },
     services,
+    semanticCatalog: instructionCatalog.semanticCatalog,
   });
+  const durableInstruction = await materializeTerminalDurableInstruction({
+    repositoryRoot: root,
+    projectId,
+    requestDigest: sha256(prompt),
+    resolverResultDigest: grounding.resolverResultDigest,
+    groundingStatus: grounding.status,
+    catalogComplete: instructionCatalog.complete,
+    ambiguityReasons: grounding.ambiguityReasons,
+    instruction: grounding.durableInstruction,
+    workerWorkspace: workspaceBinding?.executionKind === "worker",
+    now: new Date(),
+    recordApplied: async (applied) => {
+      const storage = await openProjectStorage(root);
+      try {
+        storage.events.append(
+          eventDraft({
+            projectId,
+            coordinates,
+            provider,
+            actorKind: "user",
+            type: "knowledge.materialization.applied",
+            occurredAt: applied.appliedAt,
+            payload: { ...applied },
+          }),
+        );
+      } finally {
+        await storage.close();
+      }
+    },
+  });
+  const repositorySnapshot = await captureRepositorySnapshot(root);
   const retrievalQuery =
     grounding.retrievalQueries.join("\n") || grounding.subjectIds.join(" ") || "repository context";
   const selection = await selectTerminalContextCandidates({
@@ -305,6 +350,7 @@ async function promptContext(
     `sourceSnapshotId: ${selection.sourceSnapshotId}`,
     "The following exact-hash publications were loaded and prepared for return through the provider hook. This proves hook-side preparation, not provider acceptance, managed delivery, understanding, or later use.",
     "Use current repository bytes as authority, follow AGENTS.md, and do not treat a recommendation as semantic truth.",
+    `durableInstructionStatus: ${durableInstruction.status}; ruleId: ${durableInstruction.ruleId ?? "none"}; targetPath: ${durableInstruction.targetPath ?? "none"}; reasons: ${durableInstruction.reasonIds.join(",") || "none"}. Only an explicit, unambiguous, low-risk repository-long user directive can be materialized automatically; examples, quotations, hypotheticals, complaints, current-task commands, inferred preferences, conflicts, replacements, removals, and incomplete-catalog decisions cannot pass this gate.`,
     "If the final response explicitly relies on a supplied publication, append its exact Lervo evidence marker as a standalone Markdown HTML comment. Keep the marker out of prose and code. Markdown renderers hide the comment, while raw output retains verifiable evidence. A marker proves only an output reference, never understanding or internal use.",
     finalizationInstruction,
     workstreamInstruction,
@@ -372,6 +418,7 @@ async function promptContext(
       providerIds: grounding.providerIds,
       reasons: grounding.reasons,
     },
+    durableInstruction,
   };
 }
 
@@ -952,7 +999,7 @@ function eventDraft(input: {
   projectId: string;
   coordinates: UnmanagedCoordinates;
   provider: TerminalIntegrationProvider;
-  actorKind?: "provider" | "agent";
+  actorKind?: "provider" | "agent" | "user";
   type: EventDraft["type"];
   occurredAt: string;
   payload: Readonly<Record<string, unknown>>;
@@ -1011,6 +1058,10 @@ async function recordPreparedContext(input: {
           groundingSubjectIds: input.context.grounding.subjectIds,
           groundingProviderIds: input.context.grounding.providerIds,
           groundingReasons: input.context.grounding.reasons,
+          durableInstructionStatus: input.context.durableInstruction.status,
+          durableInstructionRuleId: input.context.durableInstruction.ruleId,
+          durableInstructionTargetPath: input.context.durableInstruction.targetPath,
+          durableInstructionReasonIds: input.context.durableInstruction.reasonIds,
           selectionStatus: input.context.grounding.status === "ready" ? "selected" : "not_selected",
           loadingStatus: input.context.grounding.status === "ready" ? "observed" : "not_run",
           hookPreparationStatus: "observed",
@@ -1503,6 +1554,7 @@ async function runHook(
         provider,
         observationId,
         workspaceBinding,
+        coordinates,
         services,
       );
       const observationEventId = await recordPreparedContext({

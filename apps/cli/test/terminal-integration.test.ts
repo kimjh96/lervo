@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -57,6 +57,21 @@ const runCli: typeof runCliBase = (args, io, overrides = {}) =>
           providerRoute: { mode: "current_provider_only", providerIds: [] },
           disposition: "answer",
           ambiguityReasons: [],
+          durableInstruction: {
+            disposition: "none",
+            speechAct: "other",
+            authority: "inferred",
+            durability: "unspecified",
+            operation: "none",
+            scope: { kind: "unspecified", paths: [] },
+            title: null,
+            statement: null,
+            exceptions: [],
+            risk: "unknown",
+            conflict: "unknown",
+            confidence: "low",
+            reasonIds: [],
+          },
         },
         decision: {
           schemaVersion: 1,
@@ -181,6 +196,149 @@ afterEach(async () => {
 });
 
 describe("terminal integration CLI", () => {
+  it("materializes one explicit durable user rule without retaining prompt prose", async () => {
+    const root = await initializedRepository();
+    const messages: string[] = [];
+    const prompt = "앞으로 이 저장소의 모든 커밋은 Conventional Commits 형식을 따르세요.";
+    let observedCatalog: unknown;
+    expect(
+      await runCli(
+        ["terminal", "hook", "--provider", "codex", "--contract", "2"],
+        {
+          cwd: root,
+          stdout: (message) => messages.push(message),
+          stderr: () => undefined,
+          stdin: async () =>
+            JSON.stringify({
+              hook_event_name: "UserPromptSubmit",
+              session_id: "durable-rule-session",
+              turn_id: "durable-rule-turn",
+              prompt,
+            }),
+        },
+        {
+          groundProductionRequest: async ({ request, semanticCatalog }) => {
+            observedCatalog = semanticCatalog;
+            return {
+              proposal: {
+                schemaVersion: 1,
+                requestDigest: `sha256:${createHash("sha256").update(request).digest("hex")}`,
+                resolver: {
+                  kind: "provider_adapter",
+                  providerId: "codex",
+                  resultDigest: `sha256:${"c".repeat(64)}`,
+                },
+                intent: "change",
+                subjectIds: ["repository.instructions"],
+                references: [],
+                protocolCoordinates: [],
+                requestedEffectIds: ["repository.change"],
+                prohibitedEffectIds: [],
+                sourceClasses: ["repository_state"],
+                retrievalQueries: ["commit message instructions"],
+                workflowCandidateIds: ["terminal.repository_change"],
+                capabilityCandidateIds: [],
+                authorityRequirement: "repository_write",
+                providerRoute: { mode: "current_provider_only", providerIds: [] },
+                disposition: "execute",
+                ambiguityReasons: [],
+                durableInstruction: {
+                  disposition: "canonical",
+                  speechAct: "directive",
+                  authority: "explicit_user",
+                  durability: "repository",
+                  operation: "add",
+                  scope: { kind: "repository", paths: [] },
+                  title: "Conventional commit messages",
+                  statement: "Use Conventional Commits for every repository commit.",
+                  exceptions: [],
+                  risk: "low",
+                  conflict: "none",
+                  confidence: "high",
+                  reasonIds: ["explicit_repository_rule"],
+                },
+              },
+              decision: {
+                schemaVersion: 1,
+                status: "ready",
+                workflowId: "terminal.repository_change",
+                effectIds: ["repository.change"],
+                capabilityIds: [],
+                providerIds: ["codex"],
+                authority: "repository_write",
+                sourceClasses: ["repository_state"],
+                subjectIds: ["repository.instructions"],
+                retrievalQueries: ["commit message instructions"],
+                reasons: [],
+              },
+            };
+          },
+        },
+      ),
+    ).toBe(0);
+    expect(observedCatalog).toMatchObject({
+      canonicalInstructions: { complete: true, entries: expect.any(Array) },
+    });
+    const response = JSON.parse(messages.join("")) as {
+      hookSpecificOutput: { additionalContext: string };
+    };
+    expect(response.hookSpecificOutput.additionalContext).toContain(
+      "durableInstructionStatus: applied",
+    );
+    const files = await readdir(resolve(root, "docs/instructions/generated"));
+    expect(files).toHaveLength(1);
+    const content = await readFile(resolve(root, "docs/instructions/generated", files[0]!), "utf8");
+    expect(content).toContain("Use Conventional Commits for every repository commit.");
+    expect(content).not.toContain(prompt);
+    const storage = await openProjectStorage(root);
+    try {
+      expect(
+        storage.events
+          .list()
+          .some(
+            (event) =>
+              event.type === "knowledge.materialization.applied" &&
+              event.payload.operation === "durable_instruction_intake",
+          ),
+      ).toBe(true);
+    } finally {
+      await storage.close();
+    }
+
+    await applyKnowledgeMigrationPlan(
+      await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "migrate" }),
+      new Date("2026-08-30T00:00:00.000Z"),
+      () => undefined,
+    );
+    const retrievalMessages: string[] = [];
+    expect(
+      await runCli(["terminal", "hook", "--provider", "codex", "--contract", "2"], {
+        cwd: root,
+        stdout: (message) => retrievalMessages.push(message),
+        stderr: () => undefined,
+        stdin: async () =>
+          JSON.stringify({
+            hook_event_name: "UserPromptSubmit",
+            session_id: "durable-rule-reader-session",
+            turn_id: "durable-rule-reader-turn",
+            prompt: "Prepare the next commit using Conventional Commits.",
+          }),
+      }),
+    ).toBe(0);
+    const retrieval = JSON.parse(retrievalMessages.join("")) as {
+      hookSpecificOutput: { additionalContext: string };
+    };
+    expect(retrieval.hookSpecificOutput.additionalContext).toContain(
+      `docs/instructions/generated/${files[0]}`,
+    );
+    expect(retrieval.hookSpecificOutput.additionalContext).toContain(
+      "Use Conventional Commits for every repository commit.",
+    );
+    expect(retrieval.hookSpecificOutput.additionalContext).not.toContain(
+      "immutable blue envelopes",
+    );
+  }, 30_000);
+
   it("returns bounded abstain context instead of blocking on an invalid provider proposal", async () => {
     const root = await initializedRepository();
     const messages: string[] = [];

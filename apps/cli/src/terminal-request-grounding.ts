@@ -1,6 +1,7 @@
 import {
   semanticResolutionFailureDecision,
   type GroundingDecision,
+  type DurableInstructionIntent,
   type GroundingWorkflowDescriptor,
 } from "@lervo/request-grounding";
 
@@ -51,12 +52,35 @@ const terminalWorkflows: GroundingWorkflowDescriptor[] = [
   },
 ];
 
+const noDurableInstruction: DurableInstructionIntent = {
+  disposition: "none",
+  speechAct: "other",
+  authority: "inferred",
+  durability: "unspecified",
+  operation: "none",
+  scope: { kind: "unspecified", paths: [] },
+  title: null,
+  statement: null,
+  exceptions: [],
+  risk: "unknown",
+  conflict: "unknown",
+  confidence: "low",
+  reasonIds: ["semantic_resolution_failed"],
+};
+
 export async function resolveTerminalRequestGrounding(input: {
   request: string;
   provider: RunProvider;
   currentWorkstream: { workstreamId: string; revision: number } | null;
+  semanticCatalog?: unknown;
   services: Pick<CliServices, "groundProductionRequest">;
-}): Promise<GroundingDecision> {
+}): Promise<
+  GroundingDecision & {
+    ambiguityReasons: string[];
+    resolverResultDigest: string;
+    durableInstruction: DurableInstructionIntent;
+  }
+> {
   try {
     const grounded = await input.services.groundProductionRequest({
       request: input.request,
@@ -69,11 +93,22 @@ export async function resolveTerminalRequestGrounding(input: {
       },
       grantedAuthorities: ["read", "repository_write", "user_approval"],
       workflows: terminalWorkflows,
+      semanticCatalog: input.semanticCatalog,
       timeoutMs: 20_000,
     });
-    return grounded.decision;
+    return {
+      ...grounded.decision,
+      ambiguityReasons: grounded.proposal.ambiguityReasons,
+      resolverResultDigest: grounded.proposal.resolver.resultDigest,
+      durableInstruction: grounded.proposal.durableInstruction,
+    };
   } catch (error) {
     if (!(error instanceof GroundProductionRequestError)) throw error;
-    return semanticResolutionFailureDecision();
+    return {
+      ...semanticResolutionFailureDecision(),
+      ambiguityReasons: ["semantic_resolution_failed"],
+      resolverResultDigest: `sha256:${"0".repeat(64)}`,
+      durableInstruction: noDurableInstruction,
+    };
   }
 }

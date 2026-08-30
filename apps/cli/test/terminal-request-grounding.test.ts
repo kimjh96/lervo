@@ -18,7 +18,11 @@ describe("direct terminal request grounding", () => {
       },
     });
 
-    expect(decision).toEqual(semanticResolutionFailureDecision());
+    expect(decision).toMatchObject({
+      ...semanticResolutionFailureDecision(),
+      ambiguityReasons: ["semantic_resolution_failed"],
+      durableInstruction: { disposition: "none" },
+    });
   });
 
   it("bounds provider resolution below the outer hook timeout", async () => {
@@ -31,7 +35,25 @@ describe("direct terminal request grounding", () => {
         groundProductionRequest: async (input) => {
           timeoutMs = input.timeoutMs;
           return {
-            proposal: {} as never,
+            proposal: {
+              resolver: { resultDigest: `sha256:${"b".repeat(64)}` },
+              ambiguityReasons: [],
+              durableInstruction: {
+                disposition: "none",
+                speechAct: "other",
+                authority: "inferred",
+                durability: "unspecified",
+                operation: "none",
+                scope: { kind: "unspecified", paths: [] },
+                title: null,
+                statement: null,
+                exceptions: [],
+                risk: "unknown",
+                conflict: "unknown",
+                confidence: "low",
+                reasonIds: [],
+              },
+            } as never,
             decision: semanticResolutionFailureDecision(),
           };
         },

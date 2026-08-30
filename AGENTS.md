@@ -55,19 +55,13 @@ Do not infer current validity from old conversations or observations. Ask only w
 
 If a fresh clone has no local or Hub-imported current workstream, recover the next bounded scope from `docs/roadmap/v0.md` and its linked active or planned roadmap. Do not ask the user for a bookkeeping command or assume no prior work. Create the recovered checkpoint before changing repository bytes.
 
-<!-- lervo:begin block=repository_instruction_routes schema=1 -->
-## Repository instruction routes
+<!-- lervo:begin block=repository_instruction_routes schema=2 -->
+## Repository instruction bootstrap
 
 - Read the verified current state with `lervo workstream current --context` before continuing repository work.
+- Before changing repository bytes, resolve applicable canonical instructions and portable skills with `lervo knowledge query "<task purpose and target paths>"`; read the returned sources before acting. The knowledge registry is authoritative, so do not grow this entrypoint with one route per rule or skill.
 - Before completing a terminal turn, create the first bounded checkpoint with `lervo workstream start` or advance the existing snapshot with `lervo workstream update`; perform this agent bookkeeping without asking the user to run it.
 - Translate explicit natural-language requests to hire, assign, inspect, resolve, hand off, or retire repository agents into `lervo agent`, `lervo assignment`, and workstream operations yourself; when authority or scope is ambiguous, record one bounded pending decision instead of guessing or asking for a bookkeeping command.
 - Resolve roles with `lervo role list|show|validate`; treat the six built-ins as templates, author a lazy `.lervo/roles/<role-id>.json` source when a requested repository role does not exist, and never bypass version, hash, capability, verification, or ancestry validation.
 - Register every subagent with its parent and apply the same durable identity, scoped lease, path-conflict, evidence, verification, and finalization contracts used for root agents.
-- For all repository work, read [evidence-bound-repository-changes](docs/instructions/evidence-bound-repository-changes.md).
 <!-- lervo:end block=repository_instruction_routes -->
-
-<!-- lervo:begin block=development_pattern_routes schema=1 -->
-## Promoted development patterns
-
-- [Evidence-bound repository changes](docs/instructions/evidence-bound-repository-changes.md)
-<!-- lervo:end block=development_pattern_routes -->

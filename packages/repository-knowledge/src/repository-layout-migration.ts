@@ -823,6 +823,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
   const routedInstructions =
     instructionCandidates.length > 0 ? instructionCandidates : existingInstructions;
   const routedSkills = skillCandidates.length > 0 ? skillCandidates : existingSkills;
+  let managedAgentRouteOperation: KnowledgeFileOperation | null = null;
   const agents = scan.sources.find(
     (source): source is RepositorySource & { content: string; contentHash: string } =>
       source.path === "AGENTS.md" &&
@@ -845,22 +846,34 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       skills: routedSkills.map((item) => ({ path: item.toPath })),
     });
     const blockPattern =
-      /<!-- lervo:begin block=repository_instruction_routes schema=1 -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n?/u;
-    const routedContent = blockPattern.test(agents.content)
-      ? agents.content.replace(blockPattern, block)
-      : `${agents.content}${agents.content.endsWith("\n\n") ? "" : agents.content.endsWith("\n") ? "\n" : "\n\n"}${block}`;
+      /<!-- lervo:begin block=repository_instruction_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n?/u;
+    const legacyPatternBlock =
+      /\n?<!-- lervo:begin block=development_pattern_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=development_pattern_routes -->\n?/u;
     const existing = referenceChanges.get("AGENTS.md");
-    const baseContent = existing?.content ?? agents.content;
+    const baseContent = (existing?.content ?? agents.content).replace(legacyPatternBlock, "");
     const combined = blockPattern.test(baseContent)
       ? baseContent.replace(blockPattern, block)
       : `${baseContent}${baseContent.endsWith("\n\n") ? "" : baseContent.endsWith("\n") ? "\n" : "\n\n"}${block}`;
-    if (combined !== agents.content)
-      referenceChanges.set("AGENTS.md", {
-        source: agents,
-        content: combined,
-        count: (existing?.count ?? 0) + 1,
-      });
-    void routedContent;
+    if (combined !== agents.content) {
+      if (existing === undefined && blockPattern.test(agents.content)) {
+        managedAgentRouteOperation = {
+          path: "AGENTS.md",
+          action: "update",
+          ownership: "managed_blocks",
+          mediaType: "text/markdown",
+          content: combined,
+          expectedCurrentHash: agents.contentHash,
+          desiredHash: sha256(combined),
+          reason: "refresh_instruction_registry_bootstrap",
+        };
+      } else {
+        referenceChanges.set("AGENTS.md", {
+          source: agents,
+          content: combined,
+          count: (existing?.count ?? 0) + 1,
+        });
+      }
+    }
   }
   const registryMaterials = await Promise.all(
     storedConcepts.map(async (item) => ({
@@ -887,6 +900,13 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       scan: virtualScan,
       path: change.source.path,
       content: change.content,
+    });
+  }
+  if (managedAgentRouteOperation?.content !== undefined) {
+    virtualScan = upsertRepositoryKnowledgeScanSource({
+      scan: virtualScan,
+      path: "AGENTS.md",
+      content: managedAgentRouteOperation.content,
     });
   }
   const moves: RepositoryLayoutMove[] = [];
@@ -1132,7 +1152,11 @@ export async function createRepositoryLayoutMigrationPlan(input: {
   if (structural?.operations.some((operation) => operation.action === "conflict"))
     blockers.push({ code: "destination_exists", pathDigest: sha256("structural-output-conflict") });
   const bridgeOperations: KnowledgeFileOperation[] = [];
-  const canonicalInstructionChange = referenceChanges.get("AGENTS.md");
+  const canonicalInstructionChange =
+    referenceChanges.get("AGENTS.md") ??
+    (managedAgentRouteOperation?.content === undefined
+      ? undefined
+      : { content: managedAgentRouteOperation.content });
   const existingInstructionBridgeRecords = await listKnowledgeArtifactPaths({
     root,
     directory: ".lervo/knowledge/instruction-bridges",
@@ -1232,6 +1256,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     ...normalizationOwnershipOperations,
     ...(structural?.operations ?? []),
     ...publicationIgnoreOperations,
+    ...(managedAgentRouteOperation === null ? [] : [managedAgentRouteOperation]),
     ...referenceOperations,
     ...bridgeOperations,
     ...lineageOperations,
@@ -1246,6 +1271,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       : moves.length > 0 || userUpdates.length > 0
         ? "review_required"
         : machineMoves.length > 0 ||
+            managedAgentRouteOperation !== null ||
             taxonomyUpgradeOperation.length > 0 ||
             normalizationOwnershipOperations.length > 0
           ? "ready"

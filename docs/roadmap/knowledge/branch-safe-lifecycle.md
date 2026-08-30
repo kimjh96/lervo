@@ -44,6 +44,8 @@ Make repository knowledge converge through ordinary branch and merge-queue workf
 - A Git fixture refreshes two branches independently, merges both source commits without generated conflicts, rebuilds the integration head, then repeats from a clean clone without local state or publications.
 - Terminal preparation stores only bounded path/hash snapshots in ignored state. Declaration compares typed path responsibilities and creates a bounded candidate without placing prompt text, phrases, or keyword authority in the record.
 - Candidate review requires the exact candidate hash and reviewer identity. Promotion also requires an exact current canonical-target hash and never writes user-owned canonical bytes.
+- AGENTS uses a constant schema-2 bootstrap. Upgrade replaces exact legacy route blocks, removes promoted-pattern projections, preserves the user region, and replans layout current.
+- Direct grounding emits a typed durable-instruction assessment. Only an explicit additive, low-risk repository directive with a complete catalog and no conflict materializes one isolated content-addressed instruction; noisy or uncertain speech acts do not write canonical bytes.
 
 ## Acceptance
 
@@ -53,3 +55,4 @@ A two-branch fixture can change separate canonical sources, merge, rebuild once,
 
 - [ADR-0303](../../decisions/knowledge/repository/0303-branch-safe-knowledge-reconciliation-and-canonicalization.md)
 - [Repository knowledge compilation](../../specs/repository-knowledge-compilation.md)
+- [ADR-0304](../../decisions/knowledge/semantics/0304-bounded-instruction-registry-and-semantic-durable-rule-intake.md)

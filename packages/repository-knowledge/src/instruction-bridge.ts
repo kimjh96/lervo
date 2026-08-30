@@ -322,7 +322,7 @@ export async function createKnowledgeInstructionBridgePlan(input: {
       profile,
       canonicalContent: canonical.content,
       canonicalRouteBlock:
-        /<!-- lervo:begin block=repository_instruction_routes schema=1 -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n/u.exec(
+        /<!-- lervo:begin block=repository_instruction_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n/u.exec(
           canonical.content,
         )?.[0] ?? null,
       existing:

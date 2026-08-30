@@ -50,11 +50,7 @@ Decisions: [context preparation](../decisions/execution/orchestration/0006-deter
 
 ### Repository knowledge
 
-A bounded scanner discovers sources without folder assumptions. Adapters extract stable file, section, key, symbol, revision, verification, event, and skill-contract units. A deterministic structural compiler creates a bounded knowledge map and sidecars. Isolated, capability-free Codex or Claude compilers may create source-cited semantic or normalization candidates.
-
-Human documentation remains under `docs/`, including `docs/knowledge`; `.lervo` stores policy, provenance, manifests, and rebuildable state. `.lervo/knowledge/document-layout.yaml` routes decisions, documents, and canonical instructions; unknown or tied classifications fail closed. Provider-neutral behavior belongs in `docs/instructions/<route>`, portable Agent Skills in `.agents/skills`, and machine registries use deterministic two-hex fan-out with legacy flat-path reads. `foundation` is never an implicit fallback.
-
-Normalization creates bounded English Markdown for an audience profile with complete source-section coverage. Every source requires exact approval. Content-bound shard caches and a three-process ceiling keep runs bounded and resumable without weakening compiler-build or source binding. Planning revalidates inner bindings and the complete current source set. Lifecycle sidecars bind output hashes, format and language versions, compiler build, and skill-resource hashes. Changed documents or skills become stale without automatic rewriting.
+A bounded scanner, typed source adapters, and deterministic structural compiler project repository evidence without assuming folder names. Isolated capability-free providers may propose source-cited semantic or normalization candidates, while reviewed Markdown and semantic records remain canonical.
 
 ```text
 repository sources
@@ -65,25 +61,15 @@ repository sources
   -> lint / impact / query / context delivery
 ```
 
-Markdown and repository state are canonical; graphs, lexical indexes, and embeddings are rebuildable. Generated indexes use a reduced structural snapshot excluding runtime evidence, revision metadata, verification results, and local-only agent surfaces. Full query snapshots may differ without implying staleness; the current migration plan and manifest determine currency. Tracked policy selects language (`en` in v1), entry bounds, and byte bounds. Large categories become short page trees; obsolete recorded pages are safely deleted.
-
-Decisions: [knowledge compilation](../decisions/knowledge/repository/0170-evidence-bound-repository-knowledge-compilation.md), [OKF exchange](../decisions/knowledge/repository/0171-content-addressed-okf-exchange-and-git-reproduction.md), [agent surface inventory](../decisions/knowledge/repository/0189-typed-repository-agent-surface-inventory.md), [bounded publication](../decisions/knowledge/repository/0190-language-aware-bounded-repository-publication.md), [decision taxonomy](../decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md), and [document normalization](../decisions/knowledge/repository/0195-reviewed-document-content-normalization.md).
+Detailed source, projection, normalization, routing, and failure boundaries are in [Repository knowledge and document ownership](repository-knowledge.md).
 
 ### Document ownership
 
-Each document has one write model:
-
-- `user`: register and read bytes; never rewrite automatically.
-- `managed_blocks`: replace only an exact marked block after content-bound approval.
-- `lervo_generated`: refresh only when prior generation proves ownership.
-
-README is a byte-preserved, normalization-independent public entrypoint by default. Optional improvement is a separate audience-and-intent-bound proposal with individual protected-coordinate dispositions. AGENTS is the provider-neutral agent entrypoint with a bounded managed route block for canonical instructions and skills. CLAUDE imports AGENTS through a managed bridge while retaining its user region. Provider settings remain provider-specific; migration adds only approved Lervo hooks and preserves all other semantics.
-
-Decisions: [sharded documents](../decisions/knowledge/documents/0017-sharded-document-manifests.md), [existing document adoption](../decisions/knowledge/documents/0018-existing-document-adoption.md), [CommonMark blocks](../decisions/knowledge/documents/0021-commonmark-managed-block-parser.md), and [instruction bridges](../decisions/knowledge/repository/0185-profiled-provider-instruction-bridge.md).
+Every document has one write model: user-owned bytes, exact managed blocks, or proven Lervo-generated output. Provider entrypoints retain user regions; AGENTS carries only a fixed-size registry bootstrap, and CLAUDE imports it through a managed bridge. The detailed ownership and migration contract is in [Repository knowledge and document ownership](repository-knowledge.md#document-ownership).
 
 ### Search and context
 
-Search recommends but does not prove use. Operational retrieval keeps `lexical-v1` as the local baseline and admits future local or external engines only through the existing provider-neutral ports, reviewed activation, runtime validation, and explicit rollback chain. Ordinary managed runs do not add linked-only context after search.
+Search recommends but does not prove use. Operational retrieval keeps `lexical-v1` as the local baseline and admits future local or external engines only through existing provider-neutral ports, reviewed activation, runtime validation, and an explicit rollback chain. Ordinary managed runs do not add linked-only context after search.
 
 See [Search and context boundaries](search-and-context.md) for engine ownership, extension steps, evidence states, and failure behavior.
 

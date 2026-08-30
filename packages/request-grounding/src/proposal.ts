@@ -6,6 +6,7 @@ import {
   groundingSourceClasses,
   protocolCoordinateKinds,
   type GroundingReference,
+  type DurableInstructionIntent,
   type ProtocolCoordinate,
   type SemanticGroundingProposal,
 } from "./types.js";
@@ -171,6 +172,143 @@ function providerRoute(value: unknown): SemanticGroundingProposal["providerRoute
   throw new TypeError("providerRoute mode and providers disagree.");
 }
 
+function boundedText(value: unknown, field: string, maximumBytes: number): string | null {
+  if (value === null) return null;
+  if (
+    typeof value !== "string" ||
+    value.trim() !== value ||
+    value.length === 0 ||
+    Buffer.byteLength(value) > maximumBytes
+  )
+    throw new TypeError(`${field} must be null or bounded normalized text.`);
+  return value;
+}
+
+function durableInstruction(value: unknown): DurableInstructionIntent {
+  const input = record(value, "durableInstruction");
+  exactKeys(
+    input,
+    [
+      "disposition",
+      "speechAct",
+      "authority",
+      "durability",
+      "operation",
+      "scope",
+      "title",
+      "statement",
+      "exceptions",
+      "risk",
+      "conflict",
+      "confidence",
+      "reasonIds",
+    ],
+    "durableInstruction",
+  );
+  const dispositions = ["none", "workstream", "canonical", "pending"] as const;
+  const speechActs = [
+    "directive",
+    "example",
+    "quotation",
+    "hypothetical",
+    "complaint",
+    "question",
+    "other",
+  ] as const;
+  const authorities = ["explicit_user", "inferred"] as const;
+  const durabilities = ["turn", "workstream", "repository", "unspecified"] as const;
+  const operations = ["none", "add", "replace", "remove"] as const;
+  const risks = ["low", "high", "unknown"] as const;
+  const conflicts = ["none", "covered", "possible", "unknown"] as const;
+  const confidences = ["high", "medium", "low"] as const;
+  if (!dispositions.includes(input.disposition as never))
+    throw new TypeError("durableInstruction.disposition is invalid.");
+  if (!speechActs.includes(input.speechAct as never))
+    throw new TypeError("durableInstruction.speechAct is invalid.");
+  if (!authorities.includes(input.authority as never))
+    throw new TypeError("durableInstruction.authority is invalid.");
+  if (!durabilities.includes(input.durability as never))
+    throw new TypeError("durableInstruction.durability is invalid.");
+  if (!operations.includes(input.operation as never))
+    throw new TypeError("durableInstruction.operation is invalid.");
+  if (!risks.includes(input.risk as never))
+    throw new TypeError("durableInstruction.risk is invalid.");
+  if (!conflicts.includes(input.conflict as never))
+    throw new TypeError("durableInstruction.conflict is invalid.");
+  if (!confidences.includes(input.confidence as never))
+    throw new TypeError("durableInstruction.confidence is invalid.");
+  const scope = record(input.scope, "durableInstruction.scope");
+  exactKeys(scope, ["kind", "paths"], "durableInstruction.scope");
+  if (!["repository", "paths", "unspecified"].includes(scope.kind as string))
+    throw new TypeError("durableInstruction.scope.kind is invalid.");
+  if (!Array.isArray(scope.paths) || scope.paths.length > 16)
+    throw new TypeError("durableInstruction.scope.paths must be bounded.");
+  const paths = scope.paths.map((path) => {
+    if (
+      typeof path !== "string" ||
+      path.length === 0 ||
+      path.length > 500 ||
+      path.startsWith("/") ||
+      path.includes("\\") ||
+      path.split("/").some((part) => part === "" || part === "." || part === "..")
+    )
+      throw new TypeError("durableInstruction.scope.paths contains an unsafe path.");
+    return path;
+  });
+  if (new Set(paths).size !== paths.length)
+    throw new TypeError("durableInstruction.scope.paths must be unique.");
+  if (
+    (scope.kind === "paths") !== paths.length > 0 ||
+    (scope.kind !== "paths" && paths.length !== 0)
+  )
+    throw new TypeError("durableInstruction.scope kind and paths disagree.");
+  if (!Array.isArray(input.exceptions) || input.exceptions.length > 16)
+    throw new TypeError("durableInstruction.exceptions must be bounded.");
+  const exceptions = input.exceptions.map((item) => {
+    const text = boundedText(item, "durableInstruction.exceptions item", 512);
+    if (text === null) throw new TypeError("durableInstruction.exceptions cannot contain null.");
+    return text;
+  });
+  const title = boundedText(input.title, "durableInstruction.title", 160);
+  const statement = boundedText(input.statement, "durableInstruction.statement", 2_000);
+  const reasonIds = uniqueIdentifiers(input.reasonIds, "durableInstruction.reasonIds", 8);
+  const isCanonical = input.disposition === "canonical";
+  if (
+    isCanonical &&
+    (input.speechAct !== "directive" ||
+      input.authority !== "explicit_user" ||
+      input.durability !== "repository" ||
+      input.operation !== "add" ||
+      scope.kind === "unspecified" ||
+      title === null ||
+      statement === null ||
+      input.risk !== "low" ||
+      input.conflict !== "none" ||
+      input.confidence !== "high")
+  )
+    throw new TypeError("A canonical durable instruction does not satisfy the automatic gate.");
+  if (
+    input.disposition === "none" &&
+    (input.operation !== "none" || title !== null || statement !== null)
+  )
+    throw new TypeError("A non-instruction disposition cannot carry rule content.");
+  return {
+    disposition: input.disposition as DurableInstructionIntent["disposition"],
+    speechAct: input.speechAct as DurableInstructionIntent["speechAct"],
+    authority: input.authority as DurableInstructionIntent["authority"],
+    durability: input.durability as DurableInstructionIntent["durability"],
+    operation: input.operation as DurableInstructionIntent["operation"],
+    scope: { kind: scope.kind as DurableInstructionIntent["scope"]["kind"], paths },
+    title,
+    statement,
+    exceptions,
+    risk: input.risk as DurableInstructionIntent["risk"],
+    conflict: input.conflict as DurableInstructionIntent["conflict"],
+    confidence: input.confidence as DurableInstructionIntent["confidence"],
+    reasonIds,
+  };
+}
+
 export function parseSemanticGroundingProposal(value: unknown): SemanticGroundingProposal {
   const input = record(value, "semantic grounding proposal");
   exactKeys(
@@ -193,6 +331,7 @@ export function parseSemanticGroundingProposal(value: unknown): SemanticGroundin
       "providerRoute",
       "disposition",
       "ambiguityReasons",
+      "durableInstruction",
     ],
     "semantic grounding proposal",
   );
@@ -239,5 +378,6 @@ export function parseSemanticGroundingProposal(value: unknown): SemanticGroundin
     providerRoute: providerRoute(input.providerRoute),
     disposition: input.disposition as SemanticGroundingProposal["disposition"],
     ambiguityReasons: boundedReasons(input.ambiguityReasons),
+    durableInstruction: durableInstruction(input.durableInstruction),
   };
 }

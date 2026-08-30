@@ -130,7 +130,7 @@ it("converges provider-neutral observations through exact review and routed prom
   expect(
     await readFile(resolve(root, "docs/instructions/evidence-bound-changes.md"), "utf8"),
   ).toContain("exact approval");
-  expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toContain(
+  expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).not.toContain(
     "docs/instructions/evidence-bound-changes.md",
   );
   expect(await readFile(resolve(root, "CLAUDE.md"), "utf8")).toContain("@AGENTS.md");

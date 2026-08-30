@@ -172,7 +172,11 @@ export async function queryRepositoryKnowledge(input: {
       ),
     ),
   );
-  const selectedHits = hits.slice(0, input.limit ?? 20);
+  const strongestScore = hits[0]?.score ?? 0;
+  const relativeRelevanceFloor = Math.max(1, Math.ceil(strongestScore / 10));
+  const selectedHits = hits
+    .filter((hit) => hit.score >= relativeRelevanceFloor)
+    .slice(0, input.limit ?? 20);
   return {
     schemaVersion: 1,
     query: input.query,

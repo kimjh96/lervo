@@ -2,6 +2,7 @@ import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promise
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { createRepositoryLayoutMigrationPlan } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
@@ -31,6 +32,58 @@ async function repository(): Promise<string> {
 }
 
 describe("lervo upgrade", () => {
+  it("converges legacy enumerated AGENTS routes to the bounded registry bootstrap", async () => {
+    const root = await repository();
+    await writeFile(
+      resolve(root, "AGENTS.md"),
+      [
+        "# Existing instructions",
+        "",
+        "Preserve this user-owned text.",
+        "",
+        "<!-- lervo:begin block=repository_instruction_routes schema=1 -->",
+        "## Repository instruction routes",
+        "",
+        "- For all repository work, read [commit messages](docs/instructions/commit-messages.md).",
+        "<!-- lervo:end block=repository_instruction_routes -->",
+        "",
+        "<!-- lervo:begin block=development_pattern_routes schema=1 -->",
+        "## Promoted development patterns",
+        "",
+        "- [Commit messages](docs/instructions/commit-messages.md)",
+        "<!-- lervo:end block=development_pattern_routes -->",
+        "",
+      ].join("\n"),
+    );
+
+    const output: string[] = [];
+    const errors: string[] = [];
+    expect(await runCli(["upgrade", "--json"], io(root, output, errors)), errors.join("")).toBe(0);
+    const plan = JSON.parse(output.splice(0).join("")) as { planId: string; status: string };
+    expect(plan.status).toBe("ready");
+    expect(
+      await runCli(
+        ["upgrade", "--apply", "--approval", plan.planId, "--json"],
+        io(root, output, errors),
+      ),
+      errors.join(""),
+    ).toBe(0);
+    const agents = await readFile(resolve(root, "AGENTS.md"), "utf8");
+    expect(agents).toContain("Preserve this user-owned text.");
+    expect(agents).toContain("block=repository_instruction_routes schema=2");
+    expect(agents).not.toContain("development_pattern_routes");
+    expect(agents).not.toContain("commit-messages.md");
+    expect(Buffer.byteLength(agents)).toBeLessThan(4 * 1024);
+    expect((await createRepositoryLayoutMigrationPlan({ repositoryRoot: root })).status).toBe(
+      "current",
+    );
+    const stableAgents = await readFile(resolve(root, "AGENTS.md"), "utf8");
+    output.length = 0;
+    expect(await runCli(["upgrade", "--json"], io(root, output, errors)), errors.join("")).toBe(0);
+    expect(["current", "pending_authority"]).toContain(JSON.parse(output.join("")).status);
+    expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toBe(stableAgents);
+  }, 20_000);
+
   it("plans without changing repository bytes and requires the exact current plan", async () => {
     const root = await repository();
     const output: string[] = [];
