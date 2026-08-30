@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -113,12 +114,28 @@ jobs:
       - name: Create and push the exact annotated tag
         if: steps.prepare.outputs.disposition == 'tag_check'
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name 'lervo-release[bot]'
           git config user.email 'lervo-release[bot]@users.noreply.github.com'
           plan="$(pnpm release:tag --json || true)"
+          tag="$(jq -r '.tag // empty' <<<"${plan}")"
           if [ "$(jq -r '.status // "blocked"' <<<"${plan}")" = 'ready' ]; then
             plan_id="$(jq -r '.planId' <<<"${plan}")"
             pnpm release:tag --apply --approval "${plan_id}" --json
-            git push origin "$(jq -r '.tag' <<<"${plan}")"
+            git push origin "${tag}"
+          fi
+          if [ -n "${tag}" ] && [ "$(jq -r '.status // "blocked"' <<<"${plan}")" != 'blocked' ]; then
+            matrix_runs="$(
+              gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/cli-release-matrix.yml/runs" \
+                -f branch="${tag}" -F per_page=100
+            )"
+            matching_runs="$(
+              jq --arg sha "${GITHUB_SHA}" \
+                '[.workflow_runs[] | select(.head_sha == $sha)] | length' <<<"${matrix_runs}"
+            )"
+            if [ "${matching_runs}" -eq 0 ]; then
+              gh workflow run cli-release-matrix.yml --ref "${tag}"
+            fi
           fi

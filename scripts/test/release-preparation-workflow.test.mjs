@@ -17,7 +17,11 @@ async function readWorkflow() {
 describe("CLI release preparation workflow", () => {
   it("has repository and pull-request authority without registry authority", async () => {
     const workflow = await readWorkflow();
-    assert.deepEqual(workflow.permissions, { contents: "write", "pull-requests": "write" });
+    assert.deepEqual(workflow.permissions, {
+      actions: "write",
+      contents: "write",
+      "pull-requests": "write",
+    });
     assert.deepEqual(Object.keys(workflow.on).sort(), ["push", "workflow_dispatch"]);
     const source = await readFile(workflowPath, "utf8");
     assert.doesNotMatch(source, /NODE_AUTH_TOKEN|NPM_TOKEN|npm publish|release:stage/u);
@@ -74,6 +78,10 @@ describe("CLI release preparation workflow", () => {
       /git config user\.email 'lervo-release\[bot\]@users\.noreply\.github\.com'/u,
     );
     assert.match(tag.run, /pnpm release:tag --apply --approval "\$\{plan_id\}" --json/u);
-    assert.match(tag.run, /git push origin "\$\(jq -r '\.tag' <<<"\$\{plan\}"\)"/u);
+    assert.match(tag.run, /git push origin "\$\{tag\}"/u);
+    assert.deepEqual(tag.env, { GH_TOKEN: "${{ github.token }}" });
+    assert.match(tag.run, /actions\/workflows\/cli-release-matrix\.yml\/runs/u);
+    assert.match(tag.run, /select\(\.head_sha == \$sha\)/u);
+    assert.match(tag.run, /gh workflow run cli-release-matrix\.yml --ref "\$\{tag\}"/u);
   });
 });
