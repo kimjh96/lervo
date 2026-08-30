@@ -24,6 +24,7 @@ import {
 } from "./scanner.js";
 import { createDocumentSplitLineage, normalizeKnowledgeDocumentPath } from "./source-lineage.js";
 import { loadStoredConcepts } from "./store-reader.js";
+import { structuralConceptDirectory } from "./structural-projection.js";
 import {
   RepositoryKnowledgeError,
   type KnowledgeFileOperation,
@@ -334,7 +335,8 @@ export async function createKnowledgeDocumentSplitPlan(input: {
   const registryDigest = sha256(canonicalJson(registryMaterials));
   const conceptOperations = structural.operations.filter(
     (operation) =>
-      operation.path.startsWith(".lervo/knowledge/concepts/") && operation.action !== "conflict",
+      operation.path.startsWith(`${structuralConceptDirectory}/`) &&
+      operation.action !== "conflict",
   );
   const afterConceptHashes = new Map(
     registryMaterials.map((item) => [item.file, item.contentHash]),

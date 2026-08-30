@@ -20,6 +20,7 @@ import { runKnowledgeReview, runKnowledgeReviewPolicy } from "./knowledge-review
 import { runKnowledgeStructure } from "./knowledge-structure-command.js";
 import { runKnowledgeMigration } from "./knowledge-migration-command.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
+import { runKnowledgeCanonicalization } from "./knowledge-canonicalization-command.js";
 export { runKnowledgeMigration } from "./knowledge-migration-command.js";
 export { formatKnowledgeMigrationPlan } from "./knowledge-migration-format.js";
 export { knowledgeUsage } from "./knowledge-usage.js";
@@ -30,6 +31,7 @@ export async function runKnowledgeCommand(args: string[], io: CliIo): Promise<nu
     return runKnowledgeOkfExchange(args, io);
   if (subcommand === "refresh")
     return runKnowledgeMigration({ args: args.slice(1), io, mode: "refresh" });
+  if (subcommand === "canonicalization") return runKnowledgeCanonicalization(args.slice(1), io);
   if (subcommand === "impact") {
     try {
       const parsed = parseArgs({

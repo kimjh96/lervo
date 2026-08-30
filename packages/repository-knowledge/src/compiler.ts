@@ -36,6 +36,18 @@ import {
 } from "./publication-snapshot.js";
 import { repositoryInstructionPaths } from "./document-layout.js";
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
+import { summarizeIncrementalReconciliation } from "./incremental-reconciliation.js";
+import {
+  isRebuildableStructuralProjectionPath,
+  legacyStructuralBundleDirectory,
+  legacyStructuralConceptDirectory,
+  legacyStructuralManifestDirectory,
+  structuralBundleDirectory,
+  structuralConceptDirectory,
+  structuralManifestDirectory,
+  structuralManifestPath,
+  structuralProjectionLayoutVersion,
+} from "./structural-projection.js";
 
 interface GeneratedOutputRecord {
   path: string;
@@ -43,11 +55,15 @@ interface GeneratedOutputRecord {
 }
 
 interface GenerationManifest {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   generationId: string;
   projectId: string;
   sourceSnapshotId: string;
-  compiler: { id: "lervo.structural"; version: "1"; capability: "bounded_read_only_no_tools" };
+  compiler: {
+    id: "lervo.structural";
+    version: "1" | "2";
+    capability: "bounded_read_only_no_tools";
+  };
   outputs: GeneratedOutputRecord[];
 }
 
@@ -386,7 +402,8 @@ async function previousGenerated(root: string): Promise<{
   const hashes = new Map<string, Set<string>>();
   const structuralManifestPaths = new Set<string>();
   for (const relativeDirectory of [
-    ".lervo/generated/manifests",
+    legacyStructuralManifestDirectory,
+    structuralManifestDirectory,
     ".lervo/generated/semantic-manifests",
   ]) {
     const manifestFiles = await listKnowledgeArtifactPaths({
@@ -402,7 +419,7 @@ async function previousGenerated(root: string): Promise<{
           kind?: unknown;
         };
         if (
-          value.schemaVersion !== 1 ||
+          (value.schemaVersion !== 1 && value.schemaVersion !== 2) ||
           typeof value.generationId !== "string" ||
           typeof value.projectId !== "string" ||
           typeof value.sourceSnapshotId !== "string" ||
@@ -413,9 +430,10 @@ async function previousGenerated(root: string): Promise<{
         )
           continue;
         if (
-          relativeDirectory === ".lervo/generated/manifests" &&
+          (relativeDirectory === legacyStructuralManifestDirectory ||
+            relativeDirectory === structuralManifestDirectory) &&
           (value.compiler?.id !== "lervo.structural" ||
-            value.compiler.version !== "1" ||
+            !["1", "2"].includes(value.compiler.version) ||
             value.compiler.capability !== "bounded_read_only_no_tools")
         )
           continue;
@@ -424,7 +442,10 @@ async function previousGenerated(root: string): Promise<{
           value.kind !== "semantic"
         )
           continue;
-        if (relativeDirectory === ".lervo/generated/manifests") {
+        if (
+          relativeDirectory === legacyStructuralManifestDirectory ||
+          relativeDirectory === structuralManifestDirectory
+        ) {
           structuralManifestPaths.add(manifestPath);
           const manifestHashes = hashes.get(manifestPath) ?? new Set<string>();
           manifestHashes.add(sha256(manifestBytes));
@@ -435,7 +456,10 @@ async function previousGenerated(root: string): Promise<{
           const recordedPaths = new Set([output.path, canonicalGeneratedArtifactPath(output.path)]);
           for (const recordedPath of recordedPaths) {
             paths.add(recordedPath);
-            if (relativeDirectory === ".lervo/generated/manifests")
+            if (
+              relativeDirectory === legacyStructuralManifestDirectory ||
+              relativeDirectory === structuralManifestDirectory
+            )
               structuralPaths.add(recordedPath);
             const values = hashes.get(recordedPath) ?? new Set<string>();
             values.add(output.contentHash);
@@ -451,8 +475,10 @@ async function previousGenerated(root: string): Promise<{
 }
 
 const generatedArtifactRegistries = [
-  { directory: ".lervo/knowledge/bundles", extension: "yaml" as const },
-  { directory: ".lervo/knowledge/concepts", extension: "yaml" as const },
+  { directory: legacyStructuralBundleDirectory, extension: "yaml" as const },
+  { directory: legacyStructuralConceptDirectory, extension: "yaml" as const },
+  { directory: structuralBundleDirectory, extension: "yaml" as const },
+  { directory: structuralConceptDirectory, extension: "yaml" as const },
   { directory: ".lervo/knowledge/claims", extension: "yaml" as const },
   { directory: ".lervo/knowledge/relations", extension: "yaml" as const },
   { directory: ".lervo/knowledge/source-lineage", extension: "yaml" as const },
@@ -731,7 +757,7 @@ function desiredOutputs(input: {
     },
     ...categoryOutputs,
     {
-      path: shardedKnowledgeArtifactPath(".lervo/knowledge/bundles", bundleId, "yaml"),
+      path: shardedKnowledgeArtifactPath(structuralBundleDirectory, bundleId, "yaml"),
       mediaType: "application/yaml",
       content: yaml({
         schemaVersion: 1,
@@ -746,7 +772,7 @@ function desiredOutputs(input: {
       }),
     },
     ...concepts.map((concept) => ({
-      path: shardedKnowledgeArtifactPath(".lervo/knowledge/concepts", concept.conceptId, "yaml"),
+      path: shardedKnowledgeArtifactPath(structuralConceptDirectory, concept.conceptId, "yaml"),
       mediaType: "application/yaml" as const,
       content: yaml(concept),
     })),
@@ -802,6 +828,7 @@ async function inspectOperation(input: {
     }
     if (
       input.previousHashes.get(input.output.path)?.has(currentHash) === true ||
+      isRebuildableStructuralProjectionPath(input.output.path) ||
       input.output.path.startsWith(".lervo/state/knowledge/")
     ) {
       return {
@@ -881,6 +908,7 @@ export async function createKnowledgeMigrationPlan(input: {
   repositoryRoot: string;
   mode?: "migrate" | "refresh";
   repairMode?: KnowledgeMigrationPlan["repairMode"];
+  reconciliationMode?: KnowledgeMigrationPlan["reconciliation"]["strategy"];
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
 }): Promise<KnowledgeMigrationPlan> {
   const root = resolve(input.repositoryRoot);
@@ -898,6 +926,7 @@ export async function createKnowledgeMigrationPlan(input: {
     previous,
     mode: input.mode ?? "migrate",
     repairMode: input.repairMode ?? "none",
+    reconciliationMode: input.reconciliationMode ?? "full",
   });
 }
 
@@ -909,6 +938,7 @@ async function buildKnowledgeMigrationPlan(input: {
   previous: Awaited<ReturnType<typeof previousGenerated>>;
   mode: "migrate" | "refresh";
   repairMode: KnowledgeMigrationPlan["repairMode"];
+  reconciliationMode: KnowledgeMigrationPlan["reconciliation"]["strategy"];
 }): Promise<KnowledgeMigrationPlan> {
   const { root, manifest, policy, scan, previous } = input;
   const compilation = desiredOutputs({
@@ -919,42 +949,42 @@ async function buildKnowledgeMigrationPlan(input: {
     publication: policy.publication,
   });
   const impact = await analyzeRepositoryKnowledgeImpact({ repositoryRoot: root, scan });
+  const reconciliation = await summarizeIncrementalReconciliation({
+    repositoryRoot: root,
+    scan,
+    strategy: input.reconciliationMode,
+  });
   const structuralOutputs: DesiredOutput[] = [
     ...compilation.outputs,
     ...currentKnowledgeProjectionOutputs(scan, impact),
   ];
-  // State snapshots are rebuildable, gitignored projections. A generation manifest
-  // binds only Git-carried publications and sidecars so a clean clone can validate
-  // the same canonical knowledge without pretending local cache files were shipped.
-  const canonicalOutputs = structuralOutputs.filter(
-    (output) => !output.path.startsWith(".lervo/state/"),
-  );
+  const generationOutputs = structuralOutputs;
   const publicationSnapshotId = repositoryKnowledgePublicationSnapshotId(scan);
   const generationId = stableId("gen", {
     projectId: manifest.projectId,
     sourceSnapshotId: publicationSnapshotId,
-    outputs: canonicalOutputs.map(({ path, contentHash }) => ({ path, contentHash })),
-    compiler: "lervo.structural@1",
+    outputs: generationOutputs.map(({ path, contentHash }) => ({ path, contentHash })),
+    compiler: "lervo.structural@2",
   });
   const generationManifest: GenerationManifest = {
-    schemaVersion: 1,
+    schemaVersion: structuralProjectionLayoutVersion,
     generationId,
     projectId: manifest.projectId,
     sourceSnapshotId: publicationSnapshotId,
-    compiler: { id: "lervo.structural", version: "1", capability: "bounded_read_only_no_tools" },
-    outputs: canonicalOutputs.map(({ path, contentHash }) => ({ path, contentHash })),
+    compiler: { id: "lervo.structural", version: "2", capability: "bounded_read_only_no_tools" },
+    outputs: generationOutputs.map(({ path, contentHash }) => ({ path, contentHash })),
   };
   const manifestContent = `${JSON.stringify(generationManifest, null, 2)}\n`;
   const allOutputs: DesiredOutput[] = [
     ...structuralOutputs,
     {
-      path: ".lervo/generated/manifests/current.json",
+      path: structuralManifestPath,
       mediaType: "application/json",
       content: manifestContent,
       contentHash: sha256(manifestContent),
     },
   ];
-  const desiredPaths = new Set(canonicalOutputs.map((output) => output.path));
+  const desiredPaths = new Set(generationOutputs.map((output) => output.path));
   const staleOperations = (
     await Promise.all(
       [...previous.structuralPaths]
@@ -965,7 +995,7 @@ async function buildKnowledgeMigrationPlan(input: {
   const staleManifestOperations = (
     await Promise.all(
       [...previous.structuralManifestPaths]
-        .filter((path) => path !== ".lervo/generated/manifests/current.json")
+        .filter((path) => path !== structuralManifestPath)
         .map((path) => inspectDeleteOperation({ root, path, previousHashes: previous.hashes })),
     )
   ).filter((operation): operation is KnowledgeFileOperation => operation !== null);
@@ -990,8 +1020,9 @@ async function buildKnowledgeMigrationPlan(input: {
     projectId: manifest.projectId,
     sourceSnapshotId: scan.snapshotId,
     policyHash: sha256(canonicalJson(policy)),
-    compiler: "lervo.structural@1",
+    compiler: "lervo.structural@2",
     repairMode: input.repairMode,
+    reconciliation,
     operations: operations.map((operation) =>
       operation.action === "delete"
         ? operation
@@ -1006,9 +1037,10 @@ async function buildKnowledgeMigrationPlan(input: {
     status: operations.some((operation) => operation.action === "conflict") ? "blocked" : "ready",
     mode: input.mode,
     repairMode: input.repairMode,
+    reconciliation,
     sourceSnapshotId: scan.snapshotId,
     policyHash: planMaterials.policyHash,
-    compiler: { id: "lervo.structural", version: "1", capability: "bounded_read_only_no_tools" },
+    compiler: { id: "lervo.structural", version: "2", capability: "bounded_read_only_no_tools" },
     coverage: scan.coverage,
     impact: impact.summary,
     impactReportId: impact.reportId,
@@ -1046,6 +1078,7 @@ export async function createKnowledgeMigrationPlanForScan(input: {
     previous,
     mode: input.mode ?? "refresh",
     repairMode: "none",
+    reconciliationMode: "full",
   });
 }
 

@@ -25,6 +25,7 @@ import {
 } from "./scanner.js";
 import { createDocumentMoveLineage, normalizeKnowledgeDocumentPath } from "./source-lineage.js";
 import { loadStoredConcepts } from "./store-reader.js";
+import { structuralConceptDirectory } from "./structural-projection.js";
 import {
   RepositoryKnowledgeError,
   type KnowledgeFileOperation,
@@ -315,7 +316,8 @@ export async function createKnowledgeDocumentMovePlan(input: {
   );
   const conceptOperations = structural.operations.filter(
     (operation) =>
-      operation.path.startsWith(".lervo/knowledge/concepts/") && operation.action !== "conflict",
+      operation.path.startsWith(`${structuralConceptDirectory}/`) &&
+      operation.action !== "conflict",
   );
   for (const item of conceptOperations) {
     afterConceptHashes.set(item.path, item.desiredHash);

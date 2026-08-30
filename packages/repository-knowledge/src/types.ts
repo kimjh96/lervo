@@ -175,11 +175,12 @@ export interface KnowledgeMigrationPlan {
   status: "ready" | "blocked";
   mode: "migrate" | "refresh";
   repairMode: "none" | "replace_unrecorded_structural_records";
+  reconciliation: import("./incremental-reconciliation.js").IncrementalReconciliationSummary;
   sourceSnapshotId: string;
   policyHash: string;
   compiler: {
     id: "lervo.structural";
-    version: "1";
+    version: "2";
     capability: "bounded_read_only_no_tools";
   };
   coverage: RepositoryKnowledgeScan["coverage"];

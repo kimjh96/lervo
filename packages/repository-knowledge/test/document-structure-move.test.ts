@@ -17,6 +17,7 @@ import {
   queryRepositoryKnowledge,
   recoverKnowledgeMaterialization,
   shardedKnowledgeArtifactPath,
+  structuralConceptDirectory,
 } from "../src/index.js";
 
 const roots: string[] = [];
@@ -106,11 +107,7 @@ describe("user document structure move", () => {
       toPath: destinationPath,
     });
     const conceptId = plan.preservedConceptIds[0]!;
-    const conceptPath = shardedKnowledgeArtifactPath(
-      ".lervo/knowledge/concepts",
-      conceptId,
-      "yaml",
-    );
+    const conceptPath = shardedKnowledgeArtifactPath(structuralConceptDirectory, conceptId, "yaml");
     const conceptBefore = await readFile(resolve(root, conceptPath), "utf8");
     await applyKnowledgeDocumentMovePlan({
       plan,

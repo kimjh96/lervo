@@ -6,7 +6,7 @@ import { parseArgs } from "node:util";
 
 import { createTerminalCoverageReport } from "@lervo/diagnostics";
 import type { EventDraft } from "@lervo/event-contract";
-import { captureRepositorySnapshot } from "@lervo/orchestrator";
+import { captureRepositorySnapshot, type RepositorySnapshot } from "@lervo/orchestrator";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import {
   validateSchema,
@@ -15,6 +15,7 @@ import {
 } from "@lervo/schemas";
 import {
   canonicalJson,
+  assessCanonicalization,
   createKnowledgeInstructionBootstrapPlan,
   createKnowledgeInstructionBridgePlan,
   createKnowledgeMigrationPlan,
@@ -34,6 +35,10 @@ import { assembleTerminalHookContext } from "./terminal-context-assembly.js";
 import { loadSelectedTerminalDocument } from "./terminal-context-loading.js";
 import { selectTerminalContextCandidates } from "./terminal-context-selection.js";
 import { resolveTerminalRequestGrounding } from "./terminal-request-grounding.js";
+import {
+  readPreparedRepositorySnapshot,
+  writePreparedRepositorySnapshot,
+} from "./terminal-prepared-snapshot.js";
 import type { CliIo, CliServices } from "./types.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 import {
@@ -203,6 +208,7 @@ async function promptContext(
   recommendationCount: number;
   documents: PreparedDocument[];
   repositoryRevision: string;
+  repositoryFiles: RepositorySnapshot["files"];
   workstream: {
     workstreamId: string;
     revision: number;
@@ -353,6 +359,7 @@ async function promptContext(
     recommendationCount: selection.candidates.length,
     documents,
     repositoryRevision: repositorySnapshot.revision,
+    repositoryFiles: repositorySnapshot.files,
     workstream,
     grounding: {
       requestDigest: sha256(prompt),
@@ -974,6 +981,12 @@ async function recordPreparedContext(input: {
   occurredAt: string;
 }): Promise<string> {
   input.context.documents.forEach((document) => assertRepositoryRelativePath(document.path));
+  await writePreparedRepositorySnapshot(input.root, {
+    schemaVersion: 1,
+    observationId: input.observationId,
+    revision: input.context.repositoryRevision,
+    files: input.context.repositoryFiles,
+  });
   const storage = await openProjectStorage(input.root);
   try {
     const result = storage.events.append(
@@ -1370,6 +1383,22 @@ async function runDeclare(args: string[], io: CliIo): Promise<number> {
       throw new Error(
         "An unchanged turn must use read-only canonicalization and knowledge dispositions.",
       );
+    const preparedSnapshot = await readPreparedRepositorySnapshot(root, parsed.values.observation);
+    const canonicalizationAssessment =
+      repositoryChanged && preparedSnapshot !== null
+        ? await assessCanonicalization({
+            repositoryRoot: root,
+            beforeRevision: preparedSnapshot.revision,
+            afterRevision: repository.revision,
+            beforeFiles: preparedSnapshot.files,
+            afterFiles: repository.files,
+            disposition:
+              draft.canonicalizationDisposition === "not_applicable_read_only"
+                ? "canonical_sources_current"
+                : draft.canonicalizationDisposition,
+            now: new Date(),
+          })
+        : null;
     const occurredAt = new Date().toISOString();
     const payload: TerminalTurnDeclaredEventPayload = {
       declarationId: newIdentifier("tdecl"),
@@ -1410,8 +1439,8 @@ async function runDeclare(args: string[], io: CliIo): Promise<number> {
     );
     io.stdout(
       parsed.values.json
-        ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, ...payload }, null, 2)}\n`
-        : `Terminal turn disposition declared.\nobservation: ${parsed.values.observation}\nrepositoryRevision: ${repository.revision}\n`,
+        ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, canonicalizationAssessment, ...payload }, null, 2)}\n`
+        : `Terminal turn disposition declared.\nobservation: ${parsed.values.observation}\nrepositoryRevision: ${repository.revision}\ncanonicalization: ${canonicalizationAssessment?.status ?? "not_applicable"}\n`,
     );
     return 0;
   } catch (error) {

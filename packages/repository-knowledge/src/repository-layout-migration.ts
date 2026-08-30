@@ -54,6 +54,7 @@ import {
 } from "./types.js";
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
 import { providerSurfaceRoles } from "./provider-surface-descriptors.js";
+import { projectRebuildableKnowledgeIgnore } from "./projection-ignore.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/;
 const ECOSYSTEM_ROOT_ENTRYPOINTS = new Set([
@@ -106,12 +107,13 @@ export interface RepositoryLayoutUserUpdate {
   operationId: string;
   approvalHash: string;
   path: string;
-  beforeHash: string;
+  beforeHash: string | null;
   afterHash: string;
   reason:
     | "refresh_instruction_routes"
     | "normalize_agent_surface_references"
-    | "reconcile_document_rewriters";
+    | "reconcile_document_rewriters"
+    | "exclude_rebuildable_publications";
 }
 
 export interface RepositoryLayoutMachineMove {
@@ -1018,7 +1020,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       expectedCurrentHash: change.source.contentHash,
       desiredHash: sha256(change.content),
     }));
-  const userUpdates: RepositoryLayoutUserUpdate[] =
+  const referenceUserUpdates: RepositoryLayoutUserUpdate[] =
     moves.length === 0
       ? referenceOperations.map((operation) => {
           const operationId = stableId("kdocop", {
@@ -1049,6 +1051,55 @@ export async function createRepositoryLayoutMigrationPlan(input: {
           };
         })
       : [];
+  const publicationIgnore = await projectRebuildableKnowledgeIgnore({
+    repositoryRoot: root,
+    publicationRoot: policy.publicationRoot,
+  });
+  const publicationIgnoreOperations: DurableKnowledgeUserFileOperation[] = publicationIgnore.changed
+    ? [
+        {
+          path: publicationIgnore.path,
+          action: publicationIgnore.beforeContent === null ? "create" : "update",
+          ownership: "user",
+          mediaType: "text/plain",
+          content: publicationIgnore.afterContent,
+          ...(publicationIgnore.beforeHash === null
+            ? {}
+            : { expectedCurrentHash: publicationIgnore.beforeHash }),
+          desiredHash: publicationIgnore.afterHash,
+        },
+      ]
+    : [];
+  const publicationIgnoreUserUpdates: RepositoryLayoutUserUpdate[] = publicationIgnore.changed
+    ? (() => {
+        const operationId = stableId("kdocop", {
+          projectId: scan.projectId,
+          action: "exclude_rebuildable_publications",
+          path: publicationIgnore.path,
+          beforeHash: publicationIgnore.beforeHash,
+          afterHash: publicationIgnore.afterHash,
+        });
+        return [
+          {
+            operationId,
+            approvalHash: sha256(
+              canonicalJson({
+                operationId,
+                action: "write_user_configuration",
+                path: publicationIgnore.path,
+                beforeHash: publicationIgnore.beforeHash,
+                afterHash: publicationIgnore.afterHash,
+              }),
+            ),
+            path: publicationIgnore.path,
+            beforeHash: publicationIgnore.beforeHash,
+            afterHash: publicationIgnore.afterHash,
+            reason: "exclude_rebuildable_publications" as const,
+          },
+        ];
+      })()
+    : [];
+  const userUpdates = [...referenceUserUpdates, ...publicationIgnoreUserUpdates];
   const normalizationOwnershipOperations = await normalizationOwnershipUpgradeOperations(root);
   const taxonomyUpgradeOperation: KnowledgeFileOperation[] = decisionTaxonomyRequiresUpgrade(
     parse(taxonomySource),
@@ -1067,10 +1118,11 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       ]
     : [];
   const structural =
-    moves.length === 0 &&
-    userUpdates.length === 0 &&
-    normalizationOwnershipOperations.length === 0 &&
-    taxonomyUpgradeOperation.length === 0
+    publicationIgnoreOperations.length > 0 ||
+    (moves.length === 0 &&
+      userUpdates.length === 0 &&
+      normalizationOwnershipOperations.length === 0 &&
+      taxonomyUpgradeOperation.length === 0)
       ? null
       : await createKnowledgeMigrationPlanForScan({
           repositoryRoot: root,
@@ -1179,6 +1231,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     ...taxonomyUpgradeOperation,
     ...normalizationOwnershipOperations,
     ...(structural?.operations ?? []),
+    ...publicationIgnoreOperations,
     ...referenceOperations,
     ...bridgeOperations,
     ...lineageOperations,

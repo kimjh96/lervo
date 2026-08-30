@@ -161,6 +161,10 @@ describe("provider instruction bridge", () => {
       { path: ".lervo/state/knowledge/current/impact.json", action: "update" },
       { path: ".lervo/state/knowledge/current/inventory.json", action: "update" },
       { path: ".lervo/state/knowledge/current/source-units.json", action: "update" },
+      {
+        path: ".lervo/state/knowledge/current/structural/manifests/current.json",
+        action: "update",
+      },
     ]);
     expect(localRefresh.status).toBe("ready");
     await applyKnowledgeInstructionBridgePlan({

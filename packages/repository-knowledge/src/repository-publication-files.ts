@@ -3,19 +3,20 @@ import { lstat, open, readFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 
 import { listKnowledgeArtifactPaths } from "./artifact-paths.js";
+import { legacyStructuralManifestPath, structuralManifestPath } from "./structural-projection.js";
 
 export async function generatedKnowledgePaths(root: string): Promise<Set<string>> {
   const result = new Set<string>();
-  for (const directory of [".lervo/generated/manifests", ".lervo/generated/semantic-manifests"]) {
-    const paths =
-      directory === ".lervo/generated/manifests"
-        ? [".lervo/generated/manifests/current.json"]
-        : await listKnowledgeArtifactPaths({
-            root,
-            directory,
-            extension: "json",
-            maximumFiles: 20_000,
-          });
+  const groups = [
+    [structuralManifestPath, legacyStructuralManifestPath],
+    await listKnowledgeArtifactPaths({
+      root,
+      directory: ".lervo/generated/semantic-manifests",
+      extension: "json",
+      maximumFiles: 20_000,
+    }),
+  ];
+  for (const paths of groups) {
     for (const path of paths) {
       try {
         const value = JSON.parse(await readFile(resolve(root, path), "utf8")) as {

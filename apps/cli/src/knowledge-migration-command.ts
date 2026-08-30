@@ -20,6 +20,8 @@ import {
   RepositoryKnowledgeError,
   serializableRepositoryLayoutMigrationPlan,
   serializableTerminalIntegrationPlan,
+  structuralBundleIdFromPath,
+  structuralConceptIdFromPath,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
@@ -75,6 +77,7 @@ export async function runKnowledgeMigration(input: {
     json?: boolean;
     help?: boolean;
     rebuild?: boolean;
+    "integration-head"?: boolean;
   };
   try {
     values = parseArgs({
@@ -94,6 +97,7 @@ export async function runKnowledgeMigration(input: {
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
         rebuild: { type: "boolean" },
+        "integration-head": { type: "boolean" },
       },
     }).values;
   } catch (error) {
@@ -394,6 +398,8 @@ export async function runKnowledgeMigration(input: {
       repositoryRoot,
       mode: input.mode,
       repairMode: values.rebuild === true ? "replace_unrecorded_structural_records" : "none",
+      reconciliationMode:
+        values["integration-head"] === true ? "integration_head_incremental" : "full",
       supplementalSources,
     });
     const structuralCurrent = plan.operations.every(
@@ -632,18 +638,13 @@ export async function runKnowledgeMigration(input: {
           const conceptChanges = plan.operations
             .map((operation) => ({
               operation,
-              match:
-                /^\.lervo\/knowledge\/concepts\/(?:[a-f0-9]{2}\/)?(concept_[a-f0-9]{24})\.yaml$/.exec(
-                  operation.path,
-                ),
+              conceptId: structuralConceptIdFromPath(operation.path),
             }))
             .filter(
-              (
-                item,
-              ): item is { operation: (typeof plan.operations)[number]; match: RegExpExecArray } =>
-                item.match !== null,
+              (item): item is { operation: (typeof plan.operations)[number]; conceptId: string } =>
+                item.conceptId !== null,
             )
-            .map((item) => ({ conceptId: item.match[1] as string, action: item.operation.action }));
+            .map((item) => ({ conceptId: item.conceptId, action: item.operation.action }));
           const createdConceptIds = conceptChanges
             .filter((item) => item.action === "create")
             .map((item) => item.conceptId);
@@ -665,13 +666,8 @@ export async function runKnowledgeMigration(input: {
                 )
               : null;
           const bundleIds = plan.operations
-            .map(
-              (item) =>
-                /^\.lervo\/knowledge\/bundles\/(?:[a-f0-9]{2}\/)?(bundle_[a-f0-9]{24})\.yaml$/.exec(
-                  item.path,
-                )?.[1],
-            )
-            .filter((item): item is string => item !== undefined)
+            .map((item) => structuralBundleIdFromPath(item.path))
+            .filter((item): item is string => item !== null)
             .slice(0, 256);
           storage.events.append({
             eventId: `evt_${eventIdentity}`,

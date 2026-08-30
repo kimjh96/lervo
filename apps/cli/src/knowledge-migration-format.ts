@@ -76,6 +76,7 @@ export function formatKnowledgeMigrationPlan(plan: KnowledgeMigrationPlan): stri
     `Plan ID: ${plan.planId}`,
     `Plan status: ${plan.status === "ready" ? "ready to apply" : "blocked"}`,
     `Repair mode: ${plan.repairMode}`,
+    `Reconciliation: ${plan.reconciliation.strategy} · changed ${plan.reconciliation.changedSourceCount} · reused ${plan.reconciliation.reusedSourceCount} · removed ${plan.reconciliation.removedSourceCount}`,
     `source snapshot: ${plan.sourceSnapshotId}`,
     `coverage: included ${plan.coverage.included}, excluded ${plan.coverage.excluded}, unsupported ${plan.coverage.unsupported}`,
     `Existing user documents registered: ${plan.registeredUserDocuments} (bytes unchanged)`,

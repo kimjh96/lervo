@@ -218,10 +218,24 @@ describe("OKF v0.2 exchange", () => {
       ],
       { cwd: source },
     );
+    const sourceRefresh = await createKnowledgeMigrationPlan({
+      repositoryRoot: source,
+      mode: "refresh",
+    });
+    await applyKnowledgeMigrationPlan(
+      sourceRefresh,
+      new Date("2026-08-22T00:00:30Z"),
+      () => undefined,
+    );
 
     const cloneParent = await temporary("lervo-okf-clone-parent-");
     const clone = resolve(cloneParent, "clone");
     await execFile("git", ["clone", "-q", source, clone]);
+    const clonePlan = await createKnowledgeMigrationPlan({
+      repositoryRoot: clone,
+      mode: "refresh",
+    });
+    await applyKnowledgeMigrationPlan(clonePlan, new Date("2026-08-22T00:01:00Z"), () => undefined);
     expect(await lintRepositoryKnowledge(clone)).toMatchObject({ valid: true, issues: [] });
     expect(
       (await queryRepositoryKnowledge({ repositoryRoot: clone, query: "nebula" })).hits,
@@ -236,6 +250,9 @@ describe("OKF v0.2 exchange", () => {
       repositoryRoot: clone,
       outputRoot: resolve(exportParent, "clone"),
     });
+    const sourceBundle = await readOkfBundle(resolve(exportParent, "source"));
+    const cloneBundle = await readOkfBundle(resolve(exportParent, "clone"));
+    expect(cloneBundle.files).toEqual(sourceBundle.files);
     expect(cloneExport.bundleDigest).toBe(sourceExport.bundleDigest);
   });
 });

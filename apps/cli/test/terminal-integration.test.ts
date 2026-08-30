@@ -17,8 +17,10 @@ import {
   createKnowledgeMigrationPlan,
   createTerminalIntegrationPlan,
   lintRepositoryKnowledge,
+  listCanonicalizationCandidates,
   listKnowledgeArtifactPaths,
   sha256,
+  structuralConceptDirectory,
   terminalHookCommand,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage, RepositoryCoordinationRecords } from "@lervo/project-storage";
@@ -510,6 +512,19 @@ describe("terminal integration CLI", () => {
       reason: expect.stringContaining("turn_declaration_missing"),
     });
     await declare(startContext, "change");
+    const canonicalizationCandidates = await listCanonicalizationCandidates(root);
+    expect(canonicalizationCandidates).toEqual([
+      expect.objectContaining({
+        observedState: "candidate",
+        sourceBindings: [
+          expect.objectContaining({
+            path: "feature.ts",
+            responsibility: "architecture_or_specification",
+          }),
+        ],
+      }),
+    ]);
+    expect(JSON.stringify(canonicalizationCandidates)).not.toMatch(/keyword|prompt|phrase/iu);
     expect((await stop("turn-start")).reason ?? "").not.toMatch(
       /(?:workstream_(?:missing|checkpoint_required)|turn_declaration_)/u,
     );
@@ -911,7 +926,7 @@ describe("terminal integration CLI", () => {
     const conceptPath = (
       await listKnowledgeArtifactPaths({
         root,
-        directory: ".lervo/knowledge/concepts",
+        directory: structuralConceptDirectory,
         extension: "yaml",
         maximumFiles: 20_000,
       })

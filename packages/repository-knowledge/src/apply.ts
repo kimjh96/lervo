@@ -136,6 +136,7 @@ export async function applyKnowledgeMigrationPlan(
     repositoryRoot: root,
     mode: plan.mode,
     repairMode: plan.repairMode,
+    reconciliationMode: plan.reconciliation.strategy,
     supplementalSources: options.supplementalSources,
   });
   if (currentPlan.planId !== plan.planId) {

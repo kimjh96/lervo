@@ -55,7 +55,8 @@ describe("Lervo project initialization", () => {
       expect.arrayContaining([".lervo", ".lervo/knowledge", ".lervo/.gitignore"]),
     );
     expect(await readFile(resolve(root, ".lervo/.gitignore"), "utf8")).toBe("data/\nstate/\n");
-    expect(result.created).toHaveLength(6);
+    expect(result.created).toHaveLength(7);
+    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toContain("docs/knowledge/");
     await expect(access(resolve(root, ".lervo/documents"))).rejects.toThrow();
     await expect(access(resolve(root, ".lervo/verifications"))).rejects.toThrow();
     await expect(access(resolve(root, ".lervo/generated"))).rejects.toThrow();

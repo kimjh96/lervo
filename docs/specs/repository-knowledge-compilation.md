@@ -9,7 +9,7 @@ Lervo compiles bounded repository evidence whether or not `docs/` exists. Portab
 
 ## 2. Sources
 
-The scanner walks repository files outside explicit VCS, dependency, generated, state, secret, size, and count exclusions. Common Python `.venv` and `venv` dependency environments are excluded at any repository depth, like `node_modules`. It classifies documentation, instructions, code, configuration, schemas, tests, automation, skills, workflows, agents, policies, hooks, client and tool configuration, revision identity, verified artifacts, allowlisted events, sensitive logs and traces, and unsupported binaries.
+The scanner walks repository files outside explicit VCS, dependency, generated, state, secret, size, and count exclusions. Common Python `.venv` and `venv` environments are excluded at any repository depth, like `node_modules`. It classifies documentation, instructions, code, configuration, schemas, tests, automation, skills, workflows, agents, policies, hooks, client and tool configuration, revision identity, verified artifacts, allowlisted events, sensitive logs and traces, and unsupported binaries.
 
 Ordinary bytes may enter structural extraction. Sensitive log bytes never enter publication or external compilation. Secret candidates are excluded before reading. Presence proves discovery only, not loading, trust, injection, or use.
 
@@ -50,7 +50,7 @@ The taxonomy and route must exist. Invalid or stale metadata blocks planning.
 
 ## 5. Structural Compilation
 
-`lervo.structural@1` is deterministic, bounded, read-only, and tool-free. It produces generated indexes and pages; two-hex-sharded bundle, concept, claim, relation, lineage, and bridge sidecars; a compact current inventory; a source-unit summary; an impact projection; and a manifest binding tracked paths and hashes. It retains no historical full source-unit projections and claims only organization and provenance with `unreviewed` assurance.
+`lervo.structural@2` is deterministic, bounded, read-only, and tool-free. It produces generated indexes and pages; two-hex-sharded structural bundles and concepts; a compact current inventory; a source-unit summary; an impact projection; and one manifest binding generated paths and hashes. These rebuildable outputs live below ignored `.lervo/state/knowledge/current/` or the ignored configured publication root. Reviewed claims, relations, concepts, lineage, bridges, normalization records, and semantic manifests remain tracked canonical records. The compiler retains no historical full source-unit projections and claims only organization and provenance with `unreviewed` assurance.
 
 Reviewed sources and semantic records remain canonical; structural records are rebuildable. [Lifecycle convergence](repository-knowledge-lifecycle-convergence.md) defines merge repair and v2 storage separation.
 
@@ -70,7 +70,7 @@ A byte-preserving exact structure move relocates one current single-output norma
 
 Navigation obeys entry and UTF-8 byte limits. New topics create files; empty categories create no paths. Refresh computes the complete desired set and deletes obsolete output only when the prior generation records its current hash. Edited or unrecorded output conflicts. Cleanup removes empty generated parents.
 
-`.lervo/generated/manifests/current.json` records structural ownership. Refresh replaces it and deletes older valid ID-named structural manifests, but not semantic manifests or immutable review and evidence.
+`.lervo/state/knowledge/current/structural/manifests/current.json` records structural ownership. Refresh replaces it and deletes exact-hash legacy structural manifests and structural outputs during schema-2 migration, but not semantic manifests or immutable review and evidence.
 
 ## 8. Semantic Compilation
 
@@ -88,13 +88,7 @@ Reconciliation yields create, register-existing, add-relation, managed-block pat
 
 ### Development-Pattern Lifecycle
 
-`knowledge pattern propose` binds at least two independently grouped current source units, exceptions, invariants, reasons, verification, and one responsibility-owned target. Provider identity is observation metadata; equivalent Codex and Claude proposals converge without increasing assurance.
-
-Candidates move through `observed -> candidate -> reviewed -> promoted|rejected|deferred -> superseded`. Exact-hash review and separate promotion bind target hashes, verification, and both agent routes. Promotion creates a missing target or accepts identical bytes; different existing bytes block. Non-check targets extend only the managed AGENTS route consumed by Claude's import.
-
-Repository-changing completion follows the typed [canonicalization assessment](repository-knowledge-lifecycle-convergence.md#canonicalization-assessment); request keywords grant no authority and user-owned content is never auto-promoted.
-
-Candidate and review bodies are immutable CAS artifacts; bounded events rebuild current state. Changed source makes unpromoted work stale and blocks apply, but never rewrites a promoted canonical target.
+[Development-pattern lifecycle](repository-development-pattern-lifecycle.md) owns proposal evidence, state transitions, exact review and promotion, agent routing, and stale-source behavior. Repository-changing completion additionally follows the typed [canonicalization assessment](repository-knowledge-lifecycle-convergence.md#canonicalization-assessment); neither workflow grants authority from request keywords or automatically promotes user-owned content.
 
 ## 10. Durable Materialization
 
@@ -147,8 +141,8 @@ OKF v0.2 export creates a content-addressed, schema-versioned bundle. Import pre
 8. Apply and recovery pass failure injection.
 9. Lint succeeds and immediate replan has no changed operations.
 10. A clean clone reproduces tracked knowledge without a Hub.
-11. Ambiguous or unclassified ADRs fail closed and leaves respect bounds.
-12. Eligible Markdown, including portable skills, enters language and format lifecycle; immediate replan is current, while changed resources become stale.
+11. Ambiguous or unclassified ADRs fail closed, and leaves respect bounds.
+12. Eligible Markdown, including portable skills, enters the language and format lifecycle; immediate replan is current, while changed resources become stale.
 13. Fuzzy cross-provider candidates fail closed on weak or ambiguous matches and cannot materialize both pair members.
 
 ## References

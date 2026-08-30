@@ -15,6 +15,7 @@ import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enfo
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { normalizationRecordRetirementOperations } from "./document-normalization-record-retirement.js";
 import { loadStoredConcepts } from "./store-reader.js";
+import { structuralConceptDirectory } from "./structural-projection.js";
 import { loadDocumentMoveLineages, normalizeKnowledgeDocumentPath } from "./source-lineage.js";
 import {
   RepositoryKnowledgeError,
@@ -357,7 +358,8 @@ export async function applyKnowledgeDocumentDeletionPlan(input: {
     updatedSidecars: current.operations
       .filter(
         (operation) =>
-          operation.action === "update" && operation.path.startsWith(".lervo/knowledge/concepts/"),
+          operation.action === "update" &&
+          operation.path.startsWith(`${structuralConceptDirectory}/`),
       )
       .map((operation) => operation.path),
     appliedAt: input.now.toISOString(),

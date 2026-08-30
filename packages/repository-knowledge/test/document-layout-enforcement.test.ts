@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   authorizeCurrentRepositoryDocumentLayout,
   builtinProviderDocumentSurfaces,
+  contentBoundRewriterDescriptor,
   contentBoundTransformDescriptor,
   evaluateCurrentRepositoryDocumentLayout,
   inspectRepositoryDocumentRewriters,
@@ -69,12 +70,41 @@ describe("repository document layout enforcement", () => {
     });
     const rewriters = await inspectRepositoryDocumentRewriters({
       repositoryRoot: root,
-      transformDescriptor: transform,
-      transformObservations: [],
+      rewriters: [transform],
+      dryRuns: { [transform.rewriterId]: [] },
     });
     expect(rewriters.status).toBe("compatible");
     expect(rewriters.ownership).toEqual([]);
     expect(transform.compatibility.kind).toBe("content_bound_dry_run");
+  });
+
+  it("uses one ownership adapter contract for every rewrite capability", async () => {
+    const root = await repository();
+    const descriptors = (["format", "autofix", "transform", "generate"] as const).map(
+      (capability) =>
+        contentBoundRewriterDescriptor({
+          rewriterId: `fixture-${capability}`,
+          version: "1",
+          capability,
+          scopePaths: ["."],
+          configurationHash: sha256(`config-${capability}`),
+          lockHash: sha256(`lock-${capability}`),
+          maximumObservations: 8,
+        }),
+    );
+    const result = await inspectRepositoryDocumentRewriters({
+      repositoryRoot: root,
+      rewriters: descriptors,
+      dryRuns: Object.fromEntries(descriptors.map((item) => [item.rewriterId, []])),
+    });
+
+    expect(result.status).toBe("compatible");
+    expect(descriptors.map((item) => item.capability)).toEqual([
+      "format",
+      "autofix",
+      "transform",
+      "generate",
+    ]);
   });
 
   it("blocks repository capacity before apply", async () => {

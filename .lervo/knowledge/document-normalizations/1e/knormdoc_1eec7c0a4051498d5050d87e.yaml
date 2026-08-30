@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_844f8819c17a224f73f3eae2
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7b5cb598a4d363f237a0ff0c
+outputLanguage: en
+outputs:
+  - byteCount: 6427
+    contentHash: sha256:5e15ac5dff76d4a3ee661173faa9fef4a8762ec73179751fcf675c15b4d088e6
+    path: docs/roadmap/knowledge/bounded-document-layout.md
+    userRegionHash: sha256:5e15ac5dff76d4a3ee661173faa9fef4a8762ec73179751fcf675c15b4d088e6
+profile: roadmap_document
+recordId: knormdoc_1eec7c0a4051498d5050d87e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:096ea7854478a0009be7d55f98b3f9df4cbe13a56d72144f1448ce621a92da4b
+sourcePath: docs/roadmap/knowledge/bounded-document-layout.md
+sourceUnitVersionIds:
+  - uv_286f4a829c3bea3b2d10d12f
+  - uv_39117fe0add85235008e66cb
+  - uv_451684f06da700139338349c
+  - uv_6bc0584ca9a55bfd43335c90
+  - uv_ab09c3bd3aabcff3824b77c5
+  - uv_b8d82ef4fd1065f551efab76
+  - uv_c92501b0f9fd6f4fb8db51d9
