@@ -21,10 +21,8 @@ import { parse, stringify } from "yaml";
 
 import {
   applyKnowledgeMigrationPlan,
-  applyRepositoryLayoutMigrationPlan,
   analyzeRepositoryKnowledgeImpact,
   createKnowledgeMigrationPlan,
-  createRepositoryLayoutMigrationPlan,
   createKnowledgeRefreshReviewCandidate,
   lintRepositoryKnowledge,
   queryRepositoryKnowledge,
@@ -33,6 +31,9 @@ import {
   listKnowledgeArtifactPaths,
   shardedKnowledgeArtifactPath,
   sha256,
+  structuralBundleDirectory,
+  structuralConceptDirectory,
+  structuralManifestPath,
 } from "../src/index.js";
 import { extractJavaScriptSymbolSpans } from "../src/javascript-source-units.js";
 import { extractJsonKeySpans } from "../src/json-source-units.js";
@@ -71,7 +72,7 @@ describe("repository knowledge migration", () => {
     );
     const conceptFiles = await listKnowledgeArtifactPaths({
       root,
-      directory: ".lervo/knowledge/concepts",
+      directory: structuralConceptDirectory,
       extension: "yaml",
       maximumFiles: 20_000,
     });
@@ -92,8 +93,14 @@ describe("repository knowledge migration", () => {
       const sourceUnitVersionIds = currentScan.scan.units
         .filter((unit) => unit.path === concept.value.path)
         .map((unit) => unit.unitVersionId);
+      const reviewedPath = shardedKnowledgeArtifactPath(
+        ".lervo/knowledge/concepts",
+        concept.value.conceptId,
+        "yaml",
+      );
+      await mkdir(resolve(root, reviewedPath, ".."), { recursive: true });
       await writeFile(
-        resolve(root, concept.path),
+        resolve(root, reviewedPath),
         stringify(
           {
             ...concept.value,
@@ -331,33 +338,31 @@ describe("repository knowledge migration", () => {
       new Date(),
       () => undefined,
     );
-    const currentPath = resolve(root, ".lervo/generated/manifests/current.json");
+    const currentPath = resolve(root, structuralManifestPath);
     const manifest = JSON.parse(await readFile(currentPath, "utf8")) as {
+      schemaVersion: number;
       generationId: string;
+      compiler: { version: string };
       outputs: Array<{ path: string; contentHash: string }>;
     };
     for (const output of manifest.outputs) {
       const match =
-        /^(\.lervo\/knowledge\/(?:bundles|concepts|claims|relations|source-lineage|instruction-bridges))\/[a-f0-9]{2}\/([^/]+\.(?:json|yaml))$/u.exec(
+        /^\.lervo\/state\/knowledge\/current\/structural\/(bundles|concepts)\/([a-f0-9]{2}\/[^/]+\.yaml)$/u.exec(
           output.path,
         );
       if (match === null) continue;
-      const legacyPath = `${match[1]}/${match[2]}`;
+      const legacyPath = `.lervo/knowledge/${match[1]}/${match[2]}`;
+      await mkdir(resolve(root, legacyPath, ".."), { recursive: true });
       await rename(resolve(root, output.path), resolve(root, legacyPath));
       output.path = legacyPath;
     }
+    manifest.schemaVersion = 1;
+    manifest.compiler.version = "1";
     const legacyManifestPath = `.lervo/generated/manifests/${manifest.generationId}.json`;
+    await mkdir(resolve(root, legacyManifestPath, ".."), { recursive: true });
     await writeFile(resolve(root, legacyManifestPath), `${JSON.stringify(manifest, null, 2)}\n`);
     await rm(currentPath);
 
-    const layout = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
-    expect(layout.machineMoves.length).toBeGreaterThan(0);
-    await applyRepositoryLayoutMigrationPlan({
-      plan: layout,
-      approvals: [],
-      now: new Date(),
-      recordApplied: () => undefined,
-    });
     const refresh = await createKnowledgeMigrationPlan({ repositoryRoot: root });
 
     expect(refresh.status).toBe("ready");
@@ -436,7 +441,7 @@ describe("repository knowledge migration", () => {
       name.startsWith("page-"),
     );
     expect(pages).toHaveLength(3);
-    expect(await readdir(resolve(root, ".lervo/generated/manifests"))).toEqual(["current.json"]);
+    expect(await readdir(resolve(root, structuralManifestPath, ".."))).toEqual(["current.json"]);
     for (const page of pages) {
       expect(
         Buffer.byteLength(await readFile(resolve(root, "docs/knowledge/decisions", page), "utf8")),
@@ -453,7 +458,7 @@ describe("repository knowledge migration", () => {
     await applyKnowledgeMigrationPlan(refresh, new Date("2026-08-23T00:01:00Z"), () => undefined);
     await expect(access(resolve(root, "docs/knowledge/decisions.md"))).rejects.toThrow();
     await expect(access(resolve(root, "docs/knowledge/decisions"))).rejects.toThrow();
-    expect(await readdir(resolve(root, ".lervo/generated/manifests"))).toEqual(["current.json"]);
+    expect(await readdir(resolve(root, structuralManifestPath, ".."))).toEqual(["current.json"]);
   }, 60_000);
 
   it("inventories logs as sensitive sources without exposing their bytes to generated publications", async () => {
@@ -523,6 +528,147 @@ describe("repository knowledge migration", () => {
     expect(refresh.operations).toContainEqual(
       expect.objectContaining({ path: "docs/knowledge/index.md", action: "conflict" }),
     );
+  });
+
+  it("rebuilds modified local structural projections without special repair authority", async () => {
+    const root = await repository();
+    await writeFile(resolve(root, "README.md"), "# Merge fixture\n\nStable source.\n");
+    await initialize(root);
+    await applyKnowledgeMigrationPlan(
+      await createKnowledgeMigrationPlan({ repositoryRoot: root }),
+      new Date("2026-08-30T00:00:00Z"),
+      () => undefined,
+    );
+    const conceptPath = (
+      await listKnowledgeArtifactPaths({
+        root,
+        directory: structuralConceptDirectory,
+        extension: "yaml",
+        maximumFiles: 20_000,
+      })
+    )[0]!;
+    const recorded = await readFile(resolve(root, conceptPath), "utf8");
+    await writeFile(resolve(root, conceptPath), `${recorded}# merge-resolved branch bytes\n`);
+
+    const refresh = await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "refresh" });
+    expect(refresh.status).toBe("ready");
+    expect(refresh.operations).toContainEqual(
+      expect.objectContaining({
+        path: conceptPath,
+        action: "update",
+      }),
+    );
+    await applyKnowledgeMigrationPlan(refresh, new Date("2026-08-30T00:01:00Z"), () => undefined);
+    expect(await readFile(resolve(root, conceptPath), "utf8")).toBe(recorded);
+    expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
+  });
+
+  it("keeps independent branch refreshes out of Git and converges after integration and a clean clone", async () => {
+    const root = await repository();
+    await writeFile(resolve(root, "README.md"), "# Branch fixture\n\nStable entrypoint.\n");
+    await writeFile(resolve(root, "left.ts"), "export const left = 1;\n");
+    await writeFile(resolve(root, "right.ts"), "export const right = 1;\n");
+    await initialize(root);
+    await applyKnowledgeMigrationPlan(
+      await createKnowledgeMigrationPlan({ repositoryRoot: root }),
+      new Date("2026-08-30T00:00:00Z"),
+      () => undefined,
+    );
+    await executeFile("git", ["init", "-b", "main"], { cwd: root });
+    await executeFile("git", ["config", "user.email", "lervo-test@example.invalid"], {
+      cwd: root,
+    });
+    await executeFile("git", ["config", "user.name", "Lervo Test"], { cwd: root });
+    await executeFile("git", ["add", "."], { cwd: root });
+    await executeFile("git", ["commit", "-m", "fixture"], { cwd: root });
+    const { stdout: trackedProjectionBytes } = await executeFile(
+      "git",
+      ["ls-files", ".lervo/state/knowledge/**", "docs/knowledge/**"],
+      { cwd: root },
+    );
+    expect(trackedProjectionBytes.trim()).toBe("");
+
+    await executeFile("git", ["checkout", "-b", "left-branch"], { cwd: root });
+    await writeFile(resolve(root, "left.ts"), "export const left = 2;\n");
+    await applyKnowledgeMigrationPlan(
+      await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "refresh" }),
+      new Date("2026-08-30T00:01:00Z"),
+      () => undefined,
+    );
+    await executeFile("git", ["add", "left.ts"], { cwd: root });
+    await executeFile("git", ["commit", "-m", "left"], { cwd: root });
+
+    await executeFile("git", ["checkout", "main"], { cwd: root });
+    await executeFile("git", ["checkout", "-b", "right-branch"], { cwd: root });
+    await writeFile(resolve(root, "right.ts"), "export const right = 2;\n");
+    await applyKnowledgeMigrationPlan(
+      await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "refresh" }),
+      new Date("2026-08-30T00:02:00Z"),
+      () => undefined,
+    );
+    await executeFile("git", ["add", "right.ts"], { cwd: root });
+    await executeFile("git", ["commit", "-m", "right"], { cwd: root });
+
+    await executeFile("git", ["checkout", "main"], { cwd: root });
+    await executeFile("git", ["merge", "--no-edit", "left-branch"], { cwd: root });
+    await executeFile("git", ["merge", "--no-edit", "right-branch"], { cwd: root });
+    await rm(resolve(root, ".lervo/state/knowledge"), { recursive: true, force: true });
+    await rm(resolve(root, "docs/knowledge"), { recursive: true, force: true });
+    const integration = await createKnowledgeMigrationPlan({
+      repositoryRoot: root,
+      mode: "refresh",
+      repairMode: "replace_unrecorded_structural_records",
+      reconciliationMode: "integration_head_incremental",
+    });
+    expect(integration.status).toBe("ready");
+    await applyKnowledgeMigrationPlan(
+      integration,
+      new Date("2026-08-30T00:03:00Z"),
+      () => undefined,
+    );
+    expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
+
+    const cloneParent = await mkdtemp(resolve(tmpdir(), "lervo-clean-clone-parent-"));
+    roots.push(cloneParent);
+    const clone = resolve(cloneParent, "clone");
+    await executeFile("git", ["clone", root, clone]);
+    await expect(access(resolve(clone, ".lervo/state/knowledge"))).rejects.toThrow();
+    await expect(access(resolve(clone, "docs/knowledge"))).rejects.toThrow();
+    const clonePlan = await createKnowledgeMigrationPlan({
+      repositoryRoot: clone,
+      mode: "refresh",
+      repairMode: "replace_unrecorded_structural_records",
+      reconciliationMode: "integration_head_incremental",
+    });
+    await applyKnowledgeMigrationPlan(clonePlan, new Date("2026-08-30T00:04:00Z"), () => undefined);
+    expect((await lintRepositoryKnowledge(clone)).valid).toBe(true);
+  }, 30_000);
+
+  it("reports bounded reuse against the previous inventory for integration heads", async () => {
+    const root = await repository();
+    await writeFile(resolve(root, "first.ts"), "export const first = 1;\n");
+    await writeFile(resolve(root, "second.ts"), "export const second = 1;\n");
+    await initialize(root);
+    await applyKnowledgeMigrationPlan(
+      await createKnowledgeMigrationPlan({ repositoryRoot: root }),
+      new Date("2026-08-30T00:00:00Z"),
+      () => undefined,
+    );
+    await writeFile(resolve(root, "first.ts"), "export const first = 2;\n");
+
+    const plan = await createKnowledgeMigrationPlan({
+      repositoryRoot: root,
+      mode: "refresh",
+      reconciliationMode: "integration_head_incremental",
+    });
+
+    expect(plan.reconciliation).toMatchObject({
+      strategy: "integration_head_incremental",
+      basisSnapshotId: expect.stringMatching(/^ksnap_/u),
+      changedSourceCount: 1,
+      removedSourceCount: 0,
+    });
+    expect(plan.reconciliation.reusedSourceCount).toBeGreaterThan(0);
   });
 
   it("never reads secret-candidate bytes into generated output", async () => {
@@ -932,7 +1078,7 @@ describe("repository knowledge migration", () => {
       }),
     ).rejects.toMatchObject({ code: "knowledge_apply_failed" });
     await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();
-    await expect(access(resolve(root, ".lervo/knowledge/bundles"))).rejects.toMatchObject({
+    await expect(access(resolve(root, structuralBundleDirectory))).rejects.toMatchObject({
       code: "ENOENT",
     });
   });
@@ -956,7 +1102,7 @@ describe("repository knowledge migration", () => {
     expect(evidence).toBeDefined();
     const conceptFiles = await listKnowledgeArtifactPaths({
       root,
-      directory: ".lervo/knowledge/concepts",
+      directory: structuralConceptDirectory,
       extension: "yaml",
       maximumFiles: 20_000,
     });

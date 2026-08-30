@@ -17,8 +17,8 @@ import {
   queryRepositoryKnowledge,
   recoverKnowledgeMaterialization,
   shardedKnowledgeArtifactPath,
+  structuralConceptDirectory,
 } from "../src/index.js";
-import { projectRepositoryPrettierRewrite } from "../src/prettier-rewriter-adapter.js";
 
 const roots: string[] = [];
 
@@ -49,7 +49,7 @@ afterEach(async () => {
 });
 
 describe("user document structure move", () => {
-  it("moves exact rewrite ownership to the destination in the same plan", async () => {
+  it("moves exact rewrite ownership without changing formatter configuration", async () => {
     const { root, sourcePath, bytes } = await repository();
     const destinationPath = "notes/current-note.md";
     const contentHash = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -78,27 +78,24 @@ describe("user document structure move", () => {
         "",
       ].join("\n"),
     );
-    const currentRewrite = await projectRepositoryPrettierRewrite({
-      repositoryRoot: root,
-      ownedPaths: [sourcePath],
-    });
-    await writeFile(resolve(root, ".prettierignore"), currentRewrite.afterContent);
-
     const plan = await createKnowledgeDocumentMovePlan({
       repositoryRoot: root,
       fromPath: sourcePath,
       toPath: destinationPath,
     });
-    const prettierOperation = plan.operations.find(
-      (item) => item.action === "update" && item.path === ".prettierignore",
+    const ownershipOperation = plan.operations.find(
+      (item) => item.action === "update" && item.path === recordPath,
     );
 
-    expect(prettierOperation).toHaveProperty("content");
-    if (prettierOperation === undefined || !("content" in prettierOperation)) {
-      throw new TypeError("The document move did not project exact rewrite ownership.");
+    expect(ownershipOperation).toHaveProperty("content");
+    if (ownershipOperation === undefined || !("content" in ownershipOperation)) {
+      throw new TypeError("The document move did not relocate exact rewrite ownership.");
     }
-    expect(prettierOperation?.content).toContain(destinationPath);
-    expect(prettierOperation?.content).not.toContain(`${sourcePath}\n`);
+    expect(ownershipOperation.content).toContain(destinationPath);
+    expect(ownershipOperation.content).not.toContain(`${sourcePath}\n`);
+    expect(plan.operations).not.toContainEqual(
+      expect.objectContaining({ path: ".prettierignore" }),
+    );
   });
 
   it("moves exact bytes while preserving concept and source-unit identity", async () => {
@@ -110,11 +107,7 @@ describe("user document structure move", () => {
       toPath: destinationPath,
     });
     const conceptId = plan.preservedConceptIds[0]!;
-    const conceptPath = shardedKnowledgeArtifactPath(
-      ".lervo/knowledge/concepts",
-      conceptId,
-      "yaml",
-    );
+    const conceptPath = shardedKnowledgeArtifactPath(structuralConceptDirectory, conceptId, "yaml");
     const conceptBefore = await readFile(resolve(root, conceptPath), "utf8");
     await applyKnowledgeDocumentMovePlan({
       plan,

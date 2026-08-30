@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 
 import {
   evaluateDocumentRewriters,
+  type DocumentRewriteCapability,
   type DocumentRewriteDryRunObservation,
   type DocumentRewriteOwnership,
   type DocumentRewriterDescriptor,
@@ -10,11 +11,11 @@ import { loadDecisionTaxonomy, loadDocumentRegistry } from "@lervo/project";
 
 import { inspectConfiguredDocumentNormalization } from "./document-normalization.js";
 import { sha256 } from "./integrity.js";
-import { projectRepositoryPrettierRewrite } from "./prettier-rewriter-adapter.js";
 
-export function contentBoundTransformDescriptor(input: {
+export function contentBoundRewriterDescriptor(input: {
   rewriterId: string;
   version: string;
+  capability: DocumentRewriteCapability;
   scopePaths: string[];
   configurationHash: string;
   lockHash: string;
@@ -22,7 +23,6 @@ export function contentBoundTransformDescriptor(input: {
 }): DocumentRewriterDescriptor {
   return {
     ...input,
-    capability: "transform",
     compatibility: {
       kind: "content_bound_dry_run",
       maximumObservations: input.maximumObservations,
@@ -30,20 +30,19 @@ export function contentBoundTransformDescriptor(input: {
   };
 }
 
+export function contentBoundTransformDescriptor(
+  input: Omit<Parameters<typeof contentBoundRewriterDescriptor>[0], "capability">,
+): DocumentRewriterDescriptor {
+  return contentBoundRewriterDescriptor({ ...input, capability: "transform" });
+}
+
 export async function inspectRepositoryDocumentRewriters(input: {
   repositoryRoot: string;
   allowTransactionPlanId?: string;
-  transformDescriptor?: DocumentRewriterDescriptor;
-  transformObservations?: readonly DocumentRewriteDryRunObservation[];
+  rewriters?: readonly DocumentRewriterDescriptor[];
+  managedRules?: Readonly<Record<string, readonly string[]>>;
+  dryRuns?: Readonly<Record<string, readonly DocumentRewriteDryRunObservation[]>>;
 }): Promise<{
-  prettierDescriptor: DocumentRewriterDescriptor;
-  prettierIgnore: {
-    beforeContent: string | null;
-    afterContent: string;
-    rules: string[];
-    userRegionHash: string;
-    approvalRequired: boolean;
-  };
   ownership: DocumentRewriteOwnership[];
   status: "compatible" | "blocked";
   blockers: ReturnType<typeof evaluateDocumentRewriters>["blockers"];
@@ -76,37 +75,15 @@ export async function inspectRepositoryDocumentRewriters(input: {
   const ownership = [...ownershipByPath.values()].sort((left, right) =>
     left.path.localeCompare(right.path),
   );
-  const ownedPaths = ownership.map((item) => item.path);
-  const prettier = await projectRepositoryPrettierRewrite({
-    repositoryRoot: root,
-    ownedPaths,
-    supplementalDocumentPaths: Object.values(registry.documents).map((record) => record.path),
-  });
-  const prettierDescriptor = prettier.descriptor;
-  const rewriters = [
-    prettierDescriptor,
-    ...(input.transformDescriptor === undefined ? [] : [input.transformDescriptor]),
-  ];
   const evaluation = evaluateDocumentRewriters({
     ownership,
-    rewriters,
-    managedRules: { prettier: prettier.rules },
-    dryRuns:
-      input.transformDescriptor === undefined
-        ? {}
-        : { [input.transformDescriptor.rewriterId]: input.transformObservations ?? [] },
+    rewriters: input.rewriters ?? [],
+    managedRules: input.managedRules ?? {},
+    dryRuns: input.dryRuns ?? {},
     contract: taxonomy.documentPolicy.rewrite,
     policyHash: sha256(JSON.stringify(taxonomy.documentPolicy)),
   });
   return {
-    prettierDescriptor,
-    prettierIgnore: {
-      beforeContent: prettier.beforeContent,
-      afterContent: prettier.afterContent,
-      rules: prettier.rules,
-      userRegionHash: prettier.userRegionHash,
-      approvalRequired: prettier.approvalRequired,
-    },
     ownership,
     ...evaluation,
   };

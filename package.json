@@ -45,6 +45,7 @@
     "pilot:linked-evidence-managed-canary-v16": "node scripts/run-linked-evidence-managed-canary-v16.mjs",
     "pilot:linked-evidence-managed-canary-v17": "node scripts/run-linked-evidence-managed-canary-v17.mjs",
     "pilot:linked-evidence-managed-canary-v18": "node scripts/run-linked-evidence-managed-canary-v18.mjs",
+    "evaluation:lexical-linked-uplift-v1": "node scripts/run-lexical-linked-uplift-v1.mjs",
     "audit:linked-evidence-provider-shadow-v9-ground-truth": "node scripts/run-linked-evidence-provider-shadow-v9-ground-truth-audit.mjs",
     "pilot:knowledge-compilation": "node scripts/run-real-knowledge-compilation-pilot.mjs",
     "service:render": "node scripts/render-runtime-service.mjs",

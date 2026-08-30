@@ -110,7 +110,12 @@ async function capture(run: (io: CliIo) => Promise<number>, cwd: string): Promis
 
 async function inspectKnowledge(root: string): Promise<KnowledgeStage> {
   const result = await capture(
-    (io) => runKnowledgeMigration({ args: ["--root", root, "--json"], io, mode: "migrate" }),
+    (io) =>
+      runKnowledgeMigration({
+        args: ["--root", root, "--integration-head", "--json"],
+        io,
+        mode: "migrate",
+      }),
     root,
   );
   if (result.value === null) {
@@ -236,7 +241,7 @@ async function applyKnowledgeStage(root: string, stage: KnowledgeStage): Promise
   const result = await capture(
     (io) =>
       runKnowledgeMigration({
-        args: ["--root", root, "--apply", stage.planId!, "--json"],
+        args: ["--root", root, "--integration-head", "--apply", stage.planId!, "--json"],
         io,
         mode: "migrate",
       }),

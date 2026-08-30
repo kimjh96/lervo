@@ -4,7 +4,7 @@
   "reviews": [
     {
       "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:fc09b2b624cdcd11645906d206b0b63f19571168cc69132d41462e0a1f28ab15",
+      "contentHash": "sha256:703380c52ac20dc0caa09fed61029f6cfd52fa0c89badd3699d99455b895f542",
       "responsibility": "Knowledge migration plan/apply orchestration",
       "rationale": "The module sequences one knowledge migration lifecycle; formatting, bootstrap application, and top-level dispatch are extracted, while the remaining effects share ordered plan, approval, rollback, and event contracts.",
       "disposition": "cohesive"
@@ -32,7 +32,7 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:e6b9dd37345e844499cf396d054315aa32983e0d9df3b8e3af320e9adc22c08e",
+      "contentHash": "sha256:4fffe1860857224a59e81b8c7d22d3890578475adde2be99041e1ce1b64a499d",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The module composes one managed provider-run boundary; provider differences remain injected dependencies and no unrelated CLI subcommand or persistence policy is owned here.",
       "disposition": "cohesive"
@@ -46,14 +46,14 @@
     },
     {
       "path": "apps/cli/src/terminal-command-runtime.ts",
-      "contentHash": "sha256:1c8d9206e72099a710bbb77f0bd5fa48d1efd8b13287f261743cbee356d1a4a9",
+      "contentHash": "sha256:51b9d459a01ed661ed317b296d4a20be5623d950978b1cff03a99638308d0c85",
       "responsibility": "Direct terminal-integration command runtime",
       "rationale": "The stable terminal command is a one-line facade; this implementation owns direct terminal hook preparation, evidence recording, execution-kind routing, declaration, coverage, and completion gating while workspace policy and terminal semantic-grounding policy remain in linked modules.",
       "disposition": "cohesive"
     },
     {
       "path": "apps/cli/src/upgrade-command.ts",
-      "contentHash": "sha256:f0cc9f9a91fd161617247da9677abb82eaf3d30f04234b2c18d072f39ff96426",
+      "contentHash": "sha256:f375c73b704aebf211f3d7d631b8c9b527733c59538970d609b4dd574bf8db6b",
       "responsibility": "Repository upgrade plan/apply command",
       "rationale": "Inspection, planning, stage application, lint, and receipt formatting all describe one bounded repository-upgrade lifecycle and share a single plan identity.",
       "disposition": "cohesive"
@@ -165,35 +165,35 @@
     },
     {
       "path": "packages/repository-knowledge/src/compiler.ts",
-      "contentHash": "sha256:e21c4cab3d63e513a8300e0d9fa0e66e4211b55e8e69facc5af179f45a02ffa4",
+      "contentHash": "sha256:39bb3e7ccde83cfe3d62c8440cea0b259a56f65e379e64d360c5eefd8a73bf94",
       "responsibility": "Deterministic structural knowledge compiler",
       "rationale": "Publication rendering, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:2187dbc993ee57474e86dd8c0bce41e15036274055fe60de57167f9057946f00",
+      "contentHash": "sha256:f701534d1e35149ee4d0c936b84dcfd69c3da10851a413115a91e34957b799bb",
       "responsibility": "Reviewed document normalization lifecycle",
       "rationale": "Profiles, envelopes, candidate validation, compiler invocation, storage, inspection, plan, and exact-approved apply all share one content-bound normalization contract.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-merge.ts",
-      "contentHash": "sha256:a1e416e3dc30751bbb6ad915e0930f367ae2eec4aeffe948446ac84f751f9cca",
+      "contentHash": "sha256:fb6f321845839f37c497337596655489ab5021654c87c0572e33e2230b93a190",
       "responsibility": "Exact-approved document merge operation",
       "rationale": "Plan serialization, safe source inspection, merge planning, lineage updates, and apply are one atomic document-merge responsibility.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-move.ts",
-      "contentHash": "sha256:b6007c309c2ffc51f440bbea460dbcbe47656c782c98874f43e622e3274e0ac3",
+      "contentHash": "sha256:05a7355349fb023c00d8bc9ab4f449f7d404ca3c638bfe83924377179df33ada",
       "responsibility": "Exact-approved document move operation",
-      "rationale": "Destination safety, plan serialization, lineage, single-output normalization-record preservation, exact rewrite-ownership projection, plan creation, and apply are one atomic document-move responsibility; normalization record and Prettier projection mechanics remain in separate bounded modules.",
+      "rationale": "Destination safety, plan serialization, lineage, single-output normalization-record preservation, plan creation, and apply are one atomic document-move responsibility; normalization record mechanics remain in a separate bounded module and formatter configuration is outside this transaction.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-split.ts",
-      "contentHash": "sha256:951416a7680cea61b3350b22757da6a8f681a251ef2912d70a39eb8ac7faa5c2",
+      "contentHash": "sha256:0f0f0f5ff41c566eb2edd380d3748622b7bc941b1f7724456637b4243b5dd8f2",
       "responsibility": "Exact-approved document split operation",
       "rationale": "Heading extraction, destination safety, plan serialization, lineage preservation, and apply are one atomic document-split responsibility.",
       "disposition": "cohesive"
@@ -207,14 +207,14 @@
     },
     {
       "path": "packages/repository-knowledge/src/instruction-bridge.ts",
-      "contentHash": "sha256:7149bbacf05be4a336cb52de846a7de516232e4b38ca8e36cf29fd636ac1c6c4",
+      "contentHash": "sha256:86b41665ddeea44a3107f640491dd247a0b81917e4bab0702c07a15c1108c5ca",
       "responsibility": "Provider instruction bridge lifecycle",
       "rationale": "Profile resolution, registry binding, structural refresh, plan creation, and exact-approved apply share one instruction-bridge lifecycle; target construction and classification are extracted.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/lint-query.ts",
-      "contentHash": "sha256:317f54c229ce976fdc5f6f8a94fbea2e9214538e94592723f12ad5951151ea3b",
+      "contentHash": "sha256:fbbd2340d1dff588720702459581cb6aeebec1fc67ced479cb830f8279d3bd11",
       "responsibility": "Repository knowledge lifecycle lint",
       "rationale": "Query behavior and safe publication access were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars.",
       "disposition": "cohesive"
@@ -242,14 +242,14 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:f0dd4e0c10a27f156449658957f55630a58dc181e25f4df312586ecef459af34",
+      "contentHash": "sha256:ef08faa3c0494915d554cba9178ef37a9991cb257b41ed271d12c75935a0dd04",
       "responsibility": "Repository document-layout migration",
-      "rationale": "Classification, link rebasing, rewrite-ownership reconciliation, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction.",
+      "rationale": "Classification, link rebasing, neutral ownership-record migration, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction; tool-specific formatter configuration is outside this boundary.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:41dbb77aefaf23377964e5b0f100ff52742321da895fc91d54c4461bfee483bc",
+      "contentHash": "sha256:ca625e85a97a05e6b8c5004d095985826a247cabefbd0c9d4210c69cbf692259",
       "responsibility": "Bounded repository knowledge scanner",
       "rationale": "Classification, safe reads, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate.",
       "disposition": "cohesive"
@@ -283,8 +283,15 @@
       "disposition": "cohesive"
     },
     {
+      "path": "packages/repository-knowledge/src/types.ts",
+      "contentHash": "sha256:17b61258bea20799f355cefbabf23abf96db620c658b226f954eefb6eef0f77b",
+      "responsibility": "Repository knowledge public contract types",
+      "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, and typed domain failures without owning their implementations.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "packages/repository-knowledge/src/workstream.ts",
-      "contentHash": "sha256:63ddd1f48bf90eb2bac8961428ee4e5f6f9fd99a074a644feed53776d0704c94",
+      "contentHash": "sha256:467b46e4676c5d2a8010544f9b7fdc8e8126114b1654fa5f1f12a2b8417a27c2",
       "responsibility": "Revisioned workstream snapshot lifecycle",
       "rationale": "Current state, continuation import, start, update, and replicated import all preserve one WorkstreamSnapshot aggregate, origin invariant, CAS binding, and durable apply protocol.",
       "disposition": "cohesive"

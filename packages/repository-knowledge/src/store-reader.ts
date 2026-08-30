@@ -5,6 +5,10 @@ import { parse } from "yaml";
 
 import { sha256 } from "./integrity.js";
 import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
+import {
+  legacyStructuralConceptDirectory,
+  structuralConceptDirectory,
+} from "./structural-projection.js";
 
 export interface StoredConcept {
   schemaVersion: 1;
@@ -52,18 +56,22 @@ export interface StoredValue<T> {
 }
 
 export async function loadStoredConcepts(root: string): Promise<Array<StoredValue<StoredConcept>>> {
-  const files = await listKnowledgeArtifactPaths({
-    root,
-    directory: ".lervo/knowledge/concepts",
-    extension: "yaml",
-    maximumFiles: 20_000,
-  });
+  const files = (
+    await Promise.all(
+      [structuralConceptDirectory, legacyStructuralConceptDirectory].map((directory) =>
+        listKnowledgeArtifactPaths({ root, directory, extension: "yaml", maximumFiles: 20_000 }),
+      ),
+    )
+  ).flat();
   const results: Array<StoredValue<StoredConcept>> = [];
-  const ids = new Set<string>();
+  const resultIndexById = new Map<string, number>();
   for (const file of files) {
     const name = file.split("/").at(-1)!;
     try {
       const value = parse(await readFile(resolve(root, file), "utf8")) as Partial<StoredConcept>;
+      const directory = file.startsWith(`${structuralConceptDirectory}/`)
+        ? structuralConceptDirectory
+        : legacyStructuralConceptDirectory;
       if (
         value.schemaVersion !== 1 ||
         typeof value.conceptId !== "string" ||
@@ -81,15 +89,21 @@ export async function loadStoredConcepts(root: string): Promise<Array<StoredValu
           value.assurance !== "human_reviewed") ||
         !Array.isArray(value.sourceUnitVersionIds) ||
         !value.sourceUnitVersionIds.every((item) => typeof item === "string") ||
-        (file.includes("/concepts/") &&
-          file.split("/").length > 4 &&
-          file !==
-            shardedKnowledgeArtifactPath(".lervo/knowledge/concepts", value.conceptId, "yaml")) ||
-        ids.has(value.conceptId)
+        ((directory === structuralConceptDirectory || file.split("/").length > 4) &&
+          file !== shardedKnowledgeArtifactPath(directory, value.conceptId, "yaml"))
       )
         throw new Error("The concept sidecar contract is invalid.");
-      ids.add(value.conceptId);
-      results.push({ file, value: value as StoredConcept });
+      const stored = { file, value: value as StoredConcept };
+      const existingIndex = resultIndexById.get(value.conceptId);
+      if (existingIndex === undefined) {
+        resultIndexById.set(value.conceptId, results.length);
+        results.push(stored);
+      } else {
+        const existing = results[existingIndex]!;
+        const existingReviewed = existing.value?.assurance === "human_reviewed";
+        const candidateReviewed = value.assurance === "human_reviewed";
+        if (candidateReviewed && !existingReviewed) results[existingIndex] = stored;
+      }
     } catch (error) {
       results.push({
         file,

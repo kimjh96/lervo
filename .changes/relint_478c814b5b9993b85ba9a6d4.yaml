@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_478c814b5b9993b85ba9a6d4"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Retire ordinary linked-context injection and keep retrieval extension behind verified search-engine adapters."

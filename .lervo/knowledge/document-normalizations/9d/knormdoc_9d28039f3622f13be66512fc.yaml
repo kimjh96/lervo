@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_844f8819c17a224f73f3eae2
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bf9bfefd39245e96f6ef033a
+outputLanguage: en
+outputs:
+  - byteCount: 4087
+    contentHash: sha256:3101f1948abc1686384e844d860ce517f63131b1aa04213b6dd686235263d2cc
+    path: docs/decisions/execution/grounding/0237-typed-semantic-grounding-and-terminal-stage-evidence.md
+    userRegionHash: sha256:3101f1948abc1686384e844d860ce517f63131b1aa04213b6dd686235263d2cc
+profile: decision_record
+recordId: knormdoc_9d28039f3622f13be66512fc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:121211d4db6e2ad86034a3a4f7f7e981ddced81e64450d46403d62214f84ca5b
+sourcePath: docs/decisions/execution/grounding/0237-typed-semantic-grounding-and-terminal-stage-evidence.md
+sourceUnitVersionIds:
+  - uv_60cafc9dff491f770d76f178
+  - uv_6298801cae2710875c98455f
+  - uv_84f690460cccdf0b32fa2bbe
+  - uv_91e136736d8a0b522c52501b
+  - uv_cc65566b6456fbc201966308

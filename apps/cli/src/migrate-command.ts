@@ -12,7 +12,7 @@ import { runKnowledgeMigration } from "./knowledge-command.js";
 import { runCapabilityCommand } from "./capability-command.js";
 
 export const migrateUsage =
-  "  lervo migrate identity [--root <path>] [--apply <plan-id>] [--json]\n  lervo migrate capabilities [--root <path>] [--apply --approval <plan-id>] [--json]\n  lervo migrate knowledge [--root <path>] [--continuation-source <relative-markdown-path>] [--provider <codex|claude>|--candidate <candidate-id>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--approve-item ...] [--json]";
+  "  lervo migrate identity [--root <path>] [--apply <plan-id>] [--json]\n  lervo migrate capabilities [--root <path>] [--apply --approval <plan-id>] [--json]\n  lervo migrate knowledge [--root <path>] [--integration-head] [--continuation-source <relative-markdown-path>] [--provider <codex|claude>|--candidate <candidate-id>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--approve-item ...] [--json]";
 
 export function formatIdentityMigrationPlan(plan: IdentityMigrationPlan): string {
   const lines = [

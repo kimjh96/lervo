@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e04eef6180bed8af2c42e54b
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_184e796d145133ace2e54849
+outputLanguage: en
+outputs:
+  - byteCount: 2441
+    contentHash: sha256:51bcb05da9b301374014ea7da02488a869ecbdfd88347199867e28419d568a22
+    path: docs/instructions/evidence-bound-repository-changes.md
+    userRegionHash: sha256:51bcb05da9b301374014ea7da02488a869ecbdfd88347199867e28419d568a22
+profile: instruction_document
+recordId: knormdoc_b52c33c5519a5fcb50a5a3f6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:55974127b0b9ff4411888fe35aedc2082a583c4c6184ebce2de3392e13380d84
+sourcePath: docs/instructions/evidence-bound-repository-changes.md
+sourceUnitVersionIds:
+  - uv_4538dad42eab02fea9550f1a
+  - uv_5c18a26b0bd850b27d3b52c6

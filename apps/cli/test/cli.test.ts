@@ -12,6 +12,7 @@ import {
   listKnowledgeArtifactPaths,
   shardedKnowledgeArtifactPath,
   storeKnowledgeCompilationCandidate,
+  structuralConceptDirectory,
 } from "@lervo/repository-knowledge";
 
 import { runCli } from "../src/main.js";
@@ -880,7 +881,7 @@ console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), 
       resolve(
         root,
         shardedKnowledgeArtifactPath(
-          ".lervo/knowledge/concepts",
+          structuralConceptDirectory,
           plan.deprecatedConceptIds[0]!,
           "yaml",
         ),

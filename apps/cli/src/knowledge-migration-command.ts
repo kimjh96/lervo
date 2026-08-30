@@ -20,6 +20,8 @@ import {
   RepositoryKnowledgeError,
   serializableRepositoryLayoutMigrationPlan,
   serializableTerminalIntegrationPlan,
+  structuralBundleIdFromPath,
+  structuralConceptIdFromPath,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
@@ -35,6 +37,11 @@ import {
   parseLayoutApprovals,
   printableKnowledgeMigrationPlan,
 } from "./knowledge-migration-format.js";
+import {
+  repositoryLayoutKnowledgeLintCodes,
+  structuralKnowledgeLintCodes,
+  validateKnowledgeStage,
+} from "./knowledge-stage-lint.js";
 
 function latestTerminalIntegrationApplicationEventId(
   storage: Awaited<ReturnType<typeof openProjectStorage>>,
@@ -69,6 +76,8 @@ export async function runKnowledgeMigration(input: {
     "timeout-ms"?: string;
     json?: boolean;
     help?: boolean;
+    rebuild?: boolean;
+    "integration-head"?: boolean;
   };
   try {
     values = parseArgs({
@@ -87,6 +96,8 @@ export async function runKnowledgeMigration(input: {
         "timeout-ms": { type: "string" },
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
+        rebuild: { type: "boolean" },
+        "integration-head": { type: "boolean" },
       },
     }).values;
   } catch (error) {
@@ -101,6 +112,8 @@ export async function runKnowledgeMigration(input: {
   }
   try {
     const repositoryRoot = resolve(input.io.cwd, values.root ?? ".");
+    if (values.rebuild === true && input.mode !== "refresh")
+      throw new Error("--rebuild is supported only by lervo knowledge refresh.");
     const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
     if (input.mode === "migrate") {
       const projectStorage = await openProjectStorage(repositoryRoot);
@@ -277,6 +290,9 @@ export async function runKnowledgeMigration(input: {
       if (values.apply !== layout.planId)
         throw new Error("The requested plan ID does not match the current repository layout plan.");
       const approvals = parseLayoutApprovals(values["approve-item"]);
+      const baselineValidation = await lintRepositoryKnowledge(layout.repositoryRoot, {
+        supplementalSources,
+      });
       const storage = await openProjectStorage(layout.repositoryRoot);
       let receipt;
       try {
@@ -287,19 +303,16 @@ export async function runKnowledgeMigration(input: {
           now: new Date(),
           supplementalSources,
           recordApplied: async (applied) => {
-            const validation = await lintRepositoryKnowledge(layout.repositoryRoot, {
+            const observedValidation = await lintRepositoryKnowledge(layout.repositoryRoot, {
               allowTransactionPlanId: layout.planId,
               supplementalSources,
             });
-            if (!validation.valid) {
-              const issueCodes = [...new Set(validation.issues.map((issue) => issue.code))]
-                .sort()
-                .join(",");
-              throw new RepositoryKnowledgeError(
-                "knowledge_apply_failed",
-                `Deterministic lint failed after repository layout migration: ${issueCodes}`,
-              );
-            }
+            const validation = validateKnowledgeStage({
+              stage: "repository layout migration",
+              before: baselineValidation,
+              after: observedValidation,
+              ownedErrorCodes: repositoryLayoutKnowledgeLintCodes,
+            });
             const validationHash = sha256(canonicalJson(validation));
             await storage.artifacts.put(canonicalJson(validation));
             const conceptChanges = layout.operations
@@ -381,41 +394,12 @@ export async function runKnowledgeMigration(input: {
       );
       return 0;
     }
-    let hasClaudeEntrypoint = false;
-    try {
-      hasClaudeEntrypoint = (await lstat(resolve(repositoryRoot, "CLAUDE.md"))).isFile();
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    }
-    if (input.mode === "migrate" && hasClaudeEntrypoint) {
-      const bridge = await createKnowledgeInstructionBridgePlan({
-        repositoryRoot,
-        provider: "claude",
-        supplementalSources,
-      });
-      if (bridge.status !== "current") {
-        if ((values["approve-item"]?.length ?? 0) > 1)
-          throw new Error("The Claude instruction bridge accepts one exact --approve-item value.");
-        return runKnowledgeInstruction(
-          [
-            "bridge",
-            "--provider",
-            "claude",
-            "--root",
-            repositoryRoot,
-            ...(values.apply === undefined ? [] : ["--apply", values.apply]),
-            ...(values["approve-item"]?.[0] === undefined
-              ? []
-              : ["--approve-item", values["approve-item"][0]]),
-            ...(values.json ? ["--json"] : []),
-          ],
-          input.io,
-        );
-      }
-    }
     const plan = await createKnowledgeMigrationPlan({
       repositoryRoot,
       mode: input.mode,
+      repairMode: values.rebuild === true ? "replace_unrecorded_structural_records" : "none",
+      reconciliationMode:
+        values["integration-head"] === true ? "integration_head_incremental" : "full",
       supplementalSources,
     });
     const structuralCurrent = plan.operations.every(
@@ -629,6 +613,9 @@ export async function runKnowledgeMigration(input: {
       );
       return 1;
     }
+    const baselineValidation = await lintRepositoryKnowledge(plan.repositoryRoot, {
+      supplementalSources,
+    });
     const storage = await openProjectStorage(plan.repositoryRoot);
     let receipt;
     try {
@@ -637,27 +624,27 @@ export async function runKnowledgeMigration(input: {
         plan,
         new Date(),
         async (applied) => {
-          const validation = await lintRepositoryKnowledge(plan.repositoryRoot, {
+          const observedValidation = await lintRepositoryKnowledge(plan.repositoryRoot, {
             supplementalSources,
           });
-          if (!validation.valid)
-            throw new Error("Deterministic lint failed after materialization.");
+          const validation = validateKnowledgeStage({
+            stage: "structural materialization",
+            before: baselineValidation,
+            after: observedValidation,
+            ownedErrorCodes: structuralKnowledgeLintCodes,
+          });
           const validationHash = sha256(canonicalJson(validation));
           await storage.artifacts.put(canonicalJson(validation));
           const conceptChanges = plan.operations
             .map((operation) => ({
               operation,
-              match: /^\.lervo\/knowledge\/concepts\/(concept_[a-f0-9]{24})\.yaml$/.exec(
-                operation.path,
-              ),
+              conceptId: structuralConceptIdFromPath(operation.path),
             }))
             .filter(
-              (
-                item,
-              ): item is { operation: (typeof plan.operations)[number]; match: RegExpExecArray } =>
-                item.match !== null,
+              (item): item is { operation: (typeof plan.operations)[number]; conceptId: string } =>
+                item.conceptId !== null,
             )
-            .map((item) => ({ conceptId: item.match[1] as string, action: item.operation.action }));
+            .map((item) => ({ conceptId: item.conceptId, action: item.operation.action }));
           const createdConceptIds = conceptChanges
             .filter((item) => item.action === "create")
             .map((item) => item.conceptId);
@@ -679,11 +666,8 @@ export async function runKnowledgeMigration(input: {
                 )
               : null;
           const bundleIds = plan.operations
-            .map(
-              (item) =>
-                /^\.lervo\/knowledge\/bundles\/(bundle_[a-f0-9]{24})\.yaml$/.exec(item.path)?.[1],
-            )
-            .filter((item): item is string => item !== undefined)
+            .map((item) => structuralBundleIdFromPath(item.path))
+            .filter((item): item is string => item !== null)
             .slice(0, 256);
           storage.events.append({
             eventId: `evt_${eventIdentity}`,

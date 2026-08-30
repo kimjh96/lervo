@@ -6,13 +6,16 @@ import {
   canonicalJson,
   createKnowledgeInstructionBridgePlan,
   lintRepositoryKnowledge,
-  RepositoryKnowledgeError,
   serializableKnowledgeInstructionBridgePlan,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import type { CliIo } from "./types.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
+import {
+  instructionBridgeKnowledgeLintCodes,
+  validateKnowledgeStage,
+} from "./knowledge-stage-lint.js";
 
 export async function runKnowledgeInstruction(args: string[], io: CliIo): Promise<number> {
   try {
@@ -64,6 +67,9 @@ export async function runKnowledgeInstruction(args: string[], io: CliIo): Promis
       throw new Error("--approve-item must use <operation-id>=<sha256-approval-hash>.");
     if (plan.status === "ready" && parsed.values["approve-item"] !== undefined)
       throw new Error("Do not use --approve-item for a ready plan with no user-target change.");
+    const baselineValidation = await lintRepositoryKnowledge(repositoryRoot, {
+      supplementalSources,
+    });
     const storage = await openProjectStorage(repositoryRoot);
     try {
       if (
@@ -85,15 +91,16 @@ export async function runKnowledgeInstruction(args: string[], io: CliIo): Promis
         now: new Date(),
         supplementalSources,
         recordApplied: async (applied) => {
-          const validation = await lintRepositoryKnowledge(repositoryRoot, {
+          const observedValidation = await lintRepositoryKnowledge(repositoryRoot, {
             allowTransactionPlanId: plan.planId,
             supplementalSources,
           });
-          if (!validation.valid)
-            throw new RepositoryKnowledgeError(
-              "knowledge_apply_failed",
-              `Deterministic lint failed after the instruction bridge: ${[...new Set(validation.issues.map((issue) => issue.code))].sort().join(",")}`,
-            );
+          const validation = validateKnowledgeStage({
+            stage: "the instruction bridge",
+            before: baselineValidation,
+            after: observedValidation,
+            ownedErrorCodes: instructionBridgeKnowledgeLintCodes,
+          });
           const validationArtifact = await storage.artifacts.put(canonicalJson(validation));
           storage.events.append({
             eventId: `evt_${identity}`,

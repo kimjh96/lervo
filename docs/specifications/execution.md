@@ -26,9 +26,9 @@ Preparation creates no managed run and proves no acceptance, understanding, or u
 
 A current workstream must match its latest `workstream.snapshot.recorded` event and CAS artifact. Managed runs select it through required rule `repository.workstream` and load exact bytes before E3. Direct hooks prepend at most 8 KiB and record only ID, revision, snapshot hash, delivered bytes, and full or prefix scope. Absence is valid only for an unchanged turn before the first checkpoint; invalid state fails immediately. After repository bytes change, direct completion fails until a verified first revision exists or the current revision exceeds the prompt-time revision. Bounded pending decisions and approvals are unresolved current state; resolved history belongs in canonical documents.
 
-Managed sessions suppress native project hooks. Graph-selected registered documents use bounded post-search projections and ordinary E1–E3 evidence (ADR-0216, ADR-0217).
+Managed sessions suppress native project hooks. Graph-selected registered documents use bounded post-search projections and ordinary E1–E3 evidence (ADR-0216, ADR-0217). Ordinary runs do not select linked-only sources after search.
 
-The [managed linked-evidence specification](execution/managed-linked-evidence-canary.md) defines the default deterministic key-free path, separate exact canary authorization, E1–E4 separation, bounded records, and activation evidence.
+The [managed linked-evidence specification](execution/managed-linked-evidence-canary.md) preserves the default-off exact canary, E1–E4 separation, bounded records, historical activation evidence, and later production retirement.
 
 ## 3. Context evidence
 
@@ -40,13 +40,13 @@ The [managed linked-evidence specification](execution/managed-linked-evidence-ca
 | E3 | Adapter acknowledged the exact delivered envelope. |
 | E4 | Validated provider result explicitly cited the exact injected version. |
 
-E3 proves controlled injection, not understanding or use. Every envelope and receipt document has one provider-neutral `documentRole`: `task_evidence` or `governance_context`, plus required `referenceEligible` state. Instructions, workstreams, writing policies, and protocols are governance; substantive task sources are task evidence. Governance wins when one exact document has both roles and is never reference eligible. Direct task selection is eligible; task evidence selected only as managed linked support is not. Direct provenance wins when both occur. A missing, unknown, changed, or role-inconsistent value fails the delivery contract before E3 evidence is accepted.
+Each envelope and receipt has one provider-neutral `documentRole`: `task_evidence` or `governance_context`, plus required `referenceEligible` state. Instructions, workstreams, writing policies, and protocols are governance. Substantive task sources are task evidence. Governance wins when an exact document has both roles and is never reference eligible. Direct task selection is eligible. In the default-off exact canary, task evidence selected only as managed linked support is not; direct provenance wins when both occur. Missing, unknown, changed, or role-inconsistent values fail delivery before E3 is accepted.
 
-E4 requires a structured result matching E3 coordinates, document version, role, and eligibility. Only eligible task evidence receives the exact standalone `lervo-e4:<documentId>:<contentHash>` token; supporting task context and governance context receive null. The runtime does not rewrite output or compare it with hidden evaluation identifiers. E4 proves bounded output citation, not attention, reliance, understanding, correctness, or internal use. The linked-evidence specification records the rejected prompt-only attempt, typed boundary, claim eligibility, and activation evidence.
+E3 proves controlled injection, not understanding or use. E4 requires a structured result matching E3 coordinates, document version, role, and eligibility. Only eligible task evidence receives the exact standalone `lervo-e4:<documentId>:<contentHash>` token; supporting task context and governance context receive null. The runtime neither rewrites output nor compares it with hidden evaluation identifiers. E4 proves bounded output citation, not attention, reliance, understanding, correctness, or internal use. The linked-evidence specification records the rejected prompt-only attempt, typed boundary, claim eligibility, activation evidence, paired control, and retirement.
 
 `@lervo/context-coverage` rebuilds one report from canonical events, retaining every E1 reason, E2 version and revision, enhanced E3 coordinate, valid E4, highest evidence, and missing stage. Delivery, reference, relevance, and selection ratios remain separate. Unknown denominators are `null` with a reason; no combined score exists.
 
-The managed-run search summary may project only the count and sorted unique document IDs from canonical E4 evidence as `referencedDocuments` and `referencedDocumentIds`. This bounded derived view excludes bodies, paths, prompts, provider output, credentials, and expected evaluation identifiers; evidence events remain canonical.
+The managed-run search summary may project only the count and sorted unique document IDs from canonical E4 evidence as `referencedDocuments` and `referencedDocumentIds`. This derived view excludes bodies, paths, prompts, provider output, credentials, and expected evaluation identifiers; evidence events remain canonical.
 
 Unmanaged observations use `prepared -> referenced`, never E1–E4. Preparation proves hook-side construction; reference proves only a matching marker in bounded Stop output. Lervo neither rewrites nor stores that output.
 
@@ -56,7 +56,7 @@ Every role declares `allow`, `deny`, or `require_approval` for filesystem reads 
 
 [Capability packages](execution/capabilities.md) cover skills, MCP servers, plugins, and bundles. Verified metadata supports deterministic natural-language selection. Recommendation, selection, load, activation, and invocation remain separate evidence; none proves semantic model use.
 
-Built-in `1.0.0` templates are developer, researcher, marketer, designer, writer, and ideation. Lazy tracked repository roles under `.lervo/roles/` may be complete, specialize one exact version, or compose multiple exact versions. Final profiles and evaluation bundles must validate; ancestry must be acyclic and at most eight levels deep. Capabilities and verification-failure policy merge to the most restrictive result. The resolved definition and ancestry receive a deterministic contract hash. Agent, assignment, handoff, and managed-run transitions fail before provider creation when the bound version, contract hash, profile hash, or capability hash is stale.
+Built-in `1.0.0` templates are developer, researcher, marketer, designer, writer, and ideation. Lazy tracked repository roles under `.lervo/roles/` may be complete, specialize one exact version, or compose multiple exact versions. Final profiles and evaluation bundles must validate; ancestry must be acyclic and no more than eight levels deep. Capabilities and verification-failure policy merge to the most restrictive result. The resolved definition and ancestry receive a deterministic contract hash. Agent, assignment, handoff, and managed-run transitions fail before provider creation when the bound version, contract hash, profile hash, or capability hash is stale.
 
 Write approval binds project, run, session, provider, role, risk, request digest, repository snapshot, expected paths, verification suite, policy snapshot, validity interval, and revocation. Revalidate it immediately before mutation.
 
@@ -74,7 +74,7 @@ Snapshots cover repository-authored files, including source and tracked generate
 
 User content changes only through explicit content-bound operations. Managed blocks preserve outside bytes. Generated files may change or be deleted only when recorded generation proves current-hash ownership.
 
-Repository assignments bind role ID, role version, role contract hash, dependencies, acceptance, verification, approvals, workstream, and expected paths. A short atomic lease permits exactly one current holder for overlapping path scopes; disjoint scopes may execute concurrently. Root agents and subagents use the same lease and handoff contract. Managed execution revalidates the exact active lease, provider, role contract, path, and suite set before provider creation. Expiry permits generation-incremented recovery and never proves the former holder stopped external work.
+Repository assignments bind role ID, role version, role contract hash, dependencies, acceptance, verification, approvals, workstream, and expected paths. A short atomic lease permits exactly one current holder for overlapping path scopes; disjoint scopes may run concurrently. Root agents and subagents use the same lease and handoff contract. Managed execution revalidates the exact active lease, provider, role contract, path, and suite set before provider creation. Expiry permits generation-incremented recovery and never proves the former holder stopped external work.
 
 ## 7. Verification
 
@@ -100,7 +100,7 @@ Durable local data and rebuildable projections follow the [state lifecycle speci
 
 ## 10. Events and privacy
 
-The [execution events and privacy specification](execution/events-and-privacy.md) defines allowlisted payloads, workforce events, knowledge and terminal integration events, additive terminal observation compatibility, workstream snapshots, activation receipts, coverage, privacy exclusions, and failure meaning. Events remain canonical hash-chained evidence; absent telemetry never becomes inferred success or provider-use claims.
+The [execution events and privacy specification](execution/events-and-privacy.md) defines allowlisted payloads, workforce events, knowledge and terminal integration events, additive terminal-observation compatibility, workstream snapshots, activation receipts, coverage, privacy exclusions, and failure meaning. Events remain canonical hash-chained evidence; absent telemetry never becomes inferred success or provider-use claims.
 
 Managed linked-evidence canary record bounds and privacy exclusions are defined in its linked specification.
 

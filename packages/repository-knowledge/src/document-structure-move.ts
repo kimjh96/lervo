@@ -13,7 +13,6 @@ import {
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
-import { inspectRepositoryDocumentRewriters } from "./document-rewriter-adapters.js";
 import {
   createKnowledgeMigrationPlanForScan,
   recordedGeneratedKnowledgePaths,
@@ -26,7 +25,7 @@ import {
 } from "./scanner.js";
 import { createDocumentMoveLineage, normalizeKnowledgeDocumentPath } from "./source-lineage.js";
 import { loadStoredConcepts } from "./store-reader.js";
-import { projectRepositoryPrettierRewrite } from "./prettier-rewriter-adapter.js";
+import { structuralConceptDirectory } from "./structural-projection.js";
 import {
   RepositoryKnowledgeError,
   type KnowledgeFileOperation,
@@ -296,37 +295,12 @@ export async function createKnowledgeDocumentMovePlan(input: {
     expectedCurrentHash: source.contentHash,
   };
   const normalizationRecords = await normalizationRecordMoveOperations(root, fromPath, toPath);
-  const rewriters = await inspectRepositoryDocumentRewriters({ repositoryRoot: root });
-  const prettier = await projectRepositoryPrettierRewrite({
-    repositoryRoot: root,
-    ownedPaths: rewriters.ownership.map((item) => (item.path === fromPath ? toPath : item.path)),
-    supplementalDocumentPaths: virtualScan.sources.flatMap((item) =>
-      item.status === "included" && /\.mdx?$/iu.test(item.path) ? [item.path] : [],
-    ),
-  });
-  const prettierOperations: DurableKnowledgeUserFileOperation[] =
-    (prettier.beforeContent ?? "") === prettier.afterContent
-      ? []
-      : [
-          {
-            path: ".prettierignore",
-            action: prettier.beforeContent === null ? "create" : "update",
-            ownership: "user",
-            mediaType: "text/plain",
-            content: prettier.afterContent,
-            ...(prettier.beforeContent === null
-              ? {}
-              : { expectedCurrentHash: sha256(prettier.beforeContent) }),
-            desiredHash: sha256(prettier.afterContent),
-          },
-        ];
   const operations: Array<
     KnowledgeFileOperation | DurableKnowledgeMoveOperation | DurableKnowledgeUserFileOperation
   > = [
     ...structural.operations,
     lineageOperation,
     ...normalizationRecords.operations,
-    ...prettierOperations,
     moveOperation,
   ];
   const registryMaterials = await Promise.all(
@@ -342,7 +316,8 @@ export async function createKnowledgeDocumentMovePlan(input: {
   );
   const conceptOperations = structural.operations.filter(
     (operation) =>
-      operation.path.startsWith(".lervo/knowledge/concepts/") && operation.action !== "conflict",
+      operation.path.startsWith(`${structuralConceptDirectory}/`) &&
+      operation.action !== "conflict",
   );
   for (const item of conceptOperations) {
     afterConceptHashes.set(item.path, item.desiredHash);

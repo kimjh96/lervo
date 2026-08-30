@@ -6,7 +6,7 @@ As of: 2026-08-26
 
 ## Objective
 
-Implement [ADR-0222](../../decisions/knowledge/repository/0222-bounded-role-based-document-layout.md) so every repository document writer shares one projected capacity, scoped-role, and rewrite-owner contract without assuming a universal root layout or specific formatting product.
+Implement [ADR-0222](../../decisions/knowledge/repository/0222-bounded-role-based-document-layout.md) so every repository document writer shares one projected-capacity, scoped-role, and rewrite-owner contract without assuming a universal root layout or specific formatting product.
 
 ## Delivery order
 
@@ -20,7 +20,7 @@ Implement [ADR-0222](../../decisions/knowledge/repository/0222-bounded-role-base
 
 ## Completion criteria
 
-- Every included Markdown and MDX file contributes to finite repository and direct-directory capacity calculations independent of path naming.
+- Every included Markdown and MDX file contributes to finite repository and direct-directory capacity calculations, independent of path naming.
 - Every child directory containing included documents contributes to its parent's finite capacity.
 - Plans evaluate creates, moves, splits, deletes, and generated replacements against the projected after-state; apply and lint use the same evaluator.
 - No document-writing command can publish without a current policy evaluation.
@@ -55,10 +55,10 @@ Passing an adapter contract does not prove that a user invoked the registered to
 Completed on 2026-08-26:
 
 - The tracked document policy is schema version 2 with researched defaults of 32 direct documents, 32 document-bearing children, 4,096 repository documents, and 12 family outputs. Compatibility loading and exact v1-to-v2 migration are covered by repository-layout tests.
-- `@lervo/documents` owns the pure projected-tree evaluator, content-bound permit, rewrite descriptor evaluation, managed-ignore projection, and content-bound dry-run contract. It contains no provider, Orca, Hub, or tool-product dependency.
+- `@lervo/documents` owns the pure projected-tree evaluator, content-bound permit, rewrite descriptor evaluation, managed-ignore projection, and content-bound dry-run contract. It has no provider, Orca, Hub, or tool-product dependency.
 - Repository planning, lint, and durable apply use the common evaluator. The durable boundary rejects a Markdown or MDX mutation without a current permit and revalidates snapshot, policy, roles, operation set, counts, and expiry before mutation.
 - Scoped repository roles live in tracked policy. Exact `AGENTS.md` and `CLAUDE.md` paths live in Codex and Claude provider-surface descriptors and enter core as neutral role IDs.
-- Active normalization records are schema version 2 and declare `reviewer` plus `reviewed_exact`. The Prettier adapter projects 265 current lifecycle-owned paths into 17 exact or proven-complete-subtree rules while preserving the user region of `.prettierignore`.
-- Direct `pnpm exec prettier --check .`, the ownership-aware wrapper, and editor-compatible `.prettierignore` agree without `**/*.md`. A structurally different content-bound transform adapter passes the same common contract.
+- Active normalization records are schema version 2 and declare `reviewer` plus `reviewed_exact`. This phase originally projected lifecycle ownership into `.prettierignore`; ADR-0303 later replaced that tracked adapter projection with the neutral registry.
+- The ownership-aware wrapper and content-bound adapters protect the same bytes. Formatter, autofix, transform, and generator capabilities pass the common neutral contract without adding tool identifiers to canonical policy.
 - The external-repository fixture exercises a root overview, an MDX guide in a non-Lervo layout, both adapter forms, permit issuance, and capacity failure. Pure evaluator tests cover direct-file, child-directory, move, create, repository-total, override, role, tamper, and expiry cases; durable tests cover missing permit, interruption recovery, rollback, and event failure.
 - Lervo self-migration upgraded 262 legacy lifecycle records and refreshed all affected structural projections in one durable transaction. `lervo knowledge lint` then passed with 271 concepts and no issues.

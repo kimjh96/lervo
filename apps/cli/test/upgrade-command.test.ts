@@ -115,4 +115,62 @@ describe("lervo upgrade", () => {
     expect(await runCli(["upgrade"], io(root, [], errors))).toBe(1);
     expect(errors.join("")).toContain("Run lervo init first");
   });
+
+  it("keeps an existing ignore file user-owned and resumes upgrade after exact migration approval", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-upgrade-existing-ignore-"));
+    roots.push(root);
+    await writeFile(resolve(root, "main.ts"), "export const value = true;\n");
+    await writeFile(resolve(root, ".gitignore"), "coverage/\n");
+    expect(await runCli(["init", "--minimal", "--name", "ignore-fixture"], io(root, [], []))).toBe(
+      0,
+    );
+    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toBe("coverage/\n");
+
+    const firstOutput: string[] = [];
+    const errors: string[] = [];
+    expect(await runCli(["upgrade", "--json"], io(root, firstOutput, errors))).toBe(0);
+    const first = JSON.parse(firstOutput.join("")) as {
+      status: string;
+      stages: { knowledge: { disposition: string; reason: string } };
+    };
+    expect(first.status).toBe("pending_authority");
+    expect(first.stages.knowledge).toMatchObject({
+      disposition: "pending_authority",
+      reason: "review_required",
+    });
+
+    const migrationOutput: string[] = [];
+    expect(
+      await runCli(["migrate", "knowledge", "--json"], io(root, migrationOutput, errors)),
+      errors.join(""),
+    ).toBe(0);
+    const migration = JSON.parse(migrationOutput.join("")) as {
+      planId: string;
+      userUpdates: Array<{ operationId: string; approvalHash: string; path: string }>;
+    };
+    const ignoreUpdate = migration.userUpdates.find((item) => item.path === ".gitignore")!;
+    expect(ignoreUpdate).toBeDefined();
+    expect(
+      await runCli(
+        [
+          "migrate",
+          "knowledge",
+          "--apply",
+          migration.planId,
+          "--approve-item",
+          `${ignoreUpdate.operationId}=${ignoreUpdate.approvalHash}`,
+          "--json",
+        ],
+        io(root, [], errors),
+      ),
+      errors.join(""),
+    ).toBe(0);
+    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toContain("coverage/\n");
+    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toContain("docs/knowledge/\n");
+
+    const secondOutput: string[] = [];
+    expect(await runCli(["upgrade", "--json"], io(root, secondOutput, errors))).toBe(0);
+    expect(JSON.parse(secondOutput.join(""))).toMatchObject({ status: "ready" });
+    expect(errors).toEqual([]);
+  });
 });

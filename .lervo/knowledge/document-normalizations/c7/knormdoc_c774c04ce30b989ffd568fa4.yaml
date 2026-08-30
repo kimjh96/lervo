@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_108353fc01e2bc5dbcf594e2
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_66c8bb2a6265c2a20f895cf0
+outputLanguage: en
+outputs:
+  - byteCount: 23523
+    contentHash: sha256:384d7807236b073b6095187c705c22d570f3d29166476e6e6d915c742e2f052a
+    path: docs/roadmap/natural-language-grounding-quality/evaluation-history/provider-shadow-delivery.md
+    userRegionHash: sha256:384d7807236b073b6095187c705c22d570f3d29166476e6e6d915c742e2f052a
+profile: roadmap_document
+recordId: knormdoc_c774c04ce30b989ffd568fa4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bdae68c9920a5f818862dc7b6323bbe51b5059c66f89c495a038265678c1cb75
+sourcePath: docs/roadmap/natural-language-grounding-quality/evaluation-history/provider-shadow-delivery.md
+sourceUnitVersionIds:
+  - uv_7a00951932ddc50c249362bd
+  - uv_8be62811bec122efc8f3dc9a
+  - uv_9f739aeaa27b379912fe514f
+  - uv_b9c853e2d8fa20ccfb5dc408
+  - uv_ec09408964d84b7819ac2d2c

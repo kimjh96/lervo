@@ -23,7 +23,7 @@ afterEach(async () => {
 });
 
 describe("managed repository knowledge context", () => {
-  it("creates a separate observed attempt and provider-context candidates with bounded metadata", async () => {
+  it("creates provider-context candidates without an ordinary linked shadow projection", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-managed-knowledge-"));
     roots.push(root);
     await writeFile(
@@ -49,13 +49,8 @@ describe("managed repository knowledge context", () => {
       documentRegistry,
       expectedPaths: ["src/result.ts"],
     } as const;
-    const withoutShadow = await prepareManagedSearchContext(searchInput);
-    const prepared = await prepareManagedSearchContext({
-      ...searchInput,
-      runId: "run_managedknowledge",
-    });
+    const prepared = await prepareManagedSearchContext(searchInput);
 
-    expect(prepared).toEqual(withoutShadow);
     expect(prepared.attempts).toHaveLength(2);
     expect(prepared.knowledgeAttempt.attemptId).not.toBe(prepared.attempt.attemptId);
     expect(prepared.recommendationBatches).toHaveLength(2);
@@ -75,13 +70,7 @@ describe("managed repository knowledge context", () => {
     );
     expect(prepared.recommendationBatches[1]!.recommendations.length).toBeGreaterThan(0);
     const shadow = await LocalLinkedEvidenceShadowStore.open(root);
-    expect(await shadow.list()).toEqual([
-      expect.objectContaining({
-        projectId: "prj_managedknowledge",
-        runId: "run_managedknowledge",
-        status: "observed",
-      }),
-    ]);
+    expect(await shadow.list()).toEqual([]);
     expect(
       prepared.additionalCandidates.find((candidate) => candidate.path === "AGENTS.md"),
     ).toMatchObject({ documentId: documentIdForPath("AGENTS.md"), source: "knowledge" });

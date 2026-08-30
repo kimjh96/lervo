@@ -6,7 +6,7 @@ import { parseArgs } from "node:util";
 
 import { createTerminalCoverageReport } from "@lervo/diagnostics";
 import type { EventDraft } from "@lervo/event-contract";
-import { captureRepositorySnapshot } from "@lervo/orchestrator";
+import { captureRepositorySnapshot, type RepositorySnapshot } from "@lervo/orchestrator";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import {
   validateSchema,
@@ -15,6 +15,7 @@ import {
 } from "@lervo/schemas";
 import {
   canonicalJson,
+  assessCanonicalization,
   createKnowledgeInstructionBootstrapPlan,
   createKnowledgeInstructionBridgePlan,
   createKnowledgeMigrationPlan,
@@ -23,6 +24,7 @@ import {
   inspectTerminalIntegration,
   inspectConfiguredDocumentNormalization,
   lintRepositoryKnowledge,
+  RepositoryKnowledgeError,
   sha256,
   type KnowledgeQueryHit,
   type TerminalIntegrationProvider,
@@ -33,6 +35,10 @@ import { assembleTerminalHookContext } from "./terminal-context-assembly.js";
 import { loadSelectedTerminalDocument } from "./terminal-context-loading.js";
 import { selectTerminalContextCandidates } from "./terminal-context-selection.js";
 import { resolveTerminalRequestGrounding } from "./terminal-request-grounding.js";
+import {
+  readPreparedRepositorySnapshot,
+  writePreparedRepositorySnapshot,
+} from "./terminal-prepared-snapshot.js";
 import type { CliIo, CliServices } from "./types.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 import {
@@ -83,7 +89,7 @@ interface LifecycleInspection {
   schemaVersion: 1;
   status: "current" | "action_required";
   repositoryRoot: string;
-  issues: Array<{ code: string; command: string }>;
+  issues: Array<{ code: string; command: string; detail?: string }>;
   activation: TerminalActivationReceipt[];
   runtimeActivation: {
     status: "observed" | "partial" | "not_observed";
@@ -140,6 +146,25 @@ interface TerminalActivationReceipt {
   referenceCount?: number;
 }
 
+function repositoryLifecycleFailure(input: {
+  code: string;
+  command: string;
+  error: unknown;
+}): LifecycleInspection["issues"][number] {
+  return {
+    code: input.code,
+    command: input.command,
+    ...(input.error instanceof RepositoryKnowledgeError
+      ? {
+          detail:
+            input.error.publicDiagnostic === undefined
+              ? input.error.code
+              : `${input.error.publicDiagnostic.code}: ${input.error.publicDiagnostic.message}`,
+        }
+      : {}),
+  };
+}
+
 async function repositoryRootFrom(start: string): Promise<string> {
   let current = resolve(start);
   while (true) {
@@ -183,6 +208,7 @@ async function promptContext(
   recommendationCount: number;
   documents: PreparedDocument[];
   repositoryRevision: string;
+  repositoryFiles: RepositorySnapshot["files"];
   workstream: {
     workstreamId: string;
     revision: number;
@@ -266,7 +292,7 @@ async function promptContext(
           "Change only assignment-scoped paths. Worker Stop rechecks the ownership marker, writer session, assignment lease, exact workspace revision, and path-scoped diff, then records a workspace checkpoint. It does not advance the repository-wide workstream or repair knowledge movement owned by another workspace.",
           "Commit only when the task or sealing flow requires it; Lervo never invents or silently commits unfinished bytes.",
         ].join("\n\n")
-      : `For a repository-changing turn, finish repository verification and knowledge refresh first, then declare the bounded disposition with \`lervo terminal declare --provider ${provider} --observation ${observationId} --stdin\`. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. ${deliberationInstruction} This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; it is not proof of internal reasoning. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
+      : `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${provider} --observation ${observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. ${deliberationInstruction} This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; it is not proof of internal reasoning. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
   const workstreamInstruction =
     workspaceBinding?.executionKind === "worker"
       ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping."
@@ -333,6 +359,7 @@ async function promptContext(
     recommendationCount: selection.candidates.length,
     documents,
     repositoryRevision: repositorySnapshot.revision,
+    repositoryFiles: repositorySnapshot.files,
     workstream,
     grounding: {
       requestDigest: sha256(prompt),
@@ -684,63 +711,125 @@ async function inspectLifecycle(
           : "terminal_integration_stale",
       command: "lervo migrate knowledge",
     });
-  const instructionBootstrap = await createKnowledgeInstructionBootstrapPlan({
-    repositoryRoot: root,
-    supplementalSources,
-  });
-  if (instructionBootstrap.status !== "not_applicable")
+  let instructionBootstrapStatus:
+    Awaited<ReturnType<typeof createKnowledgeInstructionBootstrapPlan>>["status"] | null = null;
+  try {
+    const instructionBootstrap = await createKnowledgeInstructionBootstrapPlan({
+      repositoryRoot: root,
+      supplementalSources,
+    });
+    instructionBootstrapStatus = instructionBootstrap.status;
+  } catch (error) {
+    issues.push(
+      repositoryLifecycleFailure({
+        code: "instruction_canonical_bootstrap_failed",
+        command: "lervo migrate knowledge",
+        error,
+      }),
+    );
+  }
+  if (instructionBootstrapStatus !== null && instructionBootstrapStatus !== "not_applicable")
     issues.push({
-      code: `instruction_canonical_bootstrap_${instructionBootstrap.status}`,
+      code: `instruction_canonical_bootstrap_${instructionBootstrapStatus}`,
       command: "lervo migrate knowledge",
     });
-  const layout =
-    instructionBootstrap.status === "not_applicable"
-      ? await createRepositoryLayoutMigrationPlan({
-          repositoryRoot: root,
-          supplementalSources,
-        })
-      : null;
+  let layout: Awaited<ReturnType<typeof createRepositoryLayoutMigrationPlan>> | null = null;
+  if (instructionBootstrapStatus === "not_applicable") {
+    try {
+      layout = await createRepositoryLayoutMigrationPlan({
+        repositoryRoot: root,
+        supplementalSources,
+      });
+    } catch (error) {
+      issues.push(
+        repositoryLifecycleFailure({
+          code: "repository_layout_inspection_failed",
+          command: "lervo migrate knowledge",
+          error,
+        }),
+      );
+    }
+  }
   if (layout !== null && layout.status !== "current")
     issues.push({ code: `repository_layout_${layout.status}`, command: "lervo migrate knowledge" });
+  let structuralCurrent = false;
   if (layout?.status === "current") {
-    const bridge = await createKnowledgeInstructionBridgePlan({
+    try {
+      const structural = await createKnowledgeMigrationPlan({
+        repositoryRoot: root,
+        mode: "migrate",
+        supplementalSources,
+      });
+      structuralCurrent = structural.operations.every((item) => item.action === "unchanged");
+      if (!structuralCurrent)
+        issues.push({
+          code: `repository_knowledge_${structural.status}`,
+          command: "lervo migrate knowledge",
+        });
+    } catch (error) {
+      issues.push(
+        repositoryLifecycleFailure({
+          code: "repository_knowledge_inspection_failed",
+          command: "lervo migrate knowledge",
+          error,
+        }),
+      );
+    }
+  }
+  if (structuralCurrent) {
+    try {
+      const bridge = await createKnowledgeInstructionBridgePlan({
+        repositoryRoot: root,
+        provider: "claude",
+        supplementalSources,
+      });
+      if (bridge.status !== "current")
+        issues.push({
+          code: `claude_instruction_bridge_${bridge.status}`,
+          command: "lervo migrate knowledge",
+        });
+    } catch (error) {
+      issues.push(
+        repositoryLifecycleFailure({
+          code: "claude_instruction_bridge_inspection_failed",
+          command: "lervo migrate knowledge",
+          error,
+        }),
+      );
+    }
+  }
+  try {
+    const lint = await lintRepositoryKnowledge(root, { supplementalSources });
+    if (!lint.valid)
+      issues.push({ code: "repository_knowledge_lint_failed", command: "lervo knowledge lint" });
+  } catch (error) {
+    issues.push(
+      repositoryLifecycleFailure({
+        code: "repository_knowledge_lint_inspection_failed",
+        command: "lervo knowledge lint",
+        error,
+      }),
+    );
+  }
+  try {
+    const normalization = await inspectConfiguredDocumentNormalization({
       repositoryRoot: root,
-      provider: "claude",
       supplementalSources,
     });
-    if (bridge.status !== "current")
+    if (normalization.pendingDocuments.length > 0)
       issues.push({
-        code: `claude_instruction_bridge_${bridge.status}`,
-        command: "lervo migrate knowledge",
+        code: "document_normalization_pending",
+        command: "lervo migrate knowledge --provider codex",
       });
+  } catch (error) {
+    issues.push(
+      repositoryLifecycleFailure({
+        code: "document_normalization_inspection_failed",
+        command: "lervo migrate knowledge --provider codex",
+        error,
+      }),
+    );
   }
-  if (
-    layout?.status === "current" &&
-    issues.every((item) => !item.code.startsWith("claude_instruction_bridge_"))
-  ) {
-    const structural = await createKnowledgeMigrationPlan({
-      repositoryRoot: root,
-      mode: "migrate",
-      supplementalSources,
-    });
-    if (structural.operations.some((item) => item.action !== "unchanged"))
-      issues.push({
-        code: `repository_knowledge_${structural.status}`,
-        command: "lervo migrate knowledge",
-      });
-  }
-  const lint = await lintRepositoryKnowledge(root, { supplementalSources });
-  if (!lint.valid)
-    issues.push({ code: "repository_knowledge_lint_failed", command: "lervo knowledge lint" });
-  const normalization = await inspectConfiguredDocumentNormalization({
-    repositoryRoot: root,
-    supplementalSources,
-  });
-  if (normalization.pendingDocuments.length > 0)
-    issues.push({
-      code: "document_normalization_pending",
-      command: "lervo migrate knowledge --provider codex",
-    });
   const activation = await readActivationReceipts(root);
   const runtimeActivation = await inspectRuntimeActivation(root, activation);
   return {
@@ -892,6 +981,12 @@ async function recordPreparedContext(input: {
   occurredAt: string;
 }): Promise<string> {
   input.context.documents.forEach((document) => assertRepositoryRelativePath(document.path));
+  await writePreparedRepositorySnapshot(input.root, {
+    schemaVersion: 1,
+    observationId: input.observationId,
+    revision: input.context.repositoryRevision,
+    files: input.context.repositoryFiles,
+  });
   const storage = await openProjectStorage(input.root);
   try {
     const result = storage.events.append(
@@ -1288,6 +1383,22 @@ async function runDeclare(args: string[], io: CliIo): Promise<number> {
       throw new Error(
         "An unchanged turn must use read-only canonicalization and knowledge dispositions.",
       );
+    const preparedSnapshot = await readPreparedRepositorySnapshot(root, parsed.values.observation);
+    const canonicalizationAssessment =
+      repositoryChanged && preparedSnapshot !== null
+        ? await assessCanonicalization({
+            repositoryRoot: root,
+            beforeRevision: preparedSnapshot.revision,
+            afterRevision: repository.revision,
+            beforeFiles: preparedSnapshot.files,
+            afterFiles: repository.files,
+            disposition:
+              draft.canonicalizationDisposition === "not_applicable_read_only"
+                ? "canonical_sources_current"
+                : draft.canonicalizationDisposition,
+            now: new Date(),
+          })
+        : null;
     const occurredAt = new Date().toISOString();
     const payload: TerminalTurnDeclaredEventPayload = {
       declarationId: newIdentifier("tdecl"),
@@ -1328,8 +1439,8 @@ async function runDeclare(args: string[], io: CliIo): Promise<number> {
     );
     io.stdout(
       parsed.values.json
-        ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, ...payload }, null, 2)}\n`
-        : `Terminal turn disposition declared.\nobservation: ${parsed.values.observation}\nrepositoryRevision: ${repository.revision}\n`,
+        ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, canonicalizationAssessment, ...payload }, null, 2)}\n`
+        : `Terminal turn disposition declared.\nobservation: ${parsed.values.observation}\nrepositoryRevision: ${repository.revision}\ncanonicalization: ${canonicalizationAssessment?.status ?? "not_applicable"}\n`,
     );
     return 0;
   } catch (error) {
@@ -1497,7 +1608,7 @@ async function runHook(
         : "Lervo blocked terminal completion because the repository lifecycle is not current.",
       ...lifecycle.issues.map(
         (item) =>
-          `${item.code}: run ${item.command}, review the read-only plan, and apply only the exact current plan/approval.`,
+          `${item.code}: ${item.detail === undefined ? "" : `${item.detail}; `}run ${item.command}, review the read-only plan, and apply only the exact current plan/approval.`,
       ),
       worker
         ? "Recover only this assignment workspace, then try to finish again; do not advance another workspace's global lifecycle."
@@ -1588,13 +1699,19 @@ export async function runTerminalCommand(
   if (args[0] === "declare") return runDeclare(args.slice(1), io);
   if (args[0] === "coverage") return runCoverage(args.slice(1), io);
   if (args[0] === "status") {
+    let parsed;
     try {
-      const parsed = parseArgs({
+      parsed = parseArgs({
         args: args.slice(1),
         strict: true,
         allowPositionals: false,
         options: { root: { type: "string" }, json: { type: "boolean" } },
       });
+    } catch (error) {
+      io.stderr(`${error instanceof Error ? error.message : String(error)}\n${terminalUsage}\n`);
+      return 1;
+    }
+    try {
       const root = await repositoryRootFrom(resolve(io.cwd, parsed.values.root ?? "."));
       const result = await inspectLifecycle(root);
       io.stdout(
@@ -1604,7 +1721,10 @@ export async function runTerminalCommand(
               `Lervo terminal lifecycle: ${result.status}`,
               `Hook endpoint observation: ${result.runtimeActivation.status} (does not prove provider authorship)`,
               `Activation readiness: ${result.activationReadiness.status}`,
-              ...result.issues.map((item) => `  ${item.code}: ${item.command}`),
+              ...result.issues.map(
+                (item) =>
+                  `  ${item.code}: ${item.detail === undefined ? "" : `${item.detail}; `}${item.command}`,
+              ),
               ...result.activationReadiness.actions.map(
                 (item) => `  ${item.provider} [${item.code}]: ${item.instruction}`,
               ),
@@ -1613,7 +1733,15 @@ export async function runTerminalCommand(
       );
       return result.status === "current" && result.activationReadiness.status === "ready" ? 0 : 1;
     } catch (error) {
-      io.stderr(`${error instanceof Error ? error.message : String(error)}\n${terminalUsage}\n`);
+      io.stderr(
+        error instanceof RepositoryKnowledgeError
+          ? `Terminal lifecycle inspection failed: ${
+              error.publicDiagnostic === undefined
+                ? error.code
+                : `${error.publicDiagnostic.code}: ${error.publicDiagnostic.message}`
+            }\n`
+          : "Terminal lifecycle inspection failed. Run lervo migrate knowledge, then lervo knowledge lint, and retry status.\n",
+      );
       return 1;
     }
   }

@@ -18,6 +18,7 @@ function resolveManagedPath(root: string, path: string): string {
   if (fromLervoRoot === "" || (!fromLervoRoot.startsWith(`..${sep}`) && fromLervoRoot !== "..")) {
     return target;
   }
+  if (path === ".gitignore") return target;
   throw new LervoProjectError(
     "unsafe_path",
     `The path is not managed by the initialization plan: ${path}`,
@@ -71,15 +72,34 @@ async function applyFreshTree(plan: InitPlan): Promise<void> {
   await mkdir(staging);
   try {
     for (const operation of plan.operations) {
-      if (operation.action !== "create" || operation.path === lervoRelativePaths.root) continue;
+      if (
+        operation.action !== "create" ||
+        operation.path === lervoRelativePaths.root ||
+        operation.path === ".gitignore"
+      )
+        continue;
       const suffix = operation.path.slice(`${lervoRelativePaths.root}/`.length);
       const target = resolve(staging, suffix);
       if (operation.kind === "directory") await mkdir(target);
       else await writeFile(target, operation.content, { encoding: "utf8", flag: "wx" });
     }
     await rename(staging, resolveManagedPath(plan.root, lervoRelativePaths.root));
+    const rootGitignore = plan.operations.find(
+      (operation) => operation.path === ".gitignore" && operation.action === "create",
+    );
+    if (rootGitignore?.kind === "file" && rootGitignore.action === "create")
+      await writeFile(resolveManagedPath(plan.root, rootGitignore.path), rootGitignore.content, {
+        encoding: "utf8",
+        flag: "wx",
+      });
   } catch (error) {
     await rm(staging, { recursive: true, force: true });
+    await rm(resolve(plan.root, lervoRelativePaths.root), { recursive: true, force: true });
+    const rootGitignore = plan.operations.find(
+      (operation) => operation.path === ".gitignore" && operation.action === "create",
+    );
+    if (rootGitignore !== undefined)
+      await unlink(resolve(plan.root, ".gitignore")).catch(() => undefined);
     throw error;
   }
 }

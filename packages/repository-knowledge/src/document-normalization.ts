@@ -16,7 +16,6 @@ import {
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { bytePreservedDocumentCollection } from "./document-layout.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
-import { projectRepositoryPrettierRewrite } from "./prettier-rewriter-adapter.js";
 import { repositoryPathMatchesPatterns } from "./scanner.js";
 import {
   RepositoryKnowledgeError,
@@ -1901,7 +1900,6 @@ export async function createDocumentNormalizationPlan(input: {
   );
   const replacedSources = new Set(input.candidate.items.map((item) => item.sourcePath));
   const obsoleteRecords: DurableKnowledgeDeleteOperation[] = [];
-  const projectedOwnedPaths = await currentNormalizedPaths(root, policy.publication.language);
   for (const path of await listKnowledgeArtifactPaths({
     root,
     directory: ".lervo/knowledge/document-normalizations",
@@ -1920,8 +1918,6 @@ export async function createDocumentNormalizationPlan(input: {
         contentHash !== null
       ) {
         obsoleteRecords.push({ path, action: "delete", expectedCurrentHash: contentHash });
-        for (const output of record.outputs ?? [])
-          if (typeof output.path === "string") projectedOwnedPaths.delete(output.path);
       }
     } catch {
       /* invalid records remain visible to lint and are never silently deleted */
@@ -1952,27 +1948,6 @@ export async function createDocumentNormalizationPlan(input: {
     return outputs;
   });
   operations.push(...obsoleteRecords);
-  const projectedOutputPaths = input.candidate.items.flatMap((item) =>
-    item.outputs.map((output) => output.path),
-  );
-  for (const path of projectedOutputPaths) projectedOwnedPaths.add(path);
-  const prettier = await projectRepositoryPrettierRewrite({
-    repositoryRoot: root,
-    ownedPaths: [...projectedOwnedPaths],
-    supplementalDocumentPaths: projectedOutputPaths,
-  });
-  if ((prettier.beforeContent ?? "") !== prettier.afterContent)
-    operations.push({
-      path: ".prettierignore",
-      action: prettier.beforeContent === null ? "create" : "update",
-      ownership: "user",
-      mediaType: "text/plain",
-      content: prettier.afterContent,
-      ...(prettier.beforeContent === null
-        ? {}
-        : { expectedCurrentHash: sha256(prettier.beforeContent) }),
-      desiredHash: sha256(prettier.afterContent),
-    });
   const materials = {
     projectId: scan.projectId,
     sourceSnapshotId: scan.snapshotId,
@@ -1985,13 +1960,6 @@ export async function createDocumentNormalizationPlan(input: {
       path: operation.path,
       expectedCurrentHash: operation.expectedCurrentHash,
     })),
-    documentRewriter: {
-      rewriterId: prettier.descriptor.rewriterId,
-      configurationHash: prettier.descriptor.configurationHash,
-      userRegionHash: prettier.userRegionHash,
-      desiredHash: sha256(prettier.afterContent),
-      managedRuleCount: prettier.rules.length,
-    },
     blockers,
   };
   if (blockers.length === 0)

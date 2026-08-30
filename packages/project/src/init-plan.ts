@@ -17,6 +17,12 @@ import {
 } from "./types.js";
 
 const managedDirectories = [lervoRelativePaths.root, lervoRelativePaths.knowledge] as const;
+const rebuildableKnowledgeIgnore = [
+  "# lervo:begin rebuildable-knowledge schema=1",
+  "docs/knowledge/",
+  "# lervo:end rebuildable-knowledge",
+  "",
+].join("\n");
 
 function validateKnowledgePolicyContent(content: string): void {
   let value: unknown;
@@ -126,6 +132,30 @@ async function planManagedFile(input: {
   };
 }
 
+async function planRootGitignore(root: string): Promise<InitFileOperation> {
+  const entry = await readEntry(resolve(root, ".gitignore"));
+  if (entry.kind === "missing")
+    return {
+      kind: "file",
+      path: ".gitignore",
+      action: "create",
+      content: rebuildableKnowledgeIgnore,
+    };
+  if (entry.kind === "file")
+    return {
+      kind: "file",
+      path: ".gitignore",
+      action: "unchanged",
+      expectedContentHash: contentHash(entry.content),
+    };
+  return {
+    kind: "file",
+    path: ".gitignore",
+    action: "conflict",
+    reason: "The existing .gitignore entry is not a safe regular file.",
+  };
+}
+
 export async function createInitPlan(options: CreateInitPlanOptions): Promise<InitPlan> {
   const root = resolve(options.root);
   const rootEntry = await readEntry(root);
@@ -193,6 +223,7 @@ export async function createInitPlan(options: CreateInitPlanOptions): Promise<In
   }
 
   operations.push(
+    await planRootGitignore(root),
     await planManagedFile({
       root,
       path: lervoRelativePaths.knowledgePolicy,

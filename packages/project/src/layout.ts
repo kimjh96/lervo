@@ -28,6 +28,10 @@ export const lervoRelativePaths = {
   knowledgeInventory: ".lervo/state/knowledge/current/inventory.json",
   knowledgeSourceUnits: ".lervo/state/knowledge/current/source-units.json",
   knowledgeImpacts: ".lervo/state/knowledge/current/impact.json",
+  knowledgeStructural: ".lervo/state/knowledge/current/structural",
+  knowledgeStructuralBundles: ".lervo/state/knowledge/current/structural/bundles",
+  knowledgeStructuralConcepts: ".lervo/state/knowledge/current/structural/concepts",
+  knowledgeStructuralManifests: ".lervo/state/knowledge/current/structural/manifests",
   knowledgeCandidates: ".lervo/state/knowledge/candidates",
   knowledgeOkfImports: ".lervo/state/knowledge/okf-imports",
   knowledgeIndexes: ".lervo/state/knowledge/indexes",
@@ -80,6 +84,10 @@ export interface LervoProjectPaths {
   knowledgeInventory: string;
   knowledgeSourceUnits: string;
   knowledgeImpacts: string;
+  knowledgeStructural: string;
+  knowledgeStructuralBundles: string;
+  knowledgeStructuralConcepts: string;
+  knowledgeStructuralManifests: string;
   knowledgeCandidates: string;
   knowledgeOkfImports: string;
   knowledgeIndexes: string;
@@ -136,6 +144,19 @@ export function resolveProjectPaths(root: string): LervoProjectPaths {
     knowledgeInventory: resolve(repositoryRoot, lervoRelativePaths.knowledgeInventory),
     knowledgeSourceUnits: resolve(repositoryRoot, lervoRelativePaths.knowledgeSourceUnits),
     knowledgeImpacts: resolve(repositoryRoot, lervoRelativePaths.knowledgeImpacts),
+    knowledgeStructural: resolve(repositoryRoot, lervoRelativePaths.knowledgeStructural),
+    knowledgeStructuralBundles: resolve(
+      repositoryRoot,
+      lervoRelativePaths.knowledgeStructuralBundles,
+    ),
+    knowledgeStructuralConcepts: resolve(
+      repositoryRoot,
+      lervoRelativePaths.knowledgeStructuralConcepts,
+    ),
+    knowledgeStructuralManifests: resolve(
+      repositoryRoot,
+      lervoRelativePaths.knowledgeStructuralManifests,
+    ),
     knowledgeCandidates: resolve(repositoryRoot, lervoRelativePaths.knowledgeCandidates),
     knowledgeOkfImports: resolve(repositoryRoot, lervoRelativePaths.knowledgeOkfImports),
     knowledgeIndexes: resolve(repositoryRoot, lervoRelativePaths.knowledgeIndexes),

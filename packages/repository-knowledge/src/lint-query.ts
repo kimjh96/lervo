@@ -21,6 +21,12 @@ import { scanRepositoryKnowledge } from "./scanner.js";
 import { loadStoredClaims, loadStoredConcepts, loadStoredRelations } from "./store-reader.js";
 import { inspectGroupedDecisionPaths } from "./decision-layout.js";
 import { inspectConfiguredDocumentNormalization } from "./document-normalization.js";
+import {
+  legacyStructuralManifestPath,
+  structuralBundleDirectory,
+  structuralConceptDirectory,
+  structuralManifestPath,
+} from "./structural-projection.js";
 import type {
   KnowledgeLintIssue,
   KnowledgeLintResult,
@@ -265,6 +271,8 @@ async function lintRepositoryLayout(root: string, issues: KnowledgeLintIssue[]):
   }
 
   const registries = [
+    [structuralBundleDirectory, "yaml"],
+    [structuralConceptDirectory, "yaml"],
     [".lervo/knowledge/bundles", "yaml"],
     [".lervo/knowledge/concepts", "yaml"],
     [".lervo/knowledge/claims", "yaml"],
@@ -323,31 +331,23 @@ export async function lintRepositoryKnowledge(
     issues.push({
       code: blocker.code,
       severity: "error",
-      path: "path" in blocker ? blocker.path : ".prettierignore",
+      path: "path" in blocker ? blocker.path : ".lervo/knowledge/document-layout.yaml",
       message: `The current repository document rewrite contract violates ${blocker.code}.`,
     });
   }
-  if ((rewrite.prettierIgnore.beforeContent ?? "") !== rewrite.prettierIgnore.afterContent)
-    issues.push({
-      code: "document_rewrite_ownership_conflict",
-      severity: "error",
-      path: ".prettierignore",
-      message: "The tracked managed document rewrite block is not current.",
-    });
   await lintSemanticManifests(root, issues);
-  const manifestDirectory = resolve(root, ".lervo/generated/manifests");
   const manifests: Array<{
     sourceSnapshotId: string;
     outputs: Array<{ path: string; contentHash: string }>;
   }> = [];
-  try {
-    for (const name of (await readdir(manifestDirectory))
-      .filter((item) => item.endsWith(".json"))
-      .sort()) {
+  let manifestFound = false;
+  for (const path of [structuralManifestPath, legacyStructuralManifestPath]) {
+    try {
+      const stats = await lstat(resolve(root, path));
+      if (!stats.isFile() || stats.isSymbolicLink()) throw new Error();
+      manifestFound = true;
       try {
-        const value = JSON.parse(
-          await readFile(resolve(manifestDirectory, name), "utf8"),
-        ) as Partial<{
+        const value = JSON.parse(await readFile(resolve(root, path), "utf8")) as Partial<{
           sourceSnapshotId: string;
           outputs: Array<{ path: string; contentHash: string }>;
         }>;
@@ -369,16 +369,25 @@ export async function lintRepositoryKnowledge(
         issues.push({
           code: "invalid_generation_manifest",
           severity: "error",
-          path: `.lervo/generated/manifests/${name}`,
+          path,
           message: "The generation manifest JSON cannot be read.",
         });
       }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT" && manifestFound === false)
+        issues.push({
+          code: "invalid_generation_manifest",
+          severity: "error",
+          path,
+          message: "The generation manifest is not a safe regular file.",
+        });
     }
-  } catch {
+  }
+  if (!manifestFound) {
     issues.push({
       code: "missing_generation_manifest",
       severity: "warning",
-      path: ".lervo/generated/manifests",
+      path: structuralManifestPath,
       message:
         "No applied structural knowledge generation exists. Check for a refresh candidate because only semantic materialization may be present.",
     });

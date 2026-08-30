@@ -23,6 +23,7 @@ import {
 } from "./instruction-bridge-target.js";
 import { upsertRepositoryKnowledgeScanSource } from "./scanner.js";
 import { loadStoredConcepts } from "./store-reader.js";
+import { structuralConceptDirectory } from "./structural-projection.js";
 import {
   RepositoryKnowledgeError,
   type KnowledgeFileOperation,
@@ -366,6 +367,11 @@ export async function createKnowledgeInstructionBridgePlan(input: {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "Generated publications cannot be updated safely after the instruction bridge change.",
+      {
+        code: "generated_publication_reconciliation_unsafe",
+        message:
+          "Generated publications cannot be updated safely after the instruction bridge change.",
+      },
     );
   }
   const bridgeId = stableId("kbridge", {
@@ -455,7 +461,7 @@ export async function createKnowledgeInstructionBridgePlan(input: {
     ...(targetOperation === null ? [] : [targetOperation]),
   ];
   const conceptOperations = structural.operations.filter(
-    (item) => item.path.startsWith(".lervo/knowledge/concepts/") && item.action !== "conflict",
+    (item) => item.path.startsWith(`${structuralConceptDirectory}/`) && item.action !== "conflict",
   );
   const afterHashes = new Map(
     beforeRegistry.materials.map((item) => [item.file, item.contentHash]),

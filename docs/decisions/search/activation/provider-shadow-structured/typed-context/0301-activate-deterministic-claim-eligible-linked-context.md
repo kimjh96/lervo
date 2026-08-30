@@ -1,6 +1,6 @@
 # ADR-0301: Activate deterministic claim-eligible linked context
 
-Status: `accepted`
+Status: `superseded` by [ADR-0302](0302-retire-linked-default-and-use-search-engine-ports.md)
 Date: 2026-08-30
 
 ## Context
@@ -24,6 +24,8 @@ An empty projection preserves the ordinary context plan and continues. An invali
 Ordinary managed runs gain bounded linked supporting context locally and deterministically. Activation adds local corpus projection work but no model round trip, credential, canary traffic, or unbounded state. Historical v1-v18 contracts, records, and observations remain immutable.
 
 V18 is evidence for the evaluated English-dominant eight-task population, not a universal quality or billing guarantee. Provider-reported token totals are descriptive and not mutually billable units.
+
+The later paired lexical-only evaluation found no incremental quality uplift. ADR-0302 therefore retires this decision's ordinary production activation while retaining its exact canary and historical evidence.
 
 ## Verification
 

@@ -148,6 +148,15 @@ function excluded(path: string, patterns: readonly string[]): boolean {
   });
 }
 
+function generatedEntrypoint(path: string, content: string): boolean {
+  return (
+    (path === "README.md" &&
+      content.startsWith("<!-- lervo:generated repository-entrypoint-v1 -->\n")) ||
+    (path === "AGENTS.md" &&
+      content.startsWith("<!-- lervo:generated repository-agent-entrypoint-v1 -->\n"))
+  );
+}
+
 export function repositoryPathMatchesPatterns(path: string, patterns: readonly string[]): boolean {
   return excluded(path, patterns);
 }
@@ -643,6 +652,7 @@ export async function scanRepositoryKnowledge(input: {
         });
         continue;
       }
+      if (generatedEntrypoint(path, content)) continue;
       includedBytes += bytes.byteLength;
       if (includedBytes > input.policy.limits.maxTotalBytes) {
         throw new RepositoryKnowledgeError(

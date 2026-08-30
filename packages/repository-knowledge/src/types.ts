@@ -174,11 +174,13 @@ export interface KnowledgeMigrationPlan {
   repositoryRoot: string;
   status: "ready" | "blocked";
   mode: "migrate" | "refresh";
+  repairMode: "none" | "replace_unrecorded_structural_records";
+  reconciliation: import("./incremental-reconciliation.js").IncrementalReconciliationSummary;
   sourceSnapshotId: string;
   policyHash: string;
   compiler: {
     id: "lervo.structural";
-    version: "1";
+    version: "2";
     capability: "bounded_read_only_no_tools";
   };
   coverage: RepositoryKnowledgeScan["coverage"];
@@ -392,6 +394,7 @@ export class RepositoryKnowledgeError extends Error {
       | "document_layout_permit_required"
       | "document_layout_permit_invalid",
     message: string,
+    readonly publicDiagnostic?: { code: string; message: string },
   ) {
     super(message);
     this.name = "RepositoryKnowledgeError";
