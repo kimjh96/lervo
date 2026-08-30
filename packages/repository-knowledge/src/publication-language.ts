@@ -27,7 +27,7 @@ export interface RepositoryPublicationMessages {
   generatedReadmeSummary: string;
   generatedAgentsPurpose: string;
   readmeStartHeading: string;
-  repositoryKnowledgeLink: string;
+  repositoryKnowledgeEntry(indexPath: string): string;
   readmeRules: readonly string[];
   agentsTitle: string;
   sourceTitleFallback: string;
@@ -65,7 +65,8 @@ const english: RepositoryPublicationMessages = {
   generatedAgentsPurpose:
     "Use the repository knowledge entrypoint before changing code or documentation.",
   readmeStartHeading: "Start here",
-  repositoryKnowledgeLink: "Repository knowledge",
+  repositoryKnowledgeEntry: (indexPath) =>
+    `Repository knowledge: run \`lervo migrate knowledge\`, then inspect \`${indexPath}\``,
   readmeRules: [
     "Run `lervo knowledge lint` before relying on generated knowledge.",
     "Run `lervo migrate knowledge` after durable repository sources change.",

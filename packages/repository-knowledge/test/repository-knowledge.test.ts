@@ -259,7 +259,12 @@ describe("repository knowledge migration", () => {
     expect(index).toContain("use `lervo migrate knowledge` to determine currency");
     expect(index).toContain("code: 1");
     expect(index).toContain("test: 1");
-    expect(await readFile(resolve(root, "README.md"), "utf8")).toContain("## Start here");
+    const generatedReadme = await readFile(resolve(root, "README.md"), "utf8");
+    expect(generatedReadme).toContain("## Start here");
+    expect(generatedReadme).toContain(
+      "run `lervo migrate knowledge`, then inspect `docs/knowledge/index.md`",
+    );
+    expect(generatedReadme).not.toContain("](docs/knowledge/index.md)");
     expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toContain(
       "# Repository Agent Instructions",
     );
