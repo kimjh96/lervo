@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5f673268dec7f99e2ec0d143"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Make cross-provider terminal retrieval reliable and collapse duplicate instruction bootstrap migrations."

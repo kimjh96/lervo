@@ -2,7 +2,14 @@ import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promise
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { createRepositoryLayoutMigrationPlan } from "@lervo/repository-knowledge";
+import {
+  createRepositoryLayoutMigrationPlan,
+  lintRepositoryKnowledge,
+  sha256,
+  shardedKnowledgeArtifactPath,
+  stableId,
+} from "@lervo/repository-knowledge";
+import { loadProjectManifest } from "@lervo/project";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
@@ -82,6 +89,93 @@ describe("lervo upgrade", () => {
     expect(await runCli(["upgrade", "--json"], io(root, output, errors)), errors.join("")).toBe(0);
     expect(["current", "pending_authority"]).toContain(JSON.parse(output.join("")).status);
     expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toBe(stableAgents);
+  }, 20_000);
+
+  it("keeps a bridge-bound legacy AGENTS migration transactional until the bridge refreshes", async () => {
+    const root = await repository();
+    const agents = [
+      "# Existing instructions",
+      "",
+      "Preserve this user-owned text.",
+      "",
+      "<!-- lervo:begin block=repository_instruction_routes schema=1 -->",
+      "## Repository instruction routes",
+      "",
+      "- Read the verified current state with `lervo workstream current --context` before continuing repository work.",
+      "<!-- lervo:end block=repository_instruction_routes -->",
+      "",
+    ].join("\n");
+    const claude = [
+      "<!-- lervo:begin block=provider_entry schema=1 -->",
+      "@AGENTS.md",
+      "<!-- lervo:end block=provider_entry -->",
+      "",
+    ].join("\n");
+    await writeFile(resolve(root, "AGENTS.md"), agents);
+    await writeFile(resolve(root, "CLAUDE.md"), claude);
+
+    const manifest = await loadProjectManifest(root);
+    expect(manifest.projectId).toBeTruthy();
+    const bridgeId = stableId("kbridge", {
+      projectId: manifest.projectId,
+      provider: "claude",
+      canonicalPath: "AGENTS.md",
+      targetPath: "CLAUDE.md",
+    });
+    const bridgePath = shardedKnowledgeArtifactPath(
+      ".lervo/knowledge/instruction-bridges",
+      bridgeId,
+      "yaml",
+    );
+    await mkdir(resolve(root, bridgePath, ".."), { recursive: true });
+    await writeFile(
+      resolve(root, bridgePath),
+      JSON.stringify(
+        {
+          schemaVersion: 1,
+          bridgeId,
+          profile: {
+            id: "claude_agents_import_v1",
+            version: 1,
+            provider: "claude",
+            discoveryContract: "claude-code-memory-import",
+          },
+          canonical: { path: "AGENTS.md", contentHash: sha256(agents) },
+          target: {
+            path: "CLAUDE.md",
+            contentHash: sha256(claude),
+            blockId: "provider_entry",
+            managedContentHash: sha256("@AGENTS.md\n"),
+          },
+        },
+        null,
+        2,
+      ) + "\n",
+    );
+    expect(
+      (await lintRepositoryKnowledge(root)).issues.some(
+        (issue) => issue.code === "instruction_bridge_binding_stale",
+      ),
+    ).toBe(false);
+
+    const output: string[] = [];
+    const errors: string[] = [];
+    expect(await runCli(["upgrade", "--json"], io(root, output, errors)), errors.join("\n")).toBe(
+      0,
+    );
+    const plan = JSON.parse(output.splice(0).join("")) as { planId: string; status: string };
+    expect(plan.status).toBe("ready");
+    expect(
+      await runCli(
+        ["upgrade", "--apply", "--approval", plan.planId, "--json"],
+        io(root, output, errors),
+      ),
+      errors.join("\n"),
+    ).toBe(0);
+    expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
+    expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toContain(
+      "block=repository_instruction_routes schema=2",
+    );
   }, 20_000);
 
   it("plans without changing repository bytes and requires the exact current plan", async () => {

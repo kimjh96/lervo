@@ -43,6 +43,20 @@ import {
   validateKnowledgeStage,
 } from "./knowledge-stage-lint.js";
 
+function expectedInstructionBridgeTransitions(
+  operations: ReadonlyArray<{ path: string; action: string }>,
+): ReadonlySet<string> {
+  return new Set(
+    operations.some(
+      (operation) =>
+        operation.action !== "unchanged" &&
+        (operation.path === "AGENTS.md" || operation.path === "CLAUDE.md"),
+    )
+      ? ["instruction_bridge_binding_stale"]
+      : [],
+  );
+}
+
 function latestTerminalIntegrationApplicationEventId(
   storage: Awaited<ReturnType<typeof openProjectStorage>>,
 ): string | null {
@@ -312,6 +326,7 @@ export async function runKnowledgeMigration(input: {
               before: baselineValidation,
               after: observedValidation,
               ownedErrorCodes: repositoryLayoutKnowledgeLintCodes,
+              expectedTransitionCodes: expectedInstructionBridgeTransitions(layout.operations),
             });
             const validationHash = sha256(canonicalJson(validation));
             await storage.artifacts.put(canonicalJson(validation));
@@ -632,6 +647,7 @@ export async function runKnowledgeMigration(input: {
             before: baselineValidation,
             after: observedValidation,
             ownedErrorCodes: structuralKnowledgeLintCodes,
+            expectedTransitionCodes: expectedInstructionBridgeTransitions(plan.operations),
           });
           const validationHash = sha256(canonicalJson(validation));
           await storage.artifacts.put(canonicalJson(validation));

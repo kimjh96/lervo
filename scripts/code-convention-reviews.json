@@ -4,7 +4,7 @@
   "reviews": [
     {
       "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:703380c52ac20dc0caa09fed61029f6cfd52fa0c89badd3699d99455b895f542",
+      "contentHash": "sha256:26fefd54c85a515ca89a1413afd9d1639520d8cc279c05b659c563720c09fedc",
       "responsibility": "Knowledge migration plan/apply orchestration",
       "rationale": "The module sequences one knowledge migration lifecycle; formatting, bootstrap application, and top-level dispatch are extracted, while the remaining effects share ordered plan, approval, rollback, and event contracts.",
       "disposition": "cohesive"
