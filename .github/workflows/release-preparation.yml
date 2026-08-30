@@ -119,7 +119,7 @@ jobs:
         run: |
           git config user.name 'lervo-release[bot]'
           git config user.email 'lervo-release[bot]@users.noreply.github.com'
-          plan="$(pnpm release:tag --json || true)"
+          plan="$(node scripts/tag-cli-release.mjs --json || true)"
           tag="$(jq -r '.tag // empty' <<<"${plan}")"
           if [ "$(jq -r '.status // "blocked"' <<<"${plan}")" = 'ready' ]; then
             plan_id="$(jq -r '.planId' <<<"${plan}")"

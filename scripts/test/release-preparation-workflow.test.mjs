@@ -77,6 +77,8 @@ describe("CLI release preparation workflow", () => {
       tag.run,
       /git config user\.email 'lervo-release\[bot\]@users\.noreply\.github\.com'/u,
     );
+    assert.match(tag.run, /plan="\$\(node scripts\/tag-cli-release\.mjs --json \|\| true\)"/u);
+    assert.doesNotMatch(tag.run, /plan="\$\(pnpm release:tag --json/u);
     assert.match(tag.run, /pnpm release:tag --apply --approval "\$\{plan_id\}" --json/u);
     assert.match(tag.run, /git push origin "\$\{tag\}"/u);
     assert.deepEqual(tag.env, { GH_TOKEN: "${{ github.token }}" });
