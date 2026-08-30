@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_3cf30f8bf5035943c870b05a"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Move structural knowledge to rebuildable storage and add typed lifecycle reconciliation."
