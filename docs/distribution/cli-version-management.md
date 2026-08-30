@@ -34,9 +34,9 @@ Generated files retain their owners. The workflow runs frozen lockfile installat
 
 ## Tag handoff and recovery
 
-After the release pull request merges, the workflow verifies clean `main`, the versioned current release note, matching generated metadata, no remaining intent, and tag absence. It creates and pushes the annotated `v<version>` tag, triggering the three-platform packed-consumer pipeline, supported attestation work, and idempotent GitHub Release creation from the exact tag-bound note.
+After the release pull request merges, the workflow verifies clean `main`, the versioned current release note, matching generated metadata, no remaining intent, and tag absence. It creates and pushes the annotated `v<version>` tag, then ensures one exact-revision tag-bound run exists for the three-platform packed-consumer pipeline, supported attestation work, and idempotent GitHub Release creation. The explicit dispatch is required because GitHub does not emit a second workflow trigger for a tag pushed with the repository workflow token.
 
-If tag creation has an uncertain result, rerun the workflow. An exact annotated tag at the planned revision is a recovered replay. A lightweight tag or a tag at another revision is a conflict. Do not move or delete it automatically; resolve Git authority separately, then rerun the exact plan.
+If tag creation or matrix dispatch has an uncertain result, rerun the workflow. An exact annotated tag at the planned revision and an existing matrix run for that revision are recovered replays. A lightweight tag or a tag at another revision is a conflict. Do not move or delete it automatically; resolve Git authority separately, then rerun the exact plan.
 
 Emergency corrections require new `patch` or reviewed higher-impact intent and the ordinary release pull request. V1 has no prerelease channel. Version preparation and tag creation prove only those Git operations; npm stage approval, Trusted Publisher configuration, and publication retain independent authorization.
 
