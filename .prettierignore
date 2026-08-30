@@ -16,8 +16,7 @@ CLAUDE.md
 AGENTS.md
 CLAUDE.md
 apps/cli/README.md
-docs/architecture/data-ownership-and-failure.md
-docs/architecture/system.md
+docs/architecture/
 docs/decisions/
 docs/distribution/
 docs/evidence/

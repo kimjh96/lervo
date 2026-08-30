@@ -17,6 +17,7 @@ function selectionAttemptId(runId: string): string {
   return `lsel_${suffix}`;
 }
 
+/** Retained only for source-bound paired evaluation; ordinary application composition never calls it. */
 export async function resolveDefaultManagedLinkedEvidenceSelection(input: {
   repositoryRoot: string;
   runId: string;

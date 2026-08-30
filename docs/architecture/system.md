@@ -18,7 +18,7 @@ user or platform
 
 The local project is the execution authority. The Hub coordinates but cannot weaken project policy or replace repository source truth.
 
-Direct provider terminals use a narrower native-hook path. Each prompt performs a fail-closed query and receives exact-hash context. Stop checks knowledge currency and may observe exact context-reference markers. New markers are standalone Markdown HTML comments; legacy plain v1 tokens remain accepted. Privacy-bounded preparation, reference, and turn events prove neither provider acceptance nor internal use. They cannot satisfy managed E1–E4 because Lervo did not create or fully observe the provider process.
+Direct provider terminals use a narrower native-hook path. Every prompt performs a fail-closed query and receives exact-hash context. Stop checks knowledge currency and may observe exact context-reference markers. New markers are standalone Markdown HTML comments; legacy plain v1 tokens remain accepted. Privacy-bounded preparation, reference, and turn events prove neither provider acceptance nor internal use and cannot satisfy managed E1–E4 because Lervo did not create or fully observe the provider process.
 
 ## Major boundaries
 
@@ -83,9 +83,9 @@ Decisions: [sharded documents](../decisions/knowledge/documents/0017-sharded-doc
 
 ### Search and context
 
-Search recommends but does not prove use. Selection records why an item was chosen; loading validates current bytes; delivery creates an adapter receipt before `injected` evidence exists. Later reference or use requires separate provider telemetry.
+Search recommends but does not prove use. Operational retrieval keeps `lexical-v1` as the local baseline and admits future local or external engines only through the existing provider-neutral ports, reviewed activation, runtime validation, and explicit rollback chain. Ordinary managed runs do not add linked-only context after search.
 
-Decisions: [lexical search](../decisions/search/0053-deterministic-lexical-search-observations.md), [recommendation boundary](../decisions/search/0054-search-recommendation-managed-context-boundary.md), and [engine selection](../decisions/search/0060-policy-bound-search-engine-selection.md).
+See [Search and context boundaries](search-and-context.md) for engine ownership, extension steps, evidence states, and failure behavior.
 
 ### Hub and node runtimes
 

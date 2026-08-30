@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_5702db3aeb8169ee404ac9c5
+freshness: current
+ownership: user
+path: docs/evidence/search/paired-uplift/lexical-linked-uplift-v1.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_aab5e3b5ee1d47273bff888e
+title: Lexical-only versus linked-context uplift report
+type: concept

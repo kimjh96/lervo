@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_bde34ce35489d331df61ee08
+  - uv_295442a0cd81cf335e350513
 title: Provider-shadow and managed-canary delivery
 type: concept

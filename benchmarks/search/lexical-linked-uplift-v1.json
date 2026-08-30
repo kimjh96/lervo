@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "benchmarkId": "lexical-linked-uplift-v1-20260830",
+  "question": "Incremental managed-task value of lexical-v1 plus linked context over lexical-v1 alone",
+  "providers": {
+    "codex": "gpt-5.6-sol",
+    "claude": "opus"
+  },
+  "arms": ["lexical_only", "lexical_plus_linked"],
+  "repetitionsPerCase": 2,
+  "execution": {
+    "mode": "read_only_native_signed_in_session",
+    "maximumConcurrentCalls": 1,
+    "selectionProviderCalls": 0,
+    "retries": 0,
+    "userApiKeysRequired": false,
+    "armDifference": "default_managed_linked_evidence_selections_only",
+    "operationalSearchEngine": "lexical-v1"
+  },
+  "scoring": {
+    "sourceRecall": "Expected canonical paths named in raw provider output or referenced through current E4 evidence",
+    "claimRecall": "Predeclared case claims matched in raw provider output; every claim is scored identically in both arms",
+    "contextCost": "Actual provider usage plus exact selected linked-source bytes; byte-to-token estimates use four bytes per token",
+    "e4Status": "Supporting metric only because explicit-link-only sources are not reference eligible"
+  },
+  "cases": [
+    {
+      "caseId": "release_ordinary",
+      "query": "CLI 릴리스 준비 작업을 진행하려고 해. 먼저 따라야 할 canonical release sources를 찾아주고 핵심 절차와 권한 경계를 설명해줘",
+      "expectedPaths": [
+        "docs/distribution/cli-version-management.md",
+        "docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md"
+      ],
+      "claims": [
+        {
+          "claimId": "release_intent",
+          "anyOf": ["release:intent:create", "release intent", "release-intent"]
+        },
+        { "claimId": "completion_check", "anyOf": ["release:completion:check"] },
+        { "claimId": "tag_separate", "anyOf": ["tag", "태그"] },
+        { "claimId": "publication_separate", "anyOf": ["npm", "publication", "퍼블리"] }
+      ]
+    },
+    {
+      "caseId": "release_terse",
+      "query": "CLI 릴리스 준비해줘. canonical sources, 필수 확인, 자동으로 해서는 안 되는 범위를 짧게 정리해줘",
+      "expectedPaths": [
+        "docs/distribution/cli-version-management.md",
+        "docs/decisions/release/packaging/0221-reviewed-cli-release-preparation.md"
+      ],
+      "claims": [
+        {
+          "claimId": "release_intent",
+          "anyOf": ["release:intent:create", "release intent", "release-intent"]
+        },
+        { "claimId": "completion_check", "anyOf": ["release:completion:check"] },
+        { "claimId": "tag_separate", "anyOf": ["tag", "태그"] },
+        { "claimId": "publication_separate", "anyOf": ["npm", "publication", "퍼블리"] }
+      ]
+    },
+    {
+      "caseId": "hybrid_rationale",
+      "query": "예전에 local hybrid search와 reviewed relation context 작업을 왜 했었지? canonical decision을 찾고 채택 경계까지 설명해줘",
+      "expectedPaths": [
+        "docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md"
+      ],
+      "claims": [
+        {
+          "claimId": "lexical_gap",
+          "anyOf": ["related wording", "관련 표현", "관련된 표현", "keyword search", "키워드 검색"]
+        },
+        {
+          "claimId": "local_first",
+          "anyOf": ["without a hub", "hub 없이", "local-first", "로컬 우선"]
+        },
+        {
+          "claimId": "relation_after_search",
+          "anyOf": ["after search", "검색 후", "one-hop", "1-hop", "한 홉"]
+        },
+        {
+          "claimId": "activation_not_authorized",
+          "anyOf": ["inactive", "비활성", "activation remains", "활성화.*아니", "채택.*아니"]
+        }
+      ]
+    },
+    {
+      "caseId": "fuzzy_merge_boundary",
+      "query": "fuzzy merge를 승인 없이 자동 적용해도 돼? canonical conflict-resolution 근거를 찾고 허용·금지 경계를 설명해줘",
+      "expectedPaths": [
+        "docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md",
+        "docs/decisions/knowledge/semantics/0227-approval-gated-cross-provider-fuzzy-merge.md"
+      ],
+      "claims": [
+        {
+          "claimId": "no_automatic_apply",
+          "anyOf": [
+            "자동 적용.*안",
+            "자동으로.*안",
+            "자동.*금지",
+            "cannot.*automatic",
+            "not.*automatic"
+          ]
+        },
+        { "claimId": "approval_required", "anyOf": ["승인", "approval", "review"] },
+        { "claimId": "hash_bound", "anyOf": ["hash", "해시"] },
+        {
+          "claimId": "one_member_maximum",
+          "anyOf": ["at most one", "최대 하나", "하나만", "one member"]
+        }
+      ]
+    }
+  ]
+}

@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_6d94fcd09a4a7408ff3fc49e
+  - uv_439b1f1fec3bc7090561e70c
 title: Provider Adapter Specification
 type: concept

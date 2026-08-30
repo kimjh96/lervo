@@ -3,6 +3,8 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [Initial retrieval and grounding](../../roadmap/natural-language-grounding-quality/evaluation-history/initial-retrieval-and-grounding.md) — `docs/roadmap/natural-language-grounding-quality/evaluation-history/initial-retrieval-and-grounding.md`
+- [Phase A delivery](../../roadmap/natural-language-grounding-quality/evaluation-history/phase-a-delivery.md) — `docs/roadmap/natural-language-grounding-quality/evaluation-history/phase-a-delivery.md`
 - [Provider-shadow and managed-canary delivery](../../roadmap/natural-language-grounding-quality/evaluation-history/provider-shadow-delivery.md) — `docs/roadmap/natural-language-grounding-quality/evaluation-history/provider-shadow-delivery.md`
 - [Natural-language terminal development flow](../../roadmap/natural-language-terminal-flow.md) — `docs/roadmap/natural-language-terminal-flow.md`
 - [Repository onboarding and agent workforce](../../roadmap/onboarding/agent-workforce.md) — `docs/roadmap/onboarding/agent-workforce.md`

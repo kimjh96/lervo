@@ -7,7 +7,6 @@ import { ClaudeAdapter } from "@lervo/adapter-claude";
 import { CodexAdapter } from "@lervo/adapter-codex";
 import {
   documentIdForPath,
-  managedLinkedEvidenceDefaultPolicy,
   normalizeRepositoryPath,
   type ManagedLinkedEvidenceSelection,
 } from "@lervo/context";
@@ -42,7 +41,7 @@ import {
   type ManagedLinkedEvidenceCanaryOutcome,
 } from "./managed-linked-evidence-canary.js";
 import { resolveDeterministicManagedLinkedEvidenceSelection } from "./managed-linked-evidence-deterministic-selection.js";
-import { resolveDefaultManagedLinkedEvidenceSelection } from "./managed-linked-evidence-default-selection.js";
+import type { resolveDefaultManagedLinkedEvidenceSelection } from "./managed-linked-evidence-default-selection.js";
 import {
   prepareManagedSearchContext,
   summarizeManagedSearchContext,
@@ -114,6 +113,8 @@ export interface ManagedRunDependencies {
     now?: () => Date;
   }): Promise<PreparedRunVerification>;
   groundProductionRequest?: GroundProductionRequest;
+  /** Internal paired-evaluation seam; ordinary application composition leaves this undefined. */
+  resolveExperimentalLinkedEvidenceSelection?: typeof resolveDefaultManagedLinkedEvidenceSelection;
 }
 
 export type ExecuteManagedRun = (request: ManagedRunRequest) => Promise<ManagedRunOutcome>;
@@ -370,7 +371,6 @@ export function createManagedRunExecutor(
       const searchContext = await prepareManagedSearchContext({
         repositoryRoot: storage.paths.repositoryRoot,
         projectId: storage.manifest.projectId,
-        runId,
         observedAt: dependencies.now?.() ?? new Date(),
         query: instructions,
         fallbackQuery: expectedPath,
@@ -409,8 +409,8 @@ export function createManagedRunExecutor(
                 now: dependencies.now ?? (() => new Date()),
               });
         linkedEvidenceSelections = linkedEvidenceCanary.selections;
-      } else if (managedLinkedEvidenceDefaultPolicy.enabledByDefault) {
-        linkedEvidenceSelections = await resolveDefaultManagedLinkedEvidenceSelection({
+      } else if (dependencies.resolveExperimentalLinkedEvidenceSelection !== undefined) {
+        linkedEvidenceSelections = await dependencies.resolveExperimentalLinkedEvidenceSelection({
           repositoryRoot: storage.paths.repositoryRoot,
           runId,
           operationalBatch: searchContext.recommendationBatch,

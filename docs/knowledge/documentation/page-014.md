@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [WSL Hub and Shiflo release acceptance](../../evidence/pilots/wsl-hub-shiflo-release-acceptance.md) — `docs/evidence/pilots/wsl-hub-shiflo-release-acceptance.md`
 - [Repository code-convention audit](../../evidence/quality/repository-code-convention-audit.md) — `docs/evidence/quality/repository-code-convention-audit.md`
 - [Bounded repository retrieval fallback v1](../../evidence/search/bounded-retrieval-fallback-v1.md) — `docs/evidence/search/bounded-retrieval-fallback-v1.md`
 - [Catalog-assisted repository retrieval v3](../../evidence/search/catalog-assisted-v3.md) — `docs/evidence/search/catalog-assisted-v3.md`
@@ -26,4 +27,3 @@
 - [Provider-shadow v9 blind ground-truth audit packet](../../evidence/search/linked-evidence-provider-shadow-v9-ground-truth-audit.md) — `docs/evidence/search/linked-evidence-provider-shadow-v9-ground-truth-audit.md`
 - [Linked-evidence reconciliation confirmation v9 observation](../../evidence/search/linked-evidence-reconciliation-confirmation-v9.md) — `docs/evidence/search/linked-evidence-reconciliation-confirmation-v9.md`
 - [Linked-evidence reconciliation v8 observation](../../evidence/search/linked-evidence-reconciliation-v8.md) — `docs/evidence/search/linked-evidence-reconciliation-v8.md`
-- [Linked-evidence shadow phase A collection preflight](../../evidence/search/linked-evidence-shadow-phase-a-preflight.md) — `docs/evidence/search/linked-evidence-shadow-phase-a-preflight.md`

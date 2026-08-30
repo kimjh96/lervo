@@ -12,6 +12,7 @@
 - [ADR-0299: Stop v16 and expand canary observation capacity](../../decisions/search/activation/provider-shadow-structured/typed-context/0299-stop-v16-and-expand-canary-observation-capacity.md) — `docs/decisions/search/activation/provider-shadow-structured/typed-context/0299-stop-v16-and-expand-canary-observation-capacity.md`
 - [ADR-0300: Stop v17 and expand complete-event capacity](../../decisions/search/activation/provider-shadow-structured/typed-context/0300-stop-v17-and-expand-complete-event-capacity.md) — `docs/decisions/search/activation/provider-shadow-structured/typed-context/0300-stop-v17-and-expand-complete-event-capacity.md`
 - [ADR-0301: Activate deterministic claim-eligible linked context](../../decisions/search/activation/provider-shadow-structured/typed-context/0301-activate-deterministic-claim-eligible-linked-context.md) — `docs/decisions/search/activation/provider-shadow-structured/typed-context/0301-activate-deterministic-claim-eligible-linked-context.md`
+- [ADR-0302: Retire the linked default and use search-engine ports](../../decisions/search/activation/provider-shadow-structured/typed-context/0302-retire-linked-default-and-use-search-engine-ports.md) — `docs/decisions/search/activation/provider-shadow-structured/typed-context/0302-retire-linked-default-and-use-search-engine-ports.md`
 - [ADR-0065: Human search-rollout review and execution boundary](../../decisions/search/rollout/0065-human-search-rollout-review.md) — `docs/decisions/search/rollout/0065-human-search-rollout-review.md`
 - [ADR-0066: Bounded search-rollout review status](../../decisions/search/rollout/0066-bounded-search-rollout-review-status.md) — `docs/decisions/search/rollout/0066-bounded-search-rollout-review-status.md`
 - [ADR-0067: Policy-bound search-rollout review](../../decisions/search/rollout/0067-policy-bound-search-rollout-review.md) — `docs/decisions/search/rollout/0067-policy-bound-search-rollout-review.md`
@@ -26,4 +27,3 @@
 - [Managed context grounding acceptance pilot](../../evidence/pilots/managed-context-grounding.md) — `docs/evidence/pilots/managed-context-grounding.md`
 - [Reviewed document normalization acceptance](../../evidence/pilots/reviewed-document-normalization.md) — `docs/evidence/pilots/reviewed-document-normalization.md`
 - [Shiflo v0 acceptance pilot](../../evidence/pilots/shiflo-v0.md) — `docs/evidence/pilots/shiflo-v0.md`
-- [WSL Hub and Shiflo release acceptance](../../evidence/pilots/wsl-hub-shiflo-release-acceptance.md) — `docs/evidence/pilots/wsl-hub-shiflo-release-acceptance.md`

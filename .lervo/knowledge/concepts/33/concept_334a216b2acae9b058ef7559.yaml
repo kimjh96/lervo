@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_334a216b2acae9b058ef7559
+freshness: current
+ownership: user
+path: docs/decisions/search/activation/provider-shadow-structured/typed-context/0302-retire-linked-default-and-use-search-engine-ports.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_f09fb5b65d2765b10d8b1168
+title: "ADR-0302: Retire the linked default and use search-engine ports"
+type: decision

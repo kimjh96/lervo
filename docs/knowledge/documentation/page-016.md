@@ -3,6 +3,8 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [Diagnostic claim-coverage provider-shadow v13](../../evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v13.md) — `docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v13.md`
+- [Request-scoped claim-coverage provider-shadow v14](../../evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v14.md) — `docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v14.md`
 - [Linked-evidence provider-shadow pilot v15](../../evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v15.md) — `docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v15.md`
 - [Compatible structured-carrier provider-shadow v16](../../evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v16.md) — `docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v16.md`
 - [Relational-coverage provider-shadow v17](../../evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v17.md) — `docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v17.md`
@@ -25,5 +27,3 @@
 - [Natural-language grounding evaluation history](../../roadmap/natural-language-grounding-quality/evaluation-history.md) — `docs/roadmap/natural-language-grounding-quality/evaluation-history.md`
 - [Assisted retrieval iterations](../../roadmap/natural-language-grounding-quality/evaluation-history/assisted-retrieval-iterations.md) — `docs/roadmap/natural-language-grounding-quality/evaluation-history/assisted-retrieval-iterations.md`
 - [Delegated and bounded retrieval](../../roadmap/natural-language-grounding-quality/evaluation-history/delegated-and-bounded-retrieval.md) — `docs/roadmap/natural-language-grounding-quality/evaluation-history/delegated-and-bounded-retrieval.md`
-- [Initial retrieval and grounding](../../roadmap/natural-language-grounding-quality/evaluation-history/initial-retrieval-and-grounding.md) — `docs/roadmap/natural-language-grounding-quality/evaluation-history/initial-retrieval-and-grounding.md`
-- [Phase A delivery](../../roadmap/natural-language-grounding-quality/evaluation-history/phase-a-delivery.md) — `docs/roadmap/natural-language-grounding-quality/evaluation-history/phase-a-delivery.md`
