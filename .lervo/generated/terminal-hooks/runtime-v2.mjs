@@ -51477,7 +51477,7 @@ var english = {
   generatedReadmeSummary: "This repository is initialized for local-first, evidence-bound work with Lervo.",
   generatedAgentsPurpose: "Use the repository knowledge entrypoint before changing code or documentation.",
   readmeStartHeading: "Start here",
-  repositoryKnowledgeLink: "Repository knowledge",
+  repositoryKnowledgeEntry: (indexPath) => `Repository knowledge: run \`lervo migrate knowledge\`, then inspect \`${indexPath}\``,
   readmeRules: [
     "Run `lervo knowledge lint` before relying on generated knowledge.",
     "Run `lervo migrate knowledge` after durable repository sources change."
@@ -63673,7 +63673,7 @@ function desiredOutputs(input) {
           "",
           `## ${messages.readmeStartHeading}`,
           "",
-          `- [${messages.repositoryKnowledgeLink}](${indexPath})`,
+          `- ${messages.repositoryKnowledgeEntry(indexPath)}`,
           ...messages.readmeRules.map((rule2) => `- ${rule2}`),
           ""
         ].join("\n")
