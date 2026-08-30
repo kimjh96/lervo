@@ -9,7 +9,6 @@ import {
   createDocumentNormalizationPlan,
   lintRepositoryKnowledge,
   loadDocumentNormalizationCandidate,
-  RepositoryKnowledgeError,
   sha256,
   storeDocumentNormalizationCandidate,
   type DocumentNormalizationPlan,
@@ -19,6 +18,7 @@ import { openProjectStorage } from "@lervo/project-storage";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import type { CliIo } from "./types.js";
+import { normalizationKnowledgeLintCodes, validateKnowledgeStage } from "./knowledge-stage-lint.js";
 
 const usage =
   "lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]";
@@ -190,6 +190,9 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
       throw new Error(
         "The requested plan ID does not match the current document normalization plan.",
       );
+    const baselineValidation = await lintRepositoryKnowledge(repositoryRoot, {
+      supplementalSources,
+    });
     const storage = await openProjectStorage(repositoryRoot);
     try {
       const eventIdentity = randomUUID().replaceAll("-", "");
@@ -200,7 +203,7 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
         now: new Date(),
         supplementalSources,
         recordApplied: async (applied) => {
-          const validation = await lintRepositoryKnowledge(repositoryRoot, {
+          const observedValidation = await lintRepositoryKnowledge(repositoryRoot, {
             supplementalSources,
             allowTransactionPlanId: plan.planId,
           });
@@ -210,32 +213,13 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
           const expectedTransitionCodes = new Set(
             rewritesBridgeInputs ? ["instruction_bridge_binding_stale"] : [],
           );
-          const blockingIssues = validation.issues.filter(
-            (issue) => issue.severity === "error" && !expectedTransitionCodes.has(issue.code),
-          );
-          if (blockingIssues.length > 0) {
-            const summary = blockingIssues
-              .slice(0, 20)
-              .map((issue) => `${issue.code}:${issue.path}`)
-              .join(", ");
-            throw new RepositoryKnowledgeError(
-              "knowledge_lint_failed",
-              `Deterministic lint failed after document normalization: ${summary}`,
-            );
-          }
-          const stageValidation = {
-            ...validation,
-            valid: true,
-            issues: validation.issues.map((issue) =>
-              expectedTransitionCodes.has(issue.code)
-                ? {
-                    ...issue,
-                    severity: "warning" as const,
-                    message: `${issue.message} Expected until the immediate instruction-bridge refresh.`,
-                  }
-                : issue,
-            ),
-          };
+          const stageValidation = validateKnowledgeStage({
+            stage: "document normalization",
+            before: baselineValidation,
+            after: observedValidation,
+            ownedErrorCodes: normalizationKnowledgeLintCodes,
+            expectedTransitionCodes,
+          });
           const validationHash = sha256(canonicalJson(stageValidation));
           await storage.artifacts.put(canonicalJson(stageValidation));
           storage.events.append({

@@ -473,5 +473,21 @@ describe("repository workstreams", () => {
         })
       ).status,
     ).toBe("blocked");
+    const overLimit = await createWorkstreamUpdatePlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+      snapshot: {
+        ...(await readCurrentWorkstream(root))!,
+        revision: 3,
+        notes: Array.from({ length: 33 }, (_, index) => `Note ${index + 1}`),
+        updatedAt: "2026-08-24T02:01:00.000Z",
+      },
+    });
+    expect(overLimit.blockers).toContainEqual(
+      expect.objectContaining({
+        code: "invalid_snapshot",
+        message: expect.stringContaining("/notes must NOT have more than 32 items"),
+      }),
+    );
   });
 });

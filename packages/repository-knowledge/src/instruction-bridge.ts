@@ -366,6 +366,11 @@ export async function createKnowledgeInstructionBridgePlan(input: {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "Generated publications cannot be updated safely after the instruction bridge change.",
+      {
+        code: "generated_publication_reconciliation_unsafe",
+        message:
+          "Generated publications cannot be updated safely after the instruction bridge change.",
+      },
     );
   }
   const bridgeId = stableId("kbridge", {

@@ -277,6 +277,8 @@ describe("document content normalization", () => {
       resolve(root, ".agents/skills/deploy-check/SKILL.md"),
       "---\nname: deploy-check\ndescription: Old deployment checker.\n---\n# Old skill\n\nInspect deployment status.\n",
     );
+    const formatterIgnore = "vendor/\n";
+    await writeFile(resolve(root, ".prettierignore"), formatterIgnore);
     const calls: DocumentNormalizationEnvelope[] = [];
     const normalizer = compiler(calls);
 
@@ -307,6 +309,9 @@ describe("document content normalization", () => {
       now: new Date("2026-08-24T01:00:00.000Z"),
     });
     expect(plan.status).toBe("review_required");
+    expect(plan.operations).not.toContainEqual(
+      expect.objectContaining({ path: ".prettierignore" }),
+    );
     await expect(
       applyDocumentNormalizationPlan({
         plan,
@@ -341,6 +346,7 @@ describe("document content normalization", () => {
     expect(await readFile(resolve(root, ".agents/skills/deploy-check/SKILL.md"), "utf8")).toContain(
       "name: deploy-check",
     );
+    expect(await readFile(resolve(root, ".prettierignore"), "utf8")).toBe(formatterIgnore);
     await expect(
       access(resolve(root, ".lervo/knowledge/document-normalizations")),
     ).resolves.toBeUndefined();

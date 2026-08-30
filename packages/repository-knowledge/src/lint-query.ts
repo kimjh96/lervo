@@ -323,17 +323,10 @@ export async function lintRepositoryKnowledge(
     issues.push({
       code: blocker.code,
       severity: "error",
-      path: "path" in blocker ? blocker.path : ".prettierignore",
+      path: "path" in blocker ? blocker.path : ".lervo/knowledge/document-layout.yaml",
       message: `The current repository document rewrite contract violates ${blocker.code}.`,
     });
   }
-  if ((rewrite.prettierIgnore.beforeContent ?? "") !== rewrite.prettierIgnore.afterContent)
-    issues.push({
-      code: "document_rewrite_ownership_conflict",
-      severity: "error",
-      path: ".prettierignore",
-      message: "The tracked managed document rewrite block is not current.",
-    });
   await lintSemanticManifests(root, issues);
   const manifestDirectory = resolve(root, ".lervo/generated/manifests");
   const manifests: Array<{

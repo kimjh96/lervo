@@ -21,7 +21,7 @@ Prefer explicit names and data flow over abbreviations, hidden conventions, or r
 
 ## Responsibilities and boundaries
 
-Each module needs one cohesive responsibility and primary reason to change. Separate behavior with independently changing policy owners, failure meanings, data lifecycles, or external systems.
+Each module needs one cohesive responsibility and primary reason to change. Separate behavior whose policy owners, failure meanings, data lifecycles, or external systems change independently.
 
 - Entrypoints parse input, invoke application behavior, translate results, and select exit status. Dedicated modules own validation, domain decisions, persistence, rendering, and provider behavior.
 - Domain code owns invariants and decisions. It must not depend on CLI, HTTP, filesystem, database, Codex, or Claude details.
@@ -116,7 +116,7 @@ ESLint owns code-quality defects, and Prettier owns deterministic formatting. `e
 - Browser globals apply only to `apps/hub/assets/**/*.js`; other JavaScript uses Node globals.
 - Markdown with an active Lervo normalization record is excluded dynamically because the reviewed document lifecycle owns those exact bytes and external formatting would create a provider-normalization loop. Unregistered, user-owned Markdown remains under Prettier.
 - Dependencies, build output, coverage, Lervo durable or rebuildable stores, generated knowledge registries and publications, generated release manifests, the generated SBOM, the pnpm lockfile, and provider instruction bridges are also excluded. Their owning checks verify documents, generated artifacts, and managed instruction blocks.
-- The formatter wrapper derives lifecycle-owned paths from tracked normalization records and fails closed on malformed ownership coordinates. The same records project a parser-bounded managed block in `.prettierignore`, so direct Prettier and editor integrations honor exact/reviewed byte owners. A subtree is compacted only when every included document below it has the same exact owner; broad Markdown globs and unsafe negation remain forbidden. Static generated, durable, rebuildable, and provider-managed roots remain in the user-owned region of `.prettierignore`.
+- The formatter wrapper derives lifecycle-owned paths from tracked normalization records and fails closed on malformed ownership coordinates. The neutral ownership registry, not `.prettierignore`, is authoritative. Knowledge lifecycle operations do not write tracked formatter configuration; repository-local wrappers consume the neutral registry without adding tool-specific canonical rules. A subtree may be compacted only when every included document below it has the same exact owner; broad Markdown globs and unsafe negation remain forbidden.
 
 Never disable a rule repository-wide to bypass a finding. Fix the code when possible. If an exception is necessary, add a narrow inline disable beside its reason. Unused disable directives fail lint.
 

@@ -9,25 +9,3 @@ docs/knowledge/
 apps/cli/release-artifact-manifest.json
 apps/cli/release-sbom.cdx.json
 pnpm-lock.yaml
-AGENTS.md
-CLAUDE.md
-# lervo:begin document-rewrite-ownership schema=1
-.github/PULL_REQUEST_TEMPLATE.md
-AGENTS.md
-CLAUDE.md
-apps/cli/README.md
-docs/architecture/
-docs/decisions/
-docs/distribution/
-docs/evidence/
-docs/foundation/code-convention.md
-docs/foundation/commit-convention.md
-docs/instructions/evidence-bound-repository-changes.md
-docs/product/vision.md
-docs/research/provider-instruction-entrypoints.md
-docs/research/repository-knowledge-systems.md
-docs/roadmap/
-docs/specifications/
-docs/specs/document-content-normalization.md
-docs/specs/repository-knowledge-compilation.md
-# lervo:end document-rewrite-ownership

@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_ca0398594354b1fdef7580ff
+freshness: current
+ownership: user
+path: docs/decisions/knowledge/repository/0303-branch-safe-knowledge-reconciliation-and-canonicalization.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_bcd4482262a8169de63d03cc
+title: "ADR-0303: Branch-safe knowledge reconciliation and typed canonicalization"
+type: decision

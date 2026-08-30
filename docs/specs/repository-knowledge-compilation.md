@@ -52,6 +52,8 @@ The taxonomy and route must exist. Invalid or stale metadata blocks planning.
 
 `lervo.structural@1` is deterministic, bounded, read-only, and tool-free. It produces generated indexes and pages; two-hex-sharded bundle, concept, claim, relation, lineage, and bridge sidecars; a compact current inventory; a source-unit summary; an impact projection; and a manifest binding tracked paths and hashes. It retains no historical full source-unit projections and claims only organization and provenance with `unreviewed` assurance.
 
+Reviewed sources and semantic records remain canonical; structural records are rebuildable. [Lifecycle convergence](repository-knowledge-lifecycle-convergence.md) defines merge repair and v2 storage separation.
+
 Inventory displays the structural publication-input snapshot, excluding revision metadata, verification, events, and local-only agent surfaces. Query and normalization may use broader snapshots without making publication stale. Only manifest validation, lint, and the current migration plan determine currency.
 
 ## 6. Entrypoints
@@ -90,6 +92,8 @@ Reconciliation yields create, register-existing, add-relation, managed-block pat
 
 Candidates move through `observed -> candidate -> reviewed -> promoted|rejected|deferred -> superseded`. Exact-hash review and separate promotion bind target hashes, verification, and both agent routes. Promotion creates a missing target or accepts identical bytes; different existing bytes block. Non-check targets extend only the managed AGENTS route consumed by Claude's import.
 
+Repository-changing completion follows the typed [canonicalization assessment](repository-knowledge-lifecycle-convergence.md#canonicalization-assessment); request keywords grant no authority and user-owned content is never auto-promoted.
+
 Candidate and review bodies are immutable CAS artifacts; bounded events rebuild current state. Changed source makes unpromoted work stale and blocks apply, but never rewrites a promoted canonical target.
 
 ## 10. Durable Materialization
@@ -100,7 +104,7 @@ Validate the plan, stage outputs, back up originals, publish exact bytes and del
 
 Knowledge query ranks direct concepts lexically and may derive a separate reviewed relation projection for managed context. The projection follows exactly one current human-reviewed relation from a direct concept, examines at most 64 edges, returns at most five distinct targets, and permits at most two graph selections. Each target path must resolve to one concept and one registered document. Its current bytes are hashed at query time and bound to the source snapshot and impact report; concept records do not pretend to store a document content hash. Exact concept and relation sidecar set hashes make the projection rebuildable, while graph coordinates remain outside search-engine scoring and index identity.
 
-Concept sidecars record title, language, type, path, ownership, lifecycle, source versions, assurance, and freshness. Bundle sidecars record language. Claims cite evidence versions. Relations include `depends_on`, `constrains`, `related_to`, `supersedes`, and `contradicts`. Markdown and sidecars are canonical; graph and lexical indexes are rebuildable.
+Concept sidecars record title, language, type, path, ownership, lifecycle, source versions, assurance, and freshness. Bundle sidecars record language. Claims cite evidence versions. Relations include `depends_on`, `constrains`, `related_to`, `supersedes`, and `contradicts`. User-authored Markdown and reviewed semantic sidecars are canonical; unreviewed structural records, graph, and lexical indexes are rebuildable.
 
 ## 12. Impact and Query
 
@@ -108,7 +112,7 @@ Impact compares stored and current versions and marks subjects `current`, `stale
 
 ## 13. Agent Surfaces
 
-Repository rewriters share the document ownership registry. `lervo_generated`, `managed_blocks`, and reviewed-exact normalization outputs are protected inputs to every formatter, autofix, transform, or generator adapter. `.prettierignore` is a generated and verified adapter projection, not the ownership source. A rewriter without a managed ignore projection must provide a content-bound dry run proving identical before/after hashes for every protected path; an unmanaged rewriter fails closed. User-owned documents are never added to the Lervo-owned set. Shared managed-block documents are protected as whole files from generic rewriters so neither region can be overwritten indirectly.
+[Tool-neutral rewrite ownership](repository-knowledge-lifecycle-convergence.md#tool-neutral-rewrite-ownership) protects generated, managed-block, and reviewed-exact bytes from formatter, autofix, transform, and generator adapters. The neutral registry is authoritative; tracked `.prettierignore` projection is deprecated compatibility state.
 
 Recognized surfaces include AGENTS hierarchy; Claude memory, rules, skills, commands, agents, and settings; Codex rules, hooks, configuration, and custom agents; Agent Skills; and supported third-party entrypoints.
 

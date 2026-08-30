@@ -3,6 +3,8 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [Assisted retrieval iterations](../../roadmap/natural-language-grounding-quality/evaluation-history/assisted-retrieval-iterations.md) — `docs/roadmap/natural-language-grounding-quality/evaluation-history/assisted-retrieval-iterations.md`
+- [Delegated and bounded retrieval](../../roadmap/natural-language-grounding-quality/evaluation-history/delegated-and-bounded-retrieval.md) — `docs/roadmap/natural-language-grounding-quality/evaluation-history/delegated-and-bounded-retrieval.md`
 - [Initial retrieval and grounding](../../roadmap/natural-language-grounding-quality/evaluation-history/initial-retrieval-and-grounding.md) — `docs/roadmap/natural-language-grounding-quality/evaluation-history/initial-retrieval-and-grounding.md`
 - [Phase A delivery](../../roadmap/natural-language-grounding-quality/evaluation-history/phase-a-delivery.md) — `docs/roadmap/natural-language-grounding-quality/evaluation-history/phase-a-delivery.md`
 - [Provider-shadow and managed-canary delivery](../../roadmap/natural-language-grounding-quality/evaluation-history/provider-shadow-delivery.md) — `docs/roadmap/natural-language-grounding-quality/evaluation-history/provider-shadow-delivery.md`
@@ -25,5 +27,3 @@
 - [Managed Linked-Evidence Canary](../../specifications/execution/managed-linked-evidence-canary.md) — `docs/specifications/execution/managed-linked-evidence-canary.md`
 - [Provider Adapter Specification](../../specifications/execution/provider-adapters.md) — `docs/specifications/execution/provider-adapters.md`
 - [Typed Semantic Request Grounding](../../specifications/execution/semantic-grounding.md) — `docs/specifications/execution/semantic-grounding.md`
-- [Local data and state lifecycle](../../specifications/execution/state-lifecycle.md) — `docs/specifications/execution/state-lifecycle.md`
-- [Lervo](../../../README.md) — `README.md`

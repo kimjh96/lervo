@@ -75,6 +75,7 @@ export function formatKnowledgeMigrationPlan(plan: KnowledgeMigrationPlan): stri
     `Repository knowledge ${plan.mode === "refresh" ? "refresh" : "migration"} target: ${plan.repositoryRoot}`,
     `Plan ID: ${plan.planId}`,
     `Plan status: ${plan.status === "ready" ? "ready to apply" : "blocked"}`,
+    `Repair mode: ${plan.repairMode}`,
     `source snapshot: ${plan.sourceSnapshotId}`,
     `coverage: included ${plan.coverage.included}, excluded ${plan.coverage.excluded}, unsupported ${plan.coverage.unsupported}`,
     `Existing user documents registered: ${plan.registeredUserDocuments} (bytes unchanged)`,
@@ -84,9 +85,12 @@ export function formatKnowledgeMigrationPlan(plan: KnowledgeMigrationPlan): stri
     `File plan: create ${counts.get("create") ?? 0}, update ${counts.get("update") ?? 0}, delete ${counts.get("delete") ?? 0}, unchanged ${counts.get("unchanged") ?? 0}, conflict ${counts.get("conflict") ?? 0}`,
   ];
   for (const operation of plan.operations.filter((item) => item.action === "conflict")) {
-    lines.push(
-      `  conflict ${operation.path}: ${operation.reason ?? "Existing bytes will be preserved."}`,
-    );
+    const explanation =
+      operation.reason === "existing_bytes_are_not_a_recorded_lervo_generation" &&
+      /^\.lervo\/knowledge\/(?:bundles|concepts)\//u.test(operation.path)
+        ? "unrecorded generated record, often caused by a Git merge resolution; review `lervo knowledge refresh --rebuild`, then apply its exact plan"
+        : (operation.reason ?? "Existing bytes will be preserved.");
+    lines.push(`  conflict ${operation.path}: ${explanation}`);
   }
   for (const artifact of plan.agentArtifacts.items.filter(
     (item) =>
@@ -111,7 +115,7 @@ export function formatKnowledgeMigrationPlan(plan: KnowledgeMigrationPlan): stri
   ) {
     lines.push(
       "No files have been changed.",
-      `Run again with --apply ${plan.planId} to apply this plan.`,
+      `Run again with ${plan.repairMode === "replace_unrecorded_structural_records" ? "--rebuild " : ""}--apply ${plan.planId} to apply this plan.`,
     );
   }
   return `${lines.join("\n")}\n`;

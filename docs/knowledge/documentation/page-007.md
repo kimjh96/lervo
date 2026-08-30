@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0228: Organization Deployment Policy and Runtime Credentials](../../decisions/operations/security/0228-organization-deployment-policy-and-runtime-credentials.md) — `docs/decisions/operations/security/0228-organization-deployment-policy-and-runtime-credentials.md`
 - [ADR-0229: Organization Node Enrollment and Gradual Rollout](../../decisions/operations/security/0229-organization-node-enrollment-and-gradual-rollout.md) — `docs/decisions/operations/security/0229-organization-node-enrollment-and-gradual-rollout.md`
 - [ADR-0230: Owner-Only File Organization Credential Source](../../decisions/operations/security/0230-owner-only-file-organization-credential-source.md) — `docs/decisions/operations/security/0230-owner-only-file-organization-credential-source.md`
 - [ADR-0231: Authenticated Node Organization Credential Activation](../../decisions/operations/security/0231-authenticated-node-organization-credential-activation.md) — `docs/decisions/operations/security/0231-authenticated-node-organization-credential-activation.md`
@@ -26,4 +27,3 @@
 - [ADR-0076: Versioned Trace-Report Compatibility Contract](../../decisions/operations/trace/0076-versioned-trace-report-contract.md) — `docs/decisions/operations/trace/0076-versioned-trace-report-contract.md`
 - [ADR-0077: Bounded trace source reads that expose truncation](../../decisions/operations/trace/0077-bounded-trace-source-reads.md) — `docs/decisions/operations/trace/0077-bounded-trace-source-reads.md`
 - [ADR-0078: Snapshot-bound local trace cursor pages](../../decisions/operations/trace/0078-snapshot-bound-local-trace-pages.md) — `docs/decisions/operations/trace/0078-snapshot-bound-local-trace-pages.md`
-- [ADR-0079: Explicit trace-page event-type filters](../../decisions/operations/trace/0079-explicit-trace-page-event-filter.md) — `docs/decisions/operations/trace/0079-explicit-trace-page-event-filter.md`

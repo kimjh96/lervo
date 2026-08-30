@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0125: npm Staged-Package Review Evidence](../../decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md) — `docs/decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md`
 - [ADR-0126: npm Stage-Approval Authorization](../../decisions/release/staging/0126-cli-npm-stage-approval-authorization.md) — `docs/decisions/release/staging/0126-cli-npm-stage-approval-authorization.md`
 - [ADR-0127: Durable npm Stage-Approval Records](../../decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md) — `docs/decisions/release/staging/0127-cli-npm-stage-approval-durable-records.md`
 - [ADR-0128: Interactive npm Stage-Approval Execution](../../decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md) — `docs/decisions/release/staging/0128-cli-interactive-npm-stage-approval-execution.md`
@@ -26,4 +27,3 @@
 - [ADR-0226: Retire local hybrid and evaluate a bounded model fallback](../../decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md) — `docs/decisions/search/0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md`
 - [ADR-0238: Evaluate evidence-gap lexical assistance v2](../../decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md) — `docs/decisions/search/0238-evaluate-evidence-gap-lexical-assistance-v2.md`
 - [ADR-0240: Evaluate catalog-assisted retrieval v3](../../decisions/search/0240-evaluate-catalog-assisted-retrieval-v3.md) — `docs/decisions/search/0240-evaluate-catalog-assisted-retrieval-v3.md`
-- [ADR-0241: Evaluate deterministic core-and-term coverage v4](../../decisions/search/0241-evaluate-deterministic-core-term-coverage-v4.md) — `docs/decisions/search/0241-evaluate-deterministic-core-term-coverage-v4.md`

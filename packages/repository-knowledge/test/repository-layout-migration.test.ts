@@ -842,7 +842,7 @@ describe("repository layout migration", () => {
     );
   });
 
-  it("reconciles the managed Prettier block for current normalization ownership", async () => {
+  it("keeps rewrite ownership neutral without projecting tracked formatter configuration", async () => {
     const root = await repository();
     const initial = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
     await applyRepositoryLayoutMigrationPlan({
@@ -880,28 +880,18 @@ describe("repository layout migration", () => {
 
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
 
-    expect(plan.status).toBe("ready");
-    expect(plan.operations).toContainEqual(
-      expect.objectContaining({ path: ".prettierignore", action: "create" }),
+    expect(plan.status).toBe("current");
+    expect(plan.operations).not.toContainEqual(
+      expect.objectContaining({ path: ".prettierignore" }),
     );
-    let transactionLint: Awaited<ReturnType<typeof lintRepositoryKnowledge>> | undefined;
-    await applyRepositoryLayoutMigrationPlan({
-      plan,
-      approvals: [],
-      now: new Date(),
-      recordApplied: async () => {
-        transactionLint = await lintRepositoryKnowledge(root, {
-          allowTransactionPlanId: plan.planId,
-        });
-      },
+    const rewrite = await inspectRepositoryDocumentRewriters({ repositoryRoot: root });
+    expect(rewrite.ownership).toContainEqual({
+      path: "README.md",
+      owner: "reviewer",
+      rewritePolicy: "reviewed_exact",
     });
-    const afterRewrite = await inspectRepositoryDocumentRewriters({ repositoryRoot: root });
-    expect(await readFile(resolve(root, ".prettierignore"), "utf8")).toBe(
-      afterRewrite.prettierIgnore.afterContent,
-    );
-    expect(transactionLint?.issues).not.toContainEqual(
-      expect.objectContaining({ code: "document_rewrite_ownership_conflict" }),
-    );
-    expect(await readFile(resolve(root, ".prettierignore"), "utf8")).toContain("README.md");
+    await expect(access(resolve(root, ".prettierignore"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 });

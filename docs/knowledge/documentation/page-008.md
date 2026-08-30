@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0079: Explicit trace-page event-type filters](../../decisions/operations/trace/0079-explicit-trace-page-event-filter.md) — `docs/decisions/operations/trace/0079-explicit-trace-page-event-filter.md`
 - [ADR-0081: Trace default-output transition contract](../../decisions/operations/trace/0081-trace-output-mode-deprecation.md) — `docs/decisions/operations/trace/0081-trace-output-mode-deprecation.md`
 - [ADR-0082: Machine-readable trace capabilities](../../decisions/operations/trace/0082-machine-readable-trace-capabilities.md) — `docs/decisions/operations/trace/0082-machine-readable-trace-capabilities.md`
 - [ADR-0083: Trace default-transition compatibility fixture](../../decisions/operations/trace/0083-trace-default-transition-fixture.md) — `docs/decisions/operations/trace/0083-trace-default-transition-fixture.md`
@@ -26,4 +27,3 @@
 - [ADR-0107: CLI first-publication package-metadata apply permit](../../decisions/release/bootstrap/0107-cli-first-publication-package-metadata-apply-permit.md) — `docs/decisions/release/bootstrap/0107-cli-first-publication-package-metadata-apply-permit.md`
 - [ADR-0108: CLI first-publication package-metadata apply transaction](../../decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md) — `docs/decisions/release/bootstrap/0108-cli-first-publication-package-metadata-apply-transaction.md`
 - [ADR-0109: Post-apply verification of CLI first-publication package metadata](../../decisions/release/bootstrap/0109-cli-first-publication-package-metadata-post-apply-verification.md) — `docs/decisions/release/bootstrap/0109-cli-first-publication-package-metadata-post-apply-verification.md`
-- [ADR-0110: CLI first-publication external-requirement evidence report](../../decisions/release/bootstrap/0110-cli-first-publication-external-requirement-evidence-report.md) — `docs/decisions/release/bootstrap/0110-cli-first-publication-external-requirement-evidence-report.md`

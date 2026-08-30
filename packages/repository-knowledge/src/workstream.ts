@@ -1294,13 +1294,20 @@ export async function createWorkstreamUpdatePlan(input: {
       message: "The current workstream is missing or invalid.",
     });
   }
-  const desiredValid =
-    validateSchema("workstreamSnapshot", input.snapshot).valid &&
-    pendingCoordinatesValid(input.snapshot as WorkstreamSnapshot);
+  const desiredValidation = validateSchema("workstreamSnapshot", input.snapshot);
+  const pendingValid =
+    desiredValidation.valid && pendingCoordinatesValid(input.snapshot as WorkstreamSnapshot);
+  const desiredValid = desiredValidation.valid && pendingValid;
   if (!desiredValid) {
+    const details = desiredValidation.valid
+      ? "pending decision or approval coordinates are inconsistent"
+      : desiredValidation.errors
+          .slice(0, 8)
+          .map((error) => `${error.instancePath || "/"} ${error.message ?? "is invalid"}`)
+          .join("; ");
     blockers.push({
       code: "invalid_snapshot",
-      message: "The desired workstream does not satisfy the v1 contract.",
+      message: `The desired workstream does not satisfy the v1 contract: ${details}.`,
     });
   }
   const snapshot = desiredValid ? (input.snapshot as WorkstreamSnapshot) : null;

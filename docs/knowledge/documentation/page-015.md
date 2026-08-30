@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [Linked-evidence reconciliation v8 observation](../../evidence/search/linked-evidence-reconciliation-v8.md) — `docs/evidence/search/linked-evidence-reconciliation-v8.md`
 - [Linked-evidence shadow phase A collection preflight](../../evidence/search/linked-evidence-shadow-phase-a-preflight.md) — `docs/evidence/search/linked-evidence-shadow-phase-a-preflight.md`
 - [Linked-evidence shadow phase A registered-corpus pilot v1](../../evidence/search/linked-evidence-shadow-phase-a-registered-pilot-v1.md) — `docs/evidence/search/linked-evidence-shadow-phase-a-registered-pilot-v1.md`
 - [Linked-evidence shadow phase A registered-corpus pilot v2](../../evidence/search/linked-evidence-shadow-phase-a-registered-pilot-v2.md) — `docs/evidence/search/linked-evidence-shadow-phase-a-registered-pilot-v2.md`
@@ -26,4 +27,3 @@
 - [Managed linked-evidence canary v7 terminal report](../../evidence/search/provider-shadow/linked-evidence-managed-canary-v7.md) — `docs/evidence/search/provider-shadow/linked-evidence-managed-canary-v7.md`
 - [Managed linked-evidence canary v8 terminal report](../../evidence/search/provider-shadow/linked-evidence-managed-canary-v8.md) — `docs/evidence/search/provider-shadow/linked-evidence-managed-canary-v8.md`
 - [Managed linked-evidence canary v9 terminal report](../../evidence/search/provider-shadow/linked-evidence-managed-canary-v9.md) — `docs/evidence/search/provider-shadow/linked-evidence-managed-canary-v9.md`
-- [Four-case claim-coverage provider-shadow v12](../../evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v12.md) — `docs/evidence/search/provider-shadow/linked-evidence-provider-shadow-pilot-v12.md`

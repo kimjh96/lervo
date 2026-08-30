@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_2c2ad142cd3c7c5857a045e3
+  - uv_db6fbb58ceb33703678f6df5
 title: "ADR-0170: Evidence-Bound Repository Knowledge Compilation and Migration"
 type: decision

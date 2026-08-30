@@ -135,6 +135,7 @@ export async function applyKnowledgeMigrationPlan(
   const currentPlan = await createKnowledgeMigrationPlan({
     repositoryRoot: root,
     mode: plan.mode,
+    repairMode: plan.repairMode,
     supplementalSources: options.supplementalSources,
   });
   if (currentPlan.planId !== plan.planId) {

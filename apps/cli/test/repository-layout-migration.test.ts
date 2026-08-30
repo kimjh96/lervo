@@ -73,6 +73,22 @@ describe("repository layout migration CLI", () => {
 
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    const structural = JSON.parse(messages.join("")) as {
+      planId: string;
+      status: string;
+    };
+    expect(structural.status).toBe("ready");
+    messages.length = 0;
+    expect(
+      await runCli(["migrate", "knowledge", "--apply", structural.planId, "--json"], io),
+      errors.join(""),
+    ).toBe(0);
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      type: "knowledge.materialization.applied",
+    });
+
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
     const bridge = JSON.parse(messages.join("")) as {
       planId: string;
       operationId: string;
@@ -104,7 +120,7 @@ describe("repository layout migration CLI", () => {
       "<!-- lervo:begin block=provider_entry schema=1 -->\n@AGENTS.md\n<!-- lervo:end block=provider_entry -->\n",
     );
     expect(errors).toEqual([]);
-  });
+  }, 15_000);
 
   it("completes plan, approved apply, lint, and idempotent rerun through migrate knowledge", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-layout-migration-"));
@@ -227,7 +243,9 @@ describe("repository layout migration CLI", () => {
       await runCli(["migrate", "knowledge", "--apply", refresh.planId, "--json"], io),
       errors.join(""),
     ).toBe(0);
-    expect(JSON.parse(messages.join(""))).toMatchObject({ operation: "instruction_bridge_update" });
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      type: "knowledge.materialization.applied",
+    });
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
     const rerun = JSON.parse(messages.join("")) as {

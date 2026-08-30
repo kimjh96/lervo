@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0267: Retain bounded selection-violation codes](../../decisions/search/activation/0267-retain-bounded-selection-violation-codes.md) — `docs/decisions/search/activation/0267-retain-bounded-selection-violation-codes.md`
 - [ADR-0268: Diagnose and confirm claim coverage in v13](../../decisions/search/activation/0268-diagnose-and-confirm-claim-coverage-v13.md) — `docs/decisions/search/activation/0268-diagnose-and-confirm-claim-coverage-v13.md`
 - [ADR-0269: Test request-scoped claim coverage in v14](../../decisions/search/activation/0269-test-request-scoped-claim-coverage-v14.md) — `docs/decisions/search/activation/0269-test-request-scoped-claim-coverage-v14.md`
 - [ADR-0270: Enforce structured Codex provider-shadow carriers](../../decisions/search/activation/provider-shadow-structured/0270-enforce-structured-codex-provider-shadow-carriers.md) — `docs/decisions/search/activation/provider-shadow-structured/0270-enforce-structured-codex-provider-shadow-carriers.md`
@@ -26,4 +27,3 @@
 - [ADR-0289: Use a past manifest clock for key-free managed canary v10](../../decisions/search/activation/provider-shadow-structured/0289-use-past-manifest-clock-for-key-free-managed-canary-v10.md) — `docs/decisions/search/activation/provider-shadow-structured/0289-use-past-manifest-clock-for-key-free-managed-canary-v10.md`
 - [ADR-0290: Forward linked selections for key-free managed canary v11](../../decisions/search/activation/provider-shadow-structured/0290-forward-linked-selections-for-key-free-managed-canary-v11.md) — `docs/decisions/search/activation/provider-shadow-structured/0290-forward-linked-selections-for-key-free-managed-canary-v11.md`
 - [ADR-0291: Constrain provider-neutral E4 references for managed canary v12](../../decisions/search/activation/provider-shadow-structured/0291-constrain-provider-neutral-e4-references-for-managed-canary-v12.md) — `docs/decisions/search/activation/provider-shadow-structured/0291-constrain-provider-neutral-e4-references-for-managed-canary-v12.md`
-- [ADR-0292: Reject prompt-only E4 constraint after managed canary v12](../../decisions/search/activation/provider-shadow-structured/0292-reject-prompt-only-e4-constraint-after-managed-canary-v12.md) — `docs/decisions/search/activation/provider-shadow-structured/0292-reject-prompt-only-e4-constraint-after-managed-canary-v12.md`

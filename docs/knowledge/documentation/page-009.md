@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0110: CLI first-publication external-requirement evidence report](../../decisions/release/bootstrap/0110-cli-first-publication-external-requirement-evidence-report.md) — `docs/decisions/release/bootstrap/0110-cli-first-publication-external-requirement-evidence-report.md`
 - [ADR-0111: CLI first-publication bootstrap v2 evidence binding](../../decisions/release/bootstrap/0111-cli-first-publication-bootstrap-v2-evidence-integration.md) — `docs/decisions/release/bootstrap/0111-cli-first-publication-bootstrap-v2-evidence-integration.md`
 - [ADR-0112: One-time CLI first-publication arming authorization](../../decisions/release/bootstrap/0112-cli-first-publication-arming-authorization.md) — `docs/decisions/release/bootstrap/0112-cli-first-publication-arming-authorization.md`
 - [ADR-0113: Reconcile Unknown CLI First-Publication Outcomes](../../decisions/release/bootstrap/0113-cli-first-publication-unknown-outcome-reconciliation.md) — `docs/decisions/release/bootstrap/0113-cli-first-publication-unknown-outcome-reconciliation.md`
@@ -26,4 +27,3 @@
 - [ADR-0122: Stage-Only Workflow Ref-Reachability Evidence](../../decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md) — `docs/decisions/release/staging/0122-cli-stage-only-workflow-ref-reachability-evidence.md`
 - [ADR-0123: Stage-Only Workflow Execution Evidence](../../decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md) — `docs/decisions/release/staging/0123-cli-stage-only-workflow-execution-evidence.md`
 - [ADR-0124: npm Stage-Result Artifact Evidence](../../decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md) — `docs/decisions/release/staging/0124-cli-npm-stage-result-artifact-evidence.md`
-- [ADR-0125: npm Staged-Package Review Evidence](../../decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md) — `docs/decisions/release/staging/0125-cli-npm-staged-package-review-evidence.md`

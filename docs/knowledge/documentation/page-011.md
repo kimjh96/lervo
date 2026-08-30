@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0241: Evaluate deterministic core-and-term coverage v4](../../decisions/search/0241-evaluate-deterministic-core-term-coverage-v4.md) — `docs/decisions/search/0241-evaluate-deterministic-core-term-coverage-v4.md`
 - [ADR-0243: Evaluate observable reference markers v5](../../decisions/search/0243-evaluate-observable-reference-markers-v5.md) — `docs/decisions/search/0243-evaluate-observable-reference-markers-v5.md`
 - [ADR-0244: Evaluate marker-derived source paths v6](../../decisions/search/0244-evaluate-marker-derived-source-paths-v6.md) — `docs/decisions/search/0244-evaluate-marker-derived-source-paths-v6.md`
 - [ADR-0245: Evaluate staged evidence selection v7](../../decisions/search/0245-evaluate-staged-evidence-selection-v7.md) — `docs/decisions/search/0245-evaluate-staged-evidence-selection-v7.md`
@@ -26,4 +27,3 @@
 - [ADR-0264: Measure only unambiguous provider-shadow cases in v10](../../decisions/search/activation/0264-measure-only-unambiguous-provider-shadow-cases-v10.md) — `docs/decisions/search/activation/0264-measure-only-unambiguous-provider-shadow-cases-v10.md`
 - [ADR-0265: Test claim coverage before minimization in v11](../../decisions/search/activation/0265-test-claim-coverage-before-minimization-v11.md) — `docs/decisions/search/activation/0265-test-claim-coverage-before-minimization-v11.md`
 - [ADR-0266: Confirm claim coverage over four cases in v12](../../decisions/search/activation/0266-confirm-claim-coverage-over-four-cases-v12.md) — `docs/decisions/search/activation/0266-confirm-claim-coverage-over-four-cases-v12.md`
-- [ADR-0267: Retain bounded selection-violation codes](../../decisions/search/activation/0267-retain-bounded-selection-violation-codes.md) — `docs/decisions/search/activation/0267-retain-bounded-selection-violation-codes.md`

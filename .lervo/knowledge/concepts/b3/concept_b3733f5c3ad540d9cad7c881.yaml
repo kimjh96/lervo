@@ -1,0 +1,14 @@
+assurance: unreviewed
+bundleId: bundle_451efff12346a56316cb37e3
+conceptId: concept_b3733f5c3ad540d9cad7c881
+freshness: current
+ownership: user
+path: docs/specs/repository-knowledge-lifecycle-convergence.md
+publicationLanguage: en
+publicationProfile: explanation
+publicationStatus: stable
+schemaVersion: 1
+sourceUnitVersionIds:
+  - uv_bc809ce0675d596529c92fbb
+title: Repository knowledge lifecycle convergence
+type: concept

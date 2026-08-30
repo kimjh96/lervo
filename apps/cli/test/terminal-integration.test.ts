@@ -16,6 +16,8 @@ import {
   createKnowledgeInstructionBridgePlan,
   createKnowledgeMigrationPlan,
   createTerminalIntegrationPlan,
+  lintRepositoryKnowledge,
+  listKnowledgeArtifactPaths,
   sha256,
   terminalHookCommand,
 } from "@lervo/repository-knowledge";
@@ -862,6 +864,92 @@ describe("terminal integration CLI", () => {
       referenceCount: 0,
       observationEventId: expect.stringMatching(/^evt_/u),
     });
+    expect(errors).toEqual([]);
+  });
+
+  it("keeps structural publications when a later lifecycle stage was already stale", async () => {
+    const root = await initializedRepository();
+    await writeFile(
+      resolve(root, "CLAUDE.md"),
+      `${await readFile(resolve(root, "CLAUDE.md"), "utf8")}\nUser-owned trailing guidance.\n`,
+    );
+    await rm(resolve(root, "docs/knowledge"), { recursive: true });
+    const messages: string[] = [];
+    const errors: string[] = [];
+    const io = {
+      cwd: root,
+      stdout: (message: string) => messages.push(message),
+      stderr: (message: string) => errors.push(message),
+    };
+    expect(await runCli(["knowledge", "refresh", "--json"], io), errors.join("")).toBe(0);
+    const plan = JSON.parse(messages.join("")) as { planId: string };
+    messages.length = 0;
+    expect(
+      await runCli(["knowledge", "refresh", "--apply", plan.planId, "--json"], io),
+      errors.join(""),
+    ).toBe(0);
+    await expect(access(resolve(root, "docs/knowledge/index.md"))).resolves.toBeUndefined();
+    const lint = await lintRepositoryKnowledge(root);
+    expect(lint.issues).toContainEqual(
+      expect.objectContaining({ code: "instruction_bridge_binding_stale" }),
+    );
+  });
+
+  it("surfaces a bounded repository error when lifecycle planning fails", async () => {
+    const root = await initializedRepository();
+    await runCli(["terminal", "hook", "--provider", "claude", "--contract", "2"], {
+      cwd: root,
+      stdout: () => undefined,
+      stderr: () => undefined,
+      stdin: async () =>
+        JSON.stringify({
+          hook_event_name: "UserPromptSubmit",
+          session_id: "claude-session-bridge-failure",
+          prompt: "repository guidance",
+        }),
+    });
+    const conceptPath = (
+      await listKnowledgeArtifactPaths({
+        root,
+        directory: ".lervo/knowledge/concepts",
+        extension: "yaml",
+        maximumFiles: 20_000,
+      })
+    )[0]!;
+    await writeFile(resolve(root, conceptPath), "schemaVersion: 1\nmergeResolved: true\n");
+    const messages: string[] = [];
+    const errors: string[] = [];
+    expect(
+      await runCli(["terminal", "hook", "--provider", "claude", "--contract", "2"], {
+        cwd: root,
+        stdout: (message) => messages.push(message),
+        stderr: (message) => errors.push(message),
+        stdin: async () =>
+          JSON.stringify({
+            hook_event_name: "Stop",
+            session_id: "claude-session-bridge-failure",
+            last_assistant_message: "Lifecycle check only.",
+          }),
+      }),
+      errors.join(""),
+    ).toBe(0);
+    const output = JSON.parse(messages.join("")) as { decision: string; reason: string };
+    expect(output.decision).toBe("block");
+    expect(output.reason).toContain("repository_layout_inspection_failed");
+    expect(output.reason).toContain("knowledge_concept_registry_incomplete");
+    expect(output.reason).toContain("The knowledge concept registry is incomplete");
+    expect(errors).toEqual([]);
+
+    messages.length = 0;
+    expect(
+      await runCli(["terminal", "status"], {
+        cwd: root,
+        stdout: (message) => messages.push(message),
+        stderr: (message) => errors.push(message),
+      }),
+    ).toBe(1);
+    expect(messages.join("")).toContain("repository_layout_inspection_failed");
+    expect(messages.join("")).toContain("The knowledge concept registry is incomplete");
     expect(errors).toEqual([]);
   });
 

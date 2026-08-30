@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e04eef6180bed8af2c42e54b
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_501ed5181422f66cac2d32f3
+outputLanguage: en
+outputs:
+  - byteCount: 3956
+    contentHash: sha256:4d95505403601bc92c68aada8b5115ea57a837da1848ccedfcc47072aa778f69
+    path: docs/decisions/knowledge/repository/0220-evidence-bound-development-pattern-promotion.md
+    userRegionHash: sha256:4d95505403601bc92c68aada8b5115ea57a837da1848ccedfcc47072aa778f69
+profile: decision_record
+recordId: knormdoc_f0728ab640b616bec5249908
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:64f153e021c4f2ef243f987b2ffa7e26e17cd7cee0c51e31e4c648756dcfbdea
+sourcePath: docs/decisions/knowledge/repository/0220-evidence-bound-development-pattern-promotion.md
+sourceUnitVersionIds:
+  - uv_3124ab1c902a2431b6ee642c
+  - uv_366db5af61b11b2feda765e4
+  - uv_c4cb434e48010976c34768e2
+  - uv_ff27853d8949ac05095f387f
+  - uv_ff97c40eb8a3f0d3e00343fa

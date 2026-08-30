@@ -3,6 +3,7 @@
 
 > Generated navigation over user-owned publications. Linked source bytes remain at their original paths.
 
+- [ADR-0292: Reject prompt-only E4 constraint after managed canary v12](../../decisions/search/activation/provider-shadow-structured/0292-reject-prompt-only-e4-constraint-after-managed-canary-v12.md) — `docs/decisions/search/activation/provider-shadow-structured/0292-reject-prompt-only-e4-constraint-after-managed-canary-v12.md`
 - [ADR-0293: Type task evidence and governance context](../../decisions/search/activation/provider-shadow-structured/0293-type-task-evidence-and-governance-context.md) — `docs/decisions/search/activation/provider-shadow-structured/0293-type-task-evidence-and-governance-context.md`
 - [ADR-0294: Prepare typed-context managed canary v13](../../decisions/search/activation/provider-shadow-structured/0294-prepare-typed-context-managed-canary-v13.md) — `docs/decisions/search/activation/provider-shadow-structured/0294-prepare-typed-context-managed-canary-v13.md`
 - [ADR-0295: Authorize typed-context managed canary v14](../../decisions/search/activation/provider-shadow-structured/typed-context/0295-authorize-typed-context-managed-canary-v14.md) — `docs/decisions/search/activation/provider-shadow-structured/typed-context/0295-authorize-typed-context-managed-canary-v14.md`
@@ -26,4 +27,3 @@
 - [Installed organization Node multi-device rollout acceptance v1](../../evidence/operations/organization-node-multi-device-rollout-v1.md) — `docs/evidence/operations/organization-node-multi-device-rollout-v1.md`
 - [Managed context grounding acceptance pilot](../../evidence/pilots/managed-context-grounding.md) — `docs/evidence/pilots/managed-context-grounding.md`
 - [Reviewed document normalization acceptance](../../evidence/pilots/reviewed-document-normalization.md) — `docs/evidence/pilots/reviewed-document-normalization.md`
-- [Shiflo v0 acceptance pilot](../../evidence/pilots/shiflo-v0.md) — `docs/evidence/pilots/shiflo-v0.md`

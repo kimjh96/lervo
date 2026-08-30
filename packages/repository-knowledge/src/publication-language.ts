@@ -77,6 +77,8 @@ const english: RepositoryPublicationMessages = {
     "Treat generated indexes as navigation, not proof that content was loaded or used.",
     "Preserve user-owned bytes and edit only explicitly managed Lervo blocks.",
     "Keep entrypoints short; put each independent concern in a separate document.",
+    "Route durable outcomes by responsibility: behavioral obligations belong in canonical instruction documents, product and system facts in their owning specifications or decisions, and mutable continuation only in the current workstream.",
+    "Before completion, assess whether changed evidence requires a canonical-source update or a review candidate; never rely on conversation memory or expand AGENTS with unrelated knowledge.",
     "Run the repository's relevant verification and `lervo knowledge lint` after changes.",
     "Translate explicit natural-language requests to hire, assign, inspect, resolve, hand off, or retire repository agents into the corresponding Lervo operation yourself; never ask the user to type bookkeeping commands.",
     "Resolve built-in and repository roles through the versioned role registry; create a custom role source only with its first requested artifact, and preserve exact role, capability, verification, ancestry, and hash validation.",

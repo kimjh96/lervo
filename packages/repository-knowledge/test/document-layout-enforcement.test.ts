@@ -43,7 +43,7 @@ describe("repository document layout enforcement", () => {
     );
   });
 
-  it("accepts a structurally different external repository and both adapter forms", async () => {
+  it("accepts a structurally different external repository and an explicit adapter", async () => {
     const root = await repository();
     const operation = {
       path: "guides/getting-started.mdx",
@@ -73,7 +73,7 @@ describe("repository document layout enforcement", () => {
       transformObservations: [],
     });
     expect(rewriters.status).toBe("compatible");
-    expect(rewriters.prettierDescriptor.compatibility.kind).toBe("managed_ignore");
+    expect(rewriters.ownership).toEqual([]);
     expect(transform.compatibility.kind).toBe("content_bound_dry_run");
   });
 

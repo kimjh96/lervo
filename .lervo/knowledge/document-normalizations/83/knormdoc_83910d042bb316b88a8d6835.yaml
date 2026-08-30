@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e04eef6180bed8af2c42e54b
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5b29e0cbe7f050ff646b3e99
+outputLanguage: en
+outputs:
+  - byteCount: 3074
+    contentHash: sha256:548904f40575b1c426db24564b6f622344f952d95e112a650ada9a311fbd8a43
+    path: docs/roadmap/knowledge/branch-safe-lifecycle.md
+    userRegionHash: sha256:548904f40575b1c426db24564b6f622344f952d95e112a650ada9a311fbd8a43
+profile: roadmap_document
+recordId: knormdoc_83910d042bb316b88a8d6835
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:548904f40575b1c426db24564b6f622344f952d95e112a650ada9a311fbd8a43
+sourcePath: docs/roadmap/knowledge/branch-safe-lifecycle.md
+sourceUnitVersionIds:
+  - uv_184698b8f9f1fdc2c493cf11
+  - uv_2f3fce62982181af861a742b
+  - uv_48f0081d59c696f7a529975d
+  - uv_5517a589128619b81832b840
+  - uv_9d84fb6293f811f9aae9aef3
+  - uv_ecad063b5b583c22bc570a8e
+  - uv_ef44fc50c2045e56dae1dd3a
+  - uv_f3d510bde02f266674ac0c7b

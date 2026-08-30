@@ -525,6 +525,54 @@ describe("repository knowledge migration", () => {
     );
   });
 
+  it("rebuilds only explicitly authorized unrecorded structural records", async () => {
+    const root = await repository();
+    await writeFile(resolve(root, "README.md"), "# Merge fixture\n\nStable source.\n");
+    await initialize(root);
+    await applyKnowledgeMigrationPlan(
+      await createKnowledgeMigrationPlan({ repositoryRoot: root }),
+      new Date("2026-08-30T00:00:00Z"),
+      () => undefined,
+    );
+    const conceptPath = (
+      await listKnowledgeArtifactPaths({
+        root,
+        directory: ".lervo/knowledge/concepts",
+        extension: "yaml",
+        maximumFiles: 20_000,
+      })
+    )[0]!;
+    const recorded = await readFile(resolve(root, conceptPath), "utf8");
+    await writeFile(resolve(root, conceptPath), `${recorded}# merge-resolved branch bytes\n`);
+
+    const blocked = await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "refresh" });
+    expect(blocked.status).toBe("blocked");
+    expect(blocked.operations).toContainEqual(
+      expect.objectContaining({
+        path: conceptPath,
+        action: "conflict",
+        reason: "existing_bytes_are_not_a_recorded_lervo_generation",
+      }),
+    );
+
+    const repair = await createKnowledgeMigrationPlan({
+      repositoryRoot: root,
+      mode: "refresh",
+      repairMode: "replace_unrecorded_structural_records",
+    });
+    expect(repair.status).toBe("ready");
+    expect(repair.operations).toContainEqual(
+      expect.objectContaining({
+        path: conceptPath,
+        action: "update",
+        reason: "repair_unrecorded_structural_record",
+      }),
+    );
+    await applyKnowledgeMigrationPlan(repair, new Date("2026-08-30T00:01:00Z"), () => undefined);
+    expect(await readFile(resolve(root, conceptPath), "utf8")).toBe(recorded);
+    expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
+  });
+
   it("never reads secret-candidate bytes into generated output", async () => {
     const root = await repository();
     await writeFile(resolve(root, ".env"), "API_TOKEN=super-secret-fixture-value\n");

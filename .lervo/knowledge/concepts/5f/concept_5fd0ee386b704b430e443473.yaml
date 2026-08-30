@@ -9,6 +9,6 @@ publicationProfile: explanation
 publicationStatus: stable
 schemaVersion: 1
 sourceUnitVersionIds:
-  - uv_153a64a4e3e49d4474ec08f8
+  - uv_2e1c32b2050712b1b111b8e1
 title: "ADR-0220: Evidence-bound development-pattern promotion"
 type: decision

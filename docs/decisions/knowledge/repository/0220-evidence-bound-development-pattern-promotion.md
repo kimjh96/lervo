@@ -5,7 +5,7 @@ Date: 2026-08-26
 
 ## Context
 
-Repository compilation can discover repeated structures, but repetition, provider agreement, and source presence do not establish a convention. Review corrections and implementation invariants therefore remained implicit, while automatic promotion would incorrectly turn model output into repository authority.
+Repository compilation can discover repeated structures, but repetition, provider agreement, and source presence do not establish a convention. Review corrections and implementation invariants therefore remained implicit, while automatic promotion would incorrectly make model output repository authority.
 
 ## Decision
 
@@ -15,6 +15,7 @@ Repository compilation can discover repeated structures, but repetition, provide
 - Review requires the exact candidate content hash and records accept, reject, defer, or supersede. Promotion is a separate exact plan/apply transaction exposing every target, replacement hash, verification command, and Codex/Claude agent route. Plan telemetry never includes candidate or target bodies.
 - Target ownership is explicit: repository obligations use foundation or instruction Markdown; scoped behavior uses `docs/instructions`; portable workflows use `.agents/skills/*/SKILL.md`; tradeoffs use ADR paths; and checks use `scripts/check-*.mjs`. V1 creates a new exact target or accepts identical bytes; conflicting existing user bytes block. Non-check targets add or extend only the Lervo-managed AGENTS route block. Claude reaches the same exact route through its AGENTS import.
 - A changed source snapshot marks a candidate stale and blocks a not-yet-applied promotion. It does not rewrite or delete an already promoted canonical target; a current plan reports the stale source separately.
+- Every repository-changing completion performs a typed canonicalization assessment. It routes by source responsibility, ownership, and lifecycle coordinates rather than request keywords. The assessment may update an already authorized canonical source, create a review candidate, or record a bounded pending decision; it never turns the workstream or conversation memory into canonical truth.
 
 ## Consequences
 

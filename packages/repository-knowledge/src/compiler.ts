@@ -764,6 +764,7 @@ async function inspectOperation(input: {
   root: string;
   output: DesiredOutput;
   previousHashes: Map<string, Set<string>>;
+  repairMode: KnowledgeMigrationPlan["repairMode"];
 }): Promise<KnowledgeFileOperation> {
   const desired = {
     path: input.output.path,
@@ -808,6 +809,20 @@ async function inspectOperation(input: {
         action: "update",
         ownership: "lervo_generated",
         expectedCurrentHash: currentHash,
+      };
+    }
+    if (
+      input.repairMode === "replace_unrecorded_structural_records" &&
+      /^\.lervo\/knowledge\/(?:bundles|concepts)\/[a-f0-9]{2}\/(?:bundle|concept)_[a-f0-9]{24}\.yaml$/u.test(
+        input.output.path,
+      )
+    ) {
+      return {
+        ...desired,
+        action: "update",
+        ownership: "lervo_generated",
+        expectedCurrentHash: currentHash,
+        reason: "repair_unrecorded_structural_record",
       };
     }
     return {
@@ -865,6 +880,7 @@ async function inspectDeleteOperation(input: {
 export async function createKnowledgeMigrationPlan(input: {
   repositoryRoot: string;
   mode?: "migrate" | "refresh";
+  repairMode?: KnowledgeMigrationPlan["repairMode"];
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
 }): Promise<KnowledgeMigrationPlan> {
   const root = resolve(input.repositoryRoot);
@@ -881,6 +897,7 @@ export async function createKnowledgeMigrationPlan(input: {
     scan,
     previous,
     mode: input.mode ?? "migrate",
+    repairMode: input.repairMode ?? "none",
   });
 }
 
@@ -891,6 +908,7 @@ async function buildKnowledgeMigrationPlan(input: {
   scan: RepositoryKnowledgeScan;
   previous: Awaited<ReturnType<typeof previousGenerated>>;
   mode: "migrate" | "refresh";
+  repairMode: KnowledgeMigrationPlan["repairMode"];
 }): Promise<KnowledgeMigrationPlan> {
   const { root, manifest, policy, scan, previous } = input;
   const compilation = desiredOutputs({
@@ -955,7 +973,12 @@ async function buildKnowledgeMigrationPlan(input: {
   const operations = [
     ...(await Promise.all(
       allOutputs.map((output) =>
-        inspectOperation({ root, output, previousHashes: previous.hashes }),
+        inspectOperation({
+          root,
+          output,
+          previousHashes: previous.hashes,
+          repairMode: input.repairMode,
+        }),
       ),
     )),
     ...staleOperations,
@@ -968,6 +991,7 @@ async function buildKnowledgeMigrationPlan(input: {
     sourceSnapshotId: scan.snapshotId,
     policyHash: sha256(canonicalJson(policy)),
     compiler: "lervo.structural@1",
+    repairMode: input.repairMode,
     operations: operations.map((operation) =>
       operation.action === "delete"
         ? operation
@@ -981,6 +1005,7 @@ async function buildKnowledgeMigrationPlan(input: {
     repositoryRoot: root,
     status: operations.some((operation) => operation.action === "conflict") ? "blocked" : "ready",
     mode: input.mode,
+    repairMode: input.repairMode,
     sourceSnapshotId: scan.snapshotId,
     policyHash: planMaterials.policyHash,
     compiler: { id: "lervo.structural", version: "1", capability: "bounded_read_only_no_tools" },
@@ -1020,6 +1045,7 @@ export async function createKnowledgeMigrationPlanForScan(input: {
     scan: input.scan,
     previous,
     mode: input.mode ?? "refresh",
+    repairMode: "none",
   });
 }
 

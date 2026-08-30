@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ed1fa8815773cf2451145b4c"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Make repository knowledge merge repair, staged convergence, and terminal diagnostics explicit."

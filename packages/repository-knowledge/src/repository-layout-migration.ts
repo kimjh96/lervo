@@ -25,7 +25,6 @@ import {
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
-import { inspectRepositoryDocumentRewriters } from "./document-rewriter-adapters.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
 import {
@@ -592,6 +591,10 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "The knowledge concept registry is incomplete.",
+      {
+        code: "knowledge_concept_registry_incomplete",
+        message: "The knowledge concept registry is incomplete.",
+      },
     );
   const classificationBlockers: RepositoryLayoutMigrationPlan["blockers"] = [];
   const candidates = scan.sources
@@ -1046,50 +1049,6 @@ export async function createRepositoryLayoutMigrationPlan(input: {
           };
         })
       : [];
-  const rewriters = await inspectRepositoryDocumentRewriters({ repositoryRoot: root });
-  const prettierIgnoreOperations: DurableKnowledgeUserFileOperation[] = [];
-  if ((rewriters.prettierIgnore.beforeContent ?? "") !== rewriters.prettierIgnore.afterContent) {
-    const beforeHash =
-      rewriters.prettierIgnore.beforeContent === null
-        ? undefined
-        : sha256(rewriters.prettierIgnore.beforeContent);
-    const afterHash = sha256(rewriters.prettierIgnore.afterContent);
-    prettierIgnoreOperations.push({
-      path: ".prettierignore",
-      action: rewriters.prettierIgnore.beforeContent === null ? "create" : "update",
-      ownership: "user",
-      mediaType: "text/plain",
-      content: rewriters.prettierIgnore.afterContent,
-      ...(beforeHash === undefined ? {} : { expectedCurrentHash: beforeHash }),
-      desiredHash: afterHash,
-    });
-    if (rewriters.prettierIgnore.approvalRequired) {
-      const operationId = stableId("kdocop", {
-        projectId: scan.projectId,
-        action: "reconcile_document_rewriters",
-        path: ".prettierignore",
-        beforeHash,
-        afterHash,
-        userRegionHash: rewriters.prettierIgnore.userRegionHash,
-      });
-      userUpdates.push({
-        operationId,
-        approvalHash: sha256(
-          canonicalJson({
-            operationId,
-            action: "update_user_document",
-            path: ".prettierignore",
-            beforeHash,
-            afterHash,
-          }),
-        ),
-        path: ".prettierignore",
-        beforeHash: beforeHash!,
-        afterHash,
-        reason: "reconcile_document_rewriters",
-      });
-    }
-  }
   const normalizationOwnershipOperations = await normalizationOwnershipUpgradeOperations(root);
   const taxonomyUpgradeOperation: KnowledgeFileOperation[] = decisionTaxonomyRequiresUpgrade(
     parse(taxonomySource),
@@ -1219,7 +1178,6 @@ export async function createRepositoryLayoutMigrationPlan(input: {
   const operations: RepositoryLayoutMigrationPlan["operations"] = [
     ...taxonomyUpgradeOperation,
     ...normalizationOwnershipOperations,
-    ...prettierIgnoreOperations,
     ...(structural?.operations ?? []),
     ...referenceOperations,
     ...bridgeOperations,
@@ -1236,8 +1194,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
         ? "review_required"
         : machineMoves.length > 0 ||
             taxonomyUpgradeOperation.length > 0 ||
-            normalizationOwnershipOperations.length > 0 ||
-            prettierIgnoreOperations.length > 0
+            normalizationOwnershipOperations.length > 0
           ? "ready"
           : "current";
   const materials = {
