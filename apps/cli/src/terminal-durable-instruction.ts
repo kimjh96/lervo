@@ -9,8 +9,10 @@ import {
 
 export interface TerminalInstructionCatalog {
   complete: boolean;
+  sourceSnapshotId: string;
   semanticCatalog: {
     schemaVersion: 1;
+    retrievalLanguage: string;
     canonicalInstructions: {
       complete: boolean;
       entries: Array<{ path: string; contentHash: string; excerpt: string }>;
@@ -42,7 +44,7 @@ export async function inspectTerminalInstructionCatalog(input: {
   repositoryRoot: string;
   supplementalSources: RepositorySupplementalSource[];
 }): Promise<TerminalInstructionCatalog> {
-  const { scan } = await scanConfiguredRepositoryKnowledge(input.repositoryRoot, {
+  const { policy, scan } = await scanConfiguredRepositoryKnowledge(input.repositoryRoot, {
     supplementalSources: input.supplementalSources,
   });
   const sources = scan.sources
@@ -56,8 +58,10 @@ export async function inspectTerminalInstructionCatalog(input: {
   const complete = sources.length <= 32;
   return {
     complete,
+    sourceSnapshotId: scan.snapshotId,
     semanticCatalog: {
       schemaVersion: 1,
+      retrievalLanguage: policy.publication.language,
       canonicalInstructions: {
         complete,
         entries: sources

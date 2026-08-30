@@ -846,16 +846,23 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       skills: routedSkills.map((item) => ({ path: item.toPath })),
     });
     const blockPattern =
-      /<!-- lervo:begin block=repository_instruction_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n?/u;
+      /<!-- lervo:begin block=repository_instruction_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n?/gu;
     const legacyPatternBlock =
       /\n?<!-- lervo:begin block=development_pattern_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=development_pattern_routes -->\n?/u;
     const existing = referenceChanges.get("AGENTS.md");
     const baseContent = (existing?.content ?? agents.content).replace(legacyPatternBlock, "");
-    const combined = blockPattern.test(baseContent)
-      ? baseContent.replace(blockPattern, block)
-      : `${baseContent}${baseContent.endsWith("\n\n") ? "" : baseContent.endsWith("\n") ? "\n" : "\n\n"}${block}`;
+    const existingBlocks = baseContent.match(blockPattern) ?? [];
+    let replacedBlock = false;
+    const combined =
+      existingBlocks.length > 0
+        ? baseContent.replace(blockPattern, () => {
+            if (replacedBlock) return "";
+            replacedBlock = true;
+            return block;
+          })
+        : `${baseContent}${baseContent.endsWith("\n\n") ? "" : baseContent.endsWith("\n") ? "\n" : "\n\n"}${block}`;
     if (combined !== agents.content) {
-      if (existing === undefined && blockPattern.test(agents.content)) {
+      if (existing === undefined && (agents.content.match(blockPattern)?.length ?? 0) > 0) {
         managedAgentRouteOperation = {
           path: "AGENTS.md",
           action: "update",

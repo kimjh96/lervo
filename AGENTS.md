@@ -2,7 +2,7 @@
 
 ## Before changing anything
 
-Read only the relevant entrypoints and linked ADRs:
+Read only relevant entrypoints and linked ADRs:
 
 - Product scope or terminology: `README.md`, `docs/product/vision.md`
 - Components or data flow: `docs/architecture/system.md`

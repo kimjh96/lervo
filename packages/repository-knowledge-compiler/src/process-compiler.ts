@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -406,6 +406,62 @@ function parseProviderResultText(value: string, provider: "Codex" | "Claude"): u
   }
 }
 
+function providerResponseContractSchema(input: unknown): unknown {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    throw compileFailure("The provider JSON runner input has no response contract.");
+  }
+  const responseContract = (input as Record<string, unknown>).responseContract;
+  if (
+    typeof responseContract !== "object" ||
+    responseContract === null ||
+    Array.isArray(responseContract)
+  ) {
+    throw compileFailure("The provider JSON runner input has no response contract.");
+  }
+  const schema = (responseContract as Record<string, unknown>).schema;
+  if (typeof schema !== "object" || schema === null || Array.isArray(schema)) {
+    throw compileFailure("The provider JSON runner response schema is invalid.");
+  }
+  return schema;
+}
+
+function nativeJsonSchemaType(value: unknown): string | undefined {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "array";
+  switch (typeof value) {
+    case "string":
+    case "boolean":
+      return typeof value;
+    case "number":
+      return Number.isInteger(value) ? "integer" : "number";
+    case "object":
+      return "object";
+    default:
+      return undefined;
+  }
+}
+
+function providerNativeResponseSchema(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((item) => providerNativeResponseSchema(item));
+  if (typeof value !== "object" || value === null) return value;
+  const source = value as Record<string, unknown>;
+  const result = Object.fromEntries(
+    Object.entries(source)
+      .filter(
+        ([key]) =>
+          !["uniqueItems", "minItems", "maxItems", "minLength", "maxLength", "pattern"].includes(
+            key,
+          ),
+      )
+      .map(([key, item]) => [key === "oneOf" ? "anyOf" : key, providerNativeResponseSchema(item)]),
+  );
+  if (result.type === undefined && Object.hasOwn(source, "const")) {
+    const inferred = nativeJsonSchemaType(source.const);
+    if (inferred !== undefined) result.type = inferred;
+  }
+  return result;
+}
+
 function codexFeatureArguments(): string[] {
   return codexDisabledFeatures.flatMap((feature) => ["--disable", feature]);
 }
@@ -489,10 +545,11 @@ function parseCodexOutput<
 
 function parseClaudeOutput<
   T extends { telemetry: SemanticCompilerResponse["telemetry"] } = SemanticCompilerResponse,
->(stdout: string): T {
+>(stdout: string, options: { structuredOutputRequired?: boolean } = {}): T {
   const wrapper = parsedJson(stdout, "Claude did not return a valid JSON result.") as {
     is_error?: unknown;
     result?: unknown;
+    structured_output?: unknown;
     permission_denials?: unknown;
     stop_reason?: unknown;
     num_turns?: unknown;
@@ -505,6 +562,31 @@ function parseClaudeOutput<
     throw policyFailure("A capability permission request was observed during the Claude run.");
   }
   const serverTools = wrapper.usage?.server_tool_use;
+  const structuredOutput = wrapper.structured_output;
+  if (options.structuredOutputRequired === true && structuredOutput === undefined) {
+    throw policyFailure("The Claude run did not return native structured output.");
+  }
+  if (structuredOutput !== undefined) {
+    if (
+      wrapper.is_error !== false ||
+      wrapper.stop_reason !== "tool_use" ||
+      !Number.isSafeInteger(wrapper.num_turns) ||
+      (wrapper.num_turns as number) < 2 ||
+      (serverTools?.web_search_requests ?? 0) !== 0 ||
+      (serverTools?.web_fetch_requests ?? 0) !== 0 ||
+      typeof wrapper.result !== "string" ||
+      typeof structuredOutput !== "object" ||
+      structuredOutput === null ||
+      Array.isArray(structuredOutput)
+    ) {
+      throw policyFailure("The Claude run did not prove the native structured-output contract.");
+    }
+    const resultObject = parseProviderResultText(wrapper.result, "Claude");
+    if (canonicalJson(resultObject) !== canonicalJson(structuredOutput)) {
+      throw policyFailure("The Claude native structured output does not match its final result.");
+    }
+    return observedResponse<T>(structuredOutput);
+  }
   if (
     wrapper.is_error !== false ||
     wrapper.stop_reason !== "end_turn" ||
@@ -686,6 +768,20 @@ export async function createNoCapabilityProviderJsonRunner(
       const directory = await mkdtemp(resolve(tmpdir(), `lervo-${options.provider}-json-`));
       try {
         const prompt = canonicalJson(input);
+        const responseContractSchema = providerResponseContractSchema(input);
+        const responseSchema =
+          options.provider === "codex"
+            ? providerNativeResponseSchema(responseContractSchema)
+            : responseContractSchema;
+        const responseSchemaJson = canonicalJson(responseSchema);
+        const codexResponseSchemaPath = resolve(directory, "response-schema.json");
+        if (options.provider === "codex") {
+          await writeFile(codexResponseSchemaPath, `${responseSchemaJson}\n`, {
+            encoding: "utf8",
+            mode: 0o600,
+            flag: "wx",
+          });
+        }
         const arguments_ =
           options.provider === "claude"
             ? [
@@ -707,6 +803,10 @@ export async function createNoCapabilityProviderJsonRunner(
                 "--no-chrome",
                 "--permission-mode",
                 "dontAsk",
+                "--effort",
+                "low",
+                "--json-schema",
+                responseSchemaJson,
                 ...(options.model === undefined ? [] : ["--model", options.model]),
               ]
             : [
@@ -721,6 +821,10 @@ export async function createNoCapabilityProviderJsonRunner(
                 "--json",
                 "-c",
                 "mcp_servers={}",
+                "-c",
+                'model_reasoning_effort="low"',
+                "--output-schema",
+                codexResponseSchemaPath,
                 ...codexFeatureArguments(),
                 ...(options.model === undefined ? [] : ["--model", options.model]),
                 "-",
@@ -741,7 +845,7 @@ export async function createNoCapabilityProviderJsonRunner(
           options.provider === "claude"
             ? parseClaudeOutput<
                 Record<string, unknown> & { telemetry: SemanticCompilerResponse["telemetry"] }
-              >(result.stdout)
+              >(result.stdout, { structuredOutputRequired: true })
             : parseCodexOutput<
                 Record<string, unknown> & { telemetry: SemanticCompilerResponse["telemetry"] }
               >(result.stdout);

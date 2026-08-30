@@ -46,7 +46,7 @@
     },
     {
       "path": "apps/cli/src/terminal-command-runtime.ts",
-      "contentHash": "sha256:50fd37cbab02ad229ba65a1fcf9d824bfd2f90ed0983918fd81f226a838172f6",
+      "contentHash": "sha256:c39f9e5a72f571e026702b2c1d5409e20e10069b012423a495371d870043d7cc",
       "responsibility": "Direct terminal-integration command runtime",
       "rationale": "The stable terminal command is a one-line facade; this implementation owns direct terminal hook preparation, evidence recording, execution-kind routing, declaration, coverage, and completion gating while workspace policy and terminal semantic-grounding policy remain in linked modules.",
       "disposition": "cohesive"
@@ -158,7 +158,7 @@
     },
     {
       "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
-      "contentHash": "sha256:f5bc0abdf0587090c774672e98e86c976e6519e289a4c327cf79667f1497e394",
+      "contentHash": "sha256:f1b2535f7972e7ade94ef176ca03ba083b378a7b3e2d0c36654bf03dc0f172c5",
       "responsibility": "Isolated no-capability provider process adapter",
       "rationale": "Process control and Codex or Claude response parsing implement one capability-free provider boundary for typed JSON, semantic compilation, and document normalization contracts.",
       "disposition": "cohesive"
@@ -242,7 +242,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:c1f8f78160bcb859973041d170af76fe04e010ed02c8bd85c5203599f1931a7f",
+      "contentHash": "sha256:62b482297711fb764ae03d81ec02fcf6ad0c98cae71e068f6dc86da149fd8895",
       "responsibility": "Repository document-layout migration",
       "rationale": "Classification, link rebasing, neutral ownership-record migration, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction; tool-specific formatter configuration is outside this boundary.",
       "disposition": "cohesive"

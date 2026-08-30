@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_da6eb7a0f16af9daa1dd291a
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7200c78502f5a0f675ae5517
+outputLanguage: en
+outputs:
+  - byteCount: 4124
+    contentHash: sha256:b4f3316fc4910a3904bfb75b93436f678cfe6feaf3bec29096061eb4668f008e
+    path: docs/decisions/execution/grounding/0305-bind-terminal-grounding-to-native-structured-output.md
+    userRegionHash: sha256:b4f3316fc4910a3904bfb75b93436f678cfe6feaf3bec29096061eb4668f008e
+profile: decision_record
+recordId: knormdoc_1412572b4ecbaa3d3ba6b1f1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:972a22be13880cb4bf7205be298f49d20c635a049920c69d8e424c24b1031dc7
+sourcePath: docs/decisions/execution/grounding/0305-bind-terminal-grounding-to-native-structured-output.md
+sourceUnitVersionIds:
+  - uv_115c959ce54a84390c5bff61
+  - uv_205c39cd50b0064efd2c2379
+  - uv_21eeb9020413db762a3527ee
+  - uv_4121272592befc531ac7251a
+  - uv_551c111302e8a867cbfd408a
+  - uv_da47634051d8e69682e034cf

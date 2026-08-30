@@ -485,6 +485,54 @@ describe("repository layout migration", () => {
     );
   });
 
+  it("collapses duplicate legacy and current AGENTS route blocks to one bootstrap", async () => {
+    const root = await repository();
+    await writeFile(
+      resolve(root, "AGENTS.md"),
+      [
+        "# Repository instructions",
+        "",
+        "Keep this user-owned preface.",
+        "",
+        "<!-- lervo:begin block=repository_instruction_routes schema=2 -->",
+        "## Repository instruction bootstrap",
+        "",
+        "- Already migrated.",
+        "<!-- lervo:end block=repository_instruction_routes -->",
+        "",
+        "<!-- lervo:begin block=repository_instruction_routes schema=1 -->",
+        "## Repository instruction routes",
+        "",
+        "- A stale CLI appended this block.",
+        "<!-- lervo:end block=repository_instruction_routes -->",
+        "",
+      ].join("\n"),
+    );
+
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    expect(plan.operations).toContainEqual(
+      expect.objectContaining({ path: "AGENTS.md", ownership: "managed_blocks" }),
+    );
+    await applyRepositoryLayoutMigrationPlan({
+      plan,
+      approvals: plan.moves.map((move) => ({
+        operationId: move.operationId,
+        approvalHash: move.approvalHash,
+      })),
+      now: new Date(),
+      recordApplied: () => undefined,
+    });
+
+    const agents = await readFile(resolve(root, "AGENTS.md"), "utf8");
+    expect(agents.match(/lervo:begin block=repository_instruction_routes/gu)).toHaveLength(1);
+    expect(agents).toContain("block=repository_instruction_routes schema=2");
+    expect(agents).toContain("Keep this user-owned preface.");
+    expect(agents).not.toContain("A stale CLI appended this block.");
+    expect((await createRepositoryLayoutMigrationPlan({ repositoryRoot: root })).status).toBe(
+      "current",
+    );
+  });
+
   it("requires every item approval and rolls back all moves after interruption", async () => {
     const root = await repository();
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });

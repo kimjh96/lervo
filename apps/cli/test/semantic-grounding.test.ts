@@ -93,6 +93,18 @@ describe("production semantic grounding adapter", () => {
         rawRequestOrKeywordFieldsForbidden: true,
       },
     });
+    expect((observedInput as { instruction: string }).instruction).toContain(
+      "include every source class in that workflow's requiredSourceClasses",
+    );
+    expect((observedInput as { instruction: string }).instruction).toContain(
+      "Never promote an inferred repository source path",
+    );
+    expect((observedInput as { instruction: string }).instruction).toContain(
+      "semanticCatalog.retrievalLanguage",
+    );
+    expect((observedInput as { instruction: string }).instruction).toContain(
+      "explicitly named repository concepts and requested explanations as subjects",
+    );
   });
 
   it("translates an invalid provider proposal into a stable adapter failure", async () => {

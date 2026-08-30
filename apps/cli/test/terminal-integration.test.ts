@@ -378,7 +378,10 @@ describe("terminal integration CLI", () => {
       "groundingStatus: abstain; workflowId: none; reasons: semantic_resolution_failed",
     );
     expect(result.hookSpecificOutput?.additionalContext).toContain(
-      "No matching publication was found.",
+      "No publication was selected because typed grounding is abstain.",
+    );
+    expect(result.hookSpecificOutput?.additionalContext).toContain(
+      "selectionDisposition: grounding_not_ready; candidates: 0; selected: 0",
     );
   });
 

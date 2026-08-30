@@ -239,6 +239,10 @@ async function promptContext(
     targetPath: string | null;
     reasonIds: string[];
   };
+  selection: {
+    disposition: "grounding_not_ready" | "retrieval_query_missing" | "no_candidates" | "selected";
+    selectedCount: number;
+  };
 }> {
   const supplementalSources = await collectLocalKnowledgeSources(root);
   const instructionCatalog = await inspectTerminalInstructionCatalog({
@@ -297,11 +301,11 @@ async function promptContext(
     },
   });
   const repositorySnapshot = await captureRepositorySnapshot(root);
-  const retrievalQuery =
-    grounding.retrievalQueries.join("\n") || grounding.subjectIds.join(" ") || "repository context";
+  const retrievalQuery = grounding.retrievalQueries.join("\n") || grounding.subjectIds.join(" ");
   const selection = await selectTerminalContextCandidates({
     repositoryRoot: root,
     retrievalQuery,
+    sourceSnapshotId: instructionCatalog.sourceSnapshotId,
     groundingStatus: grounding.status,
     supplementalSources,
   });
@@ -347,6 +351,7 @@ async function promptContext(
   const preamble = [
     "Lervo terminal integration v2 resolved the request through the current provider adapter, then used only the validated typed source plan for candidate retrieval.",
     `groundingStatus: ${grounding.status}; workflowId: ${grounding.workflowId ?? "none"}; reasons: ${grounding.reasons.join(",") || "none"}`,
+    `selectionDisposition: ${selection.disposition}; candidates: ${selection.candidates.length}; selected: ${selection.selected.length}`,
     `sourceSnapshotId: ${selection.sourceSnapshotId}`,
     "The following exact-hash publications were loaded and prepared for return through the provider hook. This proves hook-side preparation, not provider acceptance, managed delivery, understanding, or later use.",
     "Use current repository bytes as authority, follow AGENTS.md, and do not treat a recommendation as semantic truth.",
@@ -391,7 +396,13 @@ async function promptContext(
     if (MAXIMUM_CONTEXT_BYTES - usedBytes <= 512) break;
   }
   const fallback =
-    "No matching publication was found. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes.";
+    selection.disposition === "grounding_not_ready"
+      ? `No publication was selected because typed grounding is ${grounding.status}. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes.`
+      : selection.disposition === "retrieval_query_missing"
+        ? "No publication was selected because ready typed grounding produced no retrieval query. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes."
+        : selection.disposition === "no_candidates"
+          ? "No current publication matched the validated retrieval query. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes."
+          : "Selected publications could not be exact-hash loaded. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes.";
   const additionalContext = assembleTerminalHookContext({
     preamble,
     workstreamContext: workstream?.context ?? null,
@@ -419,6 +430,10 @@ async function promptContext(
       reasons: grounding.reasons,
     },
     durableInstruction,
+    selection: {
+      disposition: selection.disposition,
+      selectedCount: selection.selected.length,
+    },
   };
 }
 
@@ -1062,8 +1077,8 @@ async function recordPreparedContext(input: {
           durableInstructionRuleId: input.context.durableInstruction.ruleId,
           durableInstructionTargetPath: input.context.durableInstruction.targetPath,
           durableInstructionReasonIds: input.context.durableInstruction.reasonIds,
-          selectionStatus: input.context.grounding.status === "ready" ? "selected" : "not_selected",
-          loadingStatus: input.context.grounding.status === "ready" ? "observed" : "not_run",
+          selectionStatus: input.context.selection.selectedCount > 0 ? "selected" : "not_selected",
+          loadingStatus: input.context.selection.selectedCount > 0 ? "observed" : "not_run",
           hookPreparationStatus: "observed",
           providerInjectionStatus: "unobserved",
           providerUseStatus: "unknown",
