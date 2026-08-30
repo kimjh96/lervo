@@ -724,7 +724,7 @@ function desiredOutputs(input: {
               "",
               `## ${messages.readmeStartHeading}`,
               "",
-              `- [${messages.repositoryKnowledgeLink}](${indexPath})`,
+              `- ${messages.repositoryKnowledgeEntry(indexPath)}`,
               ...messages.readmeRules.map((rule) => `- ${rule}`),
               "",
             ].join("\n"),

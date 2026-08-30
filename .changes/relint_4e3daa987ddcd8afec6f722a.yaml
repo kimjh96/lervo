@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4e3daa987ddcd8afec6f722a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep repository knowledge entrypoints valid before local materialization."

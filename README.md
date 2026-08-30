@@ -119,7 +119,7 @@ Durable records live under `.lervo/data`; rebuildable projections live under `.l
 
 ## Repository knowledge
 
-Start at [docs/knowledge/index.md](docs/knowledge/index.md). Generated indexes are navigation, not semantic truth. Markdown and repository state are canonical; graph, lexical, and embedding indexes are rebuildable.
+See the [compilation specification](docs/specs/repository-knowledge-compilation.md). Run `lervo migrate knowledge` before using the local `docs/knowledge/index.md` projection.
 
 ```bash
 node apps/cli/dist/bin.js knowledge compile --provider codex --json

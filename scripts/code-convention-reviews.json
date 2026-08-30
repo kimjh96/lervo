@@ -165,7 +165,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/compiler.ts",
-      "contentHash": "sha256:39bb3e7ccde83cfe3d62c8440cea0b259a56f65e379e64d360c5eefd8a73bf94",
+      "contentHash": "sha256:a870e9fd53264f7a189e59124449f6864bed05498b8dfa0ba7b4e084c9e2bb76",
       "responsibility": "Deterministic structural knowledge compiler",
       "rationale": "Publication rendering, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract.",
       "disposition": "cohesive"
