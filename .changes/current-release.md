@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.8.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.8.1" schema="1" -->
 
 ## What's changed
 
-- Make qualified Lexical v2 the product-default search engine and retrieval plan.
+- Keep terminal snapshots available for bounded asset repositories.

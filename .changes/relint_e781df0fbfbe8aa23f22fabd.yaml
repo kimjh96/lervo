@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e781df0fbfbe8aa23f22fabd"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep terminal snapshots available for bounded asset repositories."

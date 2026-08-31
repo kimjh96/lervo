@@ -20,8 +20,6 @@ requested -> resolved -> documents/capabilities recommended and selected
 
 Completion requires agreement among contracts, capability decisions, context evidence, provider results, repository snapshots, and verification. Other provider work is `unmanaged`.
 
-Repository snapshots hash user-owned source and asset bytes under bounded safe-read policies. The default cumulative ceiling is 1 GiB; conventional generated caches are excluded, while repository names and request keywords never determine snapshot scope.
-
 Direct Codex and Claude hooks use a repository-local, self-verifying contract-v2 runtime and exact-hash load at most 28 KiB. Prompt preparation uses provider-neutral query projection and the product-qualified Lexical v2 retrieval plan only for registered current-repository knowledge. It records `unmanaged_terminal_retrieval_only` with empty semantic-action coordinates and grants no effect, workflow, authority, external route, or durable rule. Local empty or failed retrieval proves nothing about other sources. Internal failure returns empty success without evidence. Managed execution retains typed grounding and fail-closed contracts.
 
 Preparation creates no managed run and proves no acceptance, understanding, or use. Direct root `Stop` records bounded lifecycle and reference observations when possible. Non-current state records `action_required` with completion `allowed`; unmatched or failed audit returns empty success without evidence. Agents still update workstreams and declarations after changes. Attached workers retain fail-closed isolation. Reference tokens are standalone Markdown HTML comments; legacy v1 tokens remain valid in flight.
