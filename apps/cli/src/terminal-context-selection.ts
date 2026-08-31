@@ -13,6 +13,7 @@ import {
 import { resolveOperationalSearchRetrievalPlan } from "@lervo/search-local";
 
 import { createRepositoryKnowledgeSearchCorpus } from "./repository-search-corpus.js";
+import { productDefaultSearchRetrievalPlan } from "./product-default-search.js";
 import { searchCandidateRegistry } from "./search-candidate-registry.js";
 import type { RunProvider } from "./managed-run.js";
 
@@ -23,16 +24,32 @@ async function selectOperationalPlanCandidates(input: {
   projection: SearchQueryProjection;
   supplementalSources: RepositorySupplementalSource[];
 }) {
-  const operational = await resolveOperationalSearchRetrievalPlan({
-    repositoryRoot: input.repositoryRoot,
-    projectId: input.projectId,
-  });
-  if (operational.bundle === null) return null;
-  const plan = operational.bundle.plan;
-  const population = plan.projection.populations.find(
+  const defaultPopulation = productDefaultSearchRetrievalPlan.plan.projection.populations.find(
     (item) => item.populationId === `provider.${input.provider}`,
   );
   const receipt = input.projection.receipt;
+  const productDefaultMatchesProjector =
+    defaultPopulation !== undefined &&
+    receipt.status === "completed" &&
+    defaultPopulation.projector.id === receipt.projector.id &&
+    defaultPopulation.projector.version === receipt.projector.version &&
+    defaultPopulation.projector.buildId === receipt.projector.buildId &&
+    receipt.limits.maximumQueries ===
+      productDefaultSearchRetrievalPlan.plan.projection.maximumQueries &&
+    receipt.limits.maximumQueryCharacters ===
+      productDefaultSearchRetrievalPlan.plan.projection.maximumQueryCharacters;
+  const operational = await resolveOperationalSearchRetrievalPlan({
+    repositoryRoot: input.repositoryRoot,
+    projectId: input.projectId,
+    ...(productDefaultMatchesProjector
+      ? { productDefault: productDefaultSearchRetrievalPlan }
+      : {}),
+  });
+  if (operational.plan === null) return null;
+  const plan = operational.plan;
+  const population = plan.projection.populations.find(
+    (item) => item.populationId === `provider.${input.provider}`,
+  );
   if (
     population === undefined ||
     receipt.status !== "completed" ||
@@ -48,13 +65,15 @@ async function selectOperationalPlanCandidates(input: {
     supplementalSources: input.supplementalSources,
   });
   const corpus = createRepositoryKnowledgeSearchCorpus(scan);
-  const reviewedCorpus = operational.bundle.review.corpus;
-  if (
-    corpus.digest !== reviewedCorpus.digest ||
-    corpus.documentCount !== reviewedCorpus.documentCount ||
-    corpus.byteCount !== reviewedCorpus.byteCount
-  ) {
-    throw new Error("The selected retrieval-plan Markdown corpus differs from its review.");
+  if (operational.corpusBinding === "reviewed") {
+    const reviewedCorpus = operational.bundle!.review.corpus;
+    if (
+      corpus.digest !== reviewedCorpus.digest ||
+      corpus.documentCount !== reviewedCorpus.documentCount ||
+      corpus.byteCount !== reviewedCorpus.byteCount
+    ) {
+      throw new Error("The selected retrieval-plan Markdown corpus differs from its review.");
+    }
   }
   const engine = searchCandidateRegistry.resolve(plan.retrieval.candidateId);
   if (
@@ -104,6 +123,7 @@ async function selectOperationalPlanCandidates(input: {
     disposition: candidates.length === 0 ? ("no_candidates" as const) : ("selected" as const),
     retrievalPlanId: plan.planId,
     retrievalPlanTransitionId: operational.selectionTransitionId,
+    productQualificationId: operational.productQualificationId,
   };
 }
 
@@ -127,6 +147,7 @@ export async function selectTerminalContextCandidates(input: {
       disposition: "query_projection_missing" as const,
       retrievalPlanId: null,
       retrievalPlanTransitionId: null,
+      productQualificationId: null,
     };
   }
   const results = await Promise.all(
@@ -167,5 +188,6 @@ export async function selectTerminalContextCandidates(input: {
     disposition: fusion.values.length === 0 ? ("no_candidates" as const) : ("selected" as const),
     retrievalPlanId: null,
     retrievalPlanTransitionId: null,
+    productQualificationId: null,
   };
 }

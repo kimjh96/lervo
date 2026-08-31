@@ -9,6 +9,7 @@ import { LocalSearchObservationStore, runLocalOperationalSearch } from "@lervo/s
 import { searchCandidateRegistry } from "./search-candidate-registry.js";
 import { searchArgumentError, searchErrorCode, searchUsage } from "./search-command-common.js";
 import { formatSearchResponse } from "./search-format.js";
+import { productDefaultSearchEngine } from "./product-default-search.js";
 import type { CliIo } from "./types.js";
 
 export async function runSearchQueryCommand(args: string[], io: CliIo): Promise<number> {
@@ -39,6 +40,7 @@ export async function runSearchQueryCommand(args: string[], io: CliIo): Promise<
       repositoryRoot: root,
       projectId: manifest.projectId,
       registry: searchCandidateRegistry,
+      productDefault: productDefaultSearchEngine,
       query: parsed.positionals[0]!,
       limit: parsed.values.limit === undefined ? 10 : Number(parsed.values.limit),
     });
@@ -49,6 +51,7 @@ export async function runSearchQueryCommand(args: string[], io: CliIo): Promise<
       nonce: randomBytes(16).toString("hex"),
       response,
       selectionTransitionId: operational.selectionTransitionId,
+      productQualificationId: operational.productQualificationId,
     });
     const store = await LocalSearchObservationStore.open(root);
     await store.recordAttempt(attempt);
@@ -59,6 +62,7 @@ export async function runSearchQueryCommand(args: string[], io: CliIo): Promise<
               ...response,
               selectionTransitionId: operational.selectionTransitionId,
               verificationReceiptId: operational.verificationReceiptId,
+              productQualificationId: operational.productQualificationId,
               attemptId: attempt.attemptId,
             },
             null,

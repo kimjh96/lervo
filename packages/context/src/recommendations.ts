@@ -117,6 +117,9 @@ export function recordSearchRecommendationEvidence(input: {
       engineId: recommendation.engine.id,
       engineVersion: recommendation.engine.version,
       selectionTransitionId: recommendation.selectionTransitionId,
+      ...(recommendation.productQualificationId === undefined
+        ? {}
+        : { productQualificationId: recommendation.productQualificationId }),
       indexId: recommendation.indexId,
       resultSetHash: recommendation.resultSetHash,
       sourceContentHash: recommendation.sourceContentHash,

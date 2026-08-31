@@ -121,6 +121,8 @@ Durable records live under `.lervo/data`; rebuildable projections live under `.l
 
 See the [compilation specification](docs/specs/repository-knowledge-compilation.md). Run `lervo migrate knowledge` before using the local `docs/knowledge/index.md` projection.
 
+Operational search and direct terminal retrieval use the product-qualified Lexical v2 engine by default in every repository running the current CLI. The default rebuilds from the current bounded repository corpus and requires no repository-specific activation bundle or Hub.
+
 ```bash
 node apps/cli/dist/bin.js knowledge compile --provider codex --json
 node apps/cli/dist/bin.js knowledge compile --provider claude --json

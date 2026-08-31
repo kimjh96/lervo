@@ -53,6 +53,17 @@ export async function loadVerifiedSearchSelectionQualityEvidence(input: {
   const coordinates = new Map<string, SearchSelectionQualityCoordinate>();
   for (const attempt of attempts) {
     if (attempt.selectionTransitionId === null) {
+      if (attempt.productQualificationId !== null && attempt.productQualificationId !== undefined) {
+        coordinates.set(`product:${attempt.productQualificationId}`, {
+          selectionTransitionId: null,
+          productQualificationId: attempt.productQualificationId,
+          engine: { ...attempt.engine },
+          selectionState: "product_default",
+          adapterBuildId: null,
+          buildEvidenceState: "product_qualified",
+        });
+        continue;
+      }
       coordinates.set("baseline", {
         selectionTransitionId: null,
         engine: { ...attempt.engine },

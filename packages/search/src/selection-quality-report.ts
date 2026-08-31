@@ -13,19 +13,49 @@ import type {
   SearchSelectionQualitySlice,
 } from "./types.js";
 
-function coordinateKey(selectionTransitionId: string | null): string {
-  return selectionTransitionId ?? "baseline";
+function coordinateKey(
+  selectionTransitionId: string | null,
+  productQualificationId: string | null | undefined,
+): string {
+  return (
+    selectionTransitionId ??
+    (productQualificationId === null || productQualificationId === undefined
+      ? "baseline"
+      : `product:${productQualificationId}`)
+  );
 }
 
 function assertCoordinate(coordinate: SearchSelectionQualityCoordinate): void {
   assertSearchEngineIdentity(coordinate.engine, "invalid_attempt");
   if (
-    !["implicit_baseline", "recorded_baseline", "candidate"].includes(coordinate.selectionState) ||
-    !["not_applicable", "bound", "legacy_unbound"].includes(coordinate.buildEvidenceState)
+    !["implicit_baseline", "recorded_baseline", "candidate", "product_default"].includes(
+      coordinate.selectionState,
+    ) ||
+    !["not_applicable", "bound", "legacy_unbound", "product_qualified"].includes(
+      coordinate.buildEvidenceState,
+    )
   ) {
     throw new SearchError("invalid_attempt", "The search selection quality state is invalid.");
   }
   if (coordinate.selectionTransitionId === null) {
+    if (
+      coordinate.productQualificationId !== null &&
+      coordinate.productQualificationId !== undefined
+    ) {
+      if (
+        !/^spqual_[a-f0-9]{24}$/u.test(coordinate.productQualificationId) ||
+        coordinate.selectionState !== "product_default" ||
+        coordinate.adapterBuildId !== null ||
+        coordinate.buildEvidenceState !== "product_qualified" ||
+        sameSearchEngine(coordinate.engine, SEARCH_ENGINE)
+      ) {
+        throw new SearchError(
+          "invalid_attempt",
+          "The product-default search quality coordinates are invalid.",
+        );
+      }
+      return;
+    }
     if (
       coordinate.selectionState !== "implicit_baseline" ||
       coordinate.adapterBuildId !== null ||
@@ -96,7 +126,7 @@ export function createSearchSelectionQualityReport(input: {
   const coordinates = new Map<string, SearchSelectionQualityCoordinate>();
   for (const coordinate of input.coordinates) {
     assertCoordinate(coordinate);
-    const key = coordinateKey(coordinate.selectionTransitionId);
+    const key = coordinateKey(coordinate.selectionTransitionId, coordinate.productQualificationId);
     if (coordinates.has(key))
       throw new SearchError(
         "invalid_attempt",
@@ -109,7 +139,7 @@ export function createSearchSelectionQualityReport(input: {
   for (const attempt of input.attempts) {
     assertSearchAttempt(attempt);
     attemptsById.set(attempt.attemptId, attempt);
-    const key = coordinateKey(attempt.selectionTransitionId);
+    const key = coordinateKey(attempt.selectionTransitionId, attempt.productQualificationId);
     const coordinate = coordinates.get(key);
     if (coordinate === undefined || !sameSearchEngine(attempt.engine, coordinate.engine)) {
       throw new SearchError(

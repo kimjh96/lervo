@@ -7,7 +7,7 @@ import type {
   SearchCandidateReview,
   SearchEngineActivation,
   SearchEngineActivationPolicy,
-  SearchEngineSelection,
+  SearchEngineIdentity,
 } from "@lervo/search";
 
 export function formatSearchEvaluationCase(evaluationCase: SearchEvaluationCase): string {
@@ -128,12 +128,13 @@ export function formatSearchEngineActivation(activation: SearchEngineActivation)
 }
 
 export function formatSearchEngineStatus(status: {
-  selection: SearchEngineSelection;
+  selection: { mode: string; engine: SearchEngineIdentity };
   selectionTransitionId: string | null;
   transitions: number;
   resolverState: "ready" | "unavailable";
   failureCode: string | null;
   verificationReceiptId: string | null;
+  productQualificationId: string | null;
 }): string {
   return (
     [
@@ -141,6 +142,7 @@ export function formatSearchEngineStatus(status: {
       `  Selection transition: ${status.selectionTransitionId ?? "none"} · total ${status.transitions}`,
       `  Search resolver: ${status.resolverState === "ready" ? "verified" : `unavailable (${status.failureCode})`}`,
       `  Candidate verification receipt: ${status.verificationReceiptId ?? "none"}`,
+      `  Product qualification: ${status.productQualificationId ?? "none"}`,
     ].join("\n") + "\n"
   );
 }

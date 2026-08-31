@@ -28,6 +28,7 @@ export * from "./integrity.js";
 export * from "./normalize.js";
 export * from "./performance-benchmark.js";
 export * from "./projected-search.js";
+export * from "./product-default.js";
 export * from "./query-projection.js";
 export * from "./rank-fusion.js";
 export * from "./retrieval-plan.js";

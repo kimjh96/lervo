@@ -12,6 +12,9 @@ export const contextRecommendationProperties = {
   selectionTransitionId: {
     anyOf: [{ type: "string", pattern: "^seact_[a-f0-9]{24}$" }, { type: "null" }],
   },
+  productQualificationId: {
+    anyOf: [{ type: "string", pattern: "^spqual_[a-f0-9]{24}$" }, { type: "null" }],
+  },
   indexId: { type: "string", pattern: "^sidx_[a-f0-9]{24}$" },
   resultSetHash: sha256Schema,
   sourceContentHash: sha256Schema,

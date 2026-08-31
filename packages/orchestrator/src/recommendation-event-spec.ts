@@ -16,6 +16,9 @@ export function recommendedContextEventSpecs(loaded: LoadedContext): ManagedEven
         engineId: evidence.engineId,
         engineVersion: evidence.engineVersion,
         selectionTransitionId: evidence.selectionTransitionId,
+        ...(evidence.productQualificationId === undefined
+          ? {}
+          : { productQualificationId: evidence.productQualificationId }),
         indexId: evidence.indexId,
         resultSetHash: evidence.resultSetHash,
         documentId: evidence.documentId,

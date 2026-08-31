@@ -112,6 +112,41 @@ export interface ProcessSearchQueryProjectorOptions {
   onFailure?: (error: unknown) => void;
 }
 
+export type ProductionQueryProjectorRuntimeContract =
+  "codex.persistent_isolated_thread_admission.v3" | "claude.serialized_process_admission.v2";
+
+function searchQueryProjectorIdentity(
+  provider: RunProvider,
+  model: string,
+  runtimeContract: string,
+) {
+  return {
+    id: `provider_query_projection.${provider}`,
+    version: 1,
+    buildId: searchQueryProjectorBuildId(
+      canonicalJson({
+        contract: "lervo.provider-query-projector.v7",
+        provider,
+        model,
+        runtimeContract,
+        instructionDigest: sha256(queryProjectionInstruction),
+        responseSchemaDigest: sha256(
+          canonicalJson(queryProjectionResponseSchema(SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES)),
+        ),
+        systemPromptDigest: sha256(isolatedJsonSystemPrompt),
+      }),
+    ),
+  } as const;
+}
+
+export function productionSearchQueryProjectorIdentity(provider: RunProvider) {
+  const runtimeContract: ProductionQueryProjectorRuntimeContract =
+    provider === "codex"
+      ? "codex.persistent_isolated_thread_admission.v3"
+      : "claude.serialized_process_admission.v2";
+  return searchQueryProjectorIdentity(provider, "provider-default", runtimeContract);
+}
+
 export function createProcessSearchQueryProjector(
   provider: RunProvider,
   options: ProcessSearchQueryProjectorOptions = {},
@@ -121,23 +156,11 @@ export function createProcessSearchQueryProjector(
   const model = options.model ?? "provider-default";
   let runner: Promise<NoCapabilityProviderJsonRunner> | undefined =
     options.runner === undefined ? undefined : Promise.resolve(options.runner);
-  const projector = {
-    id: `provider_query_projection.${provider}`,
-    version: 1,
-    buildId: searchQueryProjectorBuildId(
-      canonicalJson({
-        contract: "lervo.provider-query-projector.v7",
-        provider,
-        model,
-        runtimeContract: options.runtimeContract ?? "process_per_observation.v1",
-        instructionDigest: sha256(queryProjectionInstruction),
-        responseSchemaDigest: sha256(
-          canonicalJson(queryProjectionResponseSchema(SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES)),
-        ),
-        systemPromptDigest: sha256(isolatedJsonSystemPrompt),
-      }),
-    ),
-  } as const;
+  const projector = searchQueryProjectorIdentity(
+    provider,
+    model,
+    options.runtimeContract ?? "process_per_observation.v1",
+  );
 
   return {
     projector,

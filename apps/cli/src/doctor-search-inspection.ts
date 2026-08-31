@@ -1,6 +1,7 @@
 import {
   verifySearchRolloutActionPolicySources,
   type SearchCandidateEngineResolver,
+  type ProductDefaultSearchEngine,
   type SearchEngineActivationPolicy,
   type SearchRolloutReviewPolicy,
 } from "@lervo/search";
@@ -79,6 +80,7 @@ async function inspectSearchSelection(input: {
   repositoryRoot: string;
   projectId: string;
   registry: SearchCandidateEngineResolver;
+  productDefault?: ProductDefaultSearchEngine;
 }): Promise<DoctorInspection> {
   try {
     const result = await inspectOperationalSearchEngine(input);
@@ -111,6 +113,7 @@ export async function inspectDoctorSearch(input: {
   repositoryRoot: string;
   projectId: string;
   registry: SearchCandidateEngineResolver;
+  productDefault?: ProductDefaultSearchEngine;
   observedAt: Date;
 }): Promise<DoctorInspection[]> {
   const [selection, policies] = await Promise.all([

@@ -1,4 +1,5 @@
 import {
+  assertProductDefaultSearchRetrievalPlan,
   assertSearchRetrievalPlanActivationBundle,
   baselineSearchRetrievalPlanSelection,
   createSearchRetrievalPlanActivation,
@@ -6,6 +7,8 @@ import {
   type SearchRetrievalPlanActivation,
   type SearchRetrievalPlanActivationBundle,
   type SearchRetrievalPlanSelection,
+  type ProductDefaultSearchRetrievalPlan,
+  type ProductDefaultSearchRetrievalPlanSelection,
 } from "@lervo/search";
 
 import {
@@ -21,12 +24,29 @@ function hash(bytes: Uint8Array): string {
 }
 
 export interface OperationalSearchRetrievalPlanInspection {
-  selection: SearchRetrievalPlanSelection;
+  selection: OperationalSearchRetrievalPlanSelection;
   selectionTransitionId: string | null;
   transitions: number;
   resolverState: "ready" | "unavailable";
   failureCode: string | null;
   plan: SearchRetrievalPlanActivationBundle["plan"] | null;
+  productQualificationId: string | null;
+}
+
+export type OperationalSearchRetrievalPlanSelection =
+  SearchRetrievalPlanSelection | ProductDefaultSearchRetrievalPlanSelection;
+
+function productDefaultSelection(
+  productDefault: ProductDefaultSearchRetrievalPlan,
+): ProductDefaultSearchRetrievalPlanSelection {
+  assertProductDefaultSearchRetrievalPlan(productDefault);
+  return {
+    mode: "product_default",
+    qualificationId: productDefault.qualificationId,
+    planId: productDefault.plan.planId,
+    reviewId: null,
+    bundleId: null,
+  };
 }
 
 async function loadVerifiedSelectedBundle(input: {
@@ -104,20 +124,53 @@ async function verifyHistory(input: {
 export async function resolveOperationalSearchRetrievalPlan(input: {
   repositoryRoot: string;
   projectId: string;
+  productDefault?: ProductDefaultSearchRetrievalPlan;
 }): Promise<{
-  selection: SearchRetrievalPlanSelection;
+  selection: OperationalSearchRetrievalPlanSelection;
   selectionTransitionId: string | null;
   transitionCount: number;
   bundle: SearchRetrievalPlanActivationBundle | null;
+  plan: SearchRetrievalPlanActivationBundle["plan"] | null;
+  corpusBinding: "current" | "reviewed" | null;
+  productQualificationId: string | null;
 }> {
   const history = await loadSearchRetrievalPlanActivationHistory(input.repositoryRoot);
   const current = history.at(-1) ?? null;
   if (current === null) {
+    if (input.productDefault !== undefined) {
+      return {
+        selection: productDefaultSelection(input.productDefault),
+        selectionTransitionId: null,
+        transitionCount: 0,
+        bundle: null,
+        plan: input.productDefault.plan,
+        corpusBinding: "current",
+        productQualificationId: input.productDefault.qualificationId,
+      };
+    }
     return {
       selection: baselineSearchRetrievalPlanSelection(),
       selectionTransitionId: null,
       transitionCount: 0,
       bundle: null,
+      plan: null,
+      corpusBinding: null,
+      productQualificationId: null,
+    };
+  }
+  if (
+    input.productDefault !== undefined &&
+    current.selected.mode === "candidate" &&
+    current.selected.planId === input.productDefault.plan.planId
+  ) {
+    return {
+      selection: productDefaultSelection(input.productDefault),
+      selectionTransitionId: null,
+      transitionCount: history.length,
+      bundle: null,
+      plan: input.productDefault.plan,
+      corpusBinding: "current",
+      productQualificationId: input.productDefault.qualificationId,
     };
   }
   const bundle = await verifyHistory({ ...input, history });
@@ -126,12 +179,16 @@ export async function resolveOperationalSearchRetrievalPlan(input: {
     selectionTransitionId: current.activationId,
     transitionCount: history.length,
     bundle,
+    plan: bundle?.plan ?? null,
+    corpusBinding: bundle === null ? null : "reviewed",
+    productQualificationId: null,
   };
 }
 
 export async function inspectOperationalSearchRetrievalPlan(input: {
   repositoryRoot: string;
   projectId: string;
+  productDefault?: ProductDefaultSearchRetrievalPlan;
 }): Promise<OperationalSearchRetrievalPlanInspection> {
   const history = await loadSearchRetrievalPlanActivationHistory(input.repositoryRoot);
   const current = history.at(-1) ?? null;
@@ -143,11 +200,17 @@ export async function inspectOperationalSearchRetrievalPlan(input: {
       transitions: resolved.transitionCount,
       resolverState: "ready",
       failureCode: null,
-      plan: resolved.bundle?.plan ?? null,
+      plan: resolved.plan,
+      productQualificationId: resolved.productQualificationId,
     };
   } catch (error) {
     return {
-      selection: structuredClone(current?.selected ?? baselineSearchRetrievalPlanSelection()),
+      selection: structuredClone(
+        current?.selected ??
+          (input.productDefault === undefined
+            ? baselineSearchRetrievalPlanSelection()
+            : productDefaultSelection(input.productDefault)),
+      ),
       selectionTransitionId: current?.activationId ?? null,
       transitions: history.length,
       resolverState: "unavailable",
@@ -159,6 +222,7 @@ export async function inspectOperationalSearchRetrievalPlan(input: {
           ? error.code
           : "retrieval_plan_selection_unavailable",
       plan: null,
+      productQualificationId: null,
     };
   }
 }

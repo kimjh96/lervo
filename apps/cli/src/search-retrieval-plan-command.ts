@@ -9,6 +9,7 @@ import {
 } from "@lervo/search-local";
 
 import { searchArgumentError, searchErrorCode, searchUsage } from "./search-command-common.js";
+import { productDefaultSearchRetrievalPlan } from "./product-default-search.js";
 import type { CliIo } from "./types.js";
 
 function parseActionArguments(args: string[]) {
@@ -47,6 +48,7 @@ export async function runSearchRetrievalPlanCommand(args: string[], io: CliIo): 
       const status = await inspectOperationalSearchRetrievalPlan({
         repositoryRoot: root,
         projectId: manifest.projectId,
+        productDefault: productDefaultSearchRetrievalPlan,
       });
       io.stdout(
         parsed.values.json
@@ -56,6 +58,7 @@ export async function runSearchRetrievalPlanCommand(args: string[], io: CliIo): 
               `plan: ${status.selection.planId ?? "baseline"}`,
               `transition: ${status.selectionTransitionId ?? "none"}`,
               `resolver: ${status.resolverState}`,
+              `qualification: ${status.productQualificationId ?? "none"}`,
             ].join("\n") + "\n",
       );
       return status.resolverState === "ready" ? 0 : 1;

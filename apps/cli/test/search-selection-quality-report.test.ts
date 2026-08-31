@@ -24,7 +24,7 @@ describe("selection-bound search quality report", () => {
       selections: [
         {
           selectionTransitionId: null,
-          selectionState: "implicit_baseline",
+          selectionState: "product_default",
           adapterBuildId: null,
           totalAttempts: 1,
           assessedAttempts: 1,

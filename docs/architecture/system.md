@@ -69,7 +69,7 @@ Every document has one write model: user-owned bytes, exact managed blocks, or p
 
 ### Search and context
 
-Search recommends but does not prove use. `lexical-v1` remains the independent local baseline. Single deterministic engines use the compatibility engine-selection chain; composed local or external retrieval uses a separate content-bound complete-plan selection above the same provider-neutral ports. Both require reviewed activation, current runtime validation, fail-closed stage behavior, and explicit baseline rollback. Ordinary managed runs do not add linked-only context after search.
+Search recommends but does not prove use. The product-qualified Lexical v2 engine and projected retrieval plan are the no-transition product defaults. Lexical v1 remains the independent local and release-rollback baseline. Repository-specific engines use the compatibility engine-selection chain; different composed local or external retrieval uses a separate content-bound complete-plan selection above the same provider-neutral ports. Explicit local selections retain reviewed activation, current runtime validation, and fail-closed stage behavior. Ordinary managed runs do not add linked-only context after search.
 
 See [Search and context boundaries](search-and-context.md) for engine ownership, extension steps, evidence states, and failure behavior.
 

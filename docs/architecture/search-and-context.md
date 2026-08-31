@@ -11,9 +11,9 @@ Search recommends but does not prove use. Selection records why an item was chos
 
 ## Engine boundary
 
-Operational retrieval uses `SearchEnginePort` and `SearchIndexPort`; `lexical-v1` is the local baseline. Engine adapters own only indexing and ranking. Corpus acquisition, query grounding, context selection, provider delivery, credentials, and network authority remain outside these ports.
+Operational retrieval uses `SearchEnginePort` and `SearchIndexPort`; product-qualified `lexical-v2` is the no-transition default and `lexical-v1` is the local rollback baseline. Engine adapters own only indexing and ranking. Corpus acquisition, query grounding, context selection, provider delivery, credentials, and network authority remain outside these ports.
 
-The registered `lexical-v2` build `sebuild_e9f2ac9398b0f58d03143e7a` passed the v20 local and cross-provider engineering gates. A provider-neutral projection and independent-query fusion plan also passed all four exact human-reviewed real-use cases for both providers. ADR-0321 adds immutable complete-plan selection above the compatibility engine chain. It binds current projector populations, retriever build, fusion, corpus, review, policy, transition, and rollback instead of representing the dynamic plan as one deterministic engine.
+The registered `lexical-v2` build `sebuild_e9f2ac9398b0f58d03143e7a` passed the v20 local and cross-provider engineering gates. A provider-neutral projection and independent-query fusion plan also passed all four exact human-reviewed real-use cases for both providers. ADR-0328 binds those exact shipped builds and evidence as product qualification `spqual_999f55bdaa9336fb6733d2ba`. Every current repository uses that engine and complete plan by default without repeating project-specific evaluation. ADR-0321 remains the immutable selection boundary for a different repository-specific complete plan.
 
 Any other local engine or external adapter must:
 
@@ -45,7 +45,7 @@ V2 separates index preparation from query execution, binds an immutable preparat
 
 For unmanaged direct terminal preparation, query projection is limited to registered knowledge in the current repository. An empty or failed projection has no evidentiary meaning for another repository or an external or shared service. Source expansion requires a separately available tool and authority; it is never derived from keyword, synonym, translation, or phrase routing.
 
-The operational plan resolver reads only content-bound bundles from `.lervo/search-retrieval-plan-bundles` and immutable local transitions. It rebuilds the current repository-knowledge Markdown corpus; validates its exact reviewed path-and-content digest, document count, and byte count; resolves the registered engine build; checks the current provider projector population; executes independent queries through `SearchEnginePort`; fuses validated coordinates; and maps selected paths to current concepts. The review retains its broader repository scan ID as an evidence coordinate, but runtime corpus equivalence excludes that mutable non-corpus coordinate so workstream and activation observations cannot invalidate an unchanged Markdown corpus. The baseline remains local and requires neither a Hub nor a provider credential. Plan rollback does not mutate engine selection or delete external state.
+The operational plan resolver first checks an explicit local selection. Without one, it resolves the shipped product qualification, rebuilds the current repository-knowledge Markdown corpus, verifies the registered engine and projector builds, executes independent queries through `SearchEnginePort`, fuses validated coordinates, and maps selected paths to current concepts. A different local candidate still reads a content-bound bundle from `.lervo/search-retrieval-plan-bundles`, verifies immutable transitions, and requires its exact reviewed corpus. A legacy activation of the exact product-default plan no longer pins the current corpus to that historical review. Both v2 and the v1 rollback baseline remain local and require neither a Hub nor a provider credential.
 
 Built-in adapters may remain in process. Third-party adapters require a future versioned out-of-process protocol and exact installation lock. Search must never dynamically resolve arbitrary modules, paths, packages, or URLs. External data export, environment targets, network, credentials, retention, and cost require separate authorization. Exact deterministic replay is the initial activation class.
 
@@ -68,3 +68,4 @@ Ordinary managed Codex and Claude runs do not project, select, load, or inject d
 - [Reviewed real-use disposition](../decisions/search/engines/0319-keep-lexical-v2-inactive-after-reviewed-real-use-gate.md)
 - [Projected-plan qualification](../decisions/search/engines/0320-qualify-projected-lexical-v2-without-engine-activation.md)
 - [Retrieval-plan activation](../decisions/search/engines/0321-activate-lexical-v2-through-retrieval-plan-selection.md)
+- [Product-default Lexical v2](../decisions/search/engines/0328-make-qualified-lexical-v2-the-product-default.md)

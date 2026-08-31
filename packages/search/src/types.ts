@@ -57,6 +57,7 @@ export interface SearchAttempt {
   nonce: string;
   engine: SearchEngineIdentity;
   selectionTransitionId: string | null;
+  productQualificationId?: string | null;
   indexId: string;
   queryDigest: string;
   queryCharacterCount: number;
@@ -107,10 +108,11 @@ export interface SearchQualityReport {
 
 export interface SearchSelectionQualityCoordinate {
   selectionTransitionId: string | null;
+  productQualificationId?: string | null;
   engine: SearchEngineIdentity;
-  selectionState: "implicit_baseline" | "recorded_baseline" | "candidate";
+  selectionState: "implicit_baseline" | "recorded_baseline" | "candidate" | "product_default";
   adapterBuildId: string | null;
-  buildEvidenceState: "not_applicable" | "bound" | "legacy_unbound";
+  buildEvidenceState: "not_applicable" | "bound" | "legacy_unbound" | "product_qualified";
 }
 
 export interface SearchSelectionQualitySlice extends SearchSelectionQualityCoordinate {
@@ -137,6 +139,7 @@ export interface SearchRecommendation {
   sourceAttemptId: string;
   engine: SearchEngineIdentity;
   selectionTransitionId: string | null;
+  productQualificationId?: string | null;
   indexId: string;
   resultSetHash: string;
   sourceKind: "document";

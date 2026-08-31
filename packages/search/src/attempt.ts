@@ -24,19 +24,40 @@ export function createSearchAttempt(input: {
   nonce: string;
   response: SearchResponse;
   selectionTransitionId?: string | null;
+  productQualificationId?: string | null;
 }): SearchAttempt {
   assertSearchEngineIdentity(input.response.engine, "invalid_attempt");
   const selectionTransitionId = input.selectionTransitionId ?? null;
+  const productQualificationId = input.productQualificationId ?? null;
   if (selectionTransitionId !== null && !/^seact_[a-f0-9]{24}$/.test(selectionTransitionId)) {
     throw new SearchError(
       "invalid_attempt",
       "The search engine selection transition ID is invalid.",
     );
   }
-  if (!sameSearchEngine(input.response.engine, SEARCH_ENGINE) && selectionTransitionId === null) {
+  if (productQualificationId !== null && !/^spqual_[a-f0-9]{24}$/u.test(productQualificationId)) {
+    throw new SearchError("invalid_attempt", "The product search qualification ID is invalid.");
+  }
+  if (selectionTransitionId !== null && productQualificationId !== null) {
     throw new SearchError(
       "invalid_attempt",
-      "A candidate search engine attempt requires a selection transition ID.",
+      "A search attempt cannot bind both a selection transition and product qualification.",
+    );
+  }
+  if (
+    !sameSearchEngine(input.response.engine, SEARCH_ENGINE) &&
+    selectionTransitionId === null &&
+    productQualificationId === null
+  ) {
+    throw new SearchError(
+      "invalid_attempt",
+      "A non-baseline search attempt requires a selection transition ID or product qualification ID.",
+    );
+  }
+  if (sameSearchEngine(input.response.engine, SEARCH_ENGINE) && productQualificationId !== null) {
+    throw new SearchError(
+      "invalid_attempt",
+      "The baseline engine cannot use product qualification.",
     );
   }
   const core = {
@@ -45,6 +66,7 @@ export function createSearchAttempt(input: {
     nonce: input.nonce,
     engine: { ...input.response.engine },
     selectionTransitionId,
+    ...(productQualificationId === null ? {} : { productQualificationId }),
     indexId: input.response.indexId,
     queryDigest: input.response.queryDigest,
     queryCharacterCount: input.response.queryCharacterCount,
@@ -72,6 +94,9 @@ export function assertSearchAttempt(attempt: SearchAttempt): void {
     !NONCE_PATTERN.test(attempt.nonce) ||
     (attempt.selectionTransitionId !== null &&
       !/^seact_[a-f0-9]{24}$/.test(attempt.selectionTransitionId)) ||
+    (attempt.productQualificationId !== undefined &&
+      attempt.productQualificationId !== null &&
+      !/^spqual_[a-f0-9]{24}$/u.test(attempt.productQualificationId)) ||
     !INDEX_PATTERN.test(attempt.indexId) ||
     !SHA256_PATTERN.test(attempt.queryDigest) ||
     !SHA256_PATTERN.test(attempt.resultSetHash) ||
@@ -90,10 +115,27 @@ export function assertSearchAttempt(attempt: SearchAttempt): void {
     throw new SearchError("invalid_attempt", "The search attempt contract is invalid.");
   }
   assertSearchEngineIdentity(attempt.engine, "invalid_attempt");
-  if (!sameSearchEngine(attempt.engine, SEARCH_ENGINE) && attempt.selectionTransitionId === null) {
+  const productQualificationId = attempt.productQualificationId ?? null;
+  if (attempt.selectionTransitionId !== null && productQualificationId !== null) {
     throw new SearchError(
       "invalid_attempt",
-      "A candidate search engine attempt requires a selection transition ID.",
+      "A search attempt cannot bind both a selection transition and product qualification.",
+    );
+  }
+  if (
+    !sameSearchEngine(attempt.engine, SEARCH_ENGINE) &&
+    attempt.selectionTransitionId === null &&
+    productQualificationId === null
+  ) {
+    throw new SearchError(
+      "invalid_attempt",
+      "A non-baseline search attempt requires a selection transition ID or product qualification ID.",
+    );
+  }
+  if (sameSearchEngine(attempt.engine, SEARCH_ENGINE) && productQualificationId !== null) {
+    throw new SearchError(
+      "invalid_attempt",
+      "The baseline engine cannot use product qualification.",
     );
   }
   assertTimestamp(attempt.observedAt, "invalid_attempt");

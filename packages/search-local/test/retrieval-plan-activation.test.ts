@@ -118,6 +118,35 @@ function bundle(projectId: string, evidenceHash: string) {
 }
 
 describe("local search retrieval-plan activation", () => {
+  it("uses a product-qualified plan on the current corpus without repository activation", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-product-default-plan-"));
+    roots.push(root);
+    const projectId = "prj_product_default_fixture";
+    await applyInitPlan(await createInitPlan({ root, projectId }));
+    const candidate = bundle(projectId, `sha256:${"9".repeat(64)}`);
+
+    await expect(
+      inspectOperationalSearchRetrievalPlan({
+        repositoryRoot: root,
+        projectId,
+        productDefault: {
+          qualificationId: `spqual_${"a".repeat(24)}`,
+          plan: candidate.plan,
+        },
+      }),
+    ).resolves.toMatchObject({
+      selection: {
+        mode: "product_default",
+        qualificationId: `spqual_${"a".repeat(24)}`,
+        planId: candidate.plan.planId,
+      },
+      transitions: 0,
+      resolverState: "ready",
+      plan: candidate.plan,
+      productQualificationId: `spqual_${"a".repeat(24)}`,
+    });
+  });
+
   it("resolves an immutable bundle and returns to the local baseline by explicit rollback", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-retrieval-plan-"));
     roots.push(root);

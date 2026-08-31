@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5ad3790652235f99ce3eb6d5"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Make qualified Lexical v2 the product-default search engine and retrieval plan."

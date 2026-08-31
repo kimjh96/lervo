@@ -7,6 +7,7 @@ import { inspectDoctorDocuments } from "./doctor-document-inspection.js";
 import { inspectDoctorProvider } from "./doctor-provider-inspection.js";
 import { inspectDoctorSearch } from "./doctor-search-inspection.js";
 import { inspectDoctorSkills } from "./doctor-skill-inspection.js";
+import { productDefaultSearchEngine } from "./product-default-search.js";
 import { searchCandidateRegistry } from "./search-candidate-registry.js";
 
 export interface DoctorEnvironmentOptions {
@@ -25,6 +26,7 @@ export async function inspectDoctorEnvironment(
     repositoryRoot: input.repositoryRoot,
     projectId: input.projectId,
     registry: searchCandidateRegistry,
+    productDefault: productDefaultSearchEngine,
     observedAt: options.observedAt ?? new Date(),
   };
   const inspectSkills = () =>

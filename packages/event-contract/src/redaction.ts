@@ -27,6 +27,7 @@ export const eventPayloadAllowlists = {
     "sourceAttemptId",
     "engineId",
     "selectionTransitionId",
+    "productQualificationId",
     "engineVersion",
     "indexId",
     "resultSetHash",

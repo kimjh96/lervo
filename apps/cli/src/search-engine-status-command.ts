@@ -7,6 +7,7 @@ import { inspectOperationalSearchEngine } from "@lervo/search-local";
 import { searchCandidateRegistry } from "./search-candidate-registry.js";
 import { searchArgumentError, searchErrorCode } from "./search-command-common.js";
 import { formatSearchEngineStatus } from "./search-evaluation-format.js";
+import { productDefaultSearchEngine } from "./product-default-search.js";
 import type { CliIo } from "./types.js";
 
 export async function runSearchEngineStatusCommand(args: string[], io: CliIo): Promise<number> {
@@ -29,6 +30,7 @@ export async function runSearchEngineStatusCommand(args: string[], io: CliIo): P
       repositoryRoot: root,
       projectId: manifest.projectId,
       registry: searchCandidateRegistry,
+      productDefault: productDefaultSearchEngine,
     });
     io.stdout(
       parsed.values.json

@@ -67,14 +67,18 @@ export function formatSearchQualityReport(report: SearchSelectionQualityReport):
               ? "default lexical selection"
               : selection.selectionState === "recorded_baseline"
                 ? `rollback baseline · ${selection.selectionTransitionId}`
-                : `${selection.engine.id}-v${selection.engine.version} · ${selection.selectionTransitionId}`
+                : selection.selectionState === "product_default"
+                  ? `${selection.engine.id}-v${selection.engine.version} product default · ${selection.productQualificationId}`
+                  : `${selection.engine.id}-v${selection.engine.version} · ${selection.selectionTransitionId}`
           }`,
           `    Total ${selection.totalAttempts} · assessed ${selection.assessedAttempts} · accepted ${selection.acceptedAttempts}` +
             ` · failed ${selection.failedAttempts} · build ${
               selection.adapterBuildId ??
               (selection.buildEvidenceState === "legacy_unbound"
                 ? "absent from legacy source"
-                : "not applicable")
+                : selection.buildEvidenceState === "product_qualified"
+                  ? "product qualified"
+                  : "not applicable")
             }`,
           `    Evidence state: ${qualityEvidenceLabel(selection.evidenceState)}`,
         ])),

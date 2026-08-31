@@ -38,6 +38,9 @@ function buildBatch(input: {
       sourceAttemptId: input.attempt.attemptId,
       engine: input.attempt.engine,
       selectionTransitionId: input.attempt.selectionTransitionId,
+      ...(input.attempt.productQualificationId === undefined
+        ? {}
+        : { productQualificationId: input.attempt.productQualificationId }),
       indexId: input.attempt.indexId,
       resultSetHash: input.attempt.resultSetHash,
       sourceKind: "document" as const,

@@ -158,6 +158,37 @@ describe("deterministic lexical search baseline", () => {
     ).toThrow(/selection transition ID/);
   });
 
+  it("binds product-default attempts and recommendations to the shipped qualification", () => {
+    const response = {
+      ...new LexicalSearchIndex(sources()).search("document recovery"),
+      engine: { id: "lexical", version: 2 },
+    };
+    const productQualificationId = `spqual_${"b".repeat(24)}`;
+    const attempt = createSearchAttempt({
+      projectId: "prj_search_01",
+      observedAt: new Date("2026-08-20T04:00:00.000Z"),
+      nonce: "9".repeat(32),
+      response,
+      productQualificationId,
+    });
+    const batch = createSearchRecommendationBatch({
+      attempt,
+      recommendationLimit: 2,
+      maximumSelections: 1,
+    });
+
+    expect(attempt).toMatchObject({
+      engine: response.engine,
+      selectionTransitionId: null,
+      productQualificationId,
+    });
+    expect(batch.recommendations[0]).toMatchObject({
+      engine: response.engine,
+      selectionTransitionId: null,
+      productQualificationId,
+    });
+  });
+
   it("requires explicit assessment and never turns failures into an embedding decision", () => {
     const acceptedResponse = new LexicalSearchIndex(sources()).search("recovery");
     const acceptedAttempt = createSearchAttempt({
@@ -335,6 +366,42 @@ describe("deterministic lexical search baseline", () => {
         ],
       }),
     ).toThrow(/coordinates exist without a search attempt/);
+  });
+
+  it("separates product-qualified quality from the implicit baseline", () => {
+    const productQualificationId = `spqual_${"c".repeat(24)}`;
+    const attempt = createSearchAttempt({
+      projectId: "prj_search_01",
+      observedAt: new Date("2026-08-20T04:00:00.000Z"),
+      nonce: "d".repeat(32),
+      response: {
+        ...new LexicalSearchIndex(sources()).search("recovery"),
+        engine: { id: "lexical", version: 2 },
+      },
+      productQualificationId,
+    });
+
+    expect(
+      createSearchSelectionQualityReport({
+        attempts: [attempt],
+        assessments: [],
+        coordinates: [
+          {
+            selectionTransitionId: null,
+            productQualificationId,
+            engine: attempt.engine,
+            selectionState: "product_default",
+            adapterBuildId: null,
+            buildEvidenceState: "product_qualified",
+          },
+        ],
+      }).selections[0],
+    ).toMatchObject({
+      productQualificationId,
+      selectionState: "product_default",
+      totalAttempts: 1,
+      buildEvidenceState: "product_qualified",
+    });
   });
 
   it("rejects an unsafe repository path and an unbounded query", () => {
