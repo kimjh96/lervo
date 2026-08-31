@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.7.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.8.0" schema="1" -->
 
 ## What's changed
 
-- Add extensible retrieval and keep unmanaged terminal hooks availability-safe.
+- Make qualified Lexical v2 the product-default search engine and retrieval plan.
