@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_34ad2d8af0bbb246b775c36b"
-"package": "@lervo/cli"
-"impact": "major"
-"summary": "Add extensible retrieval and keep unmanaged terminal hooks availability-safe."
