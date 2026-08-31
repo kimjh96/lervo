@@ -137,6 +137,7 @@ describe("repository snapshot", () => {
       ".gradle",
       ".cxx",
       ".vercel",
+      ".cache",
       "Pods",
       "vendor",
     ]) {
@@ -150,6 +151,7 @@ describe("repository snapshot", () => {
     const snapshot = await captureRepositorySnapshot(root);
 
     expect(Object.keys(snapshot.files)).toEqual(["generated/output.ts", "source.ts"]);
+    expect(defaultRepositorySnapshotPolicy.maxBytes).toBe(1024 * 1024 * 1024);
   });
 
   it("fails safely when repository limits or exclusions are invalid", async () => {

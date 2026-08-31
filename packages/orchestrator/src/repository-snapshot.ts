@@ -31,6 +31,7 @@ export const defaultRepositorySnapshotPolicy: RepositorySnapshotPolicy = Object.
     ".gradle",
     ".cxx",
     ".vercel",
+    ".cache",
     "node_modules",
     "dist",
     "build",
@@ -41,7 +42,7 @@ export const defaultRepositorySnapshotPolicy: RepositorySnapshotPolicy = Object.
   ]),
   excludedPaths: Object.freeze([".lervo/data", ".lervo/state"]),
   maxEntries: 20_000,
-  maxBytes: 256 * 1024 * 1024,
+  maxBytes: 1024 * 1024 * 1024,
 });
 
 export class RepositorySnapshotError extends Error {
