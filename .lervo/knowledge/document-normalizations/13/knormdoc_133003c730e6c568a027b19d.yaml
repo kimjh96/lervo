@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_ed4d6801ebbfd785f945e483
+compiler:
+  compilerBuildId: sha256:d04ee6378c95d03e201ff9632b566a934f01bfc343f96544f450d5fd5e2a3d3d
+  compilerId: lervo.claude.document-normalizer
+  compilerVersion: 1+2.1.224 (Claude Code)
+  isolation: external_no_capabilities
+  provider: claude
+formatVersion: lervo.document.v1
+operationId: knormop_2d873adbbad5fc75920135bc
+outputLanguage: en
+outputs:
+  - byteCount: 14046
+    contentHash: sha256:46d6b604ad3b1adf99d914161a91f4facd1ae9a62d5f5a47049d3ff17e034664
+    path: docs/research/extensible-search-engine-architecture.md
+    userRegionHash: sha256:46d6b604ad3b1adf99d914161a91f4facd1ae9a62d5f5a47049d3ff17e034664
+profile: repository_document
+recordId: knormdoc_133003c730e6c568a027b19d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:46d6b604ad3b1adf99d914161a91f4facd1ae9a62d5f5a47049d3ff17e034664
+sourcePath: docs/research/extensible-search-engine-architecture.md
+sourceUnitVersionIds:
+  - uv_2272a599c9ed9433442ce287
+  - uv_23aa0f318805a9ec5193905d
+  - uv_2b249385a571959afe54317c
+  - uv_2b9e15447c0c308d3495e490
+  - uv_637117281a5122c5663d979b
+  - uv_68090e17b180b23f82217393
+  - uv_781886452a8bce5554eb39dc
+  - uv_81519262ec7861371d38bcfc
+  - uv_867968375c6892a4d9df8a01
+  - uv_cb6acc274ca5d278a0c5458a
+  - uv_cf581811a3f743e22223e798
+  - uv_d8e14908a51dd3aa7f1dd3a1
+  - uv_e0e98ff943e9fe96a19be97f
+  - uv_e677bcaa26bdeb8e986671d6
+  - uv_ed6d344c9f1b1cf8a4069d75

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 17,
+  "suiteId": "lv2bench_provider_comparison.v17",
+  "baseSuite": "benchmarks/search/lexical-v2-provider-comparison-v16.json",
+  "protocolId": "lexical-v2-injected-evidence-only-v17",
+  "structuredOutputSchemaDigest": "sha256:f85f2f743540aaca3c598b284c8624e95046f023583b9f945d71bf5bdc2f96a8",
+  "providerPreparation": "rolling_prewarm_isolated_session",
+  "acceptance": {
+    "requireCasePassNonRegression": true,
+    "requireRecallNonInferiority": true,
+    "requirePrecisionNonInferiority": true,
+    "maximumTokenRatioBasisPoints": 9000,
+    "maximumDurationRatioBasisPoints": 9500,
+    "maximumFailedContracts": 0,
+    "maximumToolOrCommandObservations": 0,
+    "requireCompleteUsage": true,
+    "maximumInjectedByteRatioBasisPoints": 7000,
+    "requireStructuredOutput": true,
+    "minimumCandidatePassedObservations": 27,
+    "minimumCandidateCasesPassingEveryRepetition": 9,
+    "minimumCandidateRecallBasisPoints": 8500,
+    "minimumCandidatePrecisionBasisPoints": 5000,
+    "maximumProviderErrors": 0,
+    "requireProviderPreparation": true
+  }
+}

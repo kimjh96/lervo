@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6a73fd2c3ff13d55c8dc59c0
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bfd0b05e69a9ea9ef7e8bf76
+outputLanguage: en
+outputs:
+  - byteCount: 5292
+    contentHash: sha256:dc6e4b3ce2fa611a2196f0922383f2ed9e7aace390a242a143650228b847a6cb
+    path: docs/research/extensible-search-engine-landscape.md
+    userRegionHash: sha256:dc6e4b3ce2fa611a2196f0922383f2ed9e7aace390a242a143650228b847a6cb
+profile: repository_document
+recordId: knormdoc_b4fd8339ef532c1c0933cce8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0b6dd2b7b6f34f393e0004684e998f02b66170adb51db7151efdf815e9fc76d0
+sourcePath: docs/research/extensible-search-engine-landscape.md
+sourceUnitVersionIds:
+  - uv_161b3bceef574b77af1dd264
+  - uv_47ee9fe0d759f8d55e4eecbe
+  - uv_7124093e6fae94900b5c9e68

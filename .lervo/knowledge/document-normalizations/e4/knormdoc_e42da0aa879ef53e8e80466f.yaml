@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_852d396b48010cc0cdad5433
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a1456981878ab2ca187ea763
+outputLanguage: en
+outputs:
+  - byteCount: 2480
+    contentHash: sha256:3a2c401cd46ad589224681a0bfc272223243da2e0192c43ccbbd06785e464b10
+    path: docs/decisions/search/engines/0315-pre-register-lexical-v2-v18-query-aligned-authority.md
+    userRegionHash: sha256:3a2c401cd46ad589224681a0bfc272223243da2e0192c43ccbbd06785e464b10
+profile: decision_record
+recordId: knormdoc_e42da0aa879ef53e8e80466f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5ea0d15a89b4b09285cbc9043a85607b31ca95882fefd934407056cd35d234d6
+sourcePath: docs/decisions/search/engines/0315-pre-register-lexical-v2-v18-query-aligned-authority.md
+sourceUnitVersionIds:
+  - uv_15098e1f3eda436feec3d14c
+  - uv_34da01bd623c295ef2020835
+  - uv_36d4c97bab7aad19eac5f1eb
+  - uv_9fa7a53cc2349e683013642f
+  - uv_efd699e20e69769381f7d963

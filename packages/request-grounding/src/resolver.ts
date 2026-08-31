@@ -16,7 +16,11 @@ export interface GroundingPriorTurn {
 
 export interface GroundingResolutionContext {
   priorTurns: GroundingPriorTurn[];
-  currentWorkstream: { workstreamId: string; revision: number } | null;
+  currentWorkstream: {
+    workstreamId: string;
+    revision: number;
+    context?: string;
+  } | null;
   pendingAuthorityIds: string[];
   repositoryCondition: "current" | "stale" | "no_matching_source";
 }
@@ -32,6 +36,17 @@ export interface SemanticGroundingResolverPort {
 
 function requestDigest(request: string): string {
   return `sha256:${createHash("sha256").update(request).digest("hex")}`;
+}
+
+function containsExactCoordinate(text: string, value: string): boolean {
+  let start = text.indexOf(value);
+  while (start >= 0) {
+    const before = start === 0 ? "" : text[start - 1]!;
+    const after = text[start + value.length] ?? "";
+    if (!/[A-Za-z0-9._/-]/u.test(before) && !/[A-Za-z0-9._/-]/u.test(after)) return true;
+    start = text.indexOf(value, start + 1);
+  }
+  return false;
 }
 
 function validateInput(request: string, context: GroundingResolutionContext): void {
@@ -53,7 +68,10 @@ function validateInput(request: string, context: GroundingResolutionContext): vo
     context.currentWorkstream !== null &&
     (!/^wks_[a-f0-9]{24}$/u.test(context.currentWorkstream.workstreamId) ||
       !Number.isSafeInteger(context.currentWorkstream.revision) ||
-      context.currentWorkstream.revision < 1)
+      context.currentWorkstream.revision < 1 ||
+      (context.currentWorkstream.context !== undefined &&
+        (context.currentWorkstream.context.trim() === "" ||
+          Buffer.byteLength(context.currentWorkstream.context) > 8_192)))
   ) {
     throw new TypeError("The current workstream coordinate is invalid.");
   }
@@ -105,6 +123,14 @@ export async function resolveGroundedRequest(input: {
   const allowedCoordinates = new Set(
     exactCoordinates.map((coordinate) => `${coordinate.kind}:${coordinate.value}`),
   );
+  const currentWorkstreamContext = input.resolutionContext.currentWorkstream?.context;
+  if (currentWorkstreamContext !== undefined) {
+    for (const coordinate of proposal.protocolCoordinates) {
+      if (containsExactCoordinate(currentWorkstreamContext, coordinate.value)) {
+        allowedCoordinates.add(`${coordinate.kind}:${coordinate.value}`);
+      }
+    }
+  }
   if (
     proposal.protocolCoordinates.some(
       (coordinate) => !allowedCoordinates.has(`${coordinate.kind}:${coordinate.value}`),

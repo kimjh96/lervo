@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_969d803bc0452148069be0f3
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ffdaf7e9f8a436ac077dedaf
+outputLanguage: en
+outputs:
+  - byteCount: 6105
+    contentHash: sha256:1a946767527bcff1034c045d14b6afd7762383f8f9cb2424218a8b686aa07f29
+    path: docs/decisions/search/engines/0319-keep-lexical-v2-inactive-after-reviewed-real-use-gate.md
+    userRegionHash: sha256:1a946767527bcff1034c045d14b6afd7762383f8f9cb2424218a8b686aa07f29
+profile: decision_record
+recordId: knormdoc_5e39c90492d0b5b464ff4c71
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e279b126abf9e6bb275d4130b5f1b5f99ec0d1989f315b67d935609c69354f3a
+sourcePath: docs/decisions/search/engines/0319-keep-lexical-v2-inactive-after-reviewed-real-use-gate.md
+sourceUnitVersionIds:
+  - uv_12b0770f9666dda0b01bc098
+  - uv_4428a37a6233e82565176549
+  - uv_70bf635da1bbd61a7ff39032
+  - uv_7f94e145b76da74122214e56
+  - uv_8b369baf0403d9e74a92f1a0
+  - uv_8de26fbc65e62069cc5b14d0

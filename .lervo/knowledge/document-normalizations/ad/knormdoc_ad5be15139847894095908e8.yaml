@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_852d396b48010cc0cdad5433
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_219c9e8a604af45bab962616
+outputLanguage: en
+outputs:
+  - byteCount: 6829
+    contentHash: sha256:259de6dd014e418d33d3d9a3d4e76fd60e3c178596185e02474e1b7e8344ad1a
+    path: docs/decisions/search/engines/0308-pre-register-lexical-v2-pipeline-activation-gates.md
+    userRegionHash: sha256:259de6dd014e418d33d3d9a3d4e76fd60e3c178596185e02474e1b7e8344ad1a
+profile: decision_record
+recordId: knormdoc_ad5be15139847894095908e8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:81feb2e3d99e69a1c1cd1f70b54194e014d7d7e79e756306032aa4033e9dc78b
+sourcePath: docs/decisions/search/engines/0308-pre-register-lexical-v2-pipeline-activation-gates.md
+sourceUnitVersionIds:
+  - uv_380077d371b859ed6bf11b7c
+  - uv_43eb09530db3b52391f7a141
+  - uv_71cf08017bd14624fe8da261
+  - uv_9e6aee9a4f0c855687fd0634
+  - uv_aa69a7297a19414573a5f4bb
+  - uv_aaae87811cf8389d42b7c1b4
+  - uv_c9a0c07a0a76152e91ec8b97
+  - uv_f4ffcf665ca9563cdad97d55

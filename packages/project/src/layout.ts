@@ -40,6 +40,7 @@ export const lervoRelativePaths = {
   workforce: ".lervo/data/workforce",
   searchEvaluations: ".lervo/search-evaluations",
   searchEnginePolicies: ".lervo/search-engine-policies",
+  searchRetrievalPlanBundles: ".lervo/search-retrieval-plan-bundles",
   searchRolloutPolicies: ".lervo/search-rollout-policies",
   searchRolloutActionPolicies: ".lervo/search-rollout-action-policies",
   searchObservations: ".lervo/state/search",
@@ -96,6 +97,7 @@ export interface LervoProjectPaths {
   workforce: string;
   searchEvaluations: string;
   searchEnginePolicies: string;
+  searchRetrievalPlanBundles: string;
   searchRolloutPolicies: string;
   searchRolloutActionPolicies: string;
   searchObservations: string;
@@ -165,6 +167,10 @@ export function resolveProjectPaths(root: string): LervoProjectPaths {
     workforce: resolve(repositoryRoot, lervoRelativePaths.workforce),
     searchEvaluations: resolve(repositoryRoot, lervoRelativePaths.searchEvaluations),
     searchEnginePolicies: resolve(repositoryRoot, lervoRelativePaths.searchEnginePolicies),
+    searchRetrievalPlanBundles: resolve(
+      repositoryRoot,
+      lervoRelativePaths.searchRetrievalPlanBundles,
+    ),
     searchRolloutPolicies: resolve(repositoryRoot, lervoRelativePaths.searchRolloutPolicies),
     searchRolloutActionPolicies: resolve(
       repositoryRoot,

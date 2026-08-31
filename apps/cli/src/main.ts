@@ -21,6 +21,10 @@ import { runTraceCommand, traceUsage } from "./trace-command.js";
 import { runTerminalCommand, terminalUsage } from "./terminal-command.js";
 import type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
 import { groundProductionRequest } from "./semantic-grounding.js";
+import {
+  prepareProductionSearchQueries,
+  projectProductionSearchQueries,
+} from "./provider-query-projector.js";
 import { runUpgradeCommand, upgradeUsage } from "./upgrade-command.js";
 import { runVersionCommand, versionUsage } from "./version-command.js";
 import { runWorkstreamCommand, workstreamUsage } from "./workstream-command.js";
@@ -57,6 +61,8 @@ const defaultServices: CliServices = {
   inspectDoctorEnvironment,
   executeEnvironmentQuery,
   groundProductionRequest,
+  projectSearchQueries: projectProductionSearchQueries,
+  prepareSearchQueries: prepareProductionSearchQueries,
 };
 
 export async function runCli(

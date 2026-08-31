@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_ed4d6801ebbfd785f945e483
+compiler:
+  compilerBuildId: sha256:d04ee6378c95d03e201ff9632b566a934f01bfc343f96544f450d5fd5e2a3d3d
+  compilerId: lervo.claude.document-normalizer
+  compilerVersion: 1+2.1.224 (Claude Code)
+  isolation: external_no_capabilities
+  provider: claude
+formatVersion: lervo.document.v1
+operationId: knormop_b0d726d985f85d80cc74d762
+outputLanguage: en
+outputs:
+  - byteCount: 7166
+    contentHash: sha256:e9408bc445900f9cc09677d9684e610e31a1e987765eec2d58371fe41d1a0b30
+    path: docs/evidence/search/lexical-v2/lexical-v2-activation-confirmation-v20.md
+    userRegionHash: sha256:e9408bc445900f9cc09677d9684e610e31a1e987765eec2d58371fe41d1a0b30
+profile: repository_document
+recordId: knormdoc_b499a8e616a606c61152c4cc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e9408bc445900f9cc09677d9684e610e31a1e987765eec2d58371fe41d1a0b30
+sourcePath: docs/evidence/search/lexical-v2/lexical-v2-activation-confirmation-v20.md
+sourceUnitVersionIds:
+  - uv_0257f2011c1d6555b4f165d9
+  - uv_1d8748336c8a95f1b890df33
+  - uv_2397817baf18004b0ad3b085
+  - uv_3c1c72c0e86f095f885a4387
+  - uv_6c986cc1528326570301b1ec
+  - uv_9c5ed24461ac3f06465b6b18
+  - uv_b21ba5f5a83417128dc81889
+  - uv_fdf0eb0b7f0b39ce66074889

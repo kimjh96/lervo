@@ -169,6 +169,9 @@ export class CodexAdapter implements ProviderAdapter {
         approvalPolicy,
         sandbox,
         ...(this.options.model === undefined ? {} : { model: this.options.model }),
+        ...(this.options.baseInstructions === undefined
+          ? {}
+          : { baseInstructions: this.options.baseInstructions }),
         config: {
           features: { hooks: false },
           ...(Object.keys(mcpServers).length === 0 ? {} : { mcp_servers: mcpServers }),
@@ -357,9 +360,14 @@ export class CodexAdapter implements ProviderAdapter {
     const providerTurn = await state.client.startTurn(
       session.providerSessionId,
       request.instructions,
-      this.options.structuredOutputSchema === undefined
-        ? undefined
-        : { outputSchema: structuredClone(this.options.structuredOutputSchema) },
+      {
+        ...(this.options.reasoningEffort === undefined
+          ? {}
+          : { reasoningEffort: this.options.reasoningEffort }),
+        ...(this.options.structuredOutputSchema === undefined
+          ? {}
+          : { outputSchema: structuredClone(this.options.structuredOutputSchema) }),
+      },
     );
     state.activeProviderTurnId = providerTurn.turnId;
     state.startedTargetTurnIds.add(request.targetTurnId);

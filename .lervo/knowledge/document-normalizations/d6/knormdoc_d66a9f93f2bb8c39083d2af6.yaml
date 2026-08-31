@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_76135d863cd95ee6198abde2
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ec4d7909443e5d38a6d3c369
+outputLanguage: en
+outputs:
+  - byteCount: 3677
+    contentHash: sha256:38d0ec1ecf0aae6fc95f0c66cde30f3eb6a7282f57501f75ae0034ba2c9ed72a
+    path: docs/decisions/search/engines/0320-qualify-projected-lexical-v2-without-engine-activation.md
+    userRegionHash: sha256:38d0ec1ecf0aae6fc95f0c66cde30f3eb6a7282f57501f75ae0034ba2c9ed72a
+profile: decision_record
+recordId: knormdoc_d66a9f93f2bb8c39083d2af6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:79dc495a66ed95e06488fb696b97d44386154010e693bda33396e5dbb5590b46
+sourcePath: docs/decisions/search/engines/0320-qualify-projected-lexical-v2-without-engine-activation.md
+sourceUnitVersionIds:
+  - uv_2cc92e6afffd0c63aeec6d0e
+  - uv_2ebf69ec34959504113e04db
+  - uv_52ba2b5bea725a015f75b42e
+  - uv_69ac12919e24f909848a39fc
+  - uv_7cbd05d9582de072e7429fe7
+  - uv_a8e08a565886e90fef738825

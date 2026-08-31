@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:44c8b750-7e21-514c-917d-b10d5b7908e0",
+  "serialNumber": "urn:uuid:d51e0a09-7505-559b-9a70-8d8807d33ff9",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -21,15 +21,15 @@
     },
     "component": {
       "type": "application",
-      "bom-ref": "pkg:npm/%40lervo/cli@0.6.0",
+      "bom-ref": "pkg:npm/%40lervo/cli@0.7.0",
       "group": "@lervo",
       "name": "cli",
-      "version": "0.6.0",
-      "purl": "pkg:npm/%40lervo/cli@0.6.0",
+      "version": "0.7.0",
+      "purl": "pkg:npm/%40lervo/cli@0.7.0",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "0d3093c76c4799dc07423b59de88759595f5f66a1dc84a55c1ba56ccd67c70f3"
+          "content": "8b56c9e322584e686f9e75f182c8ec10394698ea602d2409ca1edd93dd5f4008"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:e17d33defc3af392464ee16eaa3c646816efd5a198977a8ae7aedd95963ad7d4"
+          "value": "sha256:3a93a8fdab920ff92cc01cd299208e05c6c847acf3929b46a714cf85e7f77da2"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:5e979b6ef222b504c9a1a0c1c752c85bc9cbd0dc075727fa146faccca63847e7"
+          "value": "sha256:faa26f1e8d47f4ca2cc499affccdc5ac40eabd0417c363b14af66759a0e0b584"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -985,6 +985,21 @@
       "name": "search-adapter-bm25f",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/search-adapter-bm25f@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/search-adapter-lexical-v2@0.1.0",
+      "group": "@lervo",
+      "name": "search-adapter-lexical-v2",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/search-adapter-lexical-v2@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -3930,7 +3945,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40lervo/cli@0.6.0",
+      "ref": "pkg:npm/%40lervo/cli@0.7.0",
       "dependsOn": [
         "pkg:npm/%40anthropic-ai/claude-agent-sdk@0.3.226",
         "pkg:npm/%40anthropic-ai/sdk@0.117.1",
@@ -3979,6 +3994,7 @@
         "pkg:npm/%40lervo/runtime-security@0.1.0",
         "pkg:npm/%40lervo/schemas@0.1.0",
         "pkg:npm/%40lervo/search-adapter-bm25f@0.1.0",
+        "pkg:npm/%40lervo/search-adapter-lexical-v2@0.1.0",
         "pkg:npm/%40lervo/search-local@0.1.0",
         "pkg:npm/%40lervo/search@0.1.0",
         "pkg:npm/%40lervo/skills@0.1.0",

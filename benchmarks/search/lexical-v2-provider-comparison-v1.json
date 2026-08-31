@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "lv2bench_provider_comparison.v1",
+  "benchmarkMode": "paired_search_engine_context",
+  "protocolId": "lexical-v2-injected-evidence-only-v1",
+  "protocolDigest": "sha256:0a6c5e2080504a4cfbe3cddaeca0e56fa7db3198da6a58755b3e7c29f54d82c1",
+  "provenance": "verification_authored",
+  "reviewStatus": "pending_human_review",
+  "publicQueries": true,
+  "modelResponseLocale": "ko",
+  "lexicalLimit": 3,
+  "repetitionsPerArm": 3,
+  "maximumProviderInvocations": 48,
+  "acceptance": {
+    "requireCasePassNonRegression": true,
+    "requireRecallNonInferiority": true,
+    "requirePrecisionNonInferiority": true,
+    "maximumTokenRatioBasisPoints": 9000,
+    "maximumDurationRatioBasisPoints": 9500,
+    "maximumFailedContracts": 0,
+    "maximumToolOrCommandObservations": 0,
+    "requireCompleteUsage": true
+  },
+  "corpusRoots": ["README.md", "AGENTS.md", "docs"],
+  "corpusExclusions": [
+    "docs/decisions/search/0224-natural-language-grounding-quality-evaluation.md",
+    "docs/decisions/search/engines",
+    "docs/evidence/search",
+    "docs/knowledge",
+    "docs/roadmap/natural-language-grounding-quality.md",
+    "docs/research/extensible-search-engine-architecture.md"
+  ],
+  "cases": [
+    {
+      "caseId": "lv2case_task_commit_convention",
+      "taskType": "task_start_and_how_to",
+      "query": "이제 commit convention 작업 하자. 먼저 적용 규칙 찾아줘",
+      "expectedPaths": ["docs/foundation/commit-convention.md"]
+    },
+    {
+      "caseId": "lv2case_task_knowledge_compilation",
+      "taskType": "task_start_and_how_to",
+      "query": "repository knowledge compilation 개선 작업 하자. canonical spec부터 찾아줘",
+      "expectedPaths": ["docs/specs/repository-knowledge-compilation.md"]
+    },
+    {
+      "caseId": "lv2case_rationale_hybrid_search",
+      "taskType": "historical_rationale",
+      "query": "예전에 local hybrid search와 reviewed relation context 작업을 왜 했었지?",
+      "expectedPaths": [
+        "docs/decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md"
+      ]
+    },
+    {
+      "caseId": "lv2case_rationale_release_completion",
+      "taskType": "historical_rationale",
+      "query": "base-bound CLI release completion 검사를 왜 따로 만들었지?",
+      "expectedPaths": [
+        "docs/decisions/release/packaging/0223-base-bound-cli-release-completion.md"
+      ]
+    },
+    {
+      "caseId": "lv2case_status_v0_roadmap",
+      "taskType": "status_continuation_impact",
+      "query": "v0 roadmap 남은 작업 뭐가 있지? 완료 상태부터 확인해줘",
+      "expectedPaths": ["docs/roadmap/v0.md"]
+    },
+    {
+      "caseId": "lv2case_status_cli_release",
+      "taskType": "status_continuation_impact",
+      "query": "CLI version management 다음 release 준비 순서 뭐지?",
+      "expectedPaths": ["docs/distribution/cli-version-management.md"]
+    },
+    {
+      "caseId": "lv2case_boundary_user_owned_block",
+      "taskType": "ambiguity_and_contract_boundary",
+      "query": "managed block 작업할 때 user-owned content 자동으로 덮어써도 돼?",
+      "expectedPaths": ["docs/specifications/execution.md"]
+    },
+    {
+      "caseId": "lv2case_boundary_fuzzy_merge",
+      "taskType": "ambiguity_and_contract_boundary",
+      "query": "fuzzy merge를 승인 없이 자동 적용해도 돼? conflict resolution 근거 찾아줘",
+      "expectedPaths": [
+        "docs/decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md",
+        "docs/decisions/execution/providers/0187-review-gated-cross-provider-exact-merge.md"
+      ]
+    }
+  ]
+}

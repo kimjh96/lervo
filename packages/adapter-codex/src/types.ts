@@ -7,6 +7,7 @@ import type {
 
 export type CodexApprovalPolicy = "untrusted" | "on-request" | "never";
 export type CodexSandboxMode = "read-only" | "workspace-write" | "danger-full-access";
+export type CodexReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max";
 
 export type CodexTransportOptions =
   | { kind: "app_server" }
@@ -20,6 +21,7 @@ export type CodexTransportOptions =
 export interface CodexThreadStartOptions {
   cwd: string;
   model?: string;
+  baseInstructions?: string;
   approvalPolicy: CodexApprovalPolicy;
   sandbox: CodexSandboxMode;
   config?: Record<string, unknown>;
@@ -39,6 +41,7 @@ export interface CodexTurn {
 
 export interface CodexTurnStartOptions {
   outputSchema?: Record<string, unknown>;
+  reasoningEffort?: CodexReasoningEffort;
 }
 
 export interface CodexAppServerClient {
@@ -71,12 +74,14 @@ export interface CodexManagedWriteHandler {
 export interface CodexAdapterOptions {
   repositoryRoot: string;
   model?: string;
+  baseInstructions?: string;
   transport?: CodexTransportOptions;
   approvalPolicy?: CodexApprovalPolicy;
   sandbox?: CodexSandboxMode;
   executable?: string;
   requestTimeoutMs?: number;
   structuredOutputSchema?: Record<string, unknown>;
+  reasoningEffort?: CodexReasoningEffort;
   clientFactory?: CodexAppServerClientFactory;
   resolveArtifact?: (uri: string) => Promise<Uint8Array>;
   now?: () => Date;

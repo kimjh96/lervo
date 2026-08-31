@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_be3530a3c40a1b7a09868860
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6ab7c2c322d49d498a4535e8
+outputLanguage: en
+outputs:
+  - byteCount: 10104
+    contentHash: sha256:398ec7abf54cc53680ecdb024f3ec28e9f3b12990e0696439d59f595c2af5605
+    path: docs/decisions/search/engines/0326-pre-admit-terminal-query-projector-under-hook-ownership.md
+    userRegionHash: sha256:398ec7abf54cc53680ecdb024f3ec28e9f3b12990e0696439d59f595c2af5605
+profile: decision_record
+recordId: knormdoc_62c25c2da885f2b4f8e8d7fd
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:86b7c9bfbdddcfc583930611d15fc0147ebe07e83bc8ed8a7577e1ac57fff2b0
+sourcePath: docs/decisions/search/engines/0326-pre-admit-terminal-query-projector-under-hook-ownership.md
+sourceUnitVersionIds:
+  - uv_0e9a618de0630269badb210b
+  - uv_180b374d35cee0eaf46e6f90
+  - uv_2e1c6428e9b3be25656a08bf
+  - uv_5f9d4023d4fd0eae3119a74f
+  - uv_9c2de2da96dcb3f2fe7583ab
+  - uv_9f8062233d40d525a09004e2
+  - uv_a902c1011dd49082598e4f11

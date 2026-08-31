@@ -44,6 +44,7 @@ lines.on("line", (line) => {
   }
   if (message.method === "turn/start") {
     if (
+      message.params?.effort !== "low" ||
       message.params?.outputSchema?.properties?.evidenceTokens?.type !== "array" ||
       message.params?.outputSchema?.additionalProperties !== false
     ) {

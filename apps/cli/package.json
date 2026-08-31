@@ -1,6 +1,6 @@
 {
   "name": "@lervo/cli",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
   "keywords": [
     "ai-agents",
@@ -67,6 +67,7 @@
     "@lervo/roles": "workspace:*",
     "@lervo/search": "workspace:*",
     "@lervo/search-adapter-bm25f": "workspace:*",
+    "@lervo/search-adapter-lexical-v2": "workspace:*",
     "@lervo/search-local": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/skills": "workspace:*",

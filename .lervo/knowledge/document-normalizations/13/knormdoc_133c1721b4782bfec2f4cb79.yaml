@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_ed4d6801ebbfd785f945e483
+compiler:
+  compilerBuildId: sha256:d04ee6378c95d03e201ff9632b566a934f01bfc343f96544f450d5fd5e2a3d3d
+  compilerId: lervo.claude.document-normalizer
+  compilerVersion: 1+2.1.224 (Claude Code)
+  isolation: external_no_capabilities
+  provider: claude
+formatVersion: lervo.document.v1
+operationId: knormop_68fca65120c1b6ff86c87bfe
+outputLanguage: en
+outputs:
+  - byteCount: 3166
+    contentHash: sha256:3e674a55ff913134ad631570536fa643b4e47667927c97be9d8ea3843c4a272d
+    path: docs/decisions/search/engines/0317-pre-register-lexical-v2-v20-five-repetition-confirmation.md
+    userRegionHash: sha256:3e674a55ff913134ad631570536fa643b4e47667927c97be9d8ea3843c4a272d
+profile: decision_record
+recordId: knormdoc_133c1721b4782bfec2f4cb79
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:df847d3657ff3d21570bd4bc76f4d40d87a74c18f4c1e5efb931fde02d6bfa56
+sourcePath: docs/decisions/search/engines/0317-pre-register-lexical-v2-v20-five-repetition-confirmation.md
+sourceUnitVersionIds:
+  - uv_3ef6dfd00b35b80fec9518de
+  - uv_7fe7f874136832f267cd9fe8
+  - uv_af6c4d1f2e982d074df1cf2b
+  - uv_b0910be6403bf544ca352ded
+  - uv_dd2858aef34c876a0860e0d7

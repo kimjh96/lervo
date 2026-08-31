@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2d7bf83a1494beabd5643d15
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0129e84fc440b43af2b92799
+outputLanguage: en
+outputs:
+  - byteCount: 6220
+    contentHash: sha256:310a20d388d94f7697915c944c4fc1df5b19119339b6d552635294c7dc571334
+    path: docs/decisions/execution/providers/hooks/0327-availability-safe-unmanaged-terminal-hooks.md
+    userRegionHash: sha256:310a20d388d94f7697915c944c4fc1df5b19119339b6d552635294c7dc571334
+profile: decision_record
+recordId: knormdoc_dfdb49d0898298522092e586
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6c36f5a9b073d4f34b6bbb9ff78b3ad1850dd6de1ba2eb9f6c054515c64bba59
+sourcePath: docs/decisions/execution/providers/hooks/0327-availability-safe-unmanaged-terminal-hooks.md
+sourceUnitVersionIds:
+  - uv_1393e0055f334b2fe83709ea
+  - uv_29357ac64785dd90db31a21a
+  - uv_3e7b7b0a244893f7c5e569a8
+  - uv_6715cd24aac9d3424a001d81
+  - uv_774f568e4f3e16e34066dfe3
+  - uv_81a36425131187b7e80af145
+  - uv_81c1580520b6fb8f9fd30fd8
+  - uv_c48d29c36e53f6e06f60e7b5
+  - uv_c9c0a9b59388bb8cb24d5c2b
+  - uv_d57d9d03f9f8fb24c8d641d6

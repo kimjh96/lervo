@@ -329,6 +329,7 @@ export class ClaudeAdapter implements ProviderAdapter {
       now: this.now,
       createEventId: this.createEventId,
       activeProviderTurnId: () => state.activeProviderTurnId,
+      structuredOutputCarrierEnabled: this.options.structuredOutputSchema !== undefined,
     });
     try {
       for await (const raw of state.client.messages(signal)) {
@@ -454,7 +455,13 @@ export class ClaudeAdapter implements ProviderAdapter {
       providerSessionId,
       cwd: this.repositoryRoot,
       ...(this.options.model === undefined ? {} : { model: this.options.model }),
+      ...(this.options.systemPrompt === undefined
+        ? {}
+        : { systemPrompt: this.options.systemPrompt }),
       ...(this.options.executable === undefined ? {} : { executable: this.options.executable }),
+      ...(this.options.reasoningEffort === undefined
+        ? {}
+        : { reasoningEffort: this.options.reasoningEffort }),
       permissionMode,
       requestTimeoutMs: this.options.requestTimeoutMs ?? 30_000,
       createMessageId: this.createProviderMessageId,

@@ -60,7 +60,53 @@ describe("direct terminal request grounding", () => {
       },
     });
 
-    expect(timeoutMs).toBe(20_000);
+    expect(timeoutMs).toBe(10_000);
+  });
+
+  it("forwards bounded current-workstream context to semantic grounding", async () => {
+    let observedCurrentWorkstream: unknown;
+    await resolveTerminalRequestGrounding({
+      request: "그 기준을 유지해줘",
+      provider: "codex",
+      currentWorkstream: {
+        workstreamId: `wks_${"1".repeat(24)}`,
+        revision: 7,
+        context: "Current objective: qualify lexical-v2 without weakening gates.",
+      },
+      services: {
+        groundProductionRequest: async (input) => {
+          observedCurrentWorkstream = input.resolutionContext.currentWorkstream;
+          return {
+            proposal: {
+              resolver: { resultDigest: `sha256:${"b".repeat(64)}` },
+              ambiguityReasons: [],
+              durableInstruction: {
+                disposition: "none",
+                speechAct: "other",
+                authority: "inferred",
+                durability: "unspecified",
+                operation: "none",
+                scope: { kind: "unspecified", paths: [] },
+                title: null,
+                statement: null,
+                exceptions: [],
+                risk: "unknown",
+                conflict: "unknown",
+                confidence: "low",
+                reasonIds: [],
+              },
+            } as never,
+            decision: semanticResolutionFailureDecision(),
+          };
+        },
+      },
+    });
+
+    expect(observedCurrentWorkstream).toEqual({
+      workstreamId: `wks_${"1".repeat(24)}`,
+      revision: 7,
+      context: "Current objective: qualify lexical-v2 without weakening gates.",
+    });
   });
 
   it("does not hide failures outside the provider grounding boundary", async () => {

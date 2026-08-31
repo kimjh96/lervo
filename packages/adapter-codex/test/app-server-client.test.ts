@@ -24,6 +24,7 @@ describe("Codex stdio app-server client", () => {
       "research-search",
     ]);
     const turn = await client.startTurn(thread.threadId, "fixture task", {
+      reasoningEffort: "low",
       outputSchema: {
         type: "object",
         properties: { evidenceTokens: { type: "array", items: { type: "string" } } },

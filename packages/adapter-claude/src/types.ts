@@ -6,6 +6,7 @@ import type {
 } from "@lervo/schemas";
 
 export type ClaudePermissionMode = "default" | "plan" | "dontAsk";
+export type ClaudeReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max";
 
 export interface ClaudeToolUseHandler {
   authorize(toolName: string, input: unknown, toolUseId: string): Promise<boolean>;
@@ -25,12 +26,14 @@ export interface ClaudeAgentClientStartOptions {
   providerSessionId: string;
   cwd: string;
   model?: string;
+  systemPrompt?: string;
   executable?: string;
   permissionMode: ClaudePermissionMode;
   requestTimeoutMs: number;
   createMessageId: () => string;
   tools?: string[];
   outputFormat?: OutputFormat;
+  reasoningEffort?: ClaudeReasoningEffort;
   capabilityActivations?: readonly AdapterCapabilityActivationRequest[];
 }
 
@@ -51,11 +54,13 @@ export type ClaudeAgentClientFactory = (
 export interface ClaudeAdapterOptions {
   repositoryRoot: string;
   model?: string;
+  systemPrompt?: string;
   executable?: string;
   permissionMode?: ClaudePermissionMode;
   requestTimeoutMs?: number;
   tools?: string[];
   structuredOutputSchema?: Record<string, unknown>;
+  reasoningEffort?: ClaudeReasoningEffort;
   clientFactory?: ClaudeAgentClientFactory;
   sdkStartup?: typeof startup;
   resolveArtifact?: (uri: string) => Promise<Uint8Array>;

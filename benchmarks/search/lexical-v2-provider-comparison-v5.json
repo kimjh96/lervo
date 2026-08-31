@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 5,
+  "suiteId": "lv2bench_provider_comparison.v5",
+  "baseSuite": "benchmarks/search/lexical-v2-provider-comparison-v4.json",
+  "protocolId": "lexical-v2-injected-evidence-only-v5",
+  "evidenceDelivery": {
+    "baseline": "full_documents",
+    "candidate": "query_selected_complete_markdown_sections",
+    "anchorDocuments": 3,
+    "linkedExpansionDocuments": 1,
+    "focusedSpecificationDocuments": 1,
+    "candidateMaximumDocuments": 5,
+    "maximumSectionsPerDocument": 2,
+    "targetBytesPerDocument": 3000
+  },
+  "reasoningEffort": {
+    "baseline": "low",
+    "candidate": "low"
+  },
+  "acceptance": {
+    "requireCasePassNonRegression": true,
+    "requireRecallNonInferiority": true,
+    "requirePrecisionNonInferiority": true,
+    "maximumTokenRatioBasisPoints": 9000,
+    "maximumDurationRatioBasisPoints": 9500,
+    "maximumFailedContracts": 0,
+    "maximumToolOrCommandObservations": 0,
+    "requireCompleteUsage": true,
+    "maximumInjectedByteRatioBasisPoints": 7000,
+    "requireStructuredOutput": true,
+    "minimumCandidatePassedObservations": 18,
+    "minimumCandidateCasesPassingEveryRepetition": 6,
+    "minimumCandidateRecallBasisPoints": 8500,
+    "minimumCandidatePrecisionBasisPoints": 5000
+  }
+}

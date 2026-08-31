@@ -35,7 +35,7 @@ lervo knowledge lint --json
 lervo knowledge query "managed provider" --json
 ```
 
-Rerun `lervo migrate knowledge` after each staged apply until current. A reviewed stage adds Lervo-owned `UserPromptSubmit` and `Stop` handlers to Codex and Claude project configuration. The handlers use a repository-local, integrity-checked runtime generated from the installed CLI, so provider shells do not need a global `lervo` on `PATH` and repository subdirectories work. Existing settings and hooks remain; disabled, malformed, or conflicting hooks block migration. Later generated-runtime upgrades reconcile without approval unless provider configuration must also change.
+Rerun `lervo migrate knowledge` after each staged apply until current. A reviewed stage adds repository-local, integrity-checked `UserPromptSubmit` and `Stop` handlers while preserving existing hooks. Prompt preparation only retrieves current-repository knowledge; it grants no external route, effect, or durable rule. Internal failures and root Stop findings do not block the provider or claim evidence; worker isolation remains enforceable. Disabled, malformed, or conflicting hooks block migration. Generated-runtime upgrades need no approval unless provider configuration changes.
 
 The global install uses the built checkout. To install an archive, run `pnpm --dir apps/cli pack --pack-destination <directory>`, then install its `.tgz` with `npm install --global <archive>`.
 

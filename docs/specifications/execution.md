@@ -1,7 +1,7 @@
 # Lervo Execution and Evidence Specification
 
 Status: `active`
-As of: 2026-08-30
+As of: 2026-09-01
 
 ## 1. Scope
 
@@ -20,23 +20,23 @@ requested -> resolved -> documents/capabilities recommended and selected
 
 Completion requires agreement among contracts, capability decisions, context evidence, provider results, repository snapshots, and verification. Other provider work is `unmanaged`.
 
-Direct Codex and Claude hooks use a repository-local, self-verifying contract-v2 runtime and may exact-hash load at most 28 KiB before `UserPromptSubmit` returns. Provider resolution receives 20 seconds of the 30-second hook budget and uses each provider's native structured-output interface within the no-capability process boundary. Native schema projection may weaken only unsupported transport syntax; deterministic validation retains the complete contract. Only proposal failure becomes empty unmanaged abstention. Managed, repository, and evidence failures fail closed. Non-ready grounding performs no repository query and records zero selected or loaded publications.
+Direct Codex and Claude hooks use a repository-local, self-verifying contract-v2 runtime and exact-hash load at most 28 KiB. Prompt preparation uses provider-neutral query projection only for registered current-repository knowledge. It records `unmanaged_terminal_retrieval_only` with empty semantic-action coordinates and grants no effect, workflow, authority, external route, or durable rule. Local empty or failed retrieval proves nothing about other sources. Internal failure returns empty success without evidence. Managed execution retains typed grounding and fail-closed contracts.
 
-Preparation creates no managed run and proves no acceptance, understanding, or use. Fail-closed `Stop` requires a current repository lifecycle, compares prepared and current revisions, and creates no history for unchanged turns. After changes, the working agent advances the workstream and declares its exact revision. Stop records only bounded coordinates and matching reference tokens. Mid-turn activation requests one continuation, then permits an unobserved continuation as unmanaged. New tokens are standalone Markdown HTML comments; legacy plain v1 tokens remain valid in flight.
+Preparation creates no managed run and proves no acceptance, understanding, or use. Direct root `Stop` records bounded lifecycle and reference observations when possible. Non-current state records `action_required` with completion `allowed`; unmatched or failed audit returns empty success without evidence. Agents still update workstreams and declarations after changes. Attached workers retain fail-closed isolation. Reference tokens are standalone Markdown HTML comments; legacy v1 tokens remain valid in flight.
 
-A current workstream must match its latest `workstream.snapshot.recorded` event and CAS artifact. Managed runs select it through required rule `repository.workstream` and load exact bytes before E3. Direct hooks prepend at most 8 KiB and record only ID, revision, snapshot hash, delivered bytes, and full or prefix scope. Absence is valid only on an unchanged turn before the first checkpoint; invalid state fails immediately. After repository bytes change, direct completion fails until a verified first revision exists or the current revision exceeds the prompt-time revision. Bounded pending decisions and approvals are unresolved current state; resolved history belongs in canonical documents.
+A current workstream must match its latest event and CAS artifact. Managed runs load exact bytes before E3. Direct hooks prepend at most 8 KiB and record bounded identity, revision, hash, byte, and scope coordinates. Missing or stale direct state is a finding, not permission or completion evidence. Resolved history belongs in canonical documents.
 
 Managed sessions suppress native project hooks. Graph-selected registered documents use bounded post-search projections and ordinary E1–E3 evidence (ADR-0216, ADR-0217). Ordinary runs do not select linked-only sources after search. The [managed linked-evidence specification](execution/managed-linked-evidence-canary.md) preserves the default-off exact canary, E1–E4 separation, bounded records, historical activation evidence, later production retirement, the rejected prompt-only attempt, typed boundary, claim eligibility, paired control, and retirement.
 
 ## 3. Context evidence
 
-| Level | Meaning |
-| --- | --- |
-| E0 | Candidate discovered. |
-| E1 | Candidate selected by policy. |
-| E2 | Current bytes loaded and validated. |
-| E3 | Adapter acknowledged the exact delivered envelope. |
-| E4 | Validated provider result explicitly cited the exact injected version. |
+| Level | Meaning                                                                |
+| ----- | ---------------------------------------------------------------------- |
+| E0    | Candidate discovered.                                                  |
+| E1    | Candidate selected by policy.                                          |
+| E2    | Current bytes loaded and validated.                                    |
+| E3    | Adapter acknowledged the exact delivered envelope.                     |
+| E4    | Validated provider result explicitly cited the exact injected version. |
 
 Each envelope and receipt has one provider-neutral `documentRole`: `task_evidence` or `governance_context`, plus required `referenceEligible` state. Instructions, workstreams, writing policies, and protocols are governance. Substantive task sources are task evidence. Governance wins if a document has both roles and is never reference eligible. Direct task selection is eligible. In the default-off exact canary, task evidence selected only as managed linked support is not eligible; direct provenance wins when both occur. Missing, unknown, changed, or role-inconsistent values fail delivery before E3 acceptance.
 
@@ -110,17 +110,17 @@ Repository workforce state uses durable role and agent identity, bounded parent 
 
 ## 13. Failure categories
 
-| Category | Required behavior |
-| --- | --- |
-| Invalid contract or policy | Fail before provider or write execution. |
-| Stale plan or snapshot | Produce a new read-only plan. |
-| Approval missing or revoked | Deny capability. |
-| Incomplete telemetry | Lower assurance; infer neither success nor use. |
-| Verification failure | Do not emit successful completion. |
-| Event commit failure | Roll back pre-commit bytes. |
-| Post-commit cleanup failure | Preserve bytes and require recovery. |
-| Uncertain remote effect | Record uncertainty; do not retry automatically. |
-| Secret or unsafe source | Exclude content; retain bounded diagnostics only. |
+| Category                    | Required behavior                                 |
+| --------------------------- | ------------------------------------------------- |
+| Invalid contract or policy  | Fail before provider or write execution.          |
+| Stale plan or snapshot      | Produce a new read-only plan.                     |
+| Approval missing or revoked | Deny capability.                                  |
+| Incomplete telemetry        | Lower assurance; infer neither success nor use.   |
+| Verification failure        | Do not emit successful completion.                |
+| Event commit failure        | Roll back pre-commit bytes.                       |
+| Post-commit cleanup failure | Preserve bytes and require recovery.              |
+| Uncertain remote effect     | Record uncertainty; do not retry automatically.   |
+| Secret or unsafe source     | Exclude content; retain bounded diagnostics only. |
 
 ## 14. Required verification
 

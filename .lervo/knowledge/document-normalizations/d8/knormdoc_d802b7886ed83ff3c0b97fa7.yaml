@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f887bd4b1489d684197d906a
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f3039d5de70257748dfdcc68
+outputLanguage: en
+outputs:
+  - byteCount: 7620
+    contentHash: sha256:e65d1ecaf37abc8eeeb965b198809c9cfb8f0b90b7bf6c05ae8c35e41663f9ce
+    path: docs/decisions/search/engines/0306-separate-search-engine-replacement-and-composition.md
+    userRegionHash: sha256:e65d1ecaf37abc8eeeb965b198809c9cfb8f0b90b7bf6c05ae8c35e41663f9ce
+profile: decision_record
+recordId: knormdoc_d802b7886ed83ff3c0b97fa7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:806feeb4755275d274138b7d499233bd79728ee241d21071ebc2c4b80cb6437e
+sourcePath: docs/decisions/search/engines/0306-separate-search-engine-replacement-and-composition.md
+sourceUnitVersionIds:
+  - uv_12254738ba4b9035d543462c
+  - uv_16219399b665365a07d797f3
+  - uv_2a86d674d927fd5934387d13
+  - uv_5b175c7ecc768df19110e0a2
+  - uv_6a287c0316fc69827ffe2860
+  - uv_d2d378a6c38b536b90f158ef
+  - uv_d3f4913aaf8cedff6fad6f9a

@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2d7bf83a1494beabd5643d15
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_165f00d8b6ed3cefd3d9920b
+outputLanguage: en
+outputs:
+  - byteCount: 5012
+    contentHash: sha256:4ed9f4915435f8a3a58b4d2ff21bf8881205c50b4fa1901e63789ba3285e72f4
+    path: docs/decisions/execution/providers/0204-self-contained-repository-terminal-hook-runtime.md
+    userRegionHash: sha256:4ed9f4915435f8a3a58b4d2ff21bf8881205c50b4fa1901e63789ba3285e72f4
+profile: decision_record
+recordId: knormdoc_e9c508bb8cb7d87804324004
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9199842631991191628bb21c3f4f601d0ec31fc3b2c101134e56527f8f245c64
+sourcePath: docs/decisions/execution/providers/0204-self-contained-repository-terminal-hook-runtime.md
+sourceUnitVersionIds:
+  - uv_080a4b5282418d9f6f93b19d
+  - uv_2091200c62fd60c4be2dcc0b
+  - uv_81f5f5f2ce541c05a6642c22
+  - uv_baac88fed38940e7735d3413
+  - uv_d5f4adabed6b113cc44172ac

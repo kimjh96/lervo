@@ -53,6 +53,7 @@ export type ObservationSubdirectory =
   | "attempts"
   | "evaluation-comparisons"
   | "engine-selections"
+  | "retrieval-plan-selections"
   | "evaluation-results"
   | "evaluation-reviews"
   | "evaluation-runs"

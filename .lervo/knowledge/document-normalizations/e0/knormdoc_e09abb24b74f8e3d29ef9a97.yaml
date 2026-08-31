@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f887bd4b1489d684197d906a
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_cd27678ca5082e9b54de4566
+outputLanguage: en
+outputs:
+  - byteCount: 4859
+    contentHash: sha256:777215536f9d926245ffad03680033b95521baf5e5fc1362de05e944184c2e07
+    path: docs/decisions/search/engines/0307-revise-lexical-v2-after-local-and-provider-evaluation.md
+    userRegionHash: sha256:777215536f9d926245ffad03680033b95521baf5e5fc1362de05e944184c2e07
+profile: decision_record
+recordId: knormdoc_e09abb24b74f8e3d29ef9a97
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c521af3e165ab857582005c931566177f0adfe68fb82981e54c70d4496138067
+sourcePath: docs/decisions/search/engines/0307-revise-lexical-v2-after-local-and-provider-evaluation.md
+sourceUnitVersionIds:
+  - uv_191909e50c7763975e3fa62e
+  - uv_5e5773205afdab2664d9f6dd
+  - uv_727a8957d9100606cf40da3f
+  - uv_90d6a4d63ba6fae9c515538c
+  - uv_aba84e4166cee410ce1c4c21
+  - uv_c478e384244deb91b258d1b6

@@ -80,11 +80,105 @@ describe("event payload privacy boundary", () => {
     };
 
     expect(sanitizeEventPayload("terminal.context.prepared", prepared).payload).toEqual(prepared);
+    const withDurableInstruction = {
+      ...prepared,
+      durableInstructionStatus: "ignored",
+      durableInstructionRuleId: null,
+      durableInstructionTargetPath: null,
+      durableInstructionReasonIds: ["semantic_resolution_failed"],
+    };
+    expect(
+      sanitizeEventPayload("terminal.context.prepared", {
+        ...withDurableInstruction,
+        normalizedRuleText: "private normalized rule",
+      }).payload,
+    ).toEqual(withDurableInstruction);
+    const currentPrepared = {
+      ...withDurableInstruction,
+      repositoryRevision: `sha256:${"1".repeat(64)}`,
+      requestDigest: `sha256:${"2".repeat(64)}`,
+      queryProjectionReceipt: {
+        schemaVersion: 1,
+        receiptId: `sqproj_${"3".repeat(24)}`,
+        stageId: "query_projection",
+        projector: {
+          id: "provider_query_projection.codex",
+          version: 1,
+          buildId: `sqbuild_${"4".repeat(24)}`,
+        },
+        requestDigest: `sha256:${"2".repeat(64)}`,
+        contextDigest: `sha256:${"5".repeat(64)}`,
+        projectorResultDigest: `sha256:${"6".repeat(64)}`,
+        requestedLanguage: "en",
+        limits: { maximumQueries: 8, maximumQueryCharacters: 500 },
+        projectedQueryCount: 1,
+        projectedQueryDigest: `sha256:${"7".repeat(64)}`,
+        durationMs: 100,
+        status: "completed",
+        usage: {
+          inputTokens: 100,
+          cachedInputTokens: 20,
+          outputTokens: 10,
+          reasoningOutputTokens: 5,
+          totalTokens: 110,
+          contextWindow: 258_400,
+        },
+        privacy: {
+          requestText: "excluded",
+          contextText: "excluded",
+          projectedQueryText: "excluded",
+        },
+      },
+      groundingStatus: "abstain",
+      groundingWorkflowId: null,
+      groundingSourceClasses: [],
+      groundingSubjectIds: [],
+      groundingProviderIds: [],
+      groundingReasons: ["semantic_resolution_failed"],
+      selectionStatus: "selected",
+      loadingStatus: "observed",
+      hookPreparationStatus: "observed",
+      providerInjectionStatus: "unobserved",
+      providerUseStatus: "unknown",
+      workstreamId: null,
+      workstreamRevision: null,
+      workstreamSnapshotHash: null,
+      workstreamScope: null,
+      workstreamDeliveredByteCount: null,
+      workspaceExecutionKind: null,
+      workspaceId: null,
+      workspaceGeneration: null,
+      workspaceRevision: null,
+      assignmentId: null,
+      leaseGeneration: null,
+      writerSessionId: null,
+    };
+    const sanitizedCurrent = sanitizeEventPayload("terminal.context.prepared", {
+      ...currentPrepared,
+      queryProjectionReceipt: {
+        ...currentPrepared.queryProjectionReceipt,
+        usage: {
+          ...currentPrepared.queryProjectionReceipt.usage,
+          accessToken: "private credential",
+        },
+      },
+    });
+    expect(sanitizedCurrent.payload).toEqual(currentPrepared);
+    expect(sanitizedCurrent.redactions).toContainEqual({
+      path: "$.queryProjectionReceipt.usage.accessToken",
+      reason: "sensitive_key",
+    });
     expect(sanitizeEventPayload("terminal.turn.observed", observed).payload).toEqual(observed);
     expect(() =>
       sanitizeEventPayload("terminal.context.prepared", {
         ...prepared,
         workstreamId: null,
+      }),
+    ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+    expect(() =>
+      sanitizeEventPayload("terminal.context.prepared", {
+        ...prepared,
+        durableInstructionStatus: "ignored",
       }),
     ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
     expect(() =>

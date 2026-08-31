@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "plan":
+    {
+      "schemaVersion": 1,
+      "projection":
+        {
+          "required": true,
+          "populations":
+            [
+              {
+                "populationId": "provider.codex",
+                "projector":
+                  {
+                    "id": "provider_query_projection.codex",
+                    "version": 1,
+                    "buildId": "sqbuild_4c2f405568b9ff5c1de91332",
+                  },
+              },
+              {
+                "populationId": "provider.claude",
+                "projector":
+                  {
+                    "id": "provider_query_projection.claude",
+                    "version": 1,
+                    "buildId": "sqbuild_67f6aaa4c3afeaa5a6d55acc",
+                  },
+              },
+            ],
+          "maximumQueries": 8,
+          "maximumQueryCharacters": 500,
+        },
+      "retrieval":
+        {
+          "stageId": "primary_retrieval",
+          "candidateId": "lexical-v2",
+          "engine": { "id": "lexical", "version": 2 },
+          "adapterBuildId": "sebuild_e9f2ac9398b0f58d03143e7a",
+          "perQueryLimit": 50,
+        },
+      "fusion": { "algorithm": "query_coverage_interleave", "version": 1 },
+      "finalLimit": 10,
+      "failurePolicy": "fail_closed",
+      "privacy":
+        {
+          "requestText": "excluded",
+          "contextText": "excluded",
+          "projectedQueryText": "excluded",
+          "credentials": "excluded",
+        },
+      "planId": "srplan_db810188acfc08abd0b5bd4a",
+    },
+  "review":
+    {
+      "schemaVersion": 1,
+      "planId": "srplan_db810188acfc08abd0b5bd4a",
+      "reviewerId": "repository-owner",
+      "reviewedAt": "2026-08-31T11:47:00.000Z",
+      "decision": "activate",
+      "corpus":
+        {
+          "sourceSnapshotId": "ksnap_80b54d8e40f0b0d2cff70ba7",
+          "digest": "sha256:6c5dd0898bfe75fa5fad7d341869ea9e6208d6ffb067190dd25726dfe1912575",
+          "documentCount": 463,
+          "byteCount": 1897414,
+        },
+      "suite":
+        {
+          "suiteId": "spbench_lexical_v2_real_use_reviewed.v1",
+          "bindingHash": "sha256:ab432bcd3e9591b7dd94879ca6e8e7a314b4d6c7ae2cead153bf61512667be1d",
+          "cases": 4,
+          "repetitions": 5,
+        },
+      "populations":
+        [
+          {
+            "populationId": "provider.codex",
+            "reportId": "lv2real_d3a607ec28e20e2eb83ed28a",
+            "reportHash": "sha256:a220672d3f341f2b623ece35db67c606a2febefa7cc5825afa02ed7841e8f0bd",
+            "passedObservations": 20,
+            "totalObservations": 20,
+            "usageComplete": true,
+            "projectionFailures": 0,
+            "durationWithinLimit": true,
+          },
+          {
+            "populationId": "provider.claude",
+            "reportId": "lv2real_c3bd3b7e8faf85178768d35b",
+            "reportHash": "sha256:40792d1cce5d9f48bd303fcf9872926fd8fc4e13b6cbad9b413d2b8bfc1deaf7",
+            "passedObservations": 20,
+            "totalObservations": 20,
+            "usageComplete": true,
+            "projectionFailures": 0,
+            "durationWithinLimit": true,
+          },
+        ],
+      "engineEvidence":
+        {
+          "evidencePath": "docs/evidence/search/lexical-v2/lexical-v2-activation-confirmation-v20.md",
+          "evidenceHash": "sha256:e9408bc445900f9cc09677d9684e610e31a1e987765eec2d58371fe41d1a0b30",
+          "qualityGatePassed": true,
+          "efficiencyGatePassed": true,
+        },
+      "reviewId": "srprev_4b4c0983ae19abed01a83a06",
+    },
+  "policy":
+    {
+      "schemaVersion": 1,
+      "projectId": "prj_ab094111596346d7",
+      "allowedPlanIds": ["srplan_db810188acfc08abd0b5bd4a"],
+      "reviewerIds": ["repository-owner"],
+      "operatorIds": ["repository-owner"],
+      "authorId": "repository-owner",
+      "createdAt": "2026-08-31T11:47:30.000Z",
+      "minimumPopulations": 2,
+      "requirePerfectObservationPass": true,
+      "requireCompleteUsage": true,
+      "requireZeroProjectionFailures": true,
+      "requireDurationWithinLimit": true,
+      "policyId": "srppol_759a62a718e8ca374abc6783",
+    },
+  "bundleId": "srpbundle_8baf3ea742da7d04adb715ce",
+}

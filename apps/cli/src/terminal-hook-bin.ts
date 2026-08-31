@@ -6,7 +6,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { runTerminalCommand } from "./terminal-command.js";
-import { groundProductionRequest } from "./semantic-grounding.js";
+import { projectProductionSearchQueries } from "./provider-query-projector.js";
 
 async function verifiedRuntime(): Promise<boolean> {
   try {
@@ -45,6 +45,8 @@ if (!(await verifiedRuntime())) {
         return Buffer.concat(chunks).toString("utf8");
       },
     },
-    { groundProductionRequest },
+    {
+      projectSearchQueries: projectProductionSearchQueries,
+    },
   );
 }

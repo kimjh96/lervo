@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 9,
+  "suiteId": "lv2bench_provider_comparison.v9",
+  "baseSuite": "benchmarks/search/lexical-v2-provider-comparison-v8.json",
+  "protocolId": "lexical-v2-injected-evidence-only-v9"
+}

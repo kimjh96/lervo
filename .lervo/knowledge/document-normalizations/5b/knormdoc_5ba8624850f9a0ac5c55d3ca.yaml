@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_9e906ef8f8f7e2c38e11a0a1
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bb2decfc8accfffe7ac13095
+outputLanguage: en
+outputs:
+  - byteCount: 4740
+    contentHash: sha256:d5fcd28dffea8bf5453490ca8bea2ad2b0469507a578a7af7455a9af05d7203c
+    path: docs/evidence/search/lexical-v2/lexical-v2-reviewed-real-use-projection-v1.md
+    userRegionHash: sha256:d5fcd28dffea8bf5453490ca8bea2ad2b0469507a578a7af7455a9af05d7203c
+profile: repository_document
+recordId: knormdoc_5ba8624850f9a0ac5c55d3ca
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4625e33b569f1053261cd2ea7f1aa5ee5680444b2384328fad92013b995c2715
+sourcePath: docs/evidence/search/lexical-v2/lexical-v2-reviewed-real-use-projection-v1.md
+sourceUnitVersionIds:
+  - uv_3f86d286527df62c4a9271d2
+  - uv_55f484135962d91c104cad97
+  - uv_57bac70273195dfd99e07dd4
+  - uv_89128f6c601d4effc90288bf
+  - uv_a5f71b00672ffbf77f3a995e
+  - uv_e99a0b5eca202cfcc6f82532
+  - uv_f426914f3151cc4c7cff8bfd

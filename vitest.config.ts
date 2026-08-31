@@ -76,6 +76,9 @@ export default defineConfig({
       "@lervo/runtime-security": fromRoot("./packages/runtime-security/src/index.ts"),
       "@lervo/search": fromRoot("./packages/search/src/index.ts"),
       "@lervo/search-adapter-bm25f": fromRoot("./packages/search-adapter-bm25f/src/index.ts"),
+      "@lervo/search-adapter-lexical-v2": fromRoot(
+        "./packages/search-adapter-lexical-v2/src/index.ts",
+      ),
       "@lervo/search-local": fromRoot("./packages/search-local/src/index.ts"),
       "@lervo/schemas": fromRoot("./packages/schemas/src/index.ts"),
       "@lervo/skills": fromRoot("./packages/skills/src/index.ts"),

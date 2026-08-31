@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 12,
+  "suiteId": "lv2bench_provider_comparison.v12",
+  "baseSuite": "benchmarks/search/lexical-v2-provider-comparison-v11.json",
+  "protocolId": "lexical-v2-injected-evidence-only-v12",
+  "maximumProviderInvocations": 72,
+  "acceptance": {
+    "requireCasePassNonRegression": true,
+    "requireRecallNonInferiority": true,
+    "requirePrecisionNonInferiority": true,
+    "maximumTokenRatioBasisPoints": 9000,
+    "maximumDurationRatioBasisPoints": 9500,
+    "maximumFailedContracts": 0,
+    "maximumToolOrCommandObservations": 0,
+    "requireCompleteUsage": true,
+    "maximumInjectedByteRatioBasisPoints": 7000,
+    "requireStructuredOutput": true,
+    "minimumCandidatePassedObservations": 27,
+    "minimumCandidateCasesPassingEveryRepetition": 9,
+    "minimumCandidateRecallBasisPoints": 8500,
+    "minimumCandidatePrecisionBasisPoints": 5000,
+    "maximumProviderErrors": 0
+  },
+  "additionalCases": [
+    {
+      "caseId": "lv2case_holdout_task_provider_contract",
+      "taskType": "task_start_and_how_to",
+      "query": "provider adapter 공통 계약 테스트 작업을 시작하자. 어떤 명세를 먼저 봐야 해?",
+      "expectedPaths": ["docs/specifications/execution/provider-adapters.md"]
+    },
+    {
+      "caseId": "lv2case_holdout_rationale_search_context",
+      "taskType": "historical_rationale",
+      "query": "search recommendation을 곧바로 managed context에 넣지 않기로 한 이유가 뭐였지?",
+      "expectedPaths": [
+        "docs/decisions/search/0054-search-recommendation-managed-context-boundary.md"
+      ]
+    },
+    {
+      "caseId": "lv2case_holdout_status_knowledge_lifecycle",
+      "taskType": "status_continuation_impact",
+      "query": "repository knowledge lifecycle convergence 현재 완료 조건과 남은 순서를 확인해줘",
+      "expectedPaths": ["docs/specs/repository-knowledge-lifecycle-convergence.md"]
+    },
+    {
+      "caseId": "lv2case_holdout_boundary_skill_evidence",
+      "taskType": "ambiguity_and_contract_boundary",
+      "query": "skill이 resolved 상태면 loaded나 used로 기록해도 돼? 증거 경계를 찾아줘",
+      "expectedPaths": ["docs/specifications/execution/capabilities.md"]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 6,
+  "suiteId": "lv2bench_provider_comparison.v6",
+  "baseSuite": "benchmarks/search/lexical-v2-provider-comparison-v5.json",
+  "protocolId": "lexical-v2-injected-evidence-only-v6",
+  "protocolDigest": "sha256:3afd12e079db908f92d39422931ca1c70221757f2944e84c233c212145effd7c",
+  "evidenceDelivery": {
+    "baseline": "full_documents",
+    "candidate": "query_selected_complete_markdown_sections",
+    "anchorDocuments": 3,
+    "linkedExpansionDocuments": 1,
+    "focusedSpecificationDocuments": 1,
+    "candidateMaximumDocuments": 4,
+    "maximumSectionsPerDocument": 2,
+    "targetBytesPerDocument": 3000
+  },
+  "responseContract": {
+    "maximumAnswerCharacters": 600,
+    "maximumSourcePaths": 2
+  }
+}

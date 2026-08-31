@@ -144,8 +144,8 @@
       "query": "search candidate activation rollback policy",
       "expectedPaths": [
         "docs/decisions/search/0060-policy-bound-search-engine-selection.md",
-        "docs/decisions/search/0065-human-search-rollout-review.md",
-        "docs/decisions/search/0068-explicit-search-rollout-actions.md"
+        "docs/decisions/search/rollout/0065-human-search-rollout-review.md",
+        "docs/decisions/search/rollout/0068-explicit-search-rollout-actions.md"
       ],
       "maximumRank": 10
     },
@@ -166,8 +166,8 @@
       "provenance": "verification_authored",
       "query": "search rollout review versus action",
       "expectedPaths": [
-        "docs/decisions/search/0065-human-search-rollout-review.md",
-        "docs/decisions/search/0068-explicit-search-rollout-actions.md"
+        "docs/decisions/search/rollout/0065-human-search-rollout-review.md",
+        "docs/decisions/search/rollout/0068-explicit-search-rollout-actions.md"
       ],
       "maximumRank": 10
     },

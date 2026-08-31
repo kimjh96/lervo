@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "spbench_lexical_v2_english_capability_challenge.v1",
+  "baseSuite": "benchmarks/search/repository-retrieval-v1.json",
+  "publicQueries": true,
+  "provenance": "verification_authored_before_activation_measurement",
+  "corpusRoots": ["README.md", "AGENTS.md", "docs"],
+  "corpusExclusions": ["docs/evidence/search", "docs/knowledge"],
+  "taskTypes": [
+    { "taskType": "exact_repository_terminology", "minimumCases": 1 },
+    { "taskType": "wording_morphology_variation", "minimumCases": 1 },
+    { "taskType": "multiple_expected_sources", "minimumCases": 1 },
+    { "taskType": "ambiguous_near_neighbor", "minimumCases": 1 }
+  ],
+  "cases": [
+    {
+      "caseId": "spcase_lv2challenge_exact_identifier_components",
+      "taskType": "exact_repository_terminology",
+      "provenance": "verification_authored",
+      "query": "contextRecommendation evidence boundary",
+      "expectedPaths": [
+        "docs/decisions/search/0054-search-recommendation-managed-context-boundary.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_lv2challenge_wording_normalization",
+      "taskType": "wording_morphology_variation",
+      "provenance": "verification_authored",
+      "query": "normalizating",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0195-reviewed-document-content-normalization.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_lv2challenge_multiple_provider_adapters",
+      "taskType": "multiple_expected_sources",
+      "provenance": "verification_authored",
+      "query": "codexAdapter claudeAdapter managedProvider",
+      "expectedPaths": [
+        "docs/decisions/execution/providers/0009-codex-app-server-managed-adapter.md",
+        "docs/decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_lv2challenge_ambiguous_provider_activation",
+      "taskType": "ambiguous_near_neighbor",
+      "provenance": "verification_authored",
+      "query": "providerInstruction capabilityActivation",
+      "expectedPaths": [
+        "docs/decisions/knowledge/repository/0185-profiled-provider-instruction-bridge.md",
+        "docs/decisions/execution/providers/0211-provider-confirmed-capability-activation.md"
+      ],
+      "maximumRank": 10
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_baab1e83975fd7ee28db4cda
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_83854befa68163e65f48f99d
+outputLanguage: en
+outputs:
+  - byteCount: 3636
+    contentHash: sha256:09394d6530ae2e1da412714df05041a637bde0aa61cb12a6b07ad887ffe20475
+    path: docs/research/paperclip-lervo-comparison/capabilities-and-gaps.md
+    userRegionHash: sha256:09394d6530ae2e1da412714df05041a637bde0aa61cb12a6b07ad887ffe20475
+profile: repository_document
+recordId: knormdoc_38390da4f02d45c6aa22f048
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b331bc0ef3b34d1c188447543e83737210f91162f7bd788f45b88825e24a0375
+sourcePath: docs/research/paperclip-lervo-comparison/capabilities-and-gaps.md
+sourceUnitVersionIds:
+  - uv_0b029114ee5171bbbbf32627
+  - uv_3faeedb6d62be257974944ec
+  - uv_4c33ab8d2c03096a27d5215d
+  - uv_53958e1fdbe791b84b356239
+  - uv_6230bba1815d2ce59a2ffc4e
+  - uv_9934ccaf62f4c2981a53fae4
+  - uv_d00f33ef6a0e782f31d38d45
+  - uv_dfbc34651a60daa32cd1cbc4
+  - uv_fc3fca39fdde24e200893008

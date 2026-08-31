@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_945b003c804fed76b5614c1b
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ac6fd6f6343dca1d97cbe6ca
+outputLanguage: en
+outputs:
+  - byteCount: 4944
+    contentHash: sha256:d0ddf47f139f1c904ffbcc4b7c844324c726fde0100f20bee1adec3a379c4d01
+    path: docs/decisions/search/engines/0325-pre-register-provider-query-projector-v7-owned-lifecycle.md
+    userRegionHash: sha256:d0ddf47f139f1c904ffbcc4b7c844324c726fde0100f20bee1adec3a379c4d01
+profile: decision_record
+recordId: knormdoc_17208576fbc58c0ed0f866fa
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5dd44d78da2e0cbc874046d921ae601d32d7d612ef71ca0cecb2fbaa5ec22a07
+sourcePath: docs/decisions/search/engines/0325-pre-register-provider-query-projector-v7-owned-lifecycle.md
+sourceUnitVersionIds:
+  - uv_02f7c47254c9753a5d477eee
+  - uv_58a529e6aaf0a9ee025fea33
+  - uv_7958c8991b453f321f165a4d
+  - uv_8224aac4cac744ad801e2788
+  - uv_98de211e55582c10fe6bb310
+  - uv_af47e7cb009d7ca8b2366d8d
+  - uv_c383f57edee9e6b4cf1521f9

@@ -278,6 +278,124 @@ describe("typed semantic grounding", () => {
     expect(JSON.stringify(resolved)).not.toContain(request);
   });
 
+  it("passes a bounded current-workstream context to the resolver", async () => {
+    const workstreamContext = "Current objective: qualify lexical-v2 without weakening gates.";
+    let observedContext: unknown;
+    await resolveGroundedRequest({
+      request: "그 기준을 유지해줘",
+      resolutionContext: {
+        priorTurns: [],
+        currentWorkstream: {
+          workstreamId: `wks_${"1".repeat(24)}`,
+          revision: 7,
+          context: workstreamContext,
+        },
+        pendingAuthorityIds: [],
+        repositoryCondition: "current",
+      },
+      decisionContext: context,
+      resolver: {
+        providerId: "codex",
+        resolve: async ({ requestDigest, context: received }) => {
+          observedContext = received.currentWorkstream;
+          return proposal({ requestDigest });
+        },
+      },
+    });
+    expect(observedContext).toEqual({
+      workstreamId: `wks_${"1".repeat(24)}`,
+      revision: 7,
+      context: workstreamContext,
+    });
+  });
+
+  it("rejects an unbounded current-workstream context before provider execution", async () => {
+    let called = false;
+    await expect(
+      resolveGroundedRequest({
+        request: "Continue.",
+        resolutionContext: {
+          priorTurns: [],
+          currentWorkstream: {
+            workstreamId: `wks_${"1".repeat(24)}`,
+            revision: 7,
+            context: "x".repeat(8_193),
+          },
+          pendingAuthorityIds: [],
+          repositoryCondition: "current",
+        },
+        decisionContext: context,
+        resolver: {
+          providerId: "codex",
+          resolve: async ({ requestDigest }) => {
+            called = true;
+            return proposal({ requestDigest });
+          },
+        },
+      }),
+    ).rejects.toThrow("current workstream coordinate is invalid");
+    expect(called).toBe(false);
+  });
+
+  it("accepts an exact protocol coordinate copied from bounded current-workstream context", async () => {
+    const path = "docs/decisions/search/engines/0318-qualification.md";
+    const resolved = await resolveGroundedRequest({
+      request: "Use the current qualification reference.",
+      resolutionContext: {
+        priorTurns: [],
+        currentWorkstream: {
+          workstreamId: `wks_${"1".repeat(24)}`,
+          revision: 7,
+          context: `Qualification reference: ${path}`,
+        },
+        pendingAuthorityIds: [],
+        repositoryCondition: "current",
+      },
+      decisionContext: context,
+      resolver: {
+        providerId: "codex",
+        resolve: async ({ requestDigest }) =>
+          proposal({
+            requestDigest,
+            protocolCoordinates: [{ kind: "repository_path", value: path }],
+          }),
+      },
+    });
+
+    expect(resolved.proposal.protocolCoordinates).toEqual([
+      { kind: "repository_path", value: path },
+    ]);
+  });
+
+  it("rejects a protocol coordinate that is only a substring of a workstream coordinate", async () => {
+    await expect(
+      resolveGroundedRequest({
+        request: "Use the current qualification reference.",
+        resolutionContext: {
+          priorTurns: [],
+          currentWorkstream: {
+            workstreamId: `wks_${"1".repeat(24)}`,
+            revision: 7,
+            context: "Qualification reference: docs/search/qualification-v20.md",
+          },
+          pendingAuthorityIds: [],
+          repositoryCondition: "current",
+        },
+        decisionContext: context,
+        resolver: {
+          providerId: "codex",
+          resolve: async ({ requestDigest }) =>
+            proposal({
+              requestDigest,
+              protocolCoordinates: [
+                { kind: "repository_path", value: "docs/search/qualification" },
+              ],
+            }),
+        },
+      }),
+    ).rejects.toThrow("invented a protocol coordinate");
+  });
+
   it("rejects proposals bound to another request or provider without fallback", async () => {
     const resolutionContext = {
       priorTurns: [],

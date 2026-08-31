@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_9e906ef8f8f7e2c38e11a0a1
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_aac9c57576b131c45eb905ff
+outputLanguage: en
+outputs:
+  - byteCount: 6054
+    contentHash: sha256:d82d07ced3dd66adaa53c8eb57e6ca951465ffb853d9ba5a58b89a56d7766109
+    path: docs/decisions/search/engines/0321-activate-lexical-v2-through-retrieval-plan-selection.md
+    userRegionHash: sha256:d82d07ced3dd66adaa53c8eb57e6ca951465ffb853d9ba5a58b89a56d7766109
+profile: decision_record
+recordId: knormdoc_2784cd76e2e5b167e31a805a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1026f2cbbcdd156c3ccd20aa4c5db2e2845fd444f34013bd79a32170b7e14828
+sourcePath: docs/decisions/search/engines/0321-activate-lexical-v2-through-retrieval-plan-selection.md
+sourceUnitVersionIds:
+  - uv_2a15664268e986b0a78f5991
+  - uv_2b91e9b496bd4e70d1d934e3
+  - uv_2da2108420764123eac939fb
+  - uv_478fbd40c4bd9dad75044893
+  - uv_66bd981a847aad6eb805283d
+  - uv_9dc69384b3ec6b38159d4ece
+  - uv_b69319b90fb085a35748b572

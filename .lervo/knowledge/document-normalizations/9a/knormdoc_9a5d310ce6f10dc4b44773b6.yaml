@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_852d396b48010cc0cdad5433
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_806e87546c0ebe00abe3e43e
+outputLanguage: en
+outputs:
+  - byteCount: 4113
+    contentHash: sha256:45b40d374b1f18d0450f5106247ecd284e00b0005305b0d344cb7a72fafc1566
+    path: docs/decisions/search/engines/0309-retain-lexical-v1-after-lexical-v2-v12-confirmation.md
+    userRegionHash: sha256:45b40d374b1f18d0450f5106247ecd284e00b0005305b0d344cb7a72fafc1566
+profile: decision_record
+recordId: knormdoc_9a5d310ce6f10dc4b44773b6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:deb623b6736bef87decaa3f2d60845a4e630ef81dffb1c411238abb0fff48223
+sourcePath: docs/decisions/search/engines/0309-retain-lexical-v1-after-lexical-v2-v12-confirmation.md
+sourceUnitVersionIds:
+  - uv_236a1850272a3318470d6d8e
+  - uv_56d4819fe60b58cc36c5f5d7
+  - uv_9bd0746eb51e067db22b9390
+  - uv_a67183ad27dcdbfe22a45a26
+  - uv_d58f237632129861f198f25e
+  - uv_e9ad09bfca7046b85286a45a

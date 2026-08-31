@@ -105,10 +105,12 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
           abortController,
           cwd: options.cwd,
           ...(options.model === undefined ? {} : { model: options.model }),
+          ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
           ...(options.executable === undefined
             ? {}
             : { pathToClaudeCodeExecutable: options.executable }),
           ...(options.outputFormat === undefined ? {} : { outputFormat: options.outputFormat }),
+          ...(options.reasoningEffort === undefined ? {} : { effort: options.reasoningEffort }),
           sessionId: options.providerSessionId,
           permissionMode: options.permissionMode,
           settingSources: [],

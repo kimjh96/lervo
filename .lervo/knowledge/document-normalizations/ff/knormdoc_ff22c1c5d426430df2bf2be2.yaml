@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a8bc85bbc5386a7c30a6ae66
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_dcec9e95f41e96a81336efe8
+outputLanguage: en
+outputs:
+  - byteCount: 3516
+    contentHash: sha256:826262b165d2d99048a8debad4afcb7ead99405edd752a97b77400a674ffaf01
+    path: docs/research/paperclip-lervo-collaboration-and-mentions.md
+    userRegionHash: sha256:826262b165d2d99048a8debad4afcb7ead99405edd752a97b77400a674ffaf01
+profile: repository_document
+recordId: knormdoc_ff22c1c5d426430df2bf2be2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:028688202c828eb12e9b4bed84f8cc077adac62f059e0b3f7e9e1b6cdca29433
+sourcePath: docs/research/paperclip-lervo-collaboration-and-mentions.md
+sourceUnitVersionIds:
+  - uv_00b930c7995ea818f8760618
+  - uv_02c6cae6421bb621581556dd
+  - uv_0eb38bce8de61851d215e3e5
+  - uv_2abeea1a408b72e9924042d5
+  - uv_47197ccda8dc48efa7b4d8db
+  - uv_79b50652502a2063e25460c0
+  - uv_94c9071bca48454e9fa00b8d
+  - uv_ae650e97718ecbfcb6fcfe37

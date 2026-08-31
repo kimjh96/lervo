@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_7884b34378660e10a5f8e01f
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9c8b037e0a67ffcc5ad8c547
+outputLanguage: en
+outputs:
+  - byteCount: 4870
+    contentHash: sha256:1bccf8b57b485c5fd1a6dc956e51813683069157989299e02fa8d85a7e2c3499
+    path: docs/decisions/search/engines/0324-pre-register-provider-query-projector-v6-context-restoration.md
+    userRegionHash: sha256:1bccf8b57b485c5fd1a6dc956e51813683069157989299e02fa8d85a7e2c3499
+profile: decision_record
+recordId: knormdoc_a6e3364f73d9ecd995f5b6bb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9fa635b632ef9b4e6b1b7f67fd26063eef5ee940adbd5ff734a7acf328c77bf2
+sourcePath: docs/decisions/search/engines/0324-pre-register-provider-query-projector-v6-context-restoration.md
+sourceUnitVersionIds:
+  - uv_06c5f6d60c67879d619e5be3
+  - uv_3893c7f58487920eb21527a3
+  - uv_5db8d8f4c448061e4c87480f
+  - uv_913130429d35c1c11b9617b1
+  - uv_988e6389374c618f0a834183
+  - uv_c338b0f4bb65d15a549c73b3
+  - uv_f7bc76157ba40be93a4d5595

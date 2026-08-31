@@ -47,22 +47,36 @@ function protocolDocument(content = delegatedRetrievalProtocol) {
   };
 }
 
-function lexicalDocuments(recommendations) {
-  return recommendations.map((source) => ({
-    documentId: source.sourceId,
-    path: source.path,
-    contentHash: source.contentHash,
-    byteCount: Buffer.byteLength(source.text, "utf8"),
-    scope: { kind: "full" },
-    documentRole: "task_evidence",
-    referenceEligible: true,
-    delivery: { kind: "inline", content: source.text },
-  }));
+function lexicalDocuments(recommendations, query, selector) {
+  return recommendations.map((source) => {
+    const evidence = selector?.(source, query) ?? {
+      content: source.text,
+      contentHash: source.contentHash,
+      byteCount: Buffer.byteLength(source.text, "utf8"),
+      scope: { kind: "full" },
+    };
+    return {
+      documentId: source.sourceId,
+      path: source.path,
+      contentHash: evidence.contentHash,
+      byteCount: evidence.byteCount,
+      scope: evidence.scope,
+      documentRole: "task_evidence",
+      referenceEligible: true,
+      delivery: { kind: "inline", content: evidence.content },
+    };
+  });
 }
 
-async function waitForTurn(adapter, session, turn) {
+export async function waitForTurn(adapter, session, turn) {
   const controller = new AbortController();
-  const observations = { tools: new Set(), commands: new Set(), usage: null, errors: 0 };
+  const observations = {
+    tools: new Set(),
+    commands: new Set(),
+    usage: null,
+    errors: 0,
+    errorCounts: new Map(),
+  };
   let timer;
   const terminal = (async () => {
     for await (const event of adapter.events(session, controller.signal)) {
@@ -73,12 +87,21 @@ async function waitForTurn(adapter, session, turn) {
         observations.commands.add(event.payload.providerItemId);
       }
       if (event.type === "provider.usage.updated") observations.usage = event.payload;
-      if (event.type === "provider.error") observations.errors += 1;
+      if (event.type === "provider.error") {
+        observations.errors += 1;
+        const code =
+          typeof event.payload.failureCode === "string"
+            ? event.payload.failureCode
+            : "unknown_provider_error";
+        observations.errorCounts.set(code, (observations.errorCounts.get(code) ?? 0) + 1);
+      }
       if (
         event.type === "provider.turn.failed" &&
         event.payload.providerTurnId === turn.providerTurnId
       ) {
-        throw new Error("The delegated retrieval provider turn failed.");
+        const error = new Error("The delegated retrieval provider turn failed.");
+        error.failureCode = event.payload.failureCode ?? "provider_turn_failed";
+        throw error;
       }
       if (
         event.type === "provider.turn.completed" &&
@@ -111,7 +134,7 @@ export async function runDelegatedRetrievalArm(input) {
   const runId = id("run");
   const sessionId = id("ses");
   const targetTurnId = id("turn");
-  const adapter = input.createAdapter(input.repositoryRoot, input.model);
+  const adapter = input.preparedAdapter ?? input.createAdapter(input.repositoryRoot, input.model);
   const startedAt = Date.now();
   let session;
   let stopReason = "failed";
@@ -131,9 +154,12 @@ export async function runDelegatedRetrievalArm(input) {
       requestedAt,
     });
     const includeRecommendations = input.arm !== "model_direct";
+    const recommendationDocuments = includeRecommendations
+      ? lexicalDocuments(input.recommendations, input.item.query, input.evidenceSelector)
+      : [];
     const documents = [
       protocolDocument(input.protocol ?? delegatedRetrievalProtocol),
-      ...(includeRecommendations ? lexicalDocuments(input.recommendations) : []),
+      ...recommendationDocuments,
       ...(input.additionalDocuments ?? []).map((document) => ({
         ...document,
         documentRole: document.documentRole ?? "task_evidence",
@@ -225,12 +251,16 @@ export async function runDelegatedRetrievalArm(input) {
       completedToolCalls: observations.tools.size,
       completedCommands: observations.commands.size,
       providerErrors: observations.errors,
+      providerErrorCounts: Object.fromEntries([...observations.errorCounts].sort()),
       usage: observations.usage,
       repositoryInspectionObserved,
       referencedDocumentPaths: referencedDocuments.map((document) => document.path),
       injectedRecommendationPaths: includeRecommendations
         ? input.recommendations.map((source) => source.path)
         : [],
+      injectedRecommendationBytes: includeRecommendations
+        ? recommendationDocuments.reduce((sum, document) => sum + document.byteCount, 0)
+        : 0,
       injectedAdditionalDocumentPaths: (input.additionalDocuments ?? []).map(
         (document) => document.path,
       ),

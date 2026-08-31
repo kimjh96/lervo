@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 3,
+  "suiteId": "lv2bench_provider_comparison.v3",
+  "baseSuite": "benchmarks/search/lexical-v2-provider-comparison-v2.json",
+  "protocolId": "lexical-v2-injected-evidence-only-v3",
+  "evidenceDelivery": {
+    "baseline": "full_documents",
+    "candidate": "query_selected_complete_markdown_sections",
+    "anchorDocuments": 3,
+    "linkedExpansionDocuments": 1,
+    "focusedSpecificationDocuments": 1,
+    "candidateMaximumDocuments": 5,
+    "maximumSectionsPerDocument": 1,
+    "targetBytesPerDocument": 1500
+  }
+}

@@ -35,6 +35,15 @@ routes:
     minimumTitleTermMatches: 1
     titleTerms:
       - search rollout
+  - id: search.engines
+    path: search/engines
+    priority: 101
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - search-engine
+      - lexical-v2
+      - retrieval composition
+      - retrieval plan
   - id: search
     path: search
     priority: 100

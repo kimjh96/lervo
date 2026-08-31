@@ -23,6 +23,7 @@ import {
   type CodexAppServerClient,
   type CodexServerRequestId,
   type CodexThreadStartOptions,
+  type CodexTurnStartOptions,
 } from "../src/index.js";
 
 function sha(value: string | Uint8Array): string {
@@ -55,11 +56,7 @@ class FakeCodexClient implements CodexAppServerClient {
     return ["research-search"];
   }
 
-  async startTurn(
-    threadId: string,
-    instructions: string,
-    options?: { outputSchema?: Record<string, unknown> },
-  ) {
+  async startTurn(threadId: string, instructions: string, options?: CodexTurnStartOptions) {
     this.calls.push({ method: "startTurn", value: { threadId, instructions, options } });
     this.notificationsList.push(
       {
@@ -190,7 +187,7 @@ class NoToolFakeCodexClient extends FakeCodexClient {
   override async startTurn(
     threadId: string,
     instructions: string,
-    options?: { outputSchema?: Record<string, unknown> },
+    options?: CodexTurnStartOptions,
   ) {
     this.calls.push({ method: "startTurn", value: { threadId, instructions, options } });
     this.notificationsList.push(
@@ -361,17 +358,23 @@ describe("Codex managed adapter", () => {
 
   it("passes the common adapter contract with a controlled turn", async () => {
     const client = new FakeCodexClient();
-    const report = await evaluateAdapterContract(adapter(client), {
-      expectedProvider: "codex",
-      ...fixture(),
-      stopReason: "completed",
-      expectedEventCount: 7,
-      expectedResultContent: "super-secret-result",
-    });
+    const report = await evaluateAdapterContract(
+      adapter(client, { baseInstructions: "bounded evidence base" }),
+      {
+        expectedProvider: "codex",
+        ...fixture(),
+        stopReason: "completed",
+        expectedEventCount: 7,
+        expectedResultContent: "super-secret-result",
+      },
+    );
     expect(report).toEqual({ passed: true, violations: [] });
     expect(client.calls[0]).toMatchObject({
       method: "startThread",
-      value: { config: { features: { hooks: false } } },
+      value: {
+        baseInstructions: "bounded evidence base",
+        config: { features: { hooks: false } },
+      },
     });
     expect(client.closed).toBe(true);
   });
@@ -404,7 +407,10 @@ describe("Codex managed adapter", () => {
       required: ["evidenceTokens"],
       additionalProperties: false,
     };
-    const instance = adapter(client, { structuredOutputSchema: outputSchema });
+    const instance = adapter(client, {
+      reasoningEffort: "low",
+      structuredOutputSchema: outputSchema,
+    });
     const data = fixture();
     const session = await instance.start(data.startRequest);
     await instance.injectContext(session, data.contextEnvelope);
@@ -416,7 +422,7 @@ describe("Codex managed adapter", () => {
       value: {
         threadId: session.providerSessionId,
         instructions: data.turnRequest.instructions,
-        options: { outputSchema },
+        options: { reasoningEffort: "low", outputSchema },
       },
     });
   });

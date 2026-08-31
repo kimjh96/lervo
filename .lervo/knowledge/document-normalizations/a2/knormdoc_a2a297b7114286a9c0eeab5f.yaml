@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2d7bf83a1494beabd5643d15
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_93de43b07def9b9a53565613
+outputLanguage: en
+outputs:
+  - byteCount: 5933
+    contentHash: sha256:fbeff59723b9f39ebb3290fa736178a7656e74c1d1980dac53b3c81bb9dab1b5
+    path: docs/specifications/execution/semantic-grounding.md
+    userRegionHash: sha256:fbeff59723b9f39ebb3290fa736178a7656e74c1d1980dac53b3c81bb9dab1b5
+profile: specification_document
+recordId: knormdoc_a2a297b7114286a9c0eeab5f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:16842dd068591f7e19d3ae6148d9c335442f41734aa379a47b46a03c1b68ca16
+sourcePath: docs/specifications/execution/semantic-grounding.md
+sourceUnitVersionIds:
+  - uv_1165d14a92fc6557e2f9621d
+  - uv_263ea1dc6128d040137d4509
+  - uv_3f3175d91bc3b52453621c72
+  - uv_61e5584079b2aea3f9dfc0d5

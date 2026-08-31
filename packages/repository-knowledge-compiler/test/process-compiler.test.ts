@@ -65,13 +65,13 @@ const response = parsed.envelope === undefined
   : { schemaVersion: 1, concepts: [{ localKey: "runtime", title: "Runtime", type: "concept", summary: "A source-backed runtime candidate.", claims: [{ localKey: "local_first", statement: "The runtime is described as local-first.", evidenceUnitVersionIds: [parsed.envelope.sourceUnits[0].unitVersionId] }] }], relations: [] };
 if (${JSON.stringify(provider)} === "claude") {
   const structured = claudeSchemaIndex >= 0;
-  console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), ...(structured ? { structured_output: response } : {}), permission_denials: [], stop_reason: structured || ${JSON.stringify(behavior)} === "tool" ? "tool_use" : "end_turn", num_turns: structured ? 3 : ${JSON.stringify(behavior)} === "tool" ? 2 : 1, usage: { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } } }));
+  console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), ...(structured ? { structured_output: response } : {}), permission_denials: [], stop_reason: structured || ${JSON.stringify(behavior)} === "tool" ? "tool_use" : "end_turn", num_turns: structured ? 3 : ${JSON.stringify(behavior)} === "tool" ? 2 : 1, usage: { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } }, modelUsage: { fixture: { inputTokens: 10, cacheReadInputTokens: 3, cacheCreationInputTokens: 2, outputTokens: 4, contextWindow: 200000 } } }));
 } else {
   console.log(JSON.stringify({ type: "thread.started" }));
   console.log(JSON.stringify({ type: "turn.started" }));
   if (${JSON.stringify(behavior)} === "tool") console.log(JSON.stringify({ type: "item.completed", item: { type: "command_execution" } }));
   console.log(JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: JSON.stringify(response) } }));
-  console.log(JSON.stringify({ type: "turn.completed" }));
+  console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 15, cached_input_tokens: 3, output_tokens: 4, reasoning_output_tokens: 1 } }));
 }
 `;
   await writeFile(executable, script, { mode: 0o700 });
@@ -114,11 +114,21 @@ describe("generate-only process semantic compilers", () => {
         required: ["schemaVersion", "decision", "tags"],
       } as const;
       await expect(
-        runner.resolve({
+        runner.resolveObserved?.({
           instruction: "return typed JSON",
           responseContract: { schemaVersion: 1, schema: responseSchema },
         }),
-      ).resolves.toEqual({ schemaVersion: 1, decision: "typed", tags: ["typed"] });
+      ).resolves.toEqual({
+        value: { schemaVersion: 1, decision: "typed", tags: ["typed"] },
+        usage: {
+          inputTokens: 15,
+          cachedInputTokens: 3,
+          outputTokens: 4,
+          reasoningOutputTokens: provider === "codex" ? 1 : 0,
+          totalTokens: 19,
+          contextWindow: provider === "codex" ? null : 200_000,
+        },
+      });
       const invocation = JSON.parse(await readFile(item.log, "utf8")) as {
         args: string[];
         cwd: string;

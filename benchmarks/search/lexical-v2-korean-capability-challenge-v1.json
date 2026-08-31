@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "spbench_lexical_v2_korean_capability_challenge.v1",
+  "baseSuite": "benchmarks/search/korean-repository-retrieval-v1.json",
+  "publicQueries": true,
+  "provenance": "verification_authored_before_activation_measurement",
+  "corpusRoots": ["README.md", "AGENTS.md", "docs"],
+  "corpusExclusions": [
+    "docs/decisions/search/0224-natural-language-grounding-quality-evaluation.md",
+    "docs/evidence/search",
+    "docs/knowledge",
+    "docs/roadmap/natural-language-grounding-quality.md"
+  ],
+  "taskTypes": [
+    { "taskType": "task_start_and_how_to", "minimumCases": 1 },
+    { "taskType": "historical_rationale", "minimumCases": 1 },
+    { "taskType": "status_continuation_impact", "minimumCases": 1 },
+    { "taskType": "ambiguity_and_contract_boundary", "minimumCases": 1 }
+  ],
+  "cases": [
+    {
+      "caseId": "spcase_lv2challenge_task_knowledge_compilation",
+      "taskType": "task_start_and_how_to",
+      "provenance": "verification_authored",
+      "query": "repositoryKnowledgeCompilation canonicalSpec 작업 시작",
+      "expectedPaths": ["docs/specs/repository-knowledge-compilation.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_lv2challenge_rationale_fuzzy_merge",
+      "taskType": "historical_rationale",
+      "provenance": "verification_authored",
+      "query": "crossProvider fuzzyMerge 결정 이유",
+      "expectedPaths": [
+        "docs/decisions/knowledge/semantics/0227-approval-gated-cross-provider-fuzzy-merge.md"
+      ],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_lv2challenge_status_agent_workspace",
+      "taskType": "status_continuation_impact",
+      "provenance": "verification_authored",
+      "query": "agentWorkspaceLifecycle acceptanceCriteria status",
+      "expectedPaths": ["docs/roadmap/onboarding/agent-workspace-lifecycle.md"],
+      "maximumRank": 10
+    },
+    {
+      "caseId": "spcase_lv2challenge_boundary_evidence_states",
+      "taskType": "ambiguity_and_contract_boundary",
+      "provenance": "verification_authored",
+      "query": "selectedLoadedInjectedUsed telemetryContract",
+      "expectedPaths": ["docs/specifications/execution.md"],
+      "maximumRank": 10
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 4,
+  "suiteId": "lv2bench_provider_comparison.v4",
+  "baseSuite": "benchmarks/search/lexical-v2-provider-comparison-v3.json",
+  "protocolId": "lexical-v2-injected-evidence-only-v4",
+  "executionWorkspace": {
+    "baseline": "sanitized_repository",
+    "candidate": "empty_evidence_only_directory"
+  }
+}

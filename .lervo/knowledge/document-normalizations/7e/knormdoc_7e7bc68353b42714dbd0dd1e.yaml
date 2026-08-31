@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_9e906ef8f8f7e2c38e11a0a1
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2b3632d2824ddb93ea1c9150
+outputLanguage: en
+outputs:
+  - byteCount: 5074
+    contentHash: sha256:86dab913c37dca8dd909dfa168871bff17246d66a1282472a858c8c83a619a86
+    path: docs/decisions/search/engines/0322-pre-register-provider-query-projector-v4-admission.md
+    userRegionHash: sha256:86dab913c37dca8dd909dfa168871bff17246d66a1282472a858c8c83a619a86
+profile: decision_record
+recordId: knormdoc_7e7bc68353b42714dbd0dd1e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1f6dd08ce11c90d18dce63806bd1d93c3150f718ca4fe32a231782e6bf59f3c8
+sourcePath: docs/decisions/search/engines/0322-pre-register-provider-query-projector-v4-admission.md
+sourceUnitVersionIds:
+  - uv_101addbaba3e0daec0db4b7b
+  - uv_101afaf2e784f18e554ab742
+  - uv_3dff64b238c30357c5da0692
+  - uv_693cd387257cd2afcecbdb57
+  - uv_79768e3aeb792ba1b307753a
+  - uv_8f3d9ee2d93dcde4240f141b
+  - uv_9eac58b7ff9a6105c65c8e76

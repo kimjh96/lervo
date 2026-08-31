@@ -69,7 +69,7 @@ Every document has one write model: user-owned bytes, exact managed blocks, or p
 
 ### Search and context
 
-Search recommends but does not prove use. Operational retrieval keeps `lexical-v1` as the local baseline and admits future local or external engines only through existing provider-neutral ports, reviewed activation, runtime validation, and an explicit rollback chain. Ordinary managed runs do not add linked-only context after search.
+Search recommends but does not prove use. `lexical-v1` remains the independent local baseline. Single deterministic engines use the compatibility engine-selection chain; composed local or external retrieval uses a separate content-bound complete-plan selection above the same provider-neutral ports. Both require reviewed activation, current runtime validation, fail-closed stage behavior, and explicit baseline rollback. Ordinary managed runs do not add linked-only context after search.
 
 See [Search and context boundaries](search-and-context.md) for engine ownership, extension steps, evidence states, and failure behavior.
 

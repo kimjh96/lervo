@@ -22,6 +22,8 @@ import {
   validateStagedEvidenceV7Suite,
   validateLinkedEvidenceReconciliationV8Suite,
   validateLinkedEvidenceReconciliationConfirmationV9Suite,
+  validateLexicalV2ProviderSuite,
+  validateLexicalV2RealUseReview,
 } from "../check-natural-language-evaluation.mjs";
 import {
   boundedFallbackProtocol,
@@ -97,6 +99,7 @@ describe("natural-language evaluation corpus", () => {
       pairCount: 20,
       caseCount: 32,
       categoryCount: 8,
+      lexicalV2RealUseReviewCaseCount: 4,
       preReviewPairCount: 20,
       preReviewGroundingCaseCount: 32,
       preReviewAttentionCount: 9,
@@ -114,8 +117,31 @@ describe("natural-language evaluation corpus", () => {
       stagedEvidenceV7CaseCount: 8,
       linkedEvidenceReconciliationV8CaseCount: 8,
       linkedEvidenceReconciliationConfirmationV9CaseCount: 8,
+      lexicalV2ProviderCaseCount: 8,
       groundingReportId: expect.stringMatching(/^ngreport_[a-f0-9]{24}$/u),
     });
+  });
+
+  it("rejects lexical-v2 provider comparison protocol drift", () => {
+    const suite = load("benchmarks/search/lexical-v2-provider-comparison-v1.json");
+    expect(validateLexicalV2ProviderSuite(suite, root).cases).toHaveLength(8);
+    suite.protocolDigest = `sha256:${"0".repeat(64)}`;
+    expect(() => validateLexicalV2ProviderSuite(suite, root)).toThrow("header is invalid");
+  });
+
+  it("retains the exact approved lexical-v2 real-use case set", () => {
+    const suite = load("benchmarks/search/lexical-v2-real-use-reviewed-v1.json");
+    expect(validateLexicalV2RealUseReview(suite, root).cases).toHaveLength(4);
+    suite.cases.pop();
+    expect(() => validateLexicalV2RealUseReview(suite, root)).toThrow("retain all four cases");
+  });
+
+  it("rejects lexical-v2 real-use approval-binding drift", () => {
+    const suite = load("benchmarks/search/lexical-v2-real-use-reviewed-v1.json");
+    suite.review.bindingHash = `sha256:${"0".repeat(64)}`;
+    expect(() => validateLexicalV2RealUseReview(suite, root)).toThrow(
+      "authority or privacy contract changed",
+    );
   });
 
   it("pre-registers v9 as an exact separately identified v8 confirmation", () => {

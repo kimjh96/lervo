@@ -2,7 +2,7 @@
   "schemaVersion": 5,
   "artifact": {
     "name": "@lervo/cli",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
     "keywords": [
       "ai-agents",
@@ -79,6 +79,7 @@
       "@lervo/runtime-security@0.1.0",
       "@lervo/schemas@0.1.0",
       "@lervo/search-adapter-bm25f@0.1.0",
+      "@lervo/search-adapter-lexical-v2@0.1.0",
       "@lervo/search-local@0.1.0",
       "@lervo/search@0.1.0",
       "@lervo/skills@0.1.0",
@@ -134,7 +135,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:5e979b6ef222b504c9a1a0c1c752c85bc9cbd0dc075727fa146faccca63847e7"
+    "bundleDigest": "sha256:faa26f1e8d47f4ca2cc499affccdc5ac40eabd0417c363b14af66759a0e0b584"
   },
   "archive": {
     "rootFiles": [
@@ -148,22 +149,22 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 4721601,
-        "sha256": "sha256:0d3093c76c4799dc07423b59de88759595f5f66a1dc84a55c1ba56ccd67c70f3"
+        "size": 4798404,
+        "sha256": "sha256:8b56c9e322584e686f9e75f182c8ec10394698ea602d2409ca1edd93dd5f4008"
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 2510992,
-        "sha256": "sha256:9209745f042d4e555823e74c0088fc1f3c3ed00683f5b78e313f707bb1e47455"
+        "size": 2517335,
+        "sha256": "sha256:8cecc7e59137f24962b3e6dee7901bda0b773cd2bb4936039aedead19d52a366"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 2633874,
-        "sha256": "sha256:4a77ba4ca38d0961e772fde5e92f67aa066edad46fd857fa66e7c111de82ac39"
+        "size": 2682820,
+        "sha256": "sha256:61fba7cc96b38a5c285b95a36b6d4c66274f5477a2fddc11ab5ae438e057be84"
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:fe661620e2f0a95a4c257139a97142930d8373973051dde114580a7625e97cea"
+    "contentDigest": "sha256:1b6b2a91c8958772614bdf26f17c01734ef06ecf1f54985e175474604ea6a47b"
   },
   "dependencies": {
     "portable": [
@@ -276,5 +277,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:e17d33defc3af392464ee16eaa3c646816efd5a198977a8ae7aedd95963ad7d4"
+  "artifactDigest": "sha256:3a93a8fdab920ff92cc01cd299208e05c6c847acf3929b46a714cf85e7f77da2"
 }

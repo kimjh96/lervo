@@ -47,6 +47,91 @@ const preparedDocumentSchema = {
   additionalProperties: false,
 } as const;
 
+const queryProjectionReceiptSchema = {
+  type: "object",
+  properties: {
+    schemaVersion: { const: 1 },
+    receiptId: { type: "string", pattern: "^sqproj_[a-f0-9]{24}$" },
+    stageId: { const: "query_projection" },
+    projector: {
+      type: "object",
+      properties: {
+        id: { type: "string", pattern: "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$" },
+        version: { type: "integer", minimum: 1, maximum: 1000000 },
+        buildId: { type: "string", pattern: "^sqbuild_[a-f0-9]{24}$" },
+      },
+      required: ["id", "version", "buildId"],
+      additionalProperties: false,
+    },
+    requestDigest: sha256Schema,
+    contextDigest: sha256Schema,
+    projectorResultDigest: sha256Schema,
+    requestedLanguage: { type: "string", pattern: "^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8}){0,3}$" },
+    limits: {
+      type: "object",
+      properties: {
+        maximumQueries: { type: "integer", minimum: 1, maximum: 8 },
+        maximumQueryCharacters: { type: "integer", minimum: 1, maximum: 500 },
+      },
+      required: ["maximumQueries", "maximumQueryCharacters"],
+      additionalProperties: false,
+    },
+    projectedQueryCount: { type: "integer", minimum: 0, maximum: 8 },
+    projectedQueryDigest: sha256Schema,
+    durationMs: { type: "integer", minimum: 0, maximum: 600000 },
+    status: { type: "string", enum: ["completed", "empty", "failed"] },
+    usage: {
+      type: "object",
+      properties: {
+        inputTokens: { type: "integer", minimum: 0 },
+        cachedInputTokens: { type: "integer", minimum: 0 },
+        outputTokens: { type: "integer", minimum: 0 },
+        reasoningOutputTokens: { type: "integer", minimum: 0 },
+        totalTokens: { type: "integer", minimum: 0 },
+        contextWindow: {
+          anyOf: [{ type: "integer", minimum: 1 }, { type: "null" }],
+        },
+      },
+      required: [
+        "inputTokens",
+        "cachedInputTokens",
+        "outputTokens",
+        "reasoningOutputTokens",
+        "totalTokens",
+        "contextWindow",
+      ],
+      additionalProperties: false,
+    },
+    privacy: {
+      type: "object",
+      properties: {
+        requestText: { const: "excluded" },
+        contextText: { const: "excluded" },
+        projectedQueryText: { const: "excluded" },
+      },
+      required: ["requestText", "contextText", "projectedQueryText"],
+      additionalProperties: false,
+    },
+  },
+  required: [
+    "schemaVersion",
+    "receiptId",
+    "stageId",
+    "projector",
+    "requestDigest",
+    "contextDigest",
+    "projectorResultDigest",
+    "requestedLanguage",
+    "limits",
+    "projectedQueryCount",
+    "projectedQueryDigest",
+    "durationMs",
+    "status",
+    "privacy",
+  ],
+  additionalProperties: false,
+} as const;
+
 export const terminalContextPreparedEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://schemas.lervo.dev/v0/terminal-context-prepared-event-payload.schema.json",
@@ -60,6 +145,7 @@ export const terminalContextPreparedEventPayloadSchema = {
     repositoryRevision: sha256Schema,
     requestDigest: sha256Schema,
     queryDigest: sha256Schema,
+    queryProjectionReceipt: queryProjectionReceiptSchema,
     groundingStatus: {
       type: "string",
       enum: ["ready", "clarify", "abstain", "approval_required"],
@@ -100,6 +186,22 @@ export const terminalContextPreparedEventPayloadSchema = {
       items: { type: "string", pattern: "^[a-z][a-z0-9._-]{0,63}$" },
     },
     groundingReasons: {
+      type: "array",
+      maxItems: 16,
+      uniqueItems: true,
+      items: { type: "string", pattern: "^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$" },
+    },
+    durableInstructionStatus: {
+      type: "string",
+      enum: ["ignored", "workstream", "current", "pending", "applied", "blocked"],
+    },
+    durableInstructionRuleId: {
+      anyOf: [{ type: "string", pattern: "^rule_[a-f0-9]{24}$" }, { type: "null" }],
+    },
+    durableInstructionTargetPath: {
+      anyOf: [repositoryRelativePathSchema, { type: "null" }],
+    },
+    durableInstructionReasonIds: {
       type: "array",
       maxItems: 16,
       uniqueItems: true,
@@ -147,6 +249,7 @@ export const terminalContextPreparedEventPayloadSchema = {
       "groundingSubjectIds",
       "groundingProviderIds",
       "groundingReasons",
+      "queryProjectionReceipt",
       "selectionStatus",
       "loadingStatus",
       "hookPreparationStatus",
@@ -189,6 +292,26 @@ export const terminalContextPreparedEventPayloadSchema = {
       "workstreamRevision",
       "workstreamSnapshotHash",
       "workstreamScope",
+    ],
+    durableInstructionStatus: [
+      "durableInstructionRuleId",
+      "durableInstructionTargetPath",
+      "durableInstructionReasonIds",
+    ],
+    durableInstructionRuleId: [
+      "durableInstructionStatus",
+      "durableInstructionTargetPath",
+      "durableInstructionReasonIds",
+    ],
+    durableInstructionTargetPath: [
+      "durableInstructionStatus",
+      "durableInstructionRuleId",
+      "durableInstructionReasonIds",
+    ],
+    durableInstructionReasonIds: [
+      "durableInstructionStatus",
+      "durableInstructionRuleId",
+      "durableInstructionTargetPath",
     ],
   },
   additionalProperties: false,

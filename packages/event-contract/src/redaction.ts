@@ -453,12 +453,17 @@ export const eventPayloadAllowlists = {
     "repositoryRevision",
     "requestDigest",
     "queryDigest",
+    "queryProjectionReceipt",
     "groundingStatus",
     "groundingWorkflowId",
     "groundingSourceClasses",
     "groundingSubjectIds",
     "groundingProviderIds",
     "groundingReasons",
+    "durableInstructionStatus",
+    "durableInstructionRuleId",
+    "durableInstructionTargetPath",
+    "durableInstructionReasonIds",
     "selectionStatus",
     "loadingStatus",
     "hookPreparationStatus",
@@ -583,6 +588,13 @@ const sensitiveFragments = [
 ] as const;
 
 const unsafeObjectKeys = new Set(["__proto__", "constructor", "prototype"]);
+const safeSensitiveCoordinatePaths = new Set([
+  "$.queryProjectionReceipt.usage.inputTokens",
+  "$.queryProjectionReceipt.usage.cachedInputTokens",
+  "$.queryProjectionReceipt.usage.outputTokens",
+  "$.queryProjectionReceipt.usage.reasoningOutputTokens",
+  "$.queryProjectionReceipt.usage.totalTokens",
+]);
 
 export type RedactionErrorCode =
   "cyclic_payload" | "invalid_payload" | "non_finite_number" | "unsupported_value";
@@ -669,7 +681,7 @@ function sanitizeNested(
         redactions.push({ path: nestedPath, reason: "unsafe_key" });
         continue;
       }
-      if (isSensitivePayloadKey(key)) {
+      if (isSensitivePayloadKey(key) && !safeSensitiveCoordinatePaths.has(nestedPath)) {
         redactions.push({ path: nestedPath, reason: "sensitive_key" });
         continue;
       }

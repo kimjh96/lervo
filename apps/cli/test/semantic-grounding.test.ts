@@ -103,6 +103,12 @@ describe("production semantic grounding adapter", () => {
       "semanticCatalog.retrievalLanguage",
     );
     expect((observedInput as { instruction: string }).instruction).toContain(
+      "preserve its exact repository path or label",
+    );
+    expect((observedInput as { instruction: string }).instruction).toContain(
+      "query-coverage fusion",
+    );
+    expect((observedInput as { instruction: string }).instruction).toContain(
       "explicitly named repository concepts and requested explanations as subjects",
     );
   });

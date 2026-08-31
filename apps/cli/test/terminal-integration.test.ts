@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -24,14 +24,40 @@ import {
   terminalHookCommand,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage, RepositoryCoordinationRecords } from "@lervo/project-storage";
+import { createSearchQueryProjection, searchQueryProjectorBuildId } from "@lervo/search";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli as runCliBase } from "../src/main.js";
-import { GroundProductionRequestError } from "../src/semantic-grounding.js";
+import type { ProjectProductionSearchQueries } from "../src/provider-query-projector.js";
+
+const testProjector = {
+  id: "provider_query_projection.test",
+  version: 1,
+  buildId: searchQueryProjectorBuildId("terminal-integration-test-projector-v1"),
+} as const;
+
+function projectedQueries(
+  input: Parameters<ProjectProductionSearchQueries>[0],
+  queries: string[],
+  status: "completed" | "empty" | "failed" = queries.length === 0 ? "empty" : "completed",
+) {
+  return createSearchQueryProjection({
+    projector: testProjector,
+    requestDigest: input.requestDigest,
+    contextDigest: input.contextDigest,
+    projectorResultDigest: `sha256:${"d".repeat(64)}`,
+    requestedLanguage: input.requestedLanguage,
+    queries,
+    durationMs: 1,
+    status,
+  });
+}
 
 const runCli: typeof runCliBase = (args, io, overrides = {}) =>
   runCliBase(args, io, {
+    prepareSearchQueries: undefined,
+    projectSearchQueries: async (input) => projectedQueries(input, [input.request]),
     groundProductionRequest: async ({ request, provider }) => {
       const requestDigest = `sha256:${createHash("sha256").update(request).digest("hex")}` as const;
       return {
@@ -196,11 +222,85 @@ afterEach(async () => {
 });
 
 describe("terminal integration CLI", () => {
-  it("materializes one explicit durable user rule without retaining prompt prose", async () => {
+  it("uses query projection without invoking effect grounding or a separate admission path", async () => {
+    const root = await initializedRepository();
+    const calls: string[] = [];
+    const messages: string[] = [];
+    const errors: string[] = [];
+
+    expect(
+      await runCli(
+        ["terminal", "hook", "--provider", "codex", "--contract", "2"],
+        {
+          cwd: root,
+          stdout: (message) => messages.push(message),
+          stderr: (message) => errors.push(message),
+          stdin: async () =>
+            JSON.stringify({
+              hook_event_name: "UserPromptSubmit",
+              session_id: "prepared-search-session",
+              turn_id: "prepared-search-turn",
+              prompt: "Explain repository context.",
+            }),
+        },
+        {
+          projectSearchQueries: async (input) => {
+            calls.push("project");
+            return projectedQueries(input, [input.request]);
+          },
+          prepareSearchQueries: async () => {
+            calls.push("prepare");
+            throw new Error("Direct prompt preparation must not use a separate admission path.");
+          },
+          groundProductionRequest: async () => {
+            calls.push("ground");
+            throw new Error("Direct prompt preparation must not resolve effects.");
+          },
+        },
+      ),
+      errors.join(""),
+    ).toBe(0);
+    expect(messages).toHaveLength(1);
+    expect(calls).toEqual(["project"]);
+  });
+
+  it("does not admit a query projector for Stop", async () => {
+    const root = await initializedRepository();
+    let preparations = 0;
+    const messages: string[] = [];
+
+    expect(
+      await runCli(
+        ["terminal", "hook", "--provider", "codex", "--contract", "2"],
+        {
+          cwd: root,
+          stdout: (message) => messages.push(message),
+          stderr: () => undefined,
+          stdin: async () =>
+            JSON.stringify({
+              hook_event_name: "Stop",
+              session_id: "stop-without-preparation-session",
+              turn_id: "stop-without-preparation-turn",
+              stop_hook_active: true,
+            }),
+        },
+        {
+          prepareSearchQueries: async () => {
+            preparations += 1;
+            throw new Error("Stop must not prepare search queries.");
+          },
+        },
+      ),
+    ).toBe(0);
+    expect(JSON.parse(messages.join(""))).toEqual({});
+    expect(preparations).toBe(0);
+  });
+
+  it("does not materialize durable rules from direct unmanaged prompts", async () => {
     const root = await initializedRepository();
     const messages: string[] = [];
     const prompt = "앞으로 이 저장소의 모든 커밋은 Conventional Commits 형식을 따르세요.";
-    let observedCatalog: unknown;
+    let groundingCalls = 0;
     expect(
       await runCli(
         ["terminal", "hook", "--provider", "codex", "--contract", "2"],
@@ -217,79 +317,24 @@ describe("terminal integration CLI", () => {
             }),
         },
         {
-          groundProductionRequest: async ({ request, semanticCatalog }) => {
-            observedCatalog = semanticCatalog;
-            return {
-              proposal: {
-                schemaVersion: 1,
-                requestDigest: `sha256:${createHash("sha256").update(request).digest("hex")}`,
-                resolver: {
-                  kind: "provider_adapter",
-                  providerId: "codex",
-                  resultDigest: `sha256:${"c".repeat(64)}`,
-                },
-                intent: "change",
-                subjectIds: ["repository.instructions"],
-                references: [],
-                protocolCoordinates: [],
-                requestedEffectIds: ["repository.change"],
-                prohibitedEffectIds: [],
-                sourceClasses: ["repository_state"],
-                retrievalQueries: ["commit message instructions"],
-                workflowCandidateIds: ["terminal.repository_change"],
-                capabilityCandidateIds: [],
-                authorityRequirement: "repository_write",
-                providerRoute: { mode: "current_provider_only", providerIds: [] },
-                disposition: "execute",
-                ambiguityReasons: [],
-                durableInstruction: {
-                  disposition: "canonical",
-                  speechAct: "directive",
-                  authority: "explicit_user",
-                  durability: "repository",
-                  operation: "add",
-                  scope: { kind: "repository", paths: [] },
-                  title: "Conventional commit messages",
-                  statement: "Use Conventional Commits for every repository commit.",
-                  exceptions: [],
-                  risk: "low",
-                  conflict: "none",
-                  confidence: "high",
-                  reasonIds: ["explicit_repository_rule"],
-                },
-              },
-              decision: {
-                schemaVersion: 1,
-                status: "ready",
-                workflowId: "terminal.repository_change",
-                effectIds: ["repository.change"],
-                capabilityIds: [],
-                providerIds: ["codex"],
-                authority: "repository_write",
-                sourceClasses: ["repository_state"],
-                subjectIds: ["repository.instructions"],
-                retrievalQueries: ["commit message instructions"],
-                reasons: [],
-              },
-            };
+          groundProductionRequest: async () => {
+            groundingCalls += 1;
+            throw new Error("Effect grounding must not run.");
           },
         },
       ),
     ).toBe(0);
-    expect(observedCatalog).toMatchObject({
-      canonicalInstructions: { complete: true, entries: expect.any(Array) },
-    });
+    expect(groundingCalls).toBe(0);
     const response = JSON.parse(messages.join("")) as {
       hookSpecificOutput: { additionalContext: string };
     };
     expect(response.hookSpecificOutput.additionalContext).toContain(
-      "durableInstructionStatus: applied",
+      "durableInstructionStatus: ignored",
     );
-    const files = await readdir(resolve(root, "docs/instructions/generated"));
-    expect(files).toHaveLength(1);
-    const content = await readFile(resolve(root, "docs/instructions/generated", files[0]!), "utf8");
-    expect(content).toContain("Use Conventional Commits for every repository commit.");
-    expect(content).not.toContain(prompt);
+    expect(response.hookSpecificOutput.additionalContext).toContain(
+      "Direct prompt preparation never materializes a repository rule",
+    );
+    expect(response.hookSpecificOutput.additionalContext).not.toContain(prompt);
     const storage = await openProjectStorage(root);
     try {
       expect(
@@ -300,46 +345,13 @@ describe("terminal integration CLI", () => {
               event.type === "knowledge.materialization.applied" &&
               event.payload.operation === "durable_instruction_intake",
           ),
-      ).toBe(true);
+      ).toBe(false);
     } finally {
       await storage.close();
     }
+  });
 
-    await applyKnowledgeMigrationPlan(
-      await createKnowledgeMigrationPlan({ repositoryRoot: root, mode: "migrate" }),
-      new Date("2026-08-30T00:00:00.000Z"),
-      () => undefined,
-    );
-    const retrievalMessages: string[] = [];
-    expect(
-      await runCli(["terminal", "hook", "--provider", "codex", "--contract", "2"], {
-        cwd: root,
-        stdout: (message) => retrievalMessages.push(message),
-        stderr: () => undefined,
-        stdin: async () =>
-          JSON.stringify({
-            hook_event_name: "UserPromptSubmit",
-            session_id: "durable-rule-reader-session",
-            turn_id: "durable-rule-reader-turn",
-            prompt: "Prepare the next commit using Conventional Commits.",
-          }),
-      }),
-    ).toBe(0);
-    const retrieval = JSON.parse(retrievalMessages.join("")) as {
-      hookSpecificOutput: { additionalContext: string };
-    };
-    expect(retrieval.hookSpecificOutput.additionalContext).toContain(
-      `docs/instructions/generated/${files[0]}`,
-    );
-    expect(retrieval.hookSpecificOutput.additionalContext).toContain(
-      "Use Conventional Commits for every repository commit.",
-    );
-    expect(retrieval.hookSpecificOutput.additionalContext).not.toContain(
-      "immutable blue envelopes",
-    );
-  }, 30_000);
-
-  it("returns bounded abstain context instead of blocking on an invalid provider proposal", async () => {
+  it("returns bounded local-scope context when query projection fails", async () => {
     const root = await initializedRepository();
     const messages: string[] = [];
     const errors: string[] = [];
@@ -359,11 +371,7 @@ describe("terminal integration CLI", () => {
             }),
         },
         {
-          groundProductionRequest: async () => {
-            throw new GroundProductionRequestError(
-              new TypeError("references[0] contains unsupported or missing fields."),
-            );
-          },
+          projectSearchQueries: async (input) => projectedQueries(input, [], "failed"),
         },
       ),
       errors.join(""),
@@ -375,14 +383,88 @@ describe("terminal integration CLI", () => {
     };
     expect(result.decision).toBeUndefined();
     expect(result.hookSpecificOutput?.additionalContext).toContain(
-      "groundingStatus: abstain; workflowId: none; reasons: semantic_resolution_failed",
+      "effectGroundingStatus: abstain; workflowId: none; reasons: unmanaged_terminal_retrieval_only",
     );
     expect(result.hookSpecificOutput?.additionalContext).toContain(
-      "No publication was selected because typed grounding is abstain.",
+      "No current-repository publication was selected because query projection was unavailable.",
     );
     expect(result.hookSpecificOutput?.additionalContext).toContain(
-      "selectionDisposition: grounding_not_ready; candidates: 0; selected: 0",
+      "selectionDisposition: query_projection_missing; candidates: 0; selected: 0",
     );
+    expect(result.hookSpecificOutput?.additionalContext).toContain(
+      "not evidence that content is absent from another repository",
+    );
+  });
+
+  it("allows prompt submission when local context preparation throws", async () => {
+    const root = await initializedRepository();
+    const messages: string[] = [];
+    const errors: string[] = [];
+    expect(
+      await runCli(
+        ["terminal", "hook", "--provider", "codex", "--contract", "2"],
+        {
+          cwd: root,
+          stdout: (message) => messages.push(message),
+          stderr: (message) => errors.push(message),
+          stdin: async () =>
+            JSON.stringify({
+              hook_event_name: "UserPromptSubmit",
+              session_id: "unavailable-projection-session",
+              turn_id: "unavailable-projection-turn",
+              prompt: "Inspect the shared report.",
+            }),
+        },
+        {
+          projectSearchQueries: async () => {
+            throw new Error("Provider projection is unavailable.");
+          },
+        },
+      ),
+    ).toBe(0);
+    expect(JSON.parse(messages.join(""))).toEqual({});
+    expect(errors).toEqual([]);
+  });
+
+  it("retrieves from a valid query projection without effect grounding", async () => {
+    const root = await initializedRepository();
+    const messages: string[] = [];
+    let groundingCalls = 0;
+    expect(
+      await runCli(
+        ["terminal", "hook", "--provider", "codex", "--contract", "2"],
+        {
+          cwd: root,
+          stdout: (message) => messages.push(message),
+          stderr: () => undefined,
+          stdin: async () =>
+            JSON.stringify({
+              hook_event_name: "UserPromptSubmit",
+              session_id: "clarify-projection-session",
+              turn_id: "clarify-projection-turn",
+              prompt: "그 내용을 확인해줘",
+            }),
+        },
+        {
+          projectSearchQueries: async (input) =>
+            projectedQueries(input, ["atlas cache immutable blue envelopes"]),
+          groundProductionRequest: async () => {
+            groundingCalls += 1;
+            throw new Error("Effect grounding must not run.");
+          },
+        },
+      ),
+    ).toBe(0);
+    const result = JSON.parse(messages.join("")) as {
+      hookSpecificOutput: { additionalContext: string };
+    };
+    expect(result.hookSpecificOutput.additionalContext).toContain(
+      "effectGroundingStatus: abstain; workflowId: none; reasons: unmanaged_terminal_retrieval_only",
+    );
+    expect(groundingCalls).toBe(0);
+    expect(result.hookSpecificOutput.additionalContext).toContain("selectionDisposition: selected");
+    expect(result.hookSpecificOutput.additionalContext).toContain("README.md");
+    expect(result.hookSpecificOutput.additionalContext).toContain("immutable blue envelopes");
   });
 
   it("checkpoints an attached worker without requiring foreign global lifecycle updates", async () => {
@@ -556,7 +638,7 @@ describe("terminal integration CLI", () => {
     ).toBe(installedRuntime);
   }, 30_000);
 
-  it("requires agent-authored continuation checkpoints only when repository bytes change", async () => {
+  it("audits agent-authored continuation checkpoints without blocking unmanaged completion", async () => {
     const root = await initializedRepository();
     const commandErrors: string[] = [];
     const quiet = {
@@ -627,10 +709,7 @@ describe("terminal integration CLI", () => {
     const startContext = await prompt("turn-start");
     expect(startContext).toContain("must create a bounded checkpoint");
     await writeFile(resolve(root, "feature.ts"), "export const firstCheckpoint = true;\n");
-    expect(await stop("turn-start")).toMatchObject({
-      decision: "block",
-      reason: expect.stringContaining("workstream_missing"),
-    });
+    expect(await stop("turn-start")).toEqual({});
 
     const draft = JSON.stringify({
       schemaVersion: 1,
@@ -668,10 +747,7 @@ describe("terminal integration CLI", () => {
       ),
       commandErrors.join(""),
     ).toBe(0);
-    expect(await stop("turn-start")).toMatchObject({
-      decision: "block",
-      reason: expect.stringContaining("turn_declaration_missing"),
-    });
+    expect(await stop("turn-start")).toEqual({});
     await declare(startContext, "change");
     const canonicalizationCandidates = await listCanonicalizationCandidates(root);
     expect(canonicalizationCandidates).toEqual([
@@ -693,10 +769,7 @@ describe("terminal integration CLI", () => {
     const updateContext = await prompt("turn-update");
     expect(updateContext).toContain("revision: 1");
     await writeFile(resolve(root, "feature.ts"), "export const secondCheckpoint = true;\n");
-    expect(await stop("turn-update")).toMatchObject({
-      decision: "block",
-      reason: expect.stringContaining("workstream_checkpoint_required"),
-    });
+    expect(await stop("turn-update")).toEqual({});
     const currentOutput: string[] = [];
     expect(
       await runCli(["workstream", "current", "--json"], {
@@ -984,7 +1057,7 @@ describe("terminal integration CLI", () => {
     expect(errors).toEqual([]);
   });
 
-  it("blocks provider completion when durable source bytes make the knowledge lifecycle stale", async () => {
+  it("records stale knowledge lifecycle without blocking unmanaged provider completion", async () => {
     const root = await initializedRepository();
     const preparedErrors: string[] = [];
     expect(
@@ -1023,12 +1096,7 @@ describe("terminal integration CLI", () => {
       await runCli(["terminal", "hook", "--provider", "claude", "--contract", "2"], io),
       errors.join(""),
     ).toBe(0);
-    const output = JSON.parse(messages.join("")) as { decision: string; reason: string };
-    expect(output.decision).toBe("block");
-    expect(output.reason).toMatch(
-      /(?:repository_knowledge_|claude_instruction_bridge_|document_normalization_)/u,
-    );
-    expect(output.reason).toContain("lervo migrate knowledge");
+    expect(JSON.parse(messages.join(""))).toEqual({});
     expect(
       JSON.parse(
         await readFile(resolve(root, ".lervo/state/terminal-integration/claude-stop.json"), "utf8"),
@@ -1036,11 +1104,49 @@ describe("terminal integration CLI", () => {
     ).toMatchObject({
       provider: "claude",
       hookEvent: "Stop",
-      result: "completion_blocked",
+      result: "completion_allowed",
       referenceCount: 0,
       observationEventId: expect.stringMatching(/^evt_/u),
     });
     expect(errors).toEqual([]);
+
+    const allowedReceipt = await readFile(
+      resolve(root, ".lervo/state/terminal-integration/claude-stop.json"),
+      "utf8",
+    );
+    const storage = await openProjectStorage(root);
+    const events = storage.events.list({ limit: 1_000 });
+    const eventCount = events.length;
+    expect(
+      events.filter((event) => event.type === "terminal.turn.observed").at(-1)?.payload,
+    ).toMatchObject({
+      lifecycleStatus: "action_required",
+      completionResult: "allowed",
+    });
+    await storage.close();
+    messages.length = 0;
+    expect(
+      await runCli(["terminal", "hook", "--provider", "claude", "--contract", "2"], {
+        cwd: root,
+        stdout: (message: string) => messages.push(message),
+        stderr: (message: string) => errors.push(message),
+        stdin: async () =>
+          JSON.stringify({
+            hook_event_name: "Stop",
+            session_id: "claude-session-stale",
+            stop_hook_active: true,
+            last_assistant_message: "Lifecycle check continued.",
+          }),
+      }),
+      errors.join(""),
+    ).toBe(0);
+    expect(JSON.parse(messages.join(""))).toEqual({});
+    expect(
+      await readFile(resolve(root, ".lervo/state/terminal-integration/claude-stop.json"), "utf8"),
+    ).toBe(allowedReceipt);
+    const continuedStorage = await openProjectStorage(root);
+    expect(continuedStorage.events.list({ limit: 1_000 })).toHaveLength(eventCount);
+    await continuedStorage.close();
   });
 
   it("keeps structural publications when a later lifecycle stage was already stale", async () => {
@@ -1071,7 +1177,7 @@ describe("terminal integration CLI", () => {
     );
   });
 
-  it("surfaces a bounded repository error when lifecycle planning fails", async () => {
+  it("keeps lifecycle planning failures observable without blocking unmanaged completion", async () => {
     const root = await initializedRepository();
     await runCli(["terminal", "hook", "--provider", "claude", "--contract", "2"], {
       cwd: root,
@@ -1109,11 +1215,7 @@ describe("terminal integration CLI", () => {
       }),
       errors.join(""),
     ).toBe(0);
-    const output = JSON.parse(messages.join("")) as { decision: string; reason: string };
-    expect(output.decision).toBe("block");
-    expect(output.reason).toContain("repository_layout_inspection_failed");
-    expect(output.reason).toContain("knowledge_concept_registry_incomplete");
-    expect(output.reason).toContain("The knowledge concept registry is incomplete");
+    expect(JSON.parse(messages.join(""))).toEqual({});
     expect(errors).toEqual([]);
 
     messages.length = 0;
@@ -1176,14 +1278,7 @@ describe("terminal integration CLI", () => {
     };
 
     const recovery = await invoke(false);
-    expect(recovery).toMatchObject({
-      exitCode: 0,
-      output: {
-        decision: "block",
-        reason: expect.stringContaining("no matching start observation"),
-      },
-      errors: [],
-    });
+    expect(recovery).toEqual({ exitCode: 0, output: {}, errors: [] });
     const continued = await invoke(true);
     expect(continued).toEqual({ exitCode: 0, output: {}, errors: [] });
     await expect(

@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2d7bf83a1494beabd5643d15
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_31d2e82324dce3a5d583bafb
+outputLanguage: en
+outputs:
+  - byteCount: 7290
+    contentHash: sha256:16eecf6a94697c32c2fcac6598b8a1a1a25ea56fdc92bb5b2356f3f1523ade67
+    path: docs/decisions/execution/providers/0196-fail-closed-provider-terminal-integration.md
+    userRegionHash: sha256:16eecf6a94697c32c2fcac6598b8a1a1a25ea56fdc92bb5b2356f3f1523ade67
+profile: decision_record
+recordId: knormdoc_79692001cc09c5c9274e3f21
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d63461e2dc290205a5f7b19bed53e34ff6b56b3740db6d2ce2cb064076ad4a26
+sourcePath: docs/decisions/execution/providers/0196-fail-closed-provider-terminal-integration.md
+sourceUnitVersionIds:
+  - uv_6550a3ad0c1e609f44e1a117
+  - uv_65d6234dddcd46828cb619ad
+  - uv_7137880ffd2bb17d490e8023
+  - uv_87ee3d1a490e58b5e826dc75
+  - uv_94932707c80128edd086ca8a
+  - uv_ba9bb2bd42ebb4f779e8be18
+  - uv_c81a709c5d93dd9e119a7aa6
+  - uv_d7fce3f14bbfdbe63ef73886
+  - uv_f0b946e60965adc7ad342633
+  - uv_f997bec6e7fdd19e4259705a

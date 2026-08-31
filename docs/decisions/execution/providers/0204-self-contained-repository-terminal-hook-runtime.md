@@ -5,7 +5,7 @@
 
 ## Context
 
-Contract-v1 hooks invoked the bare `lervo` executable. Provider processes may lack the interactive shell's global package path, causing exit 127 despite correct installation; restarting Codex does not repair this deployment contract. Codex may also start hooks below the repository root.
+Contract-v1 hooks invoked the bare `lervo` executable. Provider processes may lack the interactive shell's global package path, causing exit 127 despite correct installation. Restarting Codex does not repair this deployment contract. Codex may also start hooks below the repository root.
 
 ## Decision
 
@@ -20,13 +20,17 @@ Before parsing hook input, the runtime verifies its byte count and SHA-256 again
 
 Migration recognizes the exact legacy Lervo namespace, removes duplicate or v1 handlers, and installs one v2 handler per event without changing unrelated hooks. User-owned provider configuration requires exact content-bound approval, and Codex requires a one-time native `/hooks` trust review. Later CLI versions may automatically reconcile only the generated runtime and manifest, bind current hashes, and use the durable rollback journal; provider configuration never inherits generated-file authority.
 
-Each reconciliation plan binds the opaque event ID of the latest canonical `terminal.integration.applied` event, or `null` before the first application. This makes the same byte transition replayable after an intervening CLI version while giving every committed transition a distinct plan ID for unambiguous crash recovery. A newer application event makes an outstanding plan stale. The coordinate exposes no command, configuration, prompt, runtime body, or provider output.
+Each reconciliation plan binds the opaque event ID of the latest canonical `terminal.integration.applied` event, or `null` before the first application. This makes the same byte transition replayable after an intervening CLI version while giving each committed transition a distinct plan ID for unambiguous crash recovery. A newer application event makes an outstanding plan stale. The coordinate exposes no command, configuration, prompt, runtime body, or provider output.
 
 The `terminal.integration.applied` event adds opaque SHA-256 coordinates `runtimePathDigest` and `runtimeAfterHash`. It excludes raw paths, commands, runtime bytes, prompts, configuration, credentials, and provider output. Generated-only reconciliation uses a system actor and the runtime hash as policy version. Failure restores every generated and user-owned target and emits no success event.
 
 Readiness receipts must use `lervo_terminal_hooks_v2`. Contract 1 remains accepted only so in-flight legacy invocations can fail or finish predictably; v1 receipts do not establish v2 readiness.
 
-A turn may begin before contract 2 is installed or trusted, leaving `Stop` without a matching `UserPromptSubmit` observation. This expected activation transition is not malformed input. The first unmatched Stop returns valid JSON requesting one continuation so the hook can establish context. If Codex reports that Stop already continued and context remains absent, Lervo permits completion without a receipt or event. The turn remains explicitly unmanaged: no preparation, repository-change, completion, reference, or provider-use evidence is claimed. Malformed input, unsafe state, and integrity failure still exit nonzero and fail closed.
+A turn may begin before contract 2 is installed or trusted, leaving `Stop` without a matching `UserPromptSubmit` observation. This activation transition is not malformed input. The original behavior requested one continuation for the first unmatched Stop so the hook could establish context. A valid `Stop` input with `stop_hook_active: true` means the provider is already continuing after a Stop-hook block; after bounded input validation, Lervo returned empty success before repository discovery, lifecycle inspection, observation persistence, or receipt replacement, regardless of matching preparation. The continued turn received no new completion evidence. Malformed input and runtime-integrity failure still exit nonzero and fail closed.
+
+[ADR-0327](hooks/0327-availability-safe-unmanaged-terminal-hooks.md) supersedes the continuation request. Every unmatched Stop now returns empty success without evidence, whether or not it is re-entrant.
+
+`UserPromptSubmit` may use current-workstream reference paths as deterministic retrieval anchors. The runtime preserves first-seen order, removes duplicate paths, and truncates them to the provider-neutral projection limit before constructing the context digest. Workstream bookkeeping may retain repeated or additional references without turning a valid prompt into a runtime-integrity failure.
 
 ## Consequences
 

@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_baab1e83975fd7ee28db4cda
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e6f6da13223291a1d29ec22d
+outputLanguage: en
+outputs:
+  - byteCount: 1960
+    contentHash: sha256:5fdbf9a7264fc5f152f17c6983be4a37aa046d13ecdaeed7960890905df9fb86
+    path: docs/research/paperclip-lervo-comparison/safeguards.md
+    userRegionHash: sha256:5fdbf9a7264fc5f152f17c6983be4a37aa046d13ecdaeed7960890905df9fb86
+profile: repository_document
+recordId: knormdoc_980ba1c774186a9f116b4b16
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:33fbd134a979eed9d9a418c1e35333a5cc81c7d24c08ac1819193b5f44eb012e
+sourcePath: docs/research/paperclip-lervo-comparison/safeguards.md
+sourceUnitVersionIds:
+  - uv_19cafe80233973b74e46b28d
+  - uv_47a5cc570f2c04b9f3bd59bb
+  - uv_48878467982bc914d1d73977
+  - uv_6fd57290c8573f74100ebd85
+  - uv_a347336f50dcd182ae5027a0
+  - uv_c9a336d7d056d61952b1cb75
+  - uv_ed01c4a1a985c2cf84026b62
+  - uv_faabdc5004abcb7c0b741cd4

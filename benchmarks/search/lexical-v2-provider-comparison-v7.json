@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 7,
+  "suiteId": "lv2bench_provider_comparison.v7",
+  "baseSuite": "benchmarks/search/lexical-v2-provider-comparison-v6.json",
+  "protocolId": "lexical-v2-injected-evidence-only-v7",
+  "protocolDigest": "sha256:9868d34d13595d66be5a4e3a8b86c0aa7ea83ddd5db61d992dbd54c501efd197",
+  "responseContract": {
+    "maximumAnswerCharacters": 400,
+    "maximumSourcePaths": 2
+  }
+}

@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_ed4d6801ebbfd785f945e483
+compiler:
+  compilerBuildId: sha256:d04ee6378c95d03e201ff9632b566a934f01bfc343f96544f450d5fd5e2a3d3d
+  compilerId: lervo.claude.document-normalizer
+  compilerVersion: 1+2.1.224 (Claude Code)
+  isolation: external_no_capabilities
+  provider: claude
+formatVersion: lervo.document.v1
+operationId: knormop_bc90088491c8973f8ed258c4
+outputLanguage: en
+outputs:
+  - byteCount: 4500
+    contentHash: sha256:7ac18d121e19567deaaef732c7a47a5201c9558840532cc584ae4ae8024bf275
+    path: docs/decisions/search/engines/0318-qualify-lexical-v2-after-v20-cross-provider-confirmation.md
+    userRegionHash: sha256:7ac18d121e19567deaaef732c7a47a5201c9558840532cc584ae4ae8024bf275
+profile: decision_record
+recordId: knormdoc_3cf456614b9d2259c3a195ec
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7ac18d121e19567deaaef732c7a47a5201c9558840532cc584ae4ae8024bf275
+sourcePath: docs/decisions/search/engines/0318-qualify-lexical-v2-after-v20-cross-provider-confirmation.md
+sourceUnitVersionIds:
+  - uv_0e76b76cc464cfe9eddf2861
+  - uv_3a4c0970d79d063103ad721e
+  - uv_43d43bd6f667795c530e926b
+  - uv_53b41f500145883608389090
+  - uv_999f4bfb85a2ca57d7e6e16c
+  - uv_a7f83cf8c28b66da97f16402

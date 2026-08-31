@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "spbench_lexical_v2_real_use_reviewed.v1",
+  "publicQueries": false,
+  "queryVisibility": "repository_owner_readable",
+  "telemetryQueryText": "excluded",
+  "provenance": "human_reviewed",
+  "review": {
+    "approvalId": "wapr_ab432bcd3e9591b7",
+    "bindingHash": "sha256:ab432bcd3e9591b7dd94879ca6e8e7a314b4d6c7ae2cead153bf61512667be1d",
+    "status": "accepted_by_user_reply",
+    "caseRetention": "retain_all_without_replacement"
+  },
+  "cases": [
+    {
+      "caseId": "actual_external_engine_extensibility",
+      "contextRequirement": "none",
+      "query": "외부 엔진만 사용하는 것도 가능하고 외부 엔진을 붙이는 것도 가능하게 확장성과 유연성을 고려해줘",
+      "expectedPaths": [
+        "docs/decisions/search/engines/0306-separate-search-engine-replacement-and-composition.md",
+        "docs/research/extensible-search-engine-architecture.md"
+      ],
+      "maximumRank": 10,
+      "matchPolicy": "all"
+    },
+    {
+      "caseId": "actual_cross_provider_quality",
+      "contextRequirement": "current_workstream",
+      "query": "코덱스와 클로드 모두 검증하고 속도 토큰 절감 성능 정확도를 모두 잡아야 해",
+      "expectedPaths": [
+        "docs/evidence/search/lexical-v2/lexical-v2-activation-confirmation-v20.md"
+      ],
+      "maximumRank": 10,
+      "matchPolicy": "all"
+    },
+    {
+      "caseId": "actual_raise_v2_to_pass",
+      "contextRequirement": "current_workstream",
+      "query": "v2를 어떻게 통과 시킬 정도로 끌어올려야 하지?",
+      "expectedPaths": [
+        "docs/decisions/search/engines/0308-pre-register-lexical-v2-pipeline-activation-gates.md",
+        "docs/decisions/search/engines/0318-qualify-lexical-v2-after-v20-cross-provider-confirmation.md"
+      ],
+      "maximumRank": 10,
+      "matchPolicy": "all"
+    },
+    {
+      "caseId": "actual_no_gate_weakening",
+      "contextRequirement": "current_workstream",
+      "query": "통과시키기 위해 기준을 낮추거나 땜빵질하면 안돼",
+      "expectedPaths": [
+        "docs/decisions/search/engines/0308-pre-register-lexical-v2-pipeline-activation-gates.md"
+      ],
+      "maximumRank": 10,
+      "matchPolicy": "all"
+    }
+  ]
+}

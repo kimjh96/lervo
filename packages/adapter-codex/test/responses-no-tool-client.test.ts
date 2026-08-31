@@ -41,6 +41,7 @@ describe("Codex Responses no-tool client", () => {
       cwd: "/repo",
       approvalPolicy: "never",
       sandbox: "read-only",
+      baseInstructions: "bounded evidence base",
     });
     await client.injectItems(thread.threadId, [
       {
@@ -49,7 +50,9 @@ describe("Codex Responses no-tool client", () => {
         content: [{ type: "input_text", text: "bounded context" }],
       },
     ]);
-    const turn = await client.startTurn(thread.threadId, "select evidence");
+    const turn = await client.startTurn(thread.threadId, "select evidence", {
+      reasoningEffort: "low",
+    });
     const controller = new AbortController();
     const iterator = client.notifications(controller.signal)[Symbol.asyncIterator]();
 
@@ -66,7 +69,13 @@ describe("Codex Responses no-tool client", () => {
       },
     });
     expect(requests).toEqual([
-      expect.objectContaining({ tools: [], tool_choice: "none", store: false }),
+      expect.objectContaining({
+        tools: [],
+        tool_choice: "none",
+        store: false,
+        reasoning: { effort: "low" },
+        input: expect.arrayContaining([expect.objectContaining({ role: "developer" })]),
+      }),
     ]);
 
     controller.abort();

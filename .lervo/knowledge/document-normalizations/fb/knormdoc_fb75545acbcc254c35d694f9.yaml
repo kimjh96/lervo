@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_852d396b48010cc0cdad5433
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_cf1d9e0fc072c3d94dbb21cb
+outputLanguage: en
+outputs:
+  - byteCount: 6622
+    contentHash: sha256:9834b5eee1f50894b6824be738bfbca31020034998cb3154449766ecab621613
+    path: docs/evidence/search/lexical-v2/lexical-v2-activation-confirmation-v12.md
+    userRegionHash: sha256:9834b5eee1f50894b6824be738bfbca31020034998cb3154449766ecab621613
+profile: repository_document
+recordId: knormdoc_fb75545acbcc254c35d694f9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:10c4ad67642a1f6204678cf845efe730c5f8eae9c47c430024aa5faa0e167d81
+sourcePath: docs/evidence/search/lexical-v2/lexical-v2-activation-confirmation-v12.md
+sourceUnitVersionIds:
+  - uv_1115a04b7dc99e5e1c7c2e37
+  - uv_577f3928d58f780481c771c3
+  - uv_57bab6ff46e952e26faaae46
+  - uv_8332082e3cda27d96f62ebd6
+  - uv_834438b9d9a7199535dddcac
+  - uv_8d811929588581346ca2ab1e
+  - uv_e44807fda1b09fb843d07e8b
+  - uv_fbf844680a9f8b352bab6c97

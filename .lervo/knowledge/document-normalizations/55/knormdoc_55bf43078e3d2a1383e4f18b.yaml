@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_852d396b48010cc0cdad5433
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5fecbdb7b38349715af2a185
+outputLanguage: en
+outputs:
+  - byteCount: 2660
+    contentHash: sha256:df3db3c980a05dae5ca57b0bef5ae3e582109e347f47709183fae4578856c8c2
+    path: docs/decisions/search/engines/0311-revise-lexical-v2-v14-linked-evidence-confirmation.md
+    userRegionHash: sha256:df3db3c980a05dae5ca57b0bef5ae3e582109e347f47709183fae4578856c8c2
+profile: decision_record
+recordId: knormdoc_55bf43078e3d2a1383e4f18b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bf4942425a3a0b31b74359f00760fa8f313b456853b08ef8421d79848a98beb8
+sourcePath: docs/decisions/search/engines/0311-revise-lexical-v2-v14-linked-evidence-confirmation.md
+sourceUnitVersionIds:
+  - uv_48b7256c24c807abae481612
+  - uv_b12c0a67d26fa6c4819ecfd1
+  - uv_c41e911b40dbfc1494165b42
+  - uv_d6a881e1e38e7fb46ab0ff21
+  - uv_d6b2dc89deddfa389cdaf29d
+  - uv_e64a932a958a196b59726e20

@@ -19,12 +19,29 @@ export interface CreateProcessSemanticCompilerOptions {
   provider: Provider;
   executable?: string;
   model?: string;
+  systemPrompt?: string;
   timeoutMs?: number;
 }
 
 export interface NoCapabilityProviderJsonRunner {
   provider: Provider;
   resolve(input: unknown, signal?: AbortSignal): Promise<unknown>;
+  resolveObserved?(
+    input: unknown,
+    signal?: AbortSignal,
+  ): Promise<{
+    value: unknown;
+    usage: ProviderJsonUsage | null;
+  }>;
+}
+
+export interface ProviderJsonUsage {
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  reasoningOutputTokens: number;
+  totalTokens: number;
+  contextWindow: number | null;
 }
 
 interface ProcessResult {
@@ -207,7 +224,7 @@ const documentNormalizationInstruction = [
   "Return one raw JSON object only, with no Markdown fence, preamble, commentary, or trailing text.",
 ].join("\n");
 
-const codexDisabledFeatures = [
+export const CODEX_NO_CAPABILITY_DISABLED_FEATURES = [
   "shell_tool",
   "unified_exec",
   "code_mode_host",
@@ -389,7 +406,7 @@ function observedResponse<T extends { telemetry: SemanticCompilerResponse["telem
   } as T;
 }
 
-function parseProviderResultText(value: string, provider: "Codex" | "Claude"): unknown {
+export function parseProviderResultText(value: string, provider: "Codex" | "Claude"): unknown {
   const trimmed = value.trim();
   const fenced = /^```(?:json)?\s*([\s\S]*?)\s*```$/iu.exec(trimmed);
   const candidate = fenced?.[1] ?? trimmed;
@@ -406,7 +423,7 @@ function parseProviderResultText(value: string, provider: "Codex" | "Claude"): u
   }
 }
 
-function providerResponseContractSchema(input: unknown): unknown {
+export function providerResponseContractSchema(input: unknown): unknown {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
     throw compileFailure("The provider JSON runner input has no response contract.");
   }
@@ -441,7 +458,7 @@ function nativeJsonSchemaType(value: unknown): string | undefined {
   }
 }
 
-function providerNativeResponseSchema(value: unknown): unknown {
+export function providerNativeResponseSchema(value: unknown): unknown {
   if (Array.isArray(value)) return value.map((item) => providerNativeResponseSchema(item));
   if (typeof value !== "object" || value === null) return value;
   const source = value as Record<string, unknown>;
@@ -462,11 +479,11 @@ function providerNativeResponseSchema(value: unknown): unknown {
   return result;
 }
 
-function codexFeatureArguments(): string[] {
-  return codexDisabledFeatures.flatMap((feature) => ["--disable", feature]);
+export function codexNoCapabilityFeatureArguments(): string[] {
+  return CODEX_NO_CAPABILITY_DISABLED_FEATURES.flatMap((feature) => ["--disable", feature]);
 }
 
-async function assertCodexHasNoModelTools(input: {
+export async function assertCodexHasNoModelTools(input: {
   executable: string;
   cwd: string;
   timeoutMs: number;
@@ -478,7 +495,7 @@ async function assertCodexHasNoModelTools(input: {
       "prompt-input",
       "-c",
       "mcp_servers={}",
-      ...codexFeatureArguments(),
+      ...codexNoCapabilityFeatureArguments(),
       "Lervo no-tool capability probe.",
     ],
     cwd: input.cwd,
@@ -601,6 +618,90 @@ function parseClaudeOutput<
   return observedResponse<T>(parseProviderResultText(wrapper.result, "Claude"));
 }
 
+function nonNegativeInteger(value: unknown): number | null {
+  return Number.isSafeInteger(value) && Number(value) >= 0 ? Number(value) : null;
+}
+
+function codexJsonUsage(stdout: string): ProviderJsonUsage | null {
+  let result: ProviderJsonUsage | null = null;
+  for (const line of stdout.split(/\r?\n/u).filter((item) => item.trim() !== "")) {
+    const event = parsedJson(line, "Codex did not return a valid JSONL event stream.") as {
+      type?: unknown;
+      usage?: Record<string, unknown>;
+    };
+    if (event.type !== "turn.completed" || event.usage === undefined) continue;
+    const inputTokens = nonNegativeInteger(event.usage.input_tokens);
+    const cachedInputTokens = nonNegativeInteger(event.usage.cached_input_tokens);
+    const outputTokens = nonNegativeInteger(event.usage.output_tokens);
+    const reasoningOutputTokens = nonNegativeInteger(event.usage.reasoning_output_tokens);
+    if (
+      inputTokens === null ||
+      cachedInputTokens === null ||
+      outputTokens === null ||
+      reasoningOutputTokens === null
+    ) {
+      return null;
+    }
+    result = {
+      inputTokens,
+      cachedInputTokens,
+      outputTokens,
+      reasoningOutputTokens,
+      totalTokens: inputTokens + outputTokens,
+      contextWindow: null,
+    };
+  }
+  return result;
+}
+
+function claudeJsonUsage(stdout: string): ProviderJsonUsage | null {
+  const wrapper = parsedJson(stdout, "Claude did not return a valid JSON result.") as {
+    modelUsage?: unknown;
+  };
+  if (
+    typeof wrapper.modelUsage !== "object" ||
+    wrapper.modelUsage === null ||
+    Array.isArray(wrapper.modelUsage)
+  ) {
+    return null;
+  }
+  const totals: ProviderJsonUsage = {
+    inputTokens: 0,
+    cachedInputTokens: 0,
+    outputTokens: 0,
+    reasoningOutputTokens: 0,
+    totalTokens: 0,
+    contextWindow: null,
+  };
+  const rows = Object.values(wrapper.modelUsage as Record<string, unknown>);
+  if (rows.length === 0) return null;
+  for (const value of rows) {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+    const row = value as Record<string, unknown>;
+    const inputTokens = nonNegativeInteger(row.inputTokens);
+    const outputTokens = nonNegativeInteger(row.outputTokens);
+    const cacheReadInputTokens = nonNegativeInteger(row.cacheReadInputTokens);
+    const cacheCreationInputTokens = nonNegativeInteger(row.cacheCreationInputTokens);
+    const contextWindow = nonNegativeInteger(row.contextWindow);
+    if (
+      inputTokens === null ||
+      outputTokens === null ||
+      cacheReadInputTokens === null ||
+      cacheCreationInputTokens === null ||
+      contextWindow === null
+    ) {
+      return null;
+    }
+    const completeInputTokens = inputTokens + cacheReadInputTokens + cacheCreationInputTokens;
+    totals.inputTokens += completeInputTokens;
+    totals.cachedInputTokens += cacheReadInputTokens;
+    totals.outputTokens += outputTokens;
+    totals.totalTokens += completeInputTokens + outputTokens;
+    totals.contextWindow = Math.max(totals.contextWindow ?? 0, contextWindow);
+  }
+  return totals;
+}
+
 async function compilerVersion(input: {
   executable: string;
   cwd: string;
@@ -654,7 +755,7 @@ export async function createProcessSemanticCompiler(
     responseSchemaHash: sha256(canonicalJson(providerResponseSchema)),
     disabledCapabilities:
       options.provider === "codex"
-        ? codexDisabledFeatures
+        ? CODEX_NO_CAPABILITY_DISABLED_FEATURES
         : ["all-built-in-tools", "all-mcp", "all-customizations"],
   };
   return {
@@ -710,7 +811,7 @@ export async function createProcessSemanticCompiler(
                 "--json",
                 "-c",
                 "mcp_servers={}",
-                ...codexFeatureArguments(),
+                ...codexNoCapabilityFeatureArguments(),
                 ...(options.model === undefined ? [] : ["--model", options.model]),
                 "-",
               ];
@@ -753,6 +854,14 @@ export async function createNoCapabilityProviderJsonRunner(
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 600_000) {
     throw compileFailure("The provider JSON runner timeout is invalid.");
   }
+  if (
+    options.systemPrompt !== undefined &&
+    (options.systemPrompt.trim() !== options.systemPrompt ||
+      options.systemPrompt.length === 0 ||
+      options.systemPrompt.length > 8_192)
+  ) {
+    throw compileFailure("The provider JSON runner system prompt is invalid.");
+  }
   const probeDirectory = await mkdtemp(resolve(tmpdir(), "lervo-provider-json-probe-"));
   try {
     await compilerVersion({ executable, cwd: probeDirectory, timeoutMs });
@@ -762,99 +871,113 @@ export async function createNoCapabilityProviderJsonRunner(
   } finally {
     await rm(probeDirectory, { recursive: true, force: true });
   }
+  const resolveObserved = async (input: unknown, signal?: AbortSignal) => {
+    const directory = await mkdtemp(resolve(tmpdir(), `lervo-${options.provider}-json-`));
+    try {
+      const prompt = canonicalJson(input);
+      const responseContractSchema = providerResponseContractSchema(input);
+      const responseSchema =
+        options.provider === "codex"
+          ? providerNativeResponseSchema(responseContractSchema)
+          : responseContractSchema;
+      const responseSchemaJson = canonicalJson(responseSchema);
+      const codexResponseSchemaPath = resolve(directory, "response-schema.json");
+      if (options.provider === "codex") {
+        await writeFile(codexResponseSchemaPath, `${responseSchemaJson}\n`, {
+          encoding: "utf8",
+          mode: 0o600,
+          flag: "wx",
+        });
+      }
+      const arguments_ =
+        options.provider === "claude"
+          ? [
+              "--print",
+              "--output-format",
+              "json",
+              "--input-format",
+              "text",
+              "--tools",
+              "",
+              "--safe-mode",
+              "--disable-slash-commands",
+              "--strict-mcp-config",
+              "--mcp-config",
+              '{"mcpServers":{}}',
+              "--setting-sources",
+              "",
+              "--no-session-persistence",
+              "--no-chrome",
+              "--permission-mode",
+              "dontAsk",
+              "--effort",
+              "low",
+              ...(options.systemPrompt === undefined
+                ? []
+                : ["--system-prompt", options.systemPrompt]),
+              "--json-schema",
+              responseSchemaJson,
+              ...(options.model === undefined ? [] : ["--model", options.model]),
+            ]
+          : [
+              "exec",
+              "--ignore-user-config",
+              "--ignore-rules",
+              "--strict-config",
+              "--ephemeral",
+              "--sandbox",
+              "read-only",
+              "--skip-git-repo-check",
+              "--json",
+              "-c",
+              "mcp_servers={}",
+              "-c",
+              'model_reasoning_effort="low"',
+              ...(options.systemPrompt === undefined
+                ? []
+                : ["-c", `developer_instructions=${JSON.stringify(options.systemPrompt)}`]),
+              "--output-schema",
+              codexResponseSchemaPath,
+              ...codexNoCapabilityFeatureArguments(),
+              ...(options.model === undefined ? [] : ["--model", options.model]),
+              "-",
+            ];
+      const result = await runProcess({
+        executable,
+        arguments: arguments_,
+        cwd: directory,
+        stdin: prompt,
+        ...(signal === undefined ? {} : { signal }),
+        timeoutMs,
+        maxOutputBytes: MAX_OUTPUT_BYTES,
+      });
+      if (result.status !== "completed") {
+        throw compileFailure(`The provider JSON runner did not complete (${result.status}).`);
+      }
+      const observed =
+        options.provider === "claude"
+          ? parseClaudeOutput<
+              Record<string, unknown> & { telemetry: SemanticCompilerResponse["telemetry"] }
+            >(result.stdout, { structuredOutputRequired: true })
+          : parseCodexOutput<
+              Record<string, unknown> & { telemetry: SemanticCompilerResponse["telemetry"] }
+            >(result.stdout);
+      const { telemetry: _telemetry, ...value } = observed;
+      return {
+        value,
+        usage:
+          options.provider === "claude"
+            ? claudeJsonUsage(result.stdout)
+            : codexJsonUsage(result.stdout),
+      };
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  };
   return {
     provider: options.provider,
-    async resolve(input, signal) {
-      const directory = await mkdtemp(resolve(tmpdir(), `lervo-${options.provider}-json-`));
-      try {
-        const prompt = canonicalJson(input);
-        const responseContractSchema = providerResponseContractSchema(input);
-        const responseSchema =
-          options.provider === "codex"
-            ? providerNativeResponseSchema(responseContractSchema)
-            : responseContractSchema;
-        const responseSchemaJson = canonicalJson(responseSchema);
-        const codexResponseSchemaPath = resolve(directory, "response-schema.json");
-        if (options.provider === "codex") {
-          await writeFile(codexResponseSchemaPath, `${responseSchemaJson}\n`, {
-            encoding: "utf8",
-            mode: 0o600,
-            flag: "wx",
-          });
-        }
-        const arguments_ =
-          options.provider === "claude"
-            ? [
-                "--print",
-                "--output-format",
-                "json",
-                "--input-format",
-                "text",
-                "--tools",
-                "",
-                "--safe-mode",
-                "--disable-slash-commands",
-                "--strict-mcp-config",
-                "--mcp-config",
-                '{"mcpServers":{}}',
-                "--setting-sources",
-                "",
-                "--no-session-persistence",
-                "--no-chrome",
-                "--permission-mode",
-                "dontAsk",
-                "--effort",
-                "low",
-                "--json-schema",
-                responseSchemaJson,
-                ...(options.model === undefined ? [] : ["--model", options.model]),
-              ]
-            : [
-                "exec",
-                "--ignore-user-config",
-                "--ignore-rules",
-                "--strict-config",
-                "--ephemeral",
-                "--sandbox",
-                "read-only",
-                "--skip-git-repo-check",
-                "--json",
-                "-c",
-                "mcp_servers={}",
-                "-c",
-                'model_reasoning_effort="low"',
-                "--output-schema",
-                codexResponseSchemaPath,
-                ...codexFeatureArguments(),
-                ...(options.model === undefined ? [] : ["--model", options.model]),
-                "-",
-              ];
-        const result = await runProcess({
-          executable,
-          arguments: arguments_,
-          cwd: directory,
-          stdin: prompt,
-          ...(signal === undefined ? {} : { signal }),
-          timeoutMs,
-          maxOutputBytes: MAX_OUTPUT_BYTES,
-        });
-        if (result.status !== "completed") {
-          throw compileFailure(`The provider JSON runner did not complete (${result.status}).`);
-        }
-        const observed =
-          options.provider === "claude"
-            ? parseClaudeOutput<
-                Record<string, unknown> & { telemetry: SemanticCompilerResponse["telemetry"] }
-              >(result.stdout, { structuredOutputRequired: true })
-            : parseCodexOutput<
-                Record<string, unknown> & { telemetry: SemanticCompilerResponse["telemetry"] }
-              >(result.stdout);
-        const { telemetry: _telemetry, ...value } = observed;
-        return value;
-      } finally {
-        await rm(directory, { recursive: true, force: true });
-      }
-    },
+    resolve: async (input, signal) => (await resolveObserved(input, signal)).value,
+    resolveObserved,
   };
 }
 
@@ -886,7 +1009,7 @@ export async function createProcessDocumentNormalizationCompiler(
     responseSchemaHash: sha256(canonicalJson(documentNormalizationResponseSchema)),
     disabledCapabilities:
       options.provider === "codex"
-        ? codexDisabledFeatures
+        ? CODEX_NO_CAPABILITY_DISABLED_FEATURES
         : ["all-built-in-tools", "all-mcp", "all-customizations"],
   };
   return {
@@ -944,7 +1067,7 @@ export async function createProcessDocumentNormalizationCompiler(
                 "--json",
                 "-c",
                 "mcp_servers={}",
-                ...codexFeatureArguments(),
+                ...codexNoCapabilityFeatureArguments(),
                 ...(options.model === undefined ? [] : ["--model", options.model]),
                 "-",
               ];

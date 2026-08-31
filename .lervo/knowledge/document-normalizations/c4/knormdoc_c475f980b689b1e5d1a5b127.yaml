@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f887bd4b1489d684197d906a
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_eecd171336b5865879b68459
+outputLanguage: en
+outputs:
+  - byteCount: 7719
+    contentHash: sha256:8242a04f7851e2532e90c14a5cc880fd52977b7b3da04e47348a8592fcf3faa2
+    path: docs/evidence/search/lexical-v2/lexical-v2-local-and-provider-comparison-v1.md
+    userRegionHash: sha256:8242a04f7851e2532e90c14a5cc880fd52977b7b3da04e47348a8592fcf3faa2
+profile: repository_document
+recordId: knormdoc_c475f980b689b1e5d1a5b127
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:206d3001b537f782b15b4fcccd8a89a553abd1f1241cde41f462fdf39d5d63b4
+sourcePath: docs/evidence/search/lexical-v2/lexical-v2-local-and-provider-comparison-v1.md
+sourceUnitVersionIds:
+  - uv_14da367cd708d2876785f3e7
+  - uv_3eca381c9d4dfd07e67c7d27
+  - uv_461537f87c8dc4df98af2584
+  - uv_602fb8c6828ba1d8511e96f2
+  - uv_9b2dac4a4dcc8d917df4299b
+  - uv_aa0ed1f6152cdb0d0af4fd78
+  - uv_bcd73473a34f99e6363a3fd6
+  - uv_e554676058a79e4a84ba3aa1
+  - uv_eee2f79ae2aa7c0b5b400562
+  - uv_fd66f6dd20039992c7bb9078

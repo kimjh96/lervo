@@ -13,6 +13,7 @@ import {
   type EventEnvelope,
   type TerminalTurnDeclaredEventPayload,
 } from "@lervo/schemas";
+import { type SearchQueryProjectionReceipt } from "@lervo/search";
 import {
   canonicalJson,
   assessCanonicalization,
@@ -34,11 +35,8 @@ import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { assembleTerminalHookContext } from "./terminal-context-assembly.js";
 import { loadSelectedTerminalDocument } from "./terminal-context-loading.js";
 import { selectTerminalContextCandidates } from "./terminal-context-selection.js";
-import {
-  inspectTerminalInstructionCatalog,
-  materializeTerminalDurableInstruction,
-} from "./terminal-durable-instruction.js";
-import { resolveTerminalRequestGrounding } from "./terminal-request-grounding.js";
+import { createCurrentWorkstreamSearchProjectionContext } from "./search-projection-context.js";
+import { inspectTerminalInstructionCatalog } from "./terminal-durable-instruction.js";
 import {
   readPreparedRepositorySnapshot,
   writePreparedRepositorySnapshot,
@@ -141,6 +139,7 @@ interface TerminalActivationReceipt {
   result: "context_prepared" | "completion_allowed" | "completion_blocked";
   occurredAt: string;
   queryDigest?: string;
+  queryProjectionReceiptId?: string;
   sourceSnapshotId?: string;
   recommendationCount?: number;
   loadedDocumentCount?: number;
@@ -205,8 +204,7 @@ async function promptContext(
   provider: TerminalIntegrationProvider,
   observationId: string,
   workspaceBinding: TerminalWorkspaceBinding | null,
-  coordinates: UnmanagedCoordinates,
-  services: Pick<CliServices, "groundProductionRequest">,
+  services: Pick<CliServices, "projectSearchQueries">,
 ): Promise<{
   additionalContext: string;
   sourceSnapshotId: string;
@@ -232,6 +230,7 @@ async function promptContext(
     retrievalQueries: string[];
     providerIds: string[];
     reasons: string[];
+    queryProjectionReceipt: SearchQueryProjectionReceipt;
   };
   durableInstruction: {
     status: "ignored" | "workstream" | "current" | "pending" | "applied" | "blocked";
@@ -240,7 +239,7 @@ async function promptContext(
     reasonIds: string[];
   };
   selection: {
-    disposition: "grounding_not_ready" | "retrieval_query_missing" | "no_candidates" | "selected";
+    disposition: "query_projection_missing" | "no_candidates" | "selected";
     selectedCount: number;
   };
 }> {
@@ -257,56 +256,43 @@ async function promptContext(
   } finally {
     await workstreamStorage.close();
   }
-  const grounding = await resolveTerminalRequestGrounding({
+  const searchProjectionContext =
+    currentWorkstream === null
+      ? { context: { contextRequirement: "none" }, contextAnchors: [] }
+      : createCurrentWorkstreamSearchProjectionContext(currentWorkstream);
+  const requestDigest = sha256(prompt);
+  const queryProjection = await services.projectSearchQueries({
     request: prompt,
+    requestDigest,
+    context: searchProjectionContext.context,
+    contextDigest: sha256(canonicalJson(searchProjectionContext.context)),
+    contextAnchors: searchProjectionContext.contextAnchors,
+    requestedLanguage: instructionCatalog.semanticCatalog.retrievalLanguage,
     provider,
-    currentWorkstream:
-      currentWorkstream === null
-        ? null
-        : {
-            workstreamId: currentWorkstream.workstreamId,
-            revision: currentWorkstream.revision,
-          },
-    services,
-    semanticCatalog: instructionCatalog.semanticCatalog,
   });
-  const durableInstruction = await materializeTerminalDurableInstruction({
-    repositoryRoot: root,
-    projectId,
-    requestDigest: sha256(prompt),
-    resolverResultDigest: grounding.resolverResultDigest,
-    groundingStatus: grounding.status,
-    catalogComplete: instructionCatalog.complete,
-    ambiguityReasons: grounding.ambiguityReasons,
-    instruction: grounding.durableInstruction,
-    workerWorkspace: workspaceBinding?.executionKind === "worker",
-    now: new Date(),
-    recordApplied: async (applied) => {
-      const storage = await openProjectStorage(root);
-      try {
-        storage.events.append(
-          eventDraft({
-            projectId,
-            coordinates,
-            provider,
-            actorKind: "user",
-            type: "knowledge.materialization.applied",
-            occurredAt: applied.appliedAt,
-            payload: { ...applied },
-          }),
-        );
-      } finally {
-        await storage.close();
-      }
-    },
-  });
+  const grounding = {
+    status: "abstain" as const,
+    workflowId: null,
+    sourceClasses: [] as string[],
+    subjectIds: [] as string[],
+    retrievalQueries: [] as string[],
+    providerIds: [] as string[],
+    reasons: ["unmanaged_terminal_retrieval_only"],
+  };
+  const durableInstruction = {
+    status: "ignored" as const,
+    ruleId: null,
+    targetPath: null,
+    reasonIds: ["unmanaged_terminal_retrieval_only"],
+  };
   const repositorySnapshot = await captureRepositorySnapshot(root);
-  const retrievalQuery = grounding.retrievalQueries.join("\n") || grounding.subjectIds.join(" ");
   const selection = await selectTerminalContextCandidates({
     repositoryRoot: root,
-    retrievalQuery,
+    projectId,
+    provider,
+    projection: queryProjection,
+    retrievalQueries: queryProjection.queries,
     sourceSnapshotId: instructionCatalog.sourceSnapshotId,
-    groundingStatus: grounding.status,
     supplementalSources,
   });
   const workstream =
@@ -328,12 +314,6 @@ async function promptContext(
             context,
           };
         })();
-  const deliberationInstruction =
-    grounding.status === "ready" &&
-    grounding.workflowId === "terminal.deliberate" &&
-    grounding.providerIds.length >= 2
-      ? `The validated typed request authorizes cross-provider deliberation. Run \`lervo deliberate --auto --caller ${provider} "<bounded topic>"\` and bind the result to the terminal declaration.`
-      : "No validated cross-provider deliberation request is present for this turn; do not switch providers or infer deliberation from wording.";
   const finalizationInstruction =
     workspaceBinding?.executionKind === "worker"
       ? [
@@ -341,7 +321,7 @@ async function promptContext(
           "Change only assignment-scoped paths. Worker Stop rechecks the ownership marker, writer session, assignment lease, exact workspace revision, and path-scoped diff, then records a workspace checkpoint. It does not advance the repository-wide workstream or repair knowledge movement owned by another workspace.",
           "Commit only when the task or sealing flow requires it; Lervo never invents or silently commits unfinished bytes.",
         ].join("\n\n")
-      : `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${provider} --observation ${observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. ${deliberationInstruction} This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; it is not proof of internal reasoning. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
+      : `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${provider} --observation ${observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; it is not proof of internal reasoning. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
   const workstreamInstruction =
     workspaceBinding?.executionKind === "worker"
       ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping."
@@ -349,13 +329,16 @@ async function promptContext(
         ? "If this turn changes repository-authored bytes, the agent must create a bounded checkpoint through the `lervo workstream start --actor agent --provider <current-provider>` plan/apply flow before completion. A read-only inquiry does not create artificial continuation state. The user must not be asked to run bookkeeping commands."
         : "If this turn changes repository-authored bytes, the agent must record the next bounded revision through the `lervo workstream update --actor agent --provider <current-provider>` plan/apply flow before completion. Preserve identity and origin, replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.";
   const preamble = [
-    "Lervo terminal integration v2 resolved the request through the current provider adapter, then used only the validated typed source plan for candidate retrieval.",
-    `groundingStatus: ${grounding.status}; workflowId: ${grounding.workflowId ?? "none"}; reasons: ${grounding.reasons.join(",") || "none"}`,
+    "Lervo terminal integration v2 used a provider-neutral query projection only for read-only candidate retrieval in the current repository. It did not resolve effects, authority, execution, external systems, or cross-repository routing.",
+    `effectGroundingStatus: ${grounding.status}; workflowId: none; reasons: ${grounding.reasons.join(",")}`,
     `selectionDisposition: ${selection.disposition}; candidates: ${selection.candidates.length}; selected: ${selection.selected.length}`,
+    `retrievalPlanId: ${selection.retrievalPlanId ?? "baseline"}; transition: ${selection.retrievalPlanTransitionId ?? "none"}`,
+    `queryProjectionStatus: ${queryProjection.receipt.status}; queries: ${queryProjection.receipt.projectedQueryCount}; receipt: ${queryProjection.receipt.receiptId}`,
     `sourceSnapshotId: ${selection.sourceSnapshotId}`,
+    "This search covers only registered knowledge in the current repository. An empty or failed result is not evidence that content is absent from another repository or any external or shared service. Inspect those surfaces through their available tools and configured authority independently.",
     "The following exact-hash publications were loaded and prepared for return through the provider hook. This proves hook-side preparation, not provider acceptance, managed delivery, understanding, or later use.",
     "Use current repository bytes as authority, follow AGENTS.md, and do not treat a recommendation as semantic truth.",
-    `durableInstructionStatus: ${durableInstruction.status}; ruleId: ${durableInstruction.ruleId ?? "none"}; targetPath: ${durableInstruction.targetPath ?? "none"}; reasons: ${durableInstruction.reasonIds.join(",") || "none"}. Only an explicit, unambiguous, low-risk repository-long user directive can be materialized automatically; examples, quotations, hypotheticals, complaints, current-task commands, inferred preferences, conflicts, replacements, removals, and incomplete-catalog decisions cannot pass this gate.`,
+    `durableInstructionStatus: ${durableInstruction.status}; ruleId: none; targetPath: none; reasons: ${durableInstruction.reasonIds.join(",")}. Direct prompt preparation never materializes a repository rule; use the repository's explicit instruction lifecycle for durable changes.`,
     "If the final response explicitly relies on a supplied publication, append its exact Lervo evidence marker as a standalone Markdown HTML comment. Keep the marker out of prose and code. Markdown renderers hide the comment, while raw output retains verifiable evidence. A marker proves only an output reference, never understanding or internal use.",
     finalizationInstruction,
     workstreamInstruction,
@@ -396,13 +379,11 @@ async function promptContext(
     if (MAXIMUM_CONTEXT_BYTES - usedBytes <= 512) break;
   }
   const fallback =
-    selection.disposition === "grounding_not_ready"
-      ? `No publication was selected because typed grounding is ${grounding.status}. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes.`
-      : selection.disposition === "retrieval_query_missing"
-        ? "No publication was selected because ready typed grounding produced no retrieval query. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes."
-        : selection.disposition === "no_candidates"
-          ? "No current publication matched the validated retrieval query. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes."
-          : "Selected publications could not be exact-hash loaded. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes.";
+    selection.disposition === "query_projection_missing"
+      ? "No current-repository publication was selected because query projection was unavailable. This says nothing about other repositories or external surfaces. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes."
+      : selection.disposition === "no_candidates"
+        ? "No registered publication in the current repository matched the validated query projection. This says nothing about other repositories or external surfaces. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes."
+        : "Selected publications could not be exact-hash loaded. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes.";
   const additionalContext = assembleTerminalHookContext({
     preamble,
     workstreamContext: workstream?.context ?? null,
@@ -420,7 +401,7 @@ async function promptContext(
     workstream,
     grounding: {
       requestDigest: sha256(prompt),
-      queryDigest: sha256(retrievalQuery),
+      queryDigest: queryProjection.receipt.projectedQueryDigest,
       status: grounding.status,
       workflowId: grounding.workflowId,
       sourceClasses: grounding.sourceClasses,
@@ -428,6 +409,7 @@ async function promptContext(
       retrievalQueries: grounding.retrievalQueries,
       providerIds: grounding.providerIds,
       reasons: grounding.reasons,
+      queryProjectionReceipt: queryProjection.receipt,
     },
     durableInstruction,
     selection: {
@@ -1049,6 +1031,55 @@ async function recordPreparedContext(input: {
     revision: input.context.repositoryRevision,
     files: input.context.repositoryFiles,
   });
+  const payload = {
+    observationId: input.observationId,
+    executionMode: "unmanaged",
+    providerSessionDigest: input.coordinates.providerSessionDigest,
+    providerTurnDigest: input.coordinates.providerTurnDigest,
+    sourceSnapshotId: input.context.sourceSnapshotId,
+    repositoryRevision: input.context.repositoryRevision,
+    requestDigest: input.context.grounding.requestDigest,
+    queryDigest: input.context.grounding.queryDigest,
+    queryProjectionReceipt: input.context.grounding.queryProjectionReceipt,
+    groundingStatus: input.context.grounding.status,
+    groundingWorkflowId: input.context.grounding.workflowId,
+    groundingSourceClasses: input.context.grounding.sourceClasses,
+    groundingSubjectIds: input.context.grounding.subjectIds,
+    groundingProviderIds: input.context.grounding.providerIds,
+    groundingReasons: input.context.grounding.reasons,
+    durableInstructionStatus: input.context.durableInstruction.status,
+    durableInstructionRuleId: input.context.durableInstruction.ruleId,
+    durableInstructionTargetPath: input.context.durableInstruction.targetPath,
+    durableInstructionReasonIds: input.context.durableInstruction.reasonIds,
+    selectionStatus: input.context.selection.selectedCount > 0 ? "selected" : "not_selected",
+    loadingStatus: input.context.selection.selectedCount > 0 ? "observed" : "not_run",
+    hookPreparationStatus: "observed",
+    providerInjectionStatus: "unobserved",
+    providerUseStatus: "unknown",
+    contextHash: sha256(input.context.additionalContext),
+    recommendationCount: input.context.recommendationCount,
+    loadedDocuments: input.context.documents,
+    workstreamId: input.context.workstream?.workstreamId ?? null,
+    workstreamRevision: input.context.workstream?.revision ?? null,
+    workstreamSnapshotHash: input.context.workstream?.snapshotHash ?? null,
+    workstreamScope: input.context.workstream?.scope ?? null,
+    workstreamDeliveredByteCount: input.context.workstream?.deliveredByteCount ?? null,
+    workspaceExecutionKind: input.workspaceBinding?.executionKind ?? null,
+    workspaceId: input.workspaceBinding?.workspaceId ?? null,
+    workspaceGeneration: input.workspaceBinding?.workspaceGeneration ?? null,
+    workspaceRevision: input.workspaceBinding?.workspaceRevision ?? null,
+    assignmentId: input.workspaceBinding?.assignmentId ?? null,
+    leaseGeneration: input.workspaceBinding?.leaseGeneration ?? null,
+    writerSessionId: input.workspaceBinding?.writerSessionId ?? null,
+  };
+  const validation = validateSchema("terminalContextPreparedEventPayload", payload);
+  if (!validation.valid) {
+    throw new Error(
+      validation.errors
+        .map((error) => `${error.instancePath || "/"} ${error.message ?? "is invalid"}`)
+        .join("; "),
+    );
+  }
   const storage = await openProjectStorage(input.root);
   try {
     const result = storage.events.append(
@@ -1058,46 +1089,7 @@ async function recordPreparedContext(input: {
         provider: input.provider,
         type: "terminal.context.prepared",
         occurredAt: input.occurredAt,
-        payload: {
-          observationId: input.observationId,
-          executionMode: "unmanaged",
-          providerSessionDigest: input.coordinates.providerSessionDigest,
-          providerTurnDigest: input.coordinates.providerTurnDigest,
-          sourceSnapshotId: input.context.sourceSnapshotId,
-          repositoryRevision: input.context.repositoryRevision,
-          requestDigest: input.context.grounding.requestDigest,
-          queryDigest: input.context.grounding.queryDigest,
-          groundingStatus: input.context.grounding.status,
-          groundingWorkflowId: input.context.grounding.workflowId,
-          groundingSourceClasses: input.context.grounding.sourceClasses,
-          groundingSubjectIds: input.context.grounding.subjectIds,
-          groundingProviderIds: input.context.grounding.providerIds,
-          groundingReasons: input.context.grounding.reasons,
-          durableInstructionStatus: input.context.durableInstruction.status,
-          durableInstructionRuleId: input.context.durableInstruction.ruleId,
-          durableInstructionTargetPath: input.context.durableInstruction.targetPath,
-          durableInstructionReasonIds: input.context.durableInstruction.reasonIds,
-          selectionStatus: input.context.selection.selectedCount > 0 ? "selected" : "not_selected",
-          loadingStatus: input.context.selection.selectedCount > 0 ? "observed" : "not_run",
-          hookPreparationStatus: "observed",
-          providerInjectionStatus: "unobserved",
-          providerUseStatus: "unknown",
-          contextHash: sha256(input.context.additionalContext),
-          recommendationCount: input.context.recommendationCount,
-          loadedDocuments: input.context.documents,
-          workstreamId: input.context.workstream?.workstreamId ?? null,
-          workstreamRevision: input.context.workstream?.revision ?? null,
-          workstreamSnapshotHash: input.context.workstream?.snapshotHash ?? null,
-          workstreamScope: input.context.workstream?.scope ?? null,
-          workstreamDeliveredByteCount: input.context.workstream?.deliveredByteCount ?? null,
-          workspaceExecutionKind: input.workspaceBinding?.executionKind ?? null,
-          workspaceId: input.workspaceBinding?.workspaceId ?? null,
-          workspaceGeneration: input.workspaceBinding?.workspaceGeneration ?? null,
-          workspaceRevision: input.workspaceBinding?.workspaceRevision ?? null,
-          assignmentId: input.workspaceBinding?.assignmentId ?? null,
-          leaseGeneration: input.workspaceBinding?.leaseGeneration ?? null,
-          writerSessionId: input.workspaceBinding?.writerSessionId ?? null,
-        },
+        payload,
       }),
     );
     return result.event.eventId;
@@ -1300,7 +1292,11 @@ async function recordObservedTurn(input: {
             referenceTelemetry:
               typeof input.hookInput.lastAssistantMessage === "string" ? "observed" : "unavailable",
             lifecycleStatus: input.lifecycle.status,
-            completionResult: input.lifecycle.status === "current" ? "allowed" : "blocked",
+            completionResult:
+              input.lifecycle.workspace?.binding.executionKind === "worker" &&
+              input.lifecycle.status === "action_required"
+                ? "blocked"
+                : "allowed",
             repositoryRevisionBefore: input.lifecycle.repositoryChange.beforeRevision,
             repositoryRevisionAfter: input.lifecycle.repositoryChange.afterRevision,
             repositoryChanged: input.lifecycle.repositoryChange.changed,
@@ -1520,7 +1516,7 @@ async function runDeclare(args: string[], io: CliIo): Promise<number> {
 async function runHook(
   args: string[],
   io: CliIo,
-  services: Pick<CliServices, "groundProductionRequest">,
+  services: Pick<CliServices, "projectSearchQueries">,
 ): Promise<number> {
   try {
     const parsed = parseArgs({
@@ -1540,121 +1536,140 @@ async function runHook(
         : ("lervo_terminal_hooks_v1" as const);
     if (io.stdin === undefined) throw new Error("Provider hook input is unavailable.");
     const input = parseHookInput(await io.stdin());
-    const root = await repositoryRootFrom(io.cwd);
-    const coordinates = unmanagedCoordinates(provider, input);
-    const occurredAt = new Date().toISOString();
-    if (input.event === "UserPromptSubmit") {
-      const observationId = newIdentifier("tobs");
-      let workspaceBinding: TerminalWorkspaceBinding | null;
-      try {
-        workspaceBinding = await attachTerminalWorkspace({
+    if (input.event === "Stop" && input.stopHookActive) {
+      io.stdout("{}\n");
+      return 0;
+    }
+    try {
+      const root = await repositoryRootFrom(io.cwd);
+      const coordinates = unmanagedCoordinates(provider, input);
+      const occurredAt = new Date().toISOString();
+      if (input.event === "UserPromptSubmit") {
+        const observationId = newIdentifier("tobs");
+        let workspaceBinding: TerminalWorkspaceBinding | null;
+        try {
+          workspaceBinding = await attachTerminalWorkspace({
+            root,
+            provider,
+            providerSessionId: input.providerSessionId,
+            now: new Date(occurredAt),
+          });
+        } catch (error) {
+          if (!(error instanceof TerminalWorkspaceIsolationError)) throw error;
+          io.stdout(
+            `${JSON.stringify({
+              decision: "block",
+              reason: `Lervo blocked terminal workspace attachment.\n${error.code}: run lervo workspace inspect --json and recover only this assignment workspace.`,
+            })}\n`,
+          );
+          return 0;
+        }
+        const context = await promptContext(
+          root,
+          input.prompt!,
+          provider,
+          observationId,
+          workspaceBinding,
+          services,
+        );
+        const observationEventId = await recordPreparedContext({
           root,
           provider,
-          providerSessionId: input.providerSessionId,
-          now: new Date(occurredAt),
+          coordinates,
+          observationId,
+          context,
+          workspaceBinding,
+          occurredAt,
         });
-      } catch (error) {
-        if (!(error instanceof TerminalWorkspaceIsolationError)) throw error;
+        await writeActivationReceipt(root, {
+          schemaVersion: 1,
+          contractId,
+          provider,
+          hookEvent: input.event,
+          result: "context_prepared",
+          occurredAt,
+          queryDigest: sha256(input.prompt!),
+          queryProjectionReceiptId: context.grounding.queryProjectionReceipt.receiptId,
+          sourceSnapshotId: context.sourceSnapshotId,
+          recommendationCount: context.recommendationCount,
+          loadedDocumentCount: context.documents.length,
+          contextHash: sha256(context.additionalContext),
+          repositoryRevision: context.repositoryRevision,
+          observationEventId,
+        });
         io.stdout(
-          `${JSON.stringify({
-            decision: "block",
-            reason: `Lervo blocked terminal workspace attachment.\n${error.code}: run lervo workspace inspect --json and recover only this assignment workspace.`,
-          })}\n`,
+          `${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: context.additionalContext } })}\n`,
         );
         return 0;
       }
-      const context = await promptContext(
+      const expectation = await preparedTurnExpectation(
         root,
-        input.prompt!,
-        provider,
-        observationId,
-        workspaceBinding,
         coordinates,
-        services,
-      );
-      const observationEventId = await recordPreparedContext({
-        root,
         provider,
-        coordinates,
-        observationId,
-        context,
-        workspaceBinding,
-        occurredAt,
-      });
-      await writeActivationReceipt(root, {
-        schemaVersion: 1,
-        contractId,
-        provider,
-        hookEvent: input.event,
-        result: "context_prepared",
-        occurredAt,
-        queryDigest: sha256(input.prompt!),
-        sourceSnapshotId: context.sourceSnapshotId,
-        recommendationCount: context.recommendationCount,
-        loadedDocumentCount: context.documents.length,
-        contextHash: sha256(context.additionalContext),
-        repositoryRevision: context.repositoryRevision,
-        observationEventId,
-      });
-      io.stdout(
-        `${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: context.additionalContext } })}\n`,
+        input.providerSessionId,
       );
-      return 0;
-    }
-    const expectation = await preparedTurnExpectation(
-      root,
-      coordinates,
-      provider,
-      input.providerSessionId,
-    );
-    if (expectation === null) {
-      if (input.stopHookActive) {
+      if (expectation === null) {
         io.stdout("{}\n");
         return 0;
       }
-      io.stdout(
-        `${JSON.stringify({
-          decision: "block",
-          reason:
-            "Lervo terminal integration became active after this turn started, so no matching start observation exists. Continue once to establish the current repository context; the unobserved turn remains unmanaged and no preparation or completion evidence is claimed.",
-        })}\n`,
-      );
-      return 0;
-    }
-    const lifecycle = await inspectLifecycle(root, expectation);
-    let workspaceCheckpointEventId: string | null = null;
-    if (
-      lifecycle.status === "current" &&
-      expectation.workspaceBinding?.executionKind === "worker" &&
-      lifecycle.workspace !== null
-    ) {
-      try {
-        workspaceCheckpointEventId = (
-          await checkpointTerminalWorkspace({
-            root,
-            inspection: lifecycle.workspace,
-            contextEventId: expectation.contextEventId,
-            occurredAt: expectation.preparedAt,
-          })
-        ).eventId;
-      } catch {
-        lifecycle.issues.push({
-          code: "workspace_checkpoint_failed",
-          command: "lervo workspace inspect --json",
-        });
-        lifecycle.status = "action_required";
+      const lifecycle = await inspectLifecycle(root, expectation);
+      let workspaceCheckpointEventId: string | null = null;
+      if (
+        lifecycle.status === "current" &&
+        expectation.workspaceBinding?.executionKind === "worker" &&
+        lifecycle.workspace !== null
+      ) {
+        try {
+          workspaceCheckpointEventId = (
+            await checkpointTerminalWorkspace({
+              root,
+              inspection: lifecycle.workspace,
+              contextEventId: expectation.contextEventId,
+              occurredAt: expectation.preparedAt,
+            })
+          ).eventId;
+        } catch {
+          lifecycle.issues.push({
+            code: "workspace_checkpoint_failed",
+            command: "lervo workspace inspect --json",
+          });
+          lifecycle.status = "action_required";
+        }
       }
-    }
-    const observation = await recordObservedTurn({
-      root,
-      provider,
-      coordinates,
-      hookInput: input,
-      lifecycle,
-      workspaceCheckpointEventId,
-      occurredAt,
-    });
-    if (lifecycle.status === "current") {
+      const observation = await recordObservedTurn({
+        root,
+        provider,
+        coordinates,
+        hookInput: input,
+        lifecycle,
+        workspaceCheckpointEventId,
+        occurredAt,
+      });
+      if (
+        expectation.workspaceBinding?.executionKind === "worker" &&
+        lifecycle.status === "action_required"
+      ) {
+        const reason = [
+          "Lervo blocked worker completion because this workspace isolation boundary is not current.",
+          ...lifecycle.issues.map(
+            (item) =>
+              `${item.code}: ${item.detail === undefined ? "" : `${item.detail}; `}run ${item.command}, review the read-only plan, and apply only the exact current plan/approval.`,
+          ),
+          "Recover only this assignment workspace, then try to finish again; do not advance another workspace's global lifecycle.",
+        ].join("\n");
+        await writeActivationReceipt(root, {
+          schemaVersion: 1,
+          contractId,
+          provider,
+          hookEvent: input.event,
+          result: "completion_blocked",
+          occurredAt,
+          observationEventId: observation.eventId,
+          referenceCount: observation.referenceCount,
+        });
+        io.stdout(`${JSON.stringify({ decision: "block", reason })}\n`);
+        return 0;
+      }
       await writeActivationReceipt(root, {
         schemaVersion: 1,
         contractId,
@@ -1667,32 +1682,10 @@ async function runHook(
       });
       io.stdout("{}\n");
       return 0;
+    } catch {
+      io.stdout("{}\n");
+      return 0;
     }
-    const worker = expectation.workspaceBinding?.executionKind === "worker";
-    const reason = [
-      worker
-        ? "Lervo blocked worker completion because this workspace isolation boundary is not current."
-        : "Lervo blocked terminal completion because the repository lifecycle is not current.",
-      ...lifecycle.issues.map(
-        (item) =>
-          `${item.code}: ${item.detail === undefined ? "" : `${item.detail}; `}run ${item.command}, review the read-only plan, and apply only the exact current plan/approval.`,
-      ),
-      worker
-        ? "Recover only this assignment workspace, then try to finish again; do not advance another workspace's global lifecycle."
-        : "Complete the required migration or lint work, then try to finish again.",
-    ].join("\n");
-    await writeActivationReceipt(root, {
-      schemaVersion: 1,
-      contractId,
-      provider,
-      hookEvent: input.event,
-      result: "completion_blocked",
-      occurredAt,
-      observationEventId: observation.eventId,
-      referenceCount: observation.referenceCount,
-    });
-    io.stdout(`${JSON.stringify({ decision: "block", reason })}\n`);
-    return 0;
   } catch {
     io.stderr(
       "Lervo terminal integration failed closed without exposing prompt or provider configuration content.\n",
@@ -1760,7 +1753,7 @@ async function runCoverage(args: string[], io: CliIo): Promise<number> {
 export async function runTerminalCommand(
   args: string[],
   io: CliIo,
-  services: Pick<CliServices, "groundProductionRequest">,
+  services: Pick<CliServices, "projectSearchQueries">,
 ): Promise<number> {
   if (args[0] === "hook") return runHook(args.slice(1), io, services);
   if (args[0] === "declare") return runDeclare(args.slice(1), io);

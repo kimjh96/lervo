@@ -131,7 +131,18 @@ export class CodexResponsesNoToolClient implements CodexAppServerClient {
       );
     }
     const threadId = `responses_${this.createId()}`;
-    this.threads.set(threadId, { items: [] });
+    this.threads.set(threadId, {
+      items:
+        options.baseInstructions === undefined
+          ? []
+          : [
+              {
+                type: "message",
+                role: "developer",
+                content: [{ type: "input_text", text: options.baseInstructions }],
+              },
+            ],
+    });
     this.notificationsQueue.push({
       method: "thread/started",
       params: { thread: { id: threadId } },
@@ -245,6 +256,9 @@ export class CodexResponsesNoToolClient implements CodexAppServerClient {
           tool_choice: "none",
           store: false,
           max_output_tokens: MAXIMUM_OUTPUT_TOKENS,
+          ...(options.reasoningEffort === undefined
+            ? {}
+            : { reasoning: { effort: options.reasoningEffort } }),
           ...(options.outputSchema === undefined
             ? {}
             : {

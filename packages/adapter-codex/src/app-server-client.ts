@@ -93,6 +93,9 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
         approvalPolicy: options.approvalPolicy,
         sandbox: options.sandbox,
         ...(options.model === undefined ? {} : { model: options.model }),
+        ...(options.baseInstructions === undefined
+          ? {}
+          : { baseInstructions: options.baseInstructions }),
         ...(options.config === undefined ? {} : { config: structuredClone(options.config) }),
         ...(options.selectedCapabilityRoots === undefined
           ? {}
@@ -140,6 +143,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
       await this.request("turn/start", {
         threadId,
         input: [{ type: "text", text: instructions }],
+        ...(options.reasoningEffort === undefined ? {} : { effort: options.reasoningEffort }),
         ...(options.outputSchema === undefined
           ? {}
           : { outputSchema: structuredClone(options.outputSchema) }),

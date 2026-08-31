@@ -71,7 +71,11 @@ const noDurableInstruction: DurableInstructionIntent = {
 export async function resolveTerminalRequestGrounding(input: {
   request: string;
   provider: RunProvider;
-  currentWorkstream: { workstreamId: string; revision: number } | null;
+  currentWorkstream: {
+    workstreamId: string;
+    revision: number;
+    context?: string;
+  } | null;
   semanticCatalog?: unknown;
   services: Pick<CliServices, "groundProductionRequest">;
 }): Promise<
@@ -94,7 +98,7 @@ export async function resolveTerminalRequestGrounding(input: {
       grantedAuthorities: ["read", "repository_write", "user_approval"],
       workflows: terminalWorkflows,
       semanticCatalog: input.semanticCatalog,
-      timeoutMs: 20_000,
+      timeoutMs: 10_000,
     });
     return {
       ...grounded.decision,

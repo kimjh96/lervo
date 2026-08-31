@@ -167,6 +167,9 @@ importers:
       '@lervo/search-adapter-bm25f':
         specifier: workspace:*
         version: link:../../packages/search-adapter-bm25f
+      '@lervo/search-adapter-lexical-v2':
+        specifier: workspace:*
+        version: link:../../packages/search-adapter-lexical-v2
       '@lervo/search-local':
         specifier: workspace:*
         version: link:../../packages/search-local
@@ -1362,6 +1365,12 @@ importers:
         version: link:../event-contract
 
   packages/search-adapter-bm25f:
+    dependencies:
+      '@lervo/search':
+        specifier: workspace:*
+        version: link:../search
+
+  packages/search-adapter-lexical-v2:
     dependencies:
       '@lervo/search':
         specifier: workspace:*

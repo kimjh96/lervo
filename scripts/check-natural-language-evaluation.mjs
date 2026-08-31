@@ -31,6 +31,8 @@ import { validateMarkerDerivedPathsV6Suite } from "./natural-language-evaluation
 import { validateStagedEvidenceV7Suite } from "./natural-language-evaluation/staged-evidence-v7-contract.mjs";
 import { validateLinkedEvidenceReconciliationV8Suite } from "./natural-language-evaluation/linked-evidence-reconciliation-v8-contract.mjs";
 import { validateLinkedEvidenceReconciliationConfirmationV9Suite } from "./natural-language-evaluation/linked-evidence-reconciliation-confirmation-v9-contract.mjs";
+import { validateLexicalV2ProviderSuite } from "./natural-language-evaluation/lexical-v2-provider-comparison-contract.mjs";
+import { validateLexicalV2RealUseReview } from "./natural-language-evaluation/lexical-v2-real-use-review-contract.mjs";
 
 function loadJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
@@ -55,6 +57,8 @@ export {
   validateStagedEvidenceV7Suite,
   validateLinkedEvidenceReconciliationV8Suite,
   validateLinkedEvidenceReconciliationConfirmationV9Suite,
+  validateLexicalV2ProviderSuite,
+  validateLexicalV2RealUseReview,
 };
 
 export function checkNaturalLanguageEvaluation(repositoryRoot) {
@@ -114,6 +118,14 @@ export function checkNaturalLanguageEvaluation(repositoryRoot) {
   const linkedEvidenceReconciliationConfirmationV9Path = resolve(
     repositoryRoot,
     "benchmarks/search/linked-evidence-reconciliation-confirmation-v9.json",
+  );
+  const lexicalV2ProviderPath = resolve(
+    repositoryRoot,
+    "benchmarks/search/lexical-v2-provider-comparison-v1.json",
+  );
+  const lexicalV2RealUseReviewPath = resolve(
+    repositoryRoot,
+    "benchmarks/search/lexical-v2-real-use-reviewed-v1.json",
   );
   const koreanSuite = loadJson(koreanPath);
   const controlSuite = loadJson(controlPath);
@@ -178,6 +190,14 @@ export function checkNaturalLanguageEvaluation(repositoryRoot) {
       loadJson(linkedEvidenceReconciliationConfirmationV9Path),
       repositoryRoot,
     );
+  const lexicalV2Provider = validateLexicalV2ProviderSuite(
+    loadJson(lexicalV2ProviderPath),
+    repositoryRoot,
+  );
+  const lexicalV2RealUseReview = validateLexicalV2RealUseReview(
+    loadJson(lexicalV2RealUseReviewPath),
+    repositoryRoot,
+  );
   assertGroundingEvaluationPassed(groundingReport);
   return {
     ...paired,
@@ -196,6 +216,8 @@ export function checkNaturalLanguageEvaluation(repositoryRoot) {
     linkedEvidenceReconciliationV8CaseCount: linkedEvidenceReconciliationV8.cases.length,
     linkedEvidenceReconciliationConfirmationV9CaseCount:
       linkedEvidenceReconciliationConfirmationV9.cases.length,
+    lexicalV2ProviderCaseCount: lexicalV2Provider.cases.length,
+    lexicalV2RealUseReviewCaseCount: lexicalV2RealUseReview.cases.length,
   };
 }
 
@@ -203,6 +225,6 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const result = checkNaturalLanguageEvaluation(repositoryRoot);
   console.log(
-    `Natural-language evaluation check passed (${result.pairCount} retrieval pairs, ${result.caseCount} grounding cases across ${result.categoryCount} categories, ${result.lexicalFailureCandidateCount} lexical failure candidates across ${result.lexicalFailureTaskTypeCount} task types, ${result.lexicalDiscoveryProbeCount} discovery probes, ${result.delegatedRetrievalCaseCount} delegated retrieval cases, ${result.boundedFallbackCaseCount} bounded fallback cases, ${result.lexicalAssistedV2CaseCount} lexical-assisted v2 cases, ${result.catalogAssistedV3CaseCount} catalog-assisted v3 cases, ${result.coreTermAssistedV4CaseCount} core-term-assisted v4 cases, ${result.referenceMarkerAssistedV5CaseCount} reference-marker-assisted v5 cases, ${result.markerDerivedPathsV6CaseCount} marker-derived v6 cases, ${result.stagedEvidenceV7CaseCount} staged-evidence v7 cases, ${result.linkedEvidenceReconciliationV8CaseCount} linked-evidence v8 cases, ${result.linkedEvidenceReconciliationConfirmationV9CaseCount} linked-evidence confirmation v9 cases, ${result.preReviewAttentionCount} pre-review attention items, report ${result.groundingReportId})`,
+    `Natural-language evaluation check passed (${result.pairCount} retrieval pairs, ${result.caseCount} grounding cases across ${result.categoryCount} categories, ${result.lexicalFailureCandidateCount} lexical failure candidates across ${result.lexicalFailureTaskTypeCount} task types, ${result.lexicalDiscoveryProbeCount} discovery probes, ${result.delegatedRetrievalCaseCount} delegated retrieval cases, ${result.boundedFallbackCaseCount} bounded fallback cases, ${result.lexicalAssistedV2CaseCount} lexical-assisted v2 cases, ${result.catalogAssistedV3CaseCount} catalog-assisted v3 cases, ${result.coreTermAssistedV4CaseCount} core-term-assisted v4 cases, ${result.referenceMarkerAssistedV5CaseCount} reference-marker-assisted v5 cases, ${result.markerDerivedPathsV6CaseCount} marker-derived v6 cases, ${result.stagedEvidenceV7CaseCount} staged-evidence v7 cases, ${result.linkedEvidenceReconciliationV8CaseCount} linked-evidence v8 cases, ${result.linkedEvidenceReconciliationConfirmationV9CaseCount} linked-evidence confirmation v9 cases, ${result.lexicalV2ProviderCaseCount} lexical-v2 provider cases, ${result.lexicalV2RealUseReviewCaseCount} approved lexical-v2 real-use cases, ${result.preReviewAttentionCount} pre-review attention items, report ${result.groundingReportId})`,
   );
 }

@@ -7,6 +7,7 @@ import { searchUsage } from "./search-command-common.js";
 import { runSearchEvaluateCommand } from "./search-evaluate-command.js";
 import { runSearchEngineCommand } from "./search-engine-command.js";
 import { runSearchQueryCommand } from "./search-query-command.js";
+import { runSearchRetrievalPlanCommand } from "./search-retrieval-plan-command.js";
 import { runSearchReportCommand } from "./search-report-command.js";
 import { runSearchReviewCommand } from "./search-review-command.js";
 import { runSearchRolloutCommand } from "./search-rollout-command.js";
@@ -23,6 +24,7 @@ export async function runSearchCommand(args: string[], io: CliIo): Promise<numbe
   if (args[0] === "bundle") return runSearchBundleCommand(args.slice(1), io);
   if (args[0] === "evaluate") return runSearchEvaluateCommand(args.slice(1), io);
   if (args[0] === "engine") return runSearchEngineCommand(args.slice(1), io);
+  if (args[0] === "plan") return runSearchRetrievalPlanCommand(args.slice(1), io);
   if (args[0] === "report") return runSearchReportCommand(args.slice(1), io);
   if (args[0] === "review") return runSearchReviewCommand(args.slice(1), io);
   if (args[0] === "rollout") return runSearchRolloutCommand(args.slice(1), io);

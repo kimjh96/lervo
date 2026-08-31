@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_852d396b48010cc0cdad5433
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5bb4de933d45185ae52b44a3
+outputLanguage: en
+outputs:
+  - byteCount: 3781
+    contentHash: sha256:20a396f3b90192f2031ea09a9c931a66cbfef9aa4726f45e6f4765af7565b2f9
+    path: docs/decisions/search/engines/0314-pre-register-lexical-v2-v17-isolated-provider-prewarm.md
+    userRegionHash: sha256:20a396f3b90192f2031ea09a9c931a66cbfef9aa4726f45e6f4765af7565b2f9
+profile: decision_record
+recordId: knormdoc_125d3e18fbaeb347ed121f45
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bd7c1b8d7935da7ddca09e73c8961a298c37812e27dde7f0e8b57f986b25a23d
+sourcePath: docs/decisions/search/engines/0314-pre-register-lexical-v2-v17-isolated-provider-prewarm.md
+sourceUnitVersionIds:
+  - uv_0d6675ea1a5f0fca376e546b
+  - uv_92fbfd08f528973b7db7c0c2
+  - uv_cd72f4f95952057a01ad2753
+  - uv_d2fcc6e9d8dbd8151103bc62
+  - uv_d484cc910540d8ebed726910

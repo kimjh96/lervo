@@ -5,13 +5,15 @@
 
 ## Context
 
-Codex and Claude terminal hooks prepared repository context and blocked stale knowledge, but forcing every prompt to advance continuation state manufactured history for read-only questions. Repository-changing turns also lacked a bounded statement that the working agent assessed canonical documentation, refreshed knowledge, or completed requested cross-provider deliberation. Users had to infer provider-specific bookkeeping commands.
+Codex and Claude terminal hooks prepared repository context and blocked stale knowledge, but advancing continuation state for every prompt manufactured history for read-only questions. Repository-changing turns also lacked a bounded statement that the working agent assessed canonical documentation, refreshed knowledge, or completed requested cross-provider deliberation. Users had to infer provider-specific bookkeeping commands.
 
-Direct provider sessions remain `unmanaged`: Lervo can observe hook input boundaries, repository bytes, events, and explicit commands, but cannot prove provider reasoning. Enforcement must therefore concern observable repository invariants without presenting agent declarations as proof of understanding.
+Direct provider sessions remain `unmanaged`: Lervo can observe hook input boundaries, repository bytes, events, and explicit commands, but cannot prove provider reasoning. Enforcement therefore concerns observable repository invariants and does not present agent declarations as proof of understanding.
+
+[ADR-0327](hooks/0327-availability-safe-unmanaged-terminal-hooks.md) narrows enforcement for direct root sessions: finalization remains observable and reportable, but a non-current lifecycle no longer blocks provider completion. Managed execution and attached-worker isolation retain enforceable gates.
 
 ## Decision
 
-`terminal.context.prepared` binds the repository revision captured before hook telemetry is committed. `terminal.turn.observed` binds before and after revisions and a derived changed flag. Runtime state under `.lervo/state` is excluded from this comparison.
+`terminal.context.prepared` binds the repository revision captured before hook telemetry commits. `terminal.turn.observed` binds the before and after revisions and a derived changed flag. Runtime state under `.lervo/state` is excluded from this comparison.
 
 An unchanged turn may complete without creating or advancing a workstream and without a declaration. A changed turn must:
 
@@ -28,7 +30,7 @@ Current workstream snapshots may contain bounded `pendingDecisions` and `pending
 
 ## Failure meaning
 
-- A changed turn without an exact declaration, or with a declaration older than current repository bytes, is blocked.
+- A changed turn without an exact declaration, or with a declaration older than the current repository bytes, is blocked.
 - Read-only dispositions are invalid for changed bytes.
 - Pending approval dispositions block mutation completion; they do not synthesize user authority.
 - A deliberation outcome without a matching completed event is rejected.
@@ -37,6 +39,6 @@ Current workstream snapshots may contain bounded `pendingDecisions` and `pending
 
 ## Consequences
 
-Ordinary questions no longer pollute continuation history. Repository changes cannot silently bypass continuation, knowledge, or requested-deliberation bookkeeping. Provider-specific mechanics stay behind generated context, and the evidence model remains honest about unmanaged execution.
+Ordinary questions no longer pollute continuation history. Repository changes cannot silently bypass continuation, knowledge, or requested-deliberation bookkeeping. Provider-specific mechanics remain behind generated context, and the evidence model remains honest about unmanaged execution.
 
 Hub transport and cross-node workstream-body replication remain separate from this local turn contract.

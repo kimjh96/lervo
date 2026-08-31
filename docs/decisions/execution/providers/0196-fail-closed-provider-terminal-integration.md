@@ -23,6 +23,8 @@ It never silently enables hooks, edits local or global settings, translates prov
 
 The original command was `lervo terminal hook --provider <provider> --contract 1`. [ADR-0204](0204-self-contained-repository-terminal-hook-runtime.md) replaces its PATH dependency with repository-local contract v2; v1 parsing remains only for in-flight legacy calls. Failure to find the repository, parse bounded input, query knowledge, validate exact publication bytes, inspect lifecycle state, or write a receipt exits with the provider blocking code. [ADR-0239](../grounding/0239-unmanaged-terminal-grounding-failure-abstention.md) provides the only narrower behavior: provider semantic-proposal failure during unmanaged prompt preparation records an empty typed abstention and returns fallback context, while managed consumers still reject the adapter failure. Prompts and configuration are never echoed.
 
+[ADR-0327](hooks/0327-availability-safe-unmanaged-terminal-hooks.md) supersedes the direct root-session availability behavior in the preceding paragraph and the `Stop` subsection. Direct prompt preparation now performs local read-only query projection without effect grounding, and internal preparation or root-session lifecycle failures do not block the provider. Malformed bounded input, runtime-integrity failure, and attached-worker isolation violations remain fail-closed.
+
 ### `UserPromptSubmit`
 
 The hook finds the nearest initialized repository from the provider working directory, queries deterministic local knowledge using the exact prompt, reloads bounded matching publications without following symlinks, verifies query-time hashes, and returns at most 28 KiB of valid UTF-8 context containing the preamble and metadata. Context includes paths, freshness, assurance, hashes, exact publication bytes, and one standalone Markdown HTML-comment evidence marker per document.
@@ -32,6 +34,8 @@ No-hit context still directs the agent to AGENTS and the knowledge entrypoint. S
 ### `Stop`
 
 The hook checks terminal integration, repository layout, the Claude bridge, structural knowledge plan, lint, and normalization lifecycle. Non-current state returns a blocking reason and the exact next command. It never auto-approves user bytes or semantic rewrites; the agent completes safe generated work and surfaces approvals that genuinely require the user.
+
+ADR-0327 supersedes this direct root-session availability behavior as described above.
 
 ### Assurance boundary
 
@@ -45,7 +49,7 @@ Every successful invocation atomically replaces one provider-and-event receipt u
 
 A receipt proves hook execution and context preparation, not provider acceptance or model use. [ADR-0197](0197-unmanaged-terminal-context-observation.md) adds canonical unmanaged observations and history without upgrading them to managed evidence. Receipt failure fails closed.
 
-`lervo terminal status` validates receipts against canonical events, reports each provider and hook as `observed`, `partial`, or `not_observed`, and reports `activationReadiness` as `action_required` until all four endpoints have canonical observations, with provider instructions while action remains. It exits nonzero while action remains, never treats manual invocation as provider acceptance or internal use, and keeps lifecycle currency separate from activation.
+`lervo terminal status` validates receipts against canonical events; reports each provider and hook as `observed`, `partial`, or `not_observed`; and reports `activationReadiness` as `action_required` until all four endpoints have canonical observations, with provider instructions while action remains. It exits nonzero while action remains, never treats manual invocation as provider acceptance or internal use, and keeps lifecycle currency separate from activation.
 
 ### Apply event and rollback
 

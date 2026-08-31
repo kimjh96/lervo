@@ -1,0 +1,44 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_baab1e83975fd7ee28db4cda
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b9968d5f62cb3f4e350779ef
+outputLanguage: en
+outputs:
+  - byteCount: 572
+    contentHash: sha256:651434f8733bf815b34debca999a0be951dcc7ea3c4513a20e1466b506dc678d
+    path: docs/research/paperclip-lervo-comparison/recommendations.md
+    userRegionHash: sha256:651434f8733bf815b34debca999a0be951dcc7ea3c4513a20e1466b506dc678d
+  - byteCount: 953
+    contentHash: sha256:1d80097de35208c8937c633090fa6b48f913e7c44ecfa316e13405382ecbc8c3
+    path: docs/research/paperclip-lervo-comparison/recommendations/delivery-sequence.md
+    userRegionHash: sha256:1d80097de35208c8937c633090fa6b48f913e7c44ecfa316e13405382ecbc8c3
+  - byteCount: 1793
+    contentHash: sha256:56a7ed656e6d05636e9d6ca4c59ca56676459195a3accefaabfc47c9a9a34cdf
+    path: docs/research/paperclip-lervo-comparison/recommendations/operating-model.md
+    userRegionHash: sha256:56a7ed656e6d05636e9d6ca4c59ca56676459195a3accefaabfc47c9a9a34cdf
+profile: handoff_document
+recordId: knormdoc_d07a5aaa416020b127ebe095
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bb0a22e0e3d73e5633a3c2e7f8d39f768df230f2b0ec43c6af8cca7b3058b8cf
+sourcePath: docs/research/paperclip-lervo-comparison/recommendations.md
+sourceUnitVersionIds:
+  - uv_0ebb8071885b290881b72f23
+  - uv_16e2cfc2c59b17d1d712401c
+  - uv_20672c7b968a61722299934e
+  - uv_2c561c8a43c4112311fc2406
+  - uv_3fe8963278ec9fbe2c363849
+  - uv_601ad7e9da3d45f0354ceab0
+  - uv_73eb3334549bb4b8d3f892dc
+  - uv_7ea05ea6fb5ad78521b7e985
+  - uv_894ddac627ab03051b1aa8d7
+  - uv_b7b6a14a7624f3bae1f03c30
+  - uv_e096d2b5322a7f14d82ce4c3

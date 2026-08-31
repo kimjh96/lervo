@@ -1,7 +1,7 @@
 # Typed Semantic Request Grounding
 
 Status: `active`
-As of: 2026-08-30
+As of: 2026-09-01
 
 ## Boundary
 
@@ -46,13 +46,13 @@ The same provider handles grounding by default. Cross-provider execution require
 
 The provider adapter receives the complete nested response schema and deterministically validates the proposal. Process, parsing, binding, or proposal-validation failure produces the stable adapter failure `semantic_resolution_failed`, containing no raw request, provider output, configuration, or unrestricted error.
 
-Managed consumers reject `semantic_resolution_failed`. Only unmanaged direct terminal preparation translates it to `abstain`, with empty workflow, effect, capability, provider, authority, source, subject, and retrieval coordinates. This permits conversation without authorizing semantic action or publication selection.
+Managed consumers reject `semantic_resolution_failed`. Direct unmanaged terminal preparation does not invoke this effect-grounding pipeline. It records `abstain` with reason `unmanaged_terminal_retrieval_only` and empty workflow, effect, capability, provider, authority, source, subject, and retrieval coordinates. A separate provider-neutral projection may retrieve current-repository publications, permitting local context assistance without authorizing semantic action, routing, or durable instruction materialization.
 
-Direct terminal provider resolution is limited to 20 seconds within the 30-second hook budget. The no-capability runner requests low reasoning effort and binds the response contract through the provider's native structured-output interface. Codex receives a private temporary schema file projected to its supported structural subset; deterministic validation retains the original complete constraints. Claude receives the canonical schema directly; its native structured-output completion is accepted only when the final result is canonically identical, permission denials are empty, and server web-tool counts are zero. This provider-native schema channel grants no external capability. Repository, evidence, and workspace failures remain blocking.
+Managed and evaluation consumers bind this response contract through the provider's native structured-output interface. Codex receives a private temporary schema file projected to its supported structural subset; deterministic validation retains the original complete constraints. Claude receives the canonical schema directly; its native structured-output completion is accepted only when the final result is canonically identical, permission denials are empty, and server web-tool counts are zero. This provider-native schema channel grants no external capability. Direct terminal query projection is a distinct no-capability retrieval operation and establishes no effect, authority, route, or source-scope expansion.
 
 Retrieval queries are semantically translated into the repository policy's publication language while exact identifiers and protocol coordinates remain unchanged. This permits cross-language retrieval of canonical publications without keyword maps. Non-ready grounding and ready grounding without a retrieval coordinate do not run repository search. The terminal reports an explicit selection disposition and derives selected and loaded state only from observed documents. It never invents a generic fallback query, keyword map, alias map, or phrase router.
 
-For direct terminal requests, the adapter receives a bounded catalog of existing canonical instructions. A durable rule may be materialized only when the catalog is complete and the validated proposal identifies one explicit, additive, low-risk, repository-long user directive with high confidence and no ambiguity or conflict. The gate rejects examples, quotations, hypotheticals, complaints, questions, current-task commands, inferred preferences, replacement, removal, and high-risk policy. The provider normalizes rule content, but prompt text and lexical routing fields never cross the grounding boundary or enter the canonical file.
+Direct terminal prompt preparation never materializes a durable rule. Durable instruction changes use the explicit repository instruction lifecycle so user-owned content, conflicts, scope, and approval remain reviewable. Managed or explicit instruction-intake consumers may reuse typed grounding only under their own authority and evidence contract.
 
 ## Consumers and Evidence
 

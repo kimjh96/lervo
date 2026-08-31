@@ -18,6 +18,7 @@ import { ClaudeAdapterError } from "./types.js";
 interface PendingTool {
   name: string;
   input: unknown;
+  structuredOutputCarrier: boolean;
 }
 
 export interface ClaudeEventNormalizerOptions {
@@ -27,6 +28,7 @@ export interface ClaudeEventNormalizerOptions {
   now: () => Date;
   createEventId: () => string;
   activeProviderTurnId: () => string | undefined;
+  structuredOutputCarrierEnabled: boolean;
 }
 
 export class ClaudeEventNormalizer {
@@ -149,7 +151,12 @@ export class ClaudeEventNormalizer {
       const providerItemId = text(block?.id);
       const name = text(block?.name);
       if (block?.type === "tool_use" && providerItemId !== undefined && name !== undefined) {
-        this.pendingTools.set(providerItemId, { name, input: block.input ?? null });
+        this.pendingTools.set(providerItemId, {
+          name,
+          input: block.input ?? null,
+          structuredOutputCarrier:
+            this.options.structuredOutputCarrierEnabled && name === "StructuredOutput",
+        });
       }
     }
     return [];
@@ -165,58 +172,69 @@ export class ClaudeEventNormalizer {
         ),
       ];
     }
-    return toolResultBlocks(message).map((block) => this.completedTool(message, block));
+    return toolResultBlocks(message).flatMap((block) => this.completedTool(message, block));
   }
 
   private completedTool(
     message: Record<string, unknown>,
     block: Record<string, unknown>,
-  ): AdapterNormalizedEvent {
+  ): AdapterNormalizedEvent[] {
     const providerItemId = text(block.tool_use_id);
     const pending =
       providerItemId === undefined ? undefined : this.pendingTools.get(providerItemId);
     if (providerItemId === undefined || pending === undefined) {
-      return this.providerError("unbound_tool_result", block, eventTime(message, this.options.now));
+      return [
+        this.providerError("unbound_tool_result", block, eventTime(message, this.options.now)),
+      ];
     }
     this.pendingTools.delete(providerItemId);
     const status = block.is_error === true ? "failed" : "completed";
     const structured = asRecord(message.tool_use_result);
     const durationMs = integer(structured?.duration_ms ?? structured?.durationMs);
+    if (pending.structuredOutputCarrier) {
+      return [];
+    }
     if (pending.name === "Bash") {
       const input = asRecord(pending.input);
       const command = text(input?.command);
       if (command === undefined) {
-        return this.providerError(
-          "invalid_provider_command",
-          pending.input,
-          eventTime(message, this.options.now),
-        );
+        return [
+          this.providerError(
+            "invalid_provider_command",
+            pending.input,
+            eventTime(message, this.options.now),
+          ),
+        ];
       }
-      return this.event(
-        "provider.command.executed",
+      return [
+        this.event(
+          "provider.command.executed",
+          {
+            providerItemId,
+            commandDigest: digest(command),
+            cwdRelative: cwdRelative(this.options.repositoryRoot, input?.cwd),
+            status,
+            exitCode: integer(structured?.exitCode ?? structured?.exit_code),
+            outputDigest: block.content === undefined ? null : digest(block.content),
+            durationMs,
+          },
+          eventTime(message, this.options.now),
+        ),
+      ];
+    }
+    return [
+      this.event(
+        "provider.tool.called",
         {
           providerItemId,
-          commandDigest: digest(command),
-          cwdRelative: cwdRelative(this.options.repositoryRoot, input?.cwd),
+          toolName: pending.name,
+          inputDigest: digest(pending.input),
           status,
-          exitCode: integer(structured?.exitCode ?? structured?.exit_code),
-          outputDigest: block.content === undefined ? null : digest(block.content),
           durationMs,
         },
         eventTime(message, this.options.now),
-      );
-    }
-    return this.event(
-      "provider.tool.called",
-      {
-        providerItemId,
-        toolName: pending.name,
-        inputDigest: digest(pending.input),
-        status,
-        durationMs,
-      },
-      eventTime(message, this.options.now),
-    );
+      ),
+    ];
   }
 
   private result(message: Record<string, unknown>): AdapterNormalizedEvent[] {
@@ -239,6 +257,9 @@ export class ClaudeEventNormalizer {
       const occurredAt = eventTime(message, this.options.now);
       const usage = this.usage(message, providerTurnId, occurredAt);
       return [
+        ...(this.options.structuredOutputCarrierEnabled && message.structured_output === undefined
+          ? [this.providerError("structured_output_missing", { providerTurnId }, occurredAt)]
+          : []),
         usage,
         this.event(
           "provider.turn.completed",

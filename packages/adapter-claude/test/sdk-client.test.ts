@@ -162,6 +162,28 @@ describe("Claude Agent SDK client", () => {
     await client.close();
   });
 
+  it("passes an explicit reasoning effort to the SDK", async () => {
+    const fake = fakeSdk();
+    const client = await ClaudeSdkAgentClient.connect(
+      { ...clientOptions(), reasoningEffort: "low" },
+      fake.sdkStartup,
+    );
+
+    expect(fake.state.startupParams?.options?.effort).toBe("low");
+    await client.close();
+  });
+
+  it("replaces the provider default with an explicit bounded system prompt", async () => {
+    const fake = fakeSdk();
+    const client = await ClaudeSdkAgentClient.connect(
+      { ...clientOptions(), systemPrompt: "bounded evidence base" },
+      fake.sdkStartup,
+    );
+
+    expect(fake.state.startupParams?.options?.systemPrompt).toBe("bounded evidence base");
+    await client.close();
+  });
+
   it("uses an isolated fail-closed SDK session and waits for exact input replays", async () => {
     const fake = fakeSdk();
     const client = await ClaudeSdkAgentClient.connect(clientOptions(), fake.sdkStartup);
