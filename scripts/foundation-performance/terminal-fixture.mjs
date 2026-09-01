@@ -300,7 +300,9 @@ export async function createTerminalPerformanceFixture(profiles) {
           ? candidateStages.length === fixture.roots.length &&
             stageSets.every((item) => item !== null)
           : candidateStages.length === 0 &&
-            stageSets.every((item, index) => item?.eventId === fixture.beforeStageEventIds[index]);
+            stageSets.every(
+              (item, index) => (item?.eventId ?? null) === fixture.beforeStageEventIds[index],
+            );
       return {
         outcome: lifecycleCorrect && telemetryCorrect ? "completed" : "failed",
         stages,

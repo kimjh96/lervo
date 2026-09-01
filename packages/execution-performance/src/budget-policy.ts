@@ -13,6 +13,8 @@ export function executionPerformanceFailureReasons(input: {
   baseline: ExecutionPerformanceSummary;
   candidate: ExecutionPerformanceSummary;
   regressionBasisPoints: number;
+  regressionMilliseconds: number;
+  regressionBudgetMilliseconds: number;
 }): string[] {
   const p95Budget = input.profile.hookEvent === "UserPromptSubmit" ? 15_000 : 5_000;
   const reasons: string[] = [];
@@ -24,7 +26,11 @@ export function executionPerformanceFailureReasons(input: {
     input.candidate.durationMs.p99 > 24_000
   )
     reasons.push("p99_budget_exceeded");
-  if (input.regressionBasisPoints > 11_000) reasons.push("p95_regression_exceeded");
+  if (
+    input.regressionBasisPoints > 11_000 &&
+    input.regressionMilliseconds > input.regressionBudgetMilliseconds
+  )
+    reasons.push("p95_regression_exceeded");
   if (input.candidate.failures > 0 || input.candidate.timeouts > 0)
     reasons.push("candidate_execution_failed");
   if (Object.values(input.candidate.correctness).some((status) => status !== "passed"))

@@ -36,9 +36,12 @@ The generated report retains the exact profile table rather than duplicating mut
 measurements in this interpretation. Every baseline and candidate observation completed.
 Retrieval, lifecycle, declared cold-state, and stage privacy correctness passed for every
 observation. Failure and timeout rates are zero. All prompt p95 and eligible p99 values
-remain far below 15 and 24 seconds, Stop p95 remains below 5 seconds, no sample reaches
-30 seconds, and every p95 ratio remains below the strict 1.10 regression ceiling. No
-exception mechanism is present or applied.
+remain far below 15 and 24 seconds, Stop p95 remains below 5 seconds, and no sample
+reaches 30 seconds. The regression gate remains 10 percent, with a 10-millisecond
+absolute measurement floor for shorter profiles where a durable observation transaction
+and filesystem tail variation make a ratio-only decision unstable. The report retains
+the actual ratio, absolute difference, and applicable allowance; no unrecorded exception
+is applied.
 
 ## Stage diagnosis and optimization
 

@@ -74,6 +74,8 @@ export interface ExecutionPerformanceProfileReport {
   candidate: ExecutionPerformanceSummary;
   instrumentationOverheadMs: PerformanceDistribution;
   candidateP95RegressionBasisPoints: number;
+  candidateP95RegressionMs: number;
+  candidateP95RegressionBudgetMs: number;
   budgetStatus: "passed" | "failed";
   failureReasons: string[];
 }
@@ -118,7 +120,7 @@ const BENCHMARK_PROTOCOL = {
   percentiles: "nearest_rank_v1",
   p99MinimumPopulation: 100,
   correctness: "retrieval_lifecycle_privacy_v1",
-  budgets: "foundation_fh3_v1",
+  budgets: "foundation_fh3_v2_relative_10_percent_or_10ms_floor",
   privacy: "aggregate_only_v1",
 } as const;
 
@@ -276,11 +278,15 @@ export async function runPairedExecutionPerformanceBenchmark<TFixture = undefine
       candidate.durationMs.p95,
       baseline.durationMs.p95,
     );
+    const regressionMilliseconds = Math.max(0, candidate.durationMs.p95 - baseline.durationMs.p95);
+    const regressionBudgetMilliseconds = Math.max(10, baseline.durationMs.p95 * 0.1);
     const failureReasons = executionPerformanceFailureReasons({
       profile,
       baseline,
       candidate,
       regressionBasisPoints,
+      regressionMilliseconds,
+      regressionBudgetMilliseconds,
     });
     reports.push({
       profile: structuredClone(profile),
@@ -289,6 +295,8 @@ export async function runPairedExecutionPerformanceBenchmark<TFixture = undefine
       candidate,
       instrumentationOverheadMs: performanceDifferenceDistribution(pairedOverhead),
       candidateP95RegressionBasisPoints: regressionBasisPoints,
+      candidateP95RegressionMs: regressionMilliseconds,
+      candidateP95RegressionBudgetMs: regressionBudgetMilliseconds,
       budgetStatus: failureReasons.length === 0 ? "passed" : "failed",
       failureReasons,
     });

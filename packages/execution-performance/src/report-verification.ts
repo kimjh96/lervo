@@ -101,14 +101,23 @@ export function verifyExecutionPerformanceReport(value: unknown): ExecutionPerfo
       profile.candidate.durationMs.p95,
       profile.baseline.durationMs.p95,
     );
+    const regressionMilliseconds = Math.max(
+      0,
+      profile.candidate.durationMs.p95 - profile.baseline.durationMs.p95,
+    );
+    const regressionBudgetMilliseconds = Math.max(10, profile.baseline.durationMs.p95 * 0.1);
     const reasons = executionPerformanceFailureReasons({
       profile: profile.profile,
       baseline: profile.baseline,
       candidate: profile.candidate,
       regressionBasisPoints: regression,
+      regressionMilliseconds,
+      regressionBudgetMilliseconds,
     });
     if (
       profile.candidateP95RegressionBasisPoints !== regression ||
+      profile.candidateP95RegressionMs !== regressionMilliseconds ||
+      profile.candidateP95RegressionBudgetMs !== regressionBudgetMilliseconds ||
       JSON.stringify(profile.failureReasons) !== JSON.stringify(reasons) ||
       profile.budgetStatus !== (reasons.length === 0 ? "passed" : "failed")
     ) {

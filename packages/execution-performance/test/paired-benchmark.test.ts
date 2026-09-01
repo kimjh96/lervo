@@ -3,6 +3,8 @@ import { executionEnvironmentProfileHash } from "@lervo/execution-contract";
 
 import {
   EXECUTION_PERFORMANCE_BENCHMARK_BUILD_DIGEST,
+  executionPerformanceFailureReasons,
+  performanceBasisPoints,
   performanceDifferenceDistribution,
   performanceDistribution,
   runPairedExecutionPerformanceBenchmark,
@@ -108,5 +110,62 @@ describe("paired execution performance benchmark", () => {
     expect(() => verifyExecutionPerformanceReport({ ...report, allProfilesPassed: false })).toThrow(
       "identity",
     );
+  });
+
+  it("keeps the ten-percent gate with a ten-millisecond floor for short profiles", async () => {
+    let nanoseconds = 0n;
+    const declaredEnvironment = environment();
+    const report = await runPairedExecutionPerformanceBenchmark({
+      repositoryRevision: `sha256:${"a".repeat(64)}`,
+      repetitions: 100,
+      profiles: [
+        {
+          profileId: "pf_short_floor_prompt",
+          environment: declaredEnvironment,
+          environmentProfileDigest: executionEnvironmentProfileHash(declaredEnvironment),
+          repositoryProfile: "small",
+          cacheState: "warm",
+          concurrency: 1,
+          hookEvent: "UserPromptSubmit",
+          observationUnit: "hook_invocation",
+        },
+      ],
+      ports: {
+        nowNanoseconds: () => nanoseconds,
+        cpuUsage: () => ({ user: 0, system: 0 }),
+        processPeakResidentMemoryBytes: () => 1024,
+        run: async ({ arm }) => {
+          nanoseconds += BigInt(arm === "baseline" ? 70_000_000 : 79_000_000);
+          return {
+            outcome: "completed",
+            stages: {},
+            retrievalCorrect: true,
+            lifecycleCorrect: true,
+            privacyCorrect: true,
+          };
+        },
+      },
+    });
+    expect(report.profiles[0]).toMatchObject({
+      budgetStatus: "passed",
+      candidateP95RegressionBasisPoints: 11_286,
+      candidateP95RegressionMs: 9,
+      candidateP95RegressionBudgetMs: 10,
+    });
+    const profile = report.profiles[0]!;
+    const candidate = {
+      ...profile.candidate,
+      durationMs: { ...profile.candidate.durationMs, p95: 81 },
+    };
+    expect(
+      executionPerformanceFailureReasons({
+        profile: profile.profile,
+        baseline: profile.baseline,
+        candidate,
+        regressionBasisPoints: performanceBasisPoints(81, 70),
+        regressionMilliseconds: 11,
+        regressionBudgetMilliseconds: 10,
+      }),
+    ).toContain("p95_regression_exceeded");
   });
 });
