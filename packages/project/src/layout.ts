@@ -36,6 +36,7 @@ export const lervoRelativePaths = {
   knowledgeOkfImports: ".lervo/state/knowledge/okf-imports",
   knowledgeIndexes: ".lervo/state/knowledge/indexes",
   eventDatabase: ".lervo/data/events.sqlite",
+  eventContract: ".lervo/data/event-contract.json",
   cas: ".lervo/data/cas",
   workforce: ".lervo/data/workforce",
   searchEvaluations: ".lervo/search-evaluations",
@@ -93,6 +94,7 @@ export interface LervoProjectPaths {
   knowledgeOkfImports: string;
   knowledgeIndexes: string;
   eventDatabase: string;
+  eventContract: string;
   cas: string;
   workforce: string;
   searchEvaluations: string;
@@ -163,6 +165,7 @@ export function resolveProjectPaths(root: string): LervoProjectPaths {
     knowledgeOkfImports: resolve(repositoryRoot, lervoRelativePaths.knowledgeOkfImports),
     knowledgeIndexes: resolve(repositoryRoot, lervoRelativePaths.knowledgeIndexes),
     eventDatabase: resolve(repositoryRoot, lervoRelativePaths.eventDatabase),
+    eventContract: resolve(repositoryRoot, lervoRelativePaths.eventContract),
     cas: resolve(repositoryRoot, lervoRelativePaths.cas),
     workforce: resolve(repositoryRoot, lervoRelativePaths.workforce),
     searchEvaluations: resolve(repositoryRoot, lervoRelativePaths.searchEvaluations),

@@ -18,6 +18,7 @@ import type {
   DocumentStalenessResult,
   EventEnvelope,
   EventReaderCapabilities,
+  EventWriterCoordinate,
   HandoffBundle,
   LegacyRegistryEntryArtifact,
   LegacyRegistryMigrationApplyReceipt,
@@ -79,6 +80,15 @@ describe("schema-derived TypeScript contracts", () => {
     expectTypeOf<
       EventReaderCapabilities["readableEventSchemaVersions"][number]
     >().toEqualTypeOf<number>();
+  });
+
+  it("requires activation evidence only for a version 2 writer coordinate", () => {
+    expectTypeOf<
+      Extract<EventWriterCoordinate, { selectedEventSchemaVersion: 1 }>["activationEvidence"]
+    >().toEqualTypeOf<null>();
+    expectTypeOf<
+      Extract<EventWriterCoordinate, { selectedEventSchemaVersion: 2 }>["activationEvidence"]
+    >().not.toEqualTypeOf<null>();
   });
 
   it("keeps trace capability modes and deprecations machine-readable", () => {

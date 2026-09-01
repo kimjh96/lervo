@@ -3,6 +3,8 @@ export * from "./decision-taxonomy.js";
 export * from "./repository-document-policy.js";
 export * from "./document-storage.js";
 export * from "./document-validation.js";
+export * from "./event-writer-activation-contract.js";
+export * from "./event-writer-activation-filesystem.js";
 export * from "./init-apply.js";
 export * from "./init-plan.js";
 export * from "./layout.js";

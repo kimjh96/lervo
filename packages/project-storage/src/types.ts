@@ -26,7 +26,11 @@ export interface CloseableArtifactStore extends ArtifactStore {
 }
 
 export interface ProjectStorageBackends {
-  openEventStore(options: { path: string; projectId: string }): Promise<OutboxStore>;
+  openEventStore(options: {
+    path: string;
+    projectId: string;
+    writableEventSchemaVersion: 1 | 2;
+  }): Promise<OutboxStore>;
   openArtifactStore(root: string): Promise<CloseableArtifactStore>;
 }
 

@@ -1,15 +1,15 @@
 import { randomUUID } from "node:crypto";
 
-import type { EventDraft } from "@lervo/event-contract";
+import type { EventDraftV1 } from "@lervo/event-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 
 import type { ManagedEventStore, ManagedRunCoordinates } from "./types.js";
 
 export interface ManagedEventSpec {
   eventId?: string;
-  type: EventDraft["type"];
+  type: EventDraftV1["type"];
   occurredAt: string;
-  actor: EventDraft["actor"];
+  actor: EventDraftV1["actor"];
   payload: Readonly<Record<string, unknown>>;
 }
 
@@ -38,7 +38,7 @@ export class ManagedTelemetryRecorder {
 
   append(specs: readonly ManagedEventSpec[]): EventEnvelope[] {
     try {
-      const drafts = specs.map((spec): EventDraft => {
+      const drafts = specs.map((spec): EventDraftV1 => {
         const { eventId, ...values } = spec;
         return {
           eventId: eventId ?? this.createEventId(),

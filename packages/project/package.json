@@ -15,6 +15,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
+    "@lervo/event-contract": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "yaml": "^2.9.0"
   }

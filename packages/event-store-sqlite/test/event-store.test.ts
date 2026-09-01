@@ -10,6 +10,7 @@ import {
   computeEventHash,
   inspectExistingEventStore,
   type EventDraft,
+  type EventDraftV1,
   SQLiteEventStore,
 } from "../src/index.js";
 
@@ -23,7 +24,7 @@ async function databasePath(): Promise<string> {
   return resolve(root, "state/events.sqlite");
 }
 
-function draft(overrides: Partial<EventDraft> = {}): EventDraft {
+function draft(overrides: Partial<EventDraftV1> = {}): EventDraftV1 {
   return {
     eventId: "evt_01234567",
     projectId,
@@ -169,6 +170,43 @@ describe("SQLite append-only event store", () => {
     ).toThrowError(expect.objectContaining({ code: "event_schema_unsupported" }));
     expect(store.list()).toEqual([]);
     store.close();
+  });
+
+  it("upgrades existing common drafts to the explicitly selected version 2", async () => {
+    const store = await SQLiteEventStore.open({
+      path: await databasePath(),
+      projectId,
+      writableEventSchemaVersion: 2,
+    });
+
+    const result = store.append(draft());
+    expect(result.event.schemaVersion).toBe(2);
+    expect(store.append(draft())).toMatchObject({ inserted: false, event: result.event });
+    expect(store.verifyIntegrity()).toMatchObject({ valid: true, eventCount: 1 });
+    store.close();
+  });
+
+  it("keeps an existing version 1 event idempotent across writer activation", async () => {
+    const path = await databasePath();
+    const before = await SQLiteEventStore.open({ path, projectId });
+    const original = before.append(draft()).event;
+    before.close();
+
+    const activated = await SQLiteEventStore.open({
+      path,
+      projectId,
+      writableEventSchemaVersion: 2,
+    });
+    expect(activated.append(draft())).toMatchObject({ inserted: false, event: original });
+    const next = activated.append(
+      draft({
+        eventId: "evt_12345678",
+        occurredAt: "2026-08-18T00:00:01Z",
+      }),
+    );
+    expect(next.event.schemaVersion).toBe(2);
+    expect(next.event.previousHash).toBe(original.eventHash);
+    activated.close();
   });
 
   it("rolls back every event in a failed unit of work", async () => {

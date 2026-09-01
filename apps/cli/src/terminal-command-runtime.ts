@@ -5,7 +5,7 @@ import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { createTerminalCoverageReport } from "@lervo/diagnostics";
-import type { EventDraft } from "@lervo/event-contract";
+import type { EventDraft, EventDraftV1 } from "@lervo/event-contract";
 import { captureRepositorySnapshot, type RepositorySnapshot } from "@lervo/orchestrator";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import {
@@ -997,7 +997,7 @@ function eventDraft(input: {
   coordinates: UnmanagedCoordinates;
   provider: TerminalIntegrationProvider;
   actorKind?: "provider" | "agent" | "user";
-  type: EventDraft["type"];
+  type: EventDraftV1["type"];
   occurredAt: string;
   payload: Readonly<Record<string, unknown>>;
 }): EventDraft {

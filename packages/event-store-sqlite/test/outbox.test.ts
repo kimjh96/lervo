@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { type EventDraft, SQLiteEventStore } from "../src/index.js";
+import { type EventDraftV1, SQLiteEventStore } from "../src/index.js";
 
 const projectId = "prj_01234567";
 const destinationId = "hub:primary";
@@ -18,7 +18,7 @@ async function databasePath(): Promise<string> {
   return resolve(root, "state/events.sqlite");
 }
 
-function draft(index = 1, overrides: Partial<EventDraft> = {}): EventDraft {
+function draft(index = 1, overrides: Partial<EventDraftV1> = {}): EventDraftV1 {
   return {
     eventId: `evt_${String(index).padStart(8, "0")}`,
     projectId,

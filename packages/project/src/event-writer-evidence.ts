@@ -1,0 +1,88 @@
+import { createHash } from "node:crypto";
+
+import { canonicalJson, readEventReaderCapabilities } from "@lervo/event-contract";
+import {
+  validateSchema,
+  type EventReaderActivationEvidence,
+  type EventWriterActivationEvidence,
+} from "@lervo/schemas";
+
+import { EventWriterActivationError, failEventWriterActivation } from "./event-writer-errors.js";
+
+export function eventWriterSha256(value: string): string {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+export function assertEventReaderEvidence(readers: readonly EventReaderActivationEvidence[]): void {
+  const ids = new Set<string>();
+  let previousId: string | undefined;
+  let localReaders = 0;
+  for (const reader of readers) {
+    if (ids.has(reader.readerId) || (previousId !== undefined && previousId >= reader.readerId)) {
+      failEventWriterActivation(
+        "event_writer_evidence_invalid",
+        "Event reader activation evidence must be strictly ordered without duplicate IDs.",
+      );
+    }
+    ids.add(reader.readerId);
+    previousId = reader.readerId;
+    try {
+      const capabilities = readEventReaderCapabilities(reader.capabilities);
+      if (!capabilities.readableEventSchemaVersions.includes(2)) {
+        failEventWriterActivation(
+          "event_writer_activation_blocked",
+          `Configured reader ${reader.readerId} cannot read event schema version 2.`,
+        );
+      }
+    } catch (error) {
+      if (error instanceof EventWriterActivationError) throw error;
+      throw new EventWriterActivationError(
+        "event_writer_evidence_invalid",
+        `Configured reader ${reader.readerId} has invalid capability evidence.`,
+        { cause: error },
+      );
+    }
+    if (reader.readerKind === "local") {
+      localReaders += 1;
+      if (reader.peerIdentityHash !== null) {
+        failEventWriterActivation(
+          "event_writer_evidence_invalid",
+          "Local reader evidence cannot claim a peer identity.",
+        );
+      }
+    } else if (reader.peerIdentityHash === null) {
+      failEventWriterActivation(
+        "event_writer_evidence_invalid",
+        "Remote reader evidence requires a verified peer identity hash.",
+      );
+    }
+  }
+  if (localReaders !== 1) {
+    failEventWriterActivation(
+      "event_writer_evidence_invalid",
+      "Event writer activation requires exactly one local reader capability.",
+    );
+  }
+}
+
+export function readEventWriterActivationEvidence(value: unknown): EventWriterActivationEvidence {
+  const validation = validateSchema("eventWriterActivationEvidence", value);
+  if (!validation.valid) {
+    failEventWriterActivation(
+      "event_writer_evidence_invalid",
+      "The event writer activation evidence does not satisfy its versioned contract.",
+    );
+  }
+  const evidence = value as EventWriterActivationEvidence;
+  assertEventReaderEvidence(evidence.readers);
+  return structuredClone(evidence);
+}
+
+export function createEventWriterActivationId(input: {
+  projectId: string;
+  observedAt: string;
+  configurationHash: string;
+  readers: readonly EventReaderActivationEvidence[];
+}): string {
+  return `evact_${eventWriterSha256(canonicalJson(input)).slice(7, 31)}`;
+}

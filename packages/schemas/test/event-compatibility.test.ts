@@ -101,4 +101,49 @@ describe("reader-first event envelope compatibility", () => {
       }).valid,
     ).toBe(false);
   });
+
+  it("discriminates the default and activated writer coordinates", () => {
+    const base = {
+      schemaVersion: 1,
+      projectId: "prj_compatibility_01",
+    };
+    expect(
+      validateSchema("eventWriterCoordinate", {
+        ...base,
+        selectedEventSchemaVersion: 1,
+        activationEvidence: null,
+      }).valid,
+    ).toBe(true);
+    const activationEvidence = {
+      activationId: `evact_${"b".repeat(24)}`,
+      observedAt: "2026-09-01T00:00:00.000Z",
+      configurationHash: hash,
+      readers: [
+        {
+          readerId: "reader_local_runtime",
+          readerKind: "local",
+          peerIdentityHash: null,
+          capabilities: {
+            schemaVersion: 1,
+            capability: "event_reader",
+            readableEventSchemaVersions: [1, 2],
+          },
+        },
+      ],
+    };
+    expect(
+      validateSchema("eventWriterCoordinate", {
+        ...base,
+        selectedEventSchemaVersion: 2,
+        activationEvidence,
+      }).valid,
+    ).toBe(true);
+    expect(
+      validateSchema("eventWriterCoordinate", {
+        ...base,
+        selectedEventSchemaVersion: 2,
+        activationEvidence: null,
+      }).valid,
+    ).toBe(false);
+  });
 });

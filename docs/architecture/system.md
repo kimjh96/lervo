@@ -26,6 +26,11 @@ Direct provider terminals use a narrower native-hook path. Every prompt performs
 
 `.lervo/project.yaml` identifies the repository and privacy defaults. Durable records reside in gitignored `.lervo/data`; rebuildable projections reside in `.lervo/state`. Runtime directories are created lazily. Legacy relocation is atomic and fails closed on conflicting copies.
 
+The optional `.lervo/data/event-contract.json` is the versioned, Lervo-managed future-write
+coordinate. Its absence selects event schema version 1. `@lervo/project` validates and
+recovers the coordinate before project storage injects the selection into the event-store
+adapter; indexes, graphs, and projections cannot change writer authority.
+
 Active continuation is `.lervo/state/workstreams/current.json`. CAS in `.lervo/data/cas` stores exact snapshots and optional legacy-source bytes. `workstream.snapshot.recorded` binds revision and content coordinates without event prose. Migration discovers candidates from bounded content structure, not required names or locations. Before returning context, Lervo rebuilds a missing projection from the latest event and CAS bytes. Canonical Markdown retains long-term facts.
 
 Owner-only workforce and workspace coordination state resides under the Git common directory so sibling worktrees share one scheduler; non-Git checkouts use a standalone compatibility home. Legacy migration rejects competing non-empty authorities. Versioned role contracts, ancestry hashes, bounded delegation, atomic path leases, and exact handoff evidence govern root agents and subagents.

@@ -1,7 +1,12 @@
 export * from "./event-store.js";
 export * from "./errors.js";
 export * from "./inspection.js";
-export { computeEventHash, type EventDraft } from "@lervo/event-contract";
+export {
+  computeEventHash,
+  type EventDraft,
+  type EventDraftV1,
+  type EventDraftV2,
+} from "@lervo/event-contract";
 export type {
   AcknowledgeOutboxRequest,
   AcknowledgeOutboxResult,

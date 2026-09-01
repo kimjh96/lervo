@@ -40,12 +40,19 @@ activation evidence, and is ignored by old writers. Activation is allowed only w
 every configured reader advertises version 2 capability. Version 1 remains the default
 for fresh repositories until the rollout decision changes through a later ADR.
 
-The current implementation is at state 3. The in-process event contract, local SQLite
+The reader rollout is at state 3 by default. The in-process event contract, local SQLite
 reader, synchronization validation, Hub storage, diagnostics, and trace readers consume
 mixed history, and the installed packed CLI advertises the same reader capability and
-reproduces an exact linked version 1/version 2 fixture. Production writers remain pinned
-to version 1. The managed writer-coordinate operation, activation checks, recovery, and
-rollout runbooks remain required before state 4.
+reproduces an exact linked version 1/version 2 fixture. The state 4 mechanism is now
+implemented for local-only repositories: a versioned coordinate schema, bounded
+capability evidence, content-bound plan and exact apply, durable interruption recovery,
+explicit writer rollback, and an operational runbook. Missing coordinates still select
+version 1. Hub-enabled activation remains blocked until an identity-bound complete
+reader-inventory authority exists; capability advertisement alone never grants it.
+The resolved coordinate, not an individual event draft, selects the new envelope
+version. After activation the SQLite writer upgrades existing shared-version event
+drafts to version 2, while immutable pre-activation version 1 retries remain idempotent.
+Version 2-only event types still cannot pass the default version 1 writer.
 
 `EventReaderCapabilitiesV1` is a provider-neutral, secret-free report with required
 `schemaVersion: 1`, `capability: event_reader`, and a strictly ascending,
@@ -176,6 +183,9 @@ usage from its existing receipt.
 - Diagnostics and Hub consume the shared projector; CLI performs no storage projection.
 - Storage, sync, Node, and Hub negotiate reader and writer capabilities without changing
   event meaning.
+- `@lervo/project` owns pure writer-selection policy, the bounded coordinate store, and
+  durable selection recovery; project storage only injects the resolved version into the
+  event-store adapter, while CLI owns parsing and presentation.
 
 ## Consequences
 

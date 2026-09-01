@@ -1,0 +1,155 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { parseArgs } from "node:util";
+
+import { createEventReaderCapabilities } from "@lervo/event-contract";
+import {
+  applyEventWriterActivationPlan,
+  inspectEventWriterCoordinate,
+  loadProjectManifest,
+  planEventWriterActivation,
+  planEventWriterRollback,
+  recoverEventWriterActivation,
+} from "@lervo/project";
+
+import type { CliIo } from "./types.js";
+
+const maximumEvidenceBytes = 64 * 1024;
+
+export const eventContractUsage = `  lervo event-contract status [--root <path>] [--json]
+  lervo event-contract evidence [--root <path>] [--json]
+  lervo event-contract activate (--from <path> | --stdin) [--apply <plan-id>] [--root <path>] [--json]
+  lervo event-contract rollback [--apply <plan-id>] [--root <path>] [--json]
+  lervo event-contract recover [--root <path>] [--json]`;
+
+function publicPlan(plan: Awaited<ReturnType<typeof planEventWriterActivation>>) {
+  const { desiredContent: _desiredContent, ...safe } = plan;
+  return safe;
+}
+
+async function readEvidence(
+  from: string | undefined,
+  useStdin: boolean,
+  io: CliIo,
+): Promise<unknown> {
+  if ((from === undefined) === !useStdin) {
+    throw new Error("Activation requires exactly one of --from or --stdin.");
+  }
+  if (useStdin && io.stdin === undefined) throw new Error("Standard input is unavailable.");
+  const content =
+    from === undefined ? await io.stdin!() : await readFile(resolve(io.cwd, from), "utf8");
+  if (Buffer.byteLength(content, "utf8") > maximumEvidenceBytes) {
+    throw new Error("Activation evidence exceeds the 64 KiB limit.");
+  }
+  try {
+    return JSON.parse(content);
+  } catch {
+    throw new Error("Activation evidence must be valid JSON.");
+  }
+}
+
+function formatStatus(status: Awaited<ReturnType<typeof inspectEventWriterCoordinate>>): string {
+  return `Event writer: schema version ${status.coordinate.selectedEventSchemaVersion}\n  Source: ${status.source}\n  Coordinate: .lervo/data/event-contract.json\n`;
+}
+
+export async function runEventContractCommand(args: string[], io: CliIo): Promise<number> {
+  try {
+    const parsed = parseArgs({
+      args,
+      strict: true,
+      allowPositionals: true,
+      options: {
+        root: { type: "string" },
+        from: { type: "string" },
+        stdin: { type: "boolean" },
+        apply: { type: "string" },
+        json: { type: "boolean" },
+        help: { type: "boolean", short: "h" },
+      },
+    });
+    if (parsed.values.help) {
+      io.stdout(`${eventContractUsage}\n`);
+      return 0;
+    }
+    if (parsed.positionals.length !== 1) throw new Error("Specify one event-contract action.");
+    const action = parsed.positionals[0];
+    const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    if (action === "status") {
+      if (parsed.values.from || parsed.values.stdin || parsed.values.apply) {
+        throw new Error("Status does not accept activation options.");
+      }
+      const status = await inspectEventWriterCoordinate(repositoryRoot);
+      io.stdout(parsed.values.json ? `${JSON.stringify(status, null, 2)}\n` : formatStatus(status));
+      return 0;
+    }
+    if (action === "evidence") {
+      if (parsed.values.from || parsed.values.stdin || parsed.values.apply) {
+        throw new Error("Evidence does not accept activation options.");
+      }
+      const manifest = await loadProjectManifest(repositoryRoot);
+      const evidence = {
+        schemaVersion: 1,
+        projectId: manifest.projectId,
+        observedAt: new Date().toISOString(),
+        readers: [
+          {
+            readerId: "reader_local_runtime",
+            readerKind: "local",
+            peerIdentityHash: null,
+            capabilities: createEventReaderCapabilities(),
+          },
+        ],
+      };
+      io.stdout(`${JSON.stringify(evidence, null, 2)}\n`);
+      return 0;
+    }
+    if (action === "activate") {
+      const evidence = await readEvidence(parsed.values.from, parsed.values.stdin === true, io);
+      const plan = await planEventWriterActivation({ repositoryRoot, evidence });
+      if (parsed.values.apply === undefined) {
+        io.stdout(`${JSON.stringify(publicPlan(plan), null, 2)}\n`);
+        return plan.status === "blocked" ? 1 : 0;
+      }
+      const receipt = await applyEventWriterActivationPlan({
+        plan,
+        approval: parsed.values.apply,
+      });
+      io.stdout(`${JSON.stringify(receipt, null, 2)}\n`);
+      return 0;
+    }
+    if (action === "rollback") {
+      if (parsed.values.from || parsed.values.stdin) {
+        throw new Error("Rollback does not accept activation evidence.");
+      }
+      const plan = await planEventWriterRollback(repositoryRoot);
+      if (parsed.values.apply === undefined) {
+        io.stdout(`${JSON.stringify(publicPlan(plan), null, 2)}\n`);
+        return 0;
+      }
+      const receipt = await applyEventWriterActivationPlan({
+        plan,
+        approval: parsed.values.apply,
+      });
+      io.stdout(`${JSON.stringify(receipt, null, 2)}\n`);
+      return 0;
+    }
+    if (action === "recover") {
+      if (parsed.values.from || parsed.values.stdin || parsed.values.apply) {
+        throw new Error("Recover does not accept activation options.");
+      }
+      const result = await recoverEventWriterActivation(repositoryRoot);
+      io.stdout(`${JSON.stringify(result, null, 2)}\n`);
+      return 0;
+    }
+    throw new Error("The event-contract action is invalid.");
+  } catch (error) {
+    const code =
+      typeof (error as { code?: unknown }).code === "string"
+        ? `${(error as { code: string }).code}: `
+        : "";
+    io.stderr(
+      `${code}${error instanceof Error ? error.message : String(error)}\n${eventContractUsage}\n`,
+    );
+    return 1;
+  }
+}

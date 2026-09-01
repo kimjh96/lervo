@@ -6,10 +6,10 @@ import {
   eventIdentity,
   eventWithoutHash,
   sanitizeEventPayload,
-  writableEventSchemaVersion,
   type EventDraft,
+  type EventHashInput,
 } from "@lervo/event-contract";
-import { type EventEnvelope, type EventEnvelopeV1, validateSchema } from "@lervo/schemas";
+import { type EventEnvelope, validateSchema } from "@lervo/schemas";
 import {
   type AppendEventResult,
   type EventChainReport,
@@ -25,15 +25,10 @@ export class SQLiteEventRepository {
   constructor(
     private readonly database: DatabaseSync,
     private readonly projectId: string,
+    private readonly writableEventSchemaVersion: 1 | 2,
   ) {}
 
   append(draft: EventDraft): AppendEventResult {
-    if (draft.schemaVersion !== writableEventSchemaVersion) {
-      throw new EventStoreError(
-        "event_schema_unsupported",
-        `This writer emits only event schema version ${writableEventSchemaVersion}.`,
-      );
-    }
     if (draft.projectId !== this.projectId) {
       throw new EventStoreError(
         "project_mismatch",
@@ -41,19 +36,31 @@ export class SQLiteEventRepository {
       );
     }
     const sanitized = sanitizeEventPayload(draft.type, draft.payload);
-    const identity = eventIdentity(draft, sanitized.payload);
+    const requestedIdentity = eventIdentity(draft, sanitized.payload);
+    const effectiveDraft: EventDraft =
+      this.writableEventSchemaVersion === 2 && draft.schemaVersion === 1
+        ? ({ ...draft, schemaVersion: 2 } as EventDraft)
+        : draft;
+    const effectiveIdentity = eventIdentity(effectiveDraft, sanitized.payload);
     const existingRow = this.database
       .prepare("SELECT * FROM events WHERE event_id = ?")
       .get(draft.eventId);
     if (existingRow) {
       const existing = rowToEvent(existingRow);
-      if (eventIdentity(existing, existing.payload) !== identity) {
+      const existingIdentity = eventIdentity(existing, existing.payload);
+      if (existingIdentity !== requestedIdentity && existingIdentity !== effectiveIdentity) {
         throw new EventStoreError(
           "event_id_conflict",
           `${draft.eventId} is already stored with different content.`,
         );
       }
       return { event: existing, inserted: false, redactions: sanitized.redactions };
+    }
+    if (this.writableEventSchemaVersion === 1 && draft.schemaVersion !== 1) {
+      throw new EventStoreError(
+        "event_schema_unsupported",
+        "This writer emits only event schema version 1.",
+      );
     }
 
     const tailRow = this.database
@@ -71,16 +78,16 @@ export class SQLiteEventRepository {
     }
     const seq = typeof seqValue === "number" ? seqValue + 1 : 1;
     const previousHash = tailRow ? requireString(tailRow, "event_hash") : null;
-    const withoutHash: Omit<EventEnvelopeV1, "eventHash"> = {
-      ...draft,
+    const withoutHash: EventHashInput = {
+      ...effectiveDraft,
       payload: sanitized.payload,
       seq,
       previousHash,
     };
-    const event: EventEnvelopeV1 = {
+    const event: EventEnvelope = {
       ...withoutHash,
       eventHash: computeEventHash(withoutHash),
-    };
+    } as EventEnvelope;
     const validation = validateSchema("event", event);
     if (!validation.valid) {
       throw new EventStoreError(

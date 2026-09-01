@@ -1,7 +1,11 @@
 import { FileSystemCas } from "@lervo/cas";
 import { mkdir } from "node:fs/promises";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
-import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
+import {
+  inspectEventWriterCoordinate,
+  loadProjectManifest,
+  resolveProjectPaths,
+} from "@lervo/project";
 import { type OutboxStore } from "@lervo/storage-contract";
 
 import { validateProjectStorageLayout, validateRepositoryRoot } from "./layout.js";
@@ -74,9 +78,11 @@ export function createProjectStorageOpener(
     await validateProjectStorageLayout(paths);
     await migrateLegacyDurableState(paths, manifest.projectId);
     await validateProjectStorageLayout(paths);
+    const writerCoordinate = await inspectEventWriterCoordinate(paths.repositoryRoot);
     const events = await backends.openEventStore({
       path: paths.eventDatabase,
       projectId: manifest.projectId,
+      writableEventSchemaVersion: writerCoordinate.coordinate.selectedEventSchemaVersion,
     });
     try {
       const artifacts = await backends.openArtifactStore(paths.cas);

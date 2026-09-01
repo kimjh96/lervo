@@ -1223,6 +1223,9 @@ importers:
 
   packages/project:
     dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas

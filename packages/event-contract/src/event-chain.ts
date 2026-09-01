@@ -1,12 +1,16 @@
 import { createHash } from "node:crypto";
 
-import { type EventEnvelope, type EventEnvelopeV1 } from "@lervo/schemas";
+import { type EventEnvelope, type EventEnvelopeV1, type EventEnvelopeV2 } from "@lervo/schemas";
 
 import { canonicalJson } from "./canonical-json.js";
 
-export type EventDraft = Omit<EventEnvelopeV1, "seq" | "previousHash" | "eventHash" | "payload"> & {
+type EventDraftFor<T> = Omit<T, "seq" | "previousHash" | "eventHash" | "payload"> & {
   payload: Readonly<Record<string, unknown>>;
 };
+
+export type EventDraftV1 = EventDraftFor<EventEnvelopeV1>;
+export type EventDraftV2 = EventDraftFor<EventEnvelopeV2>;
+export type EventDraft = EventDraftV1 | EventDraftV2;
 
 export type EventHashInput = Omit<EventEnvelope, "eventHash">;
 

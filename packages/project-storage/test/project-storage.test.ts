@@ -14,7 +14,12 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
-import { applyInitPlan, createInitPlan } from "@lervo/project";
+import {
+  applyEventWriterActivationPlan,
+  applyInitPlan,
+  createInitPlan,
+  planEventWriterActivation,
+} from "@lervo/project";
 import { type OutboxStore } from "@lervo/storage-contract";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -147,6 +152,78 @@ describe("project storage bootstrap", () => {
       "source text readable after restart",
     );
     await reopened.close();
+  });
+
+  it("passes the managed writer selection to the event-store adapter", async () => {
+    const root = await initializedRepository();
+    const plan = await planEventWriterActivation({
+      repositoryRoot: root,
+      evidence: {
+        schemaVersion: 1,
+        projectId,
+        observedAt: "2026-09-01T00:00:00.000Z",
+        readers: [
+          {
+            readerId: "reader_local001",
+            readerKind: "local",
+            peerIdentityHash: null,
+            capabilities: {
+              schemaVersion: 1,
+              capability: "event_reader",
+              readableEventSchemaVersions: [1, 2],
+            },
+          },
+        ],
+      },
+    });
+    await applyEventWriterActivationPlan({ plan, approval: plan.planId });
+    const openEventStore = vi.fn(async () => fakeEventStore(() => undefined));
+    const open = createProjectStorageOpener({
+      openEventStore,
+      openArtifactStore: async () => ({}) as CloseableArtifactStore,
+    });
+
+    const storage = await open(root);
+    expect(openEventStore).toHaveBeenCalledWith({
+      path: resolve(root, ".lervo/data/events.sqlite"),
+      projectId,
+      writableEventSchemaVersion: 2,
+    });
+    await storage.close();
+  });
+
+  it("emits version 2 envelopes from existing common event drafts after activation", async () => {
+    const root = await initializedRepository();
+    const plan = await planEventWriterActivation({
+      repositoryRoot: root,
+      evidence: {
+        schemaVersion: 1,
+        projectId,
+        observedAt: "2026-09-01T00:00:00.000Z",
+        readers: [
+          {
+            readerId: "reader_local001",
+            readerKind: "local",
+            peerIdentityHash: null,
+            capabilities: {
+              schemaVersion: 1,
+              capability: "event_reader",
+              readableEventSchemaVersions: [1, 2],
+            },
+          },
+        ],
+      },
+    });
+    await applyEventWriterActivationPlan({ plan, approval: plan.planId });
+
+    const storage = await openProjectStorage(root);
+    const appended = storage.events.append(eventDraft());
+    expect(appended.event.schemaVersion).toBe(2);
+    expect(storage.events.append(eventDraft())).toMatchObject({
+      inserted: false,
+      event: appended.event,
+    });
+    await storage.close();
   });
 
   it("keeps close idempotent across current and future closeable backends", async () => {

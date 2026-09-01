@@ -30,6 +30,7 @@ import { SQLiteOutboxRepository } from "./outbox.js";
 export interface OpenEventStoreOptions {
   path: string;
   projectId: ProjectManifest["projectId"];
+  writableEventSchemaVersion?: 1 | 2;
 }
 
 function isThenable(value: unknown): value is PromiseLike<unknown> {
@@ -53,10 +54,11 @@ export class SQLiteEventStore implements OutboxStore {
     path: string,
     projectId: string,
     private readonly database: DatabaseSync,
+    writableEventSchemaVersion: 1 | 2,
   ) {
     this.path = path;
     this.projectId = projectId;
-    this.events = new SQLiteEventRepository(database, projectId);
+    this.events = new SQLiteEventRepository(database, projectId, writableEventSchemaVersion);
     this.outbox = new SQLiteOutboxRepository(database);
   }
 
@@ -70,7 +72,12 @@ export class SQLiteEventStore implements OutboxStore {
       configureDatabase(database);
       migrateDatabase(database);
       bindDatabaseMetadata(database, options.projectId);
-      const store = new SQLiteEventStore(path, options.projectId, database);
+      const store = new SQLiteEventStore(
+        path,
+        options.projectId,
+        database,
+        options.writableEventSchemaVersion ?? 1,
+      );
       store.verifyIntegrity();
       return store;
     } catch (error) {

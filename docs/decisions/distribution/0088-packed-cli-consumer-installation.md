@@ -20,8 +20,20 @@ Only Claude Agent SDK is an external bundle import; the other three satisfy its 
 
 `smoke:packed-cli` must build a real tarball; verify its identity, version, and file list; install it exactly into an empty temporary consumer; and validate installed identity, Node requirement, bin, dependencies, files, shebang, and the absence of workspace coordinates, install scripts, and private packages. It then runs the local shim for version, capabilities, and init.
 
-Prefer the local store, but allow the registry for normal consumer resolution. Do not claim that a lockfile-free tarball installs fully offline. Runtime smoke commands use no Hub or provider. The installed CLI must advertise the shared event-reader capability, initialize its own temporary event store, and reproduce an exact linked version 1/version 2 fixture through the bounded trace surface. A deployment-proof fixture adapter may insert only into that disposable empty database; it is not shipped, exported, or available to production writers. Remove all temporary artifacts and add no repository state, schema, or event.
+Prefer the local store, but allow the registry for normal consumer resolution. Do not
+claim that a lockfile-free tarball installs fully offline. Runtime smoke commands use no
+Hub or provider. The installed CLI must advertise the shared event-reader capability,
+initialize its own temporary event store, prove default-v1 status plus exact local
+activation and writer rollback, and reproduce an exact linked version 1/version 2
+fixture through the bounded trace surface. A deployment-proof fixture adapter may insert
+only into that disposable empty database; it is not shipped, exported, or available to
+production writers. Remove all temporary artifacts and add no repository state, schema,
+or event.
 
 ## Consequences
 
-Release checks cover real tar installation and bin execution with pinned, tested peers, plus the packed reader's capability advertisement and mixed-history replay. They do not cover published registry downloads, permanent transitive pins, other platforms, provider authentication or network access, signing, writer activation, or SBOM.
+Release checks cover real tar installation and bin execution with pinned, tested peers,
+plus the packed reader's capability advertisement, local writer selection and rollback,
+and mixed-history replay. They do not cover published registry downloads, permanent
+transitive pins, other platforms, provider authentication or network access,
+distributed reader-inventory authority, signing, or SBOM.

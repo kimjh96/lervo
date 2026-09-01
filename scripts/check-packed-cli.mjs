@@ -175,6 +175,46 @@ async function verifyConsumerCommands(consumerRoot, expectedVersion, eventContra
 
   const state = await runConsumerCli(consumerRoot, ["state", "status", "--json"]);
   assert.equal(state.stderr, "");
+  const defaultWriter = await runConsumerCli(consumerRoot, ["event-contract", "status", "--json"]);
+  assert.equal(defaultWriter.stderr, "");
+  assert.equal(JSON.parse(defaultWriter.stdout).coordinate.selectedEventSchemaVersion, 1);
+  const evidence = await runConsumerCli(consumerRoot, ["event-contract", "evidence", "--json"]);
+  assert.equal(evidence.stderr, "");
+  await writeFile(resolve(consumerRoot, "event-reader-evidence.json"), evidence.stdout, "utf8");
+  const activation = await runConsumerCli(consumerRoot, [
+    "event-contract",
+    "activate",
+    "--from",
+    "event-reader-evidence.json",
+    "--json",
+  ]);
+  assert.equal(activation.stderr, "");
+  const activationPlan = JSON.parse(activation.stdout);
+  assert.equal(activationPlan.status, "ready");
+  const applied = await runConsumerCli(consumerRoot, [
+    "event-contract",
+    "activate",
+    "--from",
+    "event-reader-evidence.json",
+    "--apply",
+    activationPlan.planId,
+    "--json",
+  ]);
+  assert.equal(applied.stderr, "");
+  assert.equal(JSON.parse(applied.stdout).selectedEventSchemaVersion, 2);
+  const rollback = await runConsumerCli(consumerRoot, ["event-contract", "rollback", "--json"]);
+  assert.equal(rollback.stderr, "");
+  const rollbackPlan = JSON.parse(rollback.stdout);
+  assert.equal(rollbackPlan.status, "ready");
+  const rolledBack = await runConsumerCli(consumerRoot, [
+    "event-contract",
+    "rollback",
+    "--apply",
+    rollbackPlan.planId,
+    "--json",
+  ]);
+  assert.equal(rolledBack.stderr, "");
+  assert.equal(JSON.parse(rolledBack.stdout).selectedEventSchemaVersion, 1);
   const events = createMixedEventReaderFixture(projectId, eventContract.computeEventHash);
   installMixedEventReaderFixture(resolve(consumerRoot, ".lervo/data/events.sqlite"), events);
   const trace = await runConsumerCli(consumerRoot, [

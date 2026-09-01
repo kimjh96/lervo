@@ -51,6 +51,10 @@ import { doctorReportSchema } from "./doctor-report.js";
 import { eventEnvelopeSchema } from "./event.js";
 import { eventReaderCapabilitiesSchema } from "./event-reader-capabilities.js";
 import {
+  eventWriterActivationEvidenceSchema,
+  eventWriterCoordinateSchema,
+} from "./event-writer-coordinate.js";
+import {
   executionStagesObservedEventPayloadSchema,
   resourceUsageRecordedEventPayloadSchema,
   workCausalityRecordedEventPayloadSchema,
@@ -250,6 +254,8 @@ const validators = {
   managedRunApprovalAuthorization: ajv.getSchema(managedRunApprovalAuthorizationSchema.$id)!,
   event: ajv.getSchema(eventEnvelopeSchema.$id)!,
   eventReaderCapabilities: ajv.compile(eventReaderCapabilitiesSchema),
+  eventWriterActivationEvidence: ajv.compile(eventWriterActivationEvidenceSchema),
+  eventWriterCoordinate: ajv.compile(eventWriterCoordinateSchema),
   workCausalityRecordedEventPayload: ajv.compile(workCausalityRecordedEventPayloadSchema),
   resourceUsageRecordedEventPayload: ajv.compile(resourceUsageRecordedEventPayloadSchema),
   executionStagesObservedEventPayload: ajv.compile(executionStagesObservedEventPayloadSchema),

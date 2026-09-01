@@ -8,6 +8,7 @@ import { runInitCommand, initUsage } from "./init-command.js";
 import { executeManagedRun } from "./managed-run.js";
 import { executeManagedDeliberation } from "./managed-deliberation.js";
 import { environmentUsage, runEnvironmentCommand } from "./environment-command.js";
+import { eventContractUsage, runEventContractCommand } from "./event-contract-command.js";
 import { executeEnvironmentQuery } from "./environment-services.js";
 import { migrateUsage, runMigrateCommand } from "./migrate-command.js";
 import { knowledgeUsage, runKnowledgeCommand } from "./knowledge-command.js";
@@ -45,6 +46,7 @@ ${stateUsage}
 ${doctorUsage}
 ${capabilityUsage}
 ${environmentUsage}
+${eventContractUsage}
 ${repositoryUsage}
 ${terminalUsage}
 ${workstreamUsage}
@@ -91,6 +93,7 @@ export async function runCli(
   if (command === "doctor") return runDoctorCommand(args.slice(1), io, services);
   if (command === "capability") return runCapabilityCommand(args.slice(1), io);
   if (command === "environment") return runEnvironmentCommand(args.slice(1), io, services);
+  if (command === "event-contract") return runEventContractCommand(args.slice(1), io);
   if (command === "repository") return runRepositoryCommand(args.slice(1), io);
   if (command === "terminal") return runTerminalCommand(args.slice(1), io, services);
   if (command === "workstream") return runWorkstreamCommand(args.slice(1), io);
