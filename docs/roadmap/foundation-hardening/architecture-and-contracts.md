@@ -43,6 +43,31 @@ external providers remain effects behind ports.
 The new projector package is created only with its first implementation artifact. This
 roadmap does not create an empty package placeholder.
 
+## Event-reader capability extension boundary
+
+The compatibility implementation keeps five change reasons separate:
+
+- `@lervo/schemas` declares only the closed versioned report shape;
+- the event-schema version catalog owns the compiled readable and writable version
+  constants;
+- the event-reader capability module owns report creation, semantic validation, and
+  typed compatibility failures, independently of event-envelope parsing;
+- local diagnostics, Node health, and Hub health only compose that shared report into
+  their existing surfaces; and
+- sync endpoint mapping is separate from bounded JSON HTTP execution, timeout, response
+  parsing, credential transmission, and Hub-identity proof.
+
+Credential transmission uses a named `bearer | none` mode rather than a boolean. A new
+authentication mechanism must add an explicit mode and focused transport tests; it
+cannot silently reuse the public capability request path. Likewise, future writer
+selection and peer-activation policy must be new domain contracts rather than fields or
+branches added to the reader advertisement.
+
+The small Hub health, Node health, schema, and trace modules remain cohesive and are not
+split by line count alone. A generic runtime-capability registry is intentionally not
+introduced until more than one current capability shares the same aggregation and
+lifecycle semantics.
+
 ## Canonical and derived state
 
 Canonical state consists of versioned events, local CAS artifacts, repository policy,

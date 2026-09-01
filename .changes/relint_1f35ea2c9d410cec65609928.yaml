@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1f35ea2c9d410cec65609928"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Refine event reader capability and Hub transport responsibility boundaries."
