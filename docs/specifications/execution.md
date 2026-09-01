@@ -70,6 +70,8 @@ Snapshots cover repository-authored source and tracked generated files. They exc
 
 Repository assignments bind role ID, role version, role contract hash, dependencies, acceptance, verification, approvals, workstream, and expected paths. A short atomic lease permits one current holder for overlapping scopes; disjoint scopes may run concurrently. Root agents and subagents use the same lease and handoff contract. Before provider creation, managed execution revalidates the active lease, provider, role contract, path, and suite set. Expiry permits generation-incremented recovery and never proves the former holder stopped external work.
 
+See [governed loops](../roadmap/governed-loop-assignment-graph.md) for bounded continuation.
+
 ## 7. Verification
 
 Suites declare exact commands, working directories, limits, and outcomes. Lervo compares pre- and post-snapshots and rejects unexpected changes. Bounded command output is artifact data, not event content.

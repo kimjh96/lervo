@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import type { ProviderAdapter } from "@lervo/adapter-contract";
-import { assertAssignmentExecutionAuthority, completeAssignment } from "@lervo/agent-workforce";
+import { assertAssignmentExecutionAuthority } from "@lervo/agent-workforce";
 import type { WorkforceAgent } from "@lervo/agent-workforce";
 import { ClaudeAdapter } from "@lervo/adapter-claude";
 import { CodexAdapter } from "@lervo/adapter-codex";
@@ -16,6 +16,7 @@ import {
   type ManagedFileChangeEvidence,
   type ManagedProviderResultArtifact,
   type ManagedProjectVerification,
+  type ManagedWorkCausalityInput,
 } from "@lervo/orchestrator";
 import { loadDocumentRegistry } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
@@ -33,6 +34,7 @@ import {
   createLocalProviderWritingEvaluator,
   type LocalProviderWritingEvaluatorInput,
 } from "./managed-writing-evaluator.js";
+import { finalizeImmediateManagedAssignment } from "./managed-run-assignment-finalization.js";
 import {
   executeManagedLinkedEvidenceCanary,
   recordManagedLinkedEvidenceCanaryCompletion,
@@ -51,9 +53,9 @@ import { resolveRunSkills, type ResolvedRunSkill } from "./run-skills.js";
 import { resolveRunCapabilities } from "./run-capabilities.js";
 import type { ResolvedCapability } from "@lervo/capabilities";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
-import { recordWorkforceEvent } from "./workforce-events.js";
 import { prepareRunVerification, type PreparedRunVerification } from "./run-verification.js";
 import { groundProductionRequest, type GroundProductionRequest } from "./semantic-grounding.js";
+import { resolveManagedRunCausality } from "./managed-run-causality.js";
 
 export type RunProvider = "codex" | "claude";
 
@@ -67,6 +69,8 @@ export interface ManagedRunRequest {
   capabilityIds?: readonly string[];
   verificationSuiteIds: readonly string[];
   workforce?: { assignmentId: string; agentId: string; leaseId: string };
+  workCausality?: ManagedWorkCausalityInput;
+  assignmentFinalization?: "immediate" | "governed";
   roleId?: string;
   linkedEvidenceCanaryAuthorization?: ManagedLinkedEvidenceCanaryAuthorization;
 }
@@ -317,6 +321,11 @@ export function createManagedRunExecutor(
       skillIds = [...new Set([...skillIds, ...runCapabilities.skillIds])].sort();
       role.defaultSkills = [...skillIds];
       const currentWorkstream = await verifiedCurrentWorkstream(storage);
+      const workCausality = resolveManagedRunCausality({
+        ...(request.workCausality === undefined ? {} : { requested: request.workCausality }),
+        currentWorkstream,
+        ...(request.workforce === undefined ? {} : { workforce: request.workforce }),
+      });
       const workstreamPath = ".lervo/state/workstreams/current.json";
       const workstreamDocumentId = documentIdForPath(workstreamPath);
       if (currentWorkstream !== null)
@@ -439,10 +448,7 @@ export function createManagedRunExecutor(
       });
       const result = await coordinator.run({
         repositoryRoot: storage.paths.repositoryRoot,
-        workCausality: {
-          relationship: "root",
-          workstreamId: currentWorkstream?.workstreamId ?? null,
-        },
+        workCausality,
         requestDigest: digest(instructions),
         risk: request.risk.trim(),
         instructions: providerInstructions,
@@ -564,27 +570,17 @@ export function createManagedRunExecutor(
           searchContext.graphRecommendations,
         ),
       };
-      if (request.workforce !== undefined) {
-        await completeAssignment({
-          repositoryRoot: storage.paths.repositoryRoot,
-          assignmentId: request.workforce.assignmentId,
-          agentId: request.workforce.agentId,
-          leaseId: request.workforce.leaseId,
-          resultArtifacts: [
-            {
-              artifactId: result.resultArtifact.artifactId,
-              contentHash: result.resultArtifact.contentHash,
-            },
-          ],
-          verificationStatus:
-            result.verificationStatus === "passed" && writingPublication.status === "allowed"
-              ? "passed"
-              : "failed",
-          ...(result.verificationStatus === "passed" && writingPublication.status === "allowed"
-            ? {}
-            : { failureCode: "managed_run_not_publishable" }),
+      if (
+        request.workforce !== undefined &&
+        (request.assignmentFinalization ?? "immediate") === "immediate"
+      ) {
+        await finalizeImmediateManagedAssignment({
+          storage,
+          workforce: request.workforce,
+          resultArtifact: result.resultArtifact,
+          verificationStatus: result.verificationStatus,
+          writingPublicationStatus: writingPublication.status,
           now: dependencies.now?.() ?? new Date(),
-          recordEvent: (event) => recordWorkforceEvent(storage!, event),
         });
       }
     } catch (error) {

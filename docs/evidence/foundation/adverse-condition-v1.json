@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidenceBuildDigest": "sha256:1a7bc485f1d73d5631646d15034344843f42b4c57e27e1a5b22f38a2deb3fc2d",
-  "repositoryRevision": "sha256:06f5e1cdd001c5cab03fe8c3947b266ab2493e01cdaf7f906bb6635796176f9f",
+  "repositoryRevision": "sha256:a2e3afb492101fa88c733c7a225c977ab0c9426cdb4560ec6643b8f879ae84fe",
   "environment": {
     "operatingSystem": "darwin",
     "architecture": "arm64",
@@ -1137,9 +1137,9 @@
       "eventWindow": 1000,
       "assignmentWindow": 128,
       "concurrentWorkers": 4,
-      "durationMs": 0.095416,
-      "cpuMs": 0.123,
-      "processPeakResidentMemoryBytes": 184713216,
+      "durationMs": 0.102083,
+      "cpuMs": 0.13,
+      "processPeakResidentMemoryBytes": 185401344,
       "status": "passed"
     },
     {
@@ -1147,9 +1147,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 16,
-      "durationMs": 0.283041,
-      "cpuMs": 0.346,
-      "processPeakResidentMemoryBytes": 184745984,
+      "durationMs": 0.270542,
+      "cpuMs": 0.321,
+      "processPeakResidentMemoryBytes": 185417728,
       "status": "passed"
     },
     {
@@ -1157,9 +1157,9 @@
       "eventWindow": 100000,
       "assignmentWindow": 10000,
       "concurrentWorkers": 32,
-      "durationMs": 2.431333,
-      "cpuMs": 2.818,
-      "processPeakResidentMemoryBytes": 185614336,
+      "durationMs": 2.445458,
+      "cpuMs": 2.841,
+      "processPeakResidentMemoryBytes": 186269696,
       "status": "passed"
     },
     {
@@ -1167,9 +1167,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 32,
-      "durationMs": 0.253791,
-      "cpuMs": 0.371,
-      "processPeakResidentMemoryBytes": 185647104,
+      "durationMs": 0.257125,
+      "cpuMs": 0.334,
+      "processPeakResidentMemoryBytes": 186302464,
       "status": "passed"
     }
   ],
@@ -1345,5 +1345,5 @@
     "credentials": "excluded",
     "absolutePaths": "excluded"
   },
-  "reportId": "adverse_17ac4b6692354f7703f067c6"
+  "reportId": "adverse_6fe5cbb881017f1a3414afff"
 }

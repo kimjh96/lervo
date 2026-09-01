@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c40534313861a78509116893"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add bounded governed-loop and assignment-graph commands over managed work evidence."

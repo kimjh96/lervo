@@ -4,7 +4,10 @@ import { doctorUsage, runDoctorCommand } from "./doctor-command.js";
 import { capabilityUsage, runCapabilityCommand } from "./capability-command.js";
 import { deliberateUsage, runDeliberateCommand } from "./deliberate-command.js";
 import { inspectDoctorEnvironment } from "./doctor-environment.js";
+import { finalizeGovernedAssignment } from "./governed-assignment-finalization.js";
+import { inspectGovernedWork } from "./governed-work-inspection.js";
 import { runInitCommand, initUsage } from "./init-command.js";
+import { runLoopCommand, loopUsage } from "./loop-command.js";
 import { executeManagedRun } from "./managed-run.js";
 import { executeManagedDeliberation } from "./managed-deliberation.js";
 import { environmentUsage, runEnvironmentCommand } from "./environment-command.js";
@@ -39,6 +42,7 @@ ${initUsage}
 ${upgradeUsage}
 ${migrateUsage}
 ${knowledgeUsage}
+${loopUsage}
 ${runUsage}
 ${deliberateUsage}
 ${traceUsage}
@@ -66,6 +70,8 @@ const defaultServices: CliServices = {
   groundProductionRequest,
   projectSearchQueries: projectProductionSearchQueries,
   createTerminalStageObservation,
+  inspectGovernedWork,
+  finalizeGovernedAssignment,
   prepareSearchQueries: prepareProductionSearchQueries,
 };
 
@@ -87,6 +93,7 @@ export async function runCli(
   if (command === "upgrade") return runUpgradeCommand(args.slice(1), io);
   if (command === "migrate") return runMigrateCommand(args.slice(1), io);
   if (command === "knowledge") return runKnowledgeCommand(args.slice(1), io);
+  if (command === "loop") return runLoopCommand(args.slice(1), io, services);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);
   if (command === "deliberate") return runDeliberateCommand(args.slice(1), io, services);
   if (command === "trace") return runTraceCommand(args.slice(1), io, services);

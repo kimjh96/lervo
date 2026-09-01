@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@lervo/agent-workforce": "workspace:*",
+    "@lervo/application-contract": "workspace:*",
     "@lervo/capabilities": "workspace:*",
     "@lervo/adapter-contract": "workspace:*",
     "@lervo/adapter-claude": "workspace:*",
@@ -81,6 +82,7 @@
     "@lervo/workspace-host-orca": "workspace:*",
     "@lervo/writing": "workspace:*",
     "@lervo/writing-contract": "workspace:*",
+    "@lervo/work-controller": "workspace:*",
     "yaml": "2.9.0",
     "esbuild": "0.28.2"
   }

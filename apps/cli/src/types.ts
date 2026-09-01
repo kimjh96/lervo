@@ -6,6 +6,8 @@ import type { ExecuteManagedRun } from "./managed-run.js";
 import type { ExecuteManagedDeliberation } from "./managed-deliberation.js";
 import type { GroundProductionRequest } from "./semantic-grounding.js";
 import type { CreateTerminalStageObservation } from "./terminal-stage-observation.js";
+import type { FinalizeGovernedAssignment } from "./governed-assignment-finalization.js";
+import type { InspectGovernedWork } from "./governed-work-inspection.js";
 import type {
   PrepareProductionSearchQueries,
   ProjectProductionSearchQueries,
@@ -34,6 +36,8 @@ export interface CliServices {
   groundProductionRequest: GroundProductionRequest;
   projectSearchQueries: ProjectProductionSearchQueries;
   createTerminalStageObservation: CreateTerminalStageObservation;
+  inspectGovernedWork: InspectGovernedWork;
+  finalizeGovernedAssignment: FinalizeGovernedAssignment;
   prepareSearchQueries?: PrepareProductionSearchQueries | undefined;
 }
 

@@ -83,6 +83,9 @@ importers:
       '@lervo/agent-workforce':
         specifier: workspace:*
         version: link:../../packages/agent-workforce
+      '@lervo/application-contract':
+        specifier: workspace:*
+        version: link:../../packages/application-contract
       '@lervo/capabilities':
         specifier: workspace:*
         version: link:../../packages/capabilities
@@ -191,6 +194,9 @@ importers:
       '@lervo/verification':
         specifier: workspace:*
         version: link:../../packages/verification
+      '@lervo/work-controller':
+        specifier: workspace:*
+        version: link:../../packages/work-controller
       '@lervo/workspace-host':
         specifier: workspace:*
         version: link:../../packages/workspace-host
@@ -525,6 +531,8 @@ importers:
       '@lervo/roles':
         specifier: workspace:*
         version: link:../roles
+
+  packages/application-contract: {}
 
   packages/capabilities:
     dependencies:
@@ -1518,6 +1526,18 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
+  packages/work-controller:
+    dependencies:
+      '@lervo/application-contract':
+        specifier: workspace:*
+        version: link:../application-contract
+      '@lervo/execution-contract':
+        specifier: workspace:*
+        version: link:../execution-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas

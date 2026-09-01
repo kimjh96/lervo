@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:49c559bd-ff8c-587e-9035-c3a21bb34a52",
+  "serialNumber": "urn:uuid:fb7f0a05-d06d-5bcf-9021-e49980400206",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "e4594ab0a77b453ca50f521cc258d084265ca36d23b27612574147b9a11072de"
+          "content": "bd56764dedcb91da0336225d2df6668ba0d3c9b729da1c30520ff13b7e21752d"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:af7f10dc9821f28a23490e8691e02695d3387a9079799f69a091080832d273a5"
+          "value": "sha256:d43240872549f324f7e00828d5e4bb090c5d84449a852215f33260e5c4f4515a"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:e8460571c6795f52f80a65d6943329556b4953fc2e4d8f5367570c26e40b3756"
+          "value": "sha256:082716dcc01337e0d0bdc27c823e4db91bcab18d959bc81ad0769d6ebeea39d0"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -385,6 +385,21 @@
       "name": "agent-workforce",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/agent-workforce@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/application-contract@0.1.0",
+      "group": "@lervo",
+      "name": "application-contract",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/application-contract@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -1135,6 +1150,21 @@
       "name": "verification",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/verification@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/work-controller@0.1.0",
+      "group": "@lervo",
+      "name": "work-controller",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/work-controller@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -3969,6 +3999,7 @@
         "pkg:npm/%40lervo/adapter-codex@0.1.0",
         "pkg:npm/%40lervo/adapter-contract@0.1.0",
         "pkg:npm/%40lervo/agent-workforce@0.1.0",
+        "pkg:npm/%40lervo/application-contract@0.1.0",
         "pkg:npm/%40lervo/capabilities@0.1.0",
         "pkg:npm/%40lervo/cas@0.1.0",
         "pkg:npm/%40lervo/context-coverage@0.1.0",
@@ -4019,6 +4050,7 @@
         "pkg:npm/%40lervo/sync@0.1.0",
         "pkg:npm/%40lervo/verification-contract@0.1.0",
         "pkg:npm/%40lervo/verification@0.1.0",
+        "pkg:npm/%40lervo/work-controller@0.1.0",
         "pkg:npm/%40lervo/workspace-host-git@0.1.0",
         "pkg:npm/%40lervo/workspace-host-orca@0.1.0",
         "pkg:npm/%40lervo/workspace-host@0.1.0",
