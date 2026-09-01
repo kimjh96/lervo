@@ -21,6 +21,7 @@ import {
   runPnpmDeploy,
 } from "./lib/installed-cli.mjs";
 import { isBuiltinModuleSpecifier } from "./lib/node-module-specifier.mjs";
+import { readProductReleaseVersion } from "./lib/product-release-version.mjs";
 import {
   canonicalJson,
   collectDistributionEntries,
@@ -96,8 +97,7 @@ async function buildDistribution(outputArgument) {
     );
   }
   const artifactOutput = await safeOutputPath(`${output}.artifact.json`);
-  const runtimePackage = await readJson(resolve(repositoryRoot, "apps/node-runtime/package.json"));
-  const runtimeVersion = runtimePackage.version;
+  const runtimeVersion = await readProductReleaseVersion(repositoryRoot);
   const platform = currentDistributionPlatform();
   const nativePackage = nativeClaudePackageName(platform);
   if (nativePackage === null) {

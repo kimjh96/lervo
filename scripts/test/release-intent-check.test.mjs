@@ -18,7 +18,14 @@ afterEach(async () =>
 async function fixture(withIntent) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-release-intent-check-"));
   roots.push(root);
-  for (const directory of ["apps/cli", "apps/private-app", "packages/bundled", ".changes"]) {
+  for (const directory of [
+    "apps/cli",
+    "apps/hub-runtime",
+    "apps/private-app",
+    "packages/bundled",
+    "packages/runtime-shared",
+    ".changes",
+  ]) {
     await mkdir(resolve(root, directory), { recursive: true });
   }
   await writeFile(
@@ -34,8 +41,21 @@ async function fixture(withIntent) {
     JSON.stringify({ name: "@lervo/private-app", version: "0.1.0", private: true }),
   );
   await writeFile(
+    resolve(root, "apps/hub-runtime/package.json"),
+    JSON.stringify({
+      name: "@lervo/hub-runtime",
+      version: "0.1.0",
+      private: true,
+      dependencies: { "@lervo/runtime-shared": "workspace:*" },
+    }),
+  );
+  await writeFile(
     resolve(root, "packages/bundled/package.json"),
     JSON.stringify({ name: "@lervo/bundled", version: "0.1.0", private: true }),
+  );
+  await writeFile(
+    resolve(root, "packages/runtime-shared/package.json"),
+    JSON.stringify({ name: "@lervo/runtime-shared", version: "0.1.0", private: true }),
   );
   if (withIntent) {
     await writeIntent(root, "patch", "Correct public CLI behavior with bounded diagnostics.");
@@ -95,6 +115,25 @@ describe("release intent change classification", () => {
       ],
     });
     expect(report).toMatchObject({ valid: true, publishablePathCount: 0 });
+  });
+
+  it("requires intent for standalone runtime builders, assets, and workspace closures", async () => {
+    const without = await fixture(false);
+    for (const changedPath of [
+      "scripts/build-hub-runtime-distribution.mjs",
+      "scripts/lib/product-release-version.mjs",
+      "apps/hub/assets/trace.js",
+      "apps/hub-runtime/src/bin.ts",
+      "packages/runtime-shared/src/index.ts",
+    ]) {
+      await expect(
+        inspectReleaseIntent({ repositoryRoot: without, changedPaths: [changedPath] }),
+      ).resolves.toMatchObject({
+        valid: false,
+        publishablePathCount: 1,
+        diagnostics: ["missing_release_intent"],
+      });
+    }
   });
 
   it("ignores unchanged pending intents when checking a later pull request", async () => {

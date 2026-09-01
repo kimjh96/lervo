@@ -13,7 +13,7 @@ async function git(repositoryRoot, args) {
   return result.stdout.trim();
 }
 
-async function workspaceDirectories(repositoryRoot) {
+async function workspaceCatalog(repositoryRoot) {
   const result = new Map();
   for (const parent of ["apps", "packages"]) {
     for (const entry of await readdir(resolve(repositoryRoot, parent), { withFileTypes: true })) {
@@ -23,13 +23,47 @@ async function workspaceDirectories(repositoryRoot) {
         const manifest = JSON.parse(
           await readFile(resolve(repositoryRoot, directory, "package.json"), "utf8"),
         );
-        if (typeof manifest.name === "string") result.set(manifest.name, directory);
+        if (typeof manifest.name === "string") result.set(manifest.name, { directory, manifest });
       } catch (error) {
         if (error?.code !== "ENOENT") throw error;
       }
     }
   }
   return result;
+}
+
+function workspaceClosure(catalog, seeds) {
+  const selected = new Set();
+  const pending = [...seeds];
+  while (pending.length > 0) {
+    const name = pending.pop();
+    if (selected.has(name)) continue;
+    const entry = catalog.get(name);
+    if (entry === undefined) continue;
+    selected.add(name);
+    for (const dependencyName of Object.keys(entry.manifest.dependencies ?? {})) {
+      if (catalog.has(dependencyName)) pending.push(dependencyName);
+    }
+  }
+  return [...selected].map((name) => catalog.get(name).directory);
+}
+
+function standaloneDistributionPath(path) {
+  return (
+    [
+      "scripts/build-hub-runtime-distribution.mjs",
+      "scripts/check-hub-runtime-distribution.mjs",
+      "scripts/install-hub-runtime-distribution.mjs",
+      "scripts/verify-hub-runtime-distribution.mjs",
+      "scripts/build-node-runtime-distribution.mjs",
+      "scripts/check-node-runtime-distribution.mjs",
+      "scripts/install-node-runtime-distribution.mjs",
+      "scripts/verify-node-runtime-distribution.mjs",
+      "scripts/lib/hub-runtime-distribution.mjs",
+      "scripts/lib/node-runtime-distribution.mjs",
+      "scripts/lib/product-release-version.mjs",
+    ].includes(path) || path.startsWith("apps/hub/assets/")
+  );
 }
 
 function exempt(path) {
@@ -68,8 +102,13 @@ export async function inspectReleaseIntent(input) {
       coordinate.slice(0, coordinate.lastIndexOf("@")),
     ),
   );
-  const directories = await workspaceDirectories(repositoryRoot);
-  const bundledDirectories = [...bundledNames].map((name) => directories.get(name)).filter(Boolean);
+  const catalog = await workspaceCatalog(repositoryRoot);
+  const releaseArtifactDirectories = workspaceClosure(catalog, [
+    ...bundledNames,
+    "@lervo/hub-runtime",
+    "@lervo/node-runtime",
+    "@lervo/node-runtime-dependencies",
+  ]);
   const changedSource = input.changedPaths
     ? [...input.changedPaths]
     : (
@@ -86,8 +125,9 @@ export async function inspectReleaseIntent(input) {
     : intents;
   const publishablePaths = changedPaths.filter((path) => {
     if (exempt(path)) return false;
+    if (standaloneDistributionPath(path)) return true;
     if (path.startsWith("apps/cli/src/") || path === "apps/cli/package.json") return true;
-    return bundledDirectories.some(
+    return releaseArtifactDirectories.some(
       (directory) => path.startsWith(`${directory}/src/`) || path === `${directory}/package.json`,
     );
   });
@@ -125,7 +165,7 @@ export async function inspectReleaseIntent(input) {
     diagnostics,
     exemptions: [
       "tests",
-      "internal_refactor_outside_cli_bundle",
+      "internal_refactor_outside_release_artifact_closures",
       "documentation",
       "release_management",
     ],

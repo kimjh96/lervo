@@ -4,7 +4,7 @@ Lervo uses reviewed release-intent files to prepare `@lervo/cli` versions. Prepa
 
 ## Contributor intent
 
-Add one intent when a pull request changes public CLI behavior or implementation in a private workspace package bundled into the CLI:
+Add one intent when a pull request changes public CLI behavior, implementation in a private workspace package bundled into a released artifact, or standalone Hub and Node distribution tooling or copied assets:
 
 ```bash
 pnpm release:intent:create --impact patch --summary "Correct bounded diagnostics for unavailable provider entrypoints."
@@ -12,7 +12,7 @@ pnpm release:intent:create --impact patch --summary "Correct bounded diagnostics
 
 Use `patch` for a compatible correction, `minor` for compatible new behavior, and `major` for an incompatible public contract. Before 1.0, `minor` and `major` both advance the minor number; `major` preserves reviewed breaking-change meaning. A Conventional Commit `!` or `BREAKING CHANGE` marker requires matching `major` intent and never replaces it.
 
-Tests, documentation, release-management files, and internal refactors outside the packed CLI dependency closure are exempt. Refactors inside the closure require intent because the checker cannot prove packaged behavior is unchanged. CI rejects missing, malformed, content-ID-mismatched, or unnecessary records.
+Tests, documentation, release-management files, and internal refactors outside all released artifact closures are exempt. Refactors inside the CLI, Hub, or Node closure require intent because the checker cannot prove packaged behavior is unchanged. CI rejects missing, malformed, content-ID-mismatched, or unnecessary records. Hub and Node still use `@lervo/cli` as the sole product release coordinate; their private workspace versions are not independent release versions.
 
 Before claiming repository completion, bind inspection to the exact task base:
 

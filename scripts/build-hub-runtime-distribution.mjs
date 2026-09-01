@@ -16,6 +16,7 @@ import { promisify } from "node:util";
 
 import { readJson, repositoryRoot } from "./lib/installed-cli.mjs";
 import { isBuiltinModuleSpecifier } from "./lib/node-module-specifier.mjs";
+import { readProductReleaseVersion } from "./lib/product-release-version.mjs";
 import {
   createHubDistributionArtifact,
   createHubDistributionManifest,
@@ -119,8 +120,7 @@ async function buildDistribution(input) {
       "The distribution archive extension must be .tar.gz.",
     );
   const artifactOutput = await safeOutputPath(`${output}.artifact.json`);
-  const runtimePackage = await readJson(resolve(repositoryRoot, "apps/hub-runtime/package.json"));
-  const runtimeVersion = runtimePackage.version;
+  const runtimeVersion = await readProductReleaseVersion(repositoryRoot);
   const platform = input.platform;
   const bundlePath = resolve(repositoryRoot, "apps/hub-runtime/dist/bin.js");
   await assertBundle(

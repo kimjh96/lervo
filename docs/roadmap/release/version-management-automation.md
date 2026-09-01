@@ -25,6 +25,7 @@ A reviewable Changesets-style lifecycle now records version intent with each pub
 10. Keep repository-write authority, tag authority, npm staging approval, and npm publication authority separate. The version workflow receives no registry credential and cannot publish, approve a stage, broaden Trusted Publisher configuration, or bypass existing human-approval contracts.
 11. Record bounded automation results and failure meanings without package bodies, credentials, provider configuration, user documents, or unbounded CI output. A created release pull request or tag proves only that operation, not publication.
 12. Enforce reviewed release completion against an exact base for local checks, pull requests, direct-main pushes, and release preparation. Accept either current intent or exact prepared-release evidence; never rely on prompt retrieval, session memory, workstream status, or terminal Stop.
+13. Bind standalone Hub and Node distribution identity to the public Lervo product release version. Private workspace package versions remain implementation coordinates and must not appear as the operational release identity. Include standalone builders, verifiers, installers, copied assets, and runtime workspace closures in release-impact inspection.
 
 ## Completion criteria
 
@@ -44,6 +45,7 @@ A reviewable Changesets-style lifecycle now records version intent with each pub
 - [CLI version and release management](../../distribution/cli-version-management.md) documents contribution, pull-request review, emergency correction, no-prerelease policy, tag recovery, and publication non-authority.
 - `.changes/config.json`, the release-intent checker, deterministic preparation and tag commands, the fixed release branch workflow, and tag-triggered release matrix implement the lifecycle. Focused tests cover publishable and exempt paths, bundled private packages, deterministic aggregation, generated-owner rollback, stale inputs, tag mismatch, conflict, replay, recovery, and workflow permissions.
 - [ADR-0223](../../decisions/release/packaging/0223-base-bound-cli-release-completion.md), `release:completion:check`, and its workflow fixtures bind local and CI completion to exact Git evidence and close the direct-main gap.
+- [ADR-0330](../../decisions/release/packaging/0330-release-bound-standalone-runtime-version.md) binds standalone Hub and Node manifests, SBOM roots, and artifact sidecars to the public Lervo release coordinate.
 - Repository checks, documentation migration and lint, and the clean-copy rehearsal completed without creating a release tag, granting npm stage approval, or publishing a package.
 
 ## References

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4c1e60ec3d85b0d11cd85cc4"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Report the owning Lervo release version in standalone Hub and Node distributions."
