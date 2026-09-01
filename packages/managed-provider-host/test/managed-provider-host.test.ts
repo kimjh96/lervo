@@ -12,6 +12,7 @@ import { createRemoteCommand } from "@lervo/remote-command-contract";
 import type { ManagedCapabilityApprovalVerificationInput } from "@lervo/orchestrator";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
+import { activateFixtureEventWriterV2 } from "../../project/test/fixture-event-writer.js";
 import { calculateProjectIdentityHash } from "@lervo/sync-contract";
 import { hashSkillPackage, readSkillLock } from "@lervo/skills";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -191,6 +192,11 @@ async function repository() {
       now: new Date("2026-08-22T00:00:00.000Z"),
     }),
   );
+  await activateFixtureEventWriterV2({
+    repositoryRoot: root,
+    projectId: "prj_managed_host_01",
+    observedAt: "2026-08-22T00:00:00.000Z",
+  });
   await mkdir(resolve(root, "src"));
   await mkdir(resolve(root, ".lervo/verifications"));
   await writeFile(resolve(root, "AGENTS.md"), "Change only the approved file.\n");
@@ -351,6 +357,9 @@ describe("managed remote provider host", () => {
     const events = storage.events.list();
     await storage.close();
     expect(events.map((event) => event.type)).toContain("run.completed");
+    expect(events.findIndex((event) => event.type === "work.causality.recorded")).toBeLessThan(
+      events.findIndex((event) => event.type === "adapter.started"),
+    );
     expect(events.find((event) => event.type === "run.completed")?.payload).toMatchObject({
       verificationStatus: "passed",
     });
@@ -456,6 +465,7 @@ describe("managed remote provider host", () => {
         .filter((event) => event.type === "context.injected")
         .map((event) => event.payload.contextGeneration),
     ).toEqual([0, 1]);
+    expect(events.filter((event) => event.type === "work.causality.recorded")).toHaveLength(1);
     expect(
       events.filter((event) => event.type === "file.changed").map((event) => event.payload.path),
     ).toEqual(["src/other.ts", "src/result.ts"]);

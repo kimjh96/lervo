@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b098d642637194ce68005048"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Record causal work before every managed provider execution"

@@ -61,6 +61,16 @@ Acceptance requires every managed golden journey to have exactly one root, every
 to have exactly one valid causal event before provider start, no child to escape its work
 tree, and no new source of objective, assignment, or completion authority.
 
+Implementation state on 2026-09-01: FH1 is implemented. Pure execution-contract
+invariants validate roots, every declared child relationship, retry ordinals, immutable
+parents, same-work membership, cycles, conflicts, idempotent crash recovery, and
+`legacy_unlinked` historical projection. Managed admission writes causality and
+`run.requested` atomically before provider start and fails closed on a version-1 writer.
+SQLite independently enforces one causal event per run and one root per work. CLI,
+remote host, and conversation paths create roots; deliberation creates one control root
+with all provider and publication-evaluation runs as children. Shared root/subagent and
+Codex/Claude golden tests prove provider-neutral behavior.
+
 ## FH2: Resource ledger and work report
 
 Implement the resource contract for current Codex and Claude adapters and current

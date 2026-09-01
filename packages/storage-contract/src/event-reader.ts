@@ -80,6 +80,38 @@ export function collectRunEventsBounded(input: {
   }
 }
 
+/** Collects one immutable project event snapshot with an explicit memory bound. */
+export function collectProjectEventsBounded(input: {
+  events: Pick<EventStore, "list">;
+  maximumEvents: number;
+  pageSize?: number;
+}): EventEnvelope[] {
+  assertPositiveSafeInteger(input.maximumEvents, "maximumEvents");
+  const pageSize = input.pageSize ?? maximumPageSize;
+  assertPositiveSafeInteger(pageSize, "pageSize");
+  if (pageSize > maximumPageSize) throw new TypeError("pageSize must not exceed 1,000.");
+
+  const events: EventEnvelope[] = [];
+  let afterSeq = 0;
+  while (true) {
+    const remaining = input.maximumEvents - events.length;
+    const page = input.events.list({
+      afterSeq,
+      limit: Math.min(pageSize, remaining + 1),
+    });
+    assertForwardPage(page, afterSeq);
+    if (page.length > remaining) {
+      throw new EventReadError(
+        "event_limit_exceeded",
+        `Project events exceed the allowed limit of ${input.maximumEvents}.`,
+      );
+    }
+    events.push(...page);
+    if (page.length < Math.min(pageSize, remaining + 1)) return events;
+    afterSeq = page.at(-1)!.seq;
+  }
+}
+
 /**
  * Visits a project event snapshot without retaining the full project history.
  * Events appended after throughSeq are never observed by this scan.

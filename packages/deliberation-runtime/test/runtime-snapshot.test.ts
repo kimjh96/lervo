@@ -49,6 +49,7 @@ describe("deliberation runtime snapshot restoration", () => {
         reason: "runtime_snapshot_invalid",
       }),
     );
+    expect(() => new DeliberationRuntime(options).start()).toThrow(/already been admitted/u);
     fixture.events.close();
   });
 });

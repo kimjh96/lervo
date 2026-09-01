@@ -1,6 +1,7 @@
 import { validateSchema, type EventEnvelope, type SharedContextPublication } from "@lervo/schemas";
 
 import type { ManagedProviderRunResult } from "./types.js";
+import { readWorkCausalityRecord, sameWorkCausality } from "./work-causality.js";
 
 export interface ManagedProviderRunEvidenceBinding {
   contextGeneration: number;
@@ -35,6 +36,18 @@ export function validateManagedProviderRunEvidence(input: {
   sharedContextPublications: readonly SharedContextPublication[];
 }): ManagedProviderRunEvidenceBinding {
   const { run } = input;
+  const causalEvents = input.events.filter(
+    (event) => event.runId === run.session.runId && event.type === "work.causality.recorded",
+  );
+  const causalRecord = causalEvents.length === 1 ? readWorkCausalityRecord(causalEvents[0]!) : null;
+  if (
+    causalRecord === null ||
+    causalEvents[0]!.projectId !== run.session.projectId ||
+    causalEvents[0]!.sessionId !== run.session.sessionId ||
+    !sameWorkCausality(causalRecord.payload, run.workCausality)
+  ) {
+    fail("The managed run result differs from its immutable causal event.");
+  }
   const loaded = run.contextEvidence.filter((evidence) => evidence.state === "loaded");
   const injected = run.contextEvidence.filter((evidence) => evidence.state === "injected");
   const referenced = run.contextEvidence.filter((evidence) => evidence.state === "referenced");

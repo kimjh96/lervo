@@ -395,7 +395,9 @@ describe("SQLite transactional outbox", () => {
     current.close();
 
     const legacy = new DatabaseSync(path);
-    legacy.exec("DROP TABLE outbox; PRAGMA user_version = 1;");
+    legacy.exec(
+      "DROP TABLE outbox; DROP INDEX events_one_work_causality_per_run; DROP INDEX events_one_root_per_work; PRAGMA user_version = 1;",
+    );
     legacy.prepare("UPDATE store_meta SET value = '1' WHERE key = 'storage_schema_version'").run();
     legacy.close();
 
@@ -404,7 +406,7 @@ describe("SQLite transactional outbox", () => {
     expect(migrated.listOutbox()).toEqual([]);
     migrated.close();
     const raw = new DatabaseSync(path);
-    expect(raw.prepare("PRAGMA user_version;").get()?.user_version).toBe(2);
+    expect(raw.prepare("PRAGMA user_version;").get()?.user_version).toBe(3);
     expect(raw.prepare("SELECT name FROM sqlite_master WHERE name = 'outbox'").get()).toBeDefined();
     raw.close();
   });

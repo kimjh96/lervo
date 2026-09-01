@@ -4,6 +4,7 @@ import type {
   AdapterTurn,
   ContextEvidence,
   VerificationResult,
+  WorkCausalityRecordedEventPayload,
 } from "@lervo/schemas";
 
 export interface ManagedFileChangeEvidence {
@@ -36,6 +37,7 @@ export interface ManagedProjectVerification {
 
 export interface ManagedProviderRunResult {
   status: "completed";
+  workCausality: WorkCausalityRecordedEventPayload;
   session: AdapterSession;
   turn: AdapterTurn;
   terminalEventId: string;

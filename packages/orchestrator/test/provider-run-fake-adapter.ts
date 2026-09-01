@@ -17,8 +17,6 @@ import {
   createManagedWriteRequest,
 } from "@lervo/adapter-contract";
 
-import { projectId, runId, sessionId } from "./fixture.js";
-
 const requestDigest = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
 export class FakeManagedAdapter implements ProviderAdapter {
@@ -222,10 +220,10 @@ export class FakeManagedAdapter implements ProviderAdapter {
     const base = () => ({
       kind: "normalized_event" as const,
       schemaVersion: 1 as const,
-      projectId,
-      runId,
-      sessionId,
-      providerSessionId: `${this.descriptor.provider}-session-1`,
+      projectId: this.session!.projectId,
+      runId: this.session!.runId,
+      sessionId: this.session!.sessionId,
+      providerSessionId: this.session!.providerSessionId,
       occurredAt: "2026-08-18T01:10:00Z",
     });
     yield {

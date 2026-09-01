@@ -66,6 +66,7 @@ import {
   type RepositorySnapshotPolicy,
 } from "./repository-snapshot.js";
 import { ManagedTelemetryRecorder, TelemetryWriteError } from "./telemetry.js";
+import { admitManagedWorkCausality } from "./work-causality-admission.js";
 
 function copy<T>(value: T): T {
   return structuredClone(value);
@@ -211,7 +212,23 @@ export class ManagedProviderRunCoordinator {
     let phase: ManagedProviderRunPhase = "request";
 
     const requestedAt = this.time();
+    let workCausality;
+    try {
+      workCausality = admitManagedWorkCausality({
+        events: this.options.events,
+        coordinates: this.options.coordinates,
+        ...(input.workCausality === undefined ? {} : { request: input.workCausality }),
+        occurredAt: requestedAt,
+      });
+    } catch (error) {
+      throw new ManagedProviderRunError(
+        "contract_validation_failed",
+        "The managed work causality admission failed.",
+        { cause: error instanceof Error ? error : undefined },
+      );
+    }
     this.append([
+      workCausality.spec,
       ...runRequestedSpecs({
         requestDigest: input.requestDigest,
         roleId: this.options.coordinates.roleId,
@@ -531,7 +548,7 @@ export class ManagedProviderRunCoordinator {
     if (after !== undefined) state.after = after;
 
     await this.persistOutputs(input, state, failures);
-    return this.complete(input, state, terminal, failures);
+    return this.complete(input, state, terminal, failures, workCausality.payload);
   }
 
   private async persistOutputs(
@@ -592,6 +609,7 @@ export class ManagedProviderRunCoordinator {
     state: ManagedProviderRunExecutionState,
     terminal: AdapterNormalizedEvent | undefined,
     failures: RunFailureLedger,
+    workCausality: ManagedProviderRunResult["workCausality"],
   ): ManagedProviderRunResult {
     const resultError = failures.resultError();
     const primaryFailure = failures.primary;
@@ -637,6 +655,7 @@ export class ManagedProviderRunCoordinator {
     ]);
     return {
       status: "completed",
+      workCausality: copy(workCausality),
       session: copy(state.session),
       turn: copy(state.turn),
       terminalEventId: terminal.eventId,

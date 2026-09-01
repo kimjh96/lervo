@@ -9,6 +9,7 @@ import {
 } from "@lervo/deliberation-runtime";
 import { loadDocumentRegistry } from "@lervo/project";
 import type { ProjectStorage } from "@lervo/project-storage";
+import { rootWorkId } from "@lervo/execution-contract";
 import { loadRepositoryKnowledgePolicy } from "@lervo/repository-knowledge";
 import type { WritingContract } from "@lervo/schemas";
 
@@ -189,6 +190,13 @@ export async function resumeManagedDeliberationWithStorage(
         checkpoint.policyHash,
         policy.requiredVerificationSuiteIds[0]!,
         dependencies.runner,
+        {
+          workId: rootWorkId(
+            checkpoint.runtimeCoordinates.projectId,
+            checkpoint.runtimeCoordinates.runId,
+          ),
+          runId: checkpoint.runtimeCoordinates.runId,
+        },
       );
       const latestClaimArtifact = await restoreTurnResult({
         snapshot: checkpoint.runtime,

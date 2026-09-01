@@ -5,6 +5,7 @@ import type {
   AdapterCapabilityActivationRequest,
   ManagedRunApprovalAuthorization,
   VerificationSuite,
+  WorkCausalityRecordedEventPayload,
 } from "@lervo/schemas";
 
 import type { ManagedProviderRunDeadlines } from "./provider-run-deadline.js";
@@ -98,7 +99,37 @@ export interface ManagedProviderRunInput {
   createEvidenceReceiptId?: () => string;
   createTargetTurnId?: () => string;
   approvalAuthorization?: ManagedRunApprovalAuthorization;
+  workCausality?: ManagedWorkCausalityInput;
 }
+
+export type ManagedWorkRelationship = WorkCausalityRecordedEventPayload["relationship"];
+
+export type ManagedWorkCausalityInput =
+  | {
+      relationship: "root";
+      workstreamId?: string | null;
+      assignmentId?: string | null;
+      agentId?: string | null;
+    }
+  | {
+      relationship: Exclude<ManagedWorkRelationship, "root" | "retry">;
+      workId: string;
+      parentRunId: string;
+      attemptOrdinal?: number;
+      workstreamId?: string | null;
+      assignmentId?: string | null;
+      agentId?: string | null;
+    }
+  | {
+      relationship: "retry";
+      workId: string;
+      parentRunId: string;
+      retryOfRunId: string;
+      attemptOrdinal: number;
+      workstreamId?: string | null;
+      assignmentId?: string | null;
+      agentId?: string | null;
+    };
 
 export interface ManagedResolvedCapability {
   capabilityId: string;

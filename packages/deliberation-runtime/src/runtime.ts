@@ -20,6 +20,7 @@ import { DeliberationEventRecorder } from "./event-recorder.js";
 import { publishDeliberationHandoff } from "./handoff-publication.js";
 import { recordPublicationFailure } from "./publication-failure.js";
 import { restoreDeliberationRuntimeSnapshot } from "./runtime-snapshot.js";
+import { deliberationRootCausality } from "./causal-work.js";
 import {
   DeliberationRuntimeError,
   type DeliberationRuntimeOptions,
@@ -83,20 +84,29 @@ export class DeliberationRuntime {
       );
     }
     this.assertNotCompleted();
-    const event = this.recorder.append({
-      type: "deliberation.started",
+    const occurredAt = this.time();
+    const causalRoot = deliberationRootCausality({
+      events: this.options.events,
       coordinates: this.options.coordinates,
-      occurredAt: this.time(),
-      actor: { kind: "system" },
-      payload: {
-        deliberationId: this.options.deliberationId,
-        policyId: this.options.policy.policyId,
-        policyHash: deliberationPolicyHash(this.options.policy),
-        participantRoleIds: this.options.policy.participants.map((item) => item.roleId),
-        maxRounds: this.options.policy.maxRounds,
-      },
+      occurredAt,
     });
-    this.startedEventId = event.eventId;
+    const [, event] = this.recorder.appendMany([
+      causalRoot.spec,
+      {
+        type: "deliberation.started",
+        coordinates: this.options.coordinates,
+        occurredAt,
+        actor: { kind: "system" },
+        payload: {
+          deliberationId: this.options.deliberationId,
+          policyId: this.options.policy.policyId,
+          policyHash: deliberationPolicyHash(this.options.policy),
+          participantRoleIds: this.options.policy.participants.map((item) => item.roleId),
+          maxRounds: this.options.policy.maxRounds,
+        },
+      },
+    ]);
+    this.startedEventId = event!.eventId;
     this.started = true;
   }
 

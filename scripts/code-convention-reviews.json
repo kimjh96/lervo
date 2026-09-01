@@ -18,7 +18,7 @@
     },
     {
       "path": "apps/cli/src/managed-deliberation.ts",
-      "contentHash": "sha256:49bdc8f7393062ecb27747315ffb46f8451e5906e35882ff78f65216cc9b3e7e",
+      "contentHash": "sha256:3f14ea5d08186a32e68c0b9348a05139a39dff7d3e8a43881d1135b6549bcfde",
       "responsibility": "Managed deliberation execution orchestration",
       "rationale": "All functions validate or execute one managed deliberation lifecycle and share the same provider plan, writing contract, checkpoint, and interruption semantics.",
       "disposition": "cohesive"
@@ -32,7 +32,7 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:4fffe1860857224a59e81b8c7d22d3890578475adde2be99041e1ce1b64a499d",
+      "contentHash": "sha256:a1a9bf265ff4baaed1b9a597d34a58218ee28f18b8f545037424a347a47824e5",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The module composes one managed provider-run boundary; provider differences remain injected dependencies and no unrelated CLI subcommand or persistence policy is owned here.",
       "disposition": "cohesive"
@@ -95,7 +95,7 @@
     },
     {
       "path": "packages/deliberation-runtime/src/runtime.ts",
-      "contentHash": "sha256:be0377ada90c87444dccc0bb3835dd2747f7258fdcafef94d9d810ddd42e281b",
+      "contentHash": "sha256:514d96efe08d1e7122165fdfe1c8af9f9133f4baac5e9049b6fde546f3b6a9cf",
       "responsibility": "Stateful deliberation lifecycle coordinator",
       "rationale": "The module owns one in-memory deliberation state machine; artifact publication failure recording and handoff materialization remain in linked modules, while methods enforce shared history and event invariants.",
       "disposition": "cohesive"
@@ -130,7 +130,7 @@
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:ee1f935863fa819d9c944139004986274dbb25bc268e2baa06d1d32e5ce5119e",
+      "contentHash": "sha256:c4aeda89435e2e036eed13387843b07928c6e5a0fd0866e2672aa1f3b6857016",
       "responsibility": "Managed provider-run coordinator",
       "rationale": "Snapshotting, abort handling, context delivery, turn execution, validation, and stop are phases of one provider-neutral managed-run state machine.",
       "disposition": "cohesive"

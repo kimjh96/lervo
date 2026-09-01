@@ -44,6 +44,31 @@ function draft(overrides: Partial<EventDraftV1> = {}): EventDraftV1 {
   };
 }
 
+function causalDraft(input: { eventId: string; runId: string }): EventDraft {
+  return {
+    eventId: input.eventId,
+    projectId,
+    runId: input.runId,
+    sessionId: `ses_${input.runId.slice(4)}_causal`,
+    type: "work.causality.recorded",
+    occurredAt: "2026-09-01T00:00:00.000Z",
+    actor: { kind: "system" },
+    schemaVersion: 2,
+    policyVersion,
+    payload: {
+      workId: `wrk_${"c".repeat(24)}`,
+      executionContractVersion: 1,
+      relationship: "root",
+      parentRunId: null,
+      retryOfRunId: null,
+      attemptOrdinal: 1,
+      workstreamId: null,
+      assignmentId: null,
+      agentId: null,
+    },
+  };
+}
+
 afterEach(async () => {
   await Promise.all(
     temporaryRoots.splice(0).map((root) => rm(root, { recursive: true, force: true })),
@@ -51,6 +76,23 @@ afterEach(async () => {
 });
 
 describe("SQLite append-only event store", () => {
+  it("enforces one immutable causal event per run and one root per work", async () => {
+    const store = await SQLiteEventStore.open({
+      path: await databasePath(),
+      projectId,
+      writableEventSchemaVersion: 2,
+    });
+    store.append(causalDraft({ eventId: "evt_causal_root_0001", runId: "run_causal_root_0001" }));
+    expect(() =>
+      store.append(causalDraft({ eventId: "evt_causal_root_0002", runId: "run_causal_root_0001" })),
+    ).toThrow();
+    expect(() =>
+      store.append(causalDraft({ eventId: "evt_causal_root_0003", runId: "run_causal_root_0002" })),
+    ).toThrow();
+    expect(store.list()).toHaveLength(1);
+    store.close();
+  });
+
   it("uses WAL and assigns one project-wide sequence and hash chain", async () => {
     const path = await databasePath();
     const store = await SQLiteEventStore.open({ path, projectId });
@@ -273,7 +315,7 @@ describe("SQLite append-only event store", () => {
     const store = await SQLiteEventStore.open({ path, projectId });
     store.close();
     const raw = new DatabaseSync(path);
-    expect(raw.prepare("PRAGMA user_version;").get()?.user_version).toBe(2);
+    expect(raw.prepare("PRAGMA user_version;").get()?.user_version).toBe(3);
     raw.close();
   });
 
@@ -287,7 +329,7 @@ describe("SQLite append-only event store", () => {
     await expect(inspectExistingEventStore({ path, projectId })).resolves.toEqual({
       eventCount: 1,
       headHash: event.eventHash,
-      storageSchemaVersion: 2,
+      storageSchemaVersion: 3,
       requiresSchemaMigration: false,
     });
 

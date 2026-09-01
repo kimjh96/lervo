@@ -23,6 +23,7 @@ import type {
 } from "@lervo/schemas";
 
 import type { RunProvider } from "../src/managed-run.js";
+import { activateFixtureEventWriterV2 } from "../../../packages/project/test/fixture-event-writer.js";
 
 const roots: string[] = [];
 
@@ -223,6 +224,11 @@ export async function repository(): Promise<string> {
       now: new Date("2026-08-21T00:00:00Z"),
     }),
   );
+  await activateFixtureEventWriterV2({
+    repositoryRoot: root,
+    projectId: "prj_cli_deliberation",
+    observedAt: "2026-08-21T00:00:00.000Z",
+  });
   await mkdir(resolve(root, "src"));
   await mkdir(resolve(root, ".lervo/verifications"));
   await writeFile(

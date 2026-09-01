@@ -1,11 +1,16 @@
 import type { InjectLoadedContextInput } from "@lervo/context-delivery";
 import type { PrepareContextInput } from "@lervo/context";
 import type { WriteContextDecision } from "@lervo/core";
-import type { ManagedRunApprovalAuthorization, SharedContextPublication } from "@lervo/schemas";
-import type { EventStoreTransaction } from "@lervo/storage-contract";
+import type {
+  EventEnvelope,
+  ManagedRunApprovalAuthorization,
+  SharedContextPublication,
+} from "@lervo/schemas";
+import type { EventStoreTransaction, ListEventsOptions } from "@lervo/storage-contract";
 
 export interface ManagedEventStore {
   transact<T>(work: (transaction: EventStoreTransaction) => T): T;
+  list(options?: ListEventsOptions): EventEnvelope[];
 }
 
 export interface ManagedRunCoordinates {

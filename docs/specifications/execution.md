@@ -12,7 +12,7 @@ Defines provider-neutral contracts for managed runs, evidence, documents, knowle
 [Typed semantic grounding](execution/semantic-grounding.md) precedes selection and effects.
 
 ```text
-requested -> resolved -> documents/capabilities recommended and selected
+causal work admitted -> requested -> resolved -> documents/capabilities recommended and selected
 -> bytes loaded -> context prepared -> provider started
 -> context injected -> capabilities activated / skills invoked -> provider turn
 -> provider result observed -> repository verified -> completed
@@ -99,9 +99,11 @@ The [execution events and privacy specification](execution/events-and-privacy.md
 Event readers accept immutable version 1 history and mixed version 1/version 2 chains.
 Unsupported integer envelope versions fail with `event_schema_unsupported` before
 mutation; malformed supported envelopes fail with `event_invalid` or the boundary's
-integrity error. Production append remains version 1 only. Version 2 currently defines
-readable causal-work, resource-usage, and bounded-stage payloads but emits none, so their
-absence does not establish zero usage, missing work, or successful observation.
+integrity error. Version 1 remains the default writer. After activation, managed paths
+emit one version 2 causal event before `run.requested`; a version 1 writer blocks
+provider startup. Resource and stage events remain reader-only, so absence proves
+neither zero usage nor successful observation. Historical runs without causality are
+`legacy_unlinked`; ancestry is never inferred.
 
 ## 11. Durable apply and recovery
 

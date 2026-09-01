@@ -64,6 +64,7 @@ export class ManagedDeliberationRunner {
     private readonly policyVersion: string,
     private readonly defaultVerificationSuiteId: string,
     private readonly dependencies: ManagedDeliberationRunnerDependencies = defaultDependencies,
+    private readonly causalParent?: { workId: string; runId: string },
   ) {}
 
   async execute(input: {
@@ -72,6 +73,7 @@ export class ManagedDeliberationRunner {
     instructions: string;
     documentRules: Record<string, string[]>;
     verificationSuiteId?: string;
+    workRelationship?: "deliberation" | "publication_evaluation";
   }): Promise<ManagedDeliberationRunResult> {
     const repositoryRoot = this.storage.paths.repositoryRoot;
     const verification =
@@ -129,6 +131,15 @@ export class ManagedDeliberationRunner {
           }
         : null,
       resolvedSkills: [],
+      ...(this.causalParent === undefined
+        ? {}
+        : {
+            workCausality: {
+              relationship: input.workRelationship ?? ("deliberation" as const),
+              workId: this.causalParent.workId,
+              parentRunId: this.causalParent.runId,
+            },
+          }),
       ...(verification === undefined ? {} : { verificationSuites: verification.suites }),
       createEnvelopeId: () => this.dependencies.createId("envelope"),
       createEvidenceReceiptId: () => this.dependencies.createId("ctx"),
@@ -191,6 +202,7 @@ export class ManagedDeliberationRunner {
         "Preserve the requested check order and evaluate every check.",
       ].join("\n"),
       documentRules: { "writing.evaluation.request": [documentId] },
+      workRelationship: "publication_evaluation",
     });
     return parseSemanticEvaluation(result.content, request, provider);
   }

@@ -4,7 +4,12 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { SQLiteEventStore, type EventDraft } from "@lervo/event-store-sqlite";
-import { serializeYaml } from "@lervo/project";
+import {
+  createEventWriterActivationId,
+  eventWriterActivationConfigurationHash,
+  serializeYaml,
+} from "@lervo/project";
+import type { EventWriterActivationEvidence } from "@lervo/schemas";
 
 const roots: string[] = [];
 
@@ -91,6 +96,69 @@ export async function nodeRuntimeFixture(
         eventPayloadMode: "allowlist",
       },
     }),
+  );
+  const observedAt = "2026-08-22T00:00:00.000Z";
+  const capabilities = {
+    schemaVersion: 1 as const,
+    capability: "event_reader" as const,
+    readableEventSchemaVersions: [1, 2],
+  };
+  const evidence: EventWriterActivationEvidence = {
+    schemaVersion: 2,
+    projectId: nodeRuntimeProjectId,
+    observedAt,
+    authority: {
+      kind: "repository_node_fleet_v1",
+      repositoryIdentityHash: `sha256:${"7".repeat(64)}`,
+      inventoryHash: `sha256:${"8".repeat(64)}`,
+    },
+    readers: [
+      {
+        readerId: "reader_hub_runtime",
+        readerKind: "hub",
+        peerIdentityHash: nodeRuntimeHubIdentityHash,
+        capabilities,
+      },
+      {
+        readerId: "reader_local_runtime",
+        readerKind: "local",
+        peerIdentityHash: null,
+        capabilities,
+      },
+      {
+        readerId: "reader_node_runtime",
+        readerKind: "node",
+        peerIdentityHash: `sha256:${"6".repeat(64)}`,
+        capabilities,
+      },
+    ],
+  };
+  const configurationHash = eventWriterActivationConfigurationHash({
+    evidence,
+    hubSyncEnabled: options.hubSyncEnabled ?? true,
+  });
+  await writeFile(
+    resolve(data, "event-contract.json"),
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        projectId: nodeRuntimeProjectId,
+        selectedEventSchemaVersion: 2,
+        activationEvidence: {
+          activationId: createEventWriterActivationId({
+            projectId: nodeRuntimeProjectId,
+            observedAt,
+            configurationHash,
+            readers: evidence.readers,
+          }),
+          observedAt,
+          configurationHash,
+          readers: evidence.readers,
+        },
+      },
+      null,
+      2,
+    )}\n`,
   );
   const databasePath = resolve(data, "events.sqlite");
   const events = await SQLiteEventStore.open({

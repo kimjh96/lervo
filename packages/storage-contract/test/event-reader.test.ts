@@ -2,6 +2,7 @@ import type { EventEnvelope } from "@lervo/schemas";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  collectProjectEventsBounded,
   collectRunEventsBounded,
   visitEventSnapshot,
   type ListEventsOptions,
@@ -26,6 +27,24 @@ function reader(values: readonly EventEnvelope[]) {
 }
 
 describe("bounded event reader contract", () => {
+  it("collects a whole project with the same exact overflow distinction", () => {
+    const exact = reader([event(1), event(2, "run_reader_0002")]);
+    expect(
+      collectProjectEventsBounded({ events: exact, maximumEvents: 2, pageSize: 1 }).map(
+        (item) => item.seq,
+      ),
+    ).toEqual([1, 2]);
+    expect(exact.list).toHaveBeenCalledTimes(3);
+
+    expect(() =>
+      collectProjectEventsBounded({
+        events: reader([event(1), event(2), event(3)]),
+        maximumEvents: 2,
+        pageSize: 1,
+      }),
+    ).toThrow(expect.objectContaining({ code: "event_limit_exceeded" }));
+  });
+
   it("distinguishes an exact-size run from overflow with one bounded look-ahead", () => {
     const exact = reader([event(1), event(2)]);
     expect(

@@ -108,9 +108,10 @@ work.causality.recorded
   -> run.completed | run.failed
 ```
 
-The implementation may need a pre-terminal staging transaction so final observations
-and terminal status cannot contradict each other. The exact append transaction is
-settled in FH1 before writers activate. If final resource data cannot be obtained, the
+FH1 records causality and `run.requested` in one admission transaction. Deterministic
+root and event identities permit exact pre-request crash recovery, while an already
+admitted run cannot execute twice. SQLite unique constraints independently enforce one
+causal event per run and one root per work. If final resource data cannot be obtained, the
 run still receives an explicit unavailable or partial observation rather than omitted
 telemetry.
 

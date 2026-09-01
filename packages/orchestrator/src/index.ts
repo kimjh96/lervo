@@ -13,6 +13,7 @@ export * from "./provider-write-bridge.js";
 export * from "./repository-snapshot.js";
 export * from "./types.js";
 export * from "./workspace-provisioning.js";
+export * from "./work-causality-admission.js";
 export * from "./workspace-assignment-claim.js";
 export { applyWorkspaceCleanup } from "./workspace-cleanup-apply.js";
 export { recoverWorkspaceCleanup } from "./workspace-cleanup-recovery.js";

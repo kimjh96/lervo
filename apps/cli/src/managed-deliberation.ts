@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { writingContractForLanguage } from "@lervo/core";
+import { rootWorkId } from "@lervo/execution-contract";
 import { deliberationPolicyHash } from "@lervo/deliberation";
 import {
   DeliberationRuntime,
@@ -308,6 +309,10 @@ async function executeWithStorage(
     deliberationPolicyHash(policy),
     policy.requiredVerificationSuiteIds[0]!,
     dependencies.runner,
+    {
+      workId: rootWorkId(runtimeCoordinates.projectId, runtimeCoordinates.runId),
+      runId: runtimeCoordinates.runId,
+    },
   );
   let completed = false;
   let leaseOwnerId: string | null = null;

@@ -145,6 +145,7 @@ describe("managed conversation responder", () => {
     const events = await SQLiteEventStore.open({
       path: resolve(root, ".lervo/state/events.sqlite"),
       projectId,
+      writableEventSchemaVersion: 2,
     });
     const rawMessage = "Describe the risks in this design and the next task.";
     const storedMessage = await artifacts.put(rawMessage);
@@ -368,6 +369,7 @@ describe("managed conversation responder", () => {
 
     const runEvents = events.list();
     expect(runEvents.filter((item) => item.type === "run.completed")).toHaveLength(2);
+    expect(runEvents.filter((item) => item.type === "work.causality.recorded")).toHaveLength(2);
     expect(runEvents.filter((item) => item.type === "context.injected")).toHaveLength(2);
     expect(JSON.stringify(runEvents)).not.toContain(rawMessage);
     expect(events.verifyIntegrity().valid).toBe(true);

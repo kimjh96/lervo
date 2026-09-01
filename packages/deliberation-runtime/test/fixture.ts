@@ -147,6 +147,7 @@ export async function createRuntimeFixture(): Promise<RuntimeFixture> {
     events: await SQLiteEventStore.open({
       path: resolve(root, ".lervo/state/events.sqlite"),
       projectId,
+      writableEventSchemaVersion: 2,
     }),
     artifacts: await FileSystemCas.open(resolve(root, ".lervo/state/cas")),
   };

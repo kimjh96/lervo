@@ -26,6 +26,7 @@ import { resolveDefaultManagedLinkedEvidenceSelection } from "../src/managed-lin
 import { collectLocalKnowledgeSources } from "../src/knowledge-sources.js";
 import { runCli } from "../src/main.js";
 import { registerLinkedSearchContextDocuments } from "./search-context-fixture.js";
+import { activateFixtureEventWriterV2 } from "../../../packages/project/test/fixture-event-writer.js";
 
 const CLAUDE_SESSION_ID = "11111111-1111-4111-8111-111111111111";
 const CLAUDE_TURN_ID = "22222222-2222-4222-8222-222222222222";
@@ -248,6 +249,11 @@ async function createRepository(): Promise<string> {
       now: new Date("2026-08-19T00:00:00Z"),
     }),
   );
+  await activateFixtureEventWriterV2({
+    repositoryRoot: root,
+    projectId: "prj_cli_run_0001",
+    observedAt: "2026-08-19T00:00:00.000Z",
+  });
   await mkdir(resolve(root, "src"));
   await writeFile(resolve(root, "AGENTS.md"), "Change only the declared file.\n");
   await writeVerificationSuite(root);
@@ -906,7 +912,8 @@ describe("lervo run vertical slice", () => {
     const events = storage.events.list();
     await storage.close();
     const eventTypes = events.map((event) => event.type);
-    expect(eventTypes.slice(0, 4)).toEqual([
+    expect(eventTypes.slice(0, 5)).toEqual([
+      "work.causality.recorded",
       "run.requested",
       "run.resolved",
       "skill.resolved",

@@ -8,20 +8,22 @@ This document defines event evidence and privacy guarantees linked from the [exe
 ## Event envelope compatibility
 
 The shared reader accepts envelope schema versions 1 and 2 and preserves valid mixed
-hash chains without rewriting their bytes or meaning. Every production append path
-continues to write version 1. A supported but malformed envelope is `event_invalid` at
+hash chains without rewriting their bytes or meaning. Version 1 remains the default
+writer; activated managed execution writes version 2. A supported but malformed envelope is `event_invalid` at
 the event-contract boundary and an integrity failure where stored bytes are decoded. An
 unknown integer envelope version is `event_schema_unsupported`; local storage, sync,
 and Hub intake reject it before mutation. Invalid hashes and payload allowlists remain
 integrity failures rather than unsupported-version failures.
 
-Envelope version 2 makes the following payload contracts readable but does not yet make
-them production evidence:
+Envelope version 2 makes the following payload contracts readable. FH1 now emits only
+the causal contract; resource and stage contracts remain reader-only:
 
 - `work.causality.recorded` retains opaque work, run-relationship, attempt, workstream,
   assignment, and agent coordinates. Root, retry, and other child shapes are
-  discriminated in the payload schema. Cross-run ancestry and exactly-once append are
-  not claimed until FH1 implements and verifies the writer invariant.
+  discriminated in the payload schema. One event per run, one root per work, existing
+  same-work parents, exact retry ordinals, acyclic ancestry, and idempotent recovery are
+  enforced before provider startup. Deliberation uses one control root with role and
+  publication-evaluation children.
 - `resource.usage.recorded` retains an opaque observation and source digest, scope,
   source, accounting mode and descriptor hash, status, bounded counters, and reason
   code. Counts are non-negative; cached input cannot exceed input, reasoning output
@@ -35,9 +37,10 @@ them production evidence:
 
 All three payloads use exact top-level allowlists. Resource counter names are the only
 approved token-like nested keys. Schema, discriminator, arithmetic, or privacy failure
-prevents sync acceptance and creates no observation success. Because there is currently
-no version 2 writer, missing events mean `unobserved`, not zero usage, legacy ancestry,
-or a successful stage measurement.
+prevents sync acceptance and creates no observation success. Missing resource or stage
+events mean `unobserved`, not zero usage or successful stage measurement. A requested
+historical run without a causal event is `legacy_unlinked`; missing ancestry is never
+reconstructed from correlation.
 
 ## Workforce events
 

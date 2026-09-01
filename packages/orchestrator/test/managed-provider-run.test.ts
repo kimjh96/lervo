@@ -2,10 +2,12 @@ import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { FileSystemCas } from "@lervo/cas";
+import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { managedContextReferenceComment } from "@lervo/adapter-contract";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  admitManagedWorkCausality,
   ManagedProviderRunCoordinator,
   ManagedProviderRunError,
   type ManagedEventStore,
@@ -30,6 +32,124 @@ import { FakeManagedAdapter } from "./provider-run-fake-adapter.js";
 afterEach(cleanupManagedFixtures);
 
 describe("managed provider run lifecycle", () => {
+  it("blocks a version-1 writer before provider startup or partial admission", async () => {
+    const data = await createManagedFixture();
+    const path = data.store.path;
+    data.store.close();
+    const versionOne = await SQLiteEventStore.open({ path, projectId });
+    const adapter = new FakeManagedAdapter("codex");
+
+    await expect(
+      coordinator(adapter, data.root, versionOne).run({
+        ...providerRunInput(),
+        repositoryRoot: data.root,
+      }),
+    ).rejects.toMatchObject({ code: "telemetry_recording_failed" });
+    expect(adapter.calls).toEqual([]);
+    expect(versionOne.list()).toEqual([]);
+    versionOne.close();
+  });
+
+  it("shares the causal contract between roots and subagents without provider coupling", async () => {
+    const data = await createManagedFixture();
+    const rootAdapter = new FakeManagedAdapter("codex");
+    const root = await coordinator(rootAdapter, data.root, data.store).run({
+      ...providerRunInput(),
+      repositoryRoot: data.root,
+    });
+    const childAdapter = new FakeManagedAdapter("claude");
+    const childRunId = "run_subagent_fixture";
+    const child = await new ManagedProviderRunCoordinator({
+      adapter: childAdapter,
+      coordinates: {
+        projectId,
+        runId: childRunId,
+        sessionId: "ses_subagent_fixture",
+        roleId: role.roleId,
+      },
+      policyVersion,
+      events: data.store,
+      artifactStore: new MemoryArtifactStore(),
+      now: clock(),
+      createEventId: sequenceFactory("evt_subagent"),
+    }).run({
+      ...providerRunInput(),
+      repositoryRoot: data.root,
+      workCausality: {
+        relationship: "subagent",
+        workId: root.workCausality.workId,
+        parentRunId: root.session.runId,
+        agentId: `agt_${"a".repeat(24)}`,
+      },
+    });
+
+    expect(child.workCausality).toMatchObject({
+      relationship: "subagent",
+      workId: root.workCausality.workId,
+      parentRunId: root.session.runId,
+    });
+    const causal = data.store
+      .list({ limit: 1000 })
+      .filter((event) => event.type === "work.causality.recorded");
+    expect(causal.filter((event) => event.payload.relationship === "root")).toHaveLength(1);
+    expect(childAdapter.calls[0]).toBe("start");
+    data.store.close();
+  });
+
+  it("rejects a subagent with missing ancestry before provider startup", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("codex");
+    await expect(
+      coordinator(adapter, data.root, data.store).run({
+        ...providerRunInput(),
+        repositoryRoot: data.root,
+        workCausality: {
+          relationship: "subagent",
+          workId: `wrk_${"b".repeat(24)}`,
+          parentRunId: "run_missing_parent",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "contract_validation_failed" });
+    expect(adapter.calls).toEqual([]);
+    expect(data.store.list()).toEqual([]);
+    data.store.close();
+  });
+
+  it("continues after a crash that persisted only the exact causal admission", async () => {
+    const data = await createManagedFixture();
+    const persistedAt = "2026-08-18T00:59:00.000Z";
+    const admission = admitManagedWorkCausality({
+      events: data.store,
+      coordinates: { projectId, runId, sessionId, roleId: role.roleId },
+      occurredAt: persistedAt,
+    });
+    data.store.append({
+      ...admission.spec,
+      eventId: admission.spec.eventId!,
+      projectId,
+      runId,
+      sessionId,
+      policyVersion,
+      schemaVersion: 2,
+    });
+
+    const adapter = new FakeManagedAdapter("codex");
+    await expect(
+      coordinator(adapter, data.root, data.store).run({
+        ...providerRunInput(),
+        repositoryRoot: data.root,
+      }),
+    ).resolves.toMatchObject({ status: "completed" });
+
+    const causal = data.store
+      .list({ runId })
+      .filter((event) => event.type === "work.causality.recorded");
+    expect(causal).toHaveLength(1);
+    expect(causal[0]?.occurredAt).toBe(persistedAt);
+    expect(adapter.calls[0]).toBe("start");
+    data.store.close();
+  });
+
   it("rolls back run start when skill resolution evidence cannot be recorded", async () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("codex");
@@ -95,6 +215,7 @@ describe("managed provider run lifecycle", () => {
       ]);
       expect(adapter.stopReason).toBe("completed");
       expect(data.store.list({ runId }).map((event) => event.type)).toEqual([
+        "work.causality.recorded",
         "run.requested",
         "run.resolved",
         "adapter.started",
@@ -511,6 +632,7 @@ describe("managed provider run lifecycle", () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("codex");
     const events: ManagedEventStore = {
+      list: () => [],
       transact: () => {
         throw new Error("fixture storage failure");
       },

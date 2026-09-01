@@ -53,6 +53,15 @@ const migrations = [
     CREATE INDEX outbox_ready
       ON outbox (acknowledged_at, available_at, lease_expires_at, enqueued_at, event_id);
   `,
+  `
+    CREATE UNIQUE INDEX events_one_work_causality_per_run
+      ON events (project_id, run_id)
+      WHERE type = 'work.causality.recorded';
+    CREATE UNIQUE INDEX events_one_root_per_work
+      ON events (project_id, json_extract(payload_json, '$.workId'))
+      WHERE type = 'work.causality.recorded'
+        AND json_extract(payload_json, '$.relationship') = 'root';
+  `,
 ] as const;
 
 export const storageSchemaVersion = migrations.length;

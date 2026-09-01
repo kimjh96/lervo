@@ -114,6 +114,20 @@ describe("managed CLI deliberation convergence", () => {
       .filter((event) => event.type === "adapter.started")
       .map((event) => event.payload.providerSessionId);
     expect(new Set(sessions).size).toBe(8);
+    const causal = events.filter((event) => event.type === "work.causality.recorded");
+    const roots = causal.filter((event) => event.payload.relationship === "root");
+    expect(roots).toHaveLength(1);
+    expect(causal).toHaveLength(sessions.length + 1);
+    expect(new Set(causal.map((event) => event.payload.workId))).toEqual(
+      new Set([roots[0]!.payload.workId]),
+    );
+    expect(
+      causal
+        .filter((event) => event.payload.relationship !== "root")
+        .every((event) => event.payload.parentRunId === roots[0]!.runId),
+    ).toBe(true);
+    expect(causal.map((event) => event.payload.relationship)).toContain("deliberation");
+    expect(causal.map((event) => event.payload.relationship)).toContain("publication_evaluation");
     expect(JSON.stringify(events)).not.toContain(result.finalContent);
     expect(storage.events.verifyIntegrity().valid).toBe(true);
     await storage.close();

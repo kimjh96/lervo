@@ -7,6 +7,8 @@ import type { EventStore } from "@lervo/storage-contract";
 import { DeliberationRuntimeError, type DeliberationRuntimeCoordinates } from "./types.js";
 
 export interface DeliberationEventSpec {
+  eventId?: string;
+  schemaVersion?: 1 | 2;
   type: Extract<
     EventDraft["type"],
     | "deliberation.started"
@@ -15,6 +17,7 @@ export interface DeliberationEventSpec {
     | "deliberation.completed"
     | "context.published"
     | "handoff.created"
+    | "work.causality.recorded"
   >;
   coordinates: DeliberationRuntimeCoordinates;
   occurredAt: string;
@@ -46,17 +49,17 @@ export class DeliberationEventRecorder {
       return this.events.transact((transaction) => {
         return specs.map((spec) => {
           const result = transaction.append({
-            eventId: this.createEventId(),
+            eventId: spec.eventId ?? this.createEventId(),
             projectId: spec.coordinates.projectId,
             runId: spec.coordinates.runId,
             sessionId: spec.coordinates.sessionId,
-            schemaVersion: 1,
+            schemaVersion: spec.schemaVersion ?? 1,
             policyVersion: this.policyVersion,
             type: spec.type,
             occurredAt: spec.occurredAt,
             actor: spec.actor,
             payload: spec.payload,
-          });
+          } as EventDraft);
           if (result.redactions.length > 0) {
             throw new DeliberationRuntimeError(
               "event_recording_failed",

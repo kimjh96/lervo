@@ -5,3 +5,4 @@ export * from "./handoff-publication.js";
 export * from "./publication-failure.js";
 export * from "./runtime.js";
 export * from "./types.js";
+export * from "./causal-work.js";

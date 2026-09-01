@@ -105,6 +105,7 @@ export async function createManagedFixture(): Promise<ManagedFixture> {
   const store = await SQLiteEventStore.open({
     path: resolve(root, ".lervo/state", "events.sqlite"),
     projectId,
+    writableEventSchemaVersion: 2,
   });
   const session: AdapterSession = {
     kind: "session",
@@ -237,6 +238,7 @@ export async function injectFixtureContext(run: ManagedContextRun, session: Adap
 
 export function failOnEventType(store: SQLiteEventStore, eventType: string): ManagedEventStore {
   return {
+    list: (options) => store.list(options),
     transact: (work) =>
       store.transact((transaction) =>
         work({

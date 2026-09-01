@@ -116,6 +116,9 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../../packages/event-contract
+      '@lervo/execution-contract':
+        specifier: workspace:*
+        version: link:../../packages/execution-contract
       '@lervo/identity-migration':
         specifier: workspace:*
         version: link:../../packages/identity-migration

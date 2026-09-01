@@ -439,6 +439,10 @@ export function createManagedRunExecutor(
       });
       const result = await coordinator.run({
         repositoryRoot: storage.paths.repositoryRoot,
+        workCausality: {
+          relationship: "root",
+          workstreamId: currentWorkstream?.workstreamId ?? null,
+        },
         requestDigest: digest(instructions),
         risk: request.risk.trim(),
         instructions: providerInstructions,

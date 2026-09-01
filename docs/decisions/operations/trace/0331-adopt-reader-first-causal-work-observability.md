@@ -91,6 +91,11 @@ ordinal 1. Every non-root has a parent in the same work. A retry additionally id
 the earlier run and increments its logical attempt ordinal. Failure to append valid
 causality blocks managed provider start.
 
+FH1 implements this writer invariant through
+[ADR-0333](0333-record-causal-work-before-managed-execution.md): causality and request
+admission are atomic, SQLite enforces unique run and root coordinates, deliberation uses
+one control root, and historical unlinked runs remain explicit rather than inferred.
+
 `workId` groups causally related execution. It does not create a new objective, task,
 authority, memory, acceptance, or completion store. Historical version 1 runs project
 as `legacy_unlinked`; readers do not invent ancestry.
