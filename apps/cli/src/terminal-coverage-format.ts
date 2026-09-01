@@ -13,12 +13,22 @@ export function formatTerminalCoverageReport(report: TerminalCoverageReport): st
       item.resources.queryProjection.usage === null
         ? item.resources.queryProjection.reasonCode
         : `${item.resources.queryProjection.usage.totalTokens} tokens (${item.resources.queryProjection.status}: ${item.resources.queryProjection.reasonCode})`;
+    const timing =
+      item.stages.observations.length === 0
+        ? item.stages.missingReasons.join(",")
+        : item.stages.observations
+            .map((observation) => {
+              const total = observation.stages.find((stage) => stage.stageId === "total");
+              return `${observation.hookEvent}=${total?.durationMs ?? "unknown"}ms`;
+            })
+            .join(",");
     return [
       `  ${item.provider} ${item.occurredAt}: prepared=${item.documents.length}`,
       `referenced=${referenced}`,
       `completion=${item.completion.result}`,
       `whole-task=${item.resources.wholeTask.reasonCode}`,
       `query-projection=${queryProjection}`,
+      `timing=${timing}`,
     ].join("; ");
   });
   return [

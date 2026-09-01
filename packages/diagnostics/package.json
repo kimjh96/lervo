@@ -17,6 +17,7 @@
   "dependencies": {
     "@lervo/context-coverage": "workspace:*",
     "@lervo/event-contract": "workspace:*",
+    "@lervo/execution-contract": "workspace:*",
     "@lervo/execution-observability": "workspace:*",
     "@lervo/knowledge": "workspace:*",
     "@lervo/schemas": "workspace:*",

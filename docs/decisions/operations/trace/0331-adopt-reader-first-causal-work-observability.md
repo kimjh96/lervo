@@ -156,8 +156,9 @@ repository snapshot, verification, lifecycle inspection, and total duration. New
 meanings require a catalog version rather than vendor-specific free-form names.
 
 Managed append failure is a telemetry failure with typed report incompleteness. Terminal
-stage persistence is atomic with the terminal observation; internal hook failure returns
-the availability-safe empty response and never records a false success.
+stage persistence and its availability-safe failure meaning are implemented and refined
+by [ADR-0335](0335-record-and-verify-bounded-execution-stage-evidence.md); failure never
+records a false stage success or changes terminal execution authority.
 
 ### Shared work report
 

@@ -10,6 +10,7 @@ import type {
 
 import type { ManagedProviderRunDeadlines } from "./provider-run-deadline.js";
 import type { ManagedProviderRunPhase } from "./provider-run-phase.js";
+import type { ManagedStageTimingOptions } from "./stage-observation.js";
 import type { ManagedContextRunOptions, ManagedPrepareContextInput } from "./types.js";
 import type { CaptureRepositorySnapshot, RepositorySnapshotPolicy } from "./repository-snapshot.js";
 
@@ -79,6 +80,7 @@ export interface ManagedProviderRunOptions extends ManagedContextRunOptions {
   maximumProviderSignals?: number;
   now?: () => Date;
   projectVerifier?: ManagedProjectVerifier;
+  stageTiming?: ManagedStageTimingOptions;
 }
 
 export interface ManagedProviderRunInput {

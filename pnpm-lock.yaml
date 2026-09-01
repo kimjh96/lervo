@@ -785,6 +785,9 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
+      '@lervo/execution-contract':
+        specifier: workspace:*
+        version: link:../execution-contract
       '@lervo/execution-observability':
         specifier: workspace:*
         version: link:../execution-observability
@@ -850,6 +853,15 @@ importers:
         version: link:../schemas
 
   packages/execution-observability:
+    dependencies:
+      '@lervo/execution-contract':
+        specifier: workspace:*
+        version: link:../execution-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
+  packages/execution-performance:
     dependencies:
       '@lervo/execution-contract':
         specifier: workspace:*

@@ -215,13 +215,33 @@ export const executionStageIds = [
   "total",
 ] as const;
 
-const executionStageIdSchema = { type: "string", enum: executionStageIds } as const;
+export const executionStageIdSchema = { type: "string", enum: executionStageIds } as const;
+
+export const executionStageObservationSchema = {
+  type: "object",
+  properties: {
+    stageId: executionStageIdSchema,
+    parentStageId: { anyOf: [executionStageIdSchema, { type: "null" }] },
+    durationMs: { type: "number", minimum: 0 },
+    budgetMs: { anyOf: [{ type: "number", minimum: 0 }, { type: "null" }] },
+    outcome: {
+      type: "string",
+      enum: ["completed", "failed", "cancelled", "timeout", "abstained"],
+    },
+    coldState: { type: "string", enum: ["cold", "warm", "unknown"] },
+  },
+  required: ["stageId", "parentStageId", "durationMs", "budgetMs", "outcome", "coldState"],
+  additionalProperties: false,
+} as const;
 
 const executionStagesObservedProperties = {
   executionMode: { type: "string", enum: ["managed", "unmanaged_terminal"] },
   workId: { anyOf: [workIdSchema, { type: "null" }] },
   terminalObservationId: {
     anyOf: [{ type: "string", pattern: "^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$" }, { type: "null" }],
+  },
+  terminalHook: {
+    anyOf: [{ type: "string", enum: ["UserPromptSubmit", "Stop"] }, { type: "null" }],
   },
   observationSetId: { type: "string", pattern: "^stgobs_[a-f0-9]{24}$" },
   stageCatalogVersion: { type: "integer", const: 1 },
@@ -231,22 +251,7 @@ const executionStagesObservedProperties = {
     type: "array",
     minItems: 1,
     maxItems: 32,
-    items: {
-      type: "object",
-      properties: {
-        stageId: executionStageIdSchema,
-        parentStageId: { anyOf: [executionStageIdSchema, { type: "null" }] },
-        durationMs: { type: "number", minimum: 0 },
-        budgetMs: { anyOf: [{ type: "number", minimum: 0 }, { type: "null" }] },
-        outcome: {
-          type: "string",
-          enum: ["completed", "failed", "cancelled", "timeout", "abstained"],
-        },
-        coldState: { type: "string", enum: ["cold", "warm", "unknown"] },
-      },
-      required: ["stageId", "parentStageId", "durationMs", "budgetMs", "outcome", "coldState"],
-      additionalProperties: false,
-    },
+    items: executionStageObservationSchema,
   },
 } as const;
 
@@ -271,6 +276,7 @@ export const executionStagesObservedEventPayloadSchema = {
         executionMode: { const: "managed" },
         workId: workIdSchema,
         terminalObservationId: { type: "null" },
+        terminalHook: { type: "null" },
       },
       required: ["executionMode", "workId", "terminalObservationId"],
     },
@@ -282,6 +288,7 @@ export const executionStagesObservedEventPayloadSchema = {
           type: "string",
           pattern: "^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
         },
+        terminalHook: { type: "string", enum: ["UserPromptSubmit", "Stop"] },
       },
       required: ["executionMode", "workId", "terminalObservationId"],
     },

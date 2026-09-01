@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { runTerminalCommand } from "./terminal-command.js";
 import { projectProductionSearchQueries } from "./provider-query-projector.js";
+import { createTerminalStageObservation } from "./terminal-stage-observation.js";
 
 async function verifiedRuntime(): Promise<boolean> {
   try {
@@ -47,6 +48,7 @@ if (!(await verifiedRuntime())) {
     },
     {
       projectSearchQueries: projectProductionSearchQueries,
+      createTerminalStageObservation,
     },
   );
 }

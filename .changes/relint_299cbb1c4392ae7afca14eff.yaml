@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_299cbb1c4392ae7afca14eff"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add bounded execution stage evidence and terminal performance reporting."

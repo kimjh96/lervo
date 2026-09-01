@@ -23,6 +23,11 @@ describe("terminal coverage format", () => {
               usage: { totalTokens: 8 },
             },
           },
+          stages: {
+            completeness: "unavailable",
+            missingReasons: ["stage_observation_missing"],
+            observations: [],
+          },
         },
       ],
     } as unknown as TerminalCoverageReport;

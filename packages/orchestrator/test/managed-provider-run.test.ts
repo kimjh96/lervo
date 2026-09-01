@@ -228,6 +228,7 @@ describe("managed provider run lifecycle", () => {
         "adapter.result.captured",
         "adapter.stopped",
         "resource.usage.recorded",
+        "execution.stages.observed",
         "run.completed",
       ]);
       const serialized = JSON.stringify(data.store.list({ runId }));

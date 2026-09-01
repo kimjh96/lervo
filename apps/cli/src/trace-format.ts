@@ -60,6 +60,10 @@ export function formatWorkExecutionReport(report: WorkExecutionReport): string {
         `  ${group.provider} · ${group.scope} · ${group.accountingMode} · ${group.totalUsage === null ? "unavailable" : `${group.totalUsage.totalTokens} tokens`}`,
     ),
     `Execution stages: ${report.stages.completeness}`,
+    ...report.stages.observations.map((observation) => {
+      const total = observation.stages.find((stage) => stage.stageId === "total");
+      return `  ${observation.runId} · ${observation.repositoryProfile} · ${total === undefined ? "total unavailable" : `${total.durationMs}ms ${total.outcome}`}`;
+    }),
     `Cost: ${report.cost.status}`,
     ...(report.missingReasons.length === 0
       ? []

@@ -10,7 +10,11 @@ import {
   sha256Schema,
   timestampSchema,
 } from "./common.js";
-import { resourceUsageSchema } from "./execution-observability-event.js";
+import {
+  executionStageObservationSchema,
+  resourceUsageSchema,
+} from "./execution-observability-event.js";
+import { repositoryPerformanceProfileSchema } from "./execution-environment-profile.js";
 
 const resourceObservationSchema = {
   type: "object",
@@ -77,6 +81,47 @@ const terminalDocumentObservationSchema = {
   additionalProperties: false,
 } as const;
 
+const terminalStageCoverageSchema = {
+  type: "object",
+  properties: {
+    completeness: { type: "string", enum: ["complete", "partial", "unavailable", "invalid"] },
+    missingReasons: {
+      type: "array",
+      items: { type: "string", pattern: "^[a-z][a-z0-9_]{0,63}$" },
+      uniqueItems: true,
+    },
+    observations: {
+      type: "array",
+      maxItems: 2,
+      items: {
+        type: "object",
+        properties: {
+          hookEvent: { type: "string", enum: ["UserPromptSubmit", "Stop"] },
+          observationSetId: { type: "string", pattern: "^stgobs_[a-f0-9]{24}$" },
+          environmentProfileDigest: sha256Schema,
+          repositoryProfile: repositoryPerformanceProfileSchema,
+          stages: {
+            type: "array",
+            minItems: 1,
+            maxItems: 32,
+            items: executionStageObservationSchema,
+          },
+        },
+        required: [
+          "hookEvent",
+          "observationSetId",
+          "environmentProfileDigest",
+          "repositoryProfile",
+          "stages",
+        ],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["completeness", "missingReasons", "observations"],
+  additionalProperties: false,
+} as const;
+
 const terminalTurnCoverageSchema = {
   type: "object",
   properties: {
@@ -139,6 +184,7 @@ const terminalTurnCoverageSchema = {
       required: ["wholeTask", "queryProjection"],
       additionalProperties: false,
     },
+    stages: terminalStageCoverageSchema,
   },
   required: [
     "executionMode",
@@ -156,6 +202,7 @@ const terminalTurnCoverageSchema = {
     "coverage",
     "completion",
     "resources",
+    "stages",
   ],
   additionalProperties: false,
 } as const;

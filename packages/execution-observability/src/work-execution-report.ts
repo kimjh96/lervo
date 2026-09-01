@@ -1,5 +1,6 @@
-import { validateWorkCausalityHistory } from "@lervo/execution-contract";
+import { assertExecutionStageSet, validateWorkCausalityHistory } from "@lervo/execution-contract";
 import {
+  type ExecutionStagesObservedEventPayload,
   type EventEnvelope,
   type ResourceUsage,
   type ResourceUsageRecordedEventPayload,
@@ -221,22 +222,67 @@ export function projectWorkExecutionReport(input: {
     resourceReasons,
   );
   const stageEvents = workEvents.filter((event) => event.type === "execution.stages.observed");
-  const invalidStage = stageEvents.some(
-    (event) =>
-      !validateSchema("executionStagesObservedEventPayload", event.payload).valid ||
-      (event.payload as { executionMode?: unknown }).executionMode !== "managed" ||
-      (event.payload as { workId?: unknown }).workId !== input.workId,
-  );
-  const stageReasons = invalidStage
-    ? ["stage_observation_invalid"]
-    : stageEvents.length === 0
-      ? ["stage_observation_missing"]
-      : [];
+  const stageObservationById = new Map<
+    string,
+    { runId: string; payload: ExecutionStagesObservedEventPayload }
+  >();
+  const stageObservationIdByRun = new Map<string, string>();
+  let invalidStage = false;
+  for (const event of stageEvents) {
+    if (!validateSchema("executionStagesObservedEventPayload", event.payload).valid) {
+      invalidStage = true;
+      continue;
+    }
+    const payload = event.payload as ExecutionStagesObservedEventPayload;
+    try {
+      assertExecutionStageSet(payload.stages);
+    } catch {
+      invalidStage = true;
+      continue;
+    }
+    if (
+      payload.executionMode !== "managed" ||
+      payload.workId !== input.workId ||
+      !runIds.has(event.runId)
+    ) {
+      invalidStage = true;
+      continue;
+    }
+    const observation = { runId: event.runId, payload };
+    const existing = stageObservationById.get(payload.observationSetId);
+    if (existing !== undefined) {
+      if (JSON.stringify(existing) !== JSON.stringify(observation)) invalidStage = true;
+      continue;
+    }
+    const runObservationId = stageObservationIdByRun.get(event.runId);
+    if (runObservationId !== undefined && runObservationId !== payload.observationSetId) {
+      invalidStage = true;
+      continue;
+    }
+    stageObservationIdByRun.set(event.runId, payload.observationSetId);
+    stageObservationById.set(payload.observationSetId, observation);
+  }
+  const stageObservations = [...stageObservationById.values()]
+    .map((observation) => ({
+      runId: observation.runId,
+      observationSetId: observation.payload.observationSetId,
+      environmentProfileDigest: observation.payload.environmentProfileDigest,
+      repositoryProfile: observation.payload.repositoryProfile,
+      stages: observation.payload.stages,
+    }))
+    .sort((left, right) => left.runId.localeCompare(right.runId));
+  const missingStageRunCount = runs.filter((run) => !stageObservationIdByRun.has(run.runId)).length;
+  const stageReasons = uniqueSorted([
+    ...(invalidStage ? ["stage_observation_invalid"] : []),
+    ...(missingStageRunCount > 0 ? ["stage_observation_missing"] : []),
+  ]);
   const stageCompleteness = invalidStage
     ? "invalid"
-    : stageEvents.length === 0
+    : stageObservations.length === 0
       ? "unavailable"
-      : "complete";
+      : missingStageRunCount > 0
+        ? "partial"
+        : "complete";
   const missingReasons = uniqueSorted([...resourceReasons, ...stageReasons]);
   const report = {
     reportKind: "managed_work_execution",
@@ -259,7 +305,8 @@ export function projectWorkExecutionReport(input: {
     stages: {
       completeness: stageCompleteness,
       missingReasons: stageReasons,
-      observationSetCount: stageEvents.length,
+      observationSetCount: stageObservations.length,
+      observations: stageObservations,
     },
     cost: { status: "not_in_foundation_scope" },
   } as WorkExecutionReport;

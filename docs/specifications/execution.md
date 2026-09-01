@@ -96,14 +96,10 @@ Human writing binds `publication.language` to `writing_en-human`, semantic check
 
 The [execution events and privacy specification](execution/events-and-privacy.md) defines allowlisted payloads, workforce events, knowledge and terminal integration events, additive terminal-observation compatibility, workstream snapshots, activation receipts, coverage, privacy exclusions, and failure meaning. Events remain canonical hash-chained evidence; absent telemetry never becomes inferred success or provider-use claims. Managed linked-evidence canary record bounds and privacy exclusions remain defined by its specification.
 
-Event readers accept immutable version 1 history and mixed version 1/version 2 chains.
-Unsupported integer envelope versions fail with `event_schema_unsupported` before
-mutation; malformed supported envelopes fail with `event_invalid` or the boundary's
-integrity error. Version 1 remains the default writer. After activation, managed paths
-emit one version 2 causal event before `run.requested`; a version 1 writer blocks
-provider startup. Resource and stage events remain reader-only, so absence proves
-neither zero usage nor successful observation. Historical runs without causality are
-`legacy_unlinked`; ancestry is never inferred.
+Reader compatibility, writer activation, and failure codes belong to the linked event
+specification. [Stage observation and performance](execution/stage-observation-and-performance.md)
+defines timing, environment, projection, and performance gates. Missing evidence never
+becomes success, zero usage, duration, or inferred ancestry.
 
 ## 11. Durable apply and recovery
 
@@ -145,3 +141,4 @@ Verification covers schema and redaction tests; shared adapter contracts; write 
 - [Bounded publication ADR](../decisions/knowledge/repository/0190-language-aware-bounded-repository-publication.md)
 - [Hub and Node coordination](coordination/hub-and-node.md)
 - [Capability package supply chain](execution/capabilities.md)
+- [Stage observation and performance](execution/stage-observation-and-performance.md)

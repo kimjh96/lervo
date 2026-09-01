@@ -59,6 +59,7 @@ import {
   resourceUsageRecordedEventPayloadSchema,
   workCausalityRecordedEventPayloadSchema,
 } from "./execution-observability-event.js";
+import { executionEnvironmentProfileSchema } from "./execution-environment-profile.js";
 import { resourceAccountingDescriptorSchema } from "./resource-accounting.js";
 import { workExecutionReportSchema } from "./work-execution-report.js";
 import {
@@ -263,6 +264,7 @@ const validators = {
   resourceAccountingDescriptor: ajv.compile(resourceAccountingDescriptorSchema),
   workExecutionReport: ajv.compile(workExecutionReportSchema),
   executionStagesObservedEventPayload: ajv.compile(executionStagesObservedEventPayloadSchema),
+  executionEnvironmentProfile: ajv.compile(executionEnvironmentProfileSchema),
   projectRegistrationRequest: ajv.compile(projectRegistrationRequestSchema),
   projectRegistrationResponse: ajv.compile(projectRegistrationResponseSchema),
   outboundEventBatch: ajv.compile(outboundEventBatchSchema),

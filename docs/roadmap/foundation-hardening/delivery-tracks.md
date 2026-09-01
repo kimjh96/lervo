@@ -126,6 +126,16 @@ at least 30 and publish p50, p95, and maximum; p99 remains unavailable below 100
 changes require environment evidence, not a slower timeout. An optimization fails if it
 improves latency while violating retrieval, exact-load, privacy, or lifecycle contracts.
 
+Implementation state on 2026-09-01: FH3 is implemented. Managed and direct terminal
+paths emit bounded monotonic stage sets through version 2 writers and retain typed
+absence for version 1 or failed direct observations. Work trace and terminal coverage
+use shared pure projections. The provider-free benchmark verifies six cold, warm,
+small, medium, large, Stop, and concurrent profiles with 100 alternating pairs, exact
+environment and source digests, resource distributions, stage diagnosis, signed
+instrumentation overhead, and paired retrieval, lifecycle, and privacy checks. The
+checked evidence and strict budgets are recorded in
+[foundation execution performance evidence](../../evidence/foundation/execution-performance-v1.md).
+
 ## FH4: Adverse-condition proof
 
 Prove current effects safe before a loop can repeat them.

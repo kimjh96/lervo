@@ -16,8 +16,8 @@ and Hub intake reject it before mutation. Invalid hashes and payload allowlists 
 integrity failures rather than unsupported-version failures.
 
 Envelope version 2 makes the following payload contracts readable. FH1 emits the causal
-contract and FH2 emits managed resource observations; the stage contract remains
-reader-only until FH3:
+contract, FH2 emits managed resource observations, and FH3 emits bounded managed and
+direct-terminal stage observations:
 
 - `work.causality.recorded` retains opaque work, run-relationship, attempt, workstream,
   assignment, and agent coordinates. Root, retry, and other child shapes are
@@ -33,9 +33,14 @@ reader-only until FH3:
   a canonical local CAS descriptor, not this event. A descriptor-storage failure creates
   no dangling resource observation.
 - `execution.stages.observed` retains managed or unmanaged mode, an opaque work or
-  terminal coordinate, observation and environment digests, repository profile, and at
-  most 32 catalogued stage results. It excludes paths, prompts, queries, outputs,
-  credentials, and vendor span names.
+  terminal coordinate, nullable managed work ID, nullable terminal hook, observation
+  and environment digests, repository profile, and at most 32 catalogued stage results.
+  Current managed producers use a null terminal hook; current direct producers use
+  `UserPromptSubmit` or `Stop`. Historical sets without this additive field remain
+  readable but project with an unavailable hook coordinate. The canonical local CAS
+  environment profile contains build, nullable adapter and provider,
+  OS, architecture, Node, corpus counts when observed, cache state, and concurrency. It
+  excludes paths, prompts, queries, outputs, credentials, and vendor span names.
 
 All three payloads use exact top-level allowlists. Resource counter names are the only
 approved token-like nested keys. Schema, discriminator, arithmetic, or privacy failure
@@ -43,6 +48,13 @@ prevents sync acceptance and creates no observation success. Missing resource or
 events mean `unobserved`, not zero usage or successful stage measurement. A requested
 historical run without a causal event is `legacy_unlinked`; missing ancestry is never
 reconstructed from correlation.
+
+Managed stage-profile persistence fails before provider startup. A direct version 1
+writer skips version 2 stage evidence without blocking the hook. Direct measurement or
+persistence failure emits no false stage success and leaves terminal coverage partial or
+unavailable; it does not erase or reinterpret a valid context or turn event. Exact
+observation-set duplicates are idempotent, while contradictory IDs, invalid trees,
+duplicate hook sets, and cross-run or cross-session joins make the projection invalid.
 
 ## Workforce events
 
@@ -126,6 +138,7 @@ hash; it does not combine cross-provider totals or infer price.
 ## References
 
 - [Execution specification](../execution.md)
+- [Stage observation and performance](stage-observation-and-performance.md)
 - [Additive terminal observation compatibility](../../decisions/execution/providers/0208-additive-terminal-observation-schema-compatibility.md)
 - [Conflict-safe repository agent workforce](../../decisions/execution/orchestration/0205-conflict-safe-repository-agent-workforce.md)
 - [Isolated agent workspace lifecycle](../../decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md)

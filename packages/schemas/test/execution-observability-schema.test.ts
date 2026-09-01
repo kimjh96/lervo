@@ -36,4 +36,31 @@ describe("execution observability schemas", () => {
     };
     expect(validateSchema("terminalCoverageReport", base).valid).toBe(true);
   });
+
+  it("validates privacy-safe runtime and benchmark environment profiles", () => {
+    const profile = {
+      kind: "execution_environment_profile",
+      schemaVersion: 1,
+      profileSource: "runtime_derived",
+      lervoBuildDigest: `sha256:${"a".repeat(64)}`,
+      adapterId: "lervo/codex",
+      adapterVersion: "1.0.0",
+      provider: "codex",
+      operatingSystem: "darwin",
+      architecture: "arm64",
+      nodeVersion: "v22.13.0",
+      repositoryProfile: "custom",
+      repositoryDocumentCount: null,
+      repositoryByteCount: null,
+      cacheState: "unknown",
+      concurrency: 1,
+    };
+    expect(validateSchema("executionEnvironmentProfile", profile).valid).toBe(true);
+    expect(
+      validateSchema("executionEnvironmentProfile", {
+        ...profile,
+        adapterId: null,
+      }).valid,
+    ).toBe(false);
+  });
 });

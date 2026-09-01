@@ -5,6 +5,7 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import type { ExecuteManagedRun } from "./managed-run.js";
 import type { ExecuteManagedDeliberation } from "./managed-deliberation.js";
 import type { GroundProductionRequest } from "./semantic-grounding.js";
+import type { CreateTerminalStageObservation } from "./terminal-stage-observation.js";
 import type {
   PrepareProductionSearchQueries,
   ProjectProductionSearchQueries,
@@ -32,6 +33,7 @@ export interface CliServices {
   }): Promise<EnvironmentObservation>;
   groundProductionRequest: GroundProductionRequest;
   projectSearchQueries: ProjectProductionSearchQueries;
+  createTerminalStageObservation: CreateTerminalStageObservation;
   prepareSearchQueries?: PrepareProductionSearchQueries | undefined;
 }
 

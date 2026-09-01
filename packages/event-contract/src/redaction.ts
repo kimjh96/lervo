@@ -600,6 +600,7 @@ export const eventPayloadAllowlists = {
     "executionMode",
     "workId",
     "terminalObservationId",
+    "terminalHook",
     "observationSetId",
     "stageCatalogVersion",
     "environmentProfileDigest",

@@ -78,6 +78,7 @@ describe("reader-first event envelope compatibility", () => {
       executionMode: "managed",
       workId: `wrk_${"b".repeat(24)}`,
       terminalObservationId: null,
+      terminalHook: null,
       observationSetId: `stgobs_${"d".repeat(24)}`,
       stageCatalogVersion: 1,
       environmentProfileDigest: hash,
@@ -94,10 +95,22 @@ describe("reader-first event envelope compatibility", () => {
       ],
     };
     expect(validateSchema("executionStagesObservedEventPayload", stages).valid).toBe(true);
+    const legacyStages = { ...stages } as Record<string, unknown>;
+    delete legacyStages.terminalHook;
+    expect(validateSchema("executionStagesObservedEventPayload", legacyStages).valid).toBe(true);
+    expect(
+      validateSchema("executionStagesObservedEventPayload", {
+        ...legacyStages,
+        executionMode: "unmanaged_terminal",
+        workId: null,
+        terminalObservationId: "tobs_terminal_01",
+      }).valid,
+    ).toBe(true);
     expect(
       validateSchema("executionStagesObservedEventPayload", {
         ...stages,
         terminalObservationId: "tobs_terminal_01",
+        terminalHook: "Stop",
       }).valid,
     ).toBe(false);
   });

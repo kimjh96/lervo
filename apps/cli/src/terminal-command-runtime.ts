@@ -38,6 +38,8 @@ import { selectTerminalContextCandidates } from "./terminal-context-selection.js
 import { createCurrentWorkstreamSearchProjectionContext } from "./search-projection-context.js";
 import { inspectTerminalInstructionCatalog } from "./terminal-durable-instruction.js";
 import { formatTerminalCoverageReport } from "./terminal-coverage-format.js";
+import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
+import { recordTerminalStageObservation } from "./terminal-stage-persistence.js";
 import {
   readPreparedRepositorySnapshot,
   writePreparedRepositorySnapshot,
@@ -206,6 +208,7 @@ async function promptContext(
   observationId: string,
   workspaceBinding: TerminalWorkspaceBinding | null,
   services: Pick<CliServices, "projectSearchQueries">,
+  timing: TerminalStageObservationPort,
 ): Promise<{
   additionalContext: string;
   sourceSnapshotId: string;
@@ -244,33 +247,41 @@ async function promptContext(
     selectedCount: number;
   };
 }> {
-  const supplementalSources = await collectLocalKnowledgeSources(root);
-  const instructionCatalog = await inspectTerminalInstructionCatalog({
-    repositoryRoot: root,
-    supplementalSources,
-  });
-  const workstreamStorage = await openProjectStorage(root);
-  let currentWorkstream;
-  const projectId = workstreamStorage.manifest.projectId;
-  try {
-    currentWorkstream = await verifiedCurrentWorkstream(workstreamStorage);
-  } finally {
-    await workstreamStorage.close();
-  }
+  const { supplementalSources, instructionCatalog, currentWorkstream, projectId } =
+    await timing.measure("corpus_preparation", async () => {
+      const supplementalSources = await collectLocalKnowledgeSources(root);
+      const instructionCatalog = await inspectTerminalInstructionCatalog({
+        repositoryRoot: root,
+        supplementalSources,
+      });
+      const workstreamStorage = await openProjectStorage(root);
+      try {
+        return {
+          supplementalSources,
+          instructionCatalog,
+          currentWorkstream: await verifiedCurrentWorkstream(workstreamStorage),
+          projectId: workstreamStorage.manifest.projectId,
+        };
+      } finally {
+        await workstreamStorage.close();
+      }
+    });
   const searchProjectionContext =
     currentWorkstream === null
       ? { context: { contextRequirement: "none" }, contextAnchors: [] }
       : createCurrentWorkstreamSearchProjectionContext(currentWorkstream);
   const requestDigest = sha256(prompt);
-  const queryProjection = await services.projectSearchQueries({
-    request: prompt,
-    requestDigest,
-    context: searchProjectionContext.context,
-    contextDigest: sha256(canonicalJson(searchProjectionContext.context)),
-    contextAnchors: searchProjectionContext.contextAnchors,
-    requestedLanguage: instructionCatalog.semanticCatalog.retrievalLanguage,
-    provider,
-  });
+  const queryProjection = await timing.measure("projection_admission", () =>
+    services.projectSearchQueries({
+      request: prompt,
+      requestDigest,
+      context: searchProjectionContext.context,
+      contextDigest: sha256(canonicalJson(searchProjectionContext.context)),
+      contextAnchors: searchProjectionContext.contextAnchors,
+      requestedLanguage: instructionCatalog.semanticCatalog.retrievalLanguage,
+      provider,
+    }),
+  );
   const grounding = {
     status: "abstain" as const,
     workflowId: null,
@@ -286,120 +297,129 @@ async function promptContext(
     targetPath: null,
     reasonIds: ["unmanaged_terminal_retrieval_only"],
   };
-  const repositorySnapshot = await captureRepositorySnapshot(root);
-  const selection = await selectTerminalContextCandidates({
-    repositoryRoot: root,
-    projectId,
-    provider,
-    projection: queryProjection,
-    retrievalQueries: queryProjection.queries,
-    sourceSnapshotId: instructionCatalog.sourceSnapshotId,
-    supplementalSources,
-  });
-  const workstream =
-    currentWorkstream === null
-      ? null
-      : (() => {
-          const full = formatWorkstreamContext(currentWorkstream);
-          const noticeBytes = Buffer.byteLength(TRUNCATION_NOTICE);
-          const context =
-            Buffer.byteLength(full) <= MAXIMUM_WORKSTREAM_CONTEXT_BYTES
-              ? full
-              : `${truncateUtf8(full, MAXIMUM_WORKSTREAM_CONTEXT_BYTES - noticeBytes)}${TRUNCATION_NOTICE}`;
-          return {
-            workstreamId: currentWorkstream.workstreamId,
-            revision: currentWorkstream.revision,
-            snapshotHash: sha256(`${canonicalJson(currentWorkstream)}\n`),
-            scope: context === full ? ("full" as const) : ("prefix" as const),
-            deliveredByteCount: Buffer.byteLength(context),
-            context,
-          };
-        })();
-  const finalizationInstruction =
-    workspaceBinding?.executionKind === "worker"
-      ? [
-          `This direct provider turn is attached to worker workspace ${workspaceBinding.workspaceId} generation ${workspaceBinding.workspaceGeneration}; provider execution remains unmanaged, while checkout ownership and Stop isolation are evidence-bound.`,
-          "Change only assignment-scoped paths. Worker Stop rechecks the ownership marker, writer session, assignment lease, exact workspace revision, and path-scoped diff, then records a workspace checkpoint. It does not advance the repository-wide workstream or repair knowledge movement owned by another workspace.",
-          "Commit only when the task or sealing flow requires it; Lervo never invents or silently commits unfinished bytes.",
-        ].join("\n\n")
-      : `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${provider} --observation ${observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; it is not proof of internal reasoning. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
-  const workstreamInstruction =
-    workspaceBinding?.executionKind === "worker"
-      ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping."
-      : workstream === null
-        ? "If this turn changes repository-authored bytes, the agent must create a bounded checkpoint through the `lervo workstream start --actor agent --provider <current-provider>` plan/apply flow before completion. A read-only inquiry does not create artificial continuation state. The user must not be asked to run bookkeeping commands."
-        : "If this turn changes repository-authored bytes, the agent must record the next bounded revision through the `lervo workstream update --actor agent --provider <current-provider>` plan/apply flow before completion. Preserve identity and origin, replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.";
-  const preamble = [
-    "Lervo terminal integration v2 used a provider-neutral query projection only for read-only candidate retrieval in the current repository. It did not resolve effects, authority, execution, external systems, or cross-repository routing.",
-    `effectGroundingStatus: ${grounding.status}; workflowId: none; reasons: ${grounding.reasons.join(",")}`,
-    `selectionDisposition: ${selection.disposition}; candidates: ${selection.candidates.length}; selected: ${selection.selected.length}`,
-    `retrievalPlanId: ${selection.retrievalPlanId ?? "baseline"}; transition: ${selection.retrievalPlanTransitionId ?? "none"}`,
-    `queryProjectionStatus: ${queryProjection.receipt.status}; queries: ${queryProjection.receipt.projectedQueryCount}; receipt: ${queryProjection.receipt.receiptId}`,
-    `sourceSnapshotId: ${selection.sourceSnapshotId}`,
-    "This search covers only registered knowledge in the current repository. An empty or failed result is not evidence that content is absent from another repository or any external or shared service. Inspect those surfaces through their available tools and configured authority independently.",
-    "The following exact-hash publications were loaded and prepared for return through the provider hook. This proves hook-side preparation, not provider acceptance, managed delivery, understanding, or later use.",
-    "Use current repository bytes as authority, follow AGENTS.md, and do not treat a recommendation as semantic truth.",
-    `durableInstructionStatus: ${durableInstruction.status}; ruleId: none; targetPath: none; reasons: ${durableInstruction.reasonIds.join(",")}. Direct prompt preparation never materializes a repository rule; use the repository's explicit instruction lifecycle for durable changes.`,
-    "If the final response explicitly relies on a supplied publication, append its exact Lervo evidence marker as a standalone Markdown HTML comment. Keep the marker out of prose and code. Markdown renderers hide the comment, while raw output retains verifiable evidence. A marker proves only an output reference, never understanding or internal use.",
-    finalizationInstruction,
-    workstreamInstruction,
-  ].join("\n\n");
-  const sections: string[] = [];
-  const documents: PreparedDocument[] = [];
-  let usedBytes =
-    Buffer.byteLength(preamble) +
-    (workstream === null ? 0 : Buffer.byteLength("\n\n") + workstream.deliveredByteCount);
-  for (const hit of selection.selected) {
-    const sectionPrefix = [
-      `## ${hit.path}`,
-      `Lervo recommendation: score=${hit.score}; freshness=${hit.freshness}; assurance=${hit.assurance}; contentHash=${hit.contentHash}`,
-      `Lervo evidence marker: ${evidenceMarker(hit)}`,
-      "",
-    ].join("\n");
-    const separatorBytes = Buffer.byteLength("\n\n");
-    const availableBytes =
-      MAXIMUM_CONTEXT_BYTES - usedBytes - separatorBytes - Buffer.byteLength(sectionPrefix);
-    const content = await loadSelectedTerminalDocument({
+  const repositorySnapshot = await timing.measure("repository_snapshot", () =>
+    captureRepositorySnapshot(root),
+  );
+  const selection = await timing.measure("search", () =>
+    selectTerminalContextCandidates({
       repositoryRoot: root,
-      hit,
-      maximumBytes: Math.min(availableBytes, MAXIMUM_DOCUMENT_CONTEXT_BYTES),
+      projectId,
+      provider,
+      projection: queryProjection,
+      retrievalQueries: queryProjection.queries,
+      sourceSnapshotId: instructionCatalog.sourceSnapshotId,
+      supplementalSources,
+    }),
+  );
+  const assembled = await timing.measure("context_assembly", async () => {
+    const workstream =
+      currentWorkstream === null
+        ? null
+        : (() => {
+            const full = formatWorkstreamContext(currentWorkstream);
+            const noticeBytes = Buffer.byteLength(TRUNCATION_NOTICE);
+            const context =
+              Buffer.byteLength(full) <= MAXIMUM_WORKSTREAM_CONTEXT_BYTES
+                ? full
+                : `${truncateUtf8(full, MAXIMUM_WORKSTREAM_CONTEXT_BYTES - noticeBytes)}${TRUNCATION_NOTICE}`;
+            return {
+              workstreamId: currentWorkstream.workstreamId,
+              revision: currentWorkstream.revision,
+              snapshotHash: sha256(`${canonicalJson(currentWorkstream)}\n`),
+              scope: context === full ? ("full" as const) : ("prefix" as const),
+              deliveredByteCount: Buffer.byteLength(context),
+              context,
+            };
+          })();
+    const finalizationInstruction =
+      workspaceBinding?.executionKind === "worker"
+        ? [
+            `This direct provider turn is attached to worker workspace ${workspaceBinding.workspaceId} generation ${workspaceBinding.workspaceGeneration}; provider execution remains unmanaged, while checkout ownership and Stop isolation are evidence-bound.`,
+            "Change only assignment-scoped paths. Worker Stop rechecks the ownership marker, writer session, assignment lease, exact workspace revision, and path-scoped diff, then records a workspace checkpoint. It does not advance the repository-wide workstream or repair knowledge movement owned by another workspace.",
+            "Commit only when the task or sealing flow requires it; Lervo never invents or silently commits unfinished bytes.",
+          ].join("\n\n")
+        : `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${provider} --observation ${observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; it is not proof of internal reasoning. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
+    const workstreamInstruction =
+      workspaceBinding?.executionKind === "worker"
+        ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping."
+        : workstream === null
+          ? "If this turn changes repository-authored bytes, the agent must create a bounded checkpoint through the `lervo workstream start --actor agent --provider <current-provider>` plan/apply flow before completion. A read-only inquiry does not create artificial continuation state. The user must not be asked to run bookkeeping commands."
+          : "If this turn changes repository-authored bytes, the agent must record the next bounded revision through the `lervo workstream update --actor agent --provider <current-provider>` plan/apply flow before completion. Preserve identity and origin, replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.";
+    const preamble = [
+      "Lervo terminal integration v2 used a provider-neutral query projection only for read-only candidate retrieval in the current repository. It did not resolve effects, authority, execution, external systems, or cross-repository routing.",
+      `effectGroundingStatus: ${grounding.status}; workflowId: none; reasons: ${grounding.reasons.join(",")}`,
+      `selectionDisposition: ${selection.disposition}; candidates: ${selection.candidates.length}; selected: ${selection.selected.length}`,
+      `retrievalPlanId: ${selection.retrievalPlanId ?? "baseline"}; transition: ${selection.retrievalPlanTransitionId ?? "none"}`,
+      `queryProjectionStatus: ${queryProjection.receipt.status}; queries: ${queryProjection.receipt.projectedQueryCount}; receipt: ${queryProjection.receipt.receiptId}`,
+      `sourceSnapshotId: ${selection.sourceSnapshotId}`,
+      "This search covers only registered knowledge in the current repository. An empty or failed result is not evidence that content is absent from another repository or any external or shared service. Inspect those surfaces through their available tools and configured authority independently.",
+      "The following exact-hash publications were loaded and prepared for return through the provider hook. This proves hook-side preparation, not provider acceptance, managed delivery, understanding, or later use.",
+      "Use current repository bytes as authority, follow AGENTS.md, and do not treat a recommendation as semantic truth.",
+      `durableInstructionStatus: ${durableInstruction.status}; ruleId: none; targetPath: none; reasons: ${durableInstruction.reasonIds.join(",")}. Direct prompt preparation never materializes a repository rule; use the repository's explicit instruction lifecycle for durable changes.`,
+      "If the final response explicitly relies on a supplied publication, append its exact Lervo evidence marker as a standalone Markdown HTML comment. Keep the marker out of prose and code. Markdown renderers hide the comment, while raw output retains verifiable evidence. A marker proves only an output reference, never understanding or internal use.",
+      finalizationInstruction,
+      workstreamInstruction,
+    ].join("\n\n");
+    const sections: string[] = [];
+    const documents: PreparedDocument[] = [];
+    let usedBytes =
+      Buffer.byteLength(preamble) +
+      (workstream === null ? 0 : Buffer.byteLength("\n\n") + workstream.deliveredByteCount);
+    for (const hit of selection.selected) {
+      const sectionPrefix = [
+        `## ${hit.path}`,
+        `Lervo recommendation: score=${hit.score}; freshness=${hit.freshness}; assurance=${hit.assurance}; contentHash=${hit.contentHash}`,
+        `Lervo evidence marker: ${evidenceMarker(hit)}`,
+        "",
+      ].join("\n");
+      const separatorBytes = Buffer.byteLength("\n\n");
+      const availableBytes =
+        MAXIMUM_CONTEXT_BYTES - usedBytes - separatorBytes - Buffer.byteLength(sectionPrefix);
+      const content = await timing.measureChild("exact_loading", "context_assembly", () =>
+        loadSelectedTerminalDocument({
+          repositoryRoot: root,
+          hit,
+          maximumBytes: Math.min(availableBytes, MAXIMUM_DOCUMENT_CONTEXT_BYTES),
+        }),
+      );
+      if (content === null) continue;
+      const section = `${sectionPrefix}${content.content}`;
+      sections.push(section);
+      documents.push({
+        conceptId: hit.conceptId,
+        path: hit.path,
+        contentHash: hit.contentHash,
+        scope: content.scope,
+        deliveredByteCount: Buffer.byteLength(content.content),
+        assurance: hit.assurance,
+        freshness: hit.freshness,
+      });
+      usedBytes += separatorBytes + Buffer.byteLength(section);
+      if (MAXIMUM_CONTEXT_BYTES - usedBytes <= 512) break;
+    }
+    const fallback =
+      selection.disposition === "query_projection_missing"
+        ? "No current-repository publication was selected because query projection was unavailable. This says nothing about other repositories or external surfaces. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes."
+        : selection.disposition === "no_candidates"
+          ? "No registered publication in the current repository matched the validated query projection. This says nothing about other repositories or external surfaces. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes."
+          : "Selected publications could not be exact-hash loaded. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes.";
+    const additionalContext = assembleTerminalHookContext({
+      preamble,
+      workstreamContext: workstream?.context ?? null,
+      documentSections: sections,
+      fallback,
+      maximumBytes: MAXIMUM_CONTEXT_BYTES,
     });
-    if (content === null) continue;
-    const section = `${sectionPrefix}${content.content}`;
-    sections.push(section);
-    documents.push({
-      conceptId: hit.conceptId,
-      path: hit.path,
-      contentHash: hit.contentHash,
-      scope: content.scope,
-      deliveredByteCount: Buffer.byteLength(content.content),
-      assurance: hit.assurance,
-      freshness: hit.freshness,
-    });
-    usedBytes += separatorBytes + Buffer.byteLength(section);
-    if (MAXIMUM_CONTEXT_BYTES - usedBytes <= 512) break;
-  }
-  const fallback =
-    selection.disposition === "query_projection_missing"
-      ? "No current-repository publication was selected because query projection was unavailable. This says nothing about other repositories or external surfaces. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes."
-      : selection.disposition === "no_candidates"
-        ? "No registered publication in the current repository matched the validated query projection. This says nothing about other repositories or external surfaces. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes."
-        : "Selected publications could not be exact-hash loaded. Inspect AGENTS.md and docs/knowledge/index.md before making repository changes.";
-  const additionalContext = assembleTerminalHookContext({
-    preamble,
-    workstreamContext: workstream?.context ?? null,
-    documentSections: sections,
-    fallback,
-    maximumBytes: MAXIMUM_CONTEXT_BYTES,
+    return { additionalContext, documents, workstream };
   });
   return {
-    additionalContext,
+    additionalContext: assembled.additionalContext,
     sourceSnapshotId: selection.sourceSnapshotId,
     recommendationCount: selection.candidates.length,
-    documents,
+    documents: assembled.documents,
     repositoryRevision: repositorySnapshot.revision,
     repositoryFiles: repositorySnapshot.files,
-    workstream,
+    workstream: assembled.workstream,
     grounding: {
       requestDigest: sha256(prompt),
       queryDigest: queryProjection.receipt.projectedQueryDigest,
@@ -1024,6 +1044,8 @@ async function recordPreparedContext(input: {
   context: Awaited<ReturnType<typeof promptContext>>;
   workspaceBinding: TerminalWorkspaceBinding | null;
   occurredAt: string;
+  eventId?: string;
+  storage?: ProjectStorage;
 }): Promise<string> {
   input.context.documents.forEach((document) => assertRepositoryRelativePath(document.path));
   await writePreparedRepositorySnapshot(input.root, {
@@ -1081,10 +1103,11 @@ async function recordPreparedContext(input: {
         .join("; "),
     );
   }
-  const storage = await openProjectStorage(input.root);
+  const storage = input.storage ?? (await openProjectStorage(input.root));
   try {
     const result = storage.events.append(
       eventDraft({
+        ...(input.eventId === undefined ? {} : { eventId: input.eventId }),
         projectId: storage.manifest.projectId,
         coordinates: input.coordinates,
         provider: input.provider,
@@ -1095,7 +1118,7 @@ async function recordPreparedContext(input: {
     );
     return result.event.eventId;
   } finally {
-    await storage.close();
+    if (input.storage === undefined) await storage.close();
   }
 }
 
@@ -1403,6 +1426,7 @@ async function runDeclare(args: string[], io: CliIo): Promise<number> {
     });
     if (parsed.values.provider !== "codex" && parsed.values.provider !== "claude")
       throw new Error("--provider must be codex or claude.");
+    const provider: TerminalIntegrationProvider = parsed.values.provider;
     if (
       typeof parsed.values.observation !== "string" ||
       !/^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(parsed.values.observation)
@@ -1493,7 +1517,7 @@ async function runDeclare(args: string[], io: CliIo): Promise<number> {
           providerSessionDigest,
           providerTurnDigest,
         },
-        provider: parsed.values.provider,
+        provider,
         actorKind: "agent",
         type: "terminal.turn.declared",
         occurredAt,
@@ -1517,46 +1541,69 @@ async function runDeclare(args: string[], io: CliIo): Promise<number> {
 async function runHook(
   args: string[],
   io: CliIo,
-  services: Pick<CliServices, "projectSearchQueries">,
+  services: Pick<CliServices, "createTerminalStageObservation" | "projectSearchQueries">,
 ): Promise<number> {
+  const timing = services.createTerminalStageObservation(TERMINAL_OBSERVATION_POLICY_VERSION);
   try {
-    const parsed = parseArgs({
-      args,
-      strict: true,
-      allowPositionals: false,
-      options: { provider: { type: "string" }, contract: { type: "string" } },
+    const { provider, contractId, input } = await timing.measure("ingress_integrity", async () => {
+      const parsed = parseArgs({
+        args,
+        strict: true,
+        allowPositionals: false,
+        options: { provider: { type: "string" }, contract: { type: "string" } },
+      });
+      if (parsed.values.provider !== "codex" && parsed.values.provider !== "claude")
+        throw new Error("--provider must be codex or claude.");
+      const provider: TerminalIntegrationProvider = parsed.values.provider;
+      if (parsed.values.contract !== "1" && parsed.values.contract !== "2")
+        throw new Error("Unsupported terminal integration contract.");
+      if (io.stdin === undefined) throw new Error("Provider hook input is unavailable.");
+      return {
+        provider,
+        contractId:
+          parsed.values.contract === "2"
+            ? ("lervo_terminal_hooks_v2" as const)
+            : ("lervo_terminal_hooks_v1" as const),
+        input: parseHookInput(await io.stdin()),
+      };
     });
-    if (parsed.values.provider !== "codex" && parsed.values.provider !== "claude")
-      throw new Error("--provider must be codex or claude.");
-    const provider = parsed.values.provider;
-    if (parsed.values.contract !== "1" && parsed.values.contract !== "2")
-      throw new Error("Unsupported terminal integration contract.");
-    const contractId =
-      parsed.values.contract === "2"
-        ? ("lervo_terminal_hooks_v2" as const)
-        : ("lervo_terminal_hooks_v1" as const);
-    if (io.stdin === undefined) throw new Error("Provider hook input is unavailable.");
-    const input = parseHookInput(await io.stdin());
     if (input.event === "Stop" && input.stopHookActive) {
       io.stdout("{}\n");
       return 0;
     }
+    let stageContext: {
+      root: string;
+      coordinates: UnmanagedCoordinates;
+      observationId: string;
+    } | null = null;
     try {
-      const root = await repositoryRootFrom(io.cwd);
+      const root = await timing.measure("repository_discovery", () => repositoryRootFrom(io.cwd));
       const coordinates = unmanagedCoordinates(provider, input);
       const occurredAt = new Date().toISOString();
       if (input.event === "UserPromptSubmit") {
         const observationId = newIdentifier("tobs");
+        stageContext = { root, coordinates, observationId };
         let workspaceBinding: TerminalWorkspaceBinding | null;
         try {
-          workspaceBinding = await attachTerminalWorkspace({
-            root,
-            provider,
-            providerSessionId: input.providerSessionId,
-            now: new Date(occurredAt),
-          });
+          workspaceBinding = await timing.measure("lifecycle_inspection", () =>
+            attachTerminalWorkspace({
+              root,
+              provider,
+              providerSessionId: input.providerSessionId,
+              now: new Date(occurredAt),
+            }),
+          );
         } catch (error) {
           if (!(error instanceof TerminalWorkspaceIsolationError)) throw error;
+          await recordTerminalStageObservation({
+            root,
+            coordinates,
+            observationId,
+            hookEvent: input.event,
+            timing,
+            outcome: "completed",
+            policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
+          });
           io.stdout(
             `${JSON.stringify({
               decision: "block",
@@ -1572,48 +1619,69 @@ async function runHook(
           observationId,
           workspaceBinding,
           services,
+          timing,
         );
-        const observationEventId = await recordPreparedContext({
-          root,
-          provider,
-          coordinates,
-          observationId,
-          context,
-          workspaceBinding,
-          occurredAt,
-        });
-        await writeActivationReceipt(root, {
-          schemaVersion: 1,
-          contractId,
-          provider,
-          hookEvent: input.event,
-          result: "context_prepared",
-          occurredAt,
-          queryDigest: sha256(input.prompt!),
-          queryProjectionReceiptId: context.grounding.queryProjectionReceipt.receiptId,
-          sourceSnapshotId: context.sourceSnapshotId,
-          recommendationCount: context.recommendationCount,
-          loadedDocumentCount: context.documents.length,
-          contextHash: sha256(context.additionalContext),
-          repositoryRevision: context.repositoryRevision,
-          observationEventId,
-        });
+        const observationEventId = newIdentifier("evt");
+        const observationStorage = await openProjectStorage(root);
+        try {
+          await timing.measure("event_commit", async () => {
+            await recordPreparedContext({
+              root,
+              provider,
+              coordinates,
+              observationId,
+              context,
+              workspaceBinding,
+              occurredAt,
+              eventId: observationEventId,
+              storage: observationStorage,
+            });
+            await writeActivationReceipt(root, {
+              schemaVersion: 1,
+              contractId,
+              provider,
+              hookEvent: input.event,
+              result: "context_prepared",
+              occurredAt,
+              queryDigest: sha256(input.prompt!),
+              queryProjectionReceiptId: context.grounding.queryProjectionReceipt.receiptId,
+              sourceSnapshotId: context.sourceSnapshotId,
+              recommendationCount: context.recommendationCount,
+              loadedDocumentCount: context.documents.length,
+              contextHash: sha256(context.additionalContext),
+              repositoryRevision: context.repositoryRevision,
+              observationEventId,
+            });
+          });
+          await recordTerminalStageObservation({
+            root,
+            coordinates,
+            observationId,
+            hookEvent: input.event,
+            timing,
+            outcome: "completed",
+            policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
+            storage: observationStorage,
+          });
+        } finally {
+          await observationStorage.close();
+        }
         io.stdout(
           `${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: context.additionalContext } })}\n`,
         );
         return 0;
       }
-      const expectation = await preparedTurnExpectation(
-        root,
-        coordinates,
-        provider,
-        input.providerSessionId,
+      const expectation = await timing.measure("lifecycle_inspection", () =>
+        preparedTurnExpectation(root, coordinates, provider, input.providerSessionId),
       );
       if (expectation === null) {
         io.stdout("{}\n");
         return 0;
       }
-      const lifecycle = await inspectLifecycle(root, expectation);
+      stageContext = { root, coordinates, observationId: expectation.observationId };
+      const lifecycle = await timing.measure("lifecycle_inspection", () =>
+        inspectLifecycle(root, expectation),
+      );
       let workspaceCheckpointEventId: string | null = null;
       if (
         lifecycle.status === "current" &&
@@ -1622,12 +1690,14 @@ async function runHook(
       ) {
         try {
           workspaceCheckpointEventId = (
-            await checkpointTerminalWorkspace({
-              root,
-              inspection: lifecycle.workspace,
-              contextEventId: expectation.contextEventId,
-              occurredAt: expectation.preparedAt,
-            })
+            await timing.measure("event_commit", () =>
+              checkpointTerminalWorkspace({
+                root,
+                inspection: lifecycle.workspace!,
+                contextEventId: expectation.contextEventId,
+                occurredAt: expectation.preparedAt,
+              }),
+            )
           ).eventId;
         } catch {
           lifecycle.issues.push({
@@ -1637,15 +1707,17 @@ async function runHook(
           lifecycle.status = "action_required";
         }
       }
-      const observation = await recordObservedTurn({
-        root,
-        provider,
-        coordinates,
-        hookInput: input,
-        lifecycle,
-        workspaceCheckpointEventId,
-        occurredAt,
-      });
+      const observation = await timing.measure("event_commit", () =>
+        recordObservedTurn({
+          root,
+          provider,
+          coordinates,
+          hookInput: input,
+          lifecycle,
+          workspaceCheckpointEventId,
+          occurredAt,
+        }),
+      );
       if (
         expectation.workspaceBinding?.executionKind === "worker" &&
         lifecycle.status === "action_required"
@@ -1658,32 +1730,63 @@ async function runHook(
           ),
           "Recover only this assignment workspace, then try to finish again; do not advance another workspace's global lifecycle.",
         ].join("\n");
-        await writeActivationReceipt(root, {
-          schemaVersion: 1,
-          contractId,
-          provider,
+        await timing.measure("event_commit", () =>
+          writeActivationReceipt(root, {
+            schemaVersion: 1,
+            contractId,
+            provider,
+            hookEvent: input.event,
+            result: "completion_blocked",
+            occurredAt,
+            observationEventId: observation.eventId,
+            referenceCount: observation.referenceCount,
+          }),
+        );
+        await recordTerminalStageObservation({
+          root,
+          coordinates,
+          observationId: expectation.observationId,
           hookEvent: input.event,
-          result: "completion_blocked",
-          occurredAt,
-          observationEventId: observation.eventId,
-          referenceCount: observation.referenceCount,
+          timing,
+          outcome: "completed",
+          policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
         });
         io.stdout(`${JSON.stringify({ decision: "block", reason })}\n`);
         return 0;
       }
-      await writeActivationReceipt(root, {
-        schemaVersion: 1,
-        contractId,
-        provider,
+      await timing.measure("event_commit", () =>
+        writeActivationReceipt(root, {
+          schemaVersion: 1,
+          contractId,
+          provider,
+          hookEvent: input.event,
+          result: "completion_allowed",
+          occurredAt,
+          observationEventId: observation.eventId,
+          referenceCount: observation.referenceCount,
+        }),
+      );
+      await recordTerminalStageObservation({
+        root,
+        coordinates,
+        observationId: expectation.observationId,
         hookEvent: input.event,
-        result: "completion_allowed",
-        occurredAt,
-        observationEventId: observation.eventId,
-        referenceCount: observation.referenceCount,
+        timing,
+        outcome: "completed",
+        policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
       });
       io.stdout("{}\n");
       return 0;
     } catch {
+      if (stageContext !== null) {
+        await recordTerminalStageObservation({
+          ...stageContext,
+          hookEvent: input.event,
+          timing,
+          outcome: "failed",
+          policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
+        }).catch(() => undefined);
+      }
       io.stdout("{}\n");
       return 0;
     }
@@ -1743,7 +1846,7 @@ async function runCoverage(args: string[], io: CliIo): Promise<number> {
 export async function runTerminalCommand(
   args: string[],
   io: CliIo,
-  services: Pick<CliServices, "projectSearchQueries">,
+  services: Pick<CliServices, "createTerminalStageObservation" | "projectSearchQueries">,
 ): Promise<number> {
   if (args[0] === "hook") return runHook(args.slice(1), io, services);
   if (args[0] === "declare") return runDeclare(args.slice(1), io);

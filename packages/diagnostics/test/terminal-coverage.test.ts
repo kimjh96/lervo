@@ -16,15 +16,19 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-async function store(): Promise<SQLiteEventStore> {
+async function store(writableEventSchemaVersion: 1 | 2 = 1): Promise<SQLiteEventStore> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-terminal-coverage-"));
   roots.push(root);
-  return SQLiteEventStore.open({ path: resolve(root, "events.sqlite"), projectId });
+  return SQLiteEventStore.open({
+    path: resolve(root, "events.sqlite"),
+    projectId,
+    writableEventSchemaVersion,
+  });
 }
 
 describe("unmanaged terminal context coverage", () => {
   it("projects prepared and explicit-reference evidence without promoting it to managed delivery", async () => {
-    const events = await store();
+    const events = await store(2);
     const common = {
       projectId,
       runId: "run_unmanaged_0123456789abcdef01234567",
@@ -94,6 +98,35 @@ describe("unmanaged terminal context coverage", () => {
         workstreamDeliveredByteCount: null,
       },
     });
+    const stagePayload = (hookEvent: "UserPromptSubmit" | "Stop", suffix: string) => ({
+      executionMode: "unmanaged_terminal" as const,
+      workId: null,
+      terminalObservationId: "tobs_context_01234567",
+      terminalHook: hookEvent,
+      observationSetId: `stgobs_${suffix.repeat(24)}`,
+      stageCatalogVersion: 1,
+      environmentProfileDigest: policyVersion,
+      repositoryProfile: "small" as const,
+      stages: [
+        {
+          stageId: "total" as const,
+          parentStageId: null,
+          durationMs: hookEvent === "UserPromptSubmit" ? 12 : 4,
+          budgetMs: null,
+          outcome: "completed" as const,
+          coldState: "warm" as const,
+        },
+      ],
+    });
+    events.append({
+      ...common,
+      actor: { kind: "system" },
+      schemaVersion: 2,
+      eventId: "evt_stage_prompt_01234567",
+      type: "execution.stages.observed",
+      occurredAt: "2026-08-24T00:00:00.500Z",
+      payload: stagePayload("UserPromptSubmit", "1"),
+    });
     events.append({
       ...common,
       eventId: "evt_reference_01234567",
@@ -110,6 +143,15 @@ describe("unmanaged terminal context coverage", () => {
         providerSessionDigest: sessionDigest,
         providerTurnDigest: null,
       },
+    });
+    events.append({
+      ...common,
+      actor: { kind: "system" },
+      schemaVersion: 2,
+      eventId: "evt_stage_stop_01234567",
+      type: "execution.stages.observed",
+      occurredAt: "2026-08-24T00:00:02.500Z",
+      payload: stagePayload("Stop", "2"),
     });
     events.append({
       ...common,
@@ -168,6 +210,14 @@ describe("unmanaged terminal context coverage", () => {
           usage: { totalTokens: 8 },
           reasonCode: "accounting_descriptor_unavailable",
         },
+      },
+      stages: {
+        completeness: "complete",
+        missingReasons: [],
+        observations: [
+          { hookEvent: "Stop", stages: [{ stageId: "total", durationMs: 4 }] },
+          { hookEvent: "UserPromptSubmit", stages: [{ stageId: "total", durationMs: 12 }] },
+        ],
       },
     });
     events.close();

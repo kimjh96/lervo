@@ -39,9 +39,9 @@
     },
     {
       "path": "apps/cli/src/terminal-command-runtime.ts",
-      "contentHash": "sha256:e6775ff36d627382c565c49b21f179b644968ccdf7c2f6912e29031940b235d7",
+      "contentHash": "sha256:2ad48d6957ea38347684b8e4b5494a0cf7791810b65d46024afb1f3781fd2096",
       "responsibility": "Direct terminal-integration command runtime",
-      "rationale": "The stable terminal command is a one-line facade; this runtime owns direct prompt retrieval, bounded observation, execution-kind routing, declaration, coverage, availability-safe root auditing, and fail-closed worker isolation while search, workspace policy, managed grounding, and coverage rendering remain linked modules.",
+      "rationale": "The stable terminal command is a one-line facade; this runtime sequences direct prompt, Stop, declaration, coverage, and status behavior, while stage recording and persistence, search, workspace policy, managed grounding, and rendering remain linked modules with independent tests.",
       "disposition": "cohesive"
     },
     {
@@ -102,7 +102,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:fedd030256b135db63b3178661bd783dc502be9b65b2c44c09e300fd895e67ca",
+      "contentHash": "sha256:f1d917ec11a0b71a16c253cb638b95a999d62611efaade803fff5be51a7cb4f5",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
       "disposition": "cohesive"
@@ -130,9 +130,9 @@
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:7e2aa99bda877759e825c47ccd223ae35883a14616bbb7c18069ba8eedaf4845",
+      "contentHash": "sha256:562b25c03520ff85e9557161fedcb4884770708e7d46dc135823bcab42b6eee5",
       "responsibility": "Managed provider-run coordinator",
-      "rationale": "Snapshotting, abort handling, context delivery, turn execution, validation, resource-observation composition, and stop are phases of one provider-neutral managed-run state machine; resource accounting remains in linked modules.",
+      "rationale": "Snapshotting, abort handling, context delivery, turn execution, validation, resource and stage observation composition, and stop are phases of one provider-neutral managed-run state machine; accounting and timing invariants remain in linked modules.",
       "disposition": "cohesive"
     },
     {
@@ -319,7 +319,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:57cb27db611cb12ce449b899e76453ee3da25ecdc3017ec9b2e49742846c6d66",
+      "contentHash": "sha256:bf30d93356c82d531f08ae14b4a51e9773a67e0429b1fa64c362bf9b34feb019",
       "responsibility": "Repository schema validator registry",
       "rationale": "The module declaratively registers and exposes validators for the versioned schema catalog; its length follows schema inventory and it owns no domain workflow or external effect.",
       "disposition": "cohesive"

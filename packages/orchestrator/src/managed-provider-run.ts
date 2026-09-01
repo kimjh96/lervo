@@ -68,6 +68,7 @@ import {
 import { ManagedTelemetryRecorder, TelemetryWriteError } from "./telemetry.js";
 import { admitManagedWorkCausality } from "./work-causality-admission.js";
 import { ManagedResourceObservation } from "./resource-observation.js";
+import { ManagedStageObservation } from "./stage-observation.js";
 
 function copy<T>(value: T): T {
   return structuredClone(value);
@@ -251,10 +252,18 @@ export class ManagedProviderRunCoordinator {
       this.options.coordinates,
       workCausality.payload,
     );
+    const stageObservation = new ManagedStageObservation({
+      descriptor: this.options.adapter.descriptor,
+      lervoBuildDigest: this.options.policyVersion,
+      ...(this.options.stageTiming === undefined ? {} : { timing: this.options.stageTiming }),
+    });
 
     try {
       phase = "resource_descriptor_store";
       await resourceObservation.persistDescriptor(this.options.artifactStore);
+
+      phase = "stage_profile_store";
+      await stageObservation.persistProfile(this.options.artifactStore);
 
       phase = "approval_preflight";
       await verifyManagedProviderRunApproval({
@@ -264,12 +273,14 @@ export class ManagedProviderRunCoordinator {
       });
 
       phase = "before_snapshot";
-      state.before = await withinDeadline({
-        operation: () => this.captureSnapshot(input.repositoryRoot, this.snapshotPolicy),
-        timeoutMs: this.deadlines.snapshotMs,
-        failureCode: "repository_snapshot_failed",
-        label: "pre-run repository snapshot",
-      });
+      state.before = await stageObservation.measure("repository_snapshot", () =>
+        withinDeadline({
+          operation: () => this.captureSnapshot(input.repositoryRoot, this.snapshotPolicy),
+          timeoutMs: this.deadlines.snapshotMs,
+          failureCode: "repository_snapshot_failed",
+          label: "pre-run repository snapshot",
+        }),
+      );
 
       phase = "adapter_start";
       const startRequest = createAdapterStartRequest({
@@ -277,7 +288,9 @@ export class ManagedProviderRunCoordinator {
         options: this.options,
         requestedAt,
       });
-      state.session = await this.options.adapter.start(startRequest);
+      state.session = await stageObservation.measure("provider_start", () =>
+        this.options.adapter.start(startRequest),
+      );
       assertManagedSession({
         request: startRequest,
         session: state.session,
@@ -333,31 +346,35 @@ export class ManagedProviderRunCoordinator {
         const targetTurnId = targetTurnIds[index]!;
 
         phase = "context_prepare";
-        await this.context.prepareContext({
-          ...input.context,
-          repositoryRoot: input.repositoryRoot,
-          sourceRevision: contextSnapshot.revision,
-          recordedAt: this.date(),
-        });
+        await stageObservation.measure("corpus_preparation", () =>
+          this.context.prepareContext({
+            ...input.context,
+            repositoryRoot: input.repositoryRoot,
+            sourceRevision: contextSnapshot.revision,
+            recordedAt: this.date(),
+          }),
+        );
         monitor.throwIfFailed();
 
         phase = "context_inject";
-        const injected = await this.context.injectContext({
-          session: state.session,
-          writingPolicy: input.writingPolicy,
-          targetTurnId,
-          publications: input.context.publications,
-          injectContext: (session, envelope) =>
-            this.options.adapter.injectContext(session, envelope),
-          artifactStore: this.options.artifactStore,
-          ...(input.createEnvelopeId === undefined
-            ? {}
-            : { createEnvelopeId: input.createEnvelopeId }),
-          ...(input.createEvidenceReceiptId === undefined
-            ? {}
-            : { createEvidenceReceiptId: input.createEvidenceReceiptId }),
-          now: () => this.date(),
-        });
+        const injected = await stageObservation.measure("context_injection", () =>
+          this.context.injectContext({
+            session: state.session!,
+            writingPolicy: input.writingPolicy,
+            targetTurnId,
+            publications: input.context.publications,
+            injectContext: (session, envelope) =>
+              this.options.adapter.injectContext(session, envelope),
+            artifactStore: this.options.artifactStore,
+            ...(input.createEnvelopeId === undefined
+              ? {}
+              : { createEnvelopeId: input.createEnvelopeId }),
+            ...(input.createEvidenceReceiptId === undefined
+              ? {}
+              : { createEvidenceReceiptId: input.createEvidenceReceiptId }),
+            now: () => this.date(),
+          }),
+        );
         state.contextEvidence = copy(injected.evidence);
         state.injected = copy(injected);
         monitor.throwIfFailed();
@@ -459,12 +476,14 @@ export class ManagedProviderRunCoordinator {
         phase = "provider_turn";
         const cancelled = abortPromise(input.signal);
         try {
-          terminal = await withinDeadline({
-            operation: () => Promise.race([monitor!.waitForTerminal(), cancelled.promise]),
-            timeoutMs: this.deadlines.providerTurnMs,
-            failureCode: "provider_turn_failed",
-            label: "provider turn completion wait",
-          });
+          terminal = await stageObservation.measure("provider_turn", () =>
+            withinDeadline({
+              operation: () => Promise.race([monitor!.waitForTerminal(), cancelled.promise]),
+              timeoutMs: this.deadlines.providerTurnMs,
+              failureCode: "provider_turn_failed",
+              label: "provider turn completion wait",
+            }),
+          );
         } finally {
           cancelled.dispose();
         }
@@ -477,12 +496,14 @@ export class ManagedProviderRunCoordinator {
 
         if (index < scheduledPaths.length - 1) {
           phase = "after_snapshot";
-          contextSnapshot = await withinDeadline({
-            operation: () => this.captureSnapshot(input.repositoryRoot, this.snapshotPolicy),
-            timeoutMs: this.deadlines.snapshotMs,
-            failureCode: "repository_snapshot_failed",
-            label: "managed multi-file intermediate repository snapshot",
-          });
+          contextSnapshot = await stageObservation.measure("repository_snapshot", () =>
+            withinDeadline({
+              operation: () => this.captureSnapshot(input.repositoryRoot, this.snapshotPolicy),
+              timeoutMs: this.deadlines.snapshotMs,
+              failureCode: "repository_snapshot_failed",
+              label: "managed multi-file intermediate repository snapshot",
+            }),
+          );
           const inspection = inspectManagedRepositoryChanges({
             before: state.before,
             after: contextSnapshot,
@@ -542,23 +563,25 @@ export class ManagedProviderRunCoordinator {
       failures.add(error, phase);
     }
 
-    const after = await finalizeProviderRun({
-      adapter: this.options.adapter,
-      ...(state.session === undefined ? {} : { session: state.session }),
-      ...(monitor === undefined ? {} : { monitor }),
-      ...(state.before === undefined ? {} : { before: state.before }),
-      repositoryRoot: input.repositoryRoot,
-      captureSnapshot: this.captureSnapshot,
-      snapshotPolicy: this.snapshotPolicy,
-      deadlines: this.deadlines,
-      failures,
-      managedChanges: state.writeBridge?.evidence() ?? [],
-      time: () => this.time(),
-      append: (specs) => this.append(specs),
-    });
+    const after = await stageObservation.measure("provider_stop", () =>
+      finalizeProviderRun({
+        adapter: this.options.adapter,
+        ...(state.session === undefined ? {} : { session: state.session }),
+        ...(monitor === undefined ? {} : { monitor }),
+        ...(state.before === undefined ? {} : { before: state.before }),
+        repositoryRoot: input.repositoryRoot,
+        captureSnapshot: this.captureSnapshot,
+        snapshotPolicy: this.snapshotPolicy,
+        deadlines: this.deadlines,
+        failures,
+        managedChanges: state.writeBridge?.evidence() ?? [],
+        time: () => this.time(),
+        append: (specs) => this.append(specs),
+      }),
+    );
     if (after !== undefined) state.after = after;
 
-    await this.persistOutputs(input, state, failures);
+    await this.persistOutputs(input, state, failures, stageObservation);
     return this.complete(
       input,
       state,
@@ -566,6 +589,7 @@ export class ManagedProviderRunCoordinator {
       failures,
       workCausality.payload,
       resourceObservation,
+      stageObservation,
     );
   }
 
@@ -573,6 +597,7 @@ export class ManagedProviderRunCoordinator {
     input: ManagedProviderRunInput,
     state: ManagedProviderRunExecutionState,
     failures: RunFailureLedger,
+    stageObservation: ManagedStageObservation,
   ): Promise<void> {
     if (
       failures.empty &&
@@ -606,17 +631,19 @@ export class ManagedProviderRunCoordinator {
     )
       return;
     try {
-      state.verifications = await runRequiredProjectVerifications({
-        suites: input.verificationSuites,
-        verifier: this.options.projectVerifier,
-        repositoryRoot: input.repositoryRoot,
-        repositoryRevision: state.after.revision,
-        artifactStore: this.options.artifactStore,
-        failureDisposition: input.context.role.verification.failureDisposition,
-        ...(input.signal === undefined ? {} : { signal: input.signal }),
-        time: () => this.time(),
-        append: (specs) => this.append(specs),
-      });
+      state.verifications = await stageObservation.measure("verification", () =>
+        runRequiredProjectVerifications({
+          suites: input.verificationSuites!,
+          verifier: this.options.projectVerifier!,
+          repositoryRoot: input.repositoryRoot,
+          repositoryRevision: state.after!.revision,
+          artifactStore: this.options.artifactStore,
+          failureDisposition: input.context.role.verification.failureDisposition,
+          ...(input.signal === undefined ? {} : { signal: input.signal }),
+          time: () => this.time(),
+          append: (specs) => this.append(specs),
+        }),
+      );
     } catch (error) {
       failures.add(error, "project_verification");
     }
@@ -629,13 +656,16 @@ export class ManagedProviderRunCoordinator {
     failures: RunFailureLedger,
     workCausality: ManagedProviderRunResult["workCausality"],
     resourceObservation: ManagedResourceObservation,
+    stageObservation: ManagedStageObservation,
   ): ManagedProviderRunResult {
     const resultError = failures.resultError();
     const primaryFailure = failures.primary;
     if (resultError !== undefined && primaryFailure !== undefined) {
       const resourceEvent = resourceObservation.event(this.time());
+      const stageEvent = stageObservation.event(workCausality.workId, this.time(), "failed");
       this.append([
         ...(resourceEvent === null ? [] : [resourceEvent]),
+        ...(stageEvent === null ? [] : [stageEvent]),
         runFailedSpec({
           failureCode: primaryFailure.error.code,
           retryable: primaryFailure.retryable,
@@ -673,8 +703,16 @@ export class ManagedProviderRunCoordinator {
         "The resource accounting descriptor was not persisted for a completed run.",
       );
     }
+    const stageEvent = stageObservation.event(workCausality.workId, this.time(), "completed");
+    if (stageEvent === null) {
+      throw new ManagedProviderRunError(
+        "contract_validation_failed",
+        "The execution environment profile was not persisted for a completed run.",
+      );
+    }
     this.append([
       resourceEvent,
+      stageEvent,
       runCompletedSpec({
         resultArtifact: state.resultArtifact,
         verificationStatus,

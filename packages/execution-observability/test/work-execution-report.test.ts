@@ -22,7 +22,12 @@ function event(
     type,
     occurredAt: `2026-09-01T00:00:${String(seq).padStart(2, "0")}.000Z`,
     actor,
-    schemaVersion: type === "work.causality.recorded" || type === "resource.usage.recorded" ? 2 : 1,
+    schemaVersion:
+      type === "work.causality.recorded" ||
+      type === "resource.usage.recorded" ||
+      type === "execution.stages.observed"
+        ? 2
+        : 1,
     policyVersion: hash,
     payload,
     previousHash: seq === 1 ? null : hash,
@@ -126,6 +131,76 @@ describe("work execution report", () => {
       completeness: "unavailable",
       missingReasons: ["resource_observation_missing"],
       groups: [],
+    });
+  });
+
+  it("projects one bounded stage set and rejects a second set for the same run", () => {
+    const causality = event(1, "work.causality.recorded", {
+      workId,
+      executionContractVersion: 1,
+      relationship: "root",
+      parentRunId: null,
+      retryOfRunId: null,
+      attemptOrdinal: 1,
+      workstreamId: null,
+      assignmentId: null,
+      agentId: null,
+    });
+    const stagePayload = {
+      executionMode: "managed",
+      workId,
+      terminalObservationId: null,
+      terminalHook: null,
+      observationSetId: "stgobs_111111111111111111111111",
+      stageCatalogVersion: 1,
+      environmentProfileDigest: hash,
+      repositoryProfile: "small",
+      stages: [
+        {
+          stageId: "total",
+          parentStageId: null,
+          durationMs: 12,
+          budgetMs: null,
+          outcome: "completed",
+          coldState: "warm",
+        },
+      ],
+    };
+    const events = [
+      causality,
+      event(2, "run.requested", {}),
+      event(3, "execution.stages.observed", stagePayload),
+      event(4, "run.completed", {}),
+    ];
+
+    expect(projectWorkExecutionReport({ projectId, workId, events }).stages).toEqual({
+      completeness: "complete",
+      missingReasons: [],
+      observationSetCount: 1,
+      observations: [
+        {
+          runId: "run_fixture001",
+          observationSetId: stagePayload.observationSetId,
+          environmentProfileDigest: hash,
+          repositoryProfile: "small",
+          stages: stagePayload.stages,
+        },
+      ],
+    });
+
+    const contradictory = [
+      ...events.slice(0, 3),
+      event(4, "execution.stages.observed", {
+        ...stagePayload,
+        observationSetId: "stgobs_222222222222222222222222",
+      }),
+      event(5, "run.completed", {}),
+    ];
+    expect(
+      projectWorkExecutionReport({ projectId, workId, events: contradictory }).stages,
+    ).toMatchObject({
+      completeness: "invalid",
+      missingReasons: ["stage_observation_invalid"],
     });
   });
 });

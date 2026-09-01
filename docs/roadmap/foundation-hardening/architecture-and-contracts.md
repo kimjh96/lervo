@@ -16,6 +16,7 @@ performance evidence. The authoritative event details are in
 schemas
   -> event-contract and execution-contract
   -> execution-observability projector
+  -> execution-performance observation and verification
   -> orchestrator, adapters, terminal runtime, diagnostics, and Hub trace
   -> CLI and future product adapters
 ```
@@ -32,6 +33,7 @@ external providers remain effects behind ports.
 | `@lervo/event-contract`          | mixed-version parsing, chain hashing, allowlist privacy          | provider translation                  |
 | `@lervo/execution-contract`      | causal, accounting, stage, and failure invariants                | clocks, files, network, provider SDKs |
 | `@lervo/execution-observability` | pure work-report projection                                      | event append, pricing, UI formatting  |
+| `@lervo/execution-performance`   | paired profiles, statistics, budgets, report verification        | product execution or canonical state  |
 | `@lervo/orchestrator`            | work creation, run ancestry, final aggregation, monotonic timing | provider-native semantics             |
 | provider adapters                | native usage translation and accounting declaration              | Lervo authority or cross-run totals   |
 | terminal runtime                 | availability-safe bounded observations                           | whole-task token claims               |
@@ -141,6 +143,12 @@ unknown vendor spans stay inside adapter evidence until mapped by a reviewed con
 Instrumentation overhead is measured separately. Stage observations contain digests and
 classified profiles, not repository paths, queries, prompts, or outputs. High-cardinality
 IDs needed for local joining follow current retention policy and export redaction.
+
+FH3 keeps stage invariants, runtime adapters, report projection, budget policy, fixture
+effects, and rendering in separate modules. The provider-free harness alternates arms,
+starts every pair from one snapshot, and performs preparation and cleanup outside the
+measured hook interval. Its checked aggregate report is rebuildable evidence, not a new
+execution or product-authority store.
 
 ## Compatibility and failure meanings
 

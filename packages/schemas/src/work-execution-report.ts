@@ -2,6 +2,8 @@ import type { FromSchema } from "json-schema-to-ts";
 
 import { projectIdSchema, runIdSchema, sessionIdSchema, sha256Schema } from "./common.js";
 import { resourceUsageSchema, workIdSchema } from "./execution-observability-event.js";
+import { executionStageObservationSchema } from "./execution-observability-event.js";
+import { repositoryPerformanceProfileSchema } from "./execution-environment-profile.js";
 import { resourceAccountingModeSchema } from "./resource-accounting.js";
 
 const reasonCodeSchema = { type: "string", pattern: "^[a-z][a-z0-9_]{0,63}$" } as const;
@@ -143,8 +145,34 @@ export const workExecutionReportSchema = {
         completeness: completenessSchema,
         missingReasons: { type: "array", items: reasonCodeSchema, uniqueItems: true },
         observationSetCount: { type: "integer", minimum: 0 },
+        observations: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              runId: runIdSchema,
+              observationSetId: { type: "string", pattern: "^stgobs_[a-f0-9]{24}$" },
+              environmentProfileDigest: sha256Schema,
+              repositoryProfile: repositoryPerformanceProfileSchema,
+              stages: {
+                type: "array",
+                minItems: 1,
+                maxItems: 32,
+                items: executionStageObservationSchema,
+              },
+            },
+            required: [
+              "runId",
+              "observationSetId",
+              "environmentProfileDigest",
+              "repositoryProfile",
+              "stages",
+            ],
+            additionalProperties: false,
+          },
+        },
       },
-      required: ["completeness", "missingReasons", "observationSetCount"],
+      required: ["completeness", "missingReasons", "observationSetCount", "observations"],
       additionalProperties: false,
     },
     cost: {

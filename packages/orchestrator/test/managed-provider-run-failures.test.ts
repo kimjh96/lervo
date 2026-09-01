@@ -193,12 +193,11 @@ describe("managed provider failure boundaries", () => {
 
   it("fails when stored result bytes cannot be read back unchanged", async () => {
     class CorruptingArtifactStore extends MemoryArtifactStore {
-      private readCount = 0;
-
       override async get(uri: string): Promise<Uint8Array> {
         const bytes = await super.get(uri);
-        this.readCount += 1;
-        return this.readCount === 1 ? bytes : Buffer.from("corrupted result", "utf8");
+        return Buffer.from(bytes).toString("utf8") === "fixture provider result"
+          ? Buffer.from("corrupted result", "utf8")
+          : bytes;
       }
     }
     const data = await createManagedFixture();

@@ -20,6 +20,7 @@ import { runSearchCommand, searchUsage } from "./search-command.js";
 import { runStateCommand, stateUsage } from "./state-command.js";
 import { runTraceCommand, traceUsage } from "./trace-command.js";
 import { runTerminalCommand, terminalUsage } from "./terminal-command.js";
+import { createTerminalStageObservation } from "./terminal-stage-observation.js";
 import type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
 import { groundProductionRequest } from "./semantic-grounding.js";
 import {
@@ -64,6 +65,7 @@ const defaultServices: CliServices = {
   executeEnvironmentQuery,
   groundProductionRequest,
   projectSearchQueries: projectProductionSearchQueries,
+  createTerminalStageObservation,
   prepareSearchQueries: prepareProductionSearchQueries,
 };
 
@@ -121,4 +123,8 @@ export { formatSearchQualityReport } from "./search-command.js";
 export { formatDoctorReport } from "./doctor-command.js";
 export { formatEnvironmentObservation } from "./environment-command.js";
 export { runRepositoryCommand } from "./repository-command.js";
+export {
+  DisabledTerminalStageObservation,
+  TerminalStageObservation,
+} from "./terminal-stage-observation.js";
 export type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
