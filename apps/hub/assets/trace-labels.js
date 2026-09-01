@@ -54,6 +54,7 @@ const eventLabels = {
   "assignment.claimed": "Assignment claimed",
   "assignment.lease.renewed": "Assignment lease renewed",
   "assignment.handoff.recorded": "Assignment handoff recorded",
+  "assignment.cancelled": "Assignment cancelled",
   "assignment.completed": "Assignment completed",
   "public_readme.improvement.applied": "Public README improvement applied",
   "document.stale.detected": "Stale document detected",

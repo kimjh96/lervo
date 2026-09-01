@@ -134,6 +134,52 @@ describe("governed loop decision", () => {
       }).actions[0],
     ).toMatchObject({ kind: "await_approval", reasonCode: "approval_missing" });
 
+    const requirementDigest = approvalGraph.nodes[0]!.approvalRequirementDigests[0]!;
+    expect(
+      decideGovernedLoop({
+        graph: approvalGraph,
+        attempts: [],
+        resources: [],
+        approvals: [
+          {
+            schemaVersion: 1,
+            assignmentId: approvalNode.assignmentId,
+            assignmentRevision: approvalNode.revision,
+            requirementDigest,
+            status: "verified",
+            approvalId: "apr_authority_proof_01",
+            authorityId: "repository.review-board",
+            authorityEvidenceHash: `sha256:${"e".repeat(64)}`,
+            grantedAt: "2026-09-01T00:00:00.000Z",
+            expiresAt: "2026-09-01T01:00:00.000Z",
+          },
+        ],
+        policy: normalizeGovernedLoopPolicy(),
+      }).actions[0],
+    ).toMatchObject({ kind: "start_attempt", assignmentId: approvalNode.assignmentId });
+
+    expect(
+      decideGovernedLoop({
+        graph: approvalGraph,
+        attempts: [],
+        resources: [],
+        approvals: [
+          {
+            schemaVersion: 1,
+            assignmentId: "asn_999999999999999999999999",
+            assignmentRevision: 1,
+            requirementDigest,
+            status: "missing",
+            reasonCode: "active_approval_missing",
+          },
+        ],
+        policy: normalizeGovernedLoopPolicy(),
+      }),
+    ).toMatchObject({
+      status: "invalid",
+      actions: [{ kind: "block", reasonCode: "approval_observation_invalid" }],
+    });
+
     const descriptor = `sha256:${"a".repeat(64)}`;
     const resourceDecision = decideGovernedLoop({
       graph: projectWorkGraph({

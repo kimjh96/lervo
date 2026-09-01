@@ -8,6 +8,7 @@ import { sha256, shortId } from "./hash.js";
 
 export interface AssignmentGraphSourceV1 {
   assignmentId: string;
+  revision: number;
   projectId: string;
   taskType: string;
   roleId: string;
@@ -82,6 +83,7 @@ export function projectWorkGraph(input: {
             : ("expired" as const);
       return {
         assignmentId: assignment.assignmentId,
+        assignmentRevision: assignment.revision,
         taskType: assignment.taskType,
         roleId: assignment.roleId,
         status: assignment.status,

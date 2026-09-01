@@ -21,6 +21,10 @@ import {
   type WorkforceProvider,
 } from "./types.js";
 import { workforceLimits } from "./limits.js";
+import {
+  createAssignmentCancellationPlan,
+  type AssignmentCancellationStep,
+} from "./assignment-graph.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const ROLE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
@@ -1048,6 +1052,82 @@ export function renewAssignmentLease(input: {
   recordEvent?: WorkforceEventRecorder;
 }): Promise<WorkforceAssignment> {
   return retryConcurrent(() => renewAssignmentLeaseOnce(input));
+}
+
+async function cancelAssignmentOnce(input: {
+  repositoryRoot: string;
+  assignmentId: string;
+  reason: AssignmentCancellationStep["reason"];
+  expectedPlanId: string;
+  now?: Date;
+  recordEvent?: WorkforceEventRecorder;
+}): Promise<WorkforceAssignment> {
+  if (!/^acp_[a-f0-9]{24}$/u.test(input.expectedPlanId)) {
+    fail("assignment_invalid", "The assignment cancellation plan ID is invalid.");
+  }
+  const now = input.now ?? new Date();
+  const [assignmentState, assignments] = await Promise.all([
+    readAssignmentState(input.repositoryRoot, input.assignmentId),
+    listAssignments(input.repositoryRoot),
+  ]);
+  const planAssignments = assignments.map((assignment) =>
+    assignment.assignmentId === input.assignmentId ? assignmentState.value : assignment,
+  );
+  const plan = createAssignmentCancellationPlan({
+    assignments: planAssignments,
+    assignmentId: input.assignmentId,
+    reason: input.reason,
+  });
+  if (plan.planId !== input.expectedPlanId) {
+    fail("agent_state_conflict", "The assignment cancellation plan is stale.");
+  }
+  if (plan.status !== "ready") {
+    fail(
+      "assignment_cancellation_blocked",
+      `The assignment cancellation is ${plan.status}: ${plan.blockedReason ?? "unknown"}.`,
+    );
+  }
+  const next: WorkforceAssignment = {
+    ...assignmentState.value,
+    status: "cancelled",
+    lease: null,
+    revision: assignmentState.value.revision + 1,
+    updatedAt: now.toISOString(),
+  };
+  const target = await assignmentPath(input.repositoryRoot, input.assignmentId);
+  return transition({
+    path: target.path,
+    lockPath: target.lockPath,
+    now,
+    content: `${JSON.stringify(next, null, 2)}\n`,
+    result: structuredClone(next),
+    expectedBefore: assignmentState.source,
+    ...(input.recordEvent === undefined ? {} : { recordEvent: input.recordEvent }),
+    event: {
+      type: "assignment.cancelled",
+      occurredAt: next.updatedAt,
+      actorAgentId: null,
+      payload: {
+        assignmentId: next.assignmentId,
+        previousStatus: plan.previousStatus,
+        reason: plan.reason,
+        planId: plan.planId,
+        cancelledDependencyIds: plan.cancelledDependencyIds,
+        revision: next.revision,
+      },
+    },
+  });
+}
+
+export function cancelAssignment(input: {
+  repositoryRoot: string;
+  assignmentId: string;
+  reason: AssignmentCancellationStep["reason"];
+  expectedPlanId: string;
+  now?: Date;
+  recordEvent?: WorkforceEventRecorder;
+}): Promise<WorkforceAssignment> {
+  return retryConcurrent(() => cancelAssignmentOnce(input));
 }
 
 function exactLease(

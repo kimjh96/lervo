@@ -19,6 +19,10 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { listRoleContracts, resolveRoleContract } from "@lervo/roles";
 
 import type { CliIo, CliServices } from "./types.js";
+import {
+  assignmentCancellationUsage,
+  runAssignmentCancellationCommand,
+} from "./assignment-cancellation-command.js";
 import { recordWorkforceEvent } from "./workforce-events.js";
 
 export const workforceUsage = [
@@ -31,6 +35,7 @@ export const workforceUsage = [
   "  lervo assignment claim --assignment <id> --agent <id> --session <id> [--lease-ms <ms>] --write [--root <path>] [--json]",
   "  lervo assignment renew --assignment <id> --agent <id> --lease <id> [--lease-ms <ms>] --write [--root <path>] [--json]",
   "  lervo assignment handoff --assignment <id> --from-agent <id> --to-agent <id> --lease <id> --request-digest <sha256> --artifact <id>=<sha256> --evidence-event <id> --write [--root <path>] [--json]",
+  assignmentCancellationUsage,
   "  lervo assignment complete --assignment <id> --agent <id> --lease <id> --verification <passed|failed> [--artifact <id>=<sha256>] [--failure-code <code>] --write [--root <path>] [--json]",
 ].join("\n");
 
@@ -123,6 +128,9 @@ export async function runWorkforceCommand(
   io: CliIo,
   services: Pick<CliServices, "groundProductionRequest">,
 ): Promise<number> {
+  if (namespace === "assignment" && args[0] === "cancel") {
+    return runAssignmentCancellationCommand(args, io);
+  }
   try {
     const parsed = parse(args);
     if (parsed.values.help) {

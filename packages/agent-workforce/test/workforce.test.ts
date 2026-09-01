@@ -14,9 +14,11 @@ import type { CapabilityPackageManifest } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  cancelAssignment,
   claimAssignment,
   completeAssignment,
   createAssignment,
+  createAssignmentCancellationPlan,
   listAgents,
   listAssignments,
   recordAssignmentHandoff,
@@ -493,5 +495,95 @@ describe("repository agent workforce", () => {
       }),
     ).rejects.toMatchObject({ code: "workforce_write_failed" });
     expect(await listAgents(root)).toEqual([]);
+  });
+
+  it("cancels one exact planned assignment and requires cancelled dependency evidence", async () => {
+    const root = await repository();
+    const parent = await createAssignment({
+      repositoryRoot: root,
+      taskType: "implementation",
+      roleId: "developer",
+      acceptanceCriteria: ["Parent no longer required."],
+      verificationSuiteIds: ["project.quick"],
+      expectedPaths: ["src/parent"],
+    });
+    const dependent = await createAssignment({
+      repositoryRoot: root,
+      taskType: "implementation",
+      roleId: "developer",
+      dependencyIds: [parent.assignmentId],
+      acceptanceCriteria: ["Dependent no longer required."],
+      verificationSuiteIds: ["project.quick"],
+      expectedPaths: ["src/dependent"],
+    });
+    expect(
+      createAssignmentCancellationPlan({
+        assignments: await listAssignments(root),
+        assignmentId: dependent.assignmentId,
+        reason: "dependency_cancelled",
+      }),
+    ).toMatchObject({ status: "blocked", blockedReason: "dependency_not_cancelled" });
+
+    const parentPlan = createAssignmentCancellationPlan({
+      assignments: await listAssignments(root),
+      assignmentId: parent.assignmentId,
+      reason: "requested",
+    });
+    const events: string[] = [];
+    await cancelAssignment({
+      repositoryRoot: root,
+      assignmentId: parent.assignmentId,
+      reason: "requested",
+      expectedPlanId: parentPlan.planId,
+      recordEvent: (event) => {
+        events.push(event.type);
+      },
+    });
+    const dependentPlan = createAssignmentCancellationPlan({
+      assignments: await listAssignments(root),
+      assignmentId: dependent.assignmentId,
+      reason: "dependency_cancelled",
+    });
+    const cancelled = await cancelAssignment({
+      repositoryRoot: root,
+      assignmentId: dependent.assignmentId,
+      reason: "dependency_cancelled",
+      expectedPlanId: dependentPlan.planId,
+      recordEvent: (event) => {
+        events.push(event.type);
+      },
+    });
+    expect(cancelled).toMatchObject({ status: "cancelled", revision: 2, lease: null });
+    expect(events).toEqual(["assignment.cancelled", "assignment.cancelled"]);
+
+    const rollbackTarget = await createAssignment({
+      repositoryRoot: root,
+      taskType: "implementation",
+      roleId: "developer",
+      acceptanceCriteria: ["Rollback remains queued."],
+      verificationSuiteIds: ["project.quick"],
+      expectedPaths: ["src/rollback"],
+    });
+    const rollbackPlan = createAssignmentCancellationPlan({
+      assignments: await listAssignments(root),
+      assignmentId: rollbackTarget.assignmentId,
+      reason: "requested",
+    });
+    await expect(
+      cancelAssignment({
+        repositoryRoot: root,
+        assignmentId: rollbackTarget.assignmentId,
+        reason: "requested",
+        expectedPlanId: rollbackPlan.planId,
+        recordEvent: () => {
+          throw new Error("event unavailable");
+        },
+      }),
+    ).rejects.toMatchObject({ code: "workforce_write_failed" });
+    expect(
+      (await listAssignments(root)).find(
+        (assignment) => assignment.assignmentId === rollbackTarget.assignmentId,
+      ),
+    ).toMatchObject({ status: "queued", revision: 1 });
   });
 });

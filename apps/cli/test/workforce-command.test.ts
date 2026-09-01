@@ -297,4 +297,74 @@ describe("workforce CLI", () => {
       await storage.close();
     }
   });
+
+  it("plans and applies one exact assignment cancellation", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-cancellation-"));
+    roots.push(root);
+    expect(await runCli(["init", "--root", root, "--name", "cancellation-fixture"], io(root))).toBe(
+      0,
+    );
+    const createdOutput: string[] = [];
+    expect(
+      await runCli(
+        [
+          "assignment",
+          "create",
+          "--type",
+          "implementation",
+          "--role",
+          "developer",
+          "--criteria",
+          "Cancellation is observable.",
+          "--suite",
+          "project.quick",
+          "--path",
+          "src",
+          "--write",
+          "--json",
+          "--root",
+          root,
+        ],
+        io(root, createdOutput),
+      ),
+    ).toBe(0);
+    const assignment = JSON.parse(createdOutput.join(""));
+    const planOutput: string[] = [];
+    expect(
+      await runCli(
+        ["assignment", "cancel", "--assignment", assignment.assignmentId, "--json", "--root", root],
+        io(root, planOutput),
+      ),
+    ).toBe(0);
+    const plan = JSON.parse(planOutput.join(""));
+    expect(plan).toMatchObject({ status: "ready", previousStatus: "queued" });
+    const appliedOutput: string[] = [];
+    expect(
+      await runCli(
+        [
+          "assignment",
+          "cancel",
+          "--assignment",
+          assignment.assignmentId,
+          "--apply",
+          plan.planId,
+          "--write",
+          "--json",
+          "--root",
+          root,
+        ],
+        io(root, appliedOutput),
+      ),
+    ).toBe(0);
+    expect(JSON.parse(appliedOutput.join(""))).toMatchObject({ status: "cancelled", revision: 2 });
+    const storage = await openProjectStorage(root);
+    try {
+      expect(storage.events.list().at(-1)).toMatchObject({
+        type: "assignment.cancelled",
+        payload: { reason: "requested", planId: plan.planId },
+      });
+    } finally {
+      await storage.close();
+    }
+  });
 });

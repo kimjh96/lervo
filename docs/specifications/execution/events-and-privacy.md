@@ -60,12 +60,21 @@ duplicate hook sets, and cross-run or cross-session joins make the projection in
 
 Workforce events contain only opaque agent, assignment, lease, handoff, artifact, context-event, role/task, role-version, role-contract-hash, status, generation, expiry, and digest coordinates. They exclude role prose and source paths, task prose, acceptance text, repository paths, prompts, outputs, artifact bodies, reasoning, credentials, and provider configuration. State and event commit together, restoring bytes on event failure. Invalid or stale role contracts, contention, expiry, and rejected claims record no execution success.
 
-The governed-loop and assignment-graph v1 slice adds no event type or durable graph
-state. Its report replays current assignment state plus existing causal, run,
-verification, and resource events. Approval requirements leave the report only as
-digests. A next-action decision is a projection, not an approval, assignment mutation,
-provider invocation, or completion event. Cancellation mutation and interrupted
-completed-run reconciliation require later explicit event and recovery contracts.
+The governed-loop graph remains rebuildable and adds no durable graph state. Its report
+replays current assignment state plus existing causal, run, verification, and resource
+events. Approval requirements leave the report only as digests. Verified approval
+observations bind opaque assignment, authority, approval, evidence-hash, and validity
+coordinates; they exclude requirement text, approver identity, signatures, credentials,
+and evidence bodies. A next-action decision remains a projection, not an approval,
+assignment mutation, provider invocation, or completion event.
+
+`assignment.cancelled` records the opaque assignment ID, previous status, reason
+(`requested` or `dependency_cancelled`), exact cancellation plan ID, direct cancelled
+dependency IDs, resulting revision, and time. It excludes task and acceptance prose,
+paths, lease sessions, provider output, prompts, reasoning, credentials, and actor identity.
+Success means one queued or blocked assignment state and its event committed together.
+Plan drift, terminal state, leased work, missing dependency evidence, contention, or event
+failure records no cancellation success; event failure restores the prior assignment bytes.
 
 Agent state may contain exact capability package IDs, kinds, versions, content hashes, and project or user source scopes. `capabilityHash` binds these coordinates and role-permission decisions. It excludes package bodies, publisher metadata, local paths, MCP configuration values, credentials, and Hub tokens. Registration failure records neither a hired agent nor package authority. Capability installation and Hub publication return operation receipts, add no execution event, and prove no loading, activation, invocation, or use.
 

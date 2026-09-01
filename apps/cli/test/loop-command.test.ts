@@ -35,6 +35,7 @@ function report(): GovernedWorkReportV1 {
       nodes: [
         {
           assignmentId,
+          assignmentRevision: 2,
           taskType: "implementation",
           roleId: "developer",
           status: "leased",
@@ -52,6 +53,7 @@ function report(): GovernedWorkReportV1 {
     },
     attempts: [],
     resources: [],
+    approvals: [],
     policy,
     decision: {
       schemaVersion: 1,

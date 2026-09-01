@@ -91,6 +91,7 @@ export interface WorkforceEvent {
     | "assignment.claimed"
     | "assignment.lease.renewed"
     | "assignment.handoff.recorded"
+    | "assignment.cancelled"
     | "assignment.completed";
   occurredAt: string;
   actorAgentId: string | null;
@@ -110,6 +111,7 @@ export class AgentWorkforceError extends Error {
       | "assignment_dependency_blocked"
       | "assignment_path_conflict"
       | "assignment_lease_conflict"
+      | "assignment_cancellation_blocked"
       | "workspace_cleanup_blocked"
       | "workspace_dependency_blocked"
       | "workspace_invalid"

@@ -10,6 +10,7 @@ import type {
 } from "@lervo/application-contract";
 
 import { shortId } from "./hash.js";
+import { approvalCoordinate, indexApprovalObservations } from "./approval-observations.js";
 import { evaluateResourceAdmission } from "./resource-admission.js";
 
 function dispositionAction(
@@ -56,13 +57,17 @@ function approvalAction(
   observations: ReadonlyMap<string, ApprovalObservationV1>,
 ): GovernedLoopActionV1 | null {
   const missing = node.approvalRequirementDigests.filter(
-    (digest) => observations.get(digest)?.status !== "verified",
+    (digest) =>
+      observations.get(approvalCoordinate(node.assignmentId, digest))?.status !== "verified",
   );
   if (missing.length === 0) return null;
   return {
     kind: "await_approval",
     assignmentId: node.assignmentId,
-    reasonCode: missing.some((digest) => observations.get(digest)?.status === "invalid")
+    reasonCode: missing.some(
+      (digest) =>
+        observations.get(approvalCoordinate(node.assignmentId, digest))?.status === "invalid",
+    )
       ? "approval_invalid"
       : "approval_missing",
     requirementDigests: missing,
@@ -152,12 +157,12 @@ export function decideGovernedLoop(input: {
   policy: GovernedLoopPolicyV1;
 }): GovernedLoopDecisionV1 {
   let actions: GovernedLoopActionV1[];
-  const approvalList = [...(input.approvals ?? [])].sort((left, right) =>
-    left.requirementDigest.localeCompare(right.requirementDigest),
-  );
-  const approvalCoordinatesValid =
-    new Set(approvalList.map((approval) => approval.requirementDigest)).size ===
-    approvalList.length;
+  const approvalIndex = indexApprovalObservations({
+    graph: input.graph,
+    observations: input.approvals ?? [],
+  });
+  const approvalList = approvalIndex.ordered;
+  const approvalCoordinatesValid = approvalIndex.valid;
   if (!approvalCoordinatesValid) {
     actions = [dispositionAction("block", "approval_observation_invalid", null)];
   } else if (input.graph.validity.status === "invalid") {
@@ -203,9 +208,7 @@ export function decideGovernedLoop(input: {
               .filter((node) => node.status === "completed")
               .map((node) => node.assignmentId),
           );
-          const approvals = new Map(
-            approvalList.map((observation) => [observation.requirementDigest, observation]),
-          );
+          const approvals = approvalIndex.byCoordinate;
           const candidates = input.graph.nodes
             .filter((node) => !["completed", "failed", "cancelled"].includes(node.status))
             .sort(

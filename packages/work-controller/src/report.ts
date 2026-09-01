@@ -27,6 +27,7 @@ export function projectGovernedWorkReport(input: {
     attempts: projection.attempts,
     observedAt: input.query.observedAt,
   });
+  const approvals = [...(input.approvals ?? [])];
   return {
     schemaVersion: 1,
     projectId: input.query.projectId,
@@ -34,13 +35,14 @@ export function projectGovernedWorkReport(input: {
     graph,
     attempts: projection.attempts,
     resources: projection.resources,
+    approvals,
     policy: input.query.policy,
     decision: decideGovernedLoop({
       graph,
       attempts: projection.attempts,
       resources: projection.resources,
       policy: input.query.policy,
-      ...(input.approvals === undefined ? {} : { approvals: input.approvals }),
+      approvals,
     }),
   };
 }

@@ -55,15 +55,30 @@ observable becomes `completion_reconciliation_required`; it is not rerun automat
 
 ## Approval and cancellation limits
 
-Approval requirements are projected as digests. The pure controller accepts only
-verified approval observations from an authority adapter. The initial CLI provides no
-such adapter, so an approval-gated assignment remains `await_approval` rather than
-accepting a command-line assertion as authority.
+GLA2 adds the provider-neutral approval-authority port and requires exact assignment,
+requirement-digest, evidence-hash, and validity-interval bindings. The default CLI still
+provides no authority adapter, so an approval-gated assignment remains `await_approval`;
+command-line text is not authority.
 
-Cancellation propagation is a pure bounded decision over current assignment status.
-The first slice does not add a new cancellation event or mutation by reinterpreting the
-existing `assignment.completed` event. A later cancellation writer requires its own
-versioned event, privacy, compatibility, recovery, and activation decision.
+GLA2 also adds a content-addressed, revision-bound single-assignment cancellation plan and
+the distinct `assignment.cancelled` transition. Only queued or blocked work is cancellable.
+Leased work remains protected even after expiry because expiry does not prove provider
+termination. Dependency propagation remains explicit and incremental rather than a hidden
+multi-assignment transaction.
+
+## GLA2: Authority and cancellation transition
+
+The second slice provides:
+
+- a storage- and provider-neutral approval authority query/observation port;
+- fail-closed rejection of duplicate, foreign, malformed, or expired approval evidence;
+- exact assignment-requirement matching rather than digest-only approval sharing;
+- deterministic cancellation planning bound to current assignment revision and status;
+- exact plan/apply CLI composition for requested and dependency-driven cancellation; and
+- state/event rollback with the privacy-bounded `assignment.cancelled` event.
+
+It does not add an approval issuer, infer model self-approval, cancel leased provider work,
+or make the controller effectful.
 
 ## Non-goals
 
@@ -86,16 +101,16 @@ minor release intent.
 
 ## Next sequence
 
-1. Add an authority-backed approval and cancellation transition contract.
-2. Add crash-reconciliation evidence for the narrow completed-run/finalization gap.
-3. Build a minimal local operating client over the headless query and command types.
-4. Add Paperclip-like goal, routine, board, and budget routes as replaceable adapters.
-5. Add Buzz-like inbox, mention, thread, and connector routes without granting room-based authority.
-6. Connect verified improvement candidates and post-promotion effect observation.
+1. Add crash-reconciliation evidence for the narrow completed-run/finalization gap.
+2. Build a minimal local operating client over the headless query and command types.
+3. Add Paperclip-like goal, routine, board, and budget routes as replaceable adapters.
+4. Add Buzz-like inbox, mention, thread, and connector routes without granting room-based authority.
+5. Connect verified improvement candidates and post-promotion effect observation.
 
 ## References
 
 - [Foundation enhancement handoff](foundation-hardening/verification-and-handoff.md)
 - [Agent platform evolution research](../research/lervo-agent-platform-evolution.md)
 - [ADR-0336](../decisions/execution/orchestration/0336-adopt-headless-governed-loop-and-assignment-graph.md)
+- [ADR-0337](../decisions/execution/orchestration/0337-bind-assignment-approval-and-cancellation-authority.md)
 - [Execution specification](../specifications/execution.md)

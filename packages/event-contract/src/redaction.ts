@@ -157,6 +157,14 @@ export const eventPayloadAllowlists = {
     "artifactHashes",
     "contextEvidenceEventIds",
   ],
+  "assignment.cancelled": [
+    "assignmentId",
+    "previousStatus",
+    "reason",
+    "planId",
+    "cancelledDependencyIds",
+    "revision",
+  ],
   "assignment.completed": [
     "assignmentId",
     "agentId",

@@ -5,6 +5,7 @@ export type ApplicationLeaseState = "none" | "active" | "expired";
 
 export interface WorkGraphNodeV1 {
   assignmentId: string;
+  assignmentRevision: number;
   taskType: string;
   roleId: string;
   status: ApplicationAssignmentStatus;
@@ -56,10 +57,43 @@ export interface ResourceGroupObservationV1 {
   reasonCodes: string[];
 }
 
-export interface ApprovalObservationV1 {
+interface ApprovalObservationBaseV1 {
+  schemaVersion: 1;
+  assignmentId: string;
+  assignmentRevision: number;
   requirementDigest: string;
-  status: "verified" | "missing" | "invalid";
-  approvalId: string | null;
+}
+
+export type ApprovalObservationV1 =
+  | (ApprovalObservationBaseV1 & {
+      status: "verified";
+      approvalId: string;
+      authorityId: string;
+      authorityEvidenceHash: string;
+      grantedAt: string;
+      expiresAt: string;
+    })
+  | (ApprovalObservationBaseV1 & {
+      status: "missing" | "invalid";
+      reasonCode: string;
+    });
+
+export interface ApprovalAuthorityRequirementV1 {
+  assignmentId: string;
+  assignmentRevision: number;
+  requirementDigest: string;
+}
+
+export interface ApprovalAuthorityQueryV1 {
+  schemaVersion: 1;
+  projectId: string;
+  workstreamId: string;
+  observedAt: string;
+  requirements: ApprovalAuthorityRequirementV1[];
+}
+
+export interface ApprovalAuthorityPort {
+  observe(query: ApprovalAuthorityQueryV1): Promise<ApprovalObservationV1[]>;
 }
 
 export interface GovernedTokenLimitV1 {
@@ -159,6 +193,7 @@ export interface GovernedWorkReportV1 {
   graph: WorkGraphV1;
   attempts: ManagedAttemptObservationV1[];
   resources: ResourceGroupObservationV1[];
+  approvals: ApprovalObservationV1[];
   policy: GovernedLoopPolicyV1;
   decision: GovernedLoopDecisionV1;
 }

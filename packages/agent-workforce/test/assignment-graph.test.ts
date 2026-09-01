@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createAssignmentCancellationPlan,
   evaluateWorkforceAdmission,
   planAssignmentCancellation,
+  type WorkforceAssignment,
   workforceLimits,
 } from "../src/index.js";
 
@@ -53,6 +55,35 @@ describe("assignment graph safety", () => {
         requestedAssignmentIds: [complete],
       }),
     ).toThrow("unknown assignment");
+  });
+
+  it("binds a single cancellation plan to revision, state, and cancelled dependency evidence", () => {
+    const root = {
+      ...assignment("asn_000000000000000000000001", [], "cancelled"),
+      revision: 2,
+    } as WorkforceAssignment;
+    const dependent = {
+      ...assignment("asn_000000000000000000000002", [root.assignmentId]),
+      revision: 1,
+    } as WorkforceAssignment;
+    const plan = createAssignmentCancellationPlan({
+      assignments: [root, dependent],
+      assignmentId: dependent.assignmentId,
+      reason: "dependency_cancelled",
+    });
+    expect(plan).toMatchObject({
+      status: "ready",
+      expectedRevision: 1,
+      cancelledDependencyIds: [root.assignmentId],
+      planId: expect.stringMatching(/^acp_[a-f0-9]{24}$/u),
+    });
+    expect(
+      createAssignmentCancellationPlan({
+        assignments: [{ ...dependent, status: "leased", revision: 2 }],
+        assignmentId: dependent.assignmentId,
+        reason: "requested",
+      }),
+    ).toMatchObject({ status: "blocked", blockedReason: "active_lease" });
   });
 
   it("reports each capacity and backpressure boundary without mutation", () => {
