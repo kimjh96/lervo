@@ -9,11 +9,22 @@ An active service process does not prove that Hub storage or Node synchronizatio
 
 ## Decision
 
-Hub exposes unauthenticated `GET /v1/health/live` and `GET /v1/health/ready` endpoints containing only `schemaVersion`, a fixed status, and `x-lervo-hub-identity`. Other methods, queries, and paths fail.
+Hub exposes unauthenticated `GET /v1/health/live`, `GET /v1/health/ready`, and
+`GET /v1/health/capabilities` endpoints with `x-lervo-hub-identity`. Live and ready
+contain only `schemaVersion` and a fixed status or bounded failure. Capabilities returns
+the provider-neutral, secret-free event-reader capability report and performs no
+storage check. Other methods, queries, and paths fail.
 
 Liveness proves only that the listener responds and does not read the store. Readiness runs bounded SQLite and cleanup `checkIntegrity`, never full `auditIntegrity`. Success is `200 ready`; failure is `503 not_ready` with `storage_unavailable` and no internal counts.
 
-Node atomically writes owner-only `.lervo/state/node-runtime-health.json`. It contains only schema, status, PID, start and update times, sync, and remote-control state. Overall status is `starting`, `ready`, `degraded`, or `stopping`. Sync and optional control move from `pending` to `ready` or bounded `unavailable`; disabled control is acceptable. Overall readiness requires every required component to be ready or disabled.
+Node atomically writes owner-only `.lervo/state/node-runtime-health.json`. It contains
+schema, status, PID, start and update times, the additive event-reader capability
+report, and component state. The capability report does not affect readiness and does
+not authorize event writing; older v1 snapshots without it remain readable. Overall
+status is `starting`, `ready`, `degraded`, or `stopping`. Required components move from
+`pending` to `ready` or bounded `unavailable`; disabled optional components are
+acceptable. Overall readiness requires every required component to be ready or
+disabled.
 
 Failure to publish initially or after a cycle is a runtime failure. Shutdown makes a best-effort publication of `stopping` before normal store closure.
 

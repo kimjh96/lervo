@@ -1,3 +1,5 @@
+import { createEventReaderCapabilities, readEventReaderCapabilities } from "@lervo/event-contract";
+
 import type { TraceCapabilitiesReport } from "./types.js";
 import { maximumTraceCursorBytes } from "./trace-cursor.js";
 import { defaultTracePageSize, maximumTracePageSize } from "./trace-page.js";
@@ -26,6 +28,11 @@ function semanticsAreValid(report: TraceCapabilitiesReport): boolean {
   const defaultMode = modes.get(report.defaultMode);
   const implicitModes = report.modes.filter(({ explicit }) => !explicit);
   const deprecationCodes = new Set(report.deprecations.map(({ code }) => code));
+  try {
+    if (report.eventReader !== undefined) readEventReaderCapabilities(report.eventReader);
+  } catch {
+    return false;
+  }
   return (
     modes.size === report.modes.length &&
     defaultMode !== undefined &&
@@ -64,6 +71,7 @@ export function createTraceCapabilitiesReport(): TraceCapabilitiesReport {
   return readTraceCapabilitiesReport({
     schemaVersion: traceCapabilitiesReportSchemaVersion,
     capability: "trace",
+    eventReader: createEventReaderCapabilities(),
     defaultMode: "page",
     modes: [
       {

@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@lervo/capabilities": "workspace:*",
+    "@lervo/event-contract": "workspace:*",
     "@lervo/hub-control": "workspace:*",
     "@lervo/hub-command": "workspace:*",
     "@lervo/hub-policy": "workspace:*",

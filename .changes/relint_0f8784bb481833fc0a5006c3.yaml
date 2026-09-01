@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_0f8784bb481833fc0a5006c3"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Advertise versioned event reader compatibility across local, Node, and Hub runtime surfaces."

@@ -25,6 +25,10 @@ export interface AuthenticatedHubTransport {
   sendEventBatch(batch: OutboundEventBatch): Promise<unknown>;
 }
 
+export interface AuthenticatedHubCapabilityTransport {
+  readEventReaderCapabilities(): Promise<unknown>;
+}
+
 export interface AuthenticatedWorkstreamHubTransport {
   publishWorkstream(request: WorkstreamReplicationPublishRequest): Promise<unknown>;
   readWorkstream(): Promise<unknown>;

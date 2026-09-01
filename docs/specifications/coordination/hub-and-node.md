@@ -37,6 +37,16 @@ An installed rollback receiver accepts a distinct signed rollback envelope throu
 
 Each destination and project coordinate owns one canonical event hash chain, so every event-producing Node uses a distinct destination coordinate. After registration, synchronization compares the Hub cursor with exact local history, queues a bounded prefix in that destination's durable outbox, and fails on mismatch. Local producers neither read Hub credentials nor wait for Node delivery.
 
+Reader compatibility is advertised separately from registration and writer selection.
+The local trace surface, owner-only Node health snapshot, and Hub
+`GET /v1/health/capabilities` return the same `EventReaderCapabilitiesV1` meaning. The
+sync transport authenticates the Hub identity before trusting its body and does not
+send the bearer secret to this unauthenticated endpoint. The report contains only its
+schema, the fixed `event_reader` capability name, and ascending readable event-schema
+versions. It grants no write or rollout authority. A missing, invalid, unverified, or
+v2-incapable peer report blocks future v2 writer activation but does not disable
+local execution or current v1 synchronization.
+
 ## Repository workstreams
 
 Workstream revisions are shared by project and repository identity across authorized destination registrations. Requests bind registration, repository identity, exact current and previous snapshot hashes, and bounded snapshot bytes. Node publishes available local ancestry before reading the head set.

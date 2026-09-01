@@ -49,6 +49,7 @@ import { documentRegistrySchema } from "./document-registry.js";
 import { documentStalenessResultSchema } from "./document-staleness.js";
 import { doctorReportSchema } from "./doctor-report.js";
 import { eventEnvelopeSchema } from "./event.js";
+import { eventReaderCapabilitiesSchema } from "./event-reader-capabilities.js";
 import {
   executionStagesObservedEventPayloadSchema,
   resourceUsageRecordedEventPayloadSchema,
@@ -248,6 +249,7 @@ const validators = {
   signedPolicyApprovalRevocation: ajv.getSchema(signedPolicyApprovalRevocationSchema.$id)!,
   managedRunApprovalAuthorization: ajv.getSchema(managedRunApprovalAuthorizationSchema.$id)!,
   event: ajv.getSchema(eventEnvelopeSchema.$id)!,
+  eventReaderCapabilities: ajv.compile(eventReaderCapabilitiesSchema),
   workCausalityRecordedEventPayload: ajv.compile(workCausalityRecordedEventPayloadSchema),
   resourceUsageRecordedEventPayload: ajv.compile(resourceUsageRecordedEventPayloadSchema),
   executionStagesObservedEventPayload: ajv.compile(executionStagesObservedEventPayloadSchema),

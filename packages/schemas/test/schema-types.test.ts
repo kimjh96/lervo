@@ -17,6 +17,7 @@ import type {
   DocumentMigrationPlan,
   DocumentStalenessResult,
   EventEnvelope,
+  EventReaderCapabilities,
   HandoffBundle,
   LegacyRegistryEntryArtifact,
   LegacyRegistryMigrationApplyReceipt,
@@ -74,6 +75,12 @@ import type {
 import { describe, expectTypeOf, it } from "vitest";
 
 describe("schema-derived TypeScript contracts", () => {
+  it("keeps event-reader advertisement separate from writer authority", () => {
+    expectTypeOf<
+      EventReaderCapabilities["readableEventSchemaVersions"][number]
+    >().toEqualTypeOf<number>();
+  });
+
   it("keeps trace capability modes and deprecations machine-readable", () => {
     expectTypeOf<TraceCapabilitiesReport["defaultMode"]>().toEqualTypeOf<
       "implicit_full" | "full" | "page" | "cursor"

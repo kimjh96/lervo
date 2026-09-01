@@ -109,6 +109,13 @@ IDs needed for local joining follow current retention policy and export redactio
 - Projection failure: source events remain canonical and replayable.
 - Hook internal failure: availability-safe empty response and no false success event.
 - Sync peer without v2-reader capability: writer activation is blocked.
+- Capability report missing, invalid, or from an unverified peer: writer activation is
+  blocked while current v1 synchronization remains valid.
+
+`EventReaderCapabilitiesV1` advertises only readable envelope versions. It is emitted
+by local diagnostics, Node health, and Hub health, and is readable through the sync
+transport. It contains no writer selection or activation field, so capability evidence
+cannot be mistaken for authority.
 
 Historical v1 events retain their original meaning. Projection may label them
 `legacy_unlinked`, but cannot infer a work tree from timestamps, sessions, text, or

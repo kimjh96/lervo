@@ -48,6 +48,17 @@ describe("Hub health HTTP API", () => {
     expect(ready.status).toBe(200);
     expect(await ready.json()).toEqual({ schemaVersion: 1, status: "ready" });
     expect(checkReady).toHaveBeenCalledOnce();
+
+    const capabilities = await fetch(`${base}/v1/health/capabilities`);
+    expect(capabilities.status).toBe(200);
+    expect(capabilities.headers.get("x-lervo-hub-identity")).toBe(identity);
+    expect(capabilities.headers.get("cache-control")).toBe("no-store");
+    expect(await capabilities.json()).toEqual({
+      schemaVersion: 1,
+      capability: "event_reader",
+      readableEventSchemaVersions: [1, 2],
+    });
+    expect(checkReady).toHaveBeenCalledOnce();
   });
 
   it("returns a fixed secret-free not-ready response when the storage check fails", async () => {

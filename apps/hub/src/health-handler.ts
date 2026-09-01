@@ -1,5 +1,7 @@
 import { type IncomingMessage, type ServerResponse } from "node:http";
 
+import { createEventReaderCapabilities } from "@lervo/event-contract";
+
 import { sendHubError, sendHubJson } from "./response.js";
 
 const HEALTH_RESPONSE_BYTES = 4_096;
@@ -42,6 +44,10 @@ export function createHubHealthHttpHandler(options: HubHealthHttpHandlerOptions)
         HEALTH_RESPONSE_BYTES,
         headers,
       );
+      return;
+    }
+    if (url.pathname === "/v1/health/capabilities") {
+      sendHubJson(response, 200, createEventReaderCapabilities(), HEALTH_RESPONSE_BYTES, headers);
       return;
     }
     if (url.pathname !== "/v1/health/ready") {

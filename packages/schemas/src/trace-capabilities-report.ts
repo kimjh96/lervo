@@ -1,5 +1,7 @@
 import type { FromSchema } from "json-schema-to-ts";
 
+import { eventReaderCapabilitiesValueSchema } from "./event-reader-capabilities.js";
+
 const traceModeSchema = {
   type: "string",
   enum: ["implicit_full", "full", "page", "cursor"],
@@ -13,6 +15,7 @@ export const traceCapabilitiesReportSchema = {
   properties: {
     schemaVersion: { type: "integer", const: 1 },
     capability: { type: "string", const: "trace" },
+    eventReader: eventReaderCapabilitiesValueSchema,
     defaultMode: traceModeSchema,
     modes: {
       type: "array",

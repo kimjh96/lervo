@@ -13,6 +13,11 @@ describe("trace capabilities report contract", () => {
     expect(report).toEqual({
       schemaVersion: 1,
       capability: "trace",
+      eventReader: {
+        schemaVersion: 1,
+        capability: "event_reader",
+        readableEventSchemaVersions: [1, 2],
+      },
       defaultMode: "page",
       modes: [
         {
@@ -59,6 +64,12 @@ describe("trace capabilities report contract", () => {
         code: "trace_capabilities_report_schema_unsupported",
       }),
     );
+  });
+
+  it("continues to read historical reports without event-reader advertisement", () => {
+    const { eventReader: _eventReader, ...historical } = createTraceCapabilitiesReport();
+
+    expect(readTraceCapabilitiesReport(historical)).toBe(historical);
   });
 
   it("rejects contradictory mode references without exposing input contents", () => {

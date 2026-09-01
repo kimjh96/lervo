@@ -50,6 +50,11 @@ describe("Node runtime readiness snapshot", () => {
       schemaVersion: 1,
       status: "starting",
       processId: process.pid,
+      eventReader: {
+        schemaVersion: 1,
+        capability: "event_reader",
+        readableEventSchemaVersions: [1, 2],
+      },
       sync: { status: "pending" },
       workstreamReplication: { status: "pending" },
       remoteControl: { status: "disabled" },

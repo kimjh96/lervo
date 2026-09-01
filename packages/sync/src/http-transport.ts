@@ -19,6 +19,7 @@ import {
 
 import { readSyncHttpJson } from "./http-json.js";
 import type {
+  AuthenticatedHubCapabilityTransport,
   AuthenticatedHubTransport,
   AuthenticatedWorkstreamHubTransport,
 } from "./transport.js";
@@ -68,7 +69,10 @@ function byteLimit(value: number | undefined, fallback: number, label: string): 
 }
 
 export class AuthenticatedHubHttpTransport
-  implements AuthenticatedHubTransport, AuthenticatedWorkstreamHubTransport
+  implements
+    AuthenticatedHubTransport,
+    AuthenticatedHubCapabilityTransport,
+    AuthenticatedWorkstreamHubTransport
 {
   private readonly baseUrl: URL;
   private readonly bearerToken: string;
@@ -168,6 +172,14 @@ export class AuthenticatedHubHttpTransport
     return this.requestJson("workstreams", "GET", undefined, [200]);
   }
 
+  async readEventReaderCapabilities(): Promise<unknown> {
+    const url = new URL(
+      "v1/health/capabilities",
+      this.baseUrl.href.endsWith("/") ? this.baseUrl : new URL(`${this.baseUrl.href}/`),
+    );
+    return this.performJsonRequest(url, "GET", undefined, [200], false);
+  }
+
   async coordinateWorkspace(mutation: HubWorkspaceCoordinationMutation): Promise<unknown> {
     if (!isHubWorkspaceCoordinationMutation(mutation))
       throw new Error("The workspace coordination mutation is invalid.");
@@ -224,6 +236,16 @@ export class AuthenticatedHubHttpTransport
     );
     url.searchParams.set("destinationId", this.destinationId);
     url.searchParams.set("projectIdentityHash", this.target.projectIdentityHash);
+    return this.performJsonRequest(url, method, serialized, acceptedStatuses, true);
+  }
+
+  private async performJsonRequest(
+    url: URL,
+    method: "GET" | "POST",
+    serialized: string | undefined,
+    acceptedStatuses: readonly number[],
+    authenticated: boolean,
+  ): Promise<unknown> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.requestTimeoutMs);
     try {
@@ -231,7 +253,7 @@ export class AuthenticatedHubHttpTransport
         method,
         headers: {
           accept: "application/json",
-          authorization: `Bearer ${this.bearerToken}`,
+          ...(authenticated ? { authorization: `Bearer ${this.bearerToken}` } : {}),
           ...(serialized === undefined
             ? {}
             : { "content-type": "application/json; charset=utf-8" }),

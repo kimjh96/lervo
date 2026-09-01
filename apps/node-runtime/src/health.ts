@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { chmod, lstat, open, rename, unlink } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { createEventReaderCapabilities } from "@lervo/event-contract";
+import type { EventReaderCapabilities } from "@lervo/schemas";
 import type { SyncCycleResult, WorkstreamReplicationCycleResult } from "@lervo/sync";
 
 import type { RemoteControlCycleResult } from "./control-loop.js";
@@ -18,6 +20,7 @@ export interface NodeRuntimeHealthSnapshot {
   processId: number;
   startedAt: string;
   updatedAt: string;
+  eventReader?: EventReaderCapabilities;
   sync: ComponentHealth;
   workstreamReplication: ComponentHealth;
   workspaceCoordination: ComponentHealth;
@@ -116,6 +119,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
       processId: process.pid,
       startedAt: now,
       updatedAt: now,
+      eventReader: createEventReaderCapabilities(),
       sync: { status: "pending" },
       workstreamReplication: { status: "pending" },
       workspaceCoordination: workspaceCoordinationConfigured

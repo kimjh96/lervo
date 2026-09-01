@@ -42,8 +42,22 @@ for fresh repositories until the rollout decision changes through a later ADR.
 
 The current implementation is at state 2 for the in-process event contract, local
 SQLite reader, synchronization validation, Hub storage, and trace readers. Production
-writers remain pinned to version 1. Reader capability advertisement, packed deployment
-proof, and the managed writer-coordinate operation remain required before state 3 or 4.
+writers remain pinned to version 1. Reader capability advertisement is implemented;
+packed deployment proof and the managed writer-coordinate operation remain required
+before state 3 or 4.
+
+`EventReaderCapabilitiesV1` is a provider-neutral, secret-free report with required
+`schemaVersion: 1`, `capability: event_reader`, and a strictly ascending,
+duplicate-free `readableEventSchemaVersions`. It deliberately contains no writable
+version, activation approval, peer URL, repository coordinate, credential, or runtime
+health claim. The local trace capability report and owner-only Node health snapshot
+carry this same report. Hub exposes it at unauthenticated
+`GET /v1/health/capabilities`, with the existing no-store and Hub-identity headers; the
+sync HTTP adapter can read that identity-bound surface without sending its bearer
+secret. Historical trace and Node health reports without this additive field remain
+readable. An unsupported capability-report version and an invalid report have distinct
+typed failures. Missing, invalid, unverified, or v2-incapable peer reports cannot
+authorize a future v2 writer.
 
 Writers never rewrite old events. A version 2 reader must accept a valid mixed chain. A
 version 1-only reader encountering version 2 fails with a typed unsupported-version

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { readEventEnvelope } from "../src/index.js";
+import {
+  createEventReaderCapabilities,
+  readEventEnvelope,
+  readEventReaderCapabilities,
+} from "../src/index.js";
 
 function event(schemaVersion: number) {
   const withoutHash = {
@@ -21,6 +25,37 @@ function event(schemaVersion: number) {
 }
 
 describe("event reader compatibility", () => {
+  it("advertises reader versions without granting writer activation", () => {
+    const capabilities = createEventReaderCapabilities();
+
+    expect(capabilities).toEqual({
+      schemaVersion: 1,
+      capability: "event_reader",
+      readableEventSchemaVersions: [1, 2],
+    });
+    expect(capabilities).not.toHaveProperty("writableEventSchemaVersion");
+    expect(readEventReaderCapabilities(capabilities)).toEqual(capabilities);
+  });
+
+  it("rejects unsupported or contradictory reader capability reports", () => {
+    expect(() =>
+      readEventReaderCapabilities({
+        schemaVersion: 2,
+        capability: "event_reader",
+        readableEventSchemaVersions: [1, 2],
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "event_reader_capabilities_schema_unsupported" }),
+    );
+    expect(() =>
+      readEventReaderCapabilities({
+        schemaVersion: 1,
+        capability: "event_reader",
+        readableEventSchemaVersions: [2, 1],
+      }),
+    ).toThrowError(expect.objectContaining({ code: "event_reader_capabilities_invalid" }));
+  });
+
   it("reads v1 and v2 without changing their bytes", () => {
     for (const schemaVersion of [1, 2]) {
       const source = event(schemaVersion);

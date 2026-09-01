@@ -90,6 +90,38 @@ describe("authenticated Hub sync HTTP transport", () => {
     expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${options.bearerToken}`);
   });
 
+  it("reads the authenticated peer capability surface without sending the bearer secret", async () => {
+    const request = vi.fn<typeof fetch>(
+      async () =>
+        new Response(
+          JSON.stringify({
+            schemaVersion: 1,
+            capability: "event_reader",
+            readableEventSchemaVersions: [1, 2],
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json",
+              "x-lervo-hub-identity": options.expectedHubIdentityHash,
+            },
+          },
+        ),
+    );
+    const transport = new AuthenticatedHubHttpTransport({ ...options, fetch: request });
+
+    await expect(transport.readEventReaderCapabilities()).resolves.toMatchObject({
+      authentication: {
+        status: "verified",
+        peerIdentityHash: options.expectedHubIdentityHash,
+      },
+      body: { capability: "event_reader", readableEventSchemaVersions: [1, 2] },
+    });
+    const [url, init] = request.mock.calls[0]!;
+    expect(String(url)).toBe("https://hub.example.test/v1/health/capabilities");
+    expect(new Headers(init?.headers).has("authorization")).toBe(false);
+  });
+
   it("returns an unverified proof without parsing a response from another Hub", async () => {
     const transport = new AuthenticatedHubHttpTransport({
       ...options,

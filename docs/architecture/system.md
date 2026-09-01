@@ -85,6 +85,13 @@ Installed Nodes use deterministic project, repository, and Node identity. An own
 
 Local event producers do not know Hub endpoints or device credentials. When policy permits and a Node selects a destination, it authenticates registration, checks the Hub cursor against local truth, and durably reconciles the next bounded event prefix into that destination's outbox.
 
+Event-reader compatibility is a provider-neutral, rebuildable capability observation,
+not writer authority. Local diagnostics and Node health advertise their readable
+envelope versions; Hub exposes the same secret-free report through an identity-bound
+health endpoint that sync clients read without sending bearer credentials. Missing or
+incapable peers cannot authorize v2 writing, while local execution and v1 writing remain
+independent of Hub availability.
+
 Optional Hub coordination reserves path digests before local leases. Summaries are observational; the Hub cannot write, integrate, approve, or clean. See [Hub and Node coordination](../specifications/coordination/hub-and-node.md).
 
 The optional Hub capability registry accepts only explicit content-bound publication. Project packages require matching project scope; public packages require explicit public selection. Separate read and publish permissions protect immutable envelopes. Local packages and execution do not depend on this registry.

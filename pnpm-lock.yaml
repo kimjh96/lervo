@@ -246,6 +246,9 @@ importers:
       '@lervo/capabilities':
         specifier: workspace:*
         version: link:../../packages/capabilities
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../../packages/event-contract
       '@lervo/hub-command':
         specifier: workspace:*
         version: link:../../packages/hub-command

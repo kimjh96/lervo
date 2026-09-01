@@ -2009,6 +2009,11 @@ describe("lervo trace CLI", () => {
     expect(JSON.parse(output)).toMatchObject({
       schemaVersion: 1,
       capability: "trace",
+      eventReader: {
+        schemaVersion: 1,
+        capability: "event_reader",
+        readableEventSchemaVersions: [1, 2],
+      },
       defaultMode: "page",
       limits: {
         defaultPageSize: 50,
