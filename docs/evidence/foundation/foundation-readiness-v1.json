@@ -1,0 +1,370 @@
+{
+  "schemaVersion": 1,
+  "reportVersion": "foundation-readiness-v1",
+  "repositoryRevision": "sha256:06f5e1cdd001c5cab03fe8c3947b266ab2493e01cdaf7f906bb6635796176f9f",
+  "releaseBaseRevision": "70e6a54",
+  "environment": {
+    "operatingSystem": "darwin",
+    "architecture": "arm64",
+    "nodeVersion": "v26.5.1"
+  },
+  "constituentReports": [
+    {
+      "path": "docs/evidence/foundation/execution-performance-v1.json",
+      "reportId": "perf_25dc63f6686f486ff35689fb",
+      "contentHash": "sha256:61dc546467a563f43df8c42d98dc7dface0b3626d16a83da5b00bf4a621d7688"
+    },
+    {
+      "path": "docs/evidence/foundation/adverse-condition-v1.json",
+      "reportId": "adverse_17ac4b6692354f7703f067c6",
+      "contentHash": "sha256:2963c1a28a128be69679c987c78c72276d59324b494eb60b402c6939858b60cf"
+    }
+  ],
+  "suiteBindings": [
+    {
+      "path": "apps/cli/test/event-reader-inventory.test.ts",
+      "contentHash": "sha256:9bd802c80ad5ab3f4f76eb3811bdd29408fd63176f39fb757a5c6bbf44df72ca"
+    },
+    {
+      "path": "apps/cli/test/managed-run.test.ts",
+      "contentHash": "sha256:130031987a6b0678b5842a7761c40c75170b393a163305a51292a1b76a02517c"
+    },
+    {
+      "path": "apps/hub/test/sync-http.test.ts",
+      "contentHash": "sha256:0b5360879bd0becfd68365b8b0ef968bea5bafb1ad8b4b6868be4e8abe2b8d3f"
+    },
+    {
+      "path": "apps/node-runtime/test/managed-provider-runtime.test.ts",
+      "contentHash": "sha256:f75dc8512359e7c1fa67deb1ee9c6e04953057fe25456994dad1a51f66ed1d6a"
+    },
+    {
+      "path": "package.json",
+      "contentHash": "sha256:b510cd7dc94dcbc1f7957354d0467bbbfbe47f45d1a10bd54c17b74783ab0ec7"
+    },
+    {
+      "path": "packages/adapter-contract/test/adapter-contract.test.ts",
+      "contentHash": "sha256:9dd19964611a94ac55209414967680d6bdb754f66aac9afb71f69dc9d7083862"
+    },
+    {
+      "path": "packages/event-contract/test/event-reader-capabilities.test.ts",
+      "contentHash": "sha256:35f7288ba5061730e23e3f048ae8b8313dd153f4a64a48a4b01fe8fe59a34ae9"
+    },
+    {
+      "path": "packages/event-contract/test/event-reader.test.ts",
+      "contentHash": "sha256:9743fbe6b06ad581decfa8eb84e9c5c31574618e424ddc607767313ae76eaa3a"
+    },
+    {
+      "path": "packages/event-store-sqlite/test/event-store.test.ts",
+      "contentHash": "sha256:ec5b3ce18c2338dd0e1d55d7a31ab92a9263d3fc44b183d2c652188290f40d6d"
+    },
+    {
+      "path": "packages/event-store-sqlite/test/row-codec.test.ts",
+      "contentHash": "sha256:0334c43c7d0aba722b75a0918e312eb70f6fe1c5a2331c9932ba8d1b3f76f1d7"
+    },
+    {
+      "path": "packages/execution-contract/test/effect-safety.test.ts",
+      "contentHash": "sha256:eb82a4fabe915302f6554ec7c30b0f2e79948cbd900c1de88022a21a886773c6"
+    },
+    {
+      "path": "packages/execution-contract/test/resource-accounting.test.ts",
+      "contentHash": "sha256:4d633b6d09cbb5e8fbc5ecfcfccd59f00eb442dc05f2031667db085d93718405"
+    },
+    {
+      "path": "packages/execution-contract/test/stage-timing.test.ts",
+      "contentHash": "sha256:5fb819fc6b413b39ce1b1edd98775d81a95fec6f0db2d871156aacde60c3a00f"
+    },
+    {
+      "path": "packages/execution-contract/test/work-causality.test.ts",
+      "contentHash": "sha256:a260c88177968c44830badbeaf29e59b5a41277d0b5234afcd7d8abde9d7157f"
+    },
+    {
+      "path": "packages/execution-observability/test/work-execution-report.test.ts",
+      "contentHash": "sha256:fe32cadfdd882fc806b0384c91f6cd89cfe73e5b8a1bcc90d7638aa137919a69"
+    },
+    {
+      "path": "packages/hub-sync-sqlite/test/trace-integration.test.ts",
+      "contentHash": "sha256:981558f2e6d210dfa12e386a89af354db4b2ccf45d78f5a39bf963f89b184ea4"
+    },
+    {
+      "path": "packages/project/test/event-writer-activation.test.ts",
+      "contentHash": "sha256:da8a39240d32f140723009bd64ce0d670aa15a6d636a5d4d996a3fcc841ebcf5"
+    },
+    {
+      "path": "packages/schemas/test/event-compatibility.test.ts",
+      "contentHash": "sha256:35d08d3a7690655c0bfed141c899864e1a2836e8d653a64c461e15c79b075ea5"
+    },
+    {
+      "path": "packages/sync-contract/test/event-batch.test.ts",
+      "contentHash": "sha256:fb87bcfc287f1aa361000778648e5ea815282dda34206197118e972f92d8d163"
+    },
+    {
+      "path": "packages/sync-contract/test/receiver-state.test.ts",
+      "contentHash": "sha256:c583bc096d2eec7d991cd31d09710430f066d066e1e7032b217a9717a6a81cab"
+    },
+    {
+      "path": "scripts/check-built-cli.mjs",
+      "contentHash": "sha256:d9ca0d19306953c06e653601845c100c6e3c186a5697333fa71d5c0498a7cd08"
+    },
+    {
+      "path": "scripts/check-hub-runtime-distribution.mjs",
+      "contentHash": "sha256:f6805db5714e140f93049fa4e40490564eec03e8a6f3dd0cf78e694464d7ca39"
+    },
+    {
+      "path": "scripts/check-natural-language-evaluation.mjs",
+      "contentHash": "sha256:cbd33abde186f55a8172a682d73ffa7d66cd2a131f09d0f270a21050bffc302b"
+    },
+    {
+      "path": "scripts/check-node-runtime-distribution.mjs",
+      "contentHash": "sha256:01e16486ec833a5fffaea6de6f5b91b9477d3563f28a69b7110b789219f5c608"
+    },
+    {
+      "path": "scripts/check-packed-cli.mjs",
+      "contentHash": "sha256:abd5e39d7051e315b9d7183fabbcbb80910b51915972b2c471595b6b4814375e"
+    }
+  ],
+  "checkIds": [
+    "contracts",
+    "replay",
+    "performance",
+    "recovery",
+    "security",
+    "capacity",
+    "managed_journeys",
+    "fresh_clone",
+    "distribution",
+    "drift",
+    "release_completion"
+  ],
+  "unsupportedStates": [
+    "direct provider sessions remain unmanaged and whole-task usage is unavailable",
+    "arbitrary third-party code execution remains disabled pending isolation",
+    "live external provider and multi-machine production availability are not claimed",
+    "billing reconciliation and autonomous monetary hard stops are not implemented"
+  ],
+  "observations": [
+    {
+      "sequence": 1,
+      "observedAt": "2026-09-01T15:10:12.349Z",
+      "repositoryRevision": "sha256:06f5e1cdd001c5cab03fe8c3947b266ab2493e01cdaf7f906bb6635796176f9f",
+      "status": "passed",
+      "checks": [
+        {
+          "checkId": "contracts",
+          "status": "passed",
+          "durationMs": 1768.727,
+          "outputHash": "sha256:2798a05790bfc8caed30c0c4b90f6d178f4fb920ef29e0a9bb058e3a81b9678b"
+        },
+        {
+          "checkId": "replay",
+          "status": "passed",
+          "durationMs": 2326.126,
+          "outputHash": "sha256:adf274486b4d983d250114e806605adb6d79ba2e6c5be8cdf29f43b3a0ac53c5"
+        },
+        {
+          "checkId": "performance",
+          "status": "passed",
+          "durationMs": 1127.117,
+          "outputHash": "sha256:d169d845fd291b2c6f4dca5a3f894b212ed43591b624abab8c6babd0ccdb1e87"
+        },
+        {
+          "checkId": "recovery",
+          "status": "passed",
+          "durationMs": 1990.552,
+          "outputHash": "sha256:986b953077546b6e5eef768b6ed1a5313df64a02652aa3c59440c3bb5dcfe5b9"
+        },
+        {
+          "checkId": "security",
+          "status": "passed",
+          "durationMs": 1900.266,
+          "outputHash": "sha256:42e78395ea17a820cbf18bfb8183dd41b182b635b01c6fb31bfb905057017d6d"
+        },
+        {
+          "checkId": "capacity",
+          "status": "passed",
+          "durationMs": 1922.562,
+          "outputHash": "sha256:411ae8af2ac1de5f5975adadc65370018c90329befdeabf5abae8af9230ba1cb"
+        },
+        {
+          "checkId": "managed_journeys",
+          "status": "passed",
+          "durationMs": 4626.724,
+          "outputHash": "sha256:89f2d613744e1af69c1b386f38672dc448c8b5ba9f3f58d6c7eb7075d3fe253b"
+        },
+        {
+          "checkId": "fresh_clone",
+          "status": "passed",
+          "durationMs": 23226.776,
+          "outputHash": "sha256:cc07a9e6be14aae93f011071b1f1552662e8cde5249ee94f3787bf75c798763c"
+        },
+        {
+          "checkId": "distribution",
+          "status": "passed",
+          "durationMs": 43521.913,
+          "outputHash": "sha256:6a5254041b890c5db578db469b8031922483d3ea080792d7334f63d24a44df53"
+        },
+        {
+          "checkId": "drift",
+          "status": "passed",
+          "durationMs": 225.781,
+          "outputHash": "sha256:334e0daeb58ac9ff4d76d506fd48e65229d060af5a13136171e34b8f0743bb83"
+        },
+        {
+          "checkId": "release_completion",
+          "status": "passed",
+          "durationMs": 285.881,
+          "outputHash": "sha256:d17dafc70ef1ff0d3638880cb5913dfa574e02165ad3a06dae82624556a7decd"
+        }
+      ]
+    },
+    {
+      "sequence": 2,
+      "observedAt": "2026-09-01T15:11:35.136Z",
+      "repositoryRevision": "sha256:06f5e1cdd001c5cab03fe8c3947b266ab2493e01cdaf7f906bb6635796176f9f",
+      "status": "passed",
+      "checks": [
+        {
+          "checkId": "contracts",
+          "status": "passed",
+          "durationMs": 1746.932,
+          "outputHash": "sha256:ad55d67d58c8f95f4ec39c1774e212ce07b6daa4ed9d4c7482849cd93c0ac974"
+        },
+        {
+          "checkId": "replay",
+          "status": "passed",
+          "durationMs": 2217.974,
+          "outputHash": "sha256:e9513768aff7ebefd046932c3e7fef4ca7f14243fe45ffdcf9cdbe01efdbc1c5"
+        },
+        {
+          "checkId": "performance",
+          "status": "passed",
+          "durationMs": 1180.831,
+          "outputHash": "sha256:d169d845fd291b2c6f4dca5a3f894b212ed43591b624abab8c6babd0ccdb1e87"
+        },
+        {
+          "checkId": "recovery",
+          "status": "passed",
+          "durationMs": 1888.064,
+          "outputHash": "sha256:986b953077546b6e5eef768b6ed1a5313df64a02652aa3c59440c3bb5dcfe5b9"
+        },
+        {
+          "checkId": "security",
+          "status": "passed",
+          "durationMs": 1927.432,
+          "outputHash": "sha256:12a186986ef43848fddacf2feaf5c63c653e42abbb4d12b9d437eb9ecbd2755c"
+        },
+        {
+          "checkId": "capacity",
+          "status": "passed",
+          "durationMs": 1859.797,
+          "outputHash": "sha256:411ae8af2ac1de5f5975adadc65370018c90329befdeabf5abae8af9230ba1cb"
+        },
+        {
+          "checkId": "managed_journeys",
+          "status": "passed",
+          "durationMs": 4547.058,
+          "outputHash": "sha256:9795e05bc9d9c556736e9305a6202c0109c42f68a20236f50129d1b119600a15"
+        },
+        {
+          "checkId": "fresh_clone",
+          "status": "passed",
+          "durationMs": 24321.42,
+          "outputHash": "sha256:cc07a9e6be14aae93f011071b1f1552662e8cde5249ee94f3787bf75c798763c"
+        },
+        {
+          "checkId": "distribution",
+          "status": "passed",
+          "durationMs": 42390.877,
+          "outputHash": "sha256:6a5254041b890c5db578db469b8031922483d3ea080792d7334f63d24a44df53"
+        },
+        {
+          "checkId": "drift",
+          "status": "passed",
+          "durationMs": 204.829,
+          "outputHash": "sha256:334e0daeb58ac9ff4d76d506fd48e65229d060af5a13136171e34b8f0743bb83"
+        },
+        {
+          "checkId": "release_completion",
+          "status": "passed",
+          "durationMs": 299.168,
+          "outputHash": "sha256:d17dafc70ef1ff0d3638880cb5913dfa574e02165ad3a06dae82624556a7decd"
+        }
+      ]
+    },
+    {
+      "sequence": 3,
+      "observedAt": "2026-09-01T15:12:55.795Z",
+      "repositoryRevision": "sha256:06f5e1cdd001c5cab03fe8c3947b266ab2493e01cdaf7f906bb6635796176f9f",
+      "status": "passed",
+      "checks": [
+        {
+          "checkId": "contracts",
+          "status": "passed",
+          "durationMs": 1655.15,
+          "outputHash": "sha256:c4113184e8ef6a348bb5f589858c1d4019379effdd008791168f31da1561d4b4"
+        },
+        {
+          "checkId": "replay",
+          "status": "passed",
+          "durationMs": 2105.659,
+          "outputHash": "sha256:7525cf0ac674a7635e4f94cc38d8ed01404c36e92a37dee77ef021813b10520a"
+        },
+        {
+          "checkId": "performance",
+          "status": "passed",
+          "durationMs": 1117.565,
+          "outputHash": "sha256:d169d845fd291b2c6f4dca5a3f894b212ed43591b624abab8c6babd0ccdb1e87"
+        },
+        {
+          "checkId": "recovery",
+          "status": "passed",
+          "durationMs": 1865.278,
+          "outputHash": "sha256:3d7e975fe5940eab355b115e1b0a03dd27b896c9682490b976fb6b8009966298"
+        },
+        {
+          "checkId": "security",
+          "status": "passed",
+          "durationMs": 1859.673,
+          "outputHash": "sha256:42e78395ea17a820cbf18bfb8183dd41b182b635b01c6fb31bfb905057017d6d"
+        },
+        {
+          "checkId": "capacity",
+          "status": "passed",
+          "durationMs": 1843.332,
+          "outputHash": "sha256:411ae8af2ac1de5f5975adadc65370018c90329befdeabf5abae8af9230ba1cb"
+        },
+        {
+          "checkId": "managed_journeys",
+          "status": "passed",
+          "durationMs": 4620.173,
+          "outputHash": "sha256:eb428633712825b30bc001aca1c506ec6a8a7b459eed76ac8dd8cb7c19e29157"
+        },
+        {
+          "checkId": "fresh_clone",
+          "status": "passed",
+          "durationMs": 22935.763,
+          "outputHash": "sha256:cc07a9e6be14aae93f011071b1f1552662e8cde5249ee94f3787bf75c798763c"
+        },
+        {
+          "checkId": "distribution",
+          "status": "passed",
+          "durationMs": 42003.131,
+          "outputHash": "sha256:6a5254041b890c5db578db469b8031922483d3ea080792d7334f63d24a44df53"
+        },
+        {
+          "checkId": "drift",
+          "status": "passed",
+          "durationMs": 196.65,
+          "outputHash": "sha256:334e0daeb58ac9ff4d76d506fd48e65229d060af5a13136171e34b8f0743bb83"
+        },
+        {
+          "checkId": "release_completion",
+          "status": "passed",
+          "durationMs": 256.679,
+          "outputHash": "sha256:d17dafc70ef1ff0d3638880cb5913dfa574e02165ad3a06dae82624556a7decd"
+        }
+      ]
+    }
+  ],
+  "allPassed": true,
+  "reportId": "fready_cdecdf3df484d7ca69c97f13"
+}
