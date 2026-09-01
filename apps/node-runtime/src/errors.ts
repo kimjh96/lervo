@@ -1,6 +1,7 @@
 export type NodeRuntimeErrorCode =
   | "invalid_arguments"
   | "invalid_config"
+  | "health_snapshot_invalid"
   | "unsafe_runtime_file"
   | "project_invalid"
   | "startup_failed"

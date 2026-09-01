@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { lstat, readFile, realpath } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import { homedir } from "node:os";
-import { isAbsolute, resolve } from "node:path";
+import { resolve } from "node:path";
 
 import {
   createNodeFleetOnboardingPlan,
@@ -11,6 +11,9 @@ import {
 } from "@lervo/repository-registry";
 
 import { applyNodeFleetOnboarding, inspectNodeFleetStatus } from "./node-fleet-apply.js";
+import { readNodeServiceCoordinates } from "./node-service-coordinates.js";
+
+export { parseNodeServiceCoordinates } from "./node-service-coordinates.js";
 
 export interface NodeUpgradeStage {
   disposition: "current" | "safe_apply" | "pending_authority" | "blocked";
@@ -57,78 +60,20 @@ function stage(input: {
   };
 }
 
-function decodeXml(value: string): string {
-  return value
-    .replaceAll("&quot;", '"')
-    .replaceAll("&apos;", "'")
-    .replaceAll("&lt;", "<")
-    .replaceAll("&gt;", ">")
-    .replaceAll("&amp;", "&");
-}
-
-function decodeSystemd(value: string): string | null {
-  let decoded = "";
-  for (let index = 0; index < value.length; index += 1) {
-    const character = value[index]!;
-    if (character === "\\") {
-      const next = value[index + 1];
-      if (next !== "\\" && next !== '"') return null;
-      decoded += next;
-      index += 1;
-    } else if (character === "%" && value[index + 1] === "%") {
-      decoded += "%";
-      index += 1;
-    } else decoded += character;
-  }
-  return decoded;
-}
-
-export function parseNodeServiceCoordinates(
-  manager: "systemd" | "launchd",
-  content: string,
-): { executable: string; config: string } | null {
-  if (manager === "launchd") {
-    const match =
-      /<key>ProgramArguments<\/key>\s*<array>\s*<string>([^<]+)<\/string>\s*<string>--config<\/string>\s*<string>([^<]+)<\/string>\s*<\/array>/u.exec(
-        content,
-      );
-    return match === null
-      ? null
-      : { executable: decodeXml(match[1]!), config: decodeXml(match[2]!) };
-  }
-  const line = content.split("\n").find((item) => item.startsWith("ExecStart="));
-  const match = /^ExecStart="((?:[^"\\]|\\.)*)" --config "((?:[^"\\]|\\.)*)"$/u.exec(line ?? "");
-  if (match === null) return null;
-  const executable = decodeSystemd(match[1]!);
-  const config = decodeSystemd(match[2]!);
-  return executable === null || config === null ? null : { executable, config };
-}
-
 async function safeServiceCoordinates(
   plan: NodeFleetOnboardingPlan,
 ): Promise<{ executable: string; config: string } | null> {
   if (plan.service.targetState !== "present_unverified") return null;
-  const metadata = await lstat(plan.service.targetPath);
-  if (
-    !metadata.isFile() ||
-    metadata.isSymbolicLink() ||
-    metadata.size < 1 ||
-    metadata.size > 64 * 1024 ||
-    (process.platform !== "win32" && (metadata.mode & 0o077) !== 0)
-  )
+  try {
+    const coordinates = await readNodeServiceCoordinates({
+      manager: plan.desired.serviceManager,
+      path: plan.service.targetPath,
+      expectedContentHash: plan.service.targetContentHash,
+    });
+    return { executable: coordinates.executable, config: coordinates.config };
+  } catch {
     return null;
-  const coordinates = parseNodeServiceCoordinates(
-    plan.desired.serviceManager,
-    await readFile(plan.service.targetPath, "utf8"),
-  );
-  if (
-    coordinates === null ||
-    !isAbsolute(coordinates.executable) ||
-    !isAbsolute(coordinates.config) ||
-    /[\0\r\n]/u.test(`${coordinates.executable}${coordinates.config}`)
-  )
-    return null;
-  return { executable: resolve(coordinates.executable), config: resolve(coordinates.config) };
+  }
 }
 
 function shellQuote(value: string): string {

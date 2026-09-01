@@ -35,6 +35,7 @@ Completed under [ADR-0202](../../decisions/operations/services/0202-repository-n
 
 - Node rendering and management require a deterministic repository-node instance ID. Systemd and launchd identities no longer collide; Hub identity is unchanged.
 - Owner-only `lervo_node_fleet_registry` v1 binds project and repository identity, canonical root, node, destination, runtime version, service identity, and health path. Exact-key validation excludes credentials; writes are bounded, locked, atomic, and conflict preserving.
+- The same registry now supplies complete configured membership to distributed event-writer activation without becoming capability or approval evidence. Exact service/config hashes plus separately verified Node and Hub observations prevent stale registry bytes from authorizing a writer.
 - Fixtures prove folder-independent deterministic identity, distinct registrations and targets for two repositories, refresh without identity drift, duplicate-coordinate rejection, permission bounds, and absence of credential fields.
 - `lervo repository node plan` revalidates manifest identity and compares registry and per-instance service coordinates without writing. It reports legacy transition, scoped credential issuance, activation, and readiness as separate authority or observation gaps.
 - Planning fixtures cover first onboarding, unchanged desired state, stale coordinates, a legacy singleton, and two repositories on one device. Plans exclude credentials and service bodies, declare exact staleness triggers, and never claim readiness.

@@ -52,6 +52,40 @@ function evidence(readableEventSchemaVersions: readonly number[] = [1, 2]) {
   };
 }
 
+function distributedEvidence(inventoryHash = `sha256:${"a".repeat(64)}`) {
+  const capabilities = createEventReaderCapabilities();
+  return {
+    schemaVersion: 2 as const,
+    projectId,
+    observedAt: "2026-09-01T00:00:00.000Z",
+    authority: {
+      kind: "repository_node_fleet_v1" as const,
+      repositoryIdentityHash: `sha256:${"b".repeat(64)}`,
+      inventoryHash,
+    },
+    readers: [
+      {
+        readerId: "reader_hub_000000000000000000000001",
+        readerKind: "hub" as const,
+        peerIdentityHash: `sha256:${"c".repeat(64)}`,
+        capabilities,
+      },
+      {
+        readerId: "reader_local_runtime",
+        readerKind: "local" as const,
+        peerIdentityHash: null,
+        capabilities,
+      },
+      {
+        readerId: "reader_node_000000000000000000000001",
+        readerKind: "node" as const,
+        peerIdentityHash: `sha256:${"d".repeat(64)}`,
+        capabilities,
+      },
+    ],
+  };
+}
+
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -118,6 +152,61 @@ describe("event writer activation", () => {
     expect(plan.blockers).toContainEqual(
       expect.objectContaining({ code: "reader_inventory_authority_unavailable" }),
     );
+  });
+
+  it("requires exact current distributed inventory again before apply", async () => {
+    const root = await fixture();
+    const manifestPath = resolve(root, ".lervo/project.yaml");
+    const manifest = await readFile(manifestPath, "utf8");
+    await writeFile(
+      manifestPath,
+      manifest.replace("hubSyncEnabled: false", "hubSyncEnabled: true"),
+    );
+    const authoritative = distributedEvidence();
+    const plan = await planEventWriterActivation({
+      repositoryRoot: root,
+      evidence: authoritative,
+    });
+    expect(plan).toMatchObject({ status: "ready", activationEvidence: { schemaVersion: 2 } });
+
+    await expect(
+      applyEventWriterActivationPlan({ plan, approval: plan.planId }),
+    ).rejects.toMatchObject({ code: "reader_inventory_revalidation_required" });
+    await expect(
+      applyEventWriterActivationPlan({
+        plan,
+        approval: plan.planId,
+        currentEvidence: distributedEvidence(`sha256:${"e".repeat(64)}`),
+      }),
+    ).rejects.toMatchObject({ code: "event_writer_plan_stale" });
+    await expect(
+      applyEventWriterActivationPlan({
+        plan,
+        approval: plan.planId,
+        currentEvidence: authoritative,
+      }),
+    ).resolves.toMatchObject({ selectedEventSchemaVersion: 2 });
+  });
+
+  it("blocks an incapable distributed reader before producing a ready plan", async () => {
+    const root = await fixture();
+    const manifestPath = resolve(root, ".lervo/project.yaml");
+    await writeFile(
+      manifestPath,
+      (await readFile(manifestPath, "utf8")).replace(
+        "hubSyncEnabled: false",
+        "hubSyncEnabled: true",
+      ),
+    );
+    const authoritative = distributedEvidence();
+    authoritative.readers[0]!.capabilities = {
+      ...authoritative.readers[0]!.capabilities,
+      readableEventSchemaVersions: [1],
+    };
+
+    await expect(
+      planEventWriterActivation({ repositoryRoot: root, evidence: authoritative }),
+    ).rejects.toMatchObject({ code: "event_writer_activation_blocked" });
   });
 
   it.each(["staged", "published"] as const)(

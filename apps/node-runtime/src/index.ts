@@ -7,6 +7,7 @@ export * from "./credentials.js";
 export * from "./deployment.js";
 export * from "./errors.js";
 export * from "./health.js";
+export * from "./health-contract.js";
 export * from "./lifecycle.js";
 export * from "./managed-provider-runtime.js";
 export * from "./organization-credential-delivery.js";

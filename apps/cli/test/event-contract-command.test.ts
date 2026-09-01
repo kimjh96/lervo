@@ -1,7 +1,8 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { createEventReaderCapabilities } from "@lervo/event-contract";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -33,6 +34,40 @@ function io(root: string, stdin = "") {
     stderr: (message) => stderr.push(message),
   };
   return { value, stdout, stderr };
+}
+
+function distributedEvidence(inventoryHash = `sha256:${"a".repeat(64)}`) {
+  const capabilities = createEventReaderCapabilities();
+  return {
+    schemaVersion: 2 as const,
+    projectId: "prj_cliwriter1",
+    observedAt: "2026-09-01T09:00:00.000Z",
+    authority: {
+      kind: "repository_node_fleet_v1" as const,
+      repositoryIdentityHash: `sha256:${"b".repeat(64)}`,
+      inventoryHash,
+    },
+    readers: [
+      {
+        readerId: "reader_hub_000000000000000000000001",
+        readerKind: "hub" as const,
+        peerIdentityHash: `sha256:${"c".repeat(64)}`,
+        capabilities,
+      },
+      {
+        readerId: "reader_local_runtime",
+        readerKind: "local" as const,
+        peerIdentityHash: null,
+        capabilities,
+      },
+      {
+        readerId: "reader_node_000000000000000000000001",
+        readerKind: "node" as const,
+        peerIdentityHash: `sha256:${"d".repeat(64)}`,
+        capabilities,
+      },
+    ],
+  };
 }
 
 afterEach(async () => {
@@ -129,5 +164,57 @@ describe("event-contract command", () => {
       1,
     );
     expect(oversized.stderr.join("")).toContain("64 KiB");
+  });
+
+  it("re-observes exact distributed authority for planning and apply", async () => {
+    const root = await fixture();
+    const manifestPath = resolve(root, ".lervo/project.yaml");
+    await writeFile(
+      manifestPath,
+      (await readFile(manifestPath, "utf8")).replace(
+        "hubSyncEnabled: false",
+        "hubSyncEnabled: true",
+      ),
+    );
+    const evidence = distributedEvidence();
+    const collectEvidence = async () => evidence;
+    const planOutput = io(root, JSON.stringify(evidence));
+    await expect(
+      runEventContractCommand(["activate", "--stdin", "--json"], planOutput.value, {
+        collectEvidence,
+      }),
+    ).resolves.toBe(0);
+    const plan = JSON.parse(planOutput.stdout.join(""));
+    expect(plan).toMatchObject({ status: "ready" });
+    expect(plan).not.toHaveProperty("activationEvidence");
+
+    const applyOutput = io(root, JSON.stringify(evidence));
+    await expect(
+      runEventContractCommand(
+        ["activate", "--stdin", "--apply", plan.planId, "--json"],
+        applyOutput.value,
+        { collectEvidence },
+      ),
+    ).resolves.toBe(0);
+    expect(JSON.parse(applyOutput.stdout.join(""))).toMatchObject({
+      selectedEventSchemaVersion: 2,
+    });
+
+    const staleRoot = await fixture();
+    const staleManifestPath = resolve(staleRoot, ".lervo/project.yaml");
+    await writeFile(
+      staleManifestPath,
+      (await readFile(staleManifestPath, "utf8")).replace(
+        "hubSyncEnabled: false",
+        "hubSyncEnabled: true",
+      ),
+    );
+    const staleOutput = io(staleRoot, JSON.stringify(evidence));
+    await expect(
+      runEventContractCommand(["activate", "--stdin"], staleOutput.value, {
+        collectEvidence: async () => distributedEvidence(`sha256:${"e".repeat(64)}`),
+      }),
+    ).resolves.toBe(1);
+    expect(staleOutput.stderr.join("")).toContain("event_writer_plan_stale");
   });
 });

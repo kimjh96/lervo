@@ -4,7 +4,12 @@ import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { createNodeRuntimeHealthPublisher, type NodeRuntimeHealthSnapshot } from "../src/index.js";
+import {
+  calculateNodeRuntimeReaderIdentityHash,
+  createNodeRuntimeHealthPublisher,
+  readNodeRuntimeHealthSnapshot,
+  type NodeRuntimeHealthSnapshot,
+} from "../src/index.js";
 
 const roots: string[] = [];
 
@@ -42,6 +47,25 @@ const absentWorkstream = {
 };
 
 describe("Node runtime readiness snapshot", () => {
+  it("binds advertised reader capability to repository and destination identity", async () => {
+    const identity = {
+      projectId: "prj_health_identity",
+      repositoryIdentityHash: `sha256:${"a".repeat(64)}`,
+      destinationId: "hub:health",
+    };
+    const publisher = createNodeRuntimeHealthPublisher(
+      await stateDirectory(),
+      false,
+      false,
+      identity,
+    );
+    await publisher.initialize();
+    const value = await snapshot(publisher.path);
+
+    expect(readNodeRuntimeHealthSnapshot(value)).toMatchObject({ eventReaderIdentity: identity });
+    expect(calculateNodeRuntimeReaderIdentityHash(identity)).toMatch(/^sha256:[a-f0-9]{64}$/u);
+  });
+
   it("publishes an owner-only atomic snapshot and reaches ready after sync", async () => {
     const publisher = createNodeRuntimeHealthPublisher(await stateDirectory(), false);
     await publisher.initialize();

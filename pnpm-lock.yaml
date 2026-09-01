@@ -179,6 +179,9 @@ importers:
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../../packages/storage-contract
+      '@lervo/sync':
+        specifier: workspace:*
+        version: link:../../packages/sync
       '@lervo/sync-contract':
         specifier: workspace:*
         version: link:../../packages/sync-contract
@@ -1417,6 +1420,9 @@ importers:
 
   packages/sync:
     dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
       '@lervo/hub-sync':
         specifier: workspace:*
         version: link:../hub-sync

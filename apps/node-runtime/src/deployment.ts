@@ -87,6 +87,11 @@ export async function openNodeRuntime(
       paths.state,
       validated.remoteCommands !== undefined,
       validated.workspaceCoordination !== undefined,
+      {
+        projectId: manifest.projectId,
+        repositoryIdentityHash: calculateProjectIdentityHash(manifest),
+        destinationId: validated.hub.destinationId,
+      },
     );
     store = await SQLiteEventStore.open({
       path: paths.eventDatabase,

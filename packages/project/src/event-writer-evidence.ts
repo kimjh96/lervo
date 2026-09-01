@@ -86,3 +86,33 @@ export function createEventWriterActivationId(input: {
 }): string {
   return `evact_${eventWriterSha256(canonicalJson(input)).slice(7, 31)}`;
 }
+
+export function eventWriterActivationConfigurationHash(input: {
+  evidence: EventWriterActivationEvidence;
+  hubSyncEnabled: boolean;
+}): string {
+  return eventWriterSha256(
+    canonicalJson({
+      projectId: input.evidence.projectId,
+      hubSyncEnabled: input.hubSyncEnabled,
+      authority: input.evidence.schemaVersion === 2 ? input.evidence.authority : null,
+      readers: input.evidence.readers.map(({ readerId, readerKind, peerIdentityHash }) => ({
+        readerId,
+        readerKind,
+        peerIdentityHash,
+      })),
+    }),
+  );
+}
+
+export function eventWriterActivationObservationHash(
+  evidence: EventWriterActivationEvidence,
+): string {
+  return eventWriterSha256(
+    canonicalJson({
+      projectId: evidence.projectId,
+      authority: evidence.schemaVersion === 2 ? evidence.authority : null,
+      readers: evidence.readers,
+    }),
+  );
+}

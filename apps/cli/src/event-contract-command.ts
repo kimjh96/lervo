@@ -2,19 +2,26 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import { createEventReaderCapabilities } from "@lervo/event-contract";
 import {
   applyEventWriterActivationPlan,
+  EventWriterActivationError,
+  eventWriterActivationObservationHash,
   inspectEventWriterCoordinate,
   loadProjectManifest,
   planEventWriterActivation,
   planEventWriterRollback,
   recoverEventWriterActivation,
+  readEventWriterActivationEvidence,
 } from "@lervo/project";
 
+import { collectEventReaderActivationEvidence } from "./event-reader-inventory.js";
 import type { CliIo } from "./types.js";
 
 const maximumEvidenceBytes = 64 * 1024;
+
+export interface EventContractCommandPorts {
+  collectEvidence?: typeof collectEventReaderActivationEvidence;
+}
 
 export const eventContractUsage = `  lervo event-contract status [--root <path>] [--json]
   lervo event-contract evidence [--root <path>] [--json]
@@ -23,7 +30,11 @@ export const eventContractUsage = `  lervo event-contract status [--root <path>]
   lervo event-contract recover [--root <path>] [--json]`;
 
 function publicPlan(plan: Awaited<ReturnType<typeof planEventWriterActivation>>) {
-  const { desiredContent: _desiredContent, ...safe } = plan;
+  const {
+    desiredContent: _desiredContent,
+    activationEvidence: _activationEvidence,
+    ...safe
+  } = plan;
   return safe;
 }
 
@@ -52,8 +63,13 @@ function formatStatus(status: Awaited<ReturnType<typeof inspectEventWriterCoordi
   return `Event writer: schema version ${status.coordinate.selectedEventSchemaVersion}\n  Source: ${status.source}\n  Coordinate: .lervo/data/event-contract.json\n`;
 }
 
-export async function runEventContractCommand(args: string[], io: CliIo): Promise<number> {
+export async function runEventContractCommand(
+  args: string[],
+  io: CliIo,
+  ports: EventContractCommandPorts = {},
+): Promise<number> {
   try {
+    const collectEvidence = ports.collectEvidence ?? collectEventReaderActivationEvidence;
     const parsed = parseArgs({
       args,
       strict: true,
@@ -86,26 +102,28 @@ export async function runEventContractCommand(args: string[], io: CliIo): Promis
       if (parsed.values.from || parsed.values.stdin || parsed.values.apply) {
         throw new Error("Evidence does not accept activation options.");
       }
-      const manifest = await loadProjectManifest(repositoryRoot);
-      const evidence = {
-        schemaVersion: 1,
-        projectId: manifest.projectId,
-        observedAt: new Date().toISOString(),
-        readers: [
-          {
-            readerId: "reader_local_runtime",
-            readerKind: "local",
-            peerIdentityHash: null,
-            capabilities: createEventReaderCapabilities(),
-          },
-        ],
-      };
+      const evidence = await collectEvidence({ repositoryRoot });
       io.stdout(`${JSON.stringify(evidence, null, 2)}\n`);
       return 0;
     }
     if (action === "activate") {
       const evidence = await readEvidence(parsed.values.from, parsed.values.stdin === true, io);
-      const plan = await planEventWriterActivation({ repositoryRoot, evidence });
+      const suppliedEvidence = readEventWriterActivationEvidence(evidence);
+      const manifest = await loadProjectManifest(repositoryRoot);
+      const currentEvidence = manifest.dataPolicy.hubSyncEnabled
+        ? await collectEvidence({ repositoryRoot })
+        : undefined;
+      if (
+        currentEvidence !== undefined &&
+        eventWriterActivationObservationHash(suppliedEvidence) !==
+          eventWriterActivationObservationHash(currentEvidence)
+      ) {
+        throw new EventWriterActivationError(
+          "event_writer_plan_stale",
+          "The supplied distributed reader evidence differs from the current authoritative inventory.",
+        );
+      }
+      const plan = await planEventWriterActivation({ repositoryRoot, evidence: suppliedEvidence });
       if (parsed.values.apply === undefined) {
         io.stdout(`${JSON.stringify(publicPlan(plan), null, 2)}\n`);
         return plan.status === "blocked" ? 1 : 0;
@@ -113,6 +131,7 @@ export async function runEventContractCommand(args: string[], io: CliIo): Promis
       const receipt = await applyEventWriterActivationPlan({
         plan,
         approval: parsed.values.apply,
+        ...(currentEvidence === undefined ? {} : { currentEvidence }),
       });
       io.stdout(`${JSON.stringify(receipt, null, 2)}\n`);
       return 0;

@@ -72,6 +72,7 @@
     "@lervo/schemas": "workspace:*",
     "@lervo/skills": "workspace:*",
     "@lervo/storage-contract": "workspace:*",
+    "@lervo/sync": "workspace:*",
     "@lervo/sync-contract": "workspace:*",
     "@lervo/verification": "workspace:*",
     "@lervo/workspace-host": "workspace:*",

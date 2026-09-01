@@ -10,7 +10,7 @@ const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/u;
 export type HubJsonCredentialMode = "bearer" | "none";
 
 export interface HubJsonHttpClientOptions {
-  bearerToken: string;
+  bearerToken?: string;
   expectedHubIdentityHash: string;
   destinationId: string;
   maxRequestBytes?: number;
@@ -35,9 +35,12 @@ function byteLimit(value: number | undefined, fallback: number, label: string): 
   return resolved;
 }
 
-function credentialHeaders(mode: HubJsonCredentialMode, bearerToken: string) {
+function credentialHeaders(mode: HubJsonCredentialMode, bearerToken: string | undefined) {
   switch (mode) {
     case "bearer":
+      if (bearerToken === undefined) {
+        throw new Error("The Hub JSON HTTP request requires a bearer credential.");
+      }
       return { authorization: `Bearer ${bearerToken}` };
     case "none":
       return {};
@@ -47,7 +50,7 @@ function credentialHeaders(mode: HubJsonCredentialMode, bearerToken: string) {
 }
 
 export class HubJsonHttpClient {
-  private readonly bearerToken: string;
+  private readonly bearerToken: string | undefined;
   private readonly expectedHubIdentityHash: string;
   private readonly destinationId: string;
   private readonly maxRequestBytes: number;
@@ -57,9 +60,10 @@ export class HubJsonHttpClient {
 
   constructor(options: HubJsonHttpClientOptions) {
     if (
-      options.bearerToken.length < 32 ||
-      options.bearerToken.length > 4_096 ||
-      !/^[\x21-\x7e]+$/.test(options.bearerToken) ||
+      (options.bearerToken !== undefined &&
+        (options.bearerToken.length < 32 ||
+          options.bearerToken.length > 4_096 ||
+          !/^[\x21-\x7e]+$/.test(options.bearerToken))) ||
       !HASH_PATTERN.test(options.expectedHubIdentityHash) ||
       !DESTINATION_PATTERN.test(options.destinationId)
     ) {

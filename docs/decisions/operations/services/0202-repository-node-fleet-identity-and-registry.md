@@ -23,6 +23,11 @@ The existing repository registry provides an owner-only, bounded, atomic user-st
 
 The state is named `lervo_node_fleet_registry` with `schemaVersion: 1` and `instances`. It is a local mutable deployment projection, not canonical repository documentation or evidence that a service is installed, active, ready, synchronized, or authorized.
 
+Later [ADR-0332](../trace/0332-authoritative-distributed-event-reader-inventory.md)
+reuses this bounded projection only as configured membership authority for distributed
+event-writer planning. It still grants no capability, health, approval, or mutation
+authority; those meanings remain separate observations and plan decisions.
+
 Invalid identity, coordinate, manifest, policy, path, permissions, structure, duplicate binding, concurrent update, or changed-snapshot conditions fail closed with `node_fleet_*` error codes. Failed or conflicting writes preserve prior registry bytes. Registry mutation emits no event because no runtime effect or synchronization success occurred.
 
 Service status returns the selected instance and manager service identity with normalized activation fields. Activation still requires three stable observations. It does not establish runtime readiness; per-repository `node-runtime-health.json` remains the separate sync, workstream-replication, and remote-control observation.

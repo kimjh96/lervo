@@ -22,19 +22,46 @@ const eventReaderActivationEvidenceListSchema = {
   items: eventReaderActivationEvidenceValueSchema,
 } as const;
 
+const distributedReaderInventoryAuthorityValueSchema = {
+  type: "object",
+  properties: {
+    kind: { type: "string", const: "repository_node_fleet_v1" },
+    repositoryIdentityHash: sha256Schema,
+    inventoryHash: sha256Schema,
+  },
+  required: ["kind", "repositoryIdentityHash", "inventoryHash"],
+  additionalProperties: false,
+} as const;
+
 export const eventWriterActivationEvidenceSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://schemas.lervo.dev/v0/event-writer-activation-evidence.schema.json",
   title: "Lervo event writer activation evidence",
-  type: "object",
-  properties: {
-    schemaVersion: { type: "integer", const: 1 },
-    projectId: projectIdSchema,
-    observedAt: timestampSchema,
-    readers: eventReaderActivationEvidenceListSchema,
-  },
-  required: ["schemaVersion", "projectId", "observedAt", "readers"],
-  additionalProperties: false,
+  oneOf: [
+    {
+      type: "object",
+      properties: {
+        schemaVersion: { type: "integer", const: 1 },
+        projectId: projectIdSchema,
+        observedAt: timestampSchema,
+        readers: eventReaderActivationEvidenceListSchema,
+      },
+      required: ["schemaVersion", "projectId", "observedAt", "readers"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        schemaVersion: { type: "integer", const: 2 },
+        projectId: projectIdSchema,
+        observedAt: timestampSchema,
+        authority: distributedReaderInventoryAuthorityValueSchema,
+        readers: eventReaderActivationEvidenceListSchema,
+      },
+      required: ["schemaVersion", "projectId", "observedAt", "authority", "readers"],
+      additionalProperties: false,
+    },
+  ],
 } as const;
 
 const activationValueSchema = {
@@ -83,4 +110,7 @@ export type EventReaderActivationEvidence = FromSchema<
   typeof eventReaderActivationEvidenceValueSchema
 >;
 export type EventWriterActivationEvidence = FromSchema<typeof eventWriterActivationEvidenceSchema>;
+export type DistributedReaderInventoryAuthority = FromSchema<
+  typeof distributedReaderInventoryAuthorityValueSchema
+>;
 export type EventWriterCoordinate = FromSchema<typeof eventWriterCoordinateSchema>;

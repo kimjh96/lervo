@@ -47,6 +47,15 @@ versions. It grants no write or rollout authority. A missing, invalid, unverifie
 v2-incapable peer report blocks future v2 writer activation but does not disable
 local execution or current v1 synchronization.
 
+For Hub-enabled writer activation, the owner-only repository Node fleet registry is the
+configured membership authority. Its one project registration binds the installed
+service and owner-only runtime config, which identify the Node health file and one Hub
+destination. Node health additively binds event-reader capability to project,
+repository identity, and destination. Planning and apply each require an exact current
+three-reader set: local runtime, registered Node, and configured Hub. Activation evidence
+contains source and peer hashes but excludes paths, URLs, service bodies, bearer paths or
+bytes, and credentials. See [ADR-0332](../../decisions/operations/trace/0332-authoritative-distributed-event-reader-inventory.md).
+
 ## Repository workstreams
 
 Workstream revisions are shared by project and repository identity across authorized destination registrations. Requests bind registration, repository identity, exact current and previous snapshot hashes, and bounded snapshot bytes. Node publishes available local ancestry before reading the head set.

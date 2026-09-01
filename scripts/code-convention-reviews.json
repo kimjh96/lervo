@@ -38,13 +38,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "apps/cli/src/node-fleet-apply.ts",
-      "contentHash": "sha256:90ba584088b4b2fb6fcc2cef2c5f01d76ffe96e0d5548bd767df7c33c3ef68a4",
-      "responsibility": "Repository Node fleet onboarding transaction",
-      "rationale": "Status inspection, readiness observation, installation, and legacy transition are phases of one transactional fleet-apply contract with shared compensation and health evidence.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "apps/cli/src/terminal-command-runtime.ts",
       "contentHash": "sha256:ac66578ac06a09832074179672702785d19e5f3274e56465f5387ea90a6afa12",
       "responsibility": "Direct terminal-integration command runtime",

@@ -27,7 +27,7 @@ Acceptance requires old v1 fixtures to produce unchanged v1 projections, all cur
 readers to consume mixed fixtures, v1-only readers to fail before mutation, activation
 to block on an incapable peer, and the writer to remain v1 by default.
 
-Implementation state on 2026-09-01: the first four FH0 tranches are implemented. The shared
+Implementation state on 2026-09-01: FH0 is implemented. The shared
 schema and event-contract readers accept versions 1 and 2, distinguish invalid from
 unsupported envelopes, preserve mixed chains through local SQLite reads, sync, Hub
 storage, diagnostics, and trace, and keep every production writer pinned to version 1.
@@ -38,8 +38,10 @@ authority. A real tarball consumer proves that same report and exact mixed-histo
 through installed bytes. Local-only repositories now have a default-v1 managed writer
 coordinate, bounded capability evidence, exact plan/apply, durable recovery, selected
 SQLite writer injection, explicit rollback, and a reader-first runbook. Hub-enabled
-activation remains fail-closed because a complete identity-bound Node and Hub reader
-inventory authority does not yet exist; FH0 as a whole is not complete.
+activation composes the existing owner-only Node fleet registry, exact service and
+runtime-config hashes, fresh identity-bound Node health, and the verified Hub capability
+endpoint. Planning and apply both re-observe the exact inventory; incomplete, stale,
+changed, unverified, or incapable membership fails before coordinate mutation.
 
 ## FH1: Causal work envelope
 

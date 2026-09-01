@@ -14,6 +14,10 @@ import {
 import { readEventWriterCoordinate } from "./event-writer-coordinate-contract.js";
 import { EventWriterActivationError } from "./event-writer-errors.js";
 import {
+  eventWriterActivationObservationHash,
+  readEventWriterActivationEvidence,
+} from "./event-writer-evidence.js";
+import {
   planEventWriterActivation,
   planEventWriterRollback,
 } from "./event-writer-coordinate-store.js";
@@ -50,6 +54,7 @@ function coordinateEvidence(coordinate: EventWriterCoordinate): EventWriterActiv
 export async function applyEventWriterActivationPlan(input: {
   plan: EventWriterActivationPlan;
   approval: string;
+  currentEvidence?: unknown;
   failureInjector?: (
     checkpoint: EventWriterActivationCheckpoint,
   ) => "interrupt" | void | Promise<"interrupt" | void>;
@@ -66,11 +71,32 @@ export async function applyEventWriterActivationPlan(input: {
       "Only a ready event writer activation plan can be applied.",
     );
   }
+  const plannedEvidence = input.plan.activationEvidence;
+  if (plannedEvidence?.schemaVersion === 2) {
+    if (input.currentEvidence === undefined) {
+      throw new EventWriterActivationError(
+        "reader_inventory_revalidation_required",
+        "Distributed activation requires a current authoritative reader inventory observation.",
+      );
+    }
+    const currentEvidence = readEventWriterActivationEvidence(input.currentEvidence);
+    if (
+      currentEvidence.schemaVersion !== 2 ||
+      eventWriterActivationObservationHash(currentEvidence) !==
+        eventWriterActivationObservationHash(plannedEvidence)
+    ) {
+      throw new EventWriterActivationError(
+        "event_writer_plan_stale",
+        "The authoritative reader inventory changed after planning.",
+      );
+    }
+  }
   const current =
     input.plan.desiredCoordinate.selectedEventSchemaVersion === 2
       ? await planEventWriterActivation({
           repositoryRoot: input.plan.repositoryRoot,
-          evidence: coordinateEvidence(input.plan.desiredCoordinate),
+          evidence:
+            input.plan.activationEvidence ?? coordinateEvidence(input.plan.desiredCoordinate),
         })
       : await planEventWriterRollback(input.plan.repositoryRoot);
   if (

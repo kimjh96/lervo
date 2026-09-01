@@ -20,6 +20,32 @@ function verifiedResponse(body = "{}", headers: Record<string, string> = {}): Re
 }
 
 describe("Hub identity-bound JSON HTTP client", () => {
+  it("supports a public identity-bound request without loading a bearer credential", async () => {
+    const request = vi.fn<typeof fetch>(async () => verifiedResponse());
+    const client = new HubJsonHttpClient({
+      expectedHubIdentityHash: options.expectedHubIdentityHash,
+      destinationId: options.destinationId,
+      fetch: request,
+    });
+    await expect(
+      client.requestJson({
+        url: new URL("https://hub.example.test/v1/health/capabilities"),
+        method: "GET",
+        acceptedStatuses: [200],
+        credentialMode: "none",
+      }),
+    ).resolves.toMatchObject({ authentication: { status: "verified" } });
+    expect(new Headers(request.mock.calls[0]![1]?.headers).has("authorization")).toBe(false);
+    await expect(
+      client.requestJson({
+        url: new URL("https://hub.example.test/v1/private"),
+        method: "GET",
+        acceptedStatuses: [200],
+        credentialMode: "bearer",
+      }),
+    ).rejects.toThrow("requires a bearer credential");
+  });
+
   it("uses an explicit credential mode for bearer and public requests", async () => {
     const request = vi.fn<typeof fetch>(async () => verifiedResponse());
     const client = new HubJsonHttpClient({ ...options, fetch: request });

@@ -40,15 +40,17 @@ activation evidence, and is ignored by old writers. Activation is allowed only w
 every configured reader advertises version 2 capability. Version 1 remains the default
 for fresh repositories until the rollout decision changes through a later ADR.
 
-The reader rollout is at state 3 by default. The in-process event contract, local SQLite
+The reader release remains the default writer-version-1 release. The in-process event contract, local SQLite
 reader, synchronization validation, Hub storage, diagnostics, and trace readers consume
 mixed history, and the installed packed CLI advertises the same reader capability and
 reproduces an exact linked version 1/version 2 fixture. The state 4 mechanism is now
-implemented for local-only repositories: a versioned coordinate schema, bounded
+implemented for local-only and Hub-enabled repositories: a versioned coordinate schema, bounded
 capability evidence, content-bound plan and exact apply, durable interruption recovery,
 explicit writer rollback, and an operational runbook. Missing coordinates still select
-version 1. Hub-enabled activation remains blocked until an identity-bound complete
-reader-inventory authority exists; capability advertisement alone never grants it.
+version 1. Hub-enabled activation uses the existing owner-only Node fleet registry for
+complete configured membership and separately observes fresh identity-bound Node and Hub
+capabilities at plan and apply. Capability advertisement alone never grants authority;
+see [ADR-0332](0332-authoritative-distributed-event-reader-inventory.md).
 The resolved coordinate, not an individual event draft, selects the new envelope
 version. After activation the SQLite writer upgrades existing shared-version event
 drafts to version 2, while immutable pre-activation version 1 retries remain idempotent.

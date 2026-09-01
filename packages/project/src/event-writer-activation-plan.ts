@@ -1,9 +1,11 @@
 import { canonicalJson } from "@lervo/event-contract";
 import type { EventWriterCoordinate } from "@lervo/schemas";
+import type { EventWriterActivationEvidence } from "@lervo/schemas";
 
 import { readEventWriterCoordinate } from "./event-writer-coordinate-contract.js";
 import {
   createEventWriterActivationId,
+  eventWriterActivationConfigurationHash,
   eventWriterSha256,
   readEventWriterActivationEvidence,
 } from "./event-writer-evidence.js";
@@ -23,6 +25,7 @@ export interface EventWriterActivationPlan {
   desiredContent: string;
   desiredContentHash: string;
   evidenceHash: string | null;
+  activationEvidence: EventWriterActivationEvidence | null;
   operation: {
     path: ".lervo/data/event-contract.json";
     action: "create" | "update" | "unchanged";
@@ -64,6 +67,7 @@ export function createEventWriterActivationPlan(input: {
       desiredContent,
       desiredContentHash,
       evidenceHash,
+      activationEvidence: evidence,
       operation: {
         path: ".lervo/data/event-contract.json",
         action: "unchanged",
@@ -73,33 +77,38 @@ export function createEventWriterActivationPlan(input: {
     };
   }
 
+  const distributedKinds = evidence.readers.map((reader) => reader.readerKind).sort();
   const blockers = input.hubSyncEnabled
-    ? [
-        {
-          code: "reader_inventory_authority_unavailable",
-          message:
-            "Hub synchronization is enabled, but the local CLI cannot prove the complete configured Node and Hub reader inventory.",
-        },
-      ]
-    : evidence.readers.some((reader) => reader.readerKind !== "local")
+    ? evidence.schemaVersion !== 2
+      ? [
+          {
+            code: "reader_inventory_authority_unavailable",
+            message: "Hub synchronization requires repository Node fleet inventory authority.",
+          },
+        ]
+      : distributedKinds.join(",") !== "hub,local,node"
+        ? [
+            {
+              code: "reader_inventory_incomplete",
+              message:
+                "Distributed activation requires exactly the local runtime, configured Node, and configured Hub readers.",
+            },
+          ]
+        : []
+    : evidence.schemaVersion === 2 ||
+        evidence.readers.some((reader) => reader.readerKind !== "local")
       ? [
           {
             code: "unexpected_remote_reader",
-            message: "A local-only repository cannot activate from remote reader evidence.",
+            message:
+              "A local-only repository cannot activate from distributed inventory authority or remote reader evidence.",
           },
         ]
       : [];
-  const configurationHash = eventWriterSha256(
-    canonicalJson({
-      projectId: input.projectId,
-      hubSyncEnabled: input.hubSyncEnabled,
-      readers: evidence.readers.map(({ readerId, readerKind, peerIdentityHash }) => ({
-        readerId,
-        readerKind,
-        peerIdentityHash,
-      })),
-    }),
-  );
+  const configurationHash = eventWriterActivationConfigurationHash({
+    evidence,
+    hubSyncEnabled: input.hubSyncEnabled,
+  });
   const desiredCoordinate = readEventWriterCoordinate({
     schemaVersion: 1,
     projectId: input.projectId,
@@ -140,6 +149,7 @@ export function createEventWriterActivationPlan(input: {
     desiredContent,
     desiredContentHash,
     evidenceHash,
+    activationEvidence: evidence,
     operation: {
       path: ".lervo/data/event-contract.json",
       action: input.currentContentHash === null ? "create" : "update",
@@ -186,6 +196,7 @@ export function createEventWriterRollbackPlan(input: {
     desiredContent,
     desiredContentHash,
     evidenceHash: null,
+    activationEvidence: null,
     operation: {
       path: ".lervo/data/event-contract.json",
       action: current ? "unchanged" : input.currentContentHash === null ? "create" : "update",

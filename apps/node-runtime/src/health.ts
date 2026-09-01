@@ -3,29 +3,17 @@ import { chmod, lstat, open, rename, unlink } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { createEventReaderCapabilities } from "@lervo/event-contract";
-import type { EventReaderCapabilities } from "@lervo/schemas";
 import type { SyncCycleResult, WorkstreamReplicationCycleResult } from "@lervo/sync";
 
 import type { RemoteControlCycleResult } from "./control-loop.js";
 import { NodeRuntimeError } from "./errors.js";
+import type {
+  NodeRuntimeComponentHealth,
+  NodeRuntimeEventReaderIdentity,
+  NodeRuntimeHealthSnapshot,
+} from "./health-contract.js";
 
 export const NODE_RUNTIME_HEALTH_FILE = "node-runtime-health.json";
-
-type ComponentHealth =
-  { status: "pending" | "ready" | "disabled" } | { status: "unavailable"; failureCode: string };
-
-export interface NodeRuntimeHealthSnapshot {
-  schemaVersion: 1;
-  status: "starting" | "ready" | "degraded" | "stopping";
-  processId: number;
-  startedAt: string;
-  updatedAt: string;
-  eventReader?: EventReaderCapabilities;
-  sync: ComponentHealth;
-  workstreamReplication: ComponentHealth;
-  workspaceCoordination: ComponentHealth;
-  remoteControl: ComponentHealth;
-}
 
 export interface NodeRuntimeHealthPublisher {
   readonly path: string;
@@ -61,13 +49,13 @@ function aggregate(snapshot: NodeRuntimeHealthSnapshot): NodeRuntimeHealthSnapsh
   return "starting";
 }
 
-function syncHealth(result: SyncCycleResult): ComponentHealth {
+function syncHealth(result: SyncCycleResult): NodeRuntimeComponentHealth {
   return result.status === "idle" || result.status === "synchronized"
     ? { status: "ready" }
     : { status: "unavailable", failureCode: result.failureCode };
 }
 
-function remoteControlHealth(result: RemoteControlCycleResult): ComponentHealth {
+function remoteControlHealth(result: RemoteControlCycleResult): NodeRuntimeComponentHealth {
   if (result.status === "policy_unavailable") {
     return { status: "unavailable", failureCode: result.policy.failureCode };
   }
@@ -110,6 +98,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
     stateDirectory: string,
     remoteControlConfigured: boolean,
     workspaceCoordinationConfigured: boolean,
+    eventReaderIdentity: NodeRuntimeEventReaderIdentity | undefined,
   ) {
     this.path = resolve(stateDirectory, NODE_RUNTIME_HEALTH_FILE);
     const now = new Date().toISOString();
@@ -120,6 +109,9 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
       startedAt: now,
       updatedAt: now,
       eventReader: createEventReaderCapabilities(),
+      ...(eventReaderIdentity === undefined
+        ? {}
+        : { eventReaderIdentity: structuredClone(eventReaderIdentity) }),
       sync: { status: "pending" },
       workstreamReplication: { status: "pending" },
       workspaceCoordination: workspaceCoordinationConfigured
@@ -203,10 +195,12 @@ export function createNodeRuntimeHealthPublisher(
   stateDirectory: string,
   remoteControlConfigured: boolean,
   workspaceCoordinationConfigured = false,
+  eventReaderIdentity?: NodeRuntimeEventReaderIdentity,
 ): NodeRuntimeHealthPublisher {
   return new FileNodeRuntimeHealthPublisher(
     stateDirectory,
     remoteControlConfigured,
     workspaceCoordinationConfigured,
+    eventReaderIdentity,
   );
 }

@@ -63,8 +63,25 @@ cannot silently reuse the public capability request path. Likewise, future write
 selection and peer-activation policy must be new domain contracts rather than fields or
 branches added to the reader advertisement.
 
-The small Hub health, Node health, schema, and trace modules remain cohesive and are not
-split by line count alone. A generic runtime-capability registry is intentionally not
+Distributed writer activation keeps another four change reasons separate:
+
+- the owner-only repository Node fleet registry owns configured Node membership;
+- the installed service definition and owner-only runtime config resolve observation
+  coordinates without exposing them in activation evidence;
+- Node health and the public identity-bound Hub transport own current capability
+  observations; and
+- `@lervo/project` owns pure exact-membership, evidence, plan, revalidation, and durable
+  writer-coordinate decisions.
+
+The CLI only composes those boundaries. It does not own another inventory, duplicate
+health validation, parse native service definitions inside the command entrypoint, or
+grant activation from caller-authored remote evidence. Schema version 2 inventory
+evidence exposes only repository identity, a source configuration hash, peer identity
+hashes, and secret-free capability reports.
+
+The small Hub health, Node health contract, Node health publisher, schema, and trace
+modules remain cohesive and are not split by line count alone. A generic
+runtime-capability registry is intentionally not
 introduced until more than one current capability shares the same aggregation and
 lifecycle semantics.
 
