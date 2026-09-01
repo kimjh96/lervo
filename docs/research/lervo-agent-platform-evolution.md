@@ -146,17 +146,20 @@ with another strategy.
 
 The recommended order is:
 
-1. Map existing workstream, assignment, run, event, graph, and knowledge responsibilities
+1. Complete the applicable [foundation-hardening gates](lervo-foundation-hardening.md),
+   including causal work identity, public contract evolution, resource accounting,
+   critical-path latency, failure recovery, and extension safety.
+2. Map existing workstream, assignment, run, event, graph, and knowledge responsibilities
    to a stable public command, query, and event boundary.
-2. Define governed-loop termination, retry, budget, escalation, checkpoint, and resume
+3. Define governed-loop termination, retry, budget, escalation, checkpoint, and resume
    semantics without replacing current managed execution.
-3. Add a bounded versioned assignment execution graph over existing dependencies and
+4. Add a bounded versioned assignment execution graph over existing dependencies and
    verification gates.
-4. Build the minimal local operating reference client and adapter development kit.
-5. Add product routes for goals, routines, mentions, inboxes, threads, and connectors.
-6. Complete the verified-improvement loop with candidate review and post-promotion effect
+5. Build the minimal local operating reference client and adapter development kit.
+6. Add product routes for goals, routines, mentions, inboxes, threads, and connectors.
+7. Complete the verified-improvement loop with candidate review and post-promotion effect
    measurement.
-7. Add dynamic graphs, unattended autonomy, or external semantic systems only after
+8. Add dynamic graphs, unattended autonomy, or external semantic systems only after
    measured need and explicit reviewed activation.
 
 Each stage must deliver a usable vertical slice and reuse existing IDs, events, authority,
