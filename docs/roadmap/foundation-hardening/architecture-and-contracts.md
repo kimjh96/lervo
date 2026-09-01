@@ -27,20 +27,20 @@ external providers remain effects behind ports.
 
 ## Responsibility map
 
-| Boundary                         | Owns                                                             | Must not own                          |
-| -------------------------------- | ---------------------------------------------------------------- | ------------------------------------- |
-| `@lervo/schemas`                 | v1/v2 envelopes, event payloads, descriptors, report schemas     | aggregation or storage effects        |
-| `@lervo/event-contract`          | mixed-version parsing, chain hashing, allowlist privacy          | provider translation                  |
-| `@lervo/execution-contract`      | causal, accounting, stage, and failure invariants                | clocks, files, network, provider SDKs |
-| `@lervo/execution-observability` | pure work-report projection                                      | event append, pricing, UI formatting  |
-| `@lervo/execution-performance`   | paired profiles, statistics, budgets, report verification        | product execution or canonical state  |
-| `@lervo/orchestrator`            | work creation, run ancestry, final aggregation, monotonic timing | provider-native semantics             |
-| provider adapters                | native usage translation and accounting declaration              | Lervo authority or cross-run totals   |
-| terminal runtime                 | availability-safe bounded observations                           | whole-task token claims               |
-| event store and CAS              | append, integrity, immutable descriptors                         | report semantics                      |
-| sync, Node, and Hub              | capability negotiation and byte-preserving transfer              | local approval authority              |
-| diagnostics and Hub trace        | shared projector consumption                                     | duplicate projection logic            |
-| CLI                              | command parsing and presentation                                 | storage imports or independent totals |
+| Boundary                         | Owns                                                                                      | Must not own                          |
+| -------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------- |
+| `@lervo/schemas`                 | v1/v2 envelopes, event payloads, descriptors, report schemas                              | aggregation or storage effects        |
+| `@lervo/event-contract`          | mixed-version parsing, chain hashing, allowlist privacy                                   | provider translation                  |
+| `@lervo/execution-contract`      | causal, accounting, stage, and failure invariants                                         | clocks, files, network, provider SDKs |
+| `@lervo/execution-observability` | pure work-report projection                                                               | event append, pricing, UI formatting  |
+| `@lervo/execution-performance`   | paired profiles, statistics, budgets, report verification                                 | product execution or canonical state  |
+| `@lervo/orchestrator`            | work creation, run ancestry, final aggregation, monotonic timing                          | provider-native semantics             |
+| provider adapters                | native usage translation and accounting declaration                                       | Lervo authority or cross-run totals   |
+| terminal application modules     | short dispatch, hook orchestration, lifecycle inspection, bounded observation persistence | whole-task token claims               |
+| event store and CAS              | append, integrity, immutable descriptors                                                  | report semantics                      |
+| sync, Node, and Hub              | capability negotiation and byte-preserving transfer                                       | local approval authority              |
+| diagnostics and Hub trace        | shared projector consumption                                                              | duplicate projection logic            |
+| CLI                              | command parsing and presentation                                                          | storage imports or independent totals |
 
 The new projector package is created only with its first implementation artifact. This
 roadmap does not create an empty package placeholder.
@@ -149,6 +149,12 @@ effects, and rendering in separate modules. The provider-free harness alternates
 starts every pair from one snapshot, and performs preparation and cleanup outside the
 measured hook interval. Its checked aggregate report is rebuildable evidence, not a new
 execution or product-authority store.
+
+The terminal command entrypoint dispatches only. Prompt context preparation, activation
+state, lifecycle inspection, terminal event coordinates and persistence, declaration,
+hook orchestration, stage persistence, coverage rendering, and repository-root discovery
+have independent modules. Provider-neutral search and workspace contracts remain outside
+those application adapters.
 
 ## Compatibility and failure meanings
 

@@ -38,13 +38,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "apps/cli/src/terminal-command-runtime.ts",
-      "contentHash": "sha256:2ad48d6957ea38347684b8e4b5494a0cf7791810b65d46024afb1f3781fd2096",
-      "responsibility": "Direct terminal-integration command runtime",
-      "rationale": "The stable terminal command is a one-line facade; this runtime sequences direct prompt, Stop, declaration, coverage, and status behavior, while stage recording and persistence, search, workspace policy, managed grounding, and rendering remain linked modules with independent tests.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "apps/cli/src/upgrade-command.ts",
       "contentHash": "sha256:f375c73b704aebf211f3d7d631b8c9b527733c59538970d609b4dd574bf8db6b",
       "responsibility": "Repository upgrade plan/apply command",
