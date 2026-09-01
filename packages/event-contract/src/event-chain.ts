@@ -1,29 +1,31 @@
 import { createHash } from "node:crypto";
 
-import { type EventEnvelope } from "@lervo/schemas";
+import { type EventEnvelope, type EventEnvelopeV1 } from "@lervo/schemas";
 
 import { canonicalJson } from "./canonical-json.js";
 
-export type EventDraft = Omit<EventEnvelope, "seq" | "previousHash" | "eventHash" | "payload"> & {
+export type EventDraft = Omit<EventEnvelopeV1, "seq" | "previousHash" | "eventHash" | "payload"> & {
   payload: Readonly<Record<string, unknown>>;
 };
+
+export type EventHashInput = Omit<EventEnvelope, "eventHash">;
 
 function sha256(value: string): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
-export function eventWithoutHash(event: EventEnvelope): Omit<EventEnvelope, "eventHash"> {
+export function eventWithoutHash(event: EventEnvelope): EventHashInput {
   const { eventHash: _eventHash, ...withoutHash } = event;
   return withoutHash;
 }
 
-export function computeEventHash(event: Omit<EventEnvelope, "eventHash">): string {
+export function computeEventHash(event: EventHashInput): string {
   return sha256(canonicalJson(event));
 }
 
 export function eventIdentity(
   event: EventDraft | EventEnvelope,
-  payload: EventEnvelope["payload"],
+  payload: Readonly<Record<string, unknown>>,
 ): string {
   return canonicalJson({
     eventId: event.eventId,

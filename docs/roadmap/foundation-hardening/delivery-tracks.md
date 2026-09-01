@@ -1,6 +1,6 @@
 # Foundation-hardening delivery tracks
 
-Status: `planned`
+Status: `active`
 
 As of: 2026-09-01
 
@@ -26,6 +26,14 @@ Deliverables:
 Acceptance requires old v1 fixtures to produce unchanged v1 projections, all current
 readers to consume mixed fixtures, v1-only readers to fail before mutation, activation
 to block on an incapable peer, and the writer to remain v1 by default.
+
+Implementation state on 2026-09-01: the first FH0 tranche is implemented. The shared
+schema and event-contract readers accept versions 1 and 2, distinguish invalid from
+unsupported envelopes, preserve mixed chains through local SQLite reads, sync, Hub
+storage, diagnostics, and trace, and keep every production writer pinned to version 1.
+The three version 2 payload schemas are readable but have no production emitter. Reader
+capability advertisement, packed-reader deployment proof, writer-coordinate plan/apply
+and recovery, and rollout runbooks remain open; FH0 as a whole is not complete.
 
 ## FH1: Causal work envelope
 

@@ -1,5 +1,6 @@
 export type SyncContractErrorCode =
   | "event_chain_conflict"
+  | "event_schema_unsupported"
   | "invalid_acknowledgement"
   | "invalid_event_batch"
   | "invalid_registration"

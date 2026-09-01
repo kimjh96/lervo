@@ -5,13 +5,12 @@ import {
   projectIdSchema,
   providerSchema,
   runIdSchema,
-  schemaVersionSchema,
   sessionIdSchema,
   sha256Schema,
   timestampSchema,
 } from "./common.js";
 
-export const eventTypes = [
+export const eventTypesV1 = [
   "run.requested",
   "run.resolved",
   "run.completed",
@@ -77,103 +76,117 @@ export const eventTypes = [
   "sync.acknowledged",
 ] as const;
 
-export const eventEnvelopeSchema = {
-  $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.lervo.dev/v0/event.schema.json",
-  title: "Lervo append-only event envelope",
+export const eventTypesV2 = [
+  ...eventTypesV1,
+  "work.causality.recorded",
+  "resource.usage.recorded",
+  "execution.stages.observed",
+] as const;
+
+export const eventTypes = eventTypesV2;
+
+const eventEnvelopeProperties = {
+  eventId: eventIdSchema,
+  projectId: projectIdSchema,
+  runId: runIdSchema,
+  sessionId: sessionIdSchema,
+  seq: { type: "integer", minimum: 1 },
+  occurredAt: timestampSchema,
+  actor: {
+    type: "object",
+    properties: {
+      kind: { type: "string", enum: ["user", "agent", "system", "provider"] },
+      provider: providerSchema,
+    },
+    required: ["kind"],
+    additionalProperties: false,
+  },
+  policyVersion: sha256Schema,
+  payload: { type: "object" },
+  previousHash: { anyOf: [sha256Schema, { type: "null" }] },
+  eventHash: sha256Schema,
+} as const;
+
+const eventEnvelopeRequired = [
+  "eventId",
+  "projectId",
+  "runId",
+  "sessionId",
+  "seq",
+  "type",
+  "occurredAt",
+  "actor",
+  "schemaVersion",
+  "policyVersion",
+  "payload",
+  "previousHash",
+  "eventHash",
+] as const;
+
+const eventEnvelopeInvariants = [
+  {
+    if: { properties: { seq: { const: 1 } }, required: ["seq"] },
+    then: { properties: { previousHash: { type: "null" } } },
+    else: { properties: { previousHash: sha256Schema } },
+  },
+  {
+    if: {
+      properties: {
+        actor: {
+          type: "object",
+          properties: { kind: { enum: ["agent", "provider"] } },
+          required: ["kind"],
+        },
+      },
+    },
+    then: {
+      properties: {
+        actor: {
+          type: "object",
+          properties: { kind: { type: "string" }, provider: providerSchema },
+          required: ["kind", "provider"],
+        },
+      },
+    },
+  },
+] as const;
+
+export const eventEnvelopeV1Schema = {
   type: "object",
   properties: {
-    eventId: eventIdSchema,
-    projectId: projectIdSchema,
-    runId: runIdSchema,
-    sessionId: sessionIdSchema,
-    seq: {
-      type: "integer",
-      minimum: 1,
-    },
-    type: {
-      type: "string",
-      enum: eventTypes,
-    },
-    occurredAt: timestampSchema,
-    actor: {
-      type: "object",
-      properties: {
-        kind: {
-          type: "string",
-          enum: ["user", "agent", "system", "provider"],
-        },
-        provider: providerSchema,
-      },
-      required: ["kind"],
-      additionalProperties: false,
-    },
-    schemaVersion: schemaVersionSchema,
-    policyVersion: sha256Schema,
-    payload: {
-      type: "object",
-    },
-    previousHash: {
-      anyOf: [sha256Schema, { type: "null" }],
-    },
-    eventHash: sha256Schema,
+    ...eventEnvelopeProperties,
+    type: { type: "string", enum: eventTypesV1 },
+    schemaVersion: { type: "integer", const: 1 },
   },
-  required: [
-    "eventId",
-    "projectId",
-    "runId",
-    "sessionId",
-    "seq",
-    "type",
-    "occurredAt",
-    "actor",
-    "schemaVersion",
-    "policyVersion",
-    "payload",
-    "previousHash",
-    "eventHash",
-  ],
-  allOf: [
-    {
-      if: {
-        properties: { seq: { const: 1 } },
-        required: ["seq"],
-      },
-      then: {
-        properties: { previousHash: { type: "null" } },
-      },
-      else: {
-        properties: { previousHash: sha256Schema },
-      },
-    },
-    {
-      if: {
-        properties: {
-          actor: {
-            type: "object",
-            properties: {
-              kind: { enum: ["agent", "provider"] },
-            },
-            required: ["kind"],
-          },
-        },
-      },
-      then: {
-        properties: {
-          actor: {
-            type: "object",
-            properties: {
-              kind: { type: "string" },
-              provider: providerSchema,
-            },
-            required: ["kind", "provider"],
-          },
-        },
-      },
-    },
-  ],
+  required: eventEnvelopeRequired,
+  allOf: eventEnvelopeInvariants,
   additionalProperties: false,
 } as const;
 
-export type EventEnvelope = FromSchema<typeof eventEnvelopeSchema>;
-export type EventType = (typeof eventTypes)[number];
+export const eventEnvelopeV2Schema = {
+  type: "object",
+  properties: {
+    ...eventEnvelopeProperties,
+    type: { type: "string", enum: eventTypesV2 },
+    schemaVersion: { type: "integer", const: 2 },
+  },
+  required: eventEnvelopeRequired,
+  allOf: eventEnvelopeInvariants,
+  additionalProperties: false,
+} as const;
+
+export const eventEnvelopeSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/event.schema.json",
+  title: "Lervo readable append-only event envelope",
+  oneOf: [eventEnvelopeV1Schema, eventEnvelopeV2Schema],
+} as const;
+
+export type EventEnvelopeV1 = FromSchema<typeof eventEnvelopeV1Schema>;
+export type EventEnvelopeV2 = FromSchema<typeof eventEnvelopeV2Schema>;
+export type EventEnvelope = Omit<EventEnvelopeV2, "schemaVersion"> & {
+  schemaVersion: EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"];
+};
+export type EventTypeV1 = (typeof eventTypesV1)[number];
+export type EventTypeV2 = (typeof eventTypesV2)[number];
+export type EventType = EventTypeV2;

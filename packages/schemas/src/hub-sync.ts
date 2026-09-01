@@ -1,7 +1,7 @@
 import type { FromSchema } from "json-schema-to-ts";
 
 import { projectIdSchema, schemaVersionSchema, sha256Schema, timestampSchema } from "./common.js";
-import { eventEnvelopeSchema } from "./event.js";
+import { eventEnvelopeSchema, type EventEnvelope } from "./event.js";
 import { projectManifestSchema } from "./project.js";
 
 export const syncDestinationIdSchema = {
@@ -189,9 +189,12 @@ export type ProjectRegistrationRequest = FromSchema<
   { references: [typeof projectManifestSchema] }
 >;
 export type ProjectRegistrationResponse = FromSchema<typeof projectRegistrationResponseSchema>;
-export type OutboundEventBatch = FromSchema<
+type OutboundEventBatchSchema = FromSchema<
   typeof outboundEventBatchSchema,
   { references: [typeof eventEnvelopeSchema] }
 >;
+export type OutboundEventBatch = Omit<OutboundEventBatchSchema, "events"> & {
+  events: EventEnvelope[];
+};
 export type EventSyncAcknowledgement = FromSchema<typeof eventSyncAcknowledgementSchema>;
 export type EventSyncCursor = ProjectRegistrationResponse["cursor"];

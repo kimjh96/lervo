@@ -64,6 +64,14 @@ describe("trace report compatibility contract", () => {
     expect(readTraceReport(report)).toBe(report);
   });
 
+  it("reads a report containing a mixed v1/v2 event chain", () => {
+    const report = validReport();
+    const second = event({ ...report.events[1]!, schemaVersion: 2 });
+    report.events[1] = second;
+    report.integrity.headHash = second.eventHash;
+    expect(readTraceReport(report)).toBe(report);
+  });
+
   it("accepts additive fields outside the immutable event envelope", () => {
     const report = validReport();
     const extended = {

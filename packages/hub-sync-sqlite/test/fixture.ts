@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { computeEventHash } from "@lervo/event-contract";
+import { computeEventHash, type EventHashInput } from "@lervo/event-contract";
 import {
   handleOutboundEventBatch,
   handleProjectRegistration,
@@ -64,13 +64,14 @@ export function eventChain(
     type?: EventType;
     payload?: Record<string, unknown>;
     actor?: EventEnvelope["actor"];
+    schemaVersion?: 1 | 2;
   } = () => ({}),
 ): EventEnvelope[] {
   const events: EventEnvelope[] = [];
   let previousHash: string | null = null;
   for (let seq = 1; seq <= count; seq += 1) {
     const item = override(seq);
-    const withoutHash: Omit<EventEnvelope, "eventHash"> = {
+    const withoutHash = {
       eventId: `evt_hub_${projectId.slice(4)}_${String(seq).padStart(2, "0")}`,
       projectId,
       runId: item.runId ?? `run_hub_${projectId.slice(4)}`,
@@ -79,7 +80,7 @@ export function eventChain(
       type: item.type ?? "run.requested",
       occurredAt: `2026-08-19T00:00:${String(seq).padStart(2, "0")}.000Z`,
       actor: item.actor ?? { kind: "user" },
-      schemaVersion: 1,
+      schemaVersion: item.schemaVersion ?? 1,
       policyVersion,
       payload: item.payload ?? {
         requestDigest: `sha256:${String(seq).padStart(64, "0")}`,
@@ -87,8 +88,8 @@ export function eventChain(
         risk: "low",
       },
       previousHash,
-    };
-    const event = { ...withoutHash, eventHash: computeEventHash(withoutHash) };
+    } as EventHashInput;
+    const event = { ...withoutHash, eventHash: computeEventHash(withoutHash) } as EventEnvelope;
     events.push(event);
     previousHash = event.eventHash;
   }

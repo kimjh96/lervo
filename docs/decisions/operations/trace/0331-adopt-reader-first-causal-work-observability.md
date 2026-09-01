@@ -19,14 +19,15 @@ work was observed.
 ## Decision
 
 Introduce a reader-first event-envelope version 2 and a provider-neutral causal work
-observability contract. This ADR defines the contract to implement; it does not claim
-that version 2 writers or reports already exist.
+observability contract. The first reader tranche now implements the version 2 envelope
+and payload-reading boundary; it does not claim that version 2 writers, capability
+negotiation, or work reports already exist.
 
 ### Compatibility rollout
 
 The rollout has four ordered states:
 
-1. Current readers and writers support only envelope version 1.
+1. The pre-rollout baseline supports only envelope version 1 in readers and writers.
 2. A reader release accepts mixed version 1 and version 2 history while continuing to
    write version 1.
 3. Historical replay, local storage, sync, Node, Hub, diagnostics, and packed-CLI tests
@@ -38,6 +39,11 @@ The coordinate has its own schema version, records the selected event write vers
 activation evidence, and is ignored by old writers. Activation is allowed only when
 every configured reader advertises version 2 capability. Version 1 remains the default
 for fresh repositories until the rollout decision changes through a later ADR.
+
+The current implementation is at state 2 for the in-process event contract, local
+SQLite reader, synchronization validation, Hub storage, and trace readers. Production
+writers remain pinned to version 1. Reader capability advertisement, packed deployment
+proof, and the managed writer-coordinate operation remain required before state 3 or 4.
 
 Writers never rewrite old events. A version 2 reader must accept a valid mixed chain. A
 version 1-only reader encountering version 2 fails with a typed unsupported-version

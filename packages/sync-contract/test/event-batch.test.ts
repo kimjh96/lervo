@@ -2,7 +2,11 @@ import { computeEventHash } from "@lervo/event-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
-import { assertOutboundEventBatch, createOutboundEventBatch } from "../src/index.js";
+import {
+  assertOutboundEventBatch,
+  assertSyncableEvent,
+  createOutboundEventBatch,
+} from "../src/index.js";
 import { eventChain, manifest, registration } from "./fixture.js";
 
 describe("outbound event batch contract", () => {
@@ -32,6 +36,40 @@ describe("outbound event batch contract", () => {
         events: [events[0]!, events[2]!],
       }),
     ).toThrowError(expect.objectContaining({ code: "invalid_event_batch" }));
+  });
+
+  it("accepts a mixed v1/v2 chain and rejects unsupported versions distinctly", () => {
+    const project = manifest();
+    const events = eventChain(project.projectId, 2, (seq) =>
+      seq === 1
+        ? {}
+        : {
+            schemaVersion: 2,
+            type: "work.causality.recorded",
+            payload: {
+              workId: `wrk_${"a".repeat(24)}`,
+              executionContractVersion: 1,
+              relationship: "root",
+              parentRunId: null,
+              retryOfRunId: null,
+              attemptOrdinal: 1,
+              workstreamId: null,
+              assignmentId: null,
+              agentId: null,
+            },
+          },
+    );
+    const batch = createOutboundEventBatch({ registration: registration(project), events });
+    expect(batch.events.map((event) => event.schemaVersion)).toEqual([1, 2]);
+    expect(() =>
+      assertSyncableEvent({ ...events[1]!, schemaVersion: 3 } as unknown as EventEnvelope),
+    ).toThrowError(expect.objectContaining({ code: "event_schema_unsupported" }));
+    expect(() =>
+      assertOutboundEventBatch({
+        ...batch,
+        events: [events[0]!, { ...events[1]!, schemaVersion: 3 } as unknown as EventEnvelope],
+      }),
+    ).toThrowError(expect.objectContaining({ code: "event_schema_unsupported" }));
   });
 
   it("rejects a hash-valid event that contains payload outside the Hub allowlist", () => {

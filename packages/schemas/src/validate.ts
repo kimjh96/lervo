@@ -50,6 +50,11 @@ import { documentStalenessResultSchema } from "./document-staleness.js";
 import { doctorReportSchema } from "./doctor-report.js";
 import { eventEnvelopeSchema } from "./event.js";
 import {
+  executionStagesObservedEventPayloadSchema,
+  resourceUsageRecordedEventPayloadSchema,
+  workCausalityRecordedEventPayloadSchema,
+} from "./execution-observability-event.js";
+import {
   eventSyncAcknowledgementSchema,
   outboundEventBatchSchema,
   projectRegistrationRequestSchema,
@@ -243,6 +248,9 @@ const validators = {
   signedPolicyApprovalRevocation: ajv.getSchema(signedPolicyApprovalRevocationSchema.$id)!,
   managedRunApprovalAuthorization: ajv.getSchema(managedRunApprovalAuthorizationSchema.$id)!,
   event: ajv.getSchema(eventEnvelopeSchema.$id)!,
+  workCausalityRecordedEventPayload: ajv.compile(workCausalityRecordedEventPayloadSchema),
+  resourceUsageRecordedEventPayload: ajv.compile(resourceUsageRecordedEventPayloadSchema),
+  executionStagesObservedEventPayload: ajv.compile(executionStagesObservedEventPayloadSchema),
   projectRegistrationRequest: ajv.compile(projectRegistrationRequestSchema),
   projectRegistrationResponse: ajv.compile(projectRegistrationResponseSchema),
   outboundEventBatch: ajv.compile(outboundEventBatchSchema),

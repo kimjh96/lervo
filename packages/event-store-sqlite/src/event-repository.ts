@@ -6,9 +6,10 @@ import {
   eventIdentity,
   eventWithoutHash,
   sanitizeEventPayload,
+  writableEventSchemaVersion,
   type EventDraft,
 } from "@lervo/event-contract";
-import { type EventEnvelope, validateSchema } from "@lervo/schemas";
+import { type EventEnvelope, type EventEnvelopeV1, validateSchema } from "@lervo/schemas";
 import {
   type AppendEventResult,
   type EventChainReport,
@@ -27,6 +28,12 @@ export class SQLiteEventRepository {
   ) {}
 
   append(draft: EventDraft): AppendEventResult {
+    if (draft.schemaVersion !== writableEventSchemaVersion) {
+      throw new EventStoreError(
+        "event_schema_unsupported",
+        `This writer emits only event schema version ${writableEventSchemaVersion}.`,
+      );
+    }
     if (draft.projectId !== this.projectId) {
       throw new EventStoreError(
         "project_mismatch",
@@ -64,13 +71,13 @@ export class SQLiteEventRepository {
     }
     const seq = typeof seqValue === "number" ? seqValue + 1 : 1;
     const previousHash = tailRow ? requireString(tailRow, "event_hash") : null;
-    const withoutHash: Omit<EventEnvelope, "eventHash"> = {
+    const withoutHash: Omit<EventEnvelopeV1, "eventHash"> = {
       ...draft,
       payload: sanitized.payload,
       seq,
       previousHash,
     };
-    const event: EventEnvelope = {
+    const event: EventEnvelopeV1 = {
       ...withoutHash,
       eventHash: computeEventHash(withoutHash),
     };

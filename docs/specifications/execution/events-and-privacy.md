@@ -1,9 +1,43 @@
 # Execution events and privacy
 
 Status: `active`
-As of: 2026-08-25
+As of: 2026-09-01
 
 This document defines event evidence and privacy guarantees linked from the [execution specification](../execution.md). Events use schema allowlists and a validated hash chain. Every event and state defines its name and version, identifiers and hashes, privacy, success, and failure or retry meaning. Payloads exclude raw prompts, document bodies, provider output, credentials, absolute paths, reviewer identities, and unrestricted errors.
+
+## Event envelope compatibility
+
+The shared reader accepts envelope schema versions 1 and 2 and preserves valid mixed
+hash chains without rewriting their bytes or meaning. Every production append path
+continues to write version 1. A supported but malformed envelope is `event_invalid` at
+the event-contract boundary and an integrity failure where stored bytes are decoded. An
+unknown integer envelope version is `event_schema_unsupported`; local storage, sync,
+and Hub intake reject it before mutation. Invalid hashes and payload allowlists remain
+integrity failures rather than unsupported-version failures.
+
+Envelope version 2 makes the following payload contracts readable but does not yet make
+them production evidence:
+
+- `work.causality.recorded` retains opaque work, run-relationship, attempt, workstream,
+  assignment, and agent coordinates. Root, retry, and other child shapes are
+  discriminated in the payload schema. Cross-run ancestry and exactly-once append are
+  not claimed until FH1 implements and verifies the writer invariant.
+- `resource.usage.recorded` retains an opaque observation and source digest, scope,
+  source, accounting mode and descriptor hash, status, bounded counters, and reason
+  code. Counts are non-negative; cached input cannot exceed input, reasoning output
+  cannot exceed output, and total equals input plus output. `unavailable` and `invalid`
+  contain no fabricated usage. Provider identity and native counter semantics remain in
+  a future local descriptor, not this event.
+- `execution.stages.observed` retains managed or unmanaged mode, an opaque work or
+  terminal coordinate, observation and environment digests, repository profile, and at
+  most 32 catalogued stage results. It excludes paths, prompts, queries, outputs,
+  credentials, and vendor span names.
+
+All three payloads use exact top-level allowlists. Resource counter names are the only
+approved token-like nested keys. Schema, discriminator, arithmetic, or privacy failure
+prevents sync acceptance and creates no observation success. Because there is currently
+no version 2 writer, missing events mean `unobserved`, not zero usage, legacy ancestry,
+or a successful stage measurement.
 
 ## Workforce events
 

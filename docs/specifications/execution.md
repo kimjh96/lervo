@@ -96,6 +96,13 @@ Human writing binds `publication.language` to `writing_en-human`, semantic check
 
 The [execution events and privacy specification](execution/events-and-privacy.md) defines allowlisted payloads, workforce events, knowledge and terminal integration events, additive terminal-observation compatibility, workstream snapshots, activation receipts, coverage, privacy exclusions, and failure meaning. Events remain canonical hash-chained evidence; absent telemetry never becomes inferred success or provider-use claims. Managed linked-evidence canary record bounds and privacy exclusions remain defined by its specification.
 
+Event readers accept immutable version 1 history and mixed version 1/version 2 chains.
+Unsupported integer envelope versions fail with `event_schema_unsupported` before
+mutation; malformed supported envelopes fail with `event_invalid` or the boundary's
+integrity error. Production append remains version 1 only. Version 2 currently defines
+readable causal-work, resource-usage, and bounded-stage payloads but emits none, so their
+absence does not establish zero usage, missing work, or successful observation.
+
 ## 11. Durable apply and recovery
 
 The owner-only journal validates the plan and current bytes, stages outputs, backs up originals, publishes or deletes, lints, commits the event, then cleans backups and empty parents. Pre-commit failure restores originals. Post-commit cleanup failure preserves outputs and requires recovery. Interrupted transactions block mutation. Rollback recreates only parents pruned by that transaction before restoring exact backups, including deleted shards and moved documents.

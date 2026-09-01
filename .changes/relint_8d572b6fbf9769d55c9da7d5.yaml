@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8d572b6fbf9769d55c9da7d5"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Read mixed version 1 and version 2 event histories without enabling version 2 writers."

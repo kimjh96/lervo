@@ -22,6 +22,7 @@ export * from "./document-manifest.js";
 export * from "./document-migration-apply.js";
 export * from "./document-migration.js";
 export * from "./event.js";
+export * from "./execution-observability-event.js";
 export * from "./hub-sync.js";
 export * from "./hub-policy.js";
 export * from "./high-risk-role-workflow.js";

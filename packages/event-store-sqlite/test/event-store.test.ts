@@ -162,6 +162,15 @@ describe("SQLite append-only event store", () => {
     store.close();
   });
 
+  it("keeps the production writer on envelope version 1", async () => {
+    const store = await SQLiteEventStore.open({ path: await databasePath(), projectId });
+    expect(() =>
+      store.append({ ...draft(), schemaVersion: 2 } as unknown as EventDraft),
+    ).toThrowError(expect.objectContaining({ code: "event_schema_unsupported" }));
+    expect(store.list()).toEqual([]);
+    store.close();
+  });
+
   it("rolls back every event in a failed unit of work", async () => {
     const store = await SQLiteEventStore.open({ path: await databasePath(), projectId });
 

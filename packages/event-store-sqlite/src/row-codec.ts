@@ -1,6 +1,7 @@
 import { type SQLOutputValue } from "node:sqlite";
 
-import { type EventEnvelope, validateSchema } from "@lervo/schemas";
+import { assertReadableEventEnvelope, EventContractError } from "@lervo/event-contract";
+import { type EventEnvelope } from "@lervo/schemas";
 
 import { EventStoreError } from "./errors.js";
 
@@ -55,14 +56,16 @@ export function rowToEvent(row: SqliteRow): EventEnvelope {
     previousHash,
     eventHash: requireString(row, "event_hash"),
   };
-  const validation = validateSchema("event", candidate);
-  if (!validation.valid) {
+  try {
+    assertReadableEventEnvelope(candidate);
+  } catch (error) {
+    if (error instanceof EventContractError && error.code === "event_schema_unsupported") {
+      throw new EventStoreError("event_schema_unsupported", error.message);
+    }
     throw new EventStoreError(
       "integrity_failed",
-      `The stored event does not satisfy the schema: ${validation.errors
-        .map((error) => `${error.instancePath || "/"} ${error.message ?? "is invalid"}`)
-        .join("; ")}`,
+      "The stored event does not satisfy a readable event schema.",
     );
   }
-  return candidate as EventEnvelope;
+  return candidate;
 }

@@ -1,6 +1,6 @@
 # Foundation-hardening architecture and contracts
 
-Status: `planned`
+Status: `active`
 
 As of: 2026-09-01
 

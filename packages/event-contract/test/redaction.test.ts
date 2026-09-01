@@ -3,6 +3,40 @@ import { describe, expect, it } from "vitest";
 import { RedactionError, sanitizeEventPayload } from "../src/index.js";
 
 describe("event payload privacy boundary", () => {
+  it("keeps bounded foundation observations and rejects contradictory resource counters", () => {
+    const payload = {
+      workId: `wrk_${"a".repeat(24)}`,
+      resourceObservationId: `ruo_${"b".repeat(24)}`,
+      sourceCoordinateDigest: `sha256:${"c".repeat(64)}`,
+      scope: "primary_provider",
+      source: "provider_reported",
+      accountingMode: "turn_cumulative",
+      accountingDescriptorHash: `sha256:${"d".repeat(64)}`,
+      status: "observed",
+      usage: {
+        inputTokens: 100,
+        cachedInputTokens: 20,
+        outputTokens: 10,
+        reasoningOutputTokens: 5,
+        totalTokens: 110,
+        contextWindow: null,
+      },
+      reasonCode: null,
+    };
+    expect(
+      sanitizeEventPayload("resource.usage.recorded", {
+        ...payload,
+        providerResponse: "private native response",
+      }),
+    ).toMatchObject({ payload, redactions: [{ path: "$.providerResponse" }] });
+    expect(() =>
+      sanitizeEventPayload("resource.usage.recorded", {
+        ...payload,
+        usage: { ...payload.usage, totalTokens: 111 },
+      }),
+    ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+  });
+
   it("keeps exact activation evidence while excluding provider configuration and credentials", () => {
     const payload = {
       capabilityId: "research/search",

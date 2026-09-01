@@ -8,6 +8,7 @@ import {
   type KnowledgeStaleDetectedEventPayload,
   type KnowledgeVerifiedEventPayload,
   type RunCompletedEventPayload,
+  type ResourceUsageRecordedEventPayload,
   type SchemaName,
   type VerificationCompletedEventPayload,
   type WorkstreamSnapshotRecordedEventPayload,
@@ -572,6 +573,39 @@ export const eventPayloadAllowlists = {
   ],
   "unmanaged_change.detected": ["paths", "beforeRevision", "afterRevision", "detectedAt"],
   "sync.acknowledged": ["eventIds", "hubId", "acknowledgedAt"],
+  "work.causality.recorded": [
+    "workId",
+    "executionContractVersion",
+    "relationship",
+    "parentRunId",
+    "retryOfRunId",
+    "attemptOrdinal",
+    "workstreamId",
+    "assignmentId",
+    "agentId",
+  ],
+  "resource.usage.recorded": [
+    "workId",
+    "resourceObservationId",
+    "sourceCoordinateDigest",
+    "scope",
+    "source",
+    "accountingMode",
+    "accountingDescriptorHash",
+    "status",
+    "usage",
+    "reasonCode",
+  ],
+  "execution.stages.observed": [
+    "executionMode",
+    "workId",
+    "terminalObservationId",
+    "observationSetId",
+    "stageCatalogVersion",
+    "environmentProfileDigest",
+    "repositoryProfile",
+    "stages",
+  ],
 } as const satisfies Record<EventType, readonly string[]>;
 
 const sensitiveFragments = [
@@ -595,6 +629,11 @@ const safeSensitiveCoordinatePaths = new Set([
   "$.queryProjectionReceipt.usage.outputTokens",
   "$.queryProjectionReceipt.usage.reasoningOutputTokens",
   "$.queryProjectionReceipt.usage.totalTokens",
+  "$.usage.inputTokens",
+  "$.usage.cachedInputTokens",
+  "$.usage.outputTokens",
+  "$.usage.reasoningOutputTokens",
+  "$.usage.totalTokens",
 ]);
 
 export type RedactionErrorCode =
@@ -758,6 +797,10 @@ export function sanitizeEventPayload(
     !invalidSchema &&
     type === "workstream.snapshot.recorded" &&
     !workstreamCoordinateMatches(sanitized as unknown as WorkstreamSnapshotRecordedEventPayload);
+  const invalidResourceUsageCoordinate =
+    !invalidSchema &&
+    type === "resource.usage.recorded" &&
+    !resourceUsageCoordinateMatches(sanitized as unknown as ResourceUsageRecordedEventPayload);
   if (
     invalidSchema ||
     invalidArtifactCoordinate ||
@@ -765,7 +808,8 @@ export function sanitizeEventPayload(
     invalidKnowledgeCoordinate ||
     invalidVerificationCoordinate ||
     invalidRunCompletedCoordinate ||
-    invalidWorkstreamCoordinate
+    invalidWorkstreamCoordinate ||
+    invalidResourceUsageCoordinate
   ) {
     throw new RedactionError(
       "invalid_payload",
@@ -804,6 +848,9 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "terminal.reference.observed": "terminalReferenceObservedEventPayload",
   "terminal.turn.observed": "terminalTurnObservedEventPayload",
   "workstream.snapshot.recorded": "workstreamSnapshotRecordedEventPayload",
+  "work.causality.recorded": "workCausalityRecordedEventPayload",
+  "resource.usage.recorded": "resourceUsageRecordedEventPayload",
+  "execution.stages.observed": "executionStagesObservedEventPayload",
 };
 
 function deliberationArtifactCoordinateMatches(
@@ -877,5 +924,14 @@ function runCompletedCoordinateMatches(payload: RunCompletedEventPayload): boole
     (payload.verificationStatus === "not_run"
       ? payload.artifactIds.length === 1
       : payload.artifactIds.length >= 2)
+  );
+}
+
+function resourceUsageCoordinateMatches(payload: ResourceUsageRecordedEventPayload): boolean {
+  return (
+    payload.usage === null ||
+    (payload.usage.cachedInputTokens <= payload.usage.inputTokens &&
+      payload.usage.reasoningOutputTokens <= payload.usage.outputTokens &&
+      payload.usage.totalTokens === payload.usage.inputTokens + payload.usage.outputTokens)
   );
 }

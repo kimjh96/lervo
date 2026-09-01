@@ -86,6 +86,39 @@ describe("Hub trace SQLite query source", () => {
     await store.close();
   });
 
+  it("stores and traces a mixed v1/v2 event chain without rewriting envelopes", async () => {
+    const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
+    const project = manifest("prj_hub_mixed_01");
+    const events = eventChain(project.projectId, 2, (seq) =>
+      seq === 1
+        ? {}
+        : {
+            schemaVersion: 2,
+            type: "work.causality.recorded",
+            payload: {
+              workId: `wrk_${"a".repeat(24)}`,
+              executionContractVersion: 1,
+              relationship: "root",
+              parentRunId: null,
+              retryOfRunId: null,
+              attemptOrdinal: 1,
+              workstreamId: null,
+              assignmentId: null,
+              agentId: null,
+            },
+          },
+    );
+    await registerStore(store, project);
+    await acceptEvents(store, project, events);
+    const trace = await new HubTraceReader(store).getRun({
+      destinationId,
+      projectId: project.projectId,
+      runId: events[0]!.runId,
+    });
+    expect(trace.events.items.map((item) => item.event)).toEqual(events);
+    await store.close();
+  });
+
   it("pages run summaries and preserves allowlisted evidence payloads", async () => {
     const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
     const project = manifest("prj_hub_runs_01");

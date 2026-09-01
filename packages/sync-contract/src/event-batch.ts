@@ -1,6 +1,8 @@
 import {
   canonicalJson,
   computeEventHash,
+  assertReadableEventEnvelope,
+  EventContractError,
   eventWithoutHash,
   sanitizeEventPayload,
 } from "@lervo/event-contract";
@@ -18,15 +20,36 @@ import { assertProjectRegistrationRequest } from "./registration.js";
 
 type BatchContent = Omit<OutboundEventBatch, "batchId">;
 
+function assertNoUnsupportedEventVersions(batch: unknown): void {
+  if (batch === null || typeof batch !== "object" || Array.isArray(batch)) return;
+  const events = (batch as { events?: unknown }).events;
+  if (!Array.isArray(events)) return;
+  for (const event of events) {
+    try {
+      assertReadableEventEnvelope(event);
+    } catch (error) {
+      if (error instanceof EventContractError && error.code === "event_schema_unsupported") {
+        throw new SyncContractError("event_schema_unsupported", error.message);
+      }
+    }
+  }
+}
+
 export function assertSyncableEvent(event: EventEnvelope): void {
-  if (
-    !validateSchema("event", event).valid ||
-    computeEventHash(eventWithoutHash(event)) !== event.eventHash
-  ) {
+  try {
+    assertReadableEventEnvelope(event);
+  } catch (error) {
+    if (error instanceof EventContractError && error.code === "event_schema_unsupported") {
+      throw new SyncContractError("event_schema_unsupported", error.message);
+    }
     throw new SyncContractError(
       "invalid_event_batch",
-      "A synchronization event schema or hash is invalid.",
+      "A synchronization event schema is invalid.",
+      { cause: error },
     );
+  }
+  if (computeEventHash(eventWithoutHash(event)) !== event.eventHash) {
+    throw new SyncContractError("invalid_event_batch", "A synchronization event hash is invalid.");
   }
   let sanitized;
   try {
@@ -76,6 +99,7 @@ export function calculateOutboundEventBatchId(content: BatchContent): string {
 }
 
 export function assertOutboundEventBatch(batch: OutboundEventBatch): void {
+  assertNoUnsupportedEventVersions(batch);
   if (!validateSchema("outboundEventBatch", batch).valid) {
     throw new SyncContractError(
       "invalid_event_batch",

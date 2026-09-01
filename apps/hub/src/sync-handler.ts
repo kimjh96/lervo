@@ -23,7 +23,11 @@ import {
   type WorkstreamReplicationPublishRequest,
   validateSchema,
 } from "@lervo/schemas";
-import { calculateProjectRegistrationId, SyncContractError } from "@lervo/sync-contract";
+import {
+  assertOutboundEventBatch,
+  calculateProjectRegistrationId,
+  SyncContractError,
+} from "@lervo/sync-contract";
 
 import type { HubRequestAuthenticator } from "./auth.js";
 import { HubHttpRequestTooLargeError, readBoundedJsonBody } from "./body.js";
@@ -99,7 +103,12 @@ function syncError(
   headers: Record<string, string>,
 ): void {
   if (
-    ["invalid_registration", "invalid_event_batch", "project_sync_disabled"].includes(error.code)
+    [
+      "invalid_registration",
+      "invalid_event_batch",
+      "event_schema_unsupported",
+      "project_sync_disabled",
+    ].includes(error.code)
   ) {
     sendHubError(response, 400, "invalid_request", maximum, headers);
   } else if (
@@ -301,10 +310,8 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         return;
       }
 
-      if (!validateSchema("outboundEventBatch", body).valid) {
-        throw new InvalidHubHttpRequestError();
-      }
       const batch = body as OutboundEventBatch;
+      assertOutboundEventBatch(batch);
       if (
         batch.destinationId !== query.destinationId ||
         batch.projectId !== route.projectId ||

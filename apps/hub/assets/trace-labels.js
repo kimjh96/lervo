@@ -62,6 +62,9 @@ const eventLabels = {
   "state.pruned": "Derived state pruned",
   "unmanaged_change.detected": "Unmanaged change detected",
   "sync.acknowledged": "Synchronization acknowledged",
+  "work.causality.recorded": "Work causality recorded",
+  "resource.usage.recorded": "Resource usage recorded",
+  "execution.stages.observed": "Execution stages observed",
 };
 
 const fieldLabels = {

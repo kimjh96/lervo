@@ -1,6 +1,6 @@
 # Foundation-hardening roadmap
 
-Status: `planned`
+Status: `active`
 
 As of: 2026-09-01
 
