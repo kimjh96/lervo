@@ -3,8 +3,17 @@ import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:f
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { readJson, repositoryRoot, runPnpm } from "./lib/installed-cli.mjs";
+import {
+  importBuiltWorkspacePackage,
+  readJson,
+  repositoryRoot,
+  runPnpm,
+} from "./lib/installed-cli.mjs";
 import { verifyInstalledClaudeNativeRuntime } from "./lib/claude-native-runtime.mjs";
+import {
+  createMixedEventReaderFixture,
+  installMixedEventReaderFixture,
+} from "./lib/mixed-event-reader-fixture.mjs";
 import { packCliArtifact } from "./lib/packed-cli-artifact.mjs";
 
 const cliManifestPath = resolve(repositoryRoot, "apps/cli/package.json");
@@ -136,7 +145,7 @@ async function runConsumerCli(consumerRoot, args) {
   return runPnpm(["exec", "lervo", ...args], { cwd: consumerRoot });
 }
 
-async function verifyConsumerCommands(consumerRoot, expectedVersion) {
+async function verifyConsumerCommands(consumerRoot, expectedVersion, eventContract) {
   const version = await runConsumerCli(consumerRoot, ["--version"]);
   assert.equal(version.stdout, `lervo ${expectedVersion}\n`);
   assert.equal(version.stderr, "");
@@ -147,10 +156,39 @@ async function verifyConsumerCommands(consumerRoot, expectedVersion) {
   assert.equal(report.schemaVersion, 1);
   assert.equal(report.defaultMode, "page");
   assert.deepEqual(report.deprecations, []);
+  assert.deepEqual(report.eventReader, {
+    schemaVersion: 1,
+    capability: "event_reader",
+    readableEventSchemaVersions: [1, 2],
+  });
 
-  const initialized = await runConsumerCli(consumerRoot, ["init", "--name", "packed-cli-smoke"]);
+  const initialized = await runConsumerCli(consumerRoot, [
+    "init",
+    "--minimal",
+    "--name",
+    "packed-cli-smoke",
+  ]);
   assert.equal(initialized.stderr, "");
   await access(resolve(consumerRoot, ".lervo/project.yaml"));
+  const projectId = /projectId: (prj_[A-Za-z0-9_-]+)\n/u.exec(initialized.stdout)?.[1];
+  assert.notEqual(projectId, undefined);
+
+  const state = await runConsumerCli(consumerRoot, ["state", "status", "--json"]);
+  assert.equal(state.stderr, "");
+  const events = createMixedEventReaderFixture(projectId, eventContract.computeEventHash);
+  installMixedEventReaderFixture(resolve(consumerRoot, ".lervo/data/events.sqlite"), events);
+  const trace = await runConsumerCli(consumerRoot, [
+    "trace",
+    "run_packed_reader_proof_01",
+    "--json",
+  ]);
+  assert.equal(trace.stderr, "");
+  const traceReport = JSON.parse(trace.stdout);
+  assert.deepEqual(traceReport.events, events);
+  assert.deepEqual(
+    traceReport.events.map((event) => event.schemaVersion),
+    [1, 2],
+  );
 }
 
 async function main() {
@@ -165,7 +203,8 @@ async function main() {
     await verifyInstalledPackage(consumerRoot, cliManifest);
     await verifyPackageGuide(consumerRoot);
     const nativeRuntime = await verifyInstalledClaudeNativeRuntime(consumerRoot);
-    await verifyConsumerCommands(consumerRoot, cliManifest.version);
+    const eventContract = await importBuiltWorkspacePackage("event-contract");
+    await verifyConsumerCommands(consumerRoot, cliManifest.version, eventContract);
     console.log(`Claude native runtime verified: ${nativeRuntime.packageName}`);
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });

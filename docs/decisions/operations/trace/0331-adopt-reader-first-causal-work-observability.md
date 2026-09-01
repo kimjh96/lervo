@@ -40,11 +40,12 @@ activation evidence, and is ignored by old writers. Activation is allowed only w
 every configured reader advertises version 2 capability. Version 1 remains the default
 for fresh repositories until the rollout decision changes through a later ADR.
 
-The current implementation is at state 2 for the in-process event contract, local
-SQLite reader, synchronization validation, Hub storage, and trace readers. Production
-writers remain pinned to version 1. Reader capability advertisement is implemented;
-packed deployment proof and the managed writer-coordinate operation remain required
-before state 3 or 4.
+The current implementation is at state 3. The in-process event contract, local SQLite
+reader, synchronization validation, Hub storage, diagnostics, and trace readers consume
+mixed history, and the installed packed CLI advertises the same reader capability and
+reproduces an exact linked version 1/version 2 fixture. Production writers remain pinned
+to version 1. The managed writer-coordinate operation, activation checks, recovery, and
+rollout runbooks remain required before state 4.
 
 `EventReaderCapabilitiesV1` is a provider-neutral, secret-free report with required
 `schemaVersion: 1`, `capability: event_reader`, and a strictly ascending,
