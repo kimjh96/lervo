@@ -146,7 +146,7 @@ with another strategy.
 
 The recommended order is:
 
-1. Complete the applicable [foundation-hardening gates](lervo-foundation-hardening.md),
+1. Complete the planned [foundation-hardening roadmap](../roadmap/foundation-hardening.md),
    including causal work identity, public contract evolution, resource accounting,
    critical-path latency, failure recovery, and extension safety.
 2. Map existing workstream, assignment, run, event, graph, and knowledge responsibilities

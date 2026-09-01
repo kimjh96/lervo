@@ -8,6 +8,8 @@ As of: 2026-09-01
 
 Turn foundation concerns into bounded proof instead of an open-ended architecture phase.
 The gates below are proposed delivery criteria and do not change the completed v0 roadmap.
+Their implementation sequence is now owned by the
+[foundation-hardening roadmap](../../roadmap/foundation-hardening.md).
 
 ## Gate classes
 
@@ -91,7 +93,14 @@ Run crash, retry, cancellation, duplicate, concurrency, capacity, security, upgr
 rollback suites against current paths. Close semantic gaps found by those tests before a
 loop can repeat them automatically. G2 through the core of G5 should pass here.
 
-### Phase D: one governed-loop and execution-graph slice
+### Phase D: foundation readiness and handoff
+
+Aggregate contract, replay, performance, recovery, security, capacity, packed-CLI,
+fresh-clone, and local-without-Hub evidence. Review exact limitations and rollback before
+declaring the foundation ready. Phases A through D correspond to FH0 through FH5 in the
+implementation roadmap.
+
+### Phase E: first enhancement slice
 
 Extend the current assignment DAG with one versioned bounded flow:
 
@@ -105,7 +114,7 @@ parallel branch, join, approval gate, cancellation, exhausted budget, and crash 
 in the proof. The graph remains a rebuildable or declarative projection; observed state
 and completion remain canonical elsewhere.
 
-### Phase E: reference products and verified improvement
+### Phase F: reference products and verified improvement
 
 Build a minimal local operating client over the same public boundary. Then add bounded
 Paperclip-like goals, routines, boards, and budgets and Buzz-like threads, mentions,
@@ -113,7 +122,7 @@ inboxes, and connectors as product projections and commands. Complete post-promo
 effect observation for verified improvement. Do not grant authority from presentation
 membership, message delivery, model confidence, or remembered approval.
 
-### Phase F: advanced and external capabilities
+### Phase G: advanced and external capabilities
 
 Only after measured need, consider dynamic graphs, unattended autonomy, external graph or
 semantic services, more provider and harness adapters, and third-party host products.
@@ -122,8 +131,9 @@ supersession, and migration.
 
 ## Go and no-go rule
 
-The next enhancement may proceed when its irreversible dependencies have passed. Not every
-future capacity or user-interface feature must wait for every gate.
+The first durable loop or execution-graph enhancement proceeds only after the bounded
+foundation roadmap and G0 through G5 are accepted. Later product features may use their
+own narrower gates once that foundation exists.
 
 The following are no-go conditions for durable loop or graph expansion:
 
@@ -145,11 +155,12 @@ The first implementation roadmap should contain only:
 3. read-only usage, latency, and missing-telemetry inspection;
 4. a focused hook-latency diagnosis and safe budget;
 5. common failure-injection and historical-replay harnesses; and
-6. one governed-loop and assignment-graph vertical slice using those contracts.
+6. one aggregate foundation-readiness audit and enhancement handoff.
 
-Cost estimation, budget warnings, reference operating views, and collaboration routes may
-follow as consumers. Billing reconciliation, hard monetary stops, dynamic graph mutation,
-and unattended autonomy should remain later scopes.
+The governed-loop and assignment-graph vertical slice is the first subsequent
+enhancement. Cost estimation, budget warnings, reference operating views, and
+collaboration routes may follow as consumers. Billing reconciliation, hard monetary
+stops, dynamic graph mutation, and unattended autonomy should remain later scopes.
 
 ## Completion evidence for a foundation milestone
 

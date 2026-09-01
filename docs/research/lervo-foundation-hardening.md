@@ -13,6 +13,10 @@ foundation that should be hardened before broader platform work makes correction
 This document is research guidance. It does not authorize runtime behavior, reopen the
 completed v0 roadmap, or declare the proposed acceptance gates implemented.
 
+The implementation-ready direction is now tracked by the
+[foundation-hardening roadmap](../roadmap/foundation-hardening.md) and
+[ADR-0331](../decisions/operations/trace/0331-adopt-reader-first-causal-work-observability.md).
+
 ## Consolidated product definition
 
 Lervo is a headless, local-first control plane and extension platform for durable,
@@ -109,13 +113,13 @@ Exercise crash points, stale retries, cancellations, duplicate delivery, partial
 lease expiry, external uncertainty, and recovery on the exact state transitions an
 unattended loop would use. Autonomous continuation should not amplify an ambiguous state.
 
-### One vertical slice before broad interfaces
+### Foundation completion before the first enhancement slice
 
-After the minimum foundation gates pass, implement one governed-loop and bounded
-assignment-execution-graph slice through the same public contracts used by the CLI. A
-minimal local operating view may consume that slice. Broader Paperclip-like and
-Buzz-like interfaces should follow only after this proves that products do not need
-storage internals or separate authority.
+Complete the bounded foundation roadmap before implementing a governed loop or richer
+assignment execution graph. Then implement one vertical slice through the same public
+contracts used by the CLI. A minimal local operating view may consume that slice.
+Broader Paperclip-like and Buzz-like interfaces should follow only after this proves that
+products do not need storage internals or separate authority.
 
 The proposed gates and sequence are in
 [acceptance gates and delivery sequence](lervo-foundation-hardening/acceptance-gates-and-sequence.md).
@@ -125,7 +129,8 @@ The proposed gates and sequence are in
 Do not begin by building a large workflow engine, graph database, dashboard, or autonomous
 agent layer. First stabilize the causal work envelope, public evolution rules, resource
 ledger, stage-level performance evidence, and cross-cutting failure contract. Then use a
-small governed loop and execution graph as the first proof of that foundation.
+small governed loop and execution graph as the first enhancement built on the completed
+foundation.
 
 This preserves momentum while protecting the parts that are physically expensive to
 change later: durable identifiers, event meanings, authority, public contracts, and
