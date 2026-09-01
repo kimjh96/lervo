@@ -12,7 +12,7 @@ excludes prompts, outputs, repository paths, and credentials.
 
 ## Protocol
 
-Each profile has 100 paired baseline and candidate observations. Odd repetitions run
+Each profile has 200 paired baseline and candidate observations. Odd repetitions run
 baseline first and even repetitions run candidate first. Baseline disables only stage
 recording. Both arms otherwise use the same activated version 2 behavior and start from
 the same fixture snapshot.

@@ -25,7 +25,7 @@
     "format": "node scripts/run-prettier.mjs --write",
     "format:check": "node scripts/run-prettier.mjs --check",
     "foundation:performance:check": "pnpm --filter @lervo/execution-performance build && node scripts/check-foundation-performance.mjs",
-    "foundation:performance:run": "pnpm build && node scripts/run-foundation-performance-benchmark.mjs --repetitions 100 --write docs/evidence/foundation/execution-performance-v1.json --summary",
+    "foundation:performance:run": "pnpm build && node scripts/run-foundation-performance-benchmark.mjs --repetitions 200 --write docs/evidence/foundation/execution-performance-v1.json --summary",
     "foundation:contracts:check": "node scripts/check-foundation-focused-suite.mjs --area contracts",
     "foundation:replay:check": "node scripts/check-foundation-focused-suite.mjs --area replay",
     "foundation:journeys:check": "node scripts/check-foundation-focused-suite.mjs --area journeys",
