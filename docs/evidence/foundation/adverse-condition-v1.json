@@ -1,0 +1,1349 @@
+{
+  "schemaVersion": 1,
+  "evidenceBuildDigest": "sha256:1a7bc485f1d73d5631646d15034344843f42b4c57e27e1a5b22f38a2deb3fc2d",
+  "repositoryRevision": "sha256:480493de8a5289457f898278d5240419e41173d3becc70642e145cc39da49339",
+  "environment": {
+    "operatingSystem": "darwin",
+    "architecture": "arm64",
+    "nodeVersion": "v26.5.1"
+  },
+  "effects": [
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_managed_provider_admission",
+      "category": "provider_admission",
+      "owner": "orchestrator.managed_run",
+      "effectKind": "external",
+      "idempotencyCoordinate": "run.session.adapter",
+      "duplicateBehavior": "reconcile",
+      "automaticRetry": "disabled",
+      "uncertainty": "reconcile_required",
+      "compensation": "external_reconciliation",
+      "durableSuccessEvidence": "adapter.started",
+      "recoveryOwner": "orchestrator.managed_run",
+      "privacySafeFailureCode": "provider_start_uncertain",
+      "growingCollectionIds": ["provider_sessions", "event_chain"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "reconcile_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    },
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_event_chain_append",
+      "category": "event_append",
+      "owner": "event_store",
+      "effectKind": "local",
+      "idempotencyCoordinate": "event.event_id",
+      "duplicateBehavior": "reject_conflict",
+      "automaticRetry": "content_idempotent",
+      "uncertainty": "journal_recovery",
+      "compensation": "restore_exact_bytes",
+      "durableSuccessEvidence": "event.envelope",
+      "recoveryOwner": "event_store",
+      "privacySafeFailureCode": "event_append_failed",
+      "growingCollectionIds": ["event_chain"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "rollback_or_recovery_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    },
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_cas_artifact_append",
+      "category": "artifact_append",
+      "owner": "cas",
+      "effectKind": "local",
+      "idempotencyCoordinate": "artifact.content_hash",
+      "duplicateBehavior": "same_result",
+      "automaticRetry": "content_idempotent",
+      "uncertainty": "journal_recovery",
+      "compensation": "restore_exact_bytes",
+      "durableSuccessEvidence": "cas.content_hash",
+      "recoveryOwner": "cas",
+      "privacySafeFailureCode": "artifact_storage_failed",
+      "growingCollectionIds": ["cas_artifacts"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "rollback_or_recovery_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    },
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_managed_repository_apply",
+      "category": "managed_repository_write",
+      "owner": "orchestrator.write_bridge",
+      "effectKind": "repository",
+      "idempotencyCoordinate": "write.plan_id",
+      "duplicateBehavior": "reject_conflict",
+      "automaticRetry": "before_effect_only",
+      "uncertainty": "journal_recovery",
+      "compensation": "restore_exact_bytes",
+      "durableSuccessEvidence": "run.completed",
+      "recoveryOwner": "orchestrator.write_bridge",
+      "privacySafeFailureCode": "provider_write_failed",
+      "growingCollectionIds": ["managed_write_journals", "event_chain", "cas_artifacts"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "rollback_or_recovery_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    },
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_assignment_transition",
+      "category": "assignment_transition",
+      "owner": "agent_workforce",
+      "effectKind": "local",
+      "idempotencyCoordinate": "assignment.revision",
+      "duplicateBehavior": "reject_conflict",
+      "automaticRetry": "before_effect_only",
+      "uncertainty": "journal_recovery",
+      "compensation": "restore_exact_bytes",
+      "durableSuccessEvidence": "assignment.event",
+      "recoveryOwner": "agent_workforce",
+      "privacySafeFailureCode": "workforce_write_failed",
+      "growingCollectionIds": ["assignments", "event_chain"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "rollback_or_recovery_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    },
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_assignment_lease",
+      "category": "lease_transition",
+      "owner": "agent_workforce",
+      "effectKind": "local",
+      "idempotencyCoordinate": "lease.generation",
+      "duplicateBehavior": "reject_conflict",
+      "automaticRetry": "before_effect_only",
+      "uncertainty": "journal_recovery",
+      "compensation": "release_authority",
+      "durableSuccessEvidence": "assignment.lease.renewed",
+      "recoveryOwner": "agent_workforce",
+      "privacySafeFailureCode": "assignment_lease_conflict",
+      "growingCollectionIds": ["assignment_leases", "event_chain"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "rollback_or_recovery_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    },
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_workspace_host_transition",
+      "category": "workspace_effect",
+      "owner": "orchestrator.workspace",
+      "effectKind": "external",
+      "idempotencyCoordinate": "workspace.generation",
+      "duplicateBehavior": "reconcile",
+      "automaticRetry": "disabled",
+      "uncertainty": "reconcile_required",
+      "compensation": "external_reconciliation",
+      "durableSuccessEvidence": "agent.workspace.event",
+      "recoveryOwner": "orchestrator.workspace",
+      "privacySafeFailureCode": "host_effect_uncertain",
+      "growingCollectionIds": ["workspaces", "workspace_integration_queue", "event_chain"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "reconcile_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    },
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_terminal_observation_persist",
+      "category": "terminal_persistence",
+      "owner": "cli.terminal_observation",
+      "effectKind": "local",
+      "idempotencyCoordinate": "terminal.observation_id",
+      "duplicateBehavior": "same_result",
+      "automaticRetry": "content_idempotent",
+      "uncertainty": "journal_recovery",
+      "compensation": "restore_exact_bytes",
+      "durableSuccessEvidence": "terminal.observation.event",
+      "recoveryOwner": "cli.terminal_observation",
+      "privacySafeFailureCode": "terminal_persistence_failed",
+      "growingCollectionIds": ["terminal_observations", "terminal_receipts", "event_chain"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "rollback_or_recovery_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    },
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_capability_activation",
+      "category": "capability_activation",
+      "owner": "capabilities.activation",
+      "effectKind": "external",
+      "idempotencyCoordinate": "capability.activation_digest",
+      "duplicateBehavior": "reconcile",
+      "automaticRetry": "disabled",
+      "uncertainty": "reconcile_required",
+      "compensation": "external_reconciliation",
+      "durableSuccessEvidence": "capability.activated",
+      "recoveryOwner": "capabilities.activation",
+      "privacySafeFailureCode": "capability_activation_failed",
+      "growingCollectionIds": ["capability_locks", "capability_activation_receipts", "event_chain"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "reconcile_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    },
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_event_synchronization",
+      "category": "synchronization",
+      "owner": "sync.worker",
+      "effectKind": "external",
+      "idempotencyCoordinate": "destination.event_id",
+      "duplicateBehavior": "same_result",
+      "automaticRetry": "disabled",
+      "uncertainty": "reconcile_required",
+      "compensation": "external_reconciliation",
+      "durableSuccessEvidence": "sync.acknowledged",
+      "recoveryOwner": "sync.worker",
+      "privacySafeFailureCode": "sync_effect_uncertain",
+      "growingCollectionIds": ["sync_outbox", "event_chain"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "reconcile_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    },
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_remote_command_delivery",
+      "category": "remote_command",
+      "owner": "remote_command.receiver",
+      "effectKind": "external",
+      "idempotencyCoordinate": "command.idempotency_key",
+      "duplicateBehavior": "reconcile",
+      "automaticRetry": "disabled",
+      "uncertainty": "reconcile_required",
+      "compensation": "external_reconciliation",
+      "durableSuccessEvidence": "remote_command.receipt",
+      "recoveryOwner": "remote_command.receiver",
+      "privacySafeFailureCode": "remote_effect_uncertain",
+      "growingCollectionIds": ["remote_command_replay"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "reconcile_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    },
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_organization_deployment",
+      "category": "external_deployment",
+      "owner": "organization_deployment",
+      "effectKind": "external",
+      "idempotencyCoordinate": "deployment.attempt_id",
+      "duplicateBehavior": "reconcile",
+      "automaticRetry": "disabled",
+      "uncertainty": "reconcile_required",
+      "compensation": "external_reconciliation",
+      "durableSuccessEvidence": "deployment.execution_receipt",
+      "recoveryOwner": "organization_deployment",
+      "privacySafeFailureCode": "deployment_recovery_required",
+      "growingCollectionIds": ["deployment_attempts"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "reconcile_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    },
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_repository_migration_apply",
+      "category": "repository_migration",
+      "owner": "repository_knowledge.durable_apply",
+      "effectKind": "repository",
+      "idempotencyCoordinate": "migration.plan_id",
+      "duplicateBehavior": "same_result",
+      "automaticRetry": "before_effect_only",
+      "uncertainty": "journal_recovery",
+      "compensation": "restore_exact_bytes",
+      "durableSuccessEvidence": "knowledge.materialization.applied",
+      "recoveryOwner": "repository_knowledge.durable_apply",
+      "privacySafeFailureCode": "migration_recovery_required",
+      "growingCollectionIds": ["migration_journals", "knowledge_projections", "event_chain"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "rollback_or_recovery_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    }
+  ],
+  "recoveryScenarios": [
+    {
+      "scenarioId": "effect_managed_provider_admission:before_effect",
+      "effectId": "effect_managed_provider_admission",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_managed_provider_admission:after_effect_before_evidence",
+      "effectId": "effect_managed_provider_admission",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_managed_provider_admission:after_evidence_before_projection",
+      "effectId": "effect_managed_provider_admission",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_managed_provider_admission:state_evidence_conflict",
+      "effectId": "effect_managed_provider_admission",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_managed_provider_admission:uncertain_external_response",
+      "effectId": "effect_managed_provider_admission",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_event_chain_append:before_effect",
+      "effectId": "effect_event_chain_append",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_event_chain_append:after_effect_before_evidence",
+      "effectId": "effect_event_chain_append",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_event_chain_append:after_evidence_before_projection",
+      "effectId": "effect_event_chain_append",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_event_chain_append:state_evidence_conflict",
+      "effectId": "effect_event_chain_append",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_event_chain_append:uncertain_external_response",
+      "effectId": "effect_event_chain_append",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_cas_artifact_append:before_effect",
+      "effectId": "effect_cas_artifact_append",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_cas_artifact_append:after_effect_before_evidence",
+      "effectId": "effect_cas_artifact_append",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_cas_artifact_append:after_evidence_before_projection",
+      "effectId": "effect_cas_artifact_append",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_cas_artifact_append:state_evidence_conflict",
+      "effectId": "effect_cas_artifact_append",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_cas_artifact_append:uncertain_external_response",
+      "effectId": "effect_cas_artifact_append",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_managed_repository_apply:before_effect",
+      "effectId": "effect_managed_repository_apply",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_managed_repository_apply:after_effect_before_evidence",
+      "effectId": "effect_managed_repository_apply",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_managed_repository_apply:after_evidence_before_projection",
+      "effectId": "effect_managed_repository_apply",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_managed_repository_apply:state_evidence_conflict",
+      "effectId": "effect_managed_repository_apply",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_managed_repository_apply:uncertain_external_response",
+      "effectId": "effect_managed_repository_apply",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_assignment_transition:before_effect",
+      "effectId": "effect_assignment_transition",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_assignment_transition:after_effect_before_evidence",
+      "effectId": "effect_assignment_transition",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_assignment_transition:after_evidence_before_projection",
+      "effectId": "effect_assignment_transition",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_assignment_transition:state_evidence_conflict",
+      "effectId": "effect_assignment_transition",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_assignment_transition:uncertain_external_response",
+      "effectId": "effect_assignment_transition",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_assignment_lease:before_effect",
+      "effectId": "effect_assignment_lease",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_assignment_lease:after_effect_before_evidence",
+      "effectId": "effect_assignment_lease",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_assignment_lease:after_evidence_before_projection",
+      "effectId": "effect_assignment_lease",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_assignment_lease:state_evidence_conflict",
+      "effectId": "effect_assignment_lease",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_assignment_lease:uncertain_external_response",
+      "effectId": "effect_assignment_lease",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_workspace_host_transition:before_effect",
+      "effectId": "effect_workspace_host_transition",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_workspace_host_transition:after_effect_before_evidence",
+      "effectId": "effect_workspace_host_transition",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_workspace_host_transition:after_evidence_before_projection",
+      "effectId": "effect_workspace_host_transition",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_workspace_host_transition:state_evidence_conflict",
+      "effectId": "effect_workspace_host_transition",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_workspace_host_transition:uncertain_external_response",
+      "effectId": "effect_workspace_host_transition",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_terminal_observation_persist:before_effect",
+      "effectId": "effect_terminal_observation_persist",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_terminal_observation_persist:after_effect_before_evidence",
+      "effectId": "effect_terminal_observation_persist",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_terminal_observation_persist:after_evidence_before_projection",
+      "effectId": "effect_terminal_observation_persist",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_terminal_observation_persist:state_evidence_conflict",
+      "effectId": "effect_terminal_observation_persist",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_terminal_observation_persist:uncertain_external_response",
+      "effectId": "effect_terminal_observation_persist",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_capability_activation:before_effect",
+      "effectId": "effect_capability_activation",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_capability_activation:after_effect_before_evidence",
+      "effectId": "effect_capability_activation",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_capability_activation:after_evidence_before_projection",
+      "effectId": "effect_capability_activation",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_capability_activation:state_evidence_conflict",
+      "effectId": "effect_capability_activation",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_capability_activation:uncertain_external_response",
+      "effectId": "effect_capability_activation",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_event_synchronization:before_effect",
+      "effectId": "effect_event_synchronization",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_event_synchronization:after_effect_before_evidence",
+      "effectId": "effect_event_synchronization",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_event_synchronization:after_evidence_before_projection",
+      "effectId": "effect_event_synchronization",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_event_synchronization:state_evidence_conflict",
+      "effectId": "effect_event_synchronization",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_event_synchronization:uncertain_external_response",
+      "effectId": "effect_event_synchronization",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_remote_command_delivery:before_effect",
+      "effectId": "effect_remote_command_delivery",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_remote_command_delivery:after_effect_before_evidence",
+      "effectId": "effect_remote_command_delivery",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_remote_command_delivery:after_evidence_before_projection",
+      "effectId": "effect_remote_command_delivery",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_remote_command_delivery:state_evidence_conflict",
+      "effectId": "effect_remote_command_delivery",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_remote_command_delivery:uncertain_external_response",
+      "effectId": "effect_remote_command_delivery",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_organization_deployment:before_effect",
+      "effectId": "effect_organization_deployment",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_organization_deployment:after_effect_before_evidence",
+      "effectId": "effect_organization_deployment",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_organization_deployment:after_evidence_before_projection",
+      "effectId": "effect_organization_deployment",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_organization_deployment:state_evidence_conflict",
+      "effectId": "effect_organization_deployment",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_organization_deployment:uncertain_external_response",
+      "effectId": "effect_organization_deployment",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_repository_migration_apply:before_effect",
+      "effectId": "effect_repository_migration_apply",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_repository_migration_apply:after_effect_before_evidence",
+      "effectId": "effect_repository_migration_apply",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_repository_migration_apply:after_evidence_before_projection",
+      "effectId": "effect_repository_migration_apply",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_repository_migration_apply:state_evidence_conflict",
+      "effectId": "effect_repository_migration_apply",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_repository_migration_apply:uncertain_external_response",
+      "effectId": "effect_repository_migration_apply",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    }
+  ],
+  "telemetry": {
+    "eventTypeCount": 66,
+    "fieldCount": 552,
+    "registryDigest": "sha256:ac420240223bbd299a554f2c7f65c39f23a964232a95e6c00d9244d6229bf948"
+  },
+  "threats": [
+    {
+      "threatId": "prompt_authority_injection",
+      "disposition": "mitigated",
+      "controls": ["typed_grounding", "exact_authority_coordinates"],
+      "evidencePaths": [
+        "packages/request-grounding/test/request-grounding.test.ts",
+        "apps/cli/test/semantic-grounding.test.ts"
+      ]
+    },
+    {
+      "threatId": "path_or_symlink_escape",
+      "disposition": "mitigated",
+      "controls": ["repository_relative_validation", "no_follow_open", "snapshot_scope"],
+      "evidencePaths": [
+        "packages/documents/test/document-migration-apply.test.ts",
+        "packages/project/test/state-retention.test.ts"
+      ]
+    },
+    {
+      "threatId": "secret_or_telemetry_leakage",
+      "disposition": "mitigated",
+      "controls": ["event_allowlist", "bounded_errors", "runtime_only_credentials"],
+      "evidencePaths": [
+        "packages/event-contract/test/redaction.test.ts",
+        "packages/organization-credential-source-file/test/owner-only-file-source.test.ts"
+      ]
+    },
+    {
+      "threatId": "malicious_capability_dependency",
+      "disposition": "mitigated",
+      "controls": ["exact_dependency_lock", "hash_validation", "permission_intersection"],
+      "evidencePaths": [
+        "packages/capabilities/test/capabilities.test.ts",
+        "packages/capabilities/test/capabilities.test.ts"
+      ]
+    },
+    {
+      "threatId": "tool_schema_substitution",
+      "disposition": "mitigated",
+      "controls": ["descriptor_hash", "activation_receipt_binding"],
+      "evidencePaths": [
+        "packages/capabilities/test/capabilities.test.ts",
+        "packages/orchestrator/test/capability-invocation-events.test.ts"
+      ]
+    },
+    {
+      "threatId": "event_or_receipt_forgery",
+      "disposition": "mitigated",
+      "controls": ["hash_chain", "schema_validation", "identity_binding"],
+      "evidencePaths": [
+        "packages/event-contract/test/event-chain.test.ts",
+        "packages/event-store-sqlite/test/event-store.test.ts"
+      ]
+    },
+    {
+      "threatId": "replay",
+      "disposition": "mitigated",
+      "controls": ["idempotency_key", "nonce_fence", "generation"],
+      "evidencePaths": [
+        "packages/remote-command-sqlite/test/replay-store.test.ts",
+        "packages/organization-deployment-sqlite/test/replay-store.test.ts"
+      ]
+    },
+    {
+      "threatId": "cross_repository_or_tenant_confusion",
+      "disposition": "mitigated",
+      "controls": ["project_scope", "repository_identity", "destination_binding"],
+      "evidencePaths": [
+        "packages/hub-sync-sqlite/test/trace-integration.test.ts",
+        "packages/sync/test/workstream-replication.test.ts"
+      ]
+    },
+    {
+      "threatId": "hook_latency_denial",
+      "disposition": "mitigated",
+      "controls": ["availability_safe_empty_response", "bounded_context", "performance_budget"],
+      "evidencePaths": [
+        "apps/cli/test/terminal-integration.test.ts",
+        "docs/evidence/foundation/execution-performance-v1.json"
+      ]
+    },
+    {
+      "threatId": "graph_fanout_denial",
+      "disposition": "mitigated",
+      "controls": ["delegation_depth", "dependency_fanout", "integration_batch_bound"],
+      "evidencePaths": [
+        "packages/agent-workforce/test/assignment-graph.test.ts",
+        "packages/agent-workforce/test/workspace-lifecycle.test.ts"
+      ]
+    },
+    {
+      "threatId": "cost_amplification",
+      "disposition": "mitigated",
+      "controls": ["provider_signal_bound", "normalization_batch_bound", "no_unattended_loop"],
+      "evidencePaths": [
+        "packages/orchestrator/test/managed-provider-run-failures.test.ts",
+        "packages/repository-knowledge/test/document-normalization.test.ts"
+      ]
+    },
+    {
+      "threatId": "poisoned_improvement_candidate",
+      "disposition": "mitigated",
+      "controls": ["candidate_not_truth", "reviewed_promotion", "exact_approval"],
+      "evidencePaths": [
+        "apps/cli/test/development-pattern-command.test.ts",
+        "apps/cli/test/development-pattern-command.test.ts"
+      ]
+    },
+    {
+      "threatId": "ui_truth_confusion",
+      "disposition": "mitigated",
+      "controls": ["canonical_projection_boundary", "evidence_state_separation"],
+      "evidencePaths": [
+        "packages/context-coverage/test/projector.test.ts",
+        "packages/diagnostics/test/terminal-coverage.test.ts"
+      ]
+    },
+    {
+      "threatId": "external_effect_ambiguity",
+      "disposition": "mitigated",
+      "controls": ["reconcile_after_uncertainty", "no_automatic_retry", "recovery_required"],
+      "evidencePaths": [
+        "packages/orchestrator/test/workspace-integration.test.ts",
+        "packages/organization-deployment-contract/test/organization-fleet.test.ts"
+      ]
+    },
+    {
+      "threatId": "untrusted_third_party_execution",
+      "disposition": "disabled_pending_isolation",
+      "controls": ["no_dynamic_module_loading", "explicit_activation", "local_fallback"],
+      "evidencePaths": [
+        "docs/specifications/execution/capabilities.md",
+        "packages/capabilities/test/capabilities.test.ts"
+      ]
+    }
+  ],
+  "growingCollections": [
+    {
+      "collectionId": "event_chain",
+      "owner": "event_store",
+      "authority": "canonical",
+      "growthPolicy": "durable_project_lifetime",
+      "maximumItems": null,
+      "operationWindow": 100000,
+      "overflow": "recovery_required",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "cas_artifacts",
+      "owner": "cas",
+      "authority": "canonical",
+      "growthPolicy": "durable_project_lifetime",
+      "maximumItems": null,
+      "operationWindow": 100000,
+      "overflow": "recovery_required",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "provider_sessions",
+      "owner": "orchestrator",
+      "authority": "canonical",
+      "growthPolicy": "durable_project_lifetime",
+      "maximumItems": null,
+      "operationWindow": 2000,
+      "overflow": "reject_before_mutation",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "managed_write_journals",
+      "owner": "orchestrator",
+      "authority": "coordination",
+      "growthPolicy": "journal_cleanup",
+      "maximumItems": 1,
+      "operationWindow": 1,
+      "overflow": "recovery_required",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "assignments",
+      "owner": "agent_workforce",
+      "authority": "coordination",
+      "growthPolicy": "bounded_count",
+      "maximumItems": 10000,
+      "operationWindow": 10000,
+      "overflow": "reject_before_mutation",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "assignment_leases",
+      "owner": "agent_workforce",
+      "authority": "coordination",
+      "growthPolicy": "bounded_count",
+      "maximumItems": 10000,
+      "operationWindow": 10000,
+      "overflow": "reject_before_mutation",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "workspaces",
+      "owner": "agent_workforce",
+      "authority": "coordination",
+      "growthPolicy": "bounded_count",
+      "maximumItems": 10000,
+      "operationWindow": 32,
+      "overflow": "bounded_backpressure",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "workspace_integration_queue",
+      "owner": "agent_workforce",
+      "authority": "coordination",
+      "growthPolicy": "bounded_count",
+      "maximumItems": 10000,
+      "operationWindow": 32,
+      "overflow": "bounded_backpressure",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "terminal_observations",
+      "owner": "terminal_runtime",
+      "authority": "canonical",
+      "growthPolicy": "durable_project_lifetime",
+      "maximumItems": null,
+      "operationWindow": 2000,
+      "overflow": "reject_before_mutation",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "terminal_receipts",
+      "owner": "terminal_runtime",
+      "authority": "derived",
+      "growthPolicy": "replace_current",
+      "maximumItems": 4,
+      "operationWindow": 4,
+      "overflow": "reject_before_mutation",
+      "reconstruction": "normal_producer"
+    },
+    {
+      "collectionId": "capability_locks",
+      "owner": "capabilities",
+      "authority": "derived",
+      "growthPolicy": "replace_current",
+      "maximumItems": 1,
+      "operationWindow": 1,
+      "overflow": "reject_before_mutation",
+      "reconstruction": "normal_producer"
+    },
+    {
+      "collectionId": "capability_activation_receipts",
+      "owner": "capabilities",
+      "authority": "canonical",
+      "growthPolicy": "durable_project_lifetime",
+      "maximumItems": null,
+      "operationWindow": 2000,
+      "overflow": "reject_before_mutation",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "sync_outbox",
+      "owner": "event_store",
+      "authority": "coordination",
+      "growthPolicy": "acknowledge_then_purge",
+      "maximumItems": null,
+      "operationWindow": 100,
+      "overflow": "bounded_backpressure",
+      "reconstruction": "events_and_cas"
+    },
+    {
+      "collectionId": "remote_command_replay",
+      "owner": "remote_command",
+      "authority": "coordination",
+      "growthPolicy": "bounded_count",
+      "maximumItems": 100000,
+      "operationWindow": 1024,
+      "overflow": "reject_before_mutation",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "deployment_attempts",
+      "owner": "organization_deployment",
+      "authority": "coordination",
+      "growthPolicy": "bounded_count",
+      "maximumItems": 100000,
+      "operationWindow": 1024,
+      "overflow": "reject_before_mutation",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "migration_journals",
+      "owner": "repository_knowledge",
+      "authority": "coordination",
+      "growthPolicy": "journal_cleanup",
+      "maximumItems": 1,
+      "operationWindow": 1,
+      "overflow": "recovery_required",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "knowledge_projections",
+      "owner": "repository_knowledge",
+      "authority": "derived",
+      "growthPolicy": "replace_current",
+      "maximumItems": 3,
+      "operationWindow": 3,
+      "overflow": "reject_before_mutation",
+      "reconstruction": "normal_producer"
+    }
+  ],
+  "capacityProfiles": [
+    {
+      "profileId": "small",
+      "eventWindow": 1000,
+      "assignmentWindow": 128,
+      "concurrentWorkers": 4,
+      "durationMs": 0.100792,
+      "cpuMs": 0.124,
+      "processPeakResidentMemoryBytes": 179159040,
+      "status": "passed"
+    },
+    {
+      "profileId": "medium",
+      "eventWindow": 10000,
+      "assignmentWindow": 1000,
+      "concurrentWorkers": 16,
+      "durationMs": 0.277292,
+      "cpuMs": 0.329,
+      "processPeakResidentMemoryBytes": 179159040,
+      "status": "passed"
+    },
+    {
+      "profileId": "large",
+      "eventWindow": 100000,
+      "assignmentWindow": 10000,
+      "concurrentWorkers": 32,
+      "durationMs": 2.477167,
+      "cpuMs": 2.836,
+      "processPeakResidentMemoryBytes": 180027392,
+      "status": "passed"
+    },
+    {
+      "profileId": "concurrent",
+      "eventWindow": 10000,
+      "assignmentWindow": 1000,
+      "concurrentWorkers": 32,
+      "durationMs": 0.2605,
+      "cpuMs": 0.369,
+      "processPeakResidentMemoryBytes": 180076544,
+      "status": "passed"
+    }
+  ],
+  "rehearsals": [
+    {
+      "rehearsalId": "event_reader_upgrade",
+      "outcome": "exact_completion",
+      "evidencePath": "packages/project/test/event-writer-activation.test.ts"
+    },
+    {
+      "rehearsalId": "event_reader_failed_upgrade",
+      "outcome": "exact_rollback",
+      "evidencePath": "packages/project/test/event-writer-activation.test.ts"
+    },
+    {
+      "rehearsalId": "event_writer_rollback",
+      "outcome": "exact_completion",
+      "evidencePath": "packages/project/test/event-writer-activation.test.ts"
+    },
+    {
+      "rehearsalId": "repository_upgrade",
+      "outcome": "exact_completion",
+      "evidencePath": "apps/cli/test/upgrade-command.test.ts"
+    },
+    {
+      "rehearsalId": "repository_failed_upgrade",
+      "outcome": "exact_rollback",
+      "evidencePath": "apps/cli/test/upgrade-command.test.ts"
+    },
+    {
+      "rehearsalId": "knowledge_migration_idempotence",
+      "outcome": "exact_completion",
+      "evidencePath": "packages/repository-knowledge/test/repository-knowledge.test.ts"
+    },
+    {
+      "rehearsalId": "state_prune_recovery",
+      "outcome": "exact_completion",
+      "evidencePath": "packages/project/test/state-retention.test.ts"
+    },
+    {
+      "rehearsalId": "retrieval_drift_gate",
+      "outcome": "exact_completion",
+      "evidencePath": "packages/search/test/evaluation-bundle.test.ts"
+    }
+  ],
+  "evidenceSuites": [
+    {
+      "area": "recovery",
+      "path": "apps/cli/test/terminal-integration.test.ts",
+      "sourceHash": "sha256:80117424c7ce7c47469b669dba348a4d23703c1203b6f137a7391d906ac0523a"
+    },
+    {
+      "area": "compatibility",
+      "path": "apps/cli/test/upgrade-command.test.ts",
+      "sourceHash": "sha256:7fd5fac7e96e3a7190f15c9f11ce6adf45ede6cfab870b5bee4a8686a3d54760"
+    },
+    {
+      "area": "concurrency",
+      "path": "packages/agent-workforce/test/assignment-graph.test.ts",
+      "sourceHash": "sha256:c065edfcb878e25d91a920106b2b03760fff4eaf5e5114d41a92c9015e50210d"
+    },
+    {
+      "area": "recovery",
+      "path": "packages/agent-workforce/test/workforce.test.ts",
+      "sourceHash": "sha256:865114147a548ad270a2192614ee63190f0f4de89b88c9f7475b25995818c709"
+    },
+    {
+      "area": "concurrency",
+      "path": "packages/agent-workforce/test/workspace-lifecycle.test.ts",
+      "sourceHash": "sha256:8fad25b9f262f7f4b5a178bb7b5db81cbef948f1621e410a7c38176df38416d8"
+    },
+    {
+      "area": "recovery",
+      "path": "packages/capabilities/test/capabilities.test.ts",
+      "sourceHash": "sha256:676851eca5c728a2afa784c20bbd7bcc2d0a5fd7a6ebeb0393e00f70665078d2"
+    },
+    {
+      "area": "security",
+      "path": "packages/capabilities/test/capabilities.test.ts",
+      "sourceHash": "sha256:676851eca5c728a2afa784c20bbd7bcc2d0a5fd7a6ebeb0393e00f70665078d2"
+    },
+    {
+      "area": "recovery",
+      "path": "packages/cas/test/cas.test.ts",
+      "sourceHash": "sha256:cd98cbf78f03191d655fa2745a162a37067b78d4ce026f913414dfe7b7d5fc5d"
+    },
+    {
+      "area": "security",
+      "path": "packages/event-contract/test/redaction.test.ts",
+      "sourceHash": "sha256:0ec06b883f805308bf7852f3933a40960cc9eb8728fc7aeb6d6c7aa38b92b370"
+    },
+    {
+      "area": "recovery",
+      "path": "packages/event-store-sqlite/test/event-store.test.ts",
+      "sourceHash": "sha256:ec5b3ce18c2338dd0e1d55d7a31ab92a9263d3fc44b183d2c652188290f40d6d"
+    },
+    {
+      "area": "concurrency",
+      "path": "packages/event-store-sqlite/test/outbox.test.ts",
+      "sourceHash": "sha256:e43b47cb07307ab44c669b4f091f3b2592fdfedf2aba3316fd361aae1e795ed5"
+    },
+    {
+      "area": "recovery",
+      "path": "packages/orchestrator/test/managed-provider-run-failures.test.ts",
+      "sourceHash": "sha256:a804be957fe53890ede0c365ae8d6cf5dac716421ebe1da19f6bf01d52e0bb9c"
+    },
+    {
+      "area": "concurrency",
+      "path": "packages/orchestrator/test/workspace-assignment-claim.test.ts",
+      "sourceHash": "sha256:77037e596f1d907868488b81cd67899d97735103ed26b8f494068f7324339957"
+    },
+    {
+      "area": "recovery",
+      "path": "packages/orchestrator/test/workspace-integration.test.ts",
+      "sourceHash": "sha256:6f063f380ba39171e1a53784792c10437193d07039907e958c38f398874c341f"
+    },
+    {
+      "area": "security",
+      "path": "packages/organization-credential-source-file/test/owner-only-file-source.test.ts",
+      "sourceHash": "sha256:b48f3ca3a7d3b928e48d3b8faecf10a429502090b1457c0ee56bef63d792efa4"
+    },
+    {
+      "area": "recovery",
+      "path": "packages/organization-deployment-contract/test/organization-fleet.test.ts",
+      "sourceHash": "sha256:4e1518e0555c2db227d10c8605a2a748cdce0a3fb4076cbfb4e1fa30447ae8ec"
+    },
+    {
+      "area": "compatibility",
+      "path": "packages/project/test/event-writer-activation.test.ts",
+      "sourceHash": "sha256:da8a39240d32f140723009bd64ce0d670aa15a6d636a5d4d996a3fcc841ebcf5"
+    },
+    {
+      "area": "compatibility",
+      "path": "packages/project/test/state-retention.test.ts",
+      "sourceHash": "sha256:3e44afd685400b1311282b95678c27a2cdfe7079f17ebfe5b23164265385cd5c"
+    },
+    {
+      "area": "security",
+      "path": "packages/remote-command-sqlite/test/replay-store.test.ts",
+      "sourceHash": "sha256:4b1d304a99aa5dfb081aec8d56b6784e6a6237a48fa6042d49e636dc4df773d2"
+    },
+    {
+      "area": "recovery",
+      "path": "packages/remote-command/test/remote-command.test.ts",
+      "sourceHash": "sha256:1cbc5736058d97381b1c30317dd20652078b8c76ac7a4d2603be2e03a62fe2c3"
+    },
+    {
+      "area": "recovery",
+      "path": "packages/repository-knowledge/test/durable-apply.test.ts",
+      "sourceHash": "sha256:c19de9a8be77dfe4fcc3361a28dea6e3e12a7b770df57d460bb2c8059784ea2c"
+    },
+    {
+      "area": "compatibility",
+      "path": "packages/repository-knowledge/test/repository-knowledge.test.ts",
+      "sourceHash": "sha256:a2f3f6f6cbb63398fb8698b9ab853a7ed31a78769917c721aa6ec385871b8ea7"
+    },
+    {
+      "area": "compatibility",
+      "path": "packages/search/test/evaluation-bundle.test.ts",
+      "sourceHash": "sha256:aa104136c022e71315b0797e99569be3daf09276e5eb9a26f0e68747abbb73cd"
+    },
+    {
+      "area": "recovery",
+      "path": "packages/sync/test/worker.test.ts",
+      "sourceHash": "sha256:df9ce71d872a06f0b91b278e8ee9a9fc0c8031cb12b7fef7cce381adbb92143f"
+    }
+  ],
+  "thirdPartyExtensions": "disabled_pending_isolation",
+  "allPassed": true,
+  "privacy": {
+    "prompts": "excluded",
+    "outputs": "excluded",
+    "credentials": "excluded",
+    "absolutePaths": "excluded"
+  },
+  "reportId": "adverse_e970a730731658456a76bcd3"
+}

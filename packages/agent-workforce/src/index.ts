@@ -1,4 +1,6 @@
+export * from "./assignment-graph.js";
 export * from "./store.js";
+export * from "./limits.js";
 export * from "./integration-queue-store.js";
 export * from "./integration-attempt-store.js";
 export * from "./integration-attempt-contract.js";

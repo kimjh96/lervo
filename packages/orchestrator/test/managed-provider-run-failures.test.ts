@@ -61,7 +61,7 @@ describe("managed provider failure boundaries", () => {
     expect(adapter.stopReason).toBe("failed");
     expect(data.store.list({ runId }).at(-1)?.payload).toMatchObject({
       failureCode: "provider_stream_failed",
-      retryable: true,
+      retryable: false,
     });
     data.store.close();
   });
@@ -148,6 +148,7 @@ describe("managed provider failure boundaries", () => {
     );
     expect(data.store.list({ runId }).at(-1)?.payload).toMatchObject({
       failureCode: "provider_stop_failed",
+      retryable: false,
     });
     data.store.close();
   });

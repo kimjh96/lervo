@@ -30,13 +30,13 @@ Managed sessions suppress native project hooks. Graph-selected registered docume
 
 ## 3. Context evidence
 
-| Level | Meaning |
-| --- | --- |
-| E0 | Candidate discovered. |
-| E1 | Candidate selected by policy. |
-| E2 | Current bytes loaded and validated. |
-| E3 | Adapter acknowledged the exact delivered envelope. |
-| E4 | Validated provider result explicitly cited the exact injected version. |
+| Level | Meaning                                                                |
+| ----- | ---------------------------------------------------------------------- |
+| E0    | Candidate discovered.                                                  |
+| E1    | Candidate selected by policy.                                          |
+| E2    | Current bytes loaded and validated.                                    |
+| E3    | Adapter acknowledged the exact delivered envelope.                     |
+| E4    | Validated provider result explicitly cited the exact injected version. |
 
 Each envelope and receipt has one provider-neutral `documentRole`, either `task_evidence` or `governance_context`, and a required `referenceEligible` state. Instructions, workstreams, writing policies, and protocols are governance; substantive task sources are task evidence. Governance wins when a document has both roles and is never reference eligible. Direct task selection is eligible. In the default-off exact canary, task evidence selected only as managed linked support is ineligible; direct provenance wins when both occur. Missing, unknown, changed, or role-inconsistent values fail delivery before E3 acceptance.
 
@@ -76,13 +76,14 @@ Suites declare exact commands, working directories, limits, and outcomes. Lervo 
 
 ## 8. Repository knowledge
 
-Tracked scanner, publication, language, taxonomy, routing, and leaf bounds govern knowledge. Documentation stays under `docs/`; `.lervo` stores policy, provenance, manifests, and rebuildable state. V1 publishes English with deterministic sharding.
+Tracked sources and canonical Markdown govern knowledge; `.lervo` stores policy,
+provenance, manifests, and rebuildable state. Structural planning is read-only, exact
+bindings and approvals protect bytes, and isolated provider output never becomes truth
+merely because it materialized successfully.
 
-Structural planning is read-only. Generated changes and user bytes require current bindings and exact approval where specified. Unknown or tied classifications, unsafe sources, provider-specific enforcement, and over-capacity layouts fail closed. Isolated no-capability semantic compilation and normalization retain complete source-unit coverage; provider output and successful materialization are not semantic truth.
-
-Normalization batches contain at most two documents and 32 KiB of source bytes, using at most three provider processes. Exact validated results use a compiler-and-input-bound `document-v2` cache independent of repository snapshots; final candidates and approvals rebind the complete current snapshot. A failed multi-document batch subdivides once into sequential single-document calls. Completed documents persist immediately; a failed single document ends the attempt. Count-only progress goes to stderr in human and JSON modes and is not an event.
-
-The [repository knowledge compilation specification](../specs/repository-knowledge-compilation.md) defines candidates, approvals, durable apply, lifecycle, skill resources, entrypoints, splits, bridges, agent surfaces, and recovery.
+The [repository knowledge compilation specification](../specs/repository-knowledge-compilation.md)
+owns scanner, taxonomy, normalization bounds, caching, retry, publication, durable
+apply, lifecycle, skill, entrypoint, agent-surface, and recovery details.
 
 ## 9. Entrypoints and language
 
@@ -105,6 +106,12 @@ becomes success, zero usage, duration, or inferred ancestry.
 
 The owner-only journal validates the plan and current bytes, stages outputs, backs up originals, publishes or deletes, lints, commits the event, then cleans backups and empty parents. Pre-commit failure restores originals. Post-commit cleanup failure preserves outputs and requires recovery. Interrupted transactions block mutation. Rollback recreates only parents pruned by that transaction before restoring exact backups, including deleted shards and moved documents.
 
+The [adverse-condition safety specification](execution/adverse-condition-safety.md)
+defines the common effect inventory, exact completion/rollback/recovery projection,
+cancellation and backpressure bounds, telemetry field registry, threat model, capacity
+and retention profiles, and compatibility rehearsals. External uncertainty is never an
+automatic retry signal.
+
 ## 12. Hub and remote execution
 
 Hub and Node coordination is authenticated, scoped, policy-bound, and network-neutral. Signed organization policy adds tenancy and split issuance/delivery authority. Secret-free grants bind policy, target, permissions, generation, and time. Inactive or revoked grants fail before load; source bytes are cleared after loading, and receipts exclude material. Local execution remains independent. See [Hub and Node coordination](coordination/hub-and-node.md).
@@ -115,17 +122,17 @@ Repository workforce state uses durable role and agent identity, bounded parent 
 
 ## 13. Failure categories
 
-| Category | Required behavior |
-| --- | --- |
-| Invalid contract or policy | Fail before provider or write execution. |
-| Stale plan or snapshot | Produce a new read-only plan. |
-| Approval missing or revoked | Deny capability. |
-| Incomplete telemetry | Lower assurance; infer neither success nor use. |
-| Verification failure | Do not emit successful completion. |
-| Event commit failure | Roll back pre-commit bytes. |
-| Post-commit cleanup failure | Preserve bytes and require recovery. |
-| Uncertain remote effect | Record uncertainty; do not retry automatically. |
-| Secret or unsafe source | Exclude content; retain bounded diagnostics only. |
+| Category                    | Required behavior                                 |
+| --------------------------- | ------------------------------------------------- |
+| Invalid contract or policy  | Fail before provider or write execution.          |
+| Stale plan or snapshot      | Produce a new read-only plan.                     |
+| Approval missing or revoked | Deny capability.                                  |
+| Incomplete telemetry        | Lower assurance; infer neither success nor use.   |
+| Verification failure        | Do not emit successful completion.                |
+| Event commit failure        | Roll back pre-commit bytes.                       |
+| Post-commit cleanup failure | Preserve bytes and require recovery.              |
+| Uncertain remote effect     | Record uncertainty; do not retry automatically.   |
+| Secret or unsafe source     | Exclude content; retain bounded diagnostics only. |
 
 ## 14. Required verification
 
@@ -142,3 +149,4 @@ Verification covers schema and redaction tests; shared adapter contracts; write 
 - [Hub and Node coordination](coordination/hub-and-node.md)
 - [Capability package supply chain](execution/capabilities.md)
 - [Stage observation and performance](execution/stage-observation-and-performance.md)
+- [Adverse-condition safety](execution/adverse-condition-safety.md)

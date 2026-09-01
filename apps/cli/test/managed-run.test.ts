@@ -1147,6 +1147,12 @@ describe("lervo run vertical slice", () => {
     ).rejects.toMatchObject({ code: "provider_start_failed" });
     expect(closeCount).toBe(1);
     expect(client.closed).toBe(true);
+    const failedStorage = await openProjectStorage(root);
+    expect(failedStorage.events.list().at(-1)?.payload).toMatchObject({
+      failureCode: "provider_start_failed",
+      retryable: false,
+    });
+    await failedStorage.close();
   });
 
   it("records failed verification evidence and does not emit run.completed", async () => {

@@ -17,6 +17,7 @@ schemas
   -> event-contract and execution-contract
   -> execution-observability projector
   -> execution-performance observation and verification
+  -> execution-reliability adverse-condition evidence
   -> orchestrator, adapters, terminal runtime, diagnostics, and Hub trace
   -> CLI and future product adapters
 ```
@@ -34,6 +35,7 @@ external providers remain effects behind ports.
 | `@lervo/execution-contract`      | causal, accounting, stage, and failure invariants                                         | clocks, files, network, provider SDKs |
 | `@lervo/execution-observability` | pure work-report projection                                                               | event append, pricing, UI formatting  |
 | `@lervo/execution-performance`   | paired profiles, statistics, budgets, report verification                                 | product execution or canonical state  |
+| `@lervo/execution-reliability`   | effect inventory, recovery matrix, privacy, threat, capacity and rehearsal evidence       | runtime effects or retry authority    |
 | `@lervo/orchestrator`            | work creation, run ancestry, final aggregation, monotonic timing                          | provider-native semantics             |
 | provider adapters                | native usage translation and accounting declaration                                       | Lervo authority or cross-run totals   |
 | terminal application modules     | short dispatch, hook orchestration, lifecycle inspection, bounded observation persistence | whole-task token claims               |
@@ -155,6 +157,12 @@ state, lifecycle inspection, terminal event coordinates and persistence, declara
 hook orchestration, stage persistence, coverage rendering, and repository-root discovery
 have independent modules. Provider-neutral search and workspace contracts remain outside
 those application adapters.
+
+FH4 keeps pure effect semantics in `@lervo/execution-contract`, reviewed inventory and
+rebuildable evidence in `@lervo/execution-reliability`, runtime fault behavior in the
+owning packages, and check composition in scripts. The reliability projector neither
+executes recovery nor becomes a scheduler. Workforce capacity and assignment-DAG
+cancellation are pure policies; persistence retains revision, lease, and event authority.
 
 ## Compatibility and failure meanings
 

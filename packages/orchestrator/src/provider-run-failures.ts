@@ -37,12 +37,7 @@ const priority: Record<ManagedProviderRunFailureCode, number> = {
 };
 
 function retryable(code: ManagedProviderRunFailureCode): boolean {
-  return (
-    code === "artifact_storage_failed" ||
-    code === "provider_start_failed" ||
-    code === "provider_stream_failed" ||
-    code === "provider_stop_failed"
-  );
+  return code === "artifact_storage_failed";
 }
 
 function failureCodeForPhase(phase: ManagedProviderRunPhase): ManagedProviderRunFailureCode {

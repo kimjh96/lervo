@@ -74,9 +74,9 @@
     },
     {
       "path": "packages/agent-workforce/src/store.ts",
-      "contentHash": "sha256:022c184a5b5b71f62ce6689a58650fd2f15d035e6b28b15f7db715d743ef28c4",
+      "contentHash": "sha256:05b078a2845601b89d4408cc476b4fa0e37694fff3127bbda6c2c2a5d92e84a9",
       "responsibility": "Durable repository workforce aggregate",
-      "rationale": "Agent, assignment, lease, and handoff transitions share one locked workforce state aggregate, validation model, atomic write protocol, and concurrency retry boundary.",
+      "rationale": "Agent and assignment records share one project-bound coordination home, validation model, atomic transition and event rollback, and concurrency retry boundary. Pure admission limits and assignment-DAG cancellation now remain in separate modules, as do workspace lifecycle effects.",
       "disposition": "cohesive"
     },
     {

@@ -20,6 +20,7 @@ import {
   type WorkforceHandoff,
   type WorkforceProvider,
 } from "./types.js";
+import { workforceLimits } from "./limits.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const ROLE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
@@ -31,9 +32,6 @@ const SESSION_ID = /^ses_[A-Za-z0-9_-]{8,128}$/u;
 const EVENT_ID = /^evt_[A-Za-z0-9_-]{8,128}$/u;
 const ARTIFACT_ID = /^art_[A-Za-z0-9_-]{8,128}$/u;
 const WORKSTREAM_ID = /^wks_[a-f0-9]{24}$/u;
-const MAX_AGENTS = 256;
-const MAX_ASSIGNMENTS = 10_000;
-const MAX_DELEGATION_DEPTH = 8;
 const MAXIMUM_STATE_BYTES = 2 * 1024 * 1024;
 const MINIMUM_LEASE_MS = 5_000;
 const MAXIMUM_LEASE_MS = 30 * 60_000;
@@ -136,7 +134,7 @@ function validAgent(agent: unknown, projectId: string): agent is WorkforceAgent 
     (value.parentAgentId === null || AGENT_ID.test(value.parentAgentId)) &&
     Number.isSafeInteger(value.delegationDepth) &&
     value.delegationDepth >= 0 &&
-    value.delegationDepth <= MAX_DELEGATION_DEPTH &&
+    value.delegationDepth <= workforceLimits.maximumDelegationDepth &&
     ["active", "suspended", "retired"].includes(value.status) &&
     Number.isSafeInteger(value.revision) &&
     value.revision >= 1 &&
@@ -428,7 +426,7 @@ async function registry(root: string): Promise<{
     value.schemaVersion !== 1 ||
     value.kind !== "lervo_agent_registry" ||
     !Array.isArray(value.agents) ||
-    value.agents.length > MAX_AGENTS ||
+    value.agents.length > workforceLimits.maximumAgents ||
     !value.agents.every((agent) => validAgent(agent, current.manifest.projectId))
   )
     fail("workforce_state_invalid", "The agent registry is invalid.");
@@ -542,7 +540,7 @@ async function registerAgentOnce(input: {
   if (input.parentAgentId !== undefined && (parent === null || parent.status !== "active"))
     fail("agent_state_conflict", "A subagent requires an active parent agent.");
   const delegationDepth = parent === null ? 0 : parent.delegationDepth + 1;
-  if (delegationDepth > MAX_DELEGATION_DEPTH)
+  if (delegationDepth > workforceLimits.maximumDelegationDepth)
     fail("agent_state_conflict", "The maximum subagent delegation depth was reached.");
   const responsibilityPaths = [...new Set(input.responsibilityPaths ?? ["*"])].sort();
   const skillIds = [...new Set(input.skillIds ?? definition.profile.defaultSkills)].sort();
@@ -581,7 +579,7 @@ async function registerAgentOnce(input: {
       .filter(([, decision]) => decision === "allow")
       .map(([permission]) => permission),
   });
-  if (current.value.agents.length >= MAX_AGENTS)
+  if (current.value.agents.length >= workforceLimits.maximumAgents)
     fail("agent_state_conflict", "The repository agent limit was reached.");
   const roleHash = roleProfileHash(definition.profile);
   const createdAt = now.toISOString();
@@ -724,7 +722,7 @@ export async function listAssignments(root: string): Promise<WorkforceAssignment
   const names = (await readdir(resolve(current.base, "assignments")))
     .filter((name) => /^asn_[a-f0-9]{24}\.json$/u.test(name))
     .sort();
-  if (names.length > MAX_ASSIGNMENTS)
+  if (names.length > workforceLimits.maximumAssignments)
     fail("workforce_state_invalid", "The assignment limit was exceeded.");
   return Promise.all(names.map((name) => readAssignment(root, name.slice(0, -5))));
 }
@@ -747,14 +745,17 @@ async function createAssignmentOnce(input: {
   const contract = await resolveRoleContract(input.repositoryRoot, input.roleId);
   const current = await state(input.repositoryRoot);
   const assignments = await listAssignments(input.repositoryRoot);
-  if (assignments.length >= MAX_ASSIGNMENTS || !/^[a-z][a-z0-9._-]{1,99}$/u.test(input.taskType))
+  if (
+    assignments.length >= workforceLimits.maximumAssignments ||
+    !/^[a-z][a-z0-9._-]{1,99}$/u.test(input.taskType)
+  )
     fail("assignment_invalid", "The task type or assignment capacity is invalid.");
   const dependencyIds = [...new Set(input.dependencyIds ?? [])].sort();
   const expectedPaths = [...new Set(input.expectedPaths)].sort();
   const verificationSuiteIds = [...new Set(input.verificationSuiteIds)].sort();
   const approvalRequirements = [...new Set(input.approvalRequirements ?? [])].sort();
   if (
-    !boundedStrings(dependencyIds, 64, ASSIGNMENT_ID) ||
+    !boundedStrings(dependencyIds, workforceLimits.maximumAssignmentDependencies, ASSIGNMENT_ID) ||
     !boundedStrings(input.acceptanceCriteria, 32) ||
     !boundedStrings(verificationSuiteIds, 32) ||
     !boundedStrings(approvalRequirements, 32) ||

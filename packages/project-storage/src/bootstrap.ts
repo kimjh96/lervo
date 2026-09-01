@@ -54,6 +54,7 @@ class OpenedProjectStorage implements ProjectStorage {
   constructor(
     readonly manifest: ProjectStorage["manifest"],
     readonly paths: ProjectStorage["paths"],
+    readonly writableEventSchemaVersion: 1 | 2,
     readonly events: OutboxStore,
     readonly artifacts: CloseableArtifactStore,
   ) {}
@@ -86,7 +87,13 @@ export function createProjectStorageOpener(
     });
     try {
       const artifacts = await backends.openArtifactStore(paths.cas);
-      return new OpenedProjectStorage(manifest, paths, events, artifacts);
+      return new OpenedProjectStorage(
+        manifest,
+        paths,
+        writerCoordinate.coordinate.selectedEventSchemaVersion,
+        events,
+        artifacts,
+      );
     } catch (openError) {
       try {
         await closeResources(events);

@@ -870,6 +870,18 @@ importers:
         specifier: workspace:*
         version: link:../schemas
 
+  packages/execution-reliability:
+    dependencies:
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
+      '@lervo/execution-contract':
+        specifier: workspace:*
+        version: link:../execution-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
   packages/hub-command:
     dependencies:
       '@lervo/event-contract':

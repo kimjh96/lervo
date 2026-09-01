@@ -37,6 +37,7 @@ export interface ProjectStorageBackends {
 export interface ProjectStorage {
   readonly manifest: ProjectManifest;
   readonly paths: LervoProjectPaths;
+  readonly writableEventSchemaVersion?: 1 | 2;
   readonly events: OutboxStore;
   readonly artifacts: CloseableArtifactStore;
   close(): Promise<void>;

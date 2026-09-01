@@ -159,6 +159,17 @@ Each injected crash must end as exact completion, exact rollback, or
 retried as if absent. Third-party code remains disabled until an out-of-process,
 revocable, resource-bounded isolation boundary and conformance suite pass.
 
+Implementation state on 2026-09-01: FH4 is implemented. A provider-neutral effect
+contract and reviewed inventory cover 13 current state-changing categories. The checked
+adverse-condition report binds 65 deterministic recovery projections, focused runtime
+suite hashes, all current top-level event allowlist fields, an integrated 15-case threat
+model, 17 growing-collection policies, four capacity profiles, and upgrade, failed-
+upgrade, rollback, migration-idempotence, state-recovery, and retrieval-drift rehearsals.
+Provider start, stream, and stop uncertainty is no longer marked retryable. Workforce
+capacity has one owner and pure bounded cancellation propagates through existing
+assignment dependencies without creating execution-graph authority. Arbitrary third-
+party execution and unattended scheduling remain disabled.
+
 ## FH5: Foundation readiness
 
 Compose the implementation evidence without replacing its constituent checks.

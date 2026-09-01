@@ -1,4 +1,5 @@
 export * from "./evidence.js";
+export * from "./effect-safety.js";
 export * from "./limits.js";
 export * from "./resource-accounting.js";
 export * from "./stage-timing.js";

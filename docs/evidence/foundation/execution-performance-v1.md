@@ -47,8 +47,12 @@ approach the external budgets; exact loading remains comparatively small in this
 
 An initial diagnostic run opened project storage again only to persist the stage event.
 That repeated event-chain verification and produced avoidable fixed overhead. The final
-implementation reuses the open hook observation storage boundary while keeping timing,
-profile persistence, projection, budget policy, and rendering separate.
+implementation reuses the open hook observation storage boundary and its verified writer
+version. It reuses an already verified content-addressed environment profile and otherwise
+accepts the CAS `put` hash and byte-count receipt instead of immediately rereading the same
+profile. CAS owns read and write integrity; focused CAS and project-storage tests retain
+that proof. Timing, profile persistence, projection, budget policy, and rendering remain
+separate.
 
 A second preliminary run reused different growing warm repositories for the two arms.
 The candidate accumulated stage events while baseline did not, so later candidate reads

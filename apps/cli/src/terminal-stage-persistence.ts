@@ -20,22 +20,25 @@ export async function recordTerminalStageObservation(input: {
   policyVersion: string;
   storage?: ProjectStorage;
 }): Promise<string | null> {
-  const writer = await inspectEventWriterCoordinate(input.root);
-  if (writer.coordinate.selectedEventSchemaVersion !== 2) return null;
+  const writerVersion =
+    input.storage?.writableEventSchemaVersion ??
+    (await inspectEventWriterCoordinate(input.root)).coordinate.selectedEventSchemaVersion;
+  if (writerVersion !== 2) return null;
   const finalized = input.timing.finalize(input.observationId, input.hookEvent, input.outcome);
   if (finalized === null) return null;
   const validation = validateSchema("executionStagesObservedEventPayload", finalized.payload);
   if (!validation.valid) throw new Error("Terminal stage observation is invalid.");
   const storage = input.storage ?? (await openProjectStorage(input.root));
   try {
-    const stored = await storage.artifacts.put(finalized.profileBytes);
-    const restored = await storage.artifacts.get(stored.uri);
-    if (
-      stored.contentHash !== finalized.profileHash ||
-      restored.length !== finalized.profileBytes.length ||
-      restored.some((byte, index) => byte !== finalized.profileBytes[index])
-    ) {
-      throw new Error("Terminal environment profile persistence is invalid.");
+    const profileUri = `lervo-cas://sha256/${finalized.profileHash.slice("sha256:".length)}`;
+    if (!(await storage.artifacts.has(profileUri))) {
+      const stored = await storage.artifacts.put(finalized.profileBytes);
+      if (
+        stored.contentHash !== finalized.profileHash ||
+        stored.byteCount !== finalized.profileBytes.length
+      ) {
+        throw new Error("Terminal environment profile persistence is invalid.");
+      }
     }
     const recordedEventId = eventId();
     storage.events.append({
