@@ -18,8 +18,8 @@ product, execution, knowledge, and lifecycle specifications.
 
 ## Positioning conclusion
 
-Lervo is a local-first control plane for durable, governed, and verifiable agent work
-in repositories.
+Lervo is a headless, local-first control plane and extension platform for durable,
+governed, and verifiable agent work in repositories.
 
 Its primary value is not a smarter individual agent. It is continuity and assurance
 across agents, providers, sessions, devices, and clean clones. Agents may change while
@@ -36,19 +36,21 @@ The sharper improvement statement is:
 
 ## Product boundaries
 
-| Product     | Primary layer                       | Lesson for Lervo                                                                                                                         | Boundary to preserve                                                                                                                                   |
-| ----------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Paperclip   | Agent-organization operations       | Goals, projects, issues, routines, budgets, and an approachable operating view                                                           | Project a view over Lervo contracts; do not make an application database the authority for repository truth                                            |
-| Buzz        | Shared human-agent workspace        | Rooms, threads, mentions, workflows, searchable events, and agents as collaboration participants                                         | Route interaction into identity, assignment, authority, evidence, and handoff contracts; channel membership alone must not expand repository authority |
-| Prime Agent | Long-running execution harness      | Resumable sessions, bounded autonomous continuation, subagents, direct agent communication, goals, heartbeats, and reviewable refinement | Keep provider behavior behind adapters and convert runtime lessons into reviewable candidates rather than self-modifying the core                      |
-| Hermes      | Adaptive personal agent             | Progressive skill disclosure, tool search, session recall, durable memory, agent-managed skills, and approval gates                      | Do not treat personal memory or agent-authored skills as canonical repository truth                                                                    |
-| Lervo       | Repository agent-work control plane | Knowledge, identity, policy, workstreams, assignments, evidence, verification, and portable continuity                                   | Remain local-first, provider-neutral, canonical-source-led, and explicit about unobservable behavior                                                   |
+| Product     | Primary layer                                        | Lesson for Lervo                                                                                                                         | Boundary to preserve                                                                                                                                   |
+| ----------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Paperclip   | Agent-organization operations                        | Goals, projects, issues, routines, budgets, and an approachable operating view                                                           | Project a view over Lervo contracts; do not make an application database the authority for repository truth                                            |
+| Buzz        | Shared human-agent workspace                         | Rooms, threads, mentions, workflows, searchable events, and agents as collaboration participants                                         | Route interaction into identity, assignment, authority, evidence, and handoff contracts; channel membership alone must not expand repository authority |
+| Prime Agent | Long-running execution harness                       | Resumable sessions, bounded autonomous continuation, subagents, direct agent communication, goals, heartbeats, and reviewable refinement | Keep provider behavior behind adapters and convert runtime lessons into reviewable candidates rather than self-modifying the core                      |
+| Hermes      | Adaptive personal agent                              | Progressive skill disclosure, tool search, session recall, durable memory, agent-managed skills, and approval gates                      | Do not treat personal memory or agent-authored skills as canonical repository truth                                                                    |
+| Lervo       | Repository agent-work control and extension platform | Knowledge, identity, policy, workstreams, assignments, evidence, verification, and portable continuity                                   | Remain local-first, provider-neutral, canonical-source-led, extensible, and explicit about unobservable behavior                                       |
 
 These products are not one replacement hierarchy. Paperclip-like operating views and
 Buzz-like collaboration surfaces can sit above Lervo. Prime Agent, Hermes, Codex, and
 Claude can operate below it through provider and execution adapters. This is a
 responsibility model, not a required dependency graph or an integration commitment to
-any named product.
+any named product. The [agent-platform and evolution research](lervo-agent-platform-evolution.md)
+defines how governed loops, existing and future graphs, application surfaces, and
+rapidly changing AI techniques fit this boundary.
 
 ## Existing request-aware repository retrieval
 
@@ -185,16 +187,12 @@ than Hermes.
 
 The following order is research guidance, not accepted delivery scope:
 
-1. Complete the verified improvement loop with observation inputs, a candidate inbox,
-   review ergonomics, and post-promotion effect evaluation.
-2. Add a read-only operating board and conversational routes for blockers, approvals,
-   verification, handoffs, mentions, and threads.
-3. Add objectives, routines, resumable sessions, and bounded continuation over workstream
-   and assignment contracts.
-4. Extend progressive disclosure and source-to-skill flows across capability packages
-   and tool schemas.
-5. Add product and runtime connectors only after their lower-assurance boundaries are
-   explicit and tested.
+1. Converge existing contracts behind a stable headless application boundary.
+2. Define governed loops over workstreams, assignments, runs, and verification.
+3. Extend the current graph foundations into a bounded assignment execution graph.
+4. Add reference operating and collaboration surfaces plus replaceable adapters.
+5. Complete verified improvement, source-to-skill, and post-promotion evaluation.
+6. Adopt advanced autonomy or external systems only through measured versioned contracts.
 
 The future feature should be named `verified improvement` or `evidence-bound
 improvement`, not `continual model learning`. Candidate surfaces should use terms such as
@@ -211,6 +209,8 @@ improvement`, not `continual model learning`. Candidate surfaces should use term
   filesystem, network, provider, budget, or write authority.
 - Do not couple core evidence or improvement contracts to Prime Agent, Hermes, Codex,
   Claude, Paperclip, Buzz, or any other product.
+- Do not freeze a current model, agent pattern, protocol, retrieval method, or AI trend
+  into the core when a versioned port and reviewed adapter can preserve replacement.
 - Do not obscure unmanaged work behind managed-sounding product language.
 
 ## Sources and responsible Lervo contracts
