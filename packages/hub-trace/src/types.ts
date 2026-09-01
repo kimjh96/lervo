@@ -4,6 +4,7 @@ import {
   type EventEnvelope,
   type EventSyncCursor,
   type ManagedContextCoverageReport,
+  type WorkExecutionReport,
 } from "@lervo/schemas";
 
 export type TraceChainPosition = "continuous" | "buffered";
@@ -76,6 +77,16 @@ export interface HubRunTrace {
   contextCoverage: ManagedContextCoverageReport | null;
 }
 
+export interface HubWorkTraceSource {
+  project: HubProjectTraceSummary;
+  events: EventEnvelope[];
+}
+
+export interface HubWorkTrace {
+  project: HubProjectTraceSummary;
+  report: WorkExecutionReport;
+}
+
 export interface HubProjectKnowledgeGraph {
   project: HubProjectTraceSummary;
   focus: KnowledgeGraphNode;
@@ -96,6 +107,10 @@ export interface HubRunEventQuery extends HubProjectCoordinate {
   runId: string;
   after?: HubEventTraceCursor;
   limit?: number;
+}
+
+export interface HubWorkTraceQuery extends HubProjectCoordinate {
+  workId: string;
 }
 
 export interface HubKnowledgeGraphQuery extends HubProjectCoordinate {
@@ -121,6 +136,11 @@ export interface ResolvedHubRunEventQuery extends HubProjectCoordinate {
   runId: string;
   after?: HubEventTraceCursor;
   limit: number;
+}
+
+export interface ResolvedHubWorkTraceQuery extends HubProjectCoordinate {
+  scope: HubTraceProjectScope;
+  workId: string;
 }
 
 export interface ResolvedHubKnowledgeGraphQuery extends HubProjectCoordinate {

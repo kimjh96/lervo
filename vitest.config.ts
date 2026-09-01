@@ -41,6 +41,8 @@ export default defineConfig({
       "@lervo/environment-adapter-tailscale": fromRoot(
         "./packages/environment-adapter-tailscale/src/index.ts",
       ),
+      "@lervo/execution-contract": fromRoot("./packages/execution-contract/src/index.ts"),
+      "@lervo/execution-observability": fromRoot("./packages/execution-observability/src/index.ts"),
       "@lervo/hub": fromRoot("./apps/hub/src/index.ts"),
       "@lervo/hub-command": fromRoot("./packages/hub-command/src/index.ts"),
       "@lervo/hub-policy": fromRoot("./packages/hub-policy/src/index.ts"),

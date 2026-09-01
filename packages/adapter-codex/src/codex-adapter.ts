@@ -14,6 +14,7 @@ import {
   type AdapterCapabilityActivationRequest,
   type AdapterDescriptor,
   type AdapterNormalizedEvent,
+  type ResourceAccountingDescriptor,
   type AdapterSession,
   type AdapterStartRequest,
   type AdapterStopRequest,
@@ -26,13 +27,16 @@ import {
 import {
   assertAdapterMessage,
   clone,
-  CODEX_ADAPTER_ID,
   CODEX_ADAPTER_VERSION,
   defaultEventId,
   defaultReceiptId,
   timestamp,
 } from "./adapter-validation.js";
 import { CodexStdioAppServerClient } from "./app-server-client.js";
+import {
+  createCodexAdapterDescriptor,
+  createCodexResourceAccountingDescriptor,
+} from "./descriptor.js";
 import { buildManagedContextItems } from "./context-items.js";
 import { CodexEventNormalizer } from "./normalize.js";
 import { CodexSessionRegistry } from "./session-registry.js";
@@ -42,22 +46,8 @@ import { captureCodexTurnResult } from "./turn-result.js";
 import { CodexAdapterError, type CodexAdapterOptions, type CodexAppServerClient } from "./types.js";
 
 export class CodexAdapter implements ProviderAdapter {
-  readonly descriptor: AdapterDescriptor = {
-    kind: "descriptor",
-    schemaVersion: 1,
-    adapterId: CODEX_ADAPTER_ID,
-    adapterVersion: CODEX_ADAPTER_VERSION,
-    provider: "codex",
-    capabilities: {
-      controlledContextInjection: "supported",
-      toolCalls: "supported",
-      commandExecution: "supported",
-      fileChanges: "supported",
-      contextCompaction: "supported",
-      sessionResume: "unsupported",
-      usage: "supported",
-    },
-  };
+  readonly descriptor: AdapterDescriptor;
+  readonly resourceAccounting: ResourceAccountingDescriptor;
 
   private readonly repositoryRoot: string;
   private readonly now: () => Date;
@@ -66,6 +56,8 @@ export class CodexAdapter implements ProviderAdapter {
   private readonly sessions = new CodexSessionRegistry();
 
   constructor(private readonly options: CodexAdapterOptions) {
+    this.descriptor = createCodexAdapterDescriptor();
+    this.resourceAccounting = createCodexResourceAccountingDescriptor(options);
     this.repositoryRoot = resolve(options.repositoryRoot);
     this.now = options.now ?? (() => new Date());
     this.createEventId = options.createEventId ?? defaultEventId;

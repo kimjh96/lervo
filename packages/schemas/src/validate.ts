@@ -59,6 +59,8 @@ import {
   resourceUsageRecordedEventPayloadSchema,
   workCausalityRecordedEventPayloadSchema,
 } from "./execution-observability-event.js";
+import { resourceAccountingDescriptorSchema } from "./resource-accounting.js";
+import { workExecutionReportSchema } from "./work-execution-report.js";
 import {
   eventSyncAcknowledgementSchema,
   outboundEventBatchSchema,
@@ -258,6 +260,8 @@ const validators = {
   eventWriterCoordinate: ajv.compile(eventWriterCoordinateSchema),
   workCausalityRecordedEventPayload: ajv.compile(workCausalityRecordedEventPayloadSchema),
   resourceUsageRecordedEventPayload: ajv.compile(resourceUsageRecordedEventPayloadSchema),
+  resourceAccountingDescriptor: ajv.compile(resourceAccountingDescriptorSchema),
+  workExecutionReport: ajv.compile(workExecutionReportSchema),
   executionStagesObservedEventPayload: ajv.compile(executionStagesObservedEventPayloadSchema),
   projectRegistrationRequest: ajv.compile(projectRegistrationRequestSchema),
   projectRegistrationResponse: ajv.compile(projectRegistrationResponseSchema),

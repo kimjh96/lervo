@@ -1,4 +1,4 @@
-import type { TracePageReport, TraceReport } from "@lervo/diagnostics";
+import type { TracePageReport, TraceReport, WorkExecutionReport } from "@lervo/diagnostics";
 
 function formatPayload(payload: Record<string, unknown>): string {
   return Object.entries(payload)
@@ -45,6 +45,25 @@ export function formatTracePageReport(report: TracePageReport): string {
         `  ${event.seq}. ${event.type} · ${event.occurredAt}\n     ${formatPayload(event.payload)}`,
     ),
     report.page.nextCursor === null ? "Next page: none" : `Next cursor: ${report.page.nextCursor}`,
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
+export function formatWorkExecutionReport(report: WorkExecutionReport): string {
+  const lines = [
+    `Work trace: ${report.workId}`,
+    `Completeness: ${report.completeness}`,
+    `Runs: ${report.runs.length}`,
+    `Resource observations: ${report.resources.completeness}`,
+    ...report.resources.groups.map(
+      (group) =>
+        `  ${group.provider} · ${group.scope} · ${group.accountingMode} · ${group.totalUsage === null ? "unavailable" : `${group.totalUsage.totalTokens} tokens`}`,
+    ),
+    `Execution stages: ${report.stages.completeness}`,
+    `Cost: ${report.cost.status}`,
+    ...(report.missingReasons.length === 0
+      ? []
+      : [`Missing or limited: ${report.missingReasons.join(", ")}`]),
   ];
   return `${lines.join("\n")}\n`;
 }

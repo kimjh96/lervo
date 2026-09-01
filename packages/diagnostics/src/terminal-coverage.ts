@@ -43,6 +43,40 @@ function number(value: unknown): number {
   return value;
 }
 
+function queryProjectionResource(
+  payload: JsonObject,
+): TerminalTurnCoverage["resources"]["queryProjection"] {
+  const receiptValue = payload.queryProjectionReceipt;
+  if (receiptValue === undefined) {
+    return {
+      status: "unavailable",
+      usage: null,
+      reasonCode: "query_projection_usage_unavailable",
+    };
+  }
+  const receipt = object(receiptValue);
+  if (receipt.usage === undefined) {
+    return {
+      status: "unavailable",
+      usage: null,
+      reasonCode: "query_projection_usage_unavailable",
+    };
+  }
+  const usage = object(receipt.usage);
+  return {
+    status: "partial",
+    usage: {
+      inputTokens: number(usage.inputTokens),
+      cachedInputTokens: number(usage.cachedInputTokens),
+      outputTokens: number(usage.outputTokens),
+      reasoningOutputTokens: number(usage.reasoningOutputTokens),
+      totalTokens: number(usage.totalTokens),
+      contextWindow: usage.contextWindow === null ? null : number(usage.contextWindow),
+    },
+    reasonCode: "accounting_descriptor_unavailable",
+  };
+}
+
 function ratio(numerator: number, denominator: number, unavailableReason: string | null = null) {
   if (unavailableReason !== null)
     return { numerator, denominator, value: null, reason: unavailableReason };
@@ -199,6 +233,14 @@ function reportForContext(context: EventEnvelope, events: EventEnvelope[]): Term
             result: string(turnPayload.completionResult) as "allowed" | "blocked",
             lifecycleStatus: string(turnPayload.lifecycleStatus) as "current" | "action_required",
           },
+    resources: {
+      wholeTask: {
+        status: "unavailable",
+        usage: null,
+        reasonCode: "unmanaged_provider_usage_unobserved",
+      },
+      queryProjection: queryProjectionResource(payload),
+    },
   };
 }
 

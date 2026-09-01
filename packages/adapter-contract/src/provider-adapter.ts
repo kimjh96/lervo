@@ -14,6 +14,7 @@ import {
   type AdapterTurn,
   type AdapterTurnResult,
   type AdapterTurnRequest,
+  type ResourceAccountingDescriptor,
 } from "@lervo/schemas";
 
 export interface ProviderManagedWriteBridge {
@@ -25,6 +26,7 @@ export type AdapterTurnAccepted = (turn: AdapterTurn) => void;
 
 export interface ProviderAdapter {
   readonly descriptor: AdapterDescriptor;
+  readonly resourceAccounting: ResourceAccountingDescriptor;
 
   start(request: AdapterStartRequest): Promise<AdapterSession>;
   injectContext(

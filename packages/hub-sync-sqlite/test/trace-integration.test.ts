@@ -119,6 +119,91 @@ describe("Hub trace SQLite query source", () => {
     await store.close();
   });
 
+  it("projects the same provider-neutral work report from synchronized events", async () => {
+    const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
+    const project = manifest("prj_hub_work_01");
+    const workId = `wrk_${"c".repeat(24)}`;
+    const hash = `sha256:${"d".repeat(64)}`;
+    const events = eventChain(project.projectId, 5, (seq) => {
+      if (seq === 1)
+        return {
+          schemaVersion: 2,
+          type: "work.causality.recorded",
+          actor: { kind: "system" },
+          payload: {
+            workId,
+            executionContractVersion: 1,
+            relationship: "root",
+            parentRunId: null,
+            retryOfRunId: null,
+            attemptOrdinal: 1,
+            workstreamId: null,
+            assignmentId: null,
+            agentId: null,
+          },
+        };
+      if (seq === 3)
+        return {
+          type: "adapter.started",
+          actor: { kind: "provider", provider: "codex" },
+          payload: {},
+        };
+      if (seq === 4)
+        return {
+          schemaVersion: 2,
+          type: "resource.usage.recorded",
+          actor: { kind: "provider", provider: "codex" },
+          payload: {
+            workId,
+            resourceObservationId: `ruo_${"e".repeat(24)}`,
+            sourceCoordinateDigest: hash,
+            scope: "primary_provider",
+            source: "provider_reported",
+            accountingMode: "turn_cumulative",
+            accountingDescriptorHash: hash,
+            status: "observed",
+            usage: {
+              inputTokens: 8,
+              cachedInputTokens: 2,
+              outputTokens: 3,
+              reasoningOutputTokens: 1,
+              totalTokens: 11,
+              contextWindow: 128_000,
+            },
+            reasonCode: null,
+          },
+        };
+      if (seq === 5)
+        return {
+          type: "run.completed",
+          payload: {
+            resultDigest: hash,
+            artifactIds: [`art_${"d".repeat(64)}`],
+            verificationStatus: "not_run",
+          },
+        };
+      return {};
+    });
+    await registerStore(store, project);
+    await acceptEvents(store, project, events);
+
+    const trace = await new HubTraceReader(store).getWork({
+      destinationId,
+      projectId: project.projectId,
+      workId,
+    });
+
+    expect(trace.report).toMatchObject({
+      workId,
+      resources: {
+        completeness: "complete",
+        groups: [{ provider: "codex", totalUsage: { totalTokens: 11 } }],
+      },
+      cost: { status: "not_in_foundation_scope" },
+    });
+    await store.close();
+  });
+
   it("pages run summaries and preserves allowlisted evidence payloads", async () => {
     const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
     const project = manifest("prj_hub_runs_01");

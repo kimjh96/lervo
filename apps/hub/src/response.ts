@@ -25,6 +25,7 @@ export type HubHttpErrorCode =
   | "method_not_allowed"
   | "project_not_found"
   | "run_not_found"
+  | "work_not_found"
   | "conflict"
   | "capacity_exceeded"
   | "request_too_large"
@@ -39,6 +40,7 @@ const errorMessages: Record<HubHttpErrorCode, string> = {
   method_not_allowed: "This API does not allow the requested HTTP method.",
   project_not_found: "The requested project trace does not exist.",
   run_not_found: "The requested run trace does not exist.",
+  work_not_found: "The requested work trace does not exist.",
   conflict: "The request conflicts with the current source state.",
   capacity_exceeded: "The configured project capacity is full.",
   request_too_large: "The request body exceeds the allowed size.",

@@ -6,6 +6,7 @@ import { eventTypes, type EventType } from "@lervo/schemas";
 export const traceUsage = `  lervo trace [last|run-id] [--root <path>] [--json] [--page-size <1-${maximumTracePageSize}>] [--event-type <type>...] [--full]
   lervo trace --cursor <cursor> [--root <path>] [--json]
   lervo trace --deliberation <deliberation-id> [--root <path>] [--json]
+  lervo trace --work <work-id> [--root <path>] [--json]
   lervo trace --capabilities [--json]
   The default output is a bounded page of at most ${defaultTracePageSize} events; request the complete v1 report with --full.`;
 
@@ -15,6 +16,7 @@ export type TraceCommandRequest =
   | { kind: "capabilities" }
   | { kind: "cursor"; cursor: string }
   | { kind: "deliberation"; deliberationId: string }
+  | { kind: "work"; workId: string }
   | { kind: "first_page"; selector: string; limit?: number; eventTypes?: EventType[] }
   | { kind: "full"; selector: string };
 
@@ -43,6 +45,7 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
       full: { type: "boolean" },
       capabilities: { type: "boolean" },
       deliberation: { type: "string" },
+      work: { type: "string" },
       "event-type": { type: "string", multiple: true },
       help: { type: "boolean", short: "h" },
     },
@@ -58,6 +61,7 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
       parsed.values.root !== undefined ||
       parsed.values.cursor !== undefined ||
       parsed.values.deliberation !== undefined ||
+      parsed.values.work !== undefined ||
       parsed.values.full === true ||
       parsed.values["page-size"] !== undefined ||
       requestedEventTypes !== undefined)
@@ -72,7 +76,8 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
       parsed.values.full === true ||
       parsed.values["page-size"] !== undefined ||
       requestedEventTypes !== undefined ||
-      parsed.values.deliberation !== undefined)
+      parsed.values.deliberation !== undefined ||
+      parsed.values.work !== undefined)
   ) {
     throw new TypeError(
       "cursor cannot be combined with run ID, full, page-size, event-type, or deliberation.",
@@ -83,7 +88,8 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
     (parsed.positionals.length > 0 ||
       parsed.values.full === true ||
       parsed.values["page-size"] !== undefined ||
-      requestedEventTypes !== undefined)
+      requestedEventTypes !== undefined ||
+      parsed.values.work !== undefined)
   ) {
     throw new TypeError(
       "deliberation cannot be combined with run ID, full, page-size, or event-type.",
@@ -116,6 +122,20 @@ export function parseTraceCommandOptions(args: string[]): TraceCommandOptions {
       ...common,
       request: { kind: "deliberation", deliberationId: parsed.values.deliberation },
     };
+  }
+  if (parsed.values.work !== undefined) {
+    if (
+      parsed.positionals.length > 0 ||
+      parsed.values.full === true ||
+      parsed.values["page-size"] !== undefined ||
+      requestedEventTypes !== undefined
+    ) {
+      throw new TypeError("work cannot be combined with run ID, full, page-size, or event-type.");
+    }
+    if (!/^wrk_[a-f0-9]{24}$/.test(parsed.values.work)) {
+      throw new TypeError("The work ID is invalid.");
+    }
+    return { ...common, request: { kind: "work", workId: parsed.values.work } };
   }
   const selector = parsed.positionals[0] ?? "last";
   const paged = parsed.values["page-size"] !== undefined || requestedEventTypes !== undefined;

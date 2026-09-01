@@ -5,6 +5,7 @@ import {
   type HubProjectRunQuery,
   type HubProjectTraceQuery,
   type HubRunEventQuery,
+  type HubWorkTraceQuery,
 } from "@lervo/hub-trace";
 import {
   assertKnowledgeGraphNode,
@@ -22,12 +23,14 @@ import {
   HUB_DESTINATION_ID_PATTERN,
   HUB_PROJECT_ID_PATTERN,
   HUB_RUN_ID_PATTERN,
+  HUB_WORK_ID_PATTERN,
 } from "./identifiers.js";
 
 export type HubTraceHttpRoute =
   | { kind: "projects" }
   | { kind: "project"; encodedProjectId: string }
   | { kind: "graph"; encodedProjectId: string }
+  | { kind: "work"; encodedProjectId: string; encodedWorkId: string }
   | { kind: "run"; encodedProjectId: string; encodedRunId: string };
 
 export class InvalidHubHttpRequestError extends Error {}
@@ -54,6 +57,18 @@ export function matchHubTraceRoute(pathname: string): HubTraceHttpRoute | null {
       kind: "run",
       encodedProjectId: segments[4]!,
       encodedRunId: segments[6]!,
+    };
+  }
+  if (
+    segments.length === 7 &&
+    segments[4] !== "" &&
+    segments[5] === "works" &&
+    segments[6] !== ""
+  ) {
+    return {
+      kind: "work",
+      encodedProjectId: segments[4]!,
+      encodedWorkId: segments[6]!,
     };
   }
   return null;
@@ -182,6 +197,17 @@ export function runEventQuery(
     runId: decodedId(route.encodedRunId, HUB_RUN_ID_PATTERN),
     ...(requestedLimit === undefined ? {} : { limit: requestedLimit }),
     ...(after === undefined ? {} : { after }),
+  };
+}
+
+export function workTraceQuery(
+  route: Extract<HubTraceHttpRoute, { kind: "work" }>,
+  parameters: URLSearchParams,
+): HubWorkTraceQuery {
+  assertQueryKeys(parameters, ["destinationId"]);
+  return {
+    ...projectCoordinate(route, parameters),
+    workId: decodedId(route.encodedWorkId, HUB_WORK_ID_PATTERN),
   };
 }
 

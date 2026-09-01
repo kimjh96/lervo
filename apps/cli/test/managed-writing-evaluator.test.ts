@@ -18,6 +18,7 @@ import type {
   AdapterStopResult,
   AdapterTurn,
   AdapterTurnRequest,
+  ResourceAccountingDescriptor,
 } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
@@ -26,6 +27,20 @@ import { createLocalProviderWritingEvaluator } from "../src/managed-writing-eval
 const timestamp = "2026-08-23T00:00:00.000Z";
 
 class EvaluatorAdapter implements ProviderAdapter {
+  readonly resourceAccounting: ResourceAccountingDescriptor = {
+    kind: "resource_accounting_descriptor",
+    schemaVersion: 1,
+    provider: "codex",
+    adapterId: "lervo/codex",
+    adapterVersion: "1.0.0",
+    accountingMode: "turn_cumulative",
+    observationSupport: "unavailable",
+    unavailableReason: "fixture_usage_unavailable",
+    normalizationId: "fixture_usage_v1",
+    nativeCounterSemanticsId: "fixture_counter_v1",
+    model: null,
+    serviceTier: null,
+  };
   readonly descriptor: AdapterDescriptor = {
     kind: "descriptor",
     schemaVersion: 1,

@@ -10,6 +10,7 @@ import type {
   AdapterStopRequest,
   AdapterTurnRequest,
   AdapterTurnResult,
+  ResourceAccountingDescriptor,
 } from "@lervo/schemas";
 import {
   createAdapterTurnResult,
@@ -21,6 +22,7 @@ const requestDigest = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 
 export class FakeManagedAdapter implements ProviderAdapter {
   readonly descriptor: AdapterDescriptor;
+  readonly resourceAccounting: ResourceAccountingDescriptor;
   readonly calls: string[] = [];
   readonly turnRequests: AdapterTurnRequest[] = [];
   stopReason: AdapterStopRequest["reason"] | undefined;
@@ -65,6 +67,20 @@ export class FakeManagedAdapter implements ProviderAdapter {
       };
     } = {},
   ) {
+    this.resourceAccounting = {
+      kind: "resource_accounting_descriptor",
+      schemaVersion: 1,
+      provider,
+      adapterId: `lervo/${provider}`,
+      adapterVersion: "fixture-1",
+      accountingMode: "turn_cumulative",
+      observationSupport: "unavailable",
+      unavailableReason: "fixture_usage_unavailable",
+      normalizationId: "fixture_usage_v1",
+      nativeCounterSemanticsId: "fixture_counter_v1",
+      model: null,
+      serviceTier: null,
+    };
     this.descriptor = {
       kind: "descriptor",
       schemaVersion: 1,

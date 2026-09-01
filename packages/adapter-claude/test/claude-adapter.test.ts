@@ -628,6 +628,11 @@ describe("Claude managed adapter", () => {
       fileChanges: "supported",
       usage: "supported",
     });
+    expect(instance.resourceAccounting).toMatchObject({
+      accountingMode: "turn_cumulative",
+      observationSupport: "supported",
+      normalizationId: "claude_sdk_usage_v1",
+    });
   });
 
   it("interrupts an active turn before closing a cancelled session", async () => {

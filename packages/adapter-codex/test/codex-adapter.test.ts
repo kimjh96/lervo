@@ -735,6 +735,20 @@ describe("Codex managed adapter", () => {
     expect(serialized).not.toContain("super-secret-result");
     expect(serialized).not.toContain('"/repo"');
     expect(values[3]!.type).not.toBe("file.changed");
+    expect(values.find((event) => event.type === "provider.usage.updated")?.payload).toEqual({
+      providerTurnId: "codex-turn-1",
+      inputTokens: 10,
+      cachedInputTokens: 2,
+      outputTokens: 4,
+      reasoningOutputTokens: 1,
+      totalTokens: 14,
+      contextWindow: 100,
+    });
+    expect(instance.resourceAccounting).toMatchObject({
+      accountingMode: "turn_cumulative",
+      observationSupport: "supported",
+      normalizationId: "codex_app_server_usage_v1",
+    });
   });
 
   it("interrupts the active provider turn when a managed session is cancelled", async () => {

@@ -61,6 +61,10 @@ defines when foundation work is actually complete and when enhancement may begin
 FH0 and FH1 are sequential. FH2 and FH3 may proceed independently after FH1. FH4 uses
 their evidence and contracts. FH5 requires all preceding milestones.
 
+Implementation state on 2026-09-01: FH0, FH1, and FH2 are implemented. FH3 is the next
+bounded milestone; its timing and hook-performance evidence will extend the existing
+work report without changing resource accounting ownership.
+
 ## Go/no-go boundary
 
 No durable loop or execution-graph implementation begins before FH5 is accepted. This

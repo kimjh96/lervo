@@ -12,6 +12,7 @@ import {
   type AdapterTurn,
   type AdapterTurnResult,
   type AdapterTurnRequest,
+  type ResourceAccountingDescriptor,
 } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
@@ -22,6 +23,23 @@ import {
 } from "../src/index.js";
 
 const contentHash = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+function resourceAccounting(provider: string): ResourceAccountingDescriptor {
+  return {
+    kind: "resource_accounting_descriptor",
+    schemaVersion: 1,
+    provider,
+    adapterId: `lervo/${provider}`,
+    adapterVersion: "0.0.0",
+    accountingMode: "turn_cumulative",
+    observationSupport: "unavailable",
+    unavailableReason: "fixture_usage_unavailable",
+    normalizationId: "fixture_usage_v1",
+    nativeCounterSemanticsId: "fixture_counter_v1",
+    model: null,
+    serviceTier: null,
+  };
+}
 
 function descriptor(provider: string): AdapterDescriptor {
   return {
@@ -44,6 +62,7 @@ function descriptor(provider: string): AdapterDescriptor {
 
 class FixtureAdapter implements ProviderAdapter {
   readonly descriptor: AdapterDescriptor;
+  readonly resourceAccounting: ResourceAccountingDescriptor;
 
   constructor(
     provider: string,
@@ -51,6 +70,7 @@ class FixtureAdapter implements ProviderAdapter {
     private readonly writingPolicyOverride: string | null | undefined = undefined,
   ) {
     this.descriptor = descriptor(provider);
+    this.resourceAccounting = resourceAccounting(provider);
   }
 
   async startTurn(

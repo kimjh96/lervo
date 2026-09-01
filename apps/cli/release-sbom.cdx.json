@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:b2b273d1-96b1-5b61-9720-a7f645dea06e",
+  "serialNumber": "urn:uuid:80fd0f7e-7d9d-57e9-a3d6-bbf3810ebad1",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "e77dd5fc04893b572ef030ae3c9adef615b3d3b5026b5fe474a97298ea9d1668"
+          "content": "ed932781af6757ab1d38b8fa54803b0430f1007e6d388aeb9215768bfd1bbc7b"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:38af59cfd63c990f5272bfdd72205be60330ee5b49cd99872efd9d9fa78c3c10"
+          "value": "sha256:7c5c7093e3bbf806dbe0ff9bcd04b94a0d2db13d86e4b2101ac9ecc4f38c04fe"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:faa26f1e8d47f4ca2cc499affccdc5ac40eabd0417c363b14af66759a0e0b584"
+          "value": "sha256:e8460571c6795f52f80a65d6943329556b4953fc2e4d8f5367570c26e40b3756"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -610,6 +610,21 @@
       "name": "execution-contract",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/execution-contract@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/execution-observability@0.1.0",
+      "group": "@lervo",
+      "name": "execution-observability",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/execution-observability@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -3969,6 +3984,7 @@
         "pkg:npm/%40lervo/event-contract@0.1.0",
         "pkg:npm/%40lervo/event-store-sqlite@0.1.0",
         "pkg:npm/%40lervo/execution-contract@0.1.0",
+        "pkg:npm/%40lervo/execution-observability@0.1.0",
         "pkg:npm/%40lervo/hub-sync@0.1.0",
         "pkg:npm/%40lervo/identity-migration@0.1.0",
         "pkg:npm/%40lervo/knowledge-okf@0.1.0",

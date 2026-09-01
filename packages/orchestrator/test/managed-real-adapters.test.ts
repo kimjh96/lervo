@@ -127,6 +127,23 @@ class AcceptanceCodexClient implements CodexAppServerClient {
         },
       },
       {
+        method: "thread/tokenUsage/updated",
+        params: {
+          threadId,
+          turnId: "codex-turn-acceptance",
+          tokenUsage: {
+            total: {
+              inputTokens: 8,
+              cachedInputTokens: 2,
+              outputTokens: 3,
+              reasoningOutputTokens: 1,
+              totalTokens: 11,
+            },
+            modelContextWindow: 128_000,
+          },
+        },
+      },
+      {
         method: "turn/completed",
         params: {
           threadId,
@@ -227,6 +244,15 @@ class AcceptanceClaudeClient implements ClaudeAgentClient {
           session_id: CLAUDE_SESSION_ID,
           duration_ms: 1,
           result: "Complete",
+          modelUsage: {
+            "claude-test": {
+              inputTokens: 8,
+              outputTokens: 3,
+              cacheReadInputTokens: 2,
+              cacheCreationInputTokens: 1,
+              contextWindow: 128_000,
+            },
+          },
         },
       );
     if (this.managedRoot !== undefined) {
@@ -286,6 +312,9 @@ describe("managed coordinator with production adapters", () => {
     expect(
       data.store.list({ runId }).find((event) => event.type === "adapter.started")?.payload,
     ).toMatchObject({ executionMode: "read_only" });
+    expect(
+      data.store.list({ runId }).find((event) => event.type === "resource.usage.recorded")?.payload,
+    ).toMatchObject({ status: "observed", usage: { totalTokens: 11 } });
     data.store.close();
   });
 
@@ -329,6 +358,9 @@ describe("managed coordinator with production adapters", () => {
       permissionMode: "plan",
       tools: ["Read", "Glob", "Grep"],
     });
+    expect(
+      data.store.list({ runId }).find((event) => event.type === "resource.usage.recorded")?.payload,
+    ).toMatchObject({ status: "observed", usage: { totalTokens: 14 } });
     expect(
       data.store.list({ runId }).find((event) => event.type === "adapter.started")?.payload,
     ).toMatchObject({ executionMode: "read_only" });

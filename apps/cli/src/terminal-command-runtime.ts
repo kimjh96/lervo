@@ -37,6 +37,7 @@ import { loadSelectedTerminalDocument } from "./terminal-context-loading.js";
 import { selectTerminalContextCandidates } from "./terminal-context-selection.js";
 import { createCurrentWorkstreamSearchProjectionContext } from "./search-projection-context.js";
 import { inspectTerminalInstructionCatalog } from "./terminal-durable-instruction.js";
+import { formatTerminalCoverageReport } from "./terminal-coverage-format.js";
 import {
   readPreparedRepositorySnapshot,
   writePreparedRepositorySnapshot,
@@ -1727,19 +1728,8 @@ async function runCoverage(args: string[], io: CliIo): Promise<number> {
     });
     if (parsed.values.json) {
       io.stdout(`${JSON.stringify(report, null, 2)}\n`);
-    } else if (report.reports.length === 0) {
-      io.stdout("No unmanaged terminal context observations were found.\n");
     } else {
-      const lines = report.reports.map((item) => {
-        const referenced =
-          item.coverage.explicitReference.value === null
-            ? item.coverage.explicitReference.reason
-            : `${item.coverage.explicitReference.numerator}/${item.coverage.explicitReference.denominator}`;
-        return `  ${item.provider} ${item.occurredAt}: prepared=${item.documents.length}; referenced=${referenced}; completion=${item.completion.result}`;
-      });
-      io.stdout(
-        `Unmanaged terminal context observations: ${report.reports.length}\n${lines.join("\n")}\nManaged delivery and internal use remain unsupported for direct provider execution.\n`,
-      );
+      io.stdout(formatTerminalCoverageReport(report));
     }
     return 0;
   } catch (error) {

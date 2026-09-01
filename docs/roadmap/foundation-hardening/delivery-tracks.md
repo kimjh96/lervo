@@ -91,6 +91,15 @@ reason, repeated or streaming cumulative observations not to double count, CLI a
 to produce the same semantic report, and no report to label provider-reported usage as
 billed cost. Cross-provider totals remain separated.
 
+Implementation state on 2026-09-01: FH2 is implemented. Codex and Claude declare
+turn-cumulative accounting descriptors; the shared accumulator handles cumulative,
+delta, regression, arithmetic, and contradiction semantics; managed completion records
+one final resource observation after persisting the descriptor. The new pure
+`@lervo/execution-observability` projector backs local `trace --work` and the bounded Hub
+work route. Direct terminal coverage keeps whole-task usage unavailable and reports
+query-projection receipt usage separately. Missing FH3 stage observations remain typed
+and keep the aggregate report partial rather than fabricating completion.
+
 ## FH3: Stage timing and hook performance
 
 Instrument before optimizing.

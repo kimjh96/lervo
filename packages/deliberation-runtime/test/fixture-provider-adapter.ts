@@ -14,9 +14,24 @@ import type {
   AdapterTurn,
   AdapterTurnRequest,
   AdapterTurnResult,
+  ResourceAccountingDescriptor,
 } from "@lervo/schemas";
 
 export class FixtureProviderAdapter implements ProviderAdapter {
+  readonly resourceAccounting: ResourceAccountingDescriptor = {
+    kind: "resource_accounting_descriptor",
+    schemaVersion: 1,
+    provider: "codex",
+    adapterId: "lervo/codex",
+    adapterVersion: "fixture-1",
+    accountingMode: "turn_cumulative",
+    observationSupport: "unavailable",
+    unavailableReason: "fixture_usage_unavailable",
+    normalizationId: "fixture_usage_v1",
+    nativeCounterSemanticsId: "fixture_counter_v1",
+    model: null,
+    serviceTier: null,
+  };
   readonly descriptor: AdapterDescriptor = {
     kind: "descriptor",
     schemaVersion: 1,

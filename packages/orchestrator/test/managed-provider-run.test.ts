@@ -227,6 +227,7 @@ describe("managed provider run lifecycle", () => {
         "command.executed",
         "adapter.result.captured",
         "adapter.stopped",
+        "resource.usage.recorded",
         "run.completed",
       ]);
       const serialized = JSON.stringify(data.store.list({ runId }));
@@ -602,7 +603,10 @@ describe("managed provider run lifecycle", () => {
       expect.arrayContaining(["unmanaged_change.detected", "run.failed"]),
     );
     expect(data.store.list({ runId }).map((event) => event.type)).not.toContain("file.changed");
-    expect(data.store.list({ runId }).at(-2)?.payload).toMatchObject({
+    expect(
+      data.store.list({ runId }).find((event) => event.type === "unmanaged_change.detected")
+        ?.payload,
+    ).toMatchObject({
       paths: ["src/result.ts"],
     });
     data.store.close();

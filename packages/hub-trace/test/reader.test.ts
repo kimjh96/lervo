@@ -32,6 +32,7 @@ function source(overrides: Partial<HubTraceSource> = {}): HubTraceSource {
       runs: { items: [], nextCursor: null },
     })),
     getRun: vi.fn(async () => null),
+    getWork: vi.fn(async () => null),
     getKnowledgeGraph: vi.fn(async () => null),
     ...overrides,
   };

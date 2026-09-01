@@ -7,11 +7,14 @@ import {
   type HubRunTrace,
   type HubRunTraceEvent,
   type HubRunTraceSummary,
+  type HubWorkTraceSource,
+  HUB_TRACE_MAX_WORK_EVENTS,
   type HubTracePage,
   type HubTraceProjectScope,
   type ResolvedHubProjectRunQuery,
   type ResolvedHubProjectTraceQuery,
   type ResolvedHubRunEventQuery,
+  type ResolvedHubWorkTraceQuery,
 } from "@lervo/hub-trace";
 import { projectManagedContextCoverage } from "@lervo/context-coverage";
 
@@ -225,6 +228,37 @@ export class HubTraceSQLiteRepository {
       })),
       contextCoverage,
     };
+  }
+
+  getWork(query: ResolvedHubWorkTraceQuery): HubWorkTraceSource | null {
+    const project = this.getProjectSummary(query.scope, query.destinationId, query.projectId);
+    if (project === null) return null;
+    const rows = this.database
+      .prepare(
+        `
+      SELECT seq, event_id, event_hash, previous_hash, event_json
+      FROM hub_events
+      WHERE destination_id = ? AND project_id = ?
+        AND json_extract(event_json, '$.runId') IN (
+          SELECT json_extract(causal.event_json, '$.runId')
+          FROM hub_events AS causal
+          WHERE causal.destination_id = ? AND causal.project_id = ?
+            AND json_extract(causal.event_json, '$.type') = 'work.causality.recorded'
+            AND json_extract(causal.event_json, '$.payload.workId') = ?
+        )
+      ORDER BY seq ASC
+      LIMIT ?
+    `,
+      )
+      .all(
+        query.destinationId,
+        query.projectId,
+        query.destinationId,
+        query.projectId,
+        query.workId,
+        HUB_TRACE_MAX_WORK_EVENTS + 1,
+      );
+    return { project, events: rows.map(decodeStoredEvent) };
   }
 
   getProjectSummary(

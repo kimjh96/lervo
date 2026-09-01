@@ -15,8 +15,9 @@ unknown integer envelope version is `event_schema_unsupported`; local storage, s
 and Hub intake reject it before mutation. Invalid hashes and payload allowlists remain
 integrity failures rather than unsupported-version failures.
 
-Envelope version 2 makes the following payload contracts readable. FH1 now emits only
-the causal contract; resource and stage contracts remain reader-only:
+Envelope version 2 makes the following payload contracts readable. FH1 emits the causal
+contract and FH2 emits managed resource observations; the stage contract remains
+reader-only until FH3:
 
 - `work.causality.recorded` retains opaque work, run-relationship, attempt, workstream,
   assignment, and agent coordinates. Root, retry, and other child shapes are
@@ -29,7 +30,8 @@ the causal contract; resource and stage contracts remain reader-only:
   code. Counts are non-negative; cached input cannot exceed input, reasoning output
   cannot exceed output, and total equals input plus output. `unavailable` and `invalid`
   contain no fabricated usage. Provider identity and native counter semantics remain in
-  a future local descriptor, not this event.
+  a canonical local CAS descriptor, not this event. A descriptor-storage failure creates
+  no dangling resource observation.
 - `execution.stages.observed` retains managed or unmanaged mode, an opaque work or
   terminal coordinate, observation and environment digests, repository profile, and at
   most 32 catalogued stage results. It excludes paths, prompts, queries, outputs,
@@ -106,7 +108,20 @@ Terminal observation evolution is additive and history-preserving. The original 
 
 `lervo terminal coverage` is rebuildable. Preparation is diagnostic; managed delivery is unavailable without an adapter receipt; explicit reference is nullable when Stop output is unavailable; relevance is nullable without ground truth. No combined score exists.
 
+Terminal coverage also keeps resource meanings separate. Whole-task provider usage is
+always `unavailable` with `unmanaged_provider_usage_unobserved` because direct provider
+execution is outside the managed adapter boundary. Usage directly retained by the
+query-projection receipt is reported separately as `partial` with
+`accounting_descriptor_unavailable`; a missing receipt counter is
+`query_projection_usage_unavailable`. Neither value is billed cost.
+
 Managed `context.injected` events include adapter and provider session and, for every document, E3 receipt, ID, hash, and scope. `adapter.result.captured` records adapter, provider session, turns, digest, bytes, media type, and reference support without content. `context.referenced` records validated E4 linked to that result and E3 version. Unknown, stale, altered, cross-turn, or cross-generation tokens create no E4. Contradictory persisted coordinates fail projection. Result and E4 events commit atomically; failure fails the run. Local trace and Hub use one projector; Hub coverage uses complete history despite response pagination.
+
+Managed resource descriptors contain provider and adapter identity, accounting mode,
+normalization and native-counter semantic IDs, support state, and nullable model and
+service tier. Their schemas exclude credentials and unrestricted native metadata. The
+shared work report groups observations by provider, scope, source, mode, and descriptor
+hash; it does not combine cross-provider totals or infer price.
 
 ## References
 

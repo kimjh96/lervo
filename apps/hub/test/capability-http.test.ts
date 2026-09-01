@@ -73,6 +73,7 @@ async function fixture(permissions: Array<"capability.read" | "capability.publis
         listProjects: async () => ({ items: [], nextCursor: null }),
         getProject: async () => null,
         getRun: async () => null,
+        getWork: async () => null,
         getKnowledgeGraph: async () => null,
       },
     },

@@ -40,12 +40,14 @@ import {
   type HubProjectTrace,
   type HubProjectTraceSummary,
   type HubRunTrace,
+  type HubWorkTraceSource,
   type HubTracePage,
   type HubTraceSource,
   type ResolvedHubProjectRunQuery,
   type ResolvedHubProjectTraceQuery,
   type ResolvedHubKnowledgeGraphQuery,
   type ResolvedHubRunEventQuery,
+  type ResolvedHubWorkTraceQuery,
 } from "@lervo/hub-trace";
 import {
   type EventSyncAcknowledgement,
@@ -482,6 +484,11 @@ export class HubSyncSQLiteStore
   async getRun(query: ResolvedHubRunEventQuery): Promise<HubRunTrace | null> {
     this.assertOpen();
     return this.transactionRunner.read(() => this.traceRepository.getRun(query));
+  }
+
+  async getWork(query: ResolvedHubWorkTraceQuery): Promise<HubWorkTraceSource | null> {
+    this.assertOpen();
+    return this.transactionRunner.read(() => this.traceRepository.getWork(query));
   }
 
   async getKnowledgeGraph(

@@ -29,6 +29,12 @@ describe("trace command options", () => {
     expect(parseTraceCommandOptions(["--deliberation", "dlb_chat0001"])).toMatchObject({
       request: { kind: "deliberation", deliberationId: "dlb_chat0001" },
     });
+    expect(
+      parseTraceCommandOptions(["--work", "wrk_111111111111111111111111", "--json"]),
+    ).toMatchObject({
+      json: true,
+      request: { kind: "work", workId: "wrk_111111111111111111111111" },
+    });
     expect(parseTraceCommandOptions(["last", "--full", "--json"])).toMatchObject({
       request: { kind: "full", selector: "last" },
     });
@@ -43,6 +49,8 @@ describe("trace command options", () => {
     [["--full", "--page-size", "10"], "full cannot be combined with page-size"],
     [["--full", "--event-type", "run.failed"], "full cannot be combined with page-size"],
     [["last", "--deliberation", "dlb_chat0001"], "deliberation cannot be combined with run ID"],
+    [["last", "--work", "wrk_111111111111111111111111"], "work cannot be combined"],
+    [["--work", "not-a-work-id"], "work ID is invalid"],
     [["--page-size", "0"], "page-size must be between 1"],
     [["--event-type", "unknown.event"], "event-type values must be supported"],
     [["--event-type", "run.failed", "--event-type", "run.failed"], "unique"],

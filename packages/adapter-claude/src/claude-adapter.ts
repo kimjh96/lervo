@@ -14,6 +14,7 @@ import {
   type AdapterCapabilityActivationRequest,
   type AdapterDescriptor,
   type AdapterNormalizedEvent,
+  type ResourceAccountingDescriptor,
   type AdapterSession,
   type AdapterStartRequest,
   type AdapterStopRequest,
@@ -25,7 +26,6 @@ import {
 
 import {
   assertAdapterMessage,
-  CLAUDE_ADAPTER_ID,
   CLAUDE_ADAPTER_VERSION,
   clone,
   defaultEventId,
@@ -33,6 +33,10 @@ import {
   timestamp,
 } from "./adapter-validation.js";
 import { buildManagedContextMessage } from "./context-message.js";
+import {
+  createClaudeAdapterDescriptor,
+  createClaudeResourceAccountingDescriptor,
+} from "./descriptor.js";
 import { ClaudeEventNormalizer } from "./normalize.js";
 import { ClaudeManagedWriteController } from "./managed-write.js";
 import { ClaudeSdkAgentClient } from "./sdk-client.js";
@@ -50,22 +54,8 @@ const READ_ONLY_TOOLS = new Set(["Read", "Glob", "Grep"]);
 const MANAGED_WRITE_TOOLS = new Set(["Read", "Glob", "Grep", "Write", "Edit"]);
 
 export class ClaudeAdapter implements ProviderAdapter {
-  readonly descriptor: AdapterDescriptor = {
-    kind: "descriptor",
-    schemaVersion: 1,
-    adapterId: CLAUDE_ADAPTER_ID,
-    adapterVersion: CLAUDE_ADAPTER_VERSION,
-    provider: "claude",
-    capabilities: {
-      controlledContextInjection: "supported",
-      toolCalls: "supported",
-      commandExecution: "supported",
-      fileChanges: "supported",
-      contextCompaction: "supported",
-      sessionResume: "unsupported",
-      usage: "supported",
-    },
-  };
+  readonly descriptor: AdapterDescriptor;
+  readonly resourceAccounting: ResourceAccountingDescriptor;
 
   private readonly repositoryRoot: string;
   private readonly now: () => Date;
@@ -76,6 +66,8 @@ export class ClaudeAdapter implements ProviderAdapter {
   private readonly sessions = new ClaudeSessionRegistry();
 
   constructor(private readonly options: ClaudeAdapterOptions) {
+    this.descriptor = createClaudeAdapterDescriptor();
+    this.resourceAccounting = createClaudeResourceAccountingDescriptor(options);
     this.repositoryRoot = resolve(options.repositoryRoot);
     this.now = options.now ?? (() => new Date());
     this.createEventId = options.createEventId ?? defaultEventId;

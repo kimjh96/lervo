@@ -245,6 +245,32 @@ describe("Hub trace HTTP API", () => {
     );
   });
 
+  it("routes an authorized work trace with a validated work coordinate", async () => {
+    const querySource = traceSource();
+    const base = await startHubTestServer(querySource);
+    const headers = { authorization: `Bearer ${token}` };
+    const workId = `wrk_${"a".repeat(24)}`;
+
+    const response = await fetch(
+      `${base}/v1/trace/projects/prj_allowed01/works/${workId}?destinationId=hub%3Aprimary`,
+      { headers },
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: { code: "work_not_found" } });
+    expect(querySource.getWork).toHaveBeenCalledWith({
+      scope: { mode: "projects", projects: credentials[0]!.projects },
+      destinationId: "hub:primary",
+      projectId: "prj_allowed01",
+      workId,
+    });
+    const invalid = await fetch(
+      `${base}/v1/trace/projects/prj_allowed01/works/not-a-work?destinationId=hub%3Aprimary`,
+      { headers },
+    );
+    expect(invalid.status).toBe(400);
+  });
+
   it("rejects malformed queries and mismatched cursors before reading details", async () => {
     const querySource = traceSource();
     const base = await startHubTestServer(querySource);

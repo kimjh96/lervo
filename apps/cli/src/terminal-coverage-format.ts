@@ -1,0 +1,31 @@
+import type { TerminalCoverageReport } from "@lervo/diagnostics";
+
+export function formatTerminalCoverageReport(report: TerminalCoverageReport): string {
+  if (report.reports.length === 0) {
+    return "No unmanaged terminal context observations were found.\n";
+  }
+  const lines = report.reports.map((item) => {
+    const referenced =
+      item.coverage.explicitReference.value === null
+        ? item.coverage.explicitReference.reason
+        : `${item.coverage.explicitReference.numerator}/${item.coverage.explicitReference.denominator}`;
+    const queryProjection =
+      item.resources.queryProjection.usage === null
+        ? item.resources.queryProjection.reasonCode
+        : `${item.resources.queryProjection.usage.totalTokens} tokens (${item.resources.queryProjection.status}: ${item.resources.queryProjection.reasonCode})`;
+    return [
+      `  ${item.provider} ${item.occurredAt}: prepared=${item.documents.length}`,
+      `referenced=${referenced}`,
+      `completion=${item.completion.result}`,
+      `whole-task=${item.resources.wholeTask.reasonCode}`,
+      `query-projection=${queryProjection}`,
+    ].join("; ");
+  });
+  return [
+    `Unmanaged terminal context observations: ${report.reports.length}`,
+    ...lines,
+    "Managed delivery and internal use remain unsupported for direct provider execution.",
+    "Provider-reported usage is not billed cost.",
+    "",
+  ].join("\n");
+}

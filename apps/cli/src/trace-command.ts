@@ -4,9 +4,14 @@ import {
   createTraceCapabilitiesReport,
   createTracePage,
   createTraceReport,
+  createWorkExecutionReport,
 } from "@lervo/diagnostics";
 
-import { formatTracePageReport, formatTraceReport } from "./trace-format.js";
+import {
+  formatTracePageReport,
+  formatTraceReport,
+  formatWorkExecutionReport,
+} from "./trace-format.js";
 import { parseTraceCommandOptions, traceUsage } from "./trace-options.js";
 import type { CliIo, CliServices } from "./types.js";
 import {
@@ -60,6 +65,15 @@ export async function runTraceCommand(
       io.stdout(
         options.json ? `${JSON.stringify(report, null, 2)}\n` : formatDeliberationTrace(report),
       );
+    } else if (options.request.kind === "work") {
+      const report = createWorkExecutionReport({
+        projectId: storage.manifest.projectId,
+        events: storage.events,
+        workId: options.request.workId,
+      });
+      io.stdout(
+        options.json ? `${JSON.stringify(report, null, 2)}\n` : formatWorkExecutionReport(report),
+      );
     } else if (options.request.kind === "full") {
       const report = createTraceReport({
         projectId: storage.manifest.projectId,
@@ -105,4 +119,4 @@ export async function runTraceCommand(
   }
 }
 
-export { formatTracePageReport, formatTraceReport, traceUsage };
+export { formatTracePageReport, formatTraceReport, formatWorkExecutionReport, traceUsage };

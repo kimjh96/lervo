@@ -10,6 +10,28 @@ import {
   sha256Schema,
   timestampSchema,
 } from "./common.js";
+import { resourceUsageSchema } from "./execution-observability-event.js";
+
+const resourceObservationSchema = {
+  type: "object",
+  properties: {
+    status: { type: "string", enum: ["partial", "unavailable"] },
+    usage: { anyOf: [resourceUsageSchema, { type: "null" }] },
+    reasonCode: { type: "string", pattern: "^[a-z][a-z0-9_]{0,63}$" },
+  },
+  required: ["status", "usage", "reasonCode"],
+  oneOf: [
+    {
+      properties: { status: { const: "partial" }, usage: resourceUsageSchema },
+      required: ["status", "usage"],
+    },
+    {
+      properties: { status: { const: "unavailable" }, usage: { type: "null" } },
+      required: ["status", "usage"],
+    },
+  ],
+  additionalProperties: false,
+} as const;
 
 const ratioSchema = {
   type: "object",
@@ -108,6 +130,15 @@ const terminalTurnCoverageSchema = {
       required: ["result", "lifecycleStatus"],
       additionalProperties: false,
     },
+    resources: {
+      type: "object",
+      properties: {
+        wholeTask: resourceObservationSchema,
+        queryProjection: resourceObservationSchema,
+      },
+      required: ["wholeTask", "queryProjection"],
+      additionalProperties: false,
+    },
   },
   required: [
     "executionMode",
@@ -124,6 +155,7 @@ const terminalTurnCoverageSchema = {
     "documents",
     "coverage",
     "completion",
+    "resources",
   ],
   additionalProperties: false,
 } as const;

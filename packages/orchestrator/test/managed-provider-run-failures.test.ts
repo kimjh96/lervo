@@ -193,9 +193,12 @@ describe("managed provider failure boundaries", () => {
 
   it("fails when stored result bytes cannot be read back unchanged", async () => {
     class CorruptingArtifactStore extends MemoryArtifactStore {
+      private readCount = 0;
+
       override async get(uri: string): Promise<Uint8Array> {
-        await super.get(uri);
-        return Buffer.from("corrupted result", "utf8");
+        const bytes = await super.get(uri);
+        this.readCount += 1;
+        return this.readCount === 1 ? bytes : Buffer.from("corrupted result", "utf8");
       }
     }
     const data = await createManagedFixture();
@@ -217,6 +220,32 @@ describe("managed provider failure boundaries", () => {
       failureCode: "artifact_storage_failed",
       retryable: true,
     });
+    data.store.close();
+  });
+
+  it("does not emit a dangling resource observation when descriptor storage is corrupt", async () => {
+    class CorruptingDescriptorStore extends MemoryArtifactStore {
+      override async get(uri: string): Promise<Uint8Array> {
+        await super.get(uri);
+        return Buffer.from("corrupted descriptor", "utf8");
+      }
+    }
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("codex");
+    const run = coordinator(
+      adapter,
+      data.root,
+      data.store,
+      undefined,
+      new CorruptingDescriptorStore(),
+    ).run({ ...providerRunInput(), repositoryRoot: data.root });
+
+    await expect(run).rejects.toMatchObject({ code: "artifact_storage_failed" });
+    expect(adapter.calls).toEqual([]);
+    expect(data.store.list({ runId }).map((event) => event.type)).not.toContain(
+      "resource.usage.recorded",
+    );
+    expect(data.store.list({ runId }).at(-1)?.type).toBe("run.failed");
     data.store.close();
   });
 

@@ -3,6 +3,7 @@ export type HubTraceErrorCode =
   | "project_forbidden"
   | "project_not_found"
   | "run_not_found"
+  | "work_not_found"
   | "source_inconsistent";
 
 export class HubTraceError extends Error {

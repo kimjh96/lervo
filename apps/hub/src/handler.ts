@@ -17,6 +17,7 @@ import {
   projectListQuery,
   projectRunQuery,
   runEventQuery,
+  workTraceQuery,
   singleAuthorizationHeader,
 } from "./request.js";
 import { resolveHubHttpMaxResponseBytes, sendHubError, sendHubJson } from "./response.js";
@@ -44,6 +45,9 @@ function traceErrorResponse(
       return;
     case "run_not_found":
       sendHubError(response, 404, "run_not_found", maxResponseBytes);
+      return;
+    case "work_not_found":
+      sendHubError(response, 404, "work_not_found", maxResponseBytes);
       return;
     case "source_inconsistent":
       sendHubError(response, 500, "internal_error", maxResponseBytes);
@@ -150,6 +154,17 @@ export function createHubTraceHttpHandler(options: HubTraceHttpHandlerOptions) {
                 ? null
                 : encodeKnowledgeGraphCursor(result.relations.nextCursor),
           },
+          maxResponseBytes,
+        );
+        return;
+      }
+
+      if (matchedRoute.kind === "work") {
+        const result = await reader.getWork(workTraceQuery(matchedRoute, url.searchParams));
+        sendHubJson(
+          response,
+          200,
+          { schemaVersion: 1, project: result.project, report: result.report },
           maxResponseBytes,
         );
         return;

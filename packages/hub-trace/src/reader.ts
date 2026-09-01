@@ -1,4 +1,5 @@
 import { assertKnowledgeGraphNode } from "@lervo/knowledge-graph";
+import { projectWorkExecutionReport } from "@lervo/execution-observability";
 import {
   type HubKnowledgeGraphQuery,
   type HubProjectKnowledgeGraph,
@@ -8,12 +9,16 @@ import {
   type HubProjectTraceSummary,
   type HubRunEventQuery,
   type HubRunTrace,
+  type HubWorkTrace,
+  type HubWorkTraceQuery,
   type HubTracePage,
   type HubTraceProjectScope,
   type ResolvedHubProjectRunQuery,
   type ResolvedHubProjectTraceQuery,
   type ResolvedHubKnowledgeGraphQuery,
   type ResolvedHubRunEventQuery,
+  type ResolvedHubWorkTraceQuery,
+  type HubWorkTraceSource,
 } from "./types.js";
 import { HubTraceError } from "./errors.js";
 import { assertKnowledgeGraphPage } from "./knowledge-graph-page.js";
@@ -29,10 +34,13 @@ export interface HubTraceSource {
   ): Promise<HubTracePage<HubProjectTraceSummary, { destinationId: string; projectId: string }>>;
   getProject(query: ResolvedHubProjectRunQuery): Promise<HubProjectTrace | null>;
   getRun(query: ResolvedHubRunEventQuery): Promise<HubRunTrace | null>;
+  getWork(query: ResolvedHubWorkTraceQuery): Promise<HubWorkTraceSource | null>;
   getKnowledgeGraph(
     query: ResolvedHubKnowledgeGraphQuery,
   ): Promise<HubProjectKnowledgeGraph | null>;
 }
+
+export const HUB_TRACE_MAX_WORK_EVENTS = 100_000;
 
 function resolvedLimit(limit: number | undefined): number {
   const value = limit ?? DEFAULT_PAGE_LIMIT;
@@ -228,6 +236,53 @@ class HubTraceQueryReader {
       );
     }
     return clone(result);
+  }
+
+  async getWork(query: HubWorkTraceQuery): Promise<HubWorkTrace> {
+    assertProjectCoordinate(query);
+    this.assertAuthorized(query);
+    if (!/^wrk_[a-f0-9]{24}$/.test(query.workId)) {
+      throw new HubTraceError("invalid_query", "The work ID is invalid.");
+    }
+    const result = await this.source.getWork({
+      scope: clone(this.scope),
+      destinationId: query.destinationId,
+      projectId: query.projectId,
+      workId: query.workId,
+    });
+    if (result === null) {
+      throw new HubTraceError("work_not_found", "The requested Hub work trace was not found.");
+    }
+    if (
+      result.project.destinationId !== query.destinationId ||
+      result.project.projectId !== query.projectId ||
+      result.events.length > HUB_TRACE_MAX_WORK_EVENTS ||
+      result.events.some((event) => event.projectId !== query.projectId)
+    ) {
+      throw new HubTraceError(
+        "source_inconsistent",
+        "The Hub work trace source differs from the requested bounded project coordinates.",
+      );
+    }
+    try {
+      return {
+        project: clone(result.project),
+        report: projectWorkExecutionReport({
+          projectId: query.projectId,
+          workId: query.workId,
+          events: result.events,
+        }),
+      };
+    } catch (error) {
+      if ((error as { code?: unknown })?.code === "work_not_found") {
+        throw new HubTraceError("work_not_found", "The requested Hub work trace was not found.");
+      }
+      throw new HubTraceError(
+        "source_inconsistent",
+        "The Hub work trace source could not be projected.",
+        { cause: error instanceof Error ? error : undefined },
+      );
+    }
   }
 
   async getKnowledgeGraph(query: HubKnowledgeGraphQuery): Promise<HubProjectKnowledgeGraph> {

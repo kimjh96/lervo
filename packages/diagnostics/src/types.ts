@@ -15,6 +15,7 @@ export type {
   TerminalTurnCoverage,
   ManagedContextCoverageReport,
   ManagedContextDocumentCoverage,
+  WorkExecutionReport,
 } from "@lervo/schemas";
 
 export type TraceSelector = "last" | string;
@@ -33,10 +34,12 @@ export class DiagnosticsError extends Error {
       | "trace_filter_empty"
       | "trace_result_too_large"
       | "trace_run_not_found"
+      | "trace_work_not_found"
       | "terminal_coverage_invalid",
     message: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = "DiagnosticsError";
   }
 }

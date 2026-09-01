@@ -46,6 +46,34 @@ describe("unmanaged terminal context coverage", () => {
         sourceSnapshotId: `ksnap_${"d".repeat(24)}`,
         repositoryRevision: `sha256:${"9".repeat(64)}`,
         queryDigest: `sha256:${"e".repeat(64)}`,
+        queryProjectionReceipt: {
+          schemaVersion: 1,
+          receiptId: `sqproj_${"1".repeat(24)}`,
+          stageId: "query_projection",
+          projector: { id: "fixture", version: 1, buildId: `sqbuild_${"2".repeat(24)}` },
+          requestDigest: `sha256:${"3".repeat(64)}`,
+          contextDigest: `sha256:${"4".repeat(64)}`,
+          projectorResultDigest: `sha256:${"5".repeat(64)}`,
+          requestedLanguage: "en",
+          limits: { maximumQueries: 2, maximumQueryCharacters: 100 },
+          projectedQueryCount: 1,
+          projectedQueryDigest: `sha256:${"6".repeat(64)}`,
+          durationMs: 10,
+          status: "completed",
+          usage: {
+            inputTokens: 6,
+            cachedInputTokens: 1,
+            outputTokens: 2,
+            reasoningOutputTokens: 0,
+            totalTokens: 8,
+            contextWindow: 128_000,
+          },
+          privacy: {
+            requestText: "excluded",
+            contextText: "excluded",
+            projectedQueryText: "excluded",
+          },
+        },
         contextHash: `sha256:${"f".repeat(64)}`,
         recommendationCount: 2,
         loadedDocuments: [
@@ -129,6 +157,18 @@ describe("unmanaged terminal context coverage", () => {
         explicitReference: { numerator: 1, denominator: 1, value: 1, reason: null },
       },
       completion: { result: "allowed", lifecycleStatus: "current" },
+      resources: {
+        wholeTask: {
+          status: "unavailable",
+          usage: null,
+          reasonCode: "unmanaged_provider_usage_unobserved",
+        },
+        queryProjection: {
+          status: "partial",
+          usage: { totalTokens: 8 },
+          reasonCode: "accounting_descriptor_unavailable",
+        },
+      },
     });
     events.close();
   });
@@ -168,6 +208,14 @@ describe("unmanaged terminal context coverage", () => {
       capabilities: { explicitOutputReference: "unavailable" },
       coverage: { explicitReference: { value: null, reason: "turn_not_observed" } },
       completion: { result: "not_observed", lifecycleStatus: "not_observed" },
+      resources: {
+        wholeTask: { status: "unavailable", usage: null },
+        queryProjection: {
+          status: "unavailable",
+          usage: null,
+          reasonCode: "query_projection_usage_unavailable",
+        },
+      },
     });
     events.close();
   });

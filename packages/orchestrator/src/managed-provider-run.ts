@@ -67,6 +67,7 @@ import {
 } from "./repository-snapshot.js";
 import { ManagedTelemetryRecorder, TelemetryWriteError } from "./telemetry.js";
 import { admitManagedWorkCausality } from "./work-causality-admission.js";
+import { ManagedResourceObservation } from "./resource-observation.js";
 
 function copy<T>(value: T): T {
   return structuredClone(value);
@@ -244,8 +245,17 @@ export class ManagedProviderRunCoordinator {
         occurredAt: requestedAt,
       }),
     ]);
+    const resourceObservation = new ManagedResourceObservation(
+      this.options.adapter.descriptor,
+      this.options.adapter.resourceAccounting,
+      this.options.coordinates,
+      workCausality.payload,
+    );
 
     try {
+      phase = "resource_descriptor_store";
+      await resourceObservation.persistDescriptor(this.options.artifactStore);
+
       phase = "approval_preflight";
       await verifyManagedProviderRunApproval({
         run: input,
@@ -280,6 +290,7 @@ export class ManagedProviderRunCoordinator {
         session: state.session,
         maximumEvents: this.maximumProviderSignals,
         onEvent: (event) => {
+          resourceObservation.observe(event);
           this.context.handleAdapterEvent(state.session!, event, this.date());
           const spec = providerSignalSpec(event, state.session!.provider, this.time());
           if (spec !== null) this.append([spec]);
@@ -548,7 +559,14 @@ export class ManagedProviderRunCoordinator {
     if (after !== undefined) state.after = after;
 
     await this.persistOutputs(input, state, failures);
-    return this.complete(input, state, terminal, failures, workCausality.payload);
+    return this.complete(
+      input,
+      state,
+      terminal,
+      failures,
+      workCausality.payload,
+      resourceObservation,
+    );
   }
 
   private async persistOutputs(
@@ -610,11 +628,14 @@ export class ManagedProviderRunCoordinator {
     terminal: AdapterNormalizedEvent | undefined,
     failures: RunFailureLedger,
     workCausality: ManagedProviderRunResult["workCausality"],
+    resourceObservation: ManagedResourceObservation,
   ): ManagedProviderRunResult {
     const resultError = failures.resultError();
     const primaryFailure = failures.primary;
     if (resultError !== undefined && primaryFailure !== undefined) {
+      const resourceEvent = resourceObservation.event(this.time());
       this.append([
+        ...(resourceEvent === null ? [] : [resourceEvent]),
         runFailedSpec({
           failureCode: primaryFailure.error.code,
           retryable: primaryFailure.retryable,
@@ -645,7 +666,15 @@ export class ManagedProviderRunCoordinator {
             state.verifications.length === input.verificationSuites.length
           ? ("passed" as const)
           : ("failed" as const);
+    const resourceEvent = resourceObservation.event(this.time());
+    if (resourceEvent === null) {
+      throw new ManagedProviderRunError(
+        "contract_validation_failed",
+        "The resource accounting descriptor was not persisted for a completed run.",
+      );
+    }
     this.append([
+      resourceEvent,
       runCompletedSpec({
         resultArtifact: state.resultArtifact,
         verificationStatus,

@@ -1,6 +1,7 @@
 export type ManagedProviderRunPhase =
   | "request"
   | "approval_preflight"
+  | "resource_descriptor_store"
   | "before_snapshot"
   | "adapter_start"
   | "context_prepare"

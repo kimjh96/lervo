@@ -7,6 +7,7 @@ import { inspectTurnResultBinding } from "./result-binding.js";
 
 export type AdapterContractViolationCode =
   | "descriptor_invalid"
+  | "accounting_descriptor_mismatch"
   | "provider_mismatch"
   | "start_request_invalid"
   | "start_request_mismatch"
@@ -24,6 +25,7 @@ export type AdapterContractViolationCode =
   | "turn_result_mismatch"
   | "normalized_event_invalid"
   | "normalized_event_mismatch"
+  | "normalized_usage_mismatch"
   | "normalized_event_timeout"
   | "stop_request_invalid"
   | "stop_result_invalid"
@@ -87,6 +89,30 @@ export async function evaluateAdapterContract(
 ): Promise<AdapterContractReport> {
   const violations: AdapterContractViolation[] = [];
   addValidationViolation(violations, "descriptor_invalid", adapter.descriptor);
+
+  const accounting = adapter.resourceAccounting;
+  const accountingValidation = validateSchema("resourceAccountingDescriptor", accounting);
+  if (!accountingValidation.valid) {
+    violations.push({
+      code: "accounting_descriptor_mismatch",
+      detail: accountingValidation.errors
+        .map((error) => `${error.instancePath} ${error.message}`)
+        .join("; "),
+    });
+  }
+  if (
+    accounting.provider !== adapter.descriptor.provider ||
+    accounting.adapterId !== adapter.descriptor.adapterId ||
+    accounting.adapterVersion !== adapter.descriptor.adapterVersion ||
+    (adapter.descriptor.capabilities.usage === "supported" &&
+      accounting.observationSupport !== "supported")
+  ) {
+    violations.push({
+      code: "accounting_descriptor_mismatch",
+      detail:
+        "resource accounting identity or observation support differs from the adapter descriptor",
+    });
+  }
 
   if (adapter.descriptor.provider !== fixture.expectedProvider) {
     violations.push({
@@ -277,6 +303,26 @@ export async function evaluateAdapterContract(
           code: "normalized_event_mismatch",
           detail: "normalized event is not bound to the managed adapter session",
         });
+      }
+      if (event.type === "provider.usage.updated") {
+        const usage = event.payload as {
+          inputTokens: number;
+          cachedInputTokens: number;
+          outputTokens: number;
+          reasoningOutputTokens: number;
+          totalTokens: number;
+        };
+        if (
+          accounting.observationSupport !== "supported" ||
+          usage.cachedInputTokens > usage.inputTokens ||
+          usage.reasoningOutputTokens > usage.outputTokens ||
+          usage.totalTokens !== usage.inputTokens + usage.outputTokens
+        ) {
+          violations.push({
+            code: "normalized_usage_mismatch",
+            detail: "normalized usage differs from the declared accounting contract",
+          });
+        }
       }
     }
   } finally {

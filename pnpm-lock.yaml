@@ -785,6 +785,9 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
+      '@lervo/execution-observability':
+        specifier: workspace:*
+        version: link:../execution-observability
       '@lervo/knowledge':
         specifier: workspace:*
         version: link:../knowledge
@@ -842,6 +845,15 @@ importers:
 
   packages/execution-contract:
     dependencies:
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
+  packages/execution-observability:
+    dependencies:
+      '@lervo/execution-contract':
+        specifier: workspace:*
+        version: link:../execution-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -951,6 +963,9 @@ importers:
       '@lervo/context-coverage':
         specifier: workspace:*
         version: link:../context-coverage
+      '@lervo/execution-observability':
+        specifier: workspace:*
+        version: link:../execution-observability
       '@lervo/hub-sync':
         specifier: workspace:*
         version: link:../hub-sync

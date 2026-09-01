@@ -20,6 +20,7 @@ import type {
   AdapterTurn,
   AdapterTurnRequest,
   AdapterTurnResult,
+  ResourceAccountingDescriptor,
 } from "@lervo/schemas";
 
 import type { RunProvider } from "../src/managed-run.js";
@@ -39,6 +40,7 @@ export function semanticPass(): string {
 
 export class FixtureDeliberationAdapter implements ProviderAdapter {
   readonly descriptor: AdapterDescriptor;
+  readonly resourceAccounting: ResourceAccountingDescriptor;
   private turn?: AdapterTurn;
   private release?: () => void;
   private readonly started = new Promise<void>((resolveStarted) => {
@@ -51,6 +53,20 @@ export class FixtureDeliberationAdapter implements ProviderAdapter {
     private readonly content: string,
     private readonly receiptId: string,
   ) {
+    this.resourceAccounting = {
+      kind: "resource_accounting_descriptor",
+      schemaVersion: 1,
+      provider,
+      adapterId: `lervo/${provider}`,
+      adapterVersion: "fixture-1",
+      accountingMode: "turn_cumulative",
+      observationSupport: "unavailable",
+      unavailableReason: "fixture_usage_unavailable",
+      normalizationId: "fixture_usage_v1",
+      nativeCounterSemanticsId: "fixture_counter_v1",
+      model: null,
+      serviceTier: null,
+    };
     this.descriptor = {
       kind: "descriptor",
       schemaVersion: 1,
