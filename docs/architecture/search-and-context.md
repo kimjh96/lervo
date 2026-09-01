@@ -11,7 +11,7 @@ Search recommends but does not prove use. Selection records why an item was chos
 
 ## Engine boundary
 
-Operational retrieval uses `SearchEnginePort` and `SearchIndexPort`; product-qualified `lexical-v2` is the no-transition default and `lexical-v1` is the local rollback baseline. Engine adapters own only indexing and ranking. Corpus acquisition, query grounding, context selection, provider delivery, credentials, and network authority remain outside these ports.
+Operational retrieval uses `SearchEnginePort` and `SearchIndexPort`. Product-qualified `lexical-v2` is the no-transition default; `lexical-v1` is the local rollback baseline. Engine adapters own only indexing and ranking. Corpus acquisition, query grounding, context selection, provider delivery, credentials, and network authority remain outside these ports.
 
 The registered `lexical-v2` build `sebuild_e9f2ac9398b0f58d03143e7a` passed the v20 local and cross-provider engineering gates. A provider-neutral projection and independent-query fusion plan also passed all four exact human-reviewed real-use cases for both providers. ADR-0328 binds those exact shipped builds and evidence as product qualification `spqual_999f55bdaa9336fb6733d2ba`. Every current repository uses that engine and complete plan by default without repeating project-specific evaluation. ADR-0321 remains the immutable selection boundary for a different repository-specific complete plan.
 

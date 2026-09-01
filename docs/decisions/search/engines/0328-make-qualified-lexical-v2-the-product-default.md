@@ -5,71 +5,41 @@ Date: 2026-09-01
 
 ## Context
 
-ADR-0321 activated the provider-projection, Lexical v2, and deterministic-fusion plan in the
-Lervo repository through a repository-local bundle. The bundle bound the complete current Lervo
-Markdown corpus and project coordinate. Other repositories upgraded to the same CLI but retained
-the implicit Lexical v1 baseline because they had no local activation bundle.
+ADR-0321 activated the provider-projection, Lexical v2, and deterministic-fusion plan in Lervo through a repository-local bundle bound to the complete current Markdown corpus and project coordinate. Repositories without that bundle retained the implicit Lexical v1 baseline after upgrading to the same CLI.
 
-That boundary confused product qualification with repository experimentation. The v20 engine
-evidence and the later complete-plan evidence qualified shipped deterministic behavior and exact
-adapter builds. Requiring every repository to repeat the provider comparison did not protect a
-repository-owned fact or authority. It prevented the qualified product behavior from becoming the
-product default and made an ordinary upgrade observably inconsistent across repositories.
+This confused product qualification with repository experimentation. The v20 engine evidence and complete-plan evidence qualified deterministic shipped behavior and exact adapter builds. Repeating provider comparison in every repository protected no repository-owned fact or authority, prevented qualified behavior from becoming the product default, and made ordinary upgrades inconsistent across repositories.
 
 ## Decision
 
-Promote the qualified Lexical v2 engine and complete projected retrieval plan to the shipped
-product default. The default qualification is content-bound as
-`spqual_999f55bdaa9336fb6733d2ba` and binds:
+Promote the qualified Lexical v2 engine and complete projected retrieval plan to the shipped product default. Qualification `spqual_999f55bdaa9336fb6733d2ba` binds:
 
 - Lexical v2 adapter build `sebuild_e9f2ac9398b0f58d03143e7a`.
-- The exact Codex and Claude projector builds admitted by the production runtime.
-- Independent projected-query execution, `query_coverage_interleave` fusion, bounded limits,
-  fail-closed behavior, and privacy exclusions.
-- The accepted v20 evidence hash and this product-default decision.
+- The exact Codex and Claude projector builds admitted by production.
+- Independent projected-query execution, `query_coverage_interleave` fusion, bounded limits, fail-closed behavior, and privacy exclusions.
+- The accepted v20 evidence hash and this decision.
 
-An initialized repository with no explicit local selection now uses Lexical v2 for operational
-search and the complete projected Lexical v2 plan for direct terminal retrieval. Runtime builds the
-index from the current bounded registered corpus. It does not require the current corpus to equal
-the corpus used to qualify the algorithm because qualification establishes shipped behavior, not
-the truth, relevance, or contents of every future repository. Current paths, hashes, limits,
-projector coordinates, engine identity, and adapter build remain revalidated on every use.
+An initialized repository without explicit local selection uses Lexical v2 for operational search and the complete projected Lexical v2 plan for direct terminal retrieval. Runtime builds the index from the current bounded registered corpus. The corpus need not match the qualification corpus because qualification establishes shipped behavior, not the truth, relevance, or contents of future repositories. Every use revalidates current paths, hashes, limits, projector coordinates, engine identity, and adapter build.
 
-Existing explicit local selection history remains authoritative. A recorded Lexical v1 baseline
-continues to select v1, and a different reviewed candidate continues through its existing
-repository-bound evidence. A legacy activation of the exact product-default plan resolves as the
-product default and no longer pins ordinary retrieval to the historical repository corpus.
+Explicit local selection history remains authoritative. A recorded Lexical v1 baseline continues to select v1; another reviewed candidate continues through its repository-bound evidence. A legacy activation of the exact product-default plan resolves as the product default and no longer pins ordinary retrieval to the historical repository corpus.
 
-Product-default search attempts add `productQualificationId`. It is mutually exclusive with
-`selectionTransitionId`, contains no query or source bytes, and means the shipped qualification
-selected the engine. Recommendation evidence may carry the same optional coordinate. Its absence
-on historical records means only that the older contract did not record a product qualification.
+Product-default search attempts add `productQualificationId`. It is mutually exclusive with `selectionTransitionId`, contains no query or source bytes, and indicates that shipped qualification selected the engine. Recommendation evidence may carry the same optional coordinate. Its absence from historical records means only that the older contract did not record product qualification.
 
-Any missing or changed default engine, adapter, projector, response, corpus read, or fusion stage
-fails closed. There is no silent Lexical v1 fallback. Installing an older reviewed CLI release is
-the release-level rollback; existing repository-local baseline transitions remain valid. The
-default adds no Hub, external source, network, credential, publication, or effect authority.
+A missing or changed default engine, adapter, projector, response, corpus read, or fusion stage fails closed, with no silent Lexical v1 fallback. Installing an older reviewed CLI release is the release-level rollback; existing repository-local baseline transitions remain valid. The default grants no Hub, external-source, network, credential, publication, or effect authority.
 
 ## Consequences
 
-All repositories running the new CLI obtain the same qualified default without creating or copying
-project-specific evaluation files. Repository-specific activation remains available for a genuinely
-different engine or complete plan. Status distinguishes `product_default`, local candidate,
-recorded baseline, and product qualification from transition evidence.
+All repositories running the new CLI receive the same qualified default without project-specific evaluation files. Repository-specific activation remains available for a genuinely different engine or complete plan. Status distinguishes `product_default`, local candidate, recorded baseline, and product qualification from transition evidence.
 
-The compatibility activation chain remains useful for repository experiments and explicit recorded
-selections, but it no longer defines the no-transition product behavior. Search quality reporting
-keeps product-qualified observations separate from implicit and recorded Lexical v1 observations.
+The compatibility activation chain remains available for repository experiments and explicit recorded selections but no longer defines no-transition behavior. Quality reporting separates product-qualified observations from implicit and recorded Lexical v1 observations.
 
 ## Verification
 
-- Pure qualification and production-projector identity tests.
-- Operational engine resolution without repository activation.
-- Retrieval-plan resolution on a current unpinned repository corpus.
-- Product-qualified attempt, recommendation, event-redaction, and quality-report tests.
-- CLI status and real search checks in repositories with and without legacy plan history.
-- Full quality, documentation, build, release-completion, packed release, and repository-upgrade
-  checks.
+- Test pure qualification and production-projector identity.
+- Resolve the operational engine without repository activation.
+- Resolve the retrieval plan against a current, unpinned repository corpus.
+- Test product-qualified attempts, recommendations, event redaction, and quality reports.
+- Check CLI status and real searches in repositories with and without legacy plan history.
+- Run full quality, documentation, build, release-completion, packed-release, and repository-upgrade checks.
 
 ## References
 

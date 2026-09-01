@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_82d776f4f525e48e0cda69aa
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_09602f8728da11d4867096e9
+outputLanguage: en
+outputs:
+  - byteCount: 1830
+    contentHash: sha256:73dc362b0a15719dfd13ab6e1b8691cee4520f8d4ef1ece62f55edfce8a1d901
+    path: docs/decisions/execution/providers/hooks/0329-bound-terminal-snapshots-for-asset-repositories.md
+    userRegionHash: sha256:73dc362b0a15719dfd13ab6e1b8691cee4520f8d4ef1ece62f55edfce8a1d901
+profile: decision_record
+recordId: knormdoc_acfc9f6f016e6f3727027357
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:dae1ddac18d6767cc93b29bfa06176ef7eb4f88630a0dcf02ef1229237eb84db
+sourcePath: docs/decisions/execution/providers/hooks/0329-bound-terminal-snapshots-for-asset-repositories.md
+sourceUnitVersionIds:
+  - uv_35e31f6a4200fa97e9eb600a
+  - uv_4f8454c1a638f174970901d4
+  - uv_4fd371c19e9244caf04aff43
+  - uv_9b87ac38b6193dbff3765983

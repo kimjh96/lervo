@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_82d776f4f525e48e0cda69aa
+compiler:
+  compilerBuildId: sha256:e2648f288df34473ac06655ebe52db6b4a9ce58af2e5fe9acc9ceb46eb670316
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.151.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6835120f0dacc9ac2905eb91
+outputLanguage: en
+outputs:
+  - byteCount: 4503
+    contentHash: sha256:e47ec3023a670bd6aaaa5bba163eac9661ae7f6b73b50858655a647a9a93a96b
+    path: docs/decisions/search/engines/0328-make-qualified-lexical-v2-the-product-default.md
+    userRegionHash: sha256:e47ec3023a670bd6aaaa5bba163eac9661ae7f6b73b50858655a647a9a93a96b
+profile: decision_record
+recordId: knormdoc_9c3faf47d14b52f167fa8f74
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f508298eac5588cfcec9e12c77f02b86978ca1fb2715e8857dea97f0788d7fc3
+sourcePath: docs/decisions/search/engines/0328-make-qualified-lexical-v2-the-product-default.md
+sourceUnitVersionIds:
+  - uv_1a47f0ae308d9811f5cb6909
+  - uv_356ec2ef73d20e36fd70b90b
+  - uv_9c8f849075d4f467020861ca
+  - uv_b153f10618e1979b186e1dfb
+  - uv_b2f9e015af2bb87b39330b3c
+  - uv_d42a8bda02645b62b4cac822

@@ -20,31 +20,31 @@ requested -> resolved -> documents/capabilities recommended and selected
 
 Completion requires agreement among contracts, capability decisions, context evidence, provider results, repository snapshots, and verification. Other provider work is `unmanaged`.
 
-Direct Codex and Claude hooks use a repository-local, self-verifying contract-v2 runtime and exact-hash load at most 28 KiB. Prompt preparation uses provider-neutral query projection and the product-qualified Lexical v2 retrieval plan only for registered current-repository knowledge. It records `unmanaged_terminal_retrieval_only` with empty semantic-action coordinates and grants no effect, workflow, authority, external route, or durable rule. Local empty or failed retrieval proves nothing about other sources. Internal failure returns empty success without evidence. Managed execution retains typed grounding and fail-closed contracts.
+Direct Codex and Claude hooks use a repository-local, self-verifying contract-v2 runtime and exact-hash loads of at most 28 KiB. Prompt preparation uses provider-neutral query projection and the product-qualified Lexical v2 retrieval plan only for registered current-repository knowledge. It records `unmanaged_terminal_retrieval_only` with empty semantic-action coordinates and grants no effect, workflow, authority, external route, or durable rule. Empty or failed local retrieval proves nothing about other sources. Internal failure returns empty success without evidence. Managed execution retains typed grounding and fail-closed contracts.
 
-Preparation creates no managed run and proves no acceptance, understanding, or use. Direct root `Stop` records bounded lifecycle and reference observations when possible. Non-current state records `action_required` with completion `allowed`; unmatched or failed audit returns empty success without evidence. Agents still update workstreams and declarations after changes. Attached workers retain fail-closed isolation. Reference tokens are standalone Markdown HTML comments; legacy v1 tokens remain valid in flight.
+Preparation creates no managed run and proves no acceptance, understanding, or use. Direct root `Stop` records bounded lifecycle and reference observations when possible. Non-current state records `action_required` with completion `allowed`; unmatched or failed audits return empty success without evidence. Agents still update workstreams and declarations after changes. Attached workers retain fail-closed isolation. Reference tokens are standalone Markdown HTML comments; legacy v1 tokens remain valid in flight.
 
 A current workstream must match its latest event and CAS artifact. Managed runs load exact bytes before E3. Direct hooks prepend at most 8 KiB and record bounded identity, revision, hash, byte, and scope coordinates. Missing or stale direct state is a finding, not permission or completion evidence. Resolved history belongs in canonical documents.
 
-Managed sessions suppress native project hooks. Graph-selected registered documents use bounded post-search projections and ordinary E1–E3 evidence (ADR-0216, ADR-0217). Ordinary runs do not select linked-only sources after search. The [managed linked-evidence specification](execution/managed-linked-evidence-canary.md) preserves the default-off exact canary, E1–E4 separation, bounded records, historical activation evidence, later production retirement, the rejected prompt-only attempt, typed boundary, claim eligibility, paired control, and retirement.
+Managed sessions suppress native project hooks. Graph-selected registered documents use bounded post-search projections and ordinary E1–E3 evidence (ADR-0216, ADR-0217). Ordinary runs do not select linked-only sources after search. The [managed linked-evidence specification](execution/managed-linked-evidence-canary.md) preserves the default-off exact canary, E1–E4 separation, bounded records, historical activation evidence, later production retirement, rejected prompt-only attempt, typed boundary, claim eligibility, paired control, and retirement.
 
 ## 3. Context evidence
 
-| Level | Meaning                                                                |
-| ----- | ---------------------------------------------------------------------- |
-| E0    | Candidate discovered.                                                  |
-| E1    | Candidate selected by policy.                                          |
-| E2    | Current bytes loaded and validated.                                    |
-| E3    | Adapter acknowledged the exact delivered envelope.                     |
-| E4    | Validated provider result explicitly cited the exact injected version. |
+| Level | Meaning |
+| --- | --- |
+| E0 | Candidate discovered. |
+| E1 | Candidate selected by policy. |
+| E2 | Current bytes loaded and validated. |
+| E3 | Adapter acknowledged the exact delivered envelope. |
+| E4 | Validated provider result explicitly cited the exact injected version. |
 
-Each envelope and receipt has one provider-neutral `documentRole`: `task_evidence` or `governance_context`, plus required `referenceEligible` state. Instructions, workstreams, writing policies, and protocols are governance. Substantive task sources are task evidence. Governance wins if a document has both roles and is never reference eligible. Direct task selection is eligible. In the default-off exact canary, task evidence selected only as managed linked support is not eligible; direct provenance wins when both occur. Missing, unknown, changed, or role-inconsistent values fail delivery before E3 acceptance.
+Each envelope and receipt has one provider-neutral `documentRole`, either `task_evidence` or `governance_context`, and a required `referenceEligible` state. Instructions, workstreams, writing policies, and protocols are governance; substantive task sources are task evidence. Governance wins when a document has both roles and is never reference eligible. Direct task selection is eligible. In the default-off exact canary, task evidence selected only as managed linked support is ineligible; direct provenance wins when both occur. Missing, unknown, changed, or role-inconsistent values fail delivery before E3 acceptance.
 
 E3 proves controlled injection, not understanding or use. E4 requires a structured result matching E3 coordinates, document version, role, and eligibility. Only eligible task evidence receives the exact standalone `lervo-e4:<documentId>:<contentHash>` token; supporting task context and governance context receive null. The runtime neither rewrites output nor compares it with hidden evaluation identifiers. E4 proves bounded output citation, not attention, reliance, understanding, correctness, or internal use.
 
 `@lervo/context-coverage` rebuilds one report from canonical events, retaining every E1 reason, E2 version and revision, enhanced E3 coordinate, valid E4, highest evidence, and missing stage. Delivery, reference, relevance, and selection ratios remain separate. Unknown denominators are `null` with a reason; no combined score exists.
 
-The managed-run search summary may project only the count and sorted unique document IDs from canonical E4 evidence as `referencedDocuments` and `referencedDocumentIds`. It excludes bodies, paths, prompts, provider output, credentials, and expected evaluation identifiers; evidence events remain canonical. Unmanaged observations use `prepared -> referenced`, never E1–E4. Preparation proves hook-side construction; reference proves only a matching marker in bounded Stop output. Lervo neither rewrites nor stores that output.
+A managed-run search summary may project only the count and sorted unique document IDs from canonical E4 evidence as `referencedDocuments` and `referencedDocumentIds`. It excludes bodies, paths, prompts, provider output, credentials, and expected evaluation identifiers; evidence events remain canonical. Unmanaged observations use `prepared -> referenced`, never E1–E4. Preparation proves only hook-side construction; reference proves only a matching marker in bounded Stop output. Lervo neither rewrites nor stores that output.
 
 ## 4. Capability decisions
 
@@ -52,7 +52,7 @@ Every role declares `allow`, `deny`, or `require_approval` for filesystem reads 
 
 [Capability packages](execution/capabilities.md) cover skills, MCP servers, plugins, and bundles. Verified metadata supports deterministic natural-language selection. Recommendation, selection, load, activation, and invocation remain separate evidence; none proves semantic model use.
 
-Built-in `1.0.0` templates are developer, researcher, marketer, designer, writer, and ideation. Lazy tracked roles under `.lervo/roles/` may be complete, specialize one exact version, or compose multiple exact versions. Final profiles and evaluation bundles must validate; ancestry must be acyclic and at most eight levels deep. Capabilities and verification-failure policy merge to the most restrictive result. The resolved definition and ancestry receive a deterministic contract hash. Agent, assignment, handoff, and managed-run transitions fail before provider creation when the bound version, contract hash, profile hash, or capability hash is stale.
+Built-in `1.0.0` templates are developer, researcher, marketer, designer, writer, and ideation. Lazy tracked roles under `.lervo/roles/` may be complete, specialize one exact version, or compose multiple exact versions. Final profiles and evaluation bundles must validate; ancestry must be acyclic and no more than eight levels deep. Capabilities and verification-failure policy merge to the most restrictive result. The resolved definition and ancestry receive a deterministic contract hash. Agent, assignment, handoff, and managed-run transitions fail before provider creation if the bound version, contract hash, profile hash, or capability hash is stale.
 
 Write approval binds project, run, session, provider, role, risk, request digest, repository snapshot, expected paths, verification suite, policy snapshot, validity interval, and revocation. Revalidate it immediately before mutation.
 
@@ -62,9 +62,9 @@ Codex and Claude share provider-neutral contracts without invented telemetry. Pr
 
 ## 6. Repository snapshots and writes
 
-Plans bind state, expected paths, before and desired hashes, and verification. Apply rejects symlinks, escape, changed targets, unapproved paths, and stale plans.
+Plans bind state, expected paths, before and desired hashes, and verification. Apply rejects symlinks, escapes, changed targets, unapproved paths, and stale plans.
 
-Every managed-write provider turn receives the exact repository-relative target path and an instruction to change only that path, for both single-file and multi-file schedules. Write authorization and byte verification remain authoritative.
+Every managed-write provider turn receives the exact repository-relative target path and an instruction to change only that path, for single-file and multi-file schedules. Write authorization and byte verification remain authoritative.
 
 Snapshots cover repository-authored source and tracked generated files. They exclude runtime data and state, dependencies, and conventional generated build or cache directories. User content changes only through explicit content-bound operations. Managed blocks preserve outside bytes. Generated files may change or be deleted only when recorded generation proves current-hash ownership.
 
@@ -80,7 +80,7 @@ Tracked scanner, publication, language, taxonomy, routing, and leaf bounds gover
 
 Structural planning is read-only. Generated changes and user bytes require current bindings and exact approval where specified. Unknown or tied classifications, unsafe sources, provider-specific enforcement, and over-capacity layouts fail closed. Isolated no-capability semantic compilation and normalization retain complete source-unit coverage; provider output and successful materialization are not semantic truth.
 
-Normalization batches contain at most two documents and 32 KiB of source bytes, with at most three provider processes. Exact validated results use a compiler-and-input-bound `document-v2` cache independent of repository snapshots; final candidates and approvals rebind the complete current snapshot. A failed multi-document batch subdivides once into sequential single-document calls. Completed documents persist immediately; a failed single document ends the attempt. Count-only progress goes to stderr in human and JSON modes and is not an event.
+Normalization batches contain at most two documents and 32 KiB of source bytes, using at most three provider processes. Exact validated results use a compiler-and-input-bound `document-v2` cache independent of repository snapshots; final candidates and approvals rebind the complete current snapshot. A failed multi-document batch subdivides once into sequential single-document calls. Completed documents persist immediately; a failed single document ends the attempt. Count-only progress goes to stderr in human and JSON modes and is not an event.
 
 The [repository knowledge compilation specification](../specs/repository-knowledge-compilation.md) defines candidates, approvals, durable apply, lifecycle, skill resources, entrypoints, splits, bridges, agent surfaces, and recovery.
 
@@ -88,7 +88,7 @@ The [repository knowledge compilation specification](../specs/repository-knowled
 
 README is concise human onboarding; AGENTS is concise provider-neutral guidance; CLAUDE is a thin AGENTS bridge. Generated publications use a versioned catalog and tracked language. Normalization uses that language and a versioned profile; v1 supports English. Neutral localized titles preserve exact encoded paths.
 
-Repository upgrade treats an instruction-bridge binding made stale solely by an ordered AGENTS or CLAUDE rewrite as a bounded transitional finding. The next generated-only stage must refresh the bridge binding, the upgrade must not claim completion before that stage converges, and final deterministic knowledge lint remains mandatory.
+Repository upgrade treats an instruction-bridge binding made stale solely by an ordered AGENTS or CLAUDE rewrite as a bounded transitional finding. The next generated-only stage must refresh the bridge binding; the upgrade must not claim completion before convergence, and final deterministic knowledge lint remains mandatory.
 
 Human writing binds `publication.language` to `writing_en-human`, semantic checks, policy hash, evaluation, and permit. Deliberation carries locale through profiles, prompts, verdicts, evaluation, and publication. Unsupported locales fail before execution; provider prose never implies approval. Initialization creates minimum configuration; feature and state directories remain lazy. Durable local data and rebuildable projections follow the [state lifecycle specification](execution/state-lifecycle.md).
 
@@ -110,17 +110,17 @@ Repository workforce state uses durable role and agent identity, bounded parent 
 
 ## 13. Failure categories
 
-| Category                    | Required behavior                                 |
-| --------------------------- | ------------------------------------------------- |
-| Invalid contract or policy  | Fail before provider or write execution.          |
-| Stale plan or snapshot      | Produce a new read-only plan.                     |
-| Approval missing or revoked | Deny capability.                                  |
-| Incomplete telemetry        | Lower assurance; infer neither success nor use.   |
-| Verification failure        | Do not emit successful completion.                |
-| Event commit failure        | Roll back pre-commit bytes.                       |
-| Post-commit cleanup failure | Preserve bytes and require recovery.              |
-| Uncertain remote effect     | Record uncertainty; do not retry automatically.   |
-| Secret or unsafe source     | Exclude content; retain bounded diagnostics only. |
+| Category | Required behavior |
+| --- | --- |
+| Invalid contract or policy | Fail before provider or write execution. |
+| Stale plan or snapshot | Produce a new read-only plan. |
+| Approval missing or revoked | Deny capability. |
+| Incomplete telemetry | Lower assurance; infer neither success nor use. |
+| Verification failure | Do not emit successful completion. |
+| Event commit failure | Roll back pre-commit bytes. |
+| Post-commit cleanup failure | Preserve bytes and require recovery. |
+| Uncertain remote effect | Record uncertainty; do not retry automatically. |
+| Secret or unsafe source | Exclude content; retain bounded diagnostics only. |
 
 ## 14. Required verification
 
