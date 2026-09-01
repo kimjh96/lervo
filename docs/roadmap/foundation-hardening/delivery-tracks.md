@@ -191,10 +191,10 @@ fixture and suite hashes, environments, measurements, telemetry completeness, in
 failures, recovery outcomes, unsupported states, capacity bounds, security findings,
 upgrade and rollback results, and release-completion evidence.
 
-Implementation state on 2026-09-01: the aggregate readiness contract, independent
-focused checks, clean-clone local-without-Hub journey, distribution checks, source and
-suite bindings, and three-observation report verifier are implemented. Acceptance awaits
-the checked three-observation evidence generated from committed implementation bytes.
+Implementation state on 2026-09-01: FH5 is implemented and accepted. The aggregate
+readiness contract keeps independent focused checks, a clean-clone local-without-Hub
+journey, distribution checks, source and suite bindings, and three consecutive complete
+observations. The checked report composes every constituent gate without replacing it.
 
 Acceptance requires local operation without Hub, packed-CLI and fresh-clone journeys,
 Codex and Claude managed golden journeys, compatible Node/Hub sync, and reviewed writer

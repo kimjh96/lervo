@@ -1,6 +1,6 @@
 # Foundation readiness v1
 
-Status: `candidate`
+Status: `accepted`
 
 As of: 2026-09-01
 
@@ -35,6 +35,11 @@ revision. Each observation executes all of these independent gates:
 A missing gate, source drift, suite drift, constituent-report drift, failed command, or
 fewer than three observations invalidates the report. Repeated success never fills in a
 missing observation.
+
+The accepted machine report contains three consecutive passed observations with eleven
+checks in each observation. It binds the exact source revision, environment, task base,
+constituent report bytes, focused suite bytes, durations, bounded output hashes, known
+unsupported states, and its own deterministic identity.
 
 ## Boundaries and limitations
 

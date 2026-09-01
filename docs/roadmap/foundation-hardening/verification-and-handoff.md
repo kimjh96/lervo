@@ -1,6 +1,6 @@
 # Foundation verification and enhancement handoff
 
-Status: `planned`
+Status: `active`
 
 As of: 2026-09-01
 
@@ -55,6 +55,11 @@ The first two checkpoints may block only their next transition. The final checkp
 blocks loop and graph implementation.
 
 ## Handoff to enhancement
+
+Foundation handoff was accepted on 2026-09-01 after FH0 through FH5 and three consecutive
+complete source-bound readiness observations passed. Enhancement work may now begin only
+through the separate governed-loop and bounded assignment-graph roadmap described below;
+acceptance does not grant unattended execution or third-party-code authority.
 
 When the foundation evidence is accepted, enhancement begins with a separate roadmap and
 decision for one governed-loop and bounded assignment execution graph. It reuses:
