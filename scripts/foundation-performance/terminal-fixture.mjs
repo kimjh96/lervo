@@ -198,7 +198,7 @@ export async function createTerminalPerformanceFixture(profiles) {
     await cp(templates.get(repositoryProfile).root, root, { recursive: true });
     const warmed = await invokeHook({
       root,
-      arm: "baseline",
+      arm: "candidate",
       profile,
       event: "UserPromptSubmit",
       sessionId: `perf-warmup-${repositoryProfile}`,
@@ -267,7 +267,9 @@ export async function createTerminalPerformanceFixture(profiles) {
           ),
         ),
       );
-      const candidateStages = stageSets.filter((item) => item !== null);
+      const candidateStages = stageSets.filter(
+        (item, index) => item !== null && item.eventId !== fixture.beforeStageEventIds[index],
+      );
       const stages = {};
       for (const item of candidateStages) {
         for (const [stageId, durationMs] of Object.entries(item.stages)) {
@@ -296,10 +298,9 @@ export async function createTerminalPerformanceFixture(profiles) {
       const telemetryCorrect =
         arm === "candidate"
           ? candidateStages.length === fixture.roots.length &&
-            stageSets.every(
-              (item, index) => item !== null && item.eventId !== fixture.beforeStageEventIds[index],
-            )
-          : candidateStages.length === 0;
+            stageSets.every((item) => item !== null)
+          : candidateStages.length === 0 &&
+            stageSets.every((item, index) => item?.eventId === fixture.beforeStageEventIds[index]);
       return {
         outcome: lifecycleCorrect && telemetryCorrect ? "completed" : "failed",
         stages,

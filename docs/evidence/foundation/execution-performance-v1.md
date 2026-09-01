@@ -18,8 +18,10 @@ recording. Both arms otherwise use the same activated version 2 behavior and sta
 the same fixture snapshot.
 
 Small, medium, and large fixtures contain 10, 66, and 258 source documents. A cold
-snapshot has no prior hook; a warm snapshot has one successful unmeasured prompt before
-cloning. Stop preparation is outside the measured Stop interval and disables recording
+snapshot has no prior hook; a warm snapshot has one successful unmeasured stage-enabled
+prompt before cloning, including its reusable environment profile. Its existing stage
+event is common fixture state and only a newly appended event counts as candidate
+telemetry. Stop preparation is outside the measured Stop interval and disables recording
 for both arms. The concurrent observation unit is one batch of four independent medium
 repository hooks. Preparation and cleanup are outside the measured interval, and sample
 repositories are removed after use.
