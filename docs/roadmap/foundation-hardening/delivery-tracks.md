@@ -191,6 +191,11 @@ fixture and suite hashes, environments, measurements, telemetry completeness, in
 failures, recovery outcomes, unsupported states, capacity bounds, security findings,
 upgrade and rollback results, and release-completion evidence.
 
+Implementation state on 2026-09-01: the aggregate readiness contract, independent
+focused checks, clean-clone local-without-Hub journey, distribution checks, source and
+suite bindings, and three-observation report verifier are implemented. Acceptance awaits
+the checked three-observation evidence generated from committed implementation bytes.
+
 Acceptance requires local operation without Hub, packed-CLI and fresh-clone journeys,
 Codex and Claude managed golden journeys, compatible Node/Hub sync, and reviewed writer
 activation recovery. Three consecutive complete foundation observations must remain

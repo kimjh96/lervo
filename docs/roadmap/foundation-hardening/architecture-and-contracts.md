@@ -36,6 +36,7 @@ external providers remain effects behind ports.
 | `@lervo/execution-observability` | pure work-report projection                                                               | event append, pricing, UI formatting  |
 | `@lervo/execution-performance`   | paired profiles, statistics, budgets, report verification                                 | product execution or canonical state  |
 | `@lervo/execution-reliability`   | effect inventory, recovery matrix, privacy, threat, capacity and rehearsal evidence       | runtime effects or retry authority    |
+| foundation readiness scripts     | source-bound check composition, clean-clone journeys, and aggregate evidence              | product execution or canonical state  |
 | `@lervo/orchestrator`            | work creation, run ancestry, final aggregation, monotonic timing                          | provider-native semantics             |
 | provider adapters                | native usage translation and accounting declaration                                       | Lervo authority or cross-run totals   |
 | terminal application modules     | short dispatch, hook orchestration, lifecycle inspection, bounded observation persistence | whole-task token claims               |
@@ -163,6 +164,12 @@ rebuildable evidence in `@lervo/execution-reliability`, runtime fault behavior i
 owning packages, and check composition in scripts. The reliability projector neither
 executes recovery nor becomes a scheduler. Workforce capacity and assignment-DAG
 cancellation are pure policies; persistence retains revision, lease, and event authority.
+
+FH5 keeps focused-suite inventory, command execution, clean-clone setup, report
+construction, report verification, and aggregate command composition in separate script
+modules. It records bounded hashes and durations but no command output, provider content,
+repository path, or credential. The aggregate composes constituent evidence and never
+reimplements its domain semantics.
 
 ## Compatibility and failure meanings
 
