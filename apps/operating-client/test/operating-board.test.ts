@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { GovernedWorkReportV1 } from "@lervo/application-contract";
+import type { GovernedWorkReportV1, OperatingObjectiveReportV1 } from "@lervo/application-contract";
 
 import {
   projectOperatingBoard,
@@ -114,7 +114,18 @@ function report(): GovernedWorkReportV1 {
       schemaVersion: 1,
       maxAttemptsPerAssignment: 2,
       maxParallelAssignments: 2,
-      tokenLimits: [],
+      tokenLimits: [
+        {
+          provider: "codex",
+          accountingDescriptorHash: `sha256:${"d".repeat(64)}`,
+          stopAfterObservedTotalTokens: 1500,
+        },
+        {
+          provider: "claude",
+          accountingDescriptorHash: `sha256:${"e".repeat(64)}`,
+          stopAfterObservedTotalTokens: 2000,
+        },
+      ],
       unobservedResourceAction: "escalate",
       exhaustedResourceAction: "block",
       terminalFailureAction: "escalate",
@@ -137,9 +148,27 @@ function report(): GovernedWorkReportV1 {
   };
 }
 
+function objective(): OperatingObjectiveReportV1 {
+  return {
+    schemaVersion: 1,
+    projectId: "prj_fixture001",
+    workstreamId: "wks_111111111111111111111111",
+    workstreamRevision: 4,
+    status: "active",
+    title: "Protect <current> objective",
+    objective: "Expose verified operating evidence.",
+    nextActions: ["Review the exact board."],
+    blockers: [],
+    pendingDecisions: [],
+    pendingApprovals: [],
+    updatedAt: "2026-09-02T00:00:00.000Z",
+    observedAt: "2026-09-02T00:02:00.000Z",
+  };
+}
+
 describe("local operating board", () => {
   it("projects governed evidence without inventing authority or hidden work", () => {
-    const view = projectOperatingBoard(report());
+    const view = projectOperatingBoard(report(), objective());
 
     expect(view.summary).toMatchObject({
       assignmentCount: 2,
@@ -156,14 +185,30 @@ describe("local operating board", () => {
     });
     expect(view.nodes[1]!.attempts).toHaveLength(1);
     expect(view.nodes[1]!.completionEvidence).toHaveLength(1);
+    expect(view.objective?.workstreamRevision).toBe(4);
+    expect(view.budgets).toEqual([
+      expect.objectContaining({
+        provider: "codex",
+        observedTokens: 1234,
+        remainingObservedTokens: 266,
+        thresholdState: "below",
+      }),
+      expect.objectContaining({
+        provider: "claude",
+        observedTokens: null,
+        remainingObservedTokens: null,
+        completeness: "unobserved",
+        thresholdState: "unknown",
+      }),
+    ]);
     expect(view.limitations.join(" ")).toContain("read-only projection");
     expect(view.limitations.join(" ")).toContain("Selected, loaded, injected, and used");
   });
 
   it("renders deterministic, escaped, self-contained HTML with dependency navigation", () => {
-    const view = projectOperatingBoard(report());
+    const view = projectOperatingBoard(report(), objective());
     const first = renderOperatingBoardHtml(view);
-    const second = renderGovernedWorkBoard(report());
+    const second = renderGovernedWorkBoard(report(), objective());
 
     expect(first).toBe(second);
     expect(first).toContain("<!doctype html>");
@@ -171,6 +216,8 @@ describe("local operating board", () => {
     expect(first).toContain(`href="#assignment-1"`);
     expect(first).toContain("Projection, not authority");
     expect(first).toContain("1234 tokens");
+    expect(first).toContain("Protect &lt;current&gt; objective");
+    expect(first).toContain("1234 / 1500 tokens");
     expect(first).toContain("&lt;script&gt;alert(&quot;unsafe&quot;)&lt;/script&gt;");
     expect(first).not.toContain('<script>alert("unsafe")</script>');
     expect(first).not.toContain("<button");

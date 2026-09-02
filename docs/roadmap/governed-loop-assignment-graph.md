@@ -109,6 +109,20 @@ limitations, no mutation-port invocation, and invalid-report exit preservation. 
 package-boundary, build, full tests, documentation and knowledge lifecycle, foundation checks, and
 task-base release completion must pass with reviewed minor release intent.
 
+## GLA5: Current objective and observed token budgets
+
+The fifth slice exposes the verified current workstream objective through a storage-free application
+report and relates exact configured token admission limits to exact provider and accounting-group
+resource observations. `lervo loop objective` reads no managed-work state; `lervo loop budget`
+performs no mutation and reports partial, unavailable, invalid, or absent evidence as unknown. The
+local board composes both independent reports and continues to escape prose and provide no controls.
+
+GLA5 is accepted when focused tests prove verified objective translation, no managed-work query for
+objective inspection, exact accounting-group matching, no unknown-to-zero conversion, observed
+remaining-token projection, board prose escaping, and no mutation-port invocation. Quality, type,
+package-boundary, build, full tests, documentation and knowledge lifecycle, foundation checks, and
+task-base release completion must pass with reviewed minor release intent.
+
 ## Non-goals
 
 - unattended or timer-based scheduling;
@@ -130,9 +144,10 @@ minor release intent.
 
 ## Next sequence
 
-1. Add Paperclip-like goal, routine, richer board, and budget routes as replaceable adapters.
-2. Add Buzz-like inbox, mention, thread, and connector routes without granting room-based authority.
-3. Connect verified improvement candidates and post-promotion effect observation.
+1. Add assignment threads, mention resolution, and inbox routing over existing workforce contracts.
+2. Add exact assignment-template routines and bounded local triggers without arbitrary prompt execution.
+3. Add Buzz-like connector routes without granting room-based authority.
+4. Connect verified improvement candidates and post-promotion effect observation.
 
 ## References
 
@@ -142,4 +157,5 @@ minor release intent.
 - [ADR-0337](../decisions/execution/orchestration/0337-bind-assignment-approval-and-cancellation-authority.md)
 - [ADR-0338](../decisions/execution/orchestration/0338-reconcile-prepared-managed-assignment-completion.md)
 - [ADR-0340](../decisions/execution/orchestration/0340-add-read-only-local-operating-board.md)
+- [ADR-0341](../decisions/execution/orchestration/0341-project-current-objective-and-observed-token-budgets.md)
 - [Execution specification](../specifications/execution.md)

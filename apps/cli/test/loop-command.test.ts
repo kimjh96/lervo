@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { GovernedWorkReportV1 } from "@lervo/application-contract";
+import type { GovernedWorkReportV1, OperatingObjectiveReportV1 } from "@lervo/application-contract";
 
 import { runLoopCommand } from "../src/loop-command.js";
 import type { CliServices } from "../src/types.js";
@@ -123,6 +123,24 @@ function reconciliationReport(): GovernedWorkReportV1 {
   return value;
 }
 
+function objective(): OperatingObjectiveReportV1 {
+  return {
+    schemaVersion: 1,
+    projectId: "prj_fixture001",
+    workstreamId,
+    workstreamRevision: 7,
+    status: "active",
+    title: "Current operating objective",
+    objective: "Keep evidence and authority separate.",
+    nextActions: ["Render the verified board."],
+    blockers: [],
+    pendingDecisions: [],
+    pendingApprovals: [],
+    updatedAt: "2026-09-01T00:00:00.000Z",
+    observedAt: "2026-09-01T00:01:00.000Z",
+  };
+}
+
 function io() {
   const stdout: string[] = [];
   const stderr: string[] = [];
@@ -142,6 +160,7 @@ describe("loop command", () => {
     const output = io();
     const services = {
       inspectGovernedWork: vi.fn(async () => report()),
+      inspectOperatingObjective: vi.fn(async () => objective()),
     } as unknown as CliServices;
     expect(await runLoopCommand(["status"], output.value, services)).toBe(0);
     expect(output.stdout.join("")).toContain("start_attempt");
@@ -155,6 +174,7 @@ describe("loop command", () => {
     const reconcileGovernedAssignment = vi.fn();
     const services = {
       inspectGovernedWork: vi.fn(async () => report()),
+      inspectOperatingObjective: vi.fn(async () => objective()),
       executeManagedRun,
       finalizeGovernedAssignment,
       reconcileGovernedAssignment,
@@ -164,6 +184,7 @@ describe("loop command", () => {
     expect(output.stdout.join("")).toContain("<!doctype html>");
     expect(output.stdout.join("")).toContain("Projection, not authority");
     expect(output.stdout.join("")).toContain(assignmentId);
+    expect(output.stdout.join("")).toContain("Current operating objective");
     expect(output.stderr).toEqual([]);
     expect(executeManagedRun).not.toHaveBeenCalled();
     expect(finalizeGovernedAssignment).not.toHaveBeenCalled();
@@ -183,12 +204,59 @@ describe("loop command", () => {
     };
     const services = {
       inspectGovernedWork: vi.fn(async () => invalid),
+      inspectOperatingObjective: vi.fn(async () => objective()),
     } as unknown as CliServices;
 
     expect(await runLoopCommand(["board"], output.value, services)).toBe(1);
     expect(output.stdout.join("")).toContain("dependency_cycle");
     expect(output.stdout.join("")).toContain("graph_invalid");
     expect(output.stderr).toEqual([]);
+  });
+
+  it("renders the verified current objective without inspecting managed work", async () => {
+    const output = io();
+    const inspectGovernedWork = vi.fn();
+    const services = {
+      inspectOperatingObjective: vi.fn(async () => objective()),
+      inspectGovernedWork,
+    } as unknown as CliServices;
+
+    expect(await runLoopCommand(["objective"], output.value, services)).toBe(0);
+    expect(output.stdout.join("")).toContain("Keep evidence and authority separate.");
+    expect(inspectGovernedWork).not.toHaveBeenCalled();
+  });
+
+  it("reports exact observed token limits without combining accounting groups", async () => {
+    const output = io();
+    const value = report();
+    value.policy.tokenLimits = [
+      {
+        provider: "codex",
+        accountingDescriptorHash: `sha256:${"d".repeat(64)}`,
+        stopAfterObservedTotalTokens: 1500,
+      },
+    ];
+    value.resources = [
+      {
+        schemaVersion: 1,
+        provider: "codex",
+        source: "provider_reported",
+        accountingMode: "turn_cumulative",
+        accountingDescriptorHash: `sha256:${"d".repeat(64)}`,
+        completeness: "complete",
+        totalTokens: 1200,
+        runCount: 1,
+        reasonCodes: [],
+      },
+    ];
+    const services = {
+      inspectGovernedWork: vi.fn(async () => value),
+    } as unknown as CliServices;
+
+    expect(await runLoopCommand(["budget", "--json"], output.value, services)).toBe(0);
+    expect(JSON.parse(output.stdout.join(""))).toEqual([
+      expect.objectContaining({ observedTokens: 1200, remainingObservedTokens: 300 }),
+    ]);
   });
 
   it("executes through the managed-run port and finalizes only after accepted output", async () => {

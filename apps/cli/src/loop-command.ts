@@ -1,4 +1,9 @@
-import { renderGovernedWorkBoard } from "@lervo/operating-client";
+import {
+  formatObservedBudgets,
+  formatOperatingObjective,
+  projectObservedBudgets,
+  renderGovernedWorkBoard,
+} from "@lervo/operating-client";
 
 import { executeGovernedAttempt } from "./governed-attempt-runner.js";
 import { executeCompletionReconciliation } from "./governed-completion-reconciliation-command.js";
@@ -23,6 +28,28 @@ export async function runLoopCommand(
       io.stdout(`${loopUsage}\n`);
       return 0;
     }
+    if (options.action === "objective") {
+      const objective = await services.inspectOperatingObjective({
+        repositoryRoot: options.repositoryRoot,
+      });
+      io.stdout(
+        options.json
+          ? `${JSON.stringify(objective, null, 2)}\n`
+          : formatOperatingObjective(objective),
+      );
+      return 0;
+    }
+    if (options.action === "board") {
+      const [report, objective] = await Promise.all([
+        services.inspectGovernedWork({
+          repositoryRoot: options.repositoryRoot,
+          policy: options.policy,
+        }),
+        services.inspectOperatingObjective({ repositoryRoot: options.repositoryRoot }),
+      ]);
+      io.stdout(renderGovernedWorkBoard(report, objective));
+      return report.decision.status === "invalid" ? 1 : 0;
+    }
     const report = await services.inspectGovernedWork({
       repositoryRoot: options.repositoryRoot,
       policy: options.policy,
@@ -33,8 +60,11 @@ export async function runLoopCommand(
       );
       return report.decision.status === "invalid" ? 1 : 0;
     }
-    if (options.action === "board") {
-      io.stdout(renderGovernedWorkBoard(report));
+    if (options.action === "budget") {
+      const budgets = projectObservedBudgets(report);
+      io.stdout(
+        options.json ? `${JSON.stringify(budgets, null, 2)}\n` : formatObservedBudgets(budgets),
+      );
       return report.decision.status === "invalid" ? 1 : 0;
     }
     if (options.action === "reconcile") {

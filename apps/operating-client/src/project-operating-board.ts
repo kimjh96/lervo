@@ -1,9 +1,10 @@
 import type {
   ApplicationAssignmentStatus,
   GovernedWorkReportV1,
+  OperatingObjectiveReportV1,
 } from "@lervo/application-contract";
 
-import type { OperatingBoardViewV1 } from "./types.js";
+import type { OperatingBoardViewV1, OperatingBudgetGroupV1 } from "./types.js";
 
 const assignmentStatuses: ApplicationAssignmentStatus[] = [
   "queued",
@@ -21,7 +22,40 @@ const evidenceLimitations = [
   "Direct provider activity absent from managed evidence is not represented as managed work.",
 ];
 
-export function projectOperatingBoard(report: GovernedWorkReportV1): OperatingBoardViewV1 {
+export function projectObservedBudgets(report: GovernedWorkReportV1): OperatingBudgetGroupV1[] {
+  return report.policy.tokenLimits.map((limit) => {
+    const observation = report.resources.find(
+      (resource) =>
+        resource.provider === limit.provider &&
+        resource.accountingDescriptorHash === limit.accountingDescriptorHash,
+    );
+    const observedTokens =
+      observation?.completeness === "complete" ? observation.totalTokens : null;
+    const thresholdState =
+      observedTokens === null
+        ? ("unknown" as const)
+        : observedTokens >= limit.stopAfterObservedTotalTokens
+          ? ("reached" as const)
+          : ("below" as const);
+    return {
+      provider: limit.provider,
+      accountingDescriptorHash: limit.accountingDescriptorHash,
+      limitTokens: limit.stopAfterObservedTotalTokens,
+      observedTokens,
+      remainingObservedTokens:
+        observedTokens === null
+          ? null
+          : Math.max(0, limit.stopAfterObservedTotalTokens - observedTokens),
+      completeness: observation?.completeness ?? "unobserved",
+      thresholdState,
+    };
+  });
+}
+
+export function projectOperatingBoard(
+  report: GovernedWorkReportV1,
+  objective: OperatingObjectiveReportV1 | null = null,
+): OperatingBoardViewV1 {
   const assignmentStatusCounts = Object.fromEntries(
     assignmentStatuses.map((status) => [
       status,
@@ -55,6 +89,7 @@ export function projectOperatingBoard(report: GovernedWorkReportV1): OperatingBo
         .length,
       resourceGroupCount: report.resources.length,
     },
+    objective,
     nodes: report.graph.nodes.map((node) => ({
       assignmentId: node.assignmentId,
       assignmentRevision: node.assignmentRevision,
@@ -81,6 +116,7 @@ export function projectOperatingBoard(report: GovernedWorkReportV1): OperatingBo
     })),
     actions: [...report.decision.actions],
     resources: [...report.resources],
+    budgets: projectObservedBudgets(report),
     limitations: [...evidenceLimitations],
   };
 }

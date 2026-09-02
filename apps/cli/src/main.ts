@@ -7,6 +7,7 @@ import { inspectDoctorEnvironment } from "./doctor-environment.js";
 import { finalizeGovernedAssignment } from "./governed-assignment-finalization.js";
 import { reconcileGovernedAssignment } from "./governed-completion-reconciliation.js";
 import { inspectGovernedWork } from "./governed-work-inspection.js";
+import { inspectOperatingObjective } from "./operating-objective-inspection.js";
 import { runInitCommand, initUsage } from "./init-command.js";
 import { runLoopCommand, loopUsage } from "./loop-command.js";
 import { executeManagedRun } from "./managed-run.js";
@@ -72,6 +73,7 @@ const defaultServices: CliServices = {
   projectSearchQueries: projectProductionSearchQueries,
   createTerminalStageObservation,
   inspectGovernedWork,
+  inspectOperatingObjective,
   finalizeGovernedAssignment,
   reconcileGovernedAssignment,
   prepareSearchQueries: prepareProductionSearchQueries,

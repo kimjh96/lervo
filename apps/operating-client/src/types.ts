@@ -6,6 +6,7 @@ import type {
   GovernedLoopActionV1,
   GovernedLoopDecisionV1,
   ManagedAttemptObservationV1,
+  OperatingObjectiveReportV1,
   ResourceGroupObservationV1,
 } from "@lervo/application-contract";
 
@@ -56,8 +57,20 @@ export interface OperatingBoardViewV1 {
     graphReasonCodes: string[];
   };
   summary: OperatingBoardSummaryV1;
+  objective: OperatingObjectiveReportV1 | null;
   nodes: OperatingBoardNodeV1[];
   actions: GovernedLoopActionV1[];
   resources: ResourceGroupObservationV1[];
+  budgets: OperatingBudgetGroupV1[];
   limitations: string[];
+}
+
+export interface OperatingBudgetGroupV1 {
+  provider: "codex" | "claude" | "lervo";
+  accountingDescriptorHash: string;
+  limitTokens: number;
+  observedTokens: number | null;
+  remainingObservedTokens: number | null;
+  completeness: "complete" | "partial" | "unavailable" | "invalid" | "unobserved";
+  thresholdState: "below" | "reached" | "unknown";
 }

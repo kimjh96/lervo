@@ -230,6 +230,42 @@ export interface GovernedWorkQueryV1 {
   policy: GovernedLoopPolicyV1;
 }
 
+export interface OperatingObjectiveReportV1 {
+  schemaVersion: 1;
+  projectId: string;
+  workstreamId: string;
+  workstreamRevision: number;
+  status: "active" | "blocked" | "completed";
+  title: string;
+  objective: string;
+  nextActions: string[];
+  blockers: string[];
+  pendingDecisions: Array<{
+    decisionId: string;
+    question: string;
+    blocking: boolean;
+    choices: Array<{ choiceId: string; label: string; consequence: string }>;
+    recommendedChoiceId: string | null;
+  }>;
+  pendingApprovals: Array<{
+    approvalId: string;
+    kind: "repository_bytes" | "managed_write" | "external_action" | "deployment";
+    summary: string;
+    bindingHash: string;
+    blocking: boolean;
+  }>;
+  updatedAt: string;
+  observedAt: string;
+}
+
+export interface OperatingObjectiveQueryV1 {
+  schemaVersion: 1;
+  kind: "operating_objective.inspect";
+  projectId: string;
+  workstreamId: string;
+  observedAt: string;
+}
+
 export interface GovernedAttemptCommandV1 {
   schemaVersion: 1;
   kind: "governed_attempt.execute";

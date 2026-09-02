@@ -9,6 +9,7 @@ import type { CreateTerminalStageObservation } from "./terminal-stage-observatio
 import type { FinalizeGovernedAssignment } from "./governed-assignment-finalization.js";
 import type { ReconcileGovernedAssignment } from "./governed-completion-reconciliation.js";
 import type { InspectGovernedWork } from "./governed-work-inspection.js";
+import type { InspectOperatingObjective } from "./operating-objective-inspection.js";
 import type {
   PrepareProductionSearchQueries,
   ProjectProductionSearchQueries,
@@ -38,6 +39,7 @@ export interface CliServices {
   projectSearchQueries: ProjectProductionSearchQueries;
   createTerminalStageObservation: CreateTerminalStageObservation;
   inspectGovernedWork: InspectGovernedWork;
+  inspectOperatingObjective: InspectOperatingObjective;
   finalizeGovernedAssignment: FinalizeGovernedAssignment;
   reconcileGovernedAssignment: ReconcileGovernedAssignment;
   prepareSearchQueries?: PrepareProductionSearchQueries | undefined;
