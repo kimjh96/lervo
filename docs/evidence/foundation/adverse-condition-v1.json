@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidenceBuildDigest": "sha256:1a7bc485f1d73d5631646d15034344843f42b4c57e27e1a5b22f38a2deb3fc2d",
-  "repositoryRevision": "sha256:443b24a3fbe94fad19d468a8ba0f71856ccb490ba938fbf2f3f8a32039a28a56",
+  "repositoryRevision": "sha256:6f01cd7c387b83a9dd888d9fabd75d8b3106757eeaf14d0f7dde9f63eab0d637",
   "environment": {
     "operatingSystem": "darwin",
     "architecture": "arm64",
@@ -1137,9 +1137,9 @@
       "eventWindow": 1000,
       "assignmentWindow": 128,
       "concurrentWorkers": 4,
-      "durationMs": 0.116834,
-      "cpuMs": 0.157,
-      "processPeakResidentMemoryBytes": 184598528,
+      "durationMs": 0.101542,
+      "cpuMs": 0.127,
+      "processPeakResidentMemoryBytes": 184123392,
       "status": "passed"
     },
     {
@@ -1147,9 +1147,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 16,
-      "durationMs": 0.285584,
-      "cpuMs": 0.348,
-      "processPeakResidentMemoryBytes": 184614912,
+      "durationMs": 0.269666,
+      "cpuMs": 0.316,
+      "processPeakResidentMemoryBytes": 184139776,
       "status": "passed"
     },
     {
@@ -1157,9 +1157,9 @@
       "eventWindow": 100000,
       "assignmentWindow": 10000,
       "concurrentWorkers": 32,
-      "durationMs": 2.561083,
-      "cpuMs": 3.058,
-      "processPeakResidentMemoryBytes": 185483264,
+      "durationMs": 2.488542,
+      "cpuMs": 2.848,
+      "processPeakResidentMemoryBytes": 184991744,
       "status": "passed"
     },
     {
@@ -1167,9 +1167,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 32,
-      "durationMs": 0.264125,
-      "cpuMs": 0.384,
-      "processPeakResidentMemoryBytes": 185516032,
+      "durationMs": 0.261875,
+      "cpuMs": 0.334,
+      "processPeakResidentMemoryBytes": 185024512,
       "status": "passed"
     }
   ],
@@ -1345,5 +1345,5 @@
     "credentials": "excluded",
     "absolutePaths": "excluded"
   },
-  "reportId": "adverse_aecf8645a27f17dbf1bc624a"
+  "reportId": "adverse_dacc0d072cd4c3496cc76cb9"
 }
