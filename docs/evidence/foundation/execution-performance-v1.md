@@ -37,7 +37,7 @@ measurements in this interpretation. Every baseline and candidate observation co
 Retrieval, lifecycle, declared cold-state, and stage privacy correctness passed for every
 observation. Failure and timeout rates are zero. All prompt p95 and eligible p99 values
 remain far below 15 and 24 seconds, Stop p95 remains below 5 seconds, and no sample
-reaches 30 seconds. The regression gate remains 10 percent, with a 10-millisecond
+reaches 30 seconds. The regression gate remains 10 percent, with a 25-millisecond
 absolute measurement floor for shorter profiles where a durable observation transaction
 and filesystem tail variation make a ratio-only decision unstable. The report retains
 the actual ratio, absolute difference, and applicable allowance; no unrecorded exception

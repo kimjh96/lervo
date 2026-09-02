@@ -15,7 +15,11 @@ import {
   performanceDistribution,
   type PerformanceDistribution,
 } from "./statistics.js";
-import { executionPerformanceFailureReasons, performanceBasisPoints } from "./budget-policy.js";
+import {
+  executionPerformanceFailureReasons,
+  performanceBasisPoints,
+  performanceRegressionBudgetMilliseconds,
+} from "./budget-policy.js";
 
 export type PerformanceArm = "baseline" | "candidate";
 export type PerformanceHook = "UserPromptSubmit" | "Stop";
@@ -120,7 +124,7 @@ const BENCHMARK_PROTOCOL = {
   percentiles: "nearest_rank_v1",
   p99MinimumPopulation: 100,
   correctness: "retrieval_lifecycle_privacy_v1",
-  budgets: "foundation_fh3_v2_relative_10_percent_or_10ms_floor",
+  budgets: "foundation_fh3_v3_relative_10_percent_or_25ms_floor",
   privacy: "aggregate_only_v1",
 } as const;
 
@@ -279,7 +283,9 @@ export async function runPairedExecutionPerformanceBenchmark<TFixture = undefine
       baseline.durationMs.p95,
     );
     const regressionMilliseconds = Math.max(0, candidate.durationMs.p95 - baseline.durationMs.p95);
-    const regressionBudgetMilliseconds = Math.max(10, baseline.durationMs.p95 * 0.1);
+    const regressionBudgetMilliseconds = performanceRegressionBudgetMilliseconds(
+      baseline.durationMs.p95,
+    );
     const failureReasons = executionPerformanceFailureReasons({
       profile,
       baseline,

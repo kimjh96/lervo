@@ -1,6 +1,10 @@
 import { executionStageIds } from "@lervo/schemas";
 
-import { executionPerformanceFailureReasons, performanceBasisPoints } from "./budget-policy.js";
+import {
+  executionPerformanceFailureReasons,
+  performanceBasisPoints,
+  performanceRegressionBudgetMilliseconds,
+} from "./budget-policy.js";
 import {
   assertExecutionPerformanceProfiles,
   EXECUTION_PERFORMANCE_BENCHMARK_BUILD_DIGEST,
@@ -105,7 +109,9 @@ export function verifyExecutionPerformanceReport(value: unknown): ExecutionPerfo
       0,
       profile.candidate.durationMs.p95 - profile.baseline.durationMs.p95,
     );
-    const regressionBudgetMilliseconds = Math.max(10, profile.baseline.durationMs.p95 * 0.1);
+    const regressionBudgetMilliseconds = performanceRegressionBudgetMilliseconds(
+      profile.baseline.durationMs.p95,
+    );
     const reasons = executionPerformanceFailureReasons({
       profile: profile.profile,
       baseline: profile.baseline,

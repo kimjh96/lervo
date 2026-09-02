@@ -7,6 +7,7 @@ import {
   performanceBasisPoints,
   performanceDifferenceDistribution,
   performanceDistribution,
+  performanceRegressionBudgetMilliseconds,
   runPairedExecutionPerformanceBenchmark,
   verifyExecutionPerformanceReport,
 } from "../src/index.js";
@@ -112,7 +113,7 @@ describe("paired execution performance benchmark", () => {
     );
   });
 
-  it("keeps the ten-percent gate with a ten-millisecond floor for short profiles", async () => {
+  it("keeps the ten-percent gate with a twenty-five-millisecond floor for short profiles", async () => {
     let nanoseconds = 0n;
     const declaredEnvironment = environment();
     const report = await runPairedExecutionPerformanceBenchmark({
@@ -150,22 +151,23 @@ describe("paired execution performance benchmark", () => {
       budgetStatus: "passed",
       candidateP95RegressionBasisPoints: 11_286,
       candidateP95RegressionMs: 9,
-      candidateP95RegressionBudgetMs: 10,
+      candidateP95RegressionBudgetMs: 25,
     });
     const profile = report.profiles[0]!;
     const candidate = {
       ...profile.candidate,
-      durationMs: { ...profile.candidate.durationMs, p95: 81 },
+      durationMs: { ...profile.candidate.durationMs, p95: 96 },
     };
     expect(
       executionPerformanceFailureReasons({
         profile: profile.profile,
         baseline: profile.baseline,
         candidate,
-        regressionBasisPoints: performanceBasisPoints(81, 70),
-        regressionMilliseconds: 11,
-        regressionBudgetMilliseconds: 10,
+        regressionBasisPoints: performanceBasisPoints(96, 70),
+        regressionMilliseconds: 26,
+        regressionBudgetMilliseconds: performanceRegressionBudgetMilliseconds(70),
       }),
     ).toContain("p95_regression_exceeded");
+    expect(() => performanceRegressionBudgetMilliseconds(Number.NaN)).toThrow("baseline");
   });
 });

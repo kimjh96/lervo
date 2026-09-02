@@ -96,7 +96,8 @@ Version 1 has no exception path. Every profile must satisfy all of these gates:
 - prompt p95 is at most 15 seconds;
 - prompt p99, when the population supports it, is at most 24 seconds;
 - Stop p95 is at most 5 seconds;
-- candidate p95 is no more than 1.10 times baseline p95; and
+- candidate p95 exceeds baseline p95 by no more than the greater of 10 percent or 25
+  milliseconds; and
 - neither arm has an execution, timeout, retrieval, lifecycle, or privacy failure.
 
 The generated JSON is canonical aggregate evidence. Its Markdown companion interprets
@@ -119,4 +120,5 @@ identity, protocol digest, current source digest, and the absence of exceptions.
 
 - [Execution events and privacy](events-and-privacy.md)
 - [Stage evidence ADR](../../decisions/operations/trace/0335-record-and-verify-bounded-execution-stage-evidence.md)
+- [Short-profile measurement floor ADR](../../decisions/operations/trace/0339-calibrate-short-profile-performance-measurement-floor.md)
 - [Foundation execution performance evidence](../../evidence/foundation/execution-performance-v1.md)

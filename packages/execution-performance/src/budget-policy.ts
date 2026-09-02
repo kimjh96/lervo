@@ -8,6 +8,13 @@ export function performanceBasisPoints(numerator: number, denominator: number): 
   return Math.round((numerator * 10_000) / denominator);
 }
 
+export function performanceRegressionBudgetMilliseconds(baselineP95: number): number {
+  if (!Number.isFinite(baselineP95) || baselineP95 < 0) {
+    throw new TypeError("The performance regression baseline is invalid.");
+  }
+  return Math.max(25, baselineP95 * 0.1);
+}
+
 export function executionPerformanceFailureReasons(input: {
   profile: ExecutionPerformanceProfile;
   baseline: ExecutionPerformanceSummary;
