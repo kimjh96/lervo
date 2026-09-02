@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidenceBuildDigest": "sha256:1a7bc485f1d73d5631646d15034344843f42b4c57e27e1a5b22f38a2deb3fc2d",
-  "repositoryRevision": "sha256:daef1b2aa9b72c0f668aad4f5c38c57ed2c59062176d418f62e0022d26a6b414",
+  "repositoryRevision": "sha256:87046bab55119ae3bafd08cbc593bd2f71c4e06de4cc352c3e83187854f093ad",
   "environment": {
     "operatingSystem": "darwin",
     "architecture": "arm64",
@@ -1137,9 +1137,9 @@
       "eventWindow": 1000,
       "assignmentWindow": 128,
       "concurrentWorkers": 4,
-      "durationMs": 0.100083,
-      "cpuMs": 0.134,
-      "processPeakResidentMemoryBytes": 185597952,
+      "durationMs": 0.110542,
+      "cpuMs": 0.155,
+      "processPeakResidentMemoryBytes": 180731904,
       "status": "passed"
     },
     {
@@ -1147,9 +1147,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 16,
-      "durationMs": 0.274792,
-      "cpuMs": 0.322,
-      "processPeakResidentMemoryBytes": 185614336,
+      "durationMs": 0.282667,
+      "cpuMs": 0.335,
+      "processPeakResidentMemoryBytes": 180748288,
       "status": "passed"
     },
     {
@@ -1157,9 +1157,9 @@
       "eventWindow": 100000,
       "assignmentWindow": 10000,
       "concurrentWorkers": 32,
-      "durationMs": 2.507792,
+      "durationMs": 2.522916,
       "cpuMs": 2.97,
-      "processPeakResidentMemoryBytes": 186499072,
+      "processPeakResidentMemoryBytes": 181616640,
       "status": "passed"
     },
     {
@@ -1167,9 +1167,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 32,
-      "durationMs": 0.2605,
-      "cpuMs": 0.388,
-      "processPeakResidentMemoryBytes": 186531840,
+      "durationMs": 0.254791,
+      "cpuMs": 0.373,
+      "processPeakResidentMemoryBytes": 181649408,
       "status": "passed"
     }
   ],
@@ -1345,5 +1345,5 @@
     "credentials": "excluded",
     "absolutePaths": "excluded"
   },
-  "reportId": "adverse_3ea4be94e5958885b5a847d7"
+  "reportId": "adverse_3a6a960f1f28a959277db980"
 }
