@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "benchmarkBuildDigest": "sha256:7d1369eb9d229854a9c36d34062f34f9c04025b164c8248c72478fd8faa07ead",
-  "repositoryRevision": "sha256:f759e6f6651b5796540d764b737da548dd596643d5fc5d6be8dd0a2c8a8bf149",
+  "repositoryRevision": "sha256:d6d030b6ad8eb787ffd4f51a6f98ae89464a1ffeb899b78dbffec01b6dd13ac4",
   "repetitions": 200,
   "profiles": [
     {
@@ -36,19 +36,19 @@
         "arm": "baseline",
         "durationMs": {
           "sampleCount": 200,
-          "p50": 65.613,
-          "p95": 68.347,
-          "p99": 69.827,
-          "maximum": 72.789
+          "p50": 65.216,
+          "p95": 69.066,
+          "p99": 70.683,
+          "maximum": 72.299
         },
         "cpuMs": {
           "sampleCount": 200,
-          "p50": 27.395,
-          "p95": 30.413,
-          "p99": 31.622,
-          "maximum": 34.033
+          "p50": 27.21,
+          "p95": 30.254,
+          "p99": 33.57,
+          "maximum": 52.787
         },
-        "maximumProcessPeakResidentMemoryBytes": 306266112,
+        "maximumProcessPeakResidentMemoryBytes": 306331648,
         "failures": 0,
         "timeouts": 0,
         "failureRateBasisPoints": 0,
@@ -63,19 +63,19 @@
         "arm": "candidate",
         "durationMs": {
           "sampleCount": 200,
-          "p50": 70.68,
-          "p95": 74.283,
-          "p99": 78.334,
-          "maximum": 80.78
+          "p50": 70.275,
+          "p95": 73.269,
+          "p99": 76.462,
+          "maximum": 81.088
         },
         "cpuMs": {
           "sampleCount": 200,
-          "p50": 28.366,
-          "p95": 31.639,
-          "p99": 34.561,
-          "maximum": 41.911
+          "p50": 28.144,
+          "p95": 31.435,
+          "p99": 34.043,
+          "maximum": 34.777
         },
-        "maximumProcessPeakResidentMemoryBytes": 306266112,
+        "maximumProcessPeakResidentMemoryBytes": 306331648,
         "failures": 0,
         "timeouts": 0,
         "failureRateBasisPoints": 0,
@@ -90,122 +90,122 @@
             "durationMs": {
               "sampleCount": 200,
               "p50": 0.016,
-              "p95": 0.021,
-              "p99": 0.031,
-              "maximum": 0.033
+              "p95": 0.02,
+              "p99": 0.026,
+              "maximum": 0.03
             }
           },
           {
             "stageId": "repository_discovery",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.012,
+              "p50": 0.011,
               "p95": 0.014,
-              "p99": 0.016,
-              "maximum": 1.63
+              "p99": 0.015,
+              "maximum": 0.017
             }
           },
           {
             "stageId": "projection_admission",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.043,
-              "p95": 0.047,
-              "p99": 0.063,
-              "maximum": 0.067
+              "p50": 0.042,
+              "p95": 0.048,
+              "p99": 0.06,
+              "maximum": 0.064
             }
           },
           {
             "stageId": "corpus_preparation",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 17.611,
-              "p95": 19.266,
-              "p99": 21.144,
-              "maximum": 24.547
+              "p50": 17.434,
+              "p95": 18.187,
+              "p99": 19.664,
+              "maximum": 20.037
             }
           },
           {
             "stageId": "search",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 17.713,
-              "p95": 18.55,
-              "p99": 19.086,
-              "maximum": 20.12
+              "p50": 17.58,
+              "p95": 18.432,
+              "p99": 18.882,
+              "maximum": 19.391
             }
           },
           {
             "stageId": "exact_loading",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.387,
-              "p95": 0.42200000000000004,
-              "p99": 0.536,
-              "maximum": 0.659
+              "p50": 0.386,
+              "p95": 0.427,
+              "p99": 0.6660000000000001,
+              "maximum": 0.7010000000000001
             }
           },
           {
             "stageId": "context_assembly",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.413,
-              "p95": 0.451,
-              "p99": 0.57,
-              "maximum": 0.682
+              "p50": 0.412,
+              "p95": 0.456,
+              "p99": 0.697,
+              "maximum": 0.729
             }
           },
           {
             "stageId": "event_commit",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 9.785,
-              "p95": 10.808,
-              "p99": 14.852,
-              "maximum": 15.287
+              "p50": 9.778,
+              "p95": 10.659,
+              "p99": 12.014,
+              "maximum": 15.719
             }
           },
           {
             "stageId": "repository_snapshot",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 3.186,
-              "p95": 3.321,
-              "p99": 3.417,
-              "maximum": 3.588
+              "p50": 3.164,
+              "p95": 3.331,
+              "p99": 3.495,
+              "maximum": 4.007
             }
           },
           {
             "stageId": "lifecycle_inspection",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 12.706,
-              "p95": 13.368,
-              "p99": 14.821,
-              "maximum": 16.252
+              "p50": 12.614,
+              "p95": 13.389,
+              "p99": 15.635,
+              "maximum": 18.453
             }
           },
           {
             "stageId": "total",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 63.159,
-              "p95": 66.834,
-              "p99": 69.538,
-              "maximum": 73.025
+              "p50": 62.7,
+              "p95": 65.423,
+              "p99": 68.25,
+              "maximum": 71.959
             }
           }
         ]
       },
       "instrumentationOverheadMs": {
         "sampleCount": 200,
-        "p50": 4.991,
-        "p95": 8.608999999999995,
-        "p99": 11.480000000000004,
-        "maximum": 16.894
+        "p50": 5.045000000000002,
+        "p95": 7.566999999999993,
+        "p99": 11.079000000000008,
+        "maximum": 14.896
       },
-      "candidateP95RegressionBasisPoints": 10869,
-      "candidateP95RegressionMs": 5.936000000000007,
+      "candidateP95RegressionBasisPoints": 10609,
+      "candidateP95RegressionMs": 4.203000000000003,
       "candidateP95RegressionBudgetMs": 25,
       "budgetStatus": "passed",
       "failureReasons": []
@@ -242,19 +242,19 @@
         "arm": "baseline",
         "durationMs": {
           "sampleCount": 200,
-          "p50": 66.353,
-          "p95": 69.841,
-          "p99": 70.994,
-          "maximum": 74.153
+          "p50": 65.293,
+          "p95": 68.781,
+          "p99": 71.844,
+          "maximum": 75.764
         },
         "cpuMs": {
           "sampleCount": 200,
-          "p50": 27.734,
-          "p95": 32.175,
-          "p99": 38.751,
-          "maximum": 55.641
+          "p50": 27.305,
+          "p95": 30.38,
+          "p99": 32.483,
+          "maximum": 33.708
         },
-        "maximumProcessPeakResidentMemoryBytes": 309641216,
+        "maximumProcessPeakResidentMemoryBytes": 310755328,
         "failures": 0,
         "timeouts": 0,
         "failureRateBasisPoints": 0,
@@ -269,19 +269,19 @@
         "arm": "candidate",
         "durationMs": {
           "sampleCount": 200,
-          "p50": 71.144,
-          "p95": 75.462,
-          "p99": 76.754,
-          "maximum": 78.099
+          "p50": 70.248,
+          "p95": 74.413,
+          "p99": 76.274,
+          "maximum": 77.662
         },
         "cpuMs": {
           "sampleCount": 200,
-          "p50": 28.737,
-          "p95": 33.718,
-          "p99": 51.273,
-          "maximum": 58.031
+          "p50": 28.316,
+          "p95": 31.418,
+          "p99": 54.014,
+          "maximum": 58.712
         },
-        "maximumProcessPeakResidentMemoryBytes": 309641216,
+        "maximumProcessPeakResidentMemoryBytes": 310755328,
         "failures": 0,
         "timeouts": 0,
         "failureRateBasisPoints": 0,
@@ -296,9 +296,9 @@
             "durationMs": {
               "sampleCount": 200,
               "p50": 0.016,
-              "p95": 0.02,
-              "p99": 0.022,
-              "maximum": 0.026
+              "p95": 0.018,
+              "p99": 0.021,
+              "maximum": 0.024
             }
           },
           {
@@ -308,110 +308,110 @@
               "p50": 0.011,
               "p95": 0.013,
               "p99": 0.015,
-              "maximum": 0.257
+              "maximum": 0.016
             }
           },
           {
             "stageId": "projection_admission",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.041,
+              "p50": 0.04,
               "p95": 0.045,
-              "p99": 0.056,
-              "maximum": 0.058
+              "p99": 0.052,
+              "maximum": 0.055
             }
           },
           {
             "stageId": "corpus_preparation",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 17.975,
-              "p95": 19.012,
-              "p99": 20.822,
-              "maximum": 21.149
+              "p50": 17.597,
+              "p95": 18.615,
+              "p99": 20.3,
+              "maximum": 21.486
             }
           },
           {
             "stageId": "search",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 17.733,
-              "p95": 18.727,
-              "p99": 19.336,
-              "maximum": 21.413
+              "p50": 17.354,
+              "p95": 17.966,
+              "p99": 18.933,
+              "maximum": 21.221
             }
           },
           {
             "stageId": "exact_loading",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.394,
-              "p95": 0.42100000000000004,
-              "p99": 0.442,
-              "maximum": 0.648
+              "p50": 0.385,
+              "p95": 0.40800000000000003,
+              "p99": 0.42400000000000004,
+              "maximum": 0.44400000000000006
             }
           },
           {
             "stageId": "context_assembly",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.421,
-              "p95": 0.449,
-              "p99": 0.467,
-              "maximum": 0.675
+              "p50": 0.411,
+              "p95": 0.435,
+              "p99": 0.452,
+              "maximum": 0.473
             }
           },
           {
             "stageId": "event_commit",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 9.728,
-              "p95": 11.041,
-              "p99": 12.514,
-              "maximum": 14.741
+              "p50": 9.847,
+              "p95": 11.289,
+              "p99": 13.275,
+              "maximum": 17.299
             }
           },
           {
             "stageId": "repository_snapshot",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 3.187,
-              "p95": 3.407,
-              "p99": 3.476,
-              "maximum": 7.14
+              "p50": 3.157,
+              "p95": 3.337,
+              "p99": 3.429,
+              "maximum": 5.429
             }
           },
           {
             "stageId": "lifecycle_inspection",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 12.853,
-              "p95": 13.452,
-              "p99": 15.068,
-              "maximum": 15.81
+              "p50": 12.646,
+              "p95": 13.318,
+              "p99": 14.85,
+              "maximum": 16.902
             }
           },
           {
             "stageId": "total",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 63.563,
-              "p95": 66.868,
-              "p99": 68.686,
-              "maximum": 70.608
+              "p50": 62.731,
+              "p95": 66.417,
+              "p99": 68.563,
+              "maximum": 69.777
             }
           }
         ]
       },
       "instrumentationOverheadMs": {
         "sampleCount": 200,
-        "p50": 4.7890000000000015,
-        "p95": 9.13900000000001,
-        "p99": 9.969999999999999,
-        "maximum": 12.13900000000001
+        "p50": 4.994,
+        "p95": 8.704000000000008,
+        "p99": 9.975999999999999,
+        "maximum": 10.841999999999999
       },
-      "candidateP95RegressionBasisPoints": 10805,
-      "candidateP95RegressionMs": 5.621000000000009,
+      "candidateP95RegressionBasisPoints": 10819,
+      "candidateP95RegressionMs": 5.631999999999991,
       "candidateP95RegressionBudgetMs": 25,
       "budgetStatus": "passed",
       "failureReasons": []
@@ -448,19 +448,19 @@
         "arm": "baseline",
         "durationMs": {
           "sampleCount": 200,
-          "p50": 108.156,
-          "p95": 113.125,
-          "p99": 115.429,
-          "maximum": 122.374
+          "p50": 108.825,
+          "p95": 114.993,
+          "p99": 119.072,
+          "maximum": 128.556
         },
         "cpuMs": {
           "sampleCount": 200,
-          "p50": 75.322,
-          "p95": 85.769,
-          "p99": 102.984,
-          "maximum": 138.183
+          "p50": 75.488,
+          "p95": 91.302,
+          "p99": 125.981,
+          "maximum": 137.289
         },
-        "maximumProcessPeakResidentMemoryBytes": 309641216,
+        "maximumProcessPeakResidentMemoryBytes": 310755328,
         "failures": 0,
         "timeouts": 0,
         "failureRateBasisPoints": 0,
@@ -475,19 +475,19 @@
         "arm": "candidate",
         "durationMs": {
           "sampleCount": 200,
-          "p50": 113.513,
-          "p95": 117.726,
-          "p99": 123.725,
-          "maximum": 124.523
+          "p50": 114.186,
+          "p95": 119.754,
+          "p99": 122.259,
+          "maximum": 126.124
         },
         "cpuMs": {
           "sampleCount": 200,
-          "p50": 76.295,
-          "p95": 94.66,
-          "p99": 121.885,
-          "maximum": 132.89
+          "p50": 76.595,
+          "p95": 88.677,
+          "p99": 107.586,
+          "maximum": 137.661
         },
-        "maximumProcessPeakResidentMemoryBytes": 309641216,
+        "maximumProcessPeakResidentMemoryBytes": 310755328,
         "failures": 0,
         "timeouts": 0,
         "failureRateBasisPoints": 0,
@@ -502,9 +502,9 @@
             "durationMs": {
               "sampleCount": 200,
               "p50": 0.019,
-              "p95": 0.021,
-              "p99": 0.023,
-              "maximum": 0.024
+              "p95": 0.022,
+              "p99": 0.024,
+              "maximum": 0.033
             }
           },
           {
@@ -513,8 +513,8 @@
               "sampleCount": 200,
               "p50": 0.012,
               "p95": 0.013,
-              "p99": 0.016,
-              "maximum": 0.022
+              "p99": 0.014,
+              "maximum": 0.016
             }
           },
           {
@@ -522,102 +522,102 @@
             "durationMs": {
               "sampleCount": 200,
               "p50": 0.042,
-              "p95": 0.054,
-              "p99": 0.059,
-              "maximum": 0.069
+              "p95": 0.053,
+              "p99": 0.057,
+              "maximum": 0.084
             }
           },
           {
             "stageId": "corpus_preparation",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 25.011,
-              "p95": 26.199,
-              "p99": 28.294,
-              "maximum": 28.508
+              "p50": 25.079,
+              "p95": 27.27,
+              "p99": 29.984,
+              "maximum": 31.251
             }
           },
           {
             "stageId": "search",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 40.923,
-              "p95": 43.794,
-              "p99": 45.26,
-              "maximum": 51.797
+              "p50": 41.004,
+              "p95": 42.946,
+              "p99": 44.906,
+              "maximum": 49.997
             }
           },
           {
             "stageId": "exact_loading",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.399,
-              "p95": 0.43,
-              "p99": 0.441,
-              "maximum": 0.6220000000000001
+              "p50": 0.39899999999999997,
+              "p95": 0.428,
+              "p99": 0.6420000000000001,
+              "maximum": 0.7110000000000001
             }
           },
           {
             "stageId": "context_assembly",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.429,
-              "p95": 0.46,
-              "p99": 0.469,
-              "maximum": 0.651
+              "p50": 0.428,
+              "p95": 0.458,
+              "p99": 0.667,
+              "maximum": 0.744
             }
           },
           {
             "stageId": "event_commit",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 10.357,
-              "p95": 11.861,
-              "p99": 13.424,
-              "maximum": 14.917
+              "p50": 10.423,
+              "p95": 12.195,
+              "p99": 14.74,
+              "maximum": 16.482
             }
           },
           {
             "stageId": "repository_snapshot",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 12.729,
-              "p95": 13.092,
-              "p99": 13.472,
-              "maximum": 13.787
+              "p50": 12.74,
+              "p95": 13.145,
+              "p99": 14.746,
+              "maximum": 17.082
             }
           },
           {
             "stageId": "lifecycle_inspection",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 13.834,
-              "p95": 14.64,
-              "p99": 16.27,
-              "maximum": 18.103
+              "p50": 13.686,
+              "p95": 14.694,
+              "p99": 15.851,
+              "maximum": 22.382
             }
           },
           {
             "stageId": "total",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 105.366,
-              "p95": 109.519,
-              "p99": 113.559,
-              "maximum": 115.672
+              "p50": 105.86,
+              "p95": 111.674,
+              "p99": 114.504,
+              "maximum": 117.443
             }
           }
         ]
       },
       "instrumentationOverheadMs": {
         "sampleCount": 200,
-        "p50": 5.164999999999992,
-        "p95": 9.289000000000001,
-        "p99": 14.25,
-        "maximum": 17.774
+        "p50": 5.278999999999996,
+        "p95": 10.064999999999998,
+        "p99": 12.594999999999999,
+        "maximum": 17.099999999999994
       },
-      "candidateP95RegressionBasisPoints": 10407,
-      "candidateP95RegressionMs": 4.600999999999999,
+      "candidateP95RegressionBasisPoints": 10414,
+      "candidateP95RegressionMs": 4.76100000000001,
       "candidateP95RegressionBudgetMs": 25,
       "budgetStatus": "passed",
       "failureReasons": []
@@ -654,19 +654,19 @@
         "arm": "baseline",
         "durationMs": {
           "sampleCount": 200,
-          "p50": 240.302,
-          "p95": 245.45,
-          "p99": 252.32,
-          "maximum": 258.019
+          "p50": 240.627,
+          "p95": 249.281,
+          "p99": 254.804,
+          "maximum": 258.462
         },
         "cpuMs": {
           "sampleCount": 200,
-          "p50": 232.803,
-          "p95": 258.06,
-          "p99": 272.744,
-          "maximum": 297.506
+          "p50": 232.898,
+          "p95": 264.59,
+          "p99": 277.691,
+          "maximum": 283.599
         },
-        "maximumProcessPeakResidentMemoryBytes": 309641216,
+        "maximumProcessPeakResidentMemoryBytes": 310755328,
         "failures": 0,
         "timeouts": 0,
         "failureRateBasisPoints": 0,
@@ -681,19 +681,19 @@
         "arm": "candidate",
         "durationMs": {
           "sampleCount": 200,
-          "p50": 245.805,
-          "p95": 252.72,
-          "p99": 256.545,
-          "maximum": 259.369
+          "p50": 246.429,
+          "p95": 253.122,
+          "p99": 260.76,
+          "maximum": 263.255
         },
         "cpuMs": {
           "sampleCount": 200,
-          "p50": 234.85,
-          "p95": 257.462,
-          "p99": 274.583,
-          "maximum": 283.25
+          "p50": 234.179,
+          "p95": 258.875,
+          "p99": 276.746,
+          "maximum": 278.294
         },
-        "maximumProcessPeakResidentMemoryBytes": 309641216,
+        "maximumProcessPeakResidentMemoryBytes": 310755328,
         "failures": 0,
         "timeouts": 0,
         "failureRateBasisPoints": 0,
@@ -709,8 +709,8 @@
               "sampleCount": 200,
               "p50": 0.021,
               "p95": 0.023,
-              "p99": 0.025,
-              "maximum": 0.026
+              "p99": 0.026,
+              "maximum": 0.032
             }
           },
           {
@@ -719,8 +719,8 @@
               "sampleCount": 200,
               "p50": 0.012,
               "p95": 0.014,
-              "p99": 0.016,
-              "maximum": 0.234
+              "p99": 0.015,
+              "maximum": 0.015
             }
           },
           {
@@ -729,101 +729,101 @@
               "sampleCount": 200,
               "p50": 0.044,
               "p95": 0.056,
-              "p99": 0.061,
-              "maximum": 0.065
+              "p99": 0.059,
+              "maximum": 0.061
             }
           },
           {
             "stageId": "corpus_preparation",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 47.485,
-              "p95": 50.576,
-              "p99": 52.848,
-              "maximum": 53.793
+              "p50": 47.204,
+              "p95": 49.443,
+              "p99": 52.098,
+              "maximum": 52.276
             }
           },
           {
             "stageId": "search",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 116.234,
-              "p95": 120.222,
-              "p99": 125.202,
-              "maximum": 126.854
+              "p50": 116.108,
+              "p95": 118.863,
+              "p99": 126.918,
+              "maximum": 127.45
             }
           },
           {
             "stageId": "exact_loading",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.42000000000000004,
-              "p95": 2.3529999999999998,
-              "p99": 3.464,
-              "maximum": 3.747
+              "p50": 0.41900000000000004,
+              "p95": 2.407,
+              "p99": 4.159,
+              "maximum": 4.249
             }
           },
           {
             "stageId": "context_assembly",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.452,
-              "p95": 2.383,
-              "p99": 3.491,
-              "maximum": 3.787
+              "p50": 0.451,
+              "p95": 2.433,
+              "p99": 4.185,
+              "maximum": 4.276
             }
           },
           {
             "stageId": "event_commit",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 10.711,
-              "p95": 13.695,
-              "p99": 16.509,
-              "maximum": 17.402
+              "p50": 10.783,
+              "p95": 14.269,
+              "p99": 15.199,
+              "maximum": 19.636
             }
           },
           {
             "stageId": "repository_snapshot",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 44.53,
-              "p95": 45.177,
-              "p99": 45.906,
-              "maximum": 47.276
+              "p50": 44.886,
+              "p95": 45.85,
+              "p99": 47.023,
+              "maximum": 47.335
             }
           },
           {
             "stageId": "lifecycle_inspection",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 14.889,
-              "p95": 16.355,
-              "p99": 17.156,
-              "maximum": 20.059
+              "p50": 15.027,
+              "p95": 16.411,
+              "p99": 17.523,
+              "maximum": 18.471
             }
           },
           {
             "stageId": "total",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 237.328,
-              "p95": 244.463,
-              "p99": 248.757,
-              "maximum": 251.926
+              "p50": 237.575,
+              "p95": 244.373,
+              "p99": 249.92,
+              "maximum": 252.932
             }
           }
         ]
       },
       "instrumentationOverheadMs": {
         "sampleCount": 200,
-        "p50": 5.326000000000022,
-        "p95": 12.841000000000008,
-        "p99": 17.238,
-        "maximum": 19.68500000000003
+        "p50": 4.90300000000002,
+        "p95": 13.962000000000018,
+        "p99": 22.437000000000012,
+        "maximum": 24.180000000000007
       },
-      "candidateP95RegressionBasisPoints": 10296,
-      "candidateP95RegressionMs": 7.27000000000001,
+      "candidateP95RegressionBasisPoints": 10154,
+      "candidateP95RegressionMs": 3.841000000000008,
       "candidateP95RegressionBudgetMs": 25,
       "budgetStatus": "passed",
       "failureReasons": []
@@ -860,19 +860,19 @@
         "arm": "baseline",
         "durationMs": {
           "sampleCount": 200,
-          "p50": 126.725,
-          "p95": 135.11,
-          "p99": 147.254,
-          "maximum": 166.05
+          "p50": 124.108,
+          "p95": 132.456,
+          "p99": 140.233,
+          "maximum": 147.025
         },
         "cpuMs": {
           "sampleCount": 200,
-          "p50": 57.67,
-          "p95": 69.476,
-          "p99": 83.728,
-          "maximum": 140.217
+          "p50": 56.108,
+          "p95": 64.668,
+          "p99": 81.703,
+          "maximum": 101.011
         },
-        "maximumProcessPeakResidentMemoryBytes": 309641216,
+        "maximumProcessPeakResidentMemoryBytes": 310755328,
         "failures": 0,
         "timeouts": 0,
         "failureRateBasisPoints": 0,
@@ -887,19 +887,19 @@
         "arm": "candidate",
         "durationMs": {
           "sampleCount": 200,
-          "p50": 133.991,
-          "p95": 139.319,
-          "p99": 150.596,
-          "maximum": 170.125
+          "p50": 131.011,
+          "p95": 135.654,
+          "p99": 139.743,
+          "maximum": 145.477
         },
         "cpuMs": {
           "sampleCount": 200,
-          "p50": 60.737,
-          "p95": 83.03,
-          "p99": 128.461,
-          "maximum": 141.791
+          "p50": 59.05,
+          "p95": 81.457,
+          "p99": 89.22,
+          "maximum": 96.71
         },
-        "maximumProcessPeakResidentMemoryBytes": 309641216,
+        "maximumProcessPeakResidentMemoryBytes": 310755328,
         "failures": 0,
         "timeouts": 0,
         "failureRateBasisPoints": 0,
@@ -913,10 +913,10 @@
             "stageId": "ingress_integrity",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.017,
-              "p95": 0.02,
-              "p99": 0.024,
-              "maximum": 0.025
+              "p50": 0.016,
+              "p95": 0.018,
+              "p99": 0.022,
+              "maximum": 0.022
             }
           },
           {
@@ -924,52 +924,52 @@
             "durationMs": {
               "sampleCount": 200,
               "p50": 0.012,
-              "p95": 0.014,
+              "p95": 0.013,
               "p99": 0.014,
-              "maximum": 0.019
+              "maximum": 0.015
             }
           },
           {
             "stageId": "event_commit",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 6.909000000000001,
-              "p95": 7.9190000000000005,
-              "p99": 9.892,
-              "maximum": 11.162
+              "p50": 6.866,
+              "p95": 7.813000000000001,
+              "p99": 9.303999999999998,
+              "maximum": 9.906
             }
           },
           {
             "stageId": "lifecycle_inspection",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 117.523,
-              "p95": 122.37899999999999,
-              "p99": 134.046,
-              "maximum": 152.327
+              "p50": 114.97200000000001,
+              "p95": 120.28399999999999,
+              "p99": 123.88199999999999,
+              "maximum": 128.87
             }
           },
           {
             "stageId": "total",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 125.133,
-              "p95": 130.376,
-              "p99": 141.416,
-              "maximum": 160.328
+              "p50": 122.398,
+              "p95": 127.53,
+              "p99": 131.479,
+              "maximum": 137.231
             }
           }
         ]
       },
       "instrumentationOverheadMs": {
         "sampleCount": 200,
-        "p50": 6.930999999999997,
-        "p95": 12.203999999999994,
-        "p99": 22.87100000000001,
-        "maximum": 25.944000000000003
+        "p50": 6.692999999999984,
+        "p95": 11.798000000000002,
+        "p99": 15.724999999999994,
+        "maximum": 21.960000000000008
       },
-      "candidateP95RegressionBasisPoints": 10312,
-      "candidateP95RegressionMs": 4.208999999999975,
+      "candidateP95RegressionBasisPoints": 10241,
+      "candidateP95RegressionMs": 3.1980000000000075,
       "candidateP95RegressionBudgetMs": 25,
       "budgetStatus": "passed",
       "failureReasons": []
@@ -1006,19 +1006,19 @@
         "arm": "baseline",
         "durationMs": {
           "sampleCount": 200,
-          "p50": 210,
-          "p95": 221.462,
-          "p99": 226.855,
-          "maximum": 230.027
+          "p50": 208.102,
+          "p95": 219.803,
+          "p99": 225.681,
+          "maximum": 229.255
         },
         "cpuMs": {
           "sampleCount": 200,
-          "p50": 312.35,
-          "p95": 335.37,
-          "p99": 352.341,
-          "maximum": 358.657
+          "p50": 311.912,
+          "p95": 337.067,
+          "p99": 367.768,
+          "maximum": 374.867
         },
-        "maximumProcessPeakResidentMemoryBytes": 309641216,
+        "maximumProcessPeakResidentMemoryBytes": 310755328,
         "failures": 0,
         "timeouts": 0,
         "failureRateBasisPoints": 0,
@@ -1033,19 +1033,19 @@
         "arm": "candidate",
         "durationMs": {
           "sampleCount": 200,
-          "p50": 224.835,
-          "p95": 237.944,
-          "p99": 244.403,
-          "maximum": 248.059
+          "p50": 224.529,
+          "p95": 236.586,
+          "p99": 244.86,
+          "maximum": 256.812
         },
         "cpuMs": {
           "sampleCount": 200,
-          "p50": 315.345,
-          "p95": 339.298,
-          "p99": 344.377,
-          "maximum": 354.765
+          "p50": 315.824,
+          "p95": 342.279,
+          "p99": 360.797,
+          "maximum": 382.29
         },
-        "maximumProcessPeakResidentMemoryBytes": 309641216,
+        "maximumProcessPeakResidentMemoryBytes": 310755328,
         "failures": 0,
         "timeouts": 0,
         "failureRateBasisPoints": 0,
@@ -1061,121 +1061,121 @@
               "sampleCount": 200,
               "p50": 0.04,
               "p95": 0.044,
-              "p99": 0.05,
-              "maximum": 0.052
+              "p99": 0.045,
+              "maximum": 0.046
             }
           },
           {
             "stageId": "repository_discovery",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.16,
-              "p95": 0.176,
-              "p99": 0.428,
-              "maximum": 0.435
+              "p50": 0.159,
+              "p95": 0.17,
+              "p99": 0.176,
+              "maximum": 0.418
             }
           },
           {
             "stageId": "projection_admission",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 0.048,
-              "p95": 0.063,
-              "p99": 0.065,
-              "maximum": 0.071
+              "p50": 0.05,
+              "p95": 0.066,
+              "p99": 0.069,
+              "maximum": 0.076
             }
           },
           {
             "stageId": "corpus_preparation",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 43.531,
-              "p95": 48.702,
-              "p99": 50.236,
-              "maximum": 50.711
+              "p50": 43.743,
+              "p95": 48.937,
+              "p99": 49.927,
+              "maximum": 53.599
             }
           },
           {
             "stageId": "search",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 83.793,
-              "p95": 87.803,
-              "p99": 89.987,
-              "maximum": 91.079
+              "p50": 83.456,
+              "p95": 88.091,
+              "p99": 92.828,
+              "maximum": 95.95
             }
           },
           {
             "stageId": "exact_loading",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 5.088,
-              "p95": 9.986,
-              "p99": 11.752,
-              "maximum": 12.210999999999999
+              "p50": 5.449999999999999,
+              "p95": 9.734,
+              "p99": 10.94,
+              "maximum": 11.659
             }
           },
           {
             "stageId": "context_assembly",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 5.105,
-              "p95": 10.014,
-              "p99": 11.779,
-              "maximum": 12.238
+              "p50": 5.476,
+              "p95": 9.758,
+              "p99": 10.968,
+              "maximum": 11.689
             }
           },
           {
             "stageId": "event_commit",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 27.854,
-              "p95": 40.395,
-              "p99": 45.159,
-              "maximum": 49.087
+              "p50": 28.281,
+              "p95": 38.698,
+              "p99": 41.967,
+              "maximum": 43.335
             }
           },
           {
             "stageId": "repository_snapshot",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 23.73,
-              "p95": 26.064,
-              "p99": 27.752,
-              "maximum": 30.022
+              "p50": 23.46,
+              "p95": 25.944,
+              "p99": 30.055,
+              "maximum": 31.644
             }
           },
           {
             "stageId": "lifecycle_inspection",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 21.546,
-              "p95": 29.342,
-              "p99": 32.23,
-              "maximum": 34.206
+              "p50": 21.108,
+              "p95": 29.495,
+              "p99": 32.13,
+              "maximum": 36.123
             }
           },
           {
             "stageId": "total",
             "durationMs": {
               "sampleCount": 200,
-              "p50": 205.105,
-              "p95": 220.306,
-              "p99": 224.276,
-              "maximum": 226.157
+              "p50": 205.209,
+              "p95": 217.549,
+              "p99": 224.645,
+              "maximum": 237.597
             }
           }
         ]
       },
       "instrumentationOverheadMs": {
         "sampleCount": 200,
-        "p50": 15.187999999999988,
-        "p95": 32.003000000000014,
-        "p99": 37.18600000000001,
-        "maximum": 42.191
+        "p50": 14.920999999999992,
+        "p95": 32.02599999999998,
+        "p99": 39.037000000000006,
+        "maximum": 51.775000000000006
       },
-      "candidateP95RegressionBasisPoints": 10744,
-      "candidateP95RegressionMs": 16.482,
+      "candidateP95RegressionBasisPoints": 10764,
+      "candidateP95RegressionMs": 16.783000000000015,
       "candidateP95RegressionBudgetMs": 25,
       "budgetStatus": "passed",
       "failureReasons": []
@@ -1188,5 +1188,5 @@
     "repositoryPaths": "excluded",
     "credentials": "excluded"
   },
-  "reportId": "perf_9deeca0976a71e2f9f8c4a81"
+  "reportId": "perf_0a6e6f2bab4e79da94679ff8"
 }
