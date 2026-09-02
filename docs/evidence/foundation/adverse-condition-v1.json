@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidenceBuildDigest": "sha256:1a7bc485f1d73d5631646d15034344843f42b4c57e27e1a5b22f38a2deb3fc2d",
-  "repositoryRevision": "sha256:6f01cd7c387b83a9dd888d9fabd75d8b3106757eeaf14d0f7dde9f63eab0d637",
+  "repositoryRevision": "sha256:75e30bf65ed4a5dfc390b43db2553a3a2a2847cf7c5a0b9e66e57461279e156e",
   "environment": {
     "operatingSystem": "darwin",
     "architecture": "arm64",
@@ -819,8 +819,8 @@
   ],
   "telemetry": {
     "eventTypeCount": 69,
-    "fieldCount": 579,
-    "registryDigest": "sha256:f3a9c541fdbb1bccf4b48c34a68a0e1b8a750d7d7296d6c6dc86c72b5f4281a1"
+    "fieldCount": 588,
+    "registryDigest": "sha256:33a5fdf81fbf3ef8e6b3d25f21611a58354e6bf9396829b92a4adc0d267aa6e3"
   },
   "threats": [
     {
@@ -1137,9 +1137,9 @@
       "eventWindow": 1000,
       "assignmentWindow": 128,
       "concurrentWorkers": 4,
-      "durationMs": 0.101542,
-      "cpuMs": 0.127,
-      "processPeakResidentMemoryBytes": 184123392,
+      "durationMs": 0.093667,
+      "cpuMs": 0.12,
+      "processPeakResidentMemoryBytes": 184205312,
       "status": "passed"
     },
     {
@@ -1147,9 +1147,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 16,
-      "durationMs": 0.269666,
-      "cpuMs": 0.316,
-      "processPeakResidentMemoryBytes": 184139776,
+      "durationMs": 0.282583,
+      "cpuMs": 0.335,
+      "processPeakResidentMemoryBytes": 184221696,
       "status": "passed"
     },
     {
@@ -1157,9 +1157,9 @@
       "eventWindow": 100000,
       "assignmentWindow": 10000,
       "concurrentWorkers": 32,
-      "durationMs": 2.488542,
-      "cpuMs": 2.848,
-      "processPeakResidentMemoryBytes": 184991744,
+      "durationMs": 2.447333,
+      "cpuMs": 2.801,
+      "processPeakResidentMemoryBytes": 185090048,
       "status": "passed"
     },
     {
@@ -1167,9 +1167,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 32,
-      "durationMs": 0.261875,
-      "cpuMs": 0.334,
-      "processPeakResidentMemoryBytes": 185024512,
+      "durationMs": 0.257916,
+      "cpuMs": 0.365,
+      "processPeakResidentMemoryBytes": 185122816,
       "status": "passed"
     }
   ],
@@ -1259,7 +1259,7 @@
     {
       "area": "security",
       "path": "packages/event-contract/test/redaction.test.ts",
-      "sourceHash": "sha256:d0065ff2d464b6faa1878a011376cef7851e9bf178ba86c4c56f93c378b9192e"
+      "sourceHash": "sha256:bf28cb6b35167a3610a24a1e25126d0be6b032404d68a9e7aff2d18e84a873b6"
     },
     {
       "area": "recovery",
@@ -1345,5 +1345,5 @@
     "credentials": "excluded",
     "absolutePaths": "excluded"
   },
-  "reportId": "adverse_dacc0d072cd4c3496cc76cb9"
+  "reportId": "adverse_e339f4ed310ace6351fcc6b1"
 }
