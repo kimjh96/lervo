@@ -48,6 +48,8 @@ export const eventTypesV1 = [
   "deliberation.completed",
   "development.pattern.observed",
   "development.pattern.transitioned",
+  "development.pattern.evaluation.registered",
+  "development.pattern.effect.observed",
   "knowledge.candidate.created",
   "knowledge.candidate.reviewed",
   "knowledge.reconciliation.reviewed",

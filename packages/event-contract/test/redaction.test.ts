@@ -3,6 +3,36 @@ import { describe, expect, it } from "vitest";
 import { RedactionError, sanitizeEventPayload } from "../src/index.js";
 
 describe("event payload privacy boundary", () => {
+  it("keeps bounded effect coordinates while excluding adapter-private evidence", () => {
+    const payload = {
+      comparisonId: `iecomparison_${"a".repeat(24)}`,
+      patternId: `pattern_${"b".repeat(24)}`,
+      protocolId: `ieprotocol_${"c".repeat(24)}`,
+      comparisonPlanId: `ieplan_${"d".repeat(24)}`,
+      comparisonArtifactId: `art_${"e".repeat(64)}`,
+      comparisonArtifactHash: `sha256:${"e".repeat(64)}`,
+      registrationEventId: `evt_${"f".repeat(32)}`,
+      promotionEventId: `evt_${"1".repeat(32)}`,
+      targetContentHash: `sha256:${"2".repeat(64)}`,
+      adapterId: "iobs_repository_metrics",
+      adapterVersion: "1.0.0",
+      adapterDescriptorHash: `sha256:${"3".repeat(64)}`,
+      treatmentWindowHash: `sha256:${"4".repeat(64)}`,
+      treatmentObservationHash: `sha256:${"5".repeat(64)}`,
+      overall: "mixed_or_unfavorable_observation",
+      attribution: "unestablished",
+      rollbackDisposition: "review_required",
+      metricCount: 2,
+      observedAt: "2026-09-02T00:00:00.000Z",
+    };
+    expect(
+      sanitizeEventPayload("development.pattern.effect.observed", {
+        ...payload,
+        rawEvidence: "private provider-native evidence",
+      }),
+    ).toMatchObject({ payload, redactions: [{ path: "$.rawEvidence" }] });
+  });
+
   it("keeps bounded foundation observations and rejects contradictory resource counters", () => {
     const payload = {
       workId: `wrk_${"a".repeat(24)}`,

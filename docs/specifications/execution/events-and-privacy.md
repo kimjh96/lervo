@@ -159,6 +159,18 @@ All workspace payloads exclude absolute and repository-relative paths, branch na
 
 `development.pattern.observed` records pattern and observation IDs, provider, source-snapshot and evidence digests, independent occurrence count, and time. `development.pattern.transitioned` records transition and pattern IDs, prior and next lifecycle states, candidate and review artifact coordinates, target kind, exact approval digest, and time. They exclude candidate and review bodies, occurrence and target paths, verification commands, reviewer identity, source text, credentials, and model output. Observation proves only evidence submission, not that a convention is true or approved. Transition success means the immutable artifact or exact promotion transaction committed. Storage or event failure records no transition, and promotion restores changed bytes.
 
+`development.pattern.evaluation.registered` records the exact pre-promotion protocol, plan,
+candidate, review, intended target, adapter, baseline-window, baseline-observation, metric, artifact,
+and time coordinates. `development.pattern.effect.observed` records the exact protocol, promotion,
+comparison, unchanged target, adapter, treatment-window, treatment-observation, aggregate,
+attribution, rollback disposition, metric count, artifact, and time coordinates. Bodies, paths,
+request prose, raw samples, native IDs, user identities, credentials, and unrestricted errors are
+excluded. Registration proves only that an injected adapter verified the bound baseline before
+promotion. Effect observation proves only the bound comparison; attribution is always
+`unestablished`, and `review_required` never authorizes automatic rollback or model-learning,
+truth, correctness, or semantic-use claims. Invalid timing or binding, adapter drift, storage or
+event failure creates no success event.
+
 `terminal.integration.applied` records contract, providers, provider-target path digests and after-hashes, generated-runtime path digest and after-hash, approval hash, and time. It excludes prompts, bodies, raw configuration, commands, runtime bytes, credentials, absolute paths, and output. Failure rolls back and emits no success event.
 
 Bounded provider and event activation receipts contain provider, event, result, time, and bounded hashes and counts. They prove only that the Lervo hook endpoint executed or prepared context, not that the provider launched, accepted, understood, referenced, or used it. Status labels this evidence `hook_endpoint_observed_not_provider_authorship`. Receipt failure blocks the hook. Status validates receipts against events, distinguishes endpoint observation from readiness, and emits a provider-specific action until every required event is observed. Lervo never changes local or global hook trust.

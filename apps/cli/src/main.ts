@@ -113,7 +113,7 @@ export async function runCli(
   if (command === "init") return runInitCommand(args.slice(1), io);
   if (command === "upgrade") return runUpgradeCommand(args.slice(1), io);
   if (command === "migrate") return runMigrateCommand(args.slice(1), io);
-  if (command === "knowledge") return runKnowledgeCommand(args.slice(1), io);
+  if (command === "knowledge") return runKnowledgeCommand(args.slice(1), io, services);
   if (command === "loop") return runLoopCommand(args.slice(1), io, services);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);
   if (command === "deliberate") return runDeliberateCommand(args.slice(1), io, services);

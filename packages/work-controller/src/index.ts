@@ -10,4 +10,5 @@ export * from "./governed-loop-decision.js";
 export * from "./governed-attempt-command.js";
 export * from "./governed-completion-reconciliation-command.js";
 export * from "./graph-projection.js";
+export * from "./improvement-effect-plan.js";
 export * from "./report.js";

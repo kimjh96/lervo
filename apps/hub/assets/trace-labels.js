@@ -42,6 +42,8 @@ const eventLabels = {
   "knowledge.materialization.applied": "Knowledge materialization applied",
   "development.pattern.observed": "Development pattern observed",
   "development.pattern.transitioned": "Development pattern transitioned",
+  "development.pattern.evaluation.registered": "Development pattern evaluation registered",
+  "development.pattern.effect.observed": "Development pattern effect observed",
   "terminal.integration.applied": "Terminal integration applied",
   "terminal.context.prepared": "Terminal context prepared",
   "terminal.turn.declared": "Terminal turn declared",

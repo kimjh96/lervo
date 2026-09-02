@@ -95,7 +95,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:b3809b32c74e8a247676df52c0765938e0036cc5e248e4f119ccba35d2273fda",
+      "contentHash": "sha256:8a03c7d094fdfa577bf115117907a85d6dc3c7cdad0f92feeb3484c06e138dff",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
       "disposition": "cohesive"
@@ -312,7 +312,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:c12381808449c9135c7b715d41acf13b390e28de3552157f54d868d8b238acaf",
+      "contentHash": "sha256:36ecb7a3ca1975aeac1f88822fe42d307548b09ba3b83da6fc964561ac25bdfd",
       "responsibility": "Repository schema validator registry",
       "rationale": "The module declaratively registers and exposes validators for the versioned schema catalog; its length follows schema inventory and it owns no domain workflow or external effect.",
       "disposition": "cohesive"

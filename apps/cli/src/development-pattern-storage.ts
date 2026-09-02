@@ -28,7 +28,11 @@ export function allPatternEvents(storage: ProjectStorage): EventEnvelope[] {
       events: storage.events,
       throughSeq: latest.seq,
       visit: (event) => {
-        if (event.type.startsWith("development.pattern.")) events.push(event);
+        if (
+          event.type === "development.pattern.observed" ||
+          event.type === "development.pattern.transitioned"
+        )
+          events.push(event);
       },
     });
   return events;

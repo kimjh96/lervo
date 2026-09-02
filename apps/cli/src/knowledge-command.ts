@@ -12,7 +12,8 @@ import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { runKnowledgeCompilationCommand } from "./knowledge-compilation-command.js";
 import { runDocumentNormalizationCommand } from "./document-normalization-command.js";
 import { runDevelopmentPatternCommand } from "./development-pattern-command.js";
-import type { CliIo } from "./types.js";
+import { runImprovementEffectCommand } from "./improvement-effect-command.js";
+import type { CliIo, CliServices } from "./types.js";
 import { runKnowledgeInstruction } from "./knowledge-instruction-command.js";
 import { runKnowledgeSemanticMaterialize } from "./knowledge-materialization-command.js";
 import { runKnowledgeOkfExchange } from "./knowledge-okf-command.js";
@@ -25,7 +26,11 @@ export { runKnowledgeMigration } from "./knowledge-migration-command.js";
 export { formatKnowledgeMigrationPlan } from "./knowledge-migration-format.js";
 export { knowledgeUsage } from "./knowledge-usage.js";
 
-export async function runKnowledgeCommand(args: string[], io: CliIo): Promise<number> {
+export async function runKnowledgeCommand(
+  args: string[],
+  io: CliIo,
+  services: Pick<CliServices, "improvementObservationPort"> = {},
+): Promise<number> {
   const subcommand = args[0];
   if (subcommand === "export" || subcommand === "import" || subcommand === "okf")
     return runKnowledgeOkfExchange(args, io);
@@ -106,6 +111,8 @@ export async function runKnowledgeCommand(args: string[], io: CliIo): Promise<nu
     });
   }
   if (subcommand === "normalize") return runDocumentNormalizationCommand(args.slice(1), io);
+  if (subcommand === "pattern" && args[1] === "effect")
+    return runImprovementEffectCommand(args.slice(2), io, services);
   if (subcommand === "pattern") return runDevelopmentPatternCommand(args.slice(1), io);
   if (subcommand === "review-policy") return runKnowledgeReviewPolicy(args.slice(1), io);
   if (subcommand === "review") return runKnowledgeReview(args.slice(1), io);

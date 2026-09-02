@@ -6,6 +6,8 @@ export const knowledgeUsage = `  lervo knowledge refresh [--root <path>] [--rebu
   lervo knowledge pattern status [<pattern-id>] [--root <path>] [--json]
   lervo knowledge pattern review <pattern-id> --decision <accept|reject|defer|supersede> --reviewer <id> --approval <candidate-hash> [--superseded-by <pattern-id>] [--root <path>] [--json]
   lervo knowledge pattern promote <pattern-id> [--apply --approval <plan-id>] [--root <path>] [--json]
+  lervo knowledge pattern effect register --from <protocol.json> [--apply <plan-id> --write] [--root <path>] [--json]
+  lervo knowledge pattern effect observe --from <observation.json> [--apply <plan-id> --write] [--root <path>] [--json]
   lervo knowledge impact [--root <path>] [--json]
   lervo knowledge refresh-candidate [--root <path>] [--json]
   lervo knowledge compile --provider <codex|claude> [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <1000..600000>] [--json]

@@ -115,10 +115,12 @@ task observation
   -> bounded post-promotion effect observation
 ```
 
-The first five transitions substantially reuse current Lervo contracts. The final effect
-observation is the main future gap. It should compare observable outcomes such as source
-recall, unnecessary context, verification success, repeated failure, rework, and user
-correction without claiming internal model learning.
+The first five transitions reuse existing Lervo contracts. The version-1 verified-effect
+contract now pre-registers a baseline and compares observable source recall, unnecessary
+context, verification success, repeated failure, rework, and user correction after exact
+promotion. Attribution remains unestablished, and unfavorable evidence requests review rather
+than automatic rollback. Production observation adapters and stronger causal designs remain
+future work.
 
 ## Adaptable ideas
 

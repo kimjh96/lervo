@@ -185,6 +185,26 @@ validation; idempotent current replay; and no second delivery. Quality, type, pa
 build, full tests, documentation and knowledge lifecycle, foundation checks, and task-base release
 completion must pass with reviewed minor release intent.
 
+## GLA9: Verified post-promotion improvement observation
+
+GLA9 pre-registers an exact evaluation protocol while a development pattern is reviewed, then
+binds a post-promotion treatment observation to the same candidate, review, target, adapter, metric
+set, and exact promotion event. The pure controller reports favorable, unfavorable,
+no-material-difference, and insufficient observations with fixed version-1 policy.
+
+Canonical events and CAS retain the protocol and comparison; the current view is a bounded
+rebuildable projection. The stock CLI has no measurement authority, while an injected versioned
+adapter verifies rate observations and keeps native evidence private. Attribution always remains
+unestablished. Unfavorable evidence requires review and never authorizes automatic rollback,
+self-modification, truth promotion, or a claim that a provider model learned.
+
+GLA9 is accepted when focused tests prove pre-promotion registration, exact adapter reinspection,
+baseline and treatment verification, timing and target drift blocking, deterministic comparison,
+insufficient-sample separation, privacy allowlisting, default no-authority behavior, idempotent
+event replay, rebuildable projection, and no automatic rollback. Quality, type, package-boundary,
+build, full tests, documentation and knowledge lifecycle, foundation checks, and task-base release
+completion must pass with reviewed minor release intent.
+
 ## Non-goals
 
 - unattended or timer-based scheduling;
@@ -206,8 +226,8 @@ minor release intent.
 
 ## Next sequence
 
-1. Connect verified improvement candidates and post-promotion effect observation.
-2. Add production connector adapters only with shared conformance, credential, and recovery proofs.
+1. Add production connector and observation adapters only with shared conformance, credential, and
+   recovery proofs.
 
 ## References
 
@@ -220,7 +240,9 @@ minor release intent.
 - [ADR-0341](../decisions/execution/orchestration/0341-project-current-objective-and-observed-token-budgets.md)
 - [ADR-0342](../decisions/execution/orchestration/0342-project-assignment-interactions-from-workforce-handoffs.md)
 - [ADR-0344](../decisions/execution/orchestration/0344-deliver-assignment-artifacts-through-injected-connectors.md)
+- [ADR-0345](../decisions/execution/orchestration/0345-observe-reviewed-improvement-effects-without-self-learning-claims.md)
 - [Assignment interaction specification](../specifications/execution/assignment-interactions.md)
 - [Assignment connector specification](../specifications/execution/assignment-connectors.md)
 - [Assignment routine specification](../specifications/execution/assignment-routines.md)
+- [Verified improvement effects](../specifications/execution/verified-improvement-effects.md)
 - [Execution specification](../specifications/execution.md)

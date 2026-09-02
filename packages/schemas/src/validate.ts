@@ -35,6 +35,8 @@ import { deliberationOutcomeSchema } from "./deliberation-outcome.js";
 import { deliberationPolicySchema } from "./deliberation-policy.js";
 import { deliberationWorkflowSourceSchema } from "./deliberation-workflow.js";
 import {
+  developmentPatternEffectObservedEventPayloadSchema,
+  developmentPatternEvaluationRegisteredEventPayloadSchema,
   developmentPatternObservedEventPayloadSchema,
   developmentPatternTransitionedEventPayloadSchema,
 } from "./development-pattern-event.js";
@@ -312,6 +314,12 @@ const validators = {
   developmentPatternObservedEventPayload: ajv.compile(developmentPatternObservedEventPayloadSchema),
   developmentPatternTransitionedEventPayload: ajv.compile(
     developmentPatternTransitionedEventPayloadSchema,
+  ),
+  developmentPatternEvaluationRegisteredEventPayload: ajv.compile(
+    developmentPatternEvaluationRegisteredEventPayloadSchema,
+  ),
+  developmentPatternEffectObservedEventPayload: ajv.compile(
+    developmentPatternEffectObservedEventPayloadSchema,
   ),
   adapter: ajv.compile(adapterContractMessageSchema),
   role: ajv.compile(roleProfileSchema),
