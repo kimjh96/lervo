@@ -165,6 +165,26 @@ arbitrary prompt execution or unattended trigger. Quality, type, package-boundar
 tests, documentation and knowledge lifecycle, foundation checks, and task-base release completion
 must pass with reviewed minor release intent.
 
+## GLA8: Authenticated assignment connector delivery
+
+GLA8 binds one artifact from a canonical assignment handoff to a provider-neutral connector,
+internal destination, and content-bound chat publication permit. A pure route plan derives exact
+outbound and attempt identities without bodies or native platform identifiers. The stock CLI can
+plan locally but has no external-delivery authority.
+
+Exact apply re-inspects an injected connector, fails on plan drift, and requires the adapter to
+authorize and durably reserve before its one external effect. Delivered, rejected, and unknown
+observations remain distinct. Exact replay returns a current durable observation, reservation
+conflict blocks, and unknown is never retried automatically. No inbound room event creates,
+claims, approves, cancels, retries, completes, or starts an assignment.
+
+GLA8 is accepted when focused tests prove exact deterministic planning; source, event, artifact,
+publication, connector, destination, and workstream blocking; malformed and contradictory evidence
+rejection; default no-authority behavior; inspect-before-reserve sequencing; durable reservation
+validation; idempotent current replay; and no second delivery. Quality, type, package-boundary,
+build, full tests, documentation and knowledge lifecycle, foundation checks, and task-base release
+completion must pass with reviewed minor release intent.
+
 ## Non-goals
 
 - unattended or timer-based scheduling;
@@ -186,8 +206,8 @@ minor release intent.
 
 ## Next sequence
 
-1. Add Buzz-like connector routes without granting room-based authority.
-2. Connect verified improvement candidates and post-promotion effect observation.
+1. Connect verified improvement candidates and post-promotion effect observation.
+2. Add production connector adapters only with shared conformance, credential, and recovery proofs.
 
 ## References
 
@@ -199,6 +219,8 @@ minor release intent.
 - [ADR-0340](../decisions/execution/orchestration/0340-add-read-only-local-operating-board.md)
 - [ADR-0341](../decisions/execution/orchestration/0341-project-current-objective-and-observed-token-budgets.md)
 - [ADR-0342](../decisions/execution/orchestration/0342-project-assignment-interactions-from-workforce-handoffs.md)
+- [ADR-0344](../decisions/execution/orchestration/0344-deliver-assignment-artifacts-through-injected-connectors.md)
 - [Assignment interaction specification](../specifications/execution/assignment-interactions.md)
+- [Assignment connector specification](../specifications/execution/assignment-connectors.md)
 - [Assignment routine specification](../specifications/execution/assignment-routines.md)
 - [Execution specification](../specifications/execution.md)

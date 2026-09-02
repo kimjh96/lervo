@@ -45,6 +45,9 @@ connector cannot upgrade those states without its own exact evidence contract.
 same report and contains no mutation control. `lervo assignment mention` is a separate plan/apply
 entrypoint and pairs `--apply` with `--write`.
 
+Outbound connector delivery is a separate exact-effect contract. It cannot infer or mutate these
+interaction projections; see [assignment connector delivery](assignment-connectors.md).
+
 ## Privacy and failure meaning
 
 Plans and reports exclude message, task, and acceptance bodies; repository paths; prompts; provider

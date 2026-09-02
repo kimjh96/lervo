@@ -17,6 +17,10 @@ import {
   assignmentRoutineUsage,
   runAssignmentRoutineCommand,
 } from "./assignment-routine-command.js";
+import {
+  assignmentConnectorUsage,
+  runAssignmentConnectorCommand,
+} from "./assignment-connector-command.js";
 import { runInitCommand, initUsage } from "./init-command.js";
 import { runLoopCommand, loopUsage } from "./loop-command.js";
 import { executeManagedRun } from "./managed-run.js";
@@ -69,6 +73,7 @@ ${workstreamUsage}
 ${workspaceUsage}
 ${workforceUsage}
 ${assignmentCommunicationUsage}
+${assignmentConnectorUsage}
 ${assignmentRoutineUsage}
 ${roleUsage}
 ${readmeUsage}
@@ -125,6 +130,9 @@ export async function runCli(
   if (command === "workspace") return runWorkspaceCommand(args.slice(1), io);
   if (command === "assignment" && args[1] === "mention") {
     return runAssignmentCommunicationCommand(args.slice(1), io);
+  }
+  if (command === "assignment" && args[1] === "connector") {
+    return runAssignmentConnectorCommand(args.slice(1), io, services);
   }
   if (command === "routine") return runAssignmentRoutineCommand(args.slice(1), io);
   if (command === "workforce" || command === "agent" || command === "assignment")

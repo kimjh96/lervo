@@ -58,8 +58,9 @@ bypassing lease, approval, verification, event, or recovery authority. Token adm
 are exact to provider and accounting descriptor. Unlike groups stay separate, and observed usage
 is neither a reservation nor a billing cap.
 
-See [interactions](../specifications/execution/assignment-interactions.md) and
-[assignment routines](../specifications/execution/assignment-routines.md).
+See [interactions](../specifications/execution/assignment-interactions.md),
+[routines](../specifications/execution/assignment-routines.md), and
+[connectors](../specifications/execution/assignment-connectors.md).
 
 Decisions: [context preparation](../decisions/execution/orchestration/0006-deterministic-context-preparation.md), [context delivery](../decisions/execution/providers/0007-provider-neutral-context-delivery.md), [managed context gate](../decisions/execution/orchestration/0008-managed-context-gate-orchestration.md), [Codex adapter](../decisions/execution/providers/0009-codex-app-server-managed-adapter.md), [Claude adapter](../decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md), [run lifecycle](../decisions/execution/providers/0011-managed-provider-run-lifecycle.md), [terminal integration](../decisions/execution/providers/0196-fail-closed-provider-terminal-integration.md), [unmanaged observation](../decisions/execution/providers/0197-unmanaged-terminal-context-observation.md), [managed grounding](../decisions/execution/providers/0198-managed-context-grounding-and-coverage.md), [natural-language finalization](../decisions/execution/providers/0200-natural-language-terminal-turn-finalization.md), [provider-confirmed capability activation](../decisions/execution/providers/0211-provider-confirmed-capability-activation.md), [isolated agent workspaces](../decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md), and [headless governed loops](../decisions/execution/orchestration/0336-adopt-headless-governed-loop-and-assignment-graph.md).
 

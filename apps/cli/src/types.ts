@@ -1,6 +1,7 @@
 import type { DoctorInspection, DoctorScope } from "@lervo/diagnostics";
 import type { EnvironmentObservation, EnvironmentSourceManifest } from "@lervo/environment";
 import type { ProjectStorage } from "@lervo/project-storage";
+import type { AssignmentConnectorPortV1 } from "@lervo/application-contract";
 
 import type { ExecuteManagedRun } from "./managed-run.js";
 import type { ExecuteManagedDeliberation } from "./managed-deliberation.js";
@@ -45,6 +46,7 @@ export interface CliServices {
   finalizeGovernedAssignment: FinalizeGovernedAssignment;
   reconcileGovernedAssignment: ReconcileGovernedAssignment;
   prepareSearchQueries?: PrepareProductionSearchQueries | undefined;
+  assignmentConnectorPort?: AssignmentConnectorPortV1 | undefined;
 }
 
 export type CliServiceOverrides = Partial<CliServices>;

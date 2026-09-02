@@ -75,6 +75,14 @@ coordinates. The event proves only that the workforce state and route record com
 it does not prove message delivery, acknowledgment, provider receipt, understanding, action,
 review, verification, or consensus. Bodies and mention prose remain excluded.
 
+Assignment connector delivery adds no repository event. Its injected adapter durably owns
+`reserved`, `current`, or `conflict` pre-send state and `delivered`, `rejected`, or `unknown`
+terminal observation. Core validation binds exact plan, outbound, connector, internal destination,
+reservation, attempt, receipt-hash, delivery-key-hash, bounded failure-code, and time fields. Native
+platform identifiers, credentials, content bodies, paths, and unrestricted errors remain adapter
+private. Unknown means an effect may have occurred and never authorizes automatic retry. Connector
+delivery does not upgrade workforce route, acknowledgment, attention, or execution evidence.
+
 The governed-loop graph remains rebuildable and adds no durable graph state. Its report
 replays current assignment state plus existing causal, run, verification, and resource
 events. Approval requirements leave the report only as digests. Verified approval
