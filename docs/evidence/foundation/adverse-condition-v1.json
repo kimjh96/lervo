@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidenceBuildDigest": "sha256:1a7bc485f1d73d5631646d15034344843f42b4c57e27e1a5b22f38a2deb3fc2d",
-  "repositoryRevision": "sha256:75e30bf65ed4a5dfc390b43db2553a3a2a2847cf7c5a0b9e66e57461279e156e",
+  "repositoryRevision": "sha256:a1c7619c9222ea74c71b77cf4ac2a7266d1424d45aa6f5e2131ae352773a6441",
   "environment": {
     "operatingSystem": "darwin",
     "architecture": "arm64",
@@ -1137,9 +1137,9 @@
       "eventWindow": 1000,
       "assignmentWindow": 128,
       "concurrentWorkers": 4,
-      "durationMs": 0.093667,
-      "cpuMs": 0.12,
-      "processPeakResidentMemoryBytes": 184205312,
+      "durationMs": 0.113208,
+      "cpuMs": 0.135,
+      "processPeakResidentMemoryBytes": 180912128,
       "status": "passed"
     },
     {
@@ -1147,9 +1147,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 16,
-      "durationMs": 0.282583,
-      "cpuMs": 0.335,
-      "processPeakResidentMemoryBytes": 184221696,
+      "durationMs": 0.274042,
+      "cpuMs": 0.321,
+      "processPeakResidentMemoryBytes": 180928512,
       "status": "passed"
     },
     {
@@ -1157,9 +1157,9 @@
       "eventWindow": 100000,
       "assignmentWindow": 10000,
       "concurrentWorkers": 32,
-      "durationMs": 2.447333,
-      "cpuMs": 2.801,
-      "processPeakResidentMemoryBytes": 185090048,
+      "durationMs": 2.420542,
+      "cpuMs": 2.778,
+      "processPeakResidentMemoryBytes": 181780480,
       "status": "passed"
     },
     {
@@ -1167,9 +1167,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 32,
-      "durationMs": 0.257916,
-      "cpuMs": 0.365,
-      "processPeakResidentMemoryBytes": 185122816,
+      "durationMs": 0.260542,
+      "cpuMs": 0.36,
+      "processPeakResidentMemoryBytes": 181813248,
       "status": "passed"
     }
   ],
@@ -1345,5 +1345,5 @@
     "credentials": "excluded",
     "absolutePaths": "excluded"
   },
-  "reportId": "adverse_e339f4ed310ace6351fcc6b1"
+  "reportId": "adverse_7c4c06a6f739a09008c6944d"
 }
