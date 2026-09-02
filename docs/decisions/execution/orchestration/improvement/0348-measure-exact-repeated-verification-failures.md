@@ -51,6 +51,8 @@ acquiring the new metric meaning.
 Future metrics still require their own exact counting unit, observable ground truth, privacy
 boundary, comparison policy, abstention behavior, and adapter conformance. They do not belong in a
 generic inference layer merely because their labels already exist in the application contract.
+This private adapter remains outside the stock CLI's published artifact closure; a future embedding
+product must add reviewed release intent when it elects to package it.
 
 ## References
 

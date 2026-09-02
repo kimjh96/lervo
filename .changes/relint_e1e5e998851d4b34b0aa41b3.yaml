@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e1e5e998851d4b34b0aa41b3"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Measure exact repeated verification-failure signatures from bounded local canonical events."

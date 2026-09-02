@@ -268,7 +268,8 @@ command-signature separation, passed and cancelled exclusion, valid zero observa
 coordinate rejection, empty and bounded-source abstention, shared conformance for both metrics,
 exact re-verification, and a full two-metric baseline-to-treatment CLI host-injection journey.
 Quality, type, package-boundary, build, full tests, documentation and knowledge lifecycle,
-foundation checks, and task-base release completion must pass with reviewed minor release intent.
+foundation checks, and task-base release completion must pass. Release intent is required only when
+an embedding product adds this private adapter to a published artifact closure.
 
 ## Non-goals
 
