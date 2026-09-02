@@ -1,4 +1,6 @@
 import {
+  formatAssignmentInbox,
+  formatAssignmentThreads,
   formatObservedBudgets,
   formatOperatingObjective,
   projectObservedBudgets,
@@ -39,16 +41,35 @@ export async function runLoopCommand(
       );
       return 0;
     }
+    if (options.action === "thread" || options.action === "inbox") {
+      const communications = await services.inspectAssignmentCommunications({
+        repositoryRoot: options.repositoryRoot,
+        ...(options.action === "thread"
+          ? { assignmentId: options.assignmentId }
+          : { recipientAgentId: options.recipientAgentId }),
+      });
+      io.stdout(
+        options.json
+          ? `${JSON.stringify(communications, null, 2)}\n`
+          : options.action === "thread"
+            ? formatAssignmentThreads(communications)
+            : formatAssignmentInbox(communications),
+      );
+      return communications.validity.status === "valid" ? 0 : 1;
+    }
     if (options.action === "board") {
-      const [report, objective] = await Promise.all([
+      const [report, objective, communications] = await Promise.all([
         services.inspectGovernedWork({
           repositoryRoot: options.repositoryRoot,
           policy: options.policy,
         }),
         services.inspectOperatingObjective({ repositoryRoot: options.repositoryRoot }),
+        services.inspectAssignmentCommunications({ repositoryRoot: options.repositoryRoot }),
       ]);
-      io.stdout(renderGovernedWorkBoard(report, objective));
-      return report.decision.status === "invalid" ? 1 : 0;
+      io.stdout(renderGovernedWorkBoard(report, objective, communications));
+      return report.decision.status === "invalid" || communications.validity.status === "invalid"
+        ? 1
+        : 0;
     }
     const report = await services.inspectGovernedWork({
       repositoryRoot: options.repositoryRoot,

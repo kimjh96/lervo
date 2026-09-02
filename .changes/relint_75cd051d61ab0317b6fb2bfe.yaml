@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_75cd051d61ab0317b6fb2bfe"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add exact assignment mention routing and read-only thread and inbox views."

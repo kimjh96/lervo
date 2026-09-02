@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { GovernedWorkReportV1, OperatingObjectiveReportV1 } from "@lervo/application-contract";
+import type {
+  AssignmentCommunicationReportV1,
+  GovernedWorkReportV1,
+  OperatingObjectiveReportV1,
+} from "@lervo/application-contract";
 
 import { runLoopCommand } from "../src/loop-command.js";
 import type { CliServices } from "../src/types.js";
@@ -141,6 +145,28 @@ function objective(): OperatingObjectiveReportV1 {
   };
 }
 
+function communications(): AssignmentCommunicationReportV1 {
+  return {
+    schemaVersion: 1,
+    projectId: "prj_fixture001",
+    workstreamId,
+    observedAt: "2026-09-01T00:01:00.000Z",
+    validity: { status: "valid", reasonCodes: [] },
+    threads: [
+      {
+        schemaVersion: 1,
+        threadId: "ath_111111111111111111111111",
+        assignmentId,
+        assignmentRevision: 2,
+        assignmentStatus: "leased",
+        routes: [],
+      },
+    ],
+    inbox: [],
+    limitations: [],
+  };
+}
+
 function io() {
   const stdout: string[] = [];
   const stderr: string[] = [];
@@ -161,6 +187,7 @@ describe("loop command", () => {
     const services = {
       inspectGovernedWork: vi.fn(async () => report()),
       inspectOperatingObjective: vi.fn(async () => objective()),
+      inspectAssignmentCommunications: vi.fn(async () => communications()),
     } as unknown as CliServices;
     expect(await runLoopCommand(["status"], output.value, services)).toBe(0);
     expect(output.stdout.join("")).toContain("start_attempt");
@@ -175,6 +202,7 @@ describe("loop command", () => {
     const services = {
       inspectGovernedWork: vi.fn(async () => report()),
       inspectOperatingObjective: vi.fn(async () => objective()),
+      inspectAssignmentCommunications: vi.fn(async () => communications()),
       executeManagedRun,
       finalizeGovernedAssignment,
       reconcileGovernedAssignment,
@@ -205,6 +233,7 @@ describe("loop command", () => {
     const services = {
       inspectGovernedWork: vi.fn(async () => invalid),
       inspectOperatingObjective: vi.fn(async () => objective()),
+      inspectAssignmentCommunications: vi.fn(async () => communications()),
     } as unknown as CliServices;
 
     expect(await runLoopCommand(["board"], output.value, services)).toBe(1);
@@ -224,6 +253,35 @@ describe("loop command", () => {
     expect(await runLoopCommand(["objective"], output.value, services)).toBe(0);
     expect(output.stdout.join("")).toContain("Keep evidence and authority separate.");
     expect(inspectGovernedWork).not.toHaveBeenCalled();
+  });
+
+  it("reads assignment threads and inboxes without inspecting governed work", async () => {
+    const threadOutput = io();
+    const inboxOutput = io();
+    const inspectGovernedWork = vi.fn();
+    const inspectAssignmentCommunications = vi.fn(async () => communications());
+    const services = {
+      inspectGovernedWork,
+      inspectAssignmentCommunications,
+    } as unknown as CliServices;
+
+    expect(
+      await runLoopCommand(["thread", "--assignment", assignmentId], threadOutput.value, services),
+    ).toBe(0);
+    expect(await runLoopCommand(["inbox", "--agent", agentId], inboxOutput.value, services)).toBe(
+      0,
+    );
+    expect(threadOutput.stdout.join("")).toContain("Assignment threads");
+    expect(inboxOutput.stdout.join("")).toContain("Assignment inbox");
+    expect(inspectGovernedWork).not.toHaveBeenCalled();
+    expect(inspectAssignmentCommunications).toHaveBeenNthCalledWith(1, {
+      repositoryRoot: "/repository",
+      assignmentId,
+    });
+    expect(inspectAssignmentCommunications).toHaveBeenNthCalledWith(2, {
+      repositoryRoot: "/repository",
+      recipientAgentId: agentId,
+    });
   });
 
   it("reports exact observed token limits without combining accounting groups", async () => {

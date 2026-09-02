@@ -123,6 +123,27 @@ remaining-token projection, board prose escaping, and no mutation-port invocatio
 package-boundary, build, full tests, documentation and knowledge lifecycle, foundation checks, and
 task-base release completion must pass with reviewed minor release intent.
 
+## GLA6: Assignment interactions, mentions, and inboxes
+
+GLA6 reuses `assignment.handoff.recorded` as the canonical route instead of adding a collaboration
+database or a second task authority. A provider-neutral mention plan resolves exact agent, unique
+active role, recorded manager, reviewer-role, or verifier-role targets. It binds the current
+workstream, assignment revision, source agent, lease, request digest, artifact coordinates, and
+context evidence. Exact apply delegates to the existing workforce handoff transition.
+
+The storage-free application contract and pure work-controller projection rebuild deterministic
+assignment threads and recipient inbox items from current-workstream handoffs. They exclude bodies
+and report route recording separately from unobserved delivery and acknowledgment. Read-only CLI
+routes and the local operating board consume the same report. External connectors, team expansion,
+provider switching, implicit assignment creation, and deliberation startup remain out of scope.
+
+GLA6 is accepted when focused tests prove exact agent, unique role, and manager resolution;
+ambiguous, inactive, self, disallowed-role, workstream, and lease failures; exact plan/apply;
+content-free thread and inbox projection; missing identity invalidation; read-only CLI inspection;
+and no delivery or acknowledgment inference. Quality, type, package-boundary, build, full tests,
+documentation and knowledge lifecycle, foundation checks, and task-base release completion must
+pass with reviewed minor release intent.
+
 ## Non-goals
 
 - unattended or timer-based scheduling;
@@ -144,10 +165,9 @@ minor release intent.
 
 ## Next sequence
 
-1. Add assignment threads, mention resolution, and inbox routing over existing workforce contracts.
-2. Add exact assignment-template routines and bounded local triggers without arbitrary prompt execution.
-3. Add Buzz-like connector routes without granting room-based authority.
-4. Connect verified improvement candidates and post-promotion effect observation.
+1. Add exact assignment-template routines and bounded local triggers without arbitrary prompt execution.
+2. Add Buzz-like connector routes without granting room-based authority.
+3. Connect verified improvement candidates and post-promotion effect observation.
 
 ## References
 
@@ -158,4 +178,6 @@ minor release intent.
 - [ADR-0338](../decisions/execution/orchestration/0338-reconcile-prepared-managed-assignment-completion.md)
 - [ADR-0340](../decisions/execution/orchestration/0340-add-read-only-local-operating-board.md)
 - [ADR-0341](../decisions/execution/orchestration/0341-project-current-objective-and-observed-token-budgets.md)
+- [ADR-0342](../decisions/execution/orchestration/0342-project-assignment-interactions-from-workforce-handoffs.md)
+- [Assignment interaction specification](../specifications/execution/assignment-interactions.md)
 - [Execution specification](../specifications/execution.md)

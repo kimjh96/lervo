@@ -1,5 +1,6 @@
 import type {
   ApplicationAssignmentStatus,
+  AssignmentCommunicationReportV1,
   GovernedWorkReportV1,
   OperatingObjectiveReportV1,
 } from "@lervo/application-contract";
@@ -55,6 +56,7 @@ export function projectObservedBudgets(report: GovernedWorkReportV1): OperatingB
 export function projectOperatingBoard(
   report: GovernedWorkReportV1,
   objective: OperatingObjectiveReportV1 | null = null,
+  communications: AssignmentCommunicationReportV1 | null = null,
 ): OperatingBoardViewV1 {
   const assignmentStatusCounts = Object.fromEntries(
     assignmentStatuses.map((status) => [
@@ -88,6 +90,9 @@ export function projectOperatingBoard(
       attentionApprovalCount: report.approvals.filter((approval) => approval.status !== "verified")
         .length,
       resourceGroupCount: report.resources.length,
+      interactionRouteCount:
+        communications?.threads.reduce((total, thread) => total + thread.routes.length, 0) ?? 0,
+      inboxRouteCount: communications?.inbox.length ?? 0,
     },
     objective,
     nodes: report.graph.nodes.map((node) => ({
@@ -113,10 +118,15 @@ export function projectOperatingBoard(
       actions: report.decision.actions.filter(
         (action) => action.assignmentId === node.assignmentId,
       ),
+      interactionRoutes:
+        communications?.threads.find((thread) => thread.assignmentId === node.assignmentId)
+          ?.routes ?? [],
     })),
     actions: [...report.decision.actions],
     resources: [...report.resources],
     budgets: projectObservedBudgets(report),
-    limitations: [...evidenceLimitations],
+    inbox: communications?.inbox ?? [],
+    communicationValidity: communications?.validity ?? null,
+    limitations: [...evidenceLimitations, ...(communications?.limitations ?? [])],
   };
 }

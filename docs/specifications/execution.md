@@ -68,7 +68,13 @@ Every managed-write provider turn receives the exact repository-relative target 
 
 Snapshots cover repository-authored source and tracked generated files. They exclude runtime data and state, dependencies, and conventional generated build or cache directories. User content changes only through explicit content-bound operations. Managed blocks preserve outside bytes. Generated files may change or be deleted only when recorded generation proves current-hash ownership.
 
-Repository assignments bind role ID, role version, role contract hash, dependencies, acceptance, verification, approvals, workstream, and expected paths. A short atomic lease permits one current holder for overlapping scopes; disjoint scopes may run concurrently. Root agents and subagents use the same lease and handoff contract. Before provider creation, managed execution revalidates the active lease, provider, role contract, path, and suite set. Expiry permits generation-incremented recovery and never proves the former holder stopped external work.
+Repository assignments bind role, dependency, acceptance, verification, approval, workstream, and
+path coordinates. Short atomic leases serialize overlapping scopes while disjoint root agents and
+subagents share one lease and handoff contract. Managed execution revalidates lease, provider, role,
+path, and suite authority before provider creation. Generation-bound expiry permits recovery but
+never proves former external work stopped.
+
+See [interactions](execution/assignment-interactions.md).
 
 See [governed loops](../roadmap/governed-loop-assignment-graph.md) for bounded continuation.
 

@@ -60,6 +60,13 @@ duplicate hook sets, and cross-run or cross-session joins make the projection in
 
 Workforce events contain only opaque agent, assignment, lease, handoff, artifact, context-event, role/task, role-version, role-contract-hash, status, generation, expiry, and digest coordinates. They exclude role prose and source paths, task prose, acceptance text, repository paths, prompts, outputs, artifact bodies, reasoning, credentials, and provider configuration. State and event commit together, restoring bytes on event failure. Invalid or stale role contracts, contention, expiry, and rejected claims record no execution success.
 
+`assignment.handoff.recorded` is also the canonical success evidence for one assignment mention
+route. The mention plan itself is not an event or effect. Thread and inbox views rebuild from the
+handoff's assignment, sender, recipient, request digest, artifact, context-event, and time
+coordinates. The event proves only that the workforce state and route record committed together;
+it does not prove message delivery, acknowledgment, provider receipt, understanding, action,
+review, verification, or consensus. Bodies and mention prose remain excluded.
+
 The governed-loop graph remains rebuildable and adds no durable graph state. Its report
 replays current assignment state plus existing causal, run, verification, and resource
 events. Approval requirements leave the report only as digests. Verified approval

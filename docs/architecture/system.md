@@ -51,14 +51,14 @@ Terminal integration merges approved handlers into Codex and Claude hook configu
 
 Managed runs require a verified workstream delivered with E1–E3. After reader-first writer activation, each managed admission records one provider-neutral causal event before `run.requested`; version-1 writers and invalid ancestry block provider startup. Deliberation uses one control root and explicit child relationships. Work IDs aggregate evidence but grant no objective, assignment, or completion authority. Direct hooks prepare at most 8 KiB and retain bounded coordinates. Unattached and integrator Stop require global checkpoints for changed revisions. Worker Stop validates its workspace, writer, lease, and scoped diff and records a private checkpoint; foreign global movement is informational.
 
-The headless application boundary projects the current assignment DAG and causal managed
-attempts into a rebuildable governed-work report. `@lervo/application-contract` owns
-public shapes; `@lervo/work-controller` owns pure graph, attempt, resource, and
-next-action projection. CLI and future product adapters compose existing workforce and
-managed-run effects. They do not write graph state or bypass leases, approval,
-verification, event, or recovery authority. A configured token admission threshold is
-exact to provider and accounting descriptor; unlike accounting groups are never
-combined, and observed usage does not become an advance reservation or billing cap.
+The headless application boundary rebuilds current assignment, causal-attempt, resource, and
+next-action reports. `@lervo/application-contract` owns public shapes;
+`@lervo/work-controller` owns pure projections; applications compose existing effects without
+bypassing lease, approval, verification, event, or recovery authority. Token admission thresholds
+are exact to provider and accounting descriptor. Unlike groups stay separate, and observed usage
+is neither a reservation nor a billing cap.
+
+See [interactions](../specifications/execution/assignment-interactions.md).
 
 Decisions: [context preparation](../decisions/execution/orchestration/0006-deterministic-context-preparation.md), [context delivery](../decisions/execution/providers/0007-provider-neutral-context-delivery.md), [managed context gate](../decisions/execution/orchestration/0008-managed-context-gate-orchestration.md), [Codex adapter](../decisions/execution/providers/0009-codex-app-server-managed-adapter.md), [Claude adapter](../decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md), [run lifecycle](../decisions/execution/providers/0011-managed-provider-run-lifecycle.md), [terminal integration](../decisions/execution/providers/0196-fail-closed-provider-terminal-integration.md), [unmanaged observation](../decisions/execution/providers/0197-unmanaged-terminal-context-observation.md), [managed grounding](../decisions/execution/providers/0198-managed-context-grounding-and-coverage.md), [natural-language finalization](../decisions/execution/providers/0200-natural-language-terminal-turn-finalization.md), [provider-confirmed capability activation](../decisions/execution/providers/0211-provider-confirmed-capability-activation.md), [isolated agent workspaces](../decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md), and [headless governed loops](../decisions/execution/orchestration/0336-adopt-headless-governed-loop-and-assignment-graph.md).
 

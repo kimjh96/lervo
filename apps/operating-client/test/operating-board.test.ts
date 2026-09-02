@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import type { GovernedWorkReportV1, OperatingObjectiveReportV1 } from "@lervo/application-contract";
+import type {
+  AssignmentCommunicationReportV1,
+  GovernedWorkReportV1,
+  OperatingObjectiveReportV1,
+} from "@lervo/application-contract";
 
 import {
   projectOperatingBoard,
@@ -166,6 +170,61 @@ function objective(): OperatingObjectiveReportV1 {
   };
 }
 
+function communications(): AssignmentCommunicationReportV1 {
+  const route = {
+    schemaVersion: 1 as const,
+    threadId: "ath_111111111111111111111111",
+    handoffId: "hnd_111111111111111111111111",
+    assignmentId: secondAssignmentId,
+    fromAgentId: "agt_222222222222222222222222",
+    toAgentId: "agt_111111111111111111111111",
+    requestDigest: `sha256:${"f".repeat(64)}`,
+    artifactReferences: [
+      { artifactId: "art_interaction01", contentHash: `sha256:${"1".repeat(64)}` },
+    ],
+    contextEvidenceEventIds: [],
+    routedAt: "2026-09-02T00:01:00.000Z",
+    routeState: "recorded" as const,
+    deliveryState: "unobserved" as const,
+    acknowledgementState: "unobserved" as const,
+  };
+  return {
+    schemaVersion: 1,
+    projectId: "prj_fixture001",
+    workstreamId: "wks_111111111111111111111111",
+    observedAt: "2026-09-02T00:02:00.000Z",
+    validity: { status: "valid", reasonCodes: [] },
+    threads: [
+      {
+        schemaVersion: 1,
+        threadId: route.threadId,
+        assignmentId: secondAssignmentId,
+        assignmentRevision: 3,
+        assignmentStatus: "leased",
+        routes: [route],
+      },
+    ],
+    inbox: [
+      {
+        schemaVersion: 1,
+        inboxItemId: "ain_111111111111111111111111",
+        threadId: route.threadId,
+        handoffId: route.handoffId,
+        assignmentId: secondAssignmentId,
+        fromAgentId: route.fromAgentId,
+        recipientAgentId: route.toAgentId,
+        recipientAgentStatus: "active",
+        artifactCount: 1,
+        routedAt: route.routedAt,
+        routeState: "recorded",
+        deliveryState: "unobserved",
+        acknowledgementState: "unobserved",
+      },
+    ],
+    limitations: [],
+  };
+}
+
 describe("local operating board", () => {
   it("projects governed evidence without inventing authority or hidden work", () => {
     const view = projectOperatingBoard(report(), objective());
@@ -222,5 +281,18 @@ describe("local operating board", () => {
     expect(first).not.toContain('<script>alert("unsafe")</script>');
     expect(first).not.toContain("<button");
     expect(first).not.toContain("<script");
+  });
+
+  it("shows recorded interaction and inbox routes without claiming delivery", () => {
+    const value = communications();
+    const view = projectOperatingBoard(report(), objective(), value);
+    const html = renderGovernedWorkBoard(report(), objective(), value);
+
+    expect(view.summary).toMatchObject({ interactionRouteCount: 1, inboxRouteCount: 1 });
+    expect(view.nodes[1]!.interactionRoutes).toHaveLength(1);
+    expect(html).toContain("Assignment inbox");
+    expect(html).toContain("unobserved");
+    expect(html).toContain("artifacts");
+    expect(html).not.toContain("interaction body");
   });
 });

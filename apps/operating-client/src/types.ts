@@ -2,6 +2,9 @@ import type {
   ApplicationAssignmentStatus,
   ApplicationLeaseState,
   ApprovalObservationV1,
+  AssignmentCommunicationReportV1,
+  AssignmentInboxRouteV1,
+  AssignmentInteractionRouteV1,
   AssignmentCompletionEvidenceV1,
   GovernedLoopActionV1,
   GovernedLoopDecisionV1,
@@ -18,6 +21,8 @@ export interface OperatingBoardSummaryV1 {
   verifiedApprovalCount: number;
   attentionApprovalCount: number;
   resourceGroupCount: number;
+  interactionRouteCount: number;
+  inboxRouteCount: number;
 }
 
 export interface OperatingBoardNodeV1 {
@@ -39,6 +44,7 @@ export interface OperatingBoardNodeV1 {
   approvals: ApprovalObservationV1[];
   completionEvidence: AssignmentCompletionEvidenceV1[];
   actions: GovernedLoopActionV1[];
+  interactionRoutes: AssignmentInteractionRouteV1[];
 }
 
 export interface OperatingBoardViewV1 {
@@ -62,6 +68,8 @@ export interface OperatingBoardViewV1 {
   actions: GovernedLoopActionV1[];
   resources: ResourceGroupObservationV1[];
   budgets: OperatingBudgetGroupV1[];
+  inbox: AssignmentInboxRouteV1[];
+  communicationValidity: AssignmentCommunicationReportV1["validity"] | null;
   limitations: string[];
 }
 

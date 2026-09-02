@@ -8,6 +8,11 @@ import { finalizeGovernedAssignment } from "./governed-assignment-finalization.j
 import { reconcileGovernedAssignment } from "./governed-completion-reconciliation.js";
 import { inspectGovernedWork } from "./governed-work-inspection.js";
 import { inspectOperatingObjective } from "./operating-objective-inspection.js";
+import { inspectAssignmentCommunications } from "./assignment-communication-inspection.js";
+import {
+  assignmentCommunicationUsage,
+  runAssignmentCommunicationCommand,
+} from "./assignment-communication-command.js";
 import { runInitCommand, initUsage } from "./init-command.js";
 import { runLoopCommand, loopUsage } from "./loop-command.js";
 import { executeManagedRun } from "./managed-run.js";
@@ -59,6 +64,7 @@ ${terminalUsage}
 ${workstreamUsage}
 ${workspaceUsage}
 ${workforceUsage}
+${assignmentCommunicationUsage}
 ${roleUsage}
 ${readmeUsage}
 `;
@@ -74,6 +80,7 @@ const defaultServices: CliServices = {
   createTerminalStageObservation,
   inspectGovernedWork,
   inspectOperatingObjective,
+  inspectAssignmentCommunications,
   finalizeGovernedAssignment,
   reconcileGovernedAssignment,
   prepareSearchQueries: prepareProductionSearchQueries,
@@ -111,6 +118,9 @@ export async function runCli(
   if (command === "terminal") return runTerminalCommand(args.slice(1), io, services);
   if (command === "workstream") return runWorkstreamCommand(args.slice(1), io);
   if (command === "workspace") return runWorkspaceCommand(args.slice(1), io);
+  if (command === "assignment" && args[1] === "mention") {
+    return runAssignmentCommunicationCommand(args.slice(1), io);
+  }
   if (command === "workforce" || command === "agent" || command === "assignment")
     return runWorkforceCommand(command, args.slice(1), io, services);
   if (command === "role") return runRoleCommand(args.slice(1), io);
