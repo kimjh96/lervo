@@ -49,6 +49,12 @@ Lervo core sees only the reviewed assignment route and hashed evidence. This is 
 infrastructure for Buzz-like products, not a decision to build their full chat interface inside
 Lervo.
 
+The production local improvement slice now measures both verification success and exact recurrence
+of a suite/non-passed-command signature from bounded canonical events. It preserves the same
+platform boundary: products may present the observation, while raw evidence, attribution limits,
+review authority, and canonical mutation remain governed by Lervo contracts. Signature recurrence
+is not presented as root-cause identity or autonomous model learning.
+
 Lervo should supply a minimal local reference surface for workstreams, graphs, blockers,
 approvals, verification, traces, and improvement candidates. It should not reproduce
 general chat, media, voice, forums, CRM, Git hosting, or every product-specific workflow.

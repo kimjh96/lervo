@@ -9,13 +9,19 @@ import {
 } from "@lervo/application-contract";
 
 import { observationDigest, stableObservationJson } from "./digest.js";
+import { projectRepeatedFailure } from "./repeated-failure.js";
 import type { LocalImprovementEvidenceSourceV1 } from "./types.js";
+import { normalizeVerificationCompletions } from "./verification-completion-evidence.js";
 import { projectVerificationSuccess } from "./verification-success.js";
 
 export const LOCAL_IMPROVEMENT_OBSERVATION_ADAPTER_ID = "iobs_lervo_local_events";
-const ADAPTER_VERSION = "1.0.0";
+const ADAPTER_VERSION = "1.1.0";
 const PATTERN_ID = /^pattern_[a-f0-9]{24}$/u;
-const SUPPORTED_METRICS = new Set<ImprovementMetricIdV1>(["verification_success"]);
+const METRIC_PROJECTORS = {
+  verification_success: projectVerificationSuccess,
+  repeated_failure: projectRepeatedFailure,
+} satisfies Partial<Record<ImprovementMetricIdV1, typeof projectVerificationSuccess>>;
+type SupportedMetricId = keyof typeof METRIC_PROJECTORS;
 
 export type LocalImprovementObservationAdapterV1 = ImprovementObservationPortV1 &
   ImprovementObservationCollectorV1;
@@ -33,6 +39,13 @@ function descriptor(adapterId: string): ImprovementObservationAdapterDescriptorV
         numerator: "verification.completed events with status passed",
         windowBoundary: "inclusive",
       },
+      {
+        metricId: "repeated_failure",
+        denominator: "verification.completed events",
+        numerator:
+          "failed completions whose suite hash and ordered non-passed command IDs occurred earlier in the window",
+        windowBoundary: "inclusive",
+      },
     ],
     receiptBinding: "phase_pattern_window_metric_counts_evidence",
   });
@@ -46,6 +59,10 @@ function descriptor(adapterId: string): ImprovementObservationAdapterDescriptorV
     rawEvidence: "adapter_private",
     capabilities: ["rate_observation.verify"],
   };
+}
+
+function isSupportedMetric(metricId: ImprovementMetricIdV1): metricId is SupportedMetricId {
+  return metricId in METRIC_PROJECTORS;
 }
 
 function validateCollectionRequest(input: ImprovementObservationCollectionRequestV1): void {
@@ -93,11 +110,11 @@ export function createLocalImprovementObservationAdapter(input: {
   const collect: ImprovementObservationCollectorV1["collect"] = async (request) => {
     validateCollectionRequest(request);
     const unsupported = request.metricIds
-      .filter((metricId) => !SUPPORTED_METRICS.has(metricId))
+      .filter((metricId) => !isSupportedMetric(metricId))
       .sort()
       .map((metricId) => ({ metricId, reason: "metric_unsupported" as const }));
-    if (!request.metricIds.includes("verification_success"))
-      return { observations: [], unavailable: unsupported };
+    const supported = request.metricIds.filter(isSupportedMetric);
+    if (supported.length === 0) return { observations: [], unavailable: unsupported };
     let snapshot;
     try {
       snapshot = await input.evidenceSource.readWindow(request.window);
@@ -107,7 +124,10 @@ export function createLocalImprovementObservationAdapter(input: {
           return {
             observations: [],
             unavailable: [
-              { metricId: "verification_success", reason: "evidence_limit_exceeded" },
+              ...supported.map((metricId) => ({
+                metricId,
+                reason: "evidence_limit_exceeded" as const,
+              })),
               ...unsupported,
             ],
           };
@@ -119,23 +139,17 @@ export function createLocalImprovementObservationAdapter(input: {
         { cause: error },
       );
     }
-    const projected = projectVerificationSuccess(snapshot, request.window);
-    if (projected === null)
-      return {
-        observations: [],
-        unavailable: [
-          { metricId: "verification_success", reason: "no_eligible_evidence" },
-          ...unsupported,
-        ],
+    const completions = normalizeVerificationCompletions(snapshot, request.window);
+    const observations = supported.flatMap((metricId) => {
+      const projected = METRIC_PROJECTORS[metricId](snapshot.projectId, completions);
+      if (projected === null) return [];
+      const observationWithoutReceipt = {
+        metricId,
+        numerator: projected.numerator,
+        denominator: projected.denominator,
+        evidenceSetHash: projected.evidenceSetHash,
       };
-    const observationWithoutReceipt = {
-      metricId: "verification_success" as const,
-      numerator: projected.numerator,
-      denominator: projected.denominator,
-      evidenceSetHash: projected.evidenceSetHash,
-    };
-    return {
-      observations: [
+      return [
         {
           ...observationWithoutReceipt,
           observationReceiptHash: receiptHash({
@@ -144,8 +158,16 @@ export function createLocalImprovementObservationAdapter(input: {
             observation: observationWithoutReceipt,
           }),
         },
+      ];
+    });
+    return {
+      observations,
+      unavailable: [
+        ...supported
+          .filter((metricId) => !observations.some((item) => item.metricId === metricId))
+          .map((metricId) => ({ metricId, reason: "no_eligible_evidence" as const })),
+        ...unsupported,
       ],
-      unavailable: unsupported,
     };
   };
   return {
@@ -159,7 +181,7 @@ export function createLocalImprovementObservationAdapter(input: {
     },
     collect,
     verify: async (request) => {
-      if (request.observations.some((item) => !SUPPORTED_METRICS.has(item.metricId)))
+      if (request.observations.some((item) => !isSupportedMetric(item.metricId)))
         throw new ImprovementObservationPortError(
           "metric_unsupported",
           "The claimed improvement metric is not supported by this adapter.",

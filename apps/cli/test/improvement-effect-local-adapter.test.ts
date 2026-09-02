@@ -189,7 +189,7 @@ it("dogfoods local verification telemetry through explicit CLI host injection", 
     phase: "baseline",
     patternId: pattern.patternId,
     window: baselineWindow,
-    metricIds: ["verification_success"],
+    metricIds: ["verification_success", "repeated_failure"],
   });
   expect(baseline.unavailable).toEqual([]);
   const registeredAt = new Date().toISOString();
@@ -265,7 +265,7 @@ it("dogfoods local verification telemetry through explicit CLI host injection", 
     phase: "treatment",
     patternId: pattern.patternId,
     window: treatmentWindow,
-    metricIds: ["verification_success"],
+    metricIds: ["verification_success", "repeated_failure"],
   });
   const observation = {
     schemaVersion: 1 as const,

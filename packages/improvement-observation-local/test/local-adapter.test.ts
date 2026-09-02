@@ -18,6 +18,7 @@ function verificationEvent(
   status: "passed" | "failed" | "cancelled",
   occurredAt = `2026-09-02T00:00:0${seq}.000Z`,
   verificationId = `ver_${String(seq).padStart(16, "0")}`,
+  failure?: { suiteHash?: string; nonPassedCommandIds?: string[] },
 ): EventEnvelope {
   return {
     eventId: `evt_observation${String(seq).padStart(4, "0")}`,
@@ -33,12 +34,13 @@ function verificationEvent(
     payload: {
       verificationId,
       suiteId: "quality",
-      suiteHash: hash,
+      suiteHash: failure?.suiteHash ?? hash,
       repositoryRevision: hash,
       status,
       resultArtifactId: `art_${String(seq).padStart(16, "0")}`,
       resultContentHash: hash,
-      nonPassedCommandIds: status === "passed" ? [] : ["quality.check"],
+      nonPassedCommandIds:
+        failure?.nonPassedCommandIds ?? (status === "passed" ? [] : ["quality.check"]),
     },
     previousHash: seq === 1 ? null : hash,
     eventHash: hash,
@@ -55,7 +57,9 @@ function eventStore(events: EventEnvelope[]) {
   };
 }
 
-function collectionRequest(): ImprovementObservationCollectionRequestV1 {
+function collectionRequest(
+  metricIds: ImprovementObservationCollectionRequestV1["metricIds"] = ["verification_success"],
+): ImprovementObservationCollectionRequestV1 {
   return {
     phase: "baseline",
     patternId,
@@ -63,7 +67,7 @@ function collectionRequest(): ImprovementObservationCollectionRequestV1 {
       startedAt: "2026-09-02T00:00:00.000Z",
       endedAt: "2026-09-02T00:00:09.000Z",
     },
-    metricIds: ["verification_success"],
+    metricIds,
   };
 }
 
@@ -78,20 +82,77 @@ function adapterFor(events: EventEnvelope[], maximumScannedEvents?: number) {
 }
 
 describe("local improvement observation adapter", () => {
-  it("passes shared exact-verification conformance", async () => {
-    const adapter = adapterFor([verificationEvent(1, "passed"), verificationEvent(2, "failed")]);
+  it("passes shared exact-verification conformance for every supported metric", async () => {
+    const adapter = adapterFor([verificationEvent(1, "failed"), verificationEvent(2, "failed")]);
 
-    const report = await evaluateImprovementObservationPortConformance({
-      adapterId: LOCAL_IMPROVEMENT_OBSERVATION_ADAPTER_ID,
-      port: adapter,
-      collector: adapter,
-      collectionRequest: collectionRequest(),
-      unsupportedMetricId: "source_recall",
-    });
+    for (const metricId of ["verification_success", "repeated_failure"] as const) {
+      const report = await evaluateImprovementObservationPortConformance({
+        adapterId: LOCAL_IMPROVEMENT_OBSERVATION_ADAPTER_ID,
+        port: adapter,
+        collector: adapter,
+        collectionRequest: collectionRequest([metricId]),
+        unsupportedMetricId: "source_recall",
+      });
 
-    expect(report.status).toBe("passed");
-    expect(report.checks).toHaveLength(9);
-    expect(report.checks.every((check) => check.status === "passed")).toBe(true);
+      expect(report.status).toBe("passed");
+      expect(report.checks).toHaveLength(9);
+      expect(report.checks.every((check) => check.status === "passed")).toBe(true);
+    }
+  });
+
+  it("counts only later exact failure signatures as repeated failures", async () => {
+    const otherSuiteHash = `sha256:${"b".repeat(64)}`;
+    const adapter = adapterFor([
+      verificationEvent(1, "failed"),
+      verificationEvent(2, "passed"),
+      verificationEvent(3, "failed"),
+      verificationEvent(4, "failed", undefined, undefined, {
+        nonPassedCommandIds: ["quality.check", "typecheck"],
+      }),
+      verificationEvent(5, "failed", undefined, undefined, { suiteHash: otherSuiteHash }),
+      verificationEvent(6, "cancelled"),
+      verificationEvent(7, "failed"),
+    ]);
+
+    const result = await adapter.collect(
+      collectionRequest(["verification_success", "repeated_failure"]),
+    );
+
+    expect(result.unavailable).toEqual([]);
+    expect(result.observations).toMatchObject([
+      { metricId: "verification_success", numerator: 1, denominator: 7 },
+      { metricId: "repeated_failure", numerator: 2, denominator: 7 },
+    ]);
+  });
+
+  it("preserves failed-command order in the exact recurrence signature", async () => {
+    const adapter = adapterFor([
+      verificationEvent(1, "failed", undefined, undefined, {
+        nonPassedCommandIds: ["quality.check", "typecheck"],
+      }),
+      verificationEvent(2, "failed", undefined, undefined, {
+        nonPassedCommandIds: ["typecheck", "quality.check"],
+      }),
+    ]);
+
+    const result = await adapter.collect(collectionRequest(["repeated_failure"]));
+
+    expect(result.observations).toMatchObject([
+      { metricId: "repeated_failure", numerator: 0, denominator: 2 },
+    ]);
+  });
+
+  it("does not seed recurrence from failures before the observation window", async () => {
+    const adapter = adapterFor([
+      verificationEvent(1, "failed", "2026-09-01T23:59:59.999Z"),
+      verificationEvent(2, "failed", "2026-09-02T00:00:01.000Z"),
+    ]);
+
+    const result = await adapter.collect(collectionRequest(["repeated_failure"]));
+
+    expect(result.observations).toMatchObject([
+      { metricId: "repeated_failure", numerator: 0, denominator: 1 },
+    ]);
   });
 
   it("counts canonical verification completions with inclusive boundaries", async () => {
@@ -125,6 +186,15 @@ describe("local improvement observation adapter", () => {
       unavailable: [{ metricId: "verification_success", reason: "no_eligible_evidence" }],
     });
     await expect(
+      emptyAdapter.collect(collectionRequest(["verification_success", "repeated_failure"])),
+    ).resolves.toEqual({
+      observations: [],
+      unavailable: [
+        { metricId: "verification_success", reason: "no_eligible_evidence" },
+        { metricId: "repeated_failure", reason: "no_eligible_evidence" },
+      ],
+    });
+    await expect(
       emptyAdapter.collect({ ...collectionRequest(), metricIds: ["user_correction"] }),
     ).resolves.toEqual({
       observations: [],
@@ -137,6 +207,15 @@ describe("local improvement observation adapter", () => {
     await expect(boundedAdapter.collect(collectionRequest())).resolves.toEqual({
       observations: [],
       unavailable: [{ metricId: "verification_success", reason: "evidence_limit_exceeded" }],
+    });
+    await expect(
+      boundedAdapter.collect(collectionRequest(["verification_success", "repeated_failure"])),
+    ).resolves.toEqual({
+      observations: [],
+      unavailable: [
+        { metricId: "verification_success", reason: "evidence_limit_exceeded" },
+        { metricId: "repeated_failure", reason: "evidence_limit_exceeded" },
+      ],
     });
     const exactClaim = await adapterFor([verificationEvent(1, "passed")]).collect(
       collectionRequest(),
@@ -161,6 +240,24 @@ describe("local improvement observation adapter", () => {
       observations: [],
       unavailable: [{ metricId: "verification_success", reason: "evidence_limit_exceeded" }],
     });
+  });
+
+  it("rejects status and non-passed-command contradictions", async () => {
+    const passedWithFailure = adapterFor([
+      verificationEvent(1, "passed", undefined, undefined, {
+        nonPassedCommandIds: ["quality.check"],
+      }),
+    ]);
+    await expect(passedWithFailure.collect(collectionRequest())).rejects.toMatchObject({
+      code: "evidence_invalid",
+    });
+
+    const failedWithoutFailure = adapterFor([
+      verificationEvent(1, "failed", undefined, undefined, { nonPassedCommandIds: [] }),
+    ]);
+    await expect(
+      failedWithoutFailure.collect(collectionRequest(["repeated_failure"])),
+    ).rejects.toMatchObject({ code: "evidence_invalid" });
   });
 
   it("rejects duplicate evidence identities and detects later backdated evidence", async () => {

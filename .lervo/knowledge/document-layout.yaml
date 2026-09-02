@@ -221,6 +221,15 @@ routes:
       - session
       - codex
       - claude
+  - id: execution.orchestration.improvement
+    path: execution/orchestration/improvement
+    priority: 56
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - verified improvement
+      - improvement effect
+      - improvement observation
+      - repeated verification failures
   - id: execution.grounding
     path: execution/grounding
     priority: 55
