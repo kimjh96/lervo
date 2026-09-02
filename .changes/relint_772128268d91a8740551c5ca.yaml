@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_772128268d91a8740551c5ca"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add exact assignment routine planning and manual materialization."

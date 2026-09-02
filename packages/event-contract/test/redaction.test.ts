@@ -89,6 +89,40 @@ describe("event payload privacy boundary", () => {
     expect(JSON.stringify(result.payload)).not.toContain(".lervo/roles");
   });
 
+  it("keeps bounded routine provenance while excluding template and trigger bodies", () => {
+    const payload = {
+      assignmentId: `asn_${"a".repeat(24)}`,
+      taskType: "implementation",
+      roleId: "developer",
+      roleVersion: "1.0.0",
+      roleContractHash: `sha256:${"b".repeat(64)}`,
+      requiredCapabilityHash: `sha256:${"c".repeat(64)}`,
+      routineId: "change.review",
+      routineTemplateVersion: "1.0.0",
+      routineTemplateHash: `sha256:${"d".repeat(64)}`,
+      routineInvocationId: `rin_${"e".repeat(24)}`,
+      routineTriggerKind: "manual",
+      routineTriggerDigest: `sha256:${"f".repeat(64)}`,
+      routineNodeKey: "implement",
+      priority: 50,
+      dependencyIds: [],
+      expectedPathDigest: `sha256:${"1".repeat(64)}`,
+      acceptanceDigest: `sha256:${"2".repeat(64)}`,
+      verificationDigest: `sha256:${"3".repeat(64)}`,
+      approvalDigest: `sha256:${"4".repeat(64)}`,
+      workstreamId: `wks_${"5".repeat(24)}`,
+    };
+    const result = sanitizeEventPayload("assignment.created", {
+      ...payload,
+      acceptanceCriteria: ["private acceptance"],
+      expectedPaths: ["private/path.ts"],
+      triggerRequest: "private trigger",
+      idempotencyKey: "private key",
+    });
+    expect(result.payload).toEqual(payload);
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+  });
+
   it("keeps immutable terminal observations valid across additive coordinate revisions", () => {
     const prepared = {
       observationId: "tobs_context_01234567",

@@ -1,6 +1,8 @@
 export * from "./attempt-projection.js";
 export * from "./assignment-attempt-decision.js";
 export * from "./assignment-communication-projection.js";
+export * from "./assignment-routine-plan.js";
+export { assignmentRoutineDigest } from "./assignment-routine-validation.js";
 export * from "./approval-observations.js";
 export * from "./completion-evidence-projection.js";
 export * from "./governed-loop-decision.js";

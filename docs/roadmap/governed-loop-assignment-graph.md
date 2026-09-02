@@ -144,6 +144,27 @@ and no delivery or acknowledgment inference. Quality, type, package-boundary, bu
 documentation and knowledge lifecycle, foundation checks, and task-base release completion must
 pass with reviewed minor release intent.
 
+## GLA7: Exact assignment routines and manual triggers
+
+GLA7 adds content-bound assignment templates and one explicit local manual trigger. The pure
+controller validates at most 32 acyclic nodes, exact role and optional capability bindings, and
+`skip_if_active`, `coalesce_if_active`, or bounded-enqueue admission. It derives deterministic
+invocation and assignment IDs and exposes an exact plan without template, acceptance, approval, or
+path prose.
+
+Apply rechecks under a transient routine lock and delegates each node to existing workforce
+assignment creation. Routine provenance is additive assignment state and `assignment.created`
+metadata, not a second task or scheduler store. Multi-node apply is convergent: committed nodes
+remain canonical, deterministic replay is idempotent, and a fresh plan resumes only missing nodes.
+Materialization creates no lease and starts no provider.
+
+GLA7 is accepted when focused tests prove deterministic DAG expansion, role and capability drift
+rejection, stale-plan blocking, idempotent creation, partial resume, capability-bound claim,
+skip/coalesce/enqueue distinctions, concurrency and capacity bounds, privacy allowlisting, and no
+arbitrary prompt execution or unattended trigger. Quality, type, package-boundary, build, full
+tests, documentation and knowledge lifecycle, foundation checks, and task-base release completion
+must pass with reviewed minor release intent.
+
 ## Non-goals
 
 - unattended or timer-based scheduling;
@@ -165,9 +186,8 @@ minor release intent.
 
 ## Next sequence
 
-1. Add exact assignment-template routines and bounded local triggers without arbitrary prompt execution.
-2. Add Buzz-like connector routes without granting room-based authority.
-3. Connect verified improvement candidates and post-promotion effect observation.
+1. Add Buzz-like connector routes without granting room-based authority.
+2. Connect verified improvement candidates and post-promotion effect observation.
 
 ## References
 
@@ -180,4 +200,5 @@ minor release intent.
 - [ADR-0341](../decisions/execution/orchestration/0341-project-current-objective-and-observed-token-budgets.md)
 - [ADR-0342](../decisions/execution/orchestration/0342-project-assignment-interactions-from-workforce-handoffs.md)
 - [Assignment interaction specification](../specifications/execution/assignment-interactions.md)
+- [Assignment routine specification](../specifications/execution/assignment-routines.md)
 - [Execution specification](../specifications/execution.md)

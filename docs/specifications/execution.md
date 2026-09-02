@@ -74,7 +74,8 @@ subagents share one lease and handoff contract. Managed execution revalidates le
 path, and suite authority before provider creation. Generation-bound expiry permits recovery but
 never proves former external work stopped.
 
-See [interactions](execution/assignment-interactions.md).
+See [interactions](execution/assignment-interactions.md) and
+[assignment routines](execution/assignment-routines.md).
 
 See [governed loops](../roadmap/governed-loop-assignment-graph.md) for bounded continuation.
 

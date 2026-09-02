@@ -57,6 +57,16 @@ export interface WorkforceHandoff {
   acknowledgedAt: string | null;
 }
 
+export interface WorkforceAssignmentRoutineProvenance {
+  routineId: string;
+  templateVersion: string;
+  templateHash: string;
+  invocationId: string;
+  triggerKind: "manual";
+  triggerDigest: string;
+  nodeKey: string;
+}
+
 export interface WorkforceAssignment {
   schemaVersion: 1;
   assignmentId: string;
@@ -65,6 +75,8 @@ export interface WorkforceAssignment {
   roleId: string;
   roleVersion: string;
   roleContractHash: string;
+  requiredCapabilityHash?: string | null;
+  routine?: WorkforceAssignmentRoutineProvenance | null;
   status: AssignmentStatus;
   priority: number;
   dependencyIds: string[];

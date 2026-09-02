@@ -74,9 +74,9 @@
     },
     {
       "path": "packages/agent-workforce/src/store.ts",
-      "contentHash": "sha256:5b45194233cddf84792eae5a8fef085126148f9509d99bf31003df7c839d8115",
+      "contentHash": "sha256:87e8d2db81c29a0d68c45d9ec45ba67371a49f9f7749c1ab267d2c02fe8c47b2",
       "responsibility": "Durable repository workforce aggregate",
-      "rationale": "Agent and assignment records share one project-bound coordination home, validation model, atomic transition and event rollback, and concurrency retry boundary. Pure admission, assignment-DAG cancellation, prepared-completion validation, and workspace lifecycle effects remain in linked modules.",
+      "rationale": "Agent and assignment records, including bounded routine provenance, share one project-bound coordination home, validation model, atomic transition and event rollback, and concurrency retry boundary. Pure admission, routine planning, assignment-DAG cancellation, prepared-completion validation, and workspace lifecycle effects remain in linked modules.",
       "disposition": "cohesive"
     },
     {
@@ -95,7 +95,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:e3bbd7a461b140b361d84c1cb4a65f6c56db93edeb1da936250fab33d0c2a421",
+      "contentHash": "sha256:b3809b32c74e8a247676df52c0765938e0036cc5e248e4f119ccba35d2273fda",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
       "disposition": "cohesive"

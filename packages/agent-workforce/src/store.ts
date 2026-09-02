@@ -15,6 +15,7 @@ import {
   type WorkforceAgent,
   type WorkforceArtifactReference,
   type WorkforceAssignment,
+  type WorkforceAssignmentRoutineProvenance,
   type WorkforceEvent,
   type WorkforceEventRecorder,
   type WorkforceHandoff,
@@ -31,6 +32,12 @@ import {
   validAssignmentCompletionReconciliation,
   type AssignmentCompletionReconciliation,
 } from "./assignment-completion-reconciliation.js";
+import {
+  routineAssignmentEventCoordinates,
+  routineAssignmentId,
+  routineAssignmentMatches,
+  validWorkforceRoutineProvenance,
+} from "./assignment-routine-state.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const ROLE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
@@ -193,6 +200,12 @@ function validAssignment(value: unknown, projectId: string): value is WorkforceA
     item.roleId.length <= 100 &&
     (item.roleVersion === undefined || ROLE_VERSION.test(item.roleVersion)) &&
     (item.roleContractHash === undefined || HASH.test(item.roleContractHash)) &&
+    (item.requiredCapabilityHash === undefined ||
+      item.requiredCapabilityHash === null ||
+      HASH.test(item.requiredCapabilityHash)) &&
+    (item.routine === undefined ||
+      item.routine === null ||
+      validWorkforceRoutineProvenance(item.routine)) &&
     ["queued", "leased", "blocked", "completed", "failed", "cancelled"].includes(item.status) &&
     Number.isSafeInteger(item.priority) &&
     item.priority >= 0 &&
@@ -748,6 +761,10 @@ async function createAssignmentOnce(input: {
   approvalRequirements?: string[];
   expectedPaths: string[];
   workstreamId?: string;
+  requiredCapabilityHash?: string | null;
+  routine?: WorkforceAssignmentRoutineProvenance | null;
+  expectedRoleVersion?: string;
+  expectedRoleContractHash?: string;
   now?: Date;
   recordEvent?: WorkforceEventRecorder;
 }): Promise<WorkforceAssignment> {
@@ -756,10 +773,13 @@ async function createAssignmentOnce(input: {
   const current = await state(input.repositoryRoot);
   const assignments = await listAssignments(input.repositoryRoot);
   if (
-    assignments.length >= workforceLimits.maximumAssignments ||
-    !/^[a-z][a-z0-9._-]{1,99}$/u.test(input.taskType)
+    (input.expectedRoleVersion !== undefined && input.expectedRoleVersion !== contract.version) ||
+    (input.expectedRoleContractHash !== undefined &&
+      input.expectedRoleContractHash !== contract.contractHash)
   )
-    fail("assignment_invalid", "The task type or assignment capacity is invalid.");
+    fail("assignment_invalid", "The assignment role contract binding is stale.");
+  if (!/^[a-z][a-z0-9._-]{1,99}$/u.test(input.taskType))
+    fail("assignment_invalid", "The assignment task type is invalid.");
   const dependencyIds = [...new Set(input.dependencyIds ?? [])].sort();
   const expectedPaths = [...new Set(input.expectedPaths)].sort();
   const verificationSuiteIds = [...new Set(input.verificationSuiteIds)].sort();
@@ -774,7 +794,14 @@ async function createAssignmentOnce(input: {
     input.acceptanceCriteria.length === 0 ||
     verificationSuiteIds.length === 0 ||
     expectedPaths.length === 0 ||
-    (input.workstreamId !== undefined && !WORKSTREAM_ID.test(input.workstreamId))
+    (input.workstreamId !== undefined && !WORKSTREAM_ID.test(input.workstreamId)) ||
+    (input.requiredCapabilityHash !== undefined &&
+      input.requiredCapabilityHash !== null &&
+      !HASH.test(input.requiredCapabilityHash)) ||
+    (input.routine !== undefined &&
+      input.routine !== null &&
+      !validWorkforceRoutineProvenance(input.routine)) ||
+    (input.routine !== undefined && input.routine !== null && input.workstreamId === undefined)
   )
     fail(
       "assignment_invalid",
@@ -787,14 +814,46 @@ async function createAssignmentOnce(input: {
   )
     fail("assignment_invalid", "An assignment dependency does not exist.");
   const createdAt = now.toISOString();
+  const assignmentId =
+    input.routine === undefined || input.routine === null
+      ? id("asn", { projectId: current.manifest.projectId, nonce: randomUUID() })
+      : routineAssignmentId(current.manifest.projectId, input.routine);
+  const existing = assignments.find((item) => item.assignmentId === assignmentId);
+  if (existing !== undefined) {
+    const exact =
+      input.routine !== undefined &&
+      input.routine !== null &&
+      input.workstreamId !== undefined &&
+      routineAssignmentMatches(existing, {
+        taskType: input.taskType,
+        roleId: input.roleId,
+        roleVersion: contract.version,
+        roleContractHash: contract.contractHash,
+        requiredCapabilityHash: input.requiredCapabilityHash ?? null,
+        routine: input.routine,
+        priority: input.priority ?? 50,
+        dependencyIds,
+        acceptanceCriteria: input.acceptanceCriteria,
+        verificationSuiteIds,
+        approvalRequirements,
+        expectedPaths,
+        workstreamId: input.workstreamId,
+      });
+    if (!exact) fail("assignment_invalid", "The deterministic assignment ID is already in use.");
+    return structuredClone(existing);
+  }
+  if (assignments.length >= workforceLimits.maximumAssignments)
+    fail("assignment_invalid", "The assignment capacity is exhausted.");
   const assignment: WorkforceAssignment = {
     schemaVersion: 1,
-    assignmentId: id("asn", { projectId: current.manifest.projectId, nonce: randomUUID() }),
+    assignmentId,
     projectId: current.manifest.projectId,
     taskType: input.taskType,
     roleId: input.roleId,
     roleVersion: contract.version,
     roleContractHash: contract.contractHash,
+    requiredCapabilityHash: input.requiredCapabilityHash ?? null,
+    routine: input.routine ?? null,
     status: "queued",
     priority: input.priority ?? 50,
     dependencyIds,
@@ -821,6 +880,7 @@ async function createAssignmentOnce(input: {
     now,
     content: `${JSON.stringify(assignment, null, 2)}\n`,
     result: structuredClone(assignment),
+    expectedBefore: null,
     ...(input.recordEvent === undefined ? {} : { recordEvent: input.recordEvent }),
     event: {
       type: "assignment.created",
@@ -832,11 +892,13 @@ async function createAssignmentOnce(input: {
         roleId: assignment.roleId,
         roleVersion: assignment.roleVersion,
         roleContractHash: assignment.roleContractHash,
+        ...routineAssignmentEventCoordinates(assignment),
         priority: assignment.priority,
         dependencyIds,
         expectedPathDigest: digest(stableJson(expectedPaths)),
         acceptanceDigest: digest(stableJson(input.acceptanceCriteria)),
         verificationDigest: digest(stableJson(verificationSuiteIds)),
+        approvalDigest: digest(stableJson(approvalRequirements)),
         workstreamId: assignment.workstreamId,
       },
     },
@@ -858,6 +920,52 @@ export function createAssignment(input: {
   recordEvent?: WorkforceEventRecorder;
 }): Promise<WorkforceAssignment> {
   return retryConcurrent(() => createAssignmentOnce(input));
+}
+
+export function createRoutineAssignment(input: {
+  repositoryRoot: string;
+  taskType: string;
+  roleId: string;
+  roleVersion: string;
+  roleContractHash: string;
+  requiredCapabilityHash: string | null;
+  priority: number;
+  dependencyIds: string[];
+  acceptanceCriteria: string[];
+  verificationSuiteIds: string[];
+  approvalRequirements: string[];
+  expectedPaths: string[];
+  workstreamId: string;
+  routine: WorkforceAssignmentRoutineProvenance;
+  now?: Date;
+  recordEvent?: WorkforceEventRecorder;
+}): Promise<WorkforceAssignment> {
+  return retryConcurrent(() =>
+    createAssignmentOnce({
+      ...input,
+      expectedRoleVersion: input.roleVersion,
+      expectedRoleContractHash: input.roleContractHash,
+    }),
+  );
+}
+
+export function withAssignmentRoutineLock<T>(input: {
+  repositoryRoot: string;
+  operation: () => Promise<T>;
+  now?: Date;
+}): Promise<T> {
+  return retryConcurrent(async () => {
+    const current = await state(input.repositoryRoot);
+    const release = await acquireLock(
+      resolve(current.base, "routine-materialization.lock"),
+      input.now ?? new Date(),
+    );
+    try {
+      return await input.operation();
+    } finally {
+      await release();
+    }
+  });
 }
 
 function overlaps(left: string[], right: string[]): boolean {
@@ -899,6 +1007,15 @@ async function claimAssignmentOnce(input: {
       assignment.roleContractHash !== agent.roleContractHash
     )
       fail("assignment_lease_conflict", "The agent and assignment role contracts differ.");
+    if (
+      assignment.requiredCapabilityHash !== undefined &&
+      assignment.requiredCapabilityHash !== null &&
+      assignment.requiredCapabilityHash !== agent.capabilityHash
+    )
+      fail(
+        "assignment_lease_conflict",
+        "The agent capability binding differs from the assignment.",
+      );
     if (
       !agent.responsibilityPaths.includes("*") &&
       !assignment.expectedPaths.every((path) =>

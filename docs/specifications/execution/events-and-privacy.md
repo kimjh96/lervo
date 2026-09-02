@@ -60,6 +60,14 @@ duplicate hook sets, and cross-run or cross-session joins make the projection in
 
 Workforce events contain only opaque agent, assignment, lease, handoff, artifact, context-event, role/task, role-version, role-contract-hash, status, generation, expiry, and digest coordinates. They exclude role prose and source paths, task prose, acceptance text, repository paths, prompts, outputs, artifact bodies, reasoning, credentials, and provider configuration. State and event commit together, restoring bytes on event failure. Invalid or stale role contracts, contention, expiry, and rejected claims record no execution success.
 
+Routine-created `assignment.created` events additionally retain nullable required-capability hash,
+routine ID, template version and hash, invocation ID, `manual` trigger kind and digest, node key, and
+approval digest. They exclude the template, trigger request, idempotency key, criteria, approval
+text, and paths. These fields prove deterministic assignment provenance, not trigger delivery,
+scheduling, claim, provider startup, or execution. Historical absence means ordinary assignment
+creation. A failed node records no creation event; previously committed nodes remain an exact
+partial invocation for idempotent replan and resume.
+
 `assignment.handoff.recorded` is also the canonical success evidence for one assignment mention
 route. The mention plan itself is not an event or effect. Thread and inbox views rebuild from the
 handoff's assignment, sender, recipient, request digest, artifact, context-event, and time
