@@ -139,6 +139,34 @@ export interface AssignmentConnectorPortV1 {
   }): Promise<AssignmentConnectorDeliveryObservationV1>;
 }
 
+export type AssignmentConnectorPortErrorCodeV1 =
+  | "artifact_invalid"
+  | "authorization_failed"
+  | "capacity_exceeded"
+  | "connector_not_found"
+  | "credential_unavailable"
+  | "delivery_state_invalid"
+  | "destination_not_found"
+  | "permit_invalid"
+  | "request_invalid"
+  | "reservation_conflict"
+  | "reservation_invalid";
+
+/**
+ * Bounded adapter failure surfaced without provider-native identifiers,
+ * credentials, artifact bodies, or unrestricted platform errors.
+ */
+export class AssignmentConnectorPortError extends Error {
+  constructor(
+    readonly code: AssignmentConnectorPortErrorCodeV1,
+    message: string,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = "AssignmentConnectorPortError";
+  }
+}
+
 export interface AssignmentConnectorRouteResultV1 {
   plan: AssignmentConnectorRoutePlanV1;
   delivery: AssignmentConnectorDeliveryObservationV1 | null;

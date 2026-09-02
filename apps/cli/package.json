@@ -42,6 +42,7 @@
     "@lervo/adapter-contract": "workspace:*",
     "@lervo/adapter-claude": "workspace:*",
     "@lervo/adapter-codex": "workspace:*",
+    "@lervo/adapter-slack": "workspace:*",
     "@lervo/context": "workspace:*",
     "@lervo/conversation-control": "workspace:*",
     "@lervo/conversation-deliberation-sqlite": "workspace:*",

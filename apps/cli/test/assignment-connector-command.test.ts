@@ -7,7 +7,18 @@ import type {
   AssignmentConnectorPortV1,
   AssignmentConnectorRequestV1,
 } from "@lervo/application-contract";
+import {
+  SlackAssignmentConnector,
+  SqliteSlackAssignmentConnectorState,
+  createArtifactStoreSlackAssignmentSource,
+  createConfiguredSlackAssignmentDestinationSource,
+  createConfiguredSlackAssignmentPermitSource,
+  createEnvironmentSlackAssignmentCredentialSource,
+} from "@lervo/adapter-slack";
+import { canonicalJson } from "@lervo/event-contract";
 import { openProjectStorage } from "@lervo/project-storage";
+import type { WritingPublicationPermit } from "@lervo/schemas";
+import { calculateWritingPublicationPermitId, writingSha256 } from "@lervo/writing-contract";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
@@ -33,7 +44,10 @@ function outputIo(root: string) {
   };
 }
 
-async function setupRoute(root: string) {
+async function setupRoute(
+  root: string,
+  artifact = { artifactId: "art_connectorroute01", contentHash: hash("a") },
+) {
   const quiet = { cwd: root, stdout: () => undefined, stderr: () => undefined };
   expect(await runCli(["init"], quiet)).toBe(0);
   const draft = JSON.stringify({
@@ -133,7 +147,7 @@ async function setupRoute(root: string) {
     "--request-digest",
     hash("b"),
     "--artifact",
-    `art_connectorroute01=${hash("a")}`,
+    `${artifact.artifactId}=${artifact.contentHash}`,
   ];
   expect(await runCli([...mentionArgs, "--json"], mentionOutput.io)).toBe(0);
   const mentionPlanId = (JSON.parse(mentionOutput.stdout.join("")) as { plan: { planId: string } })
@@ -270,5 +284,125 @@ describe("assignment connector command", () => {
       expect(JSON.parse(output.stdout.join("")).delivery.status).toBe("delivered");
     }
     expect(deliveries).toBe(1);
+  });
+
+  it("dogfoods the production Slack connector through explicit host injection", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-assignment-slack-"));
+    roots.push(root);
+    const artifactId = "art_slackconnector01";
+    const artifactText = "Review the verified assignment handoff.";
+    const contentHash = writingSha256(artifactText);
+    const route = await setupRoute(root, { artifactId, contentHash });
+    const storage = await openProjectStorage(root);
+    const stored = await storage.artifacts.put(artifactText);
+    expect(stored.contentHash).toBe(contentHash);
+
+    const permitContent: Omit<WritingPublicationPermit, "permitId"> = {
+      schemaVersion: 1,
+      surface: "chat",
+      artifactId,
+      contentHash,
+      writingPolicyId: "writing_en-human",
+      writingPolicyHash: writingSha256("policy"),
+      evaluationId: "wre_slackconnector01",
+      evaluationHash: writingSha256("evaluation"),
+      issuedAt: "2026-09-02T08:00:00.000Z",
+    };
+    const permit = {
+      ...permitContent,
+      permitId: calculateWritingPublicationPermitId(permitContent),
+    };
+    let sends = 0;
+    const state = SqliteSlackAssignmentConnectorState.open(
+      resolve(root, ".lervo/state/slack-assignment-delivery.sqlite"),
+    );
+    const connector = new SlackAssignmentConnector({
+      connectorId: "con_slack_assignment",
+      credentials: createEnvironmentSlackAssignmentCredentialSource({
+        integrationId: "int_slack_primary",
+        credentialId: "cred_slack_primary",
+        teamId: "T123ABC",
+        tokenEnvironmentVariable: "LERVO_TEST_SLACK_TOKEN",
+        environment: { LERVO_TEST_SLACK_TOKEN: "xoxb-fixture-secret-token-value" },
+      }),
+      destinations: createConfiguredSlackAssignmentDestinationSource({
+        connectorId: "con_slack_assignment",
+        destinations: [
+          {
+            destinationId: "dst_slack_review",
+            integrationId: "int_slack_primary",
+            status: "active",
+            teamId: "T123ABC",
+            channelId: "C456DEF",
+            threadTs: null,
+          },
+        ],
+      }),
+      artifacts: createArtifactStoreSlackAssignmentSource({
+        artifactStore: storage.artifacts,
+        coordinates: [{ artifactId, uri: stored.uri }],
+      }),
+      permits: createConfiguredSlackAssignmentPermitSource({ permits: [permit] }),
+      state,
+      transport: {
+        send: async () => {
+          sends += 1;
+          return {
+            status: "delivered",
+            messageTs: "1788336000.123456",
+            deliveredAt: "2026-09-02T08:00:02.000Z",
+          };
+        },
+      },
+      now: () => new Date("2026-09-02T08:00:01.000Z"),
+    });
+    try {
+      const boundary = await connector.inspect({
+        connectorId: "con_slack_assignment",
+        destinationId: "dst_slack_review",
+      });
+      const event = storage.events.get(route.handoffEventId)!;
+      const request: AssignmentConnectorRequestV1 = {
+        schemaVersion: 1,
+        workstreamId: route.workstreamId,
+        assignmentId: route.assignmentId,
+        handoffId: (event.payload as Record<string, string>).handoffId!,
+        handoffEventId: route.handoffEventId,
+        artifactId,
+        contentHash,
+        requestDigest: hash("b"),
+        ...boundary,
+        publication: {
+          surface: "chat",
+          permitId: permit.permitId,
+          permitHash: writingSha256(canonicalJson(permit)),
+          artifactId,
+          contentHash,
+        },
+      };
+      const requestPath = resolve(root, "slack-connector-request.json");
+      await writeFile(requestPath, `${JSON.stringify(request, null, 2)}\n`);
+      const args = ["assignment", "connector", "--from", requestPath];
+      const plannedOutput = outputIo(root);
+      expect(await runCli([...args, "--json"], plannedOutput.io)).toBe(0);
+      const planId = (JSON.parse(plannedOutput.stdout.join("")) as { plan: { planId: string } })
+        .plan.planId;
+      for (let index = 0; index < 2; index += 1) {
+        const output = outputIo(root);
+        expect(
+          await runCli([...args, "--apply", planId, "--write", "--json"], output.io, {
+            assignmentConnectorPort: connector,
+          }),
+          output.stderr.join(""),
+        ).toBe(0);
+        expect(JSON.parse(output.stdout.join("")).delivery.status).toBe("delivered");
+      }
+      expect(sends).toBe(1);
+      expect(JSON.stringify(state.listEvidence())).not.toContain("T123ABC");
+      expect(JSON.stringify(state.listEvidence())).not.toContain("C456DEF");
+    } finally {
+      state.close();
+      await storage.close();
+    }
   });
 });

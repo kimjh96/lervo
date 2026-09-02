@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidenceBuildDigest": "sha256:1a7bc485f1d73d5631646d15034344843f42b4c57e27e1a5b22f38a2deb3fc2d",
-  "repositoryRevision": "sha256:70949d28e2304677ca8905f8bf5c40b117b91c79c11d1d07e92b775a6c4f678f",
+  "repositoryRevision": "sha256:9c3f1359f90e137c40a2a6b555d0396183654f59e1794556978ab26ed9823376",
   "environment": {
     "operatingSystem": "darwin",
     "architecture": "arm64",
@@ -22,7 +22,10 @@
       "durableSuccessEvidence": "adapter.started",
       "recoveryOwner": "orchestrator.managed_run",
       "privacySafeFailureCode": "provider_start_uncertain",
-      "growingCollectionIds": ["provider_sessions", "event_chain"],
+      "growingCollectionIds": [
+        "provider_sessions",
+        "event_chain"
+      ],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "reconcile_required",
@@ -44,7 +47,9 @@
       "durableSuccessEvidence": "event.envelope",
       "recoveryOwner": "event_store",
       "privacySafeFailureCode": "event_append_failed",
-      "growingCollectionIds": ["event_chain"],
+      "growingCollectionIds": [
+        "event_chain"
+      ],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "rollback_or_recovery_required",
@@ -66,7 +71,9 @@
       "durableSuccessEvidence": "cas.content_hash",
       "recoveryOwner": "cas",
       "privacySafeFailureCode": "artifact_storage_failed",
-      "growingCollectionIds": ["cas_artifacts"],
+      "growingCollectionIds": [
+        "cas_artifacts"
+      ],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "rollback_or_recovery_required",
@@ -88,7 +95,11 @@
       "durableSuccessEvidence": "run.completed",
       "recoveryOwner": "orchestrator.write_bridge",
       "privacySafeFailureCode": "provider_write_failed",
-      "growingCollectionIds": ["managed_write_journals", "event_chain", "cas_artifacts"],
+      "growingCollectionIds": [
+        "managed_write_journals",
+        "event_chain",
+        "cas_artifacts"
+      ],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "rollback_or_recovery_required",
@@ -110,7 +121,10 @@
       "durableSuccessEvidence": "assignment.event",
       "recoveryOwner": "agent_workforce",
       "privacySafeFailureCode": "workforce_write_failed",
-      "growingCollectionIds": ["assignments", "event_chain"],
+      "growingCollectionIds": [
+        "assignments",
+        "event_chain"
+      ],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "rollback_or_recovery_required",
@@ -132,7 +146,10 @@
       "durableSuccessEvidence": "assignment.lease.renewed",
       "recoveryOwner": "agent_workforce",
       "privacySafeFailureCode": "assignment_lease_conflict",
-      "growingCollectionIds": ["assignment_leases", "event_chain"],
+      "growingCollectionIds": [
+        "assignment_leases",
+        "event_chain"
+      ],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "rollback_or_recovery_required",
@@ -154,7 +171,11 @@
       "durableSuccessEvidence": "agent.workspace.event",
       "recoveryOwner": "orchestrator.workspace",
       "privacySafeFailureCode": "host_effect_uncertain",
-      "growingCollectionIds": ["workspaces", "workspace_integration_queue", "event_chain"],
+      "growingCollectionIds": [
+        "workspaces",
+        "workspace_integration_queue",
+        "event_chain"
+      ],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "reconcile_required",
@@ -176,7 +197,11 @@
       "durableSuccessEvidence": "terminal.observation.event",
       "recoveryOwner": "cli.terminal_observation",
       "privacySafeFailureCode": "terminal_persistence_failed",
-      "growingCollectionIds": ["terminal_observations", "terminal_receipts", "event_chain"],
+      "growingCollectionIds": [
+        "terminal_observations",
+        "terminal_receipts",
+        "event_chain"
+      ],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "rollback_or_recovery_required",
@@ -198,7 +223,11 @@
       "durableSuccessEvidence": "capability.activated",
       "recoveryOwner": "capabilities.activation",
       "privacySafeFailureCode": "capability_activation_failed",
-      "growingCollectionIds": ["capability_locks", "capability_activation_receipts", "event_chain"],
+      "growingCollectionIds": [
+        "capability_locks",
+        "capability_activation_receipts",
+        "event_chain"
+      ],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "reconcile_required",
@@ -220,7 +249,10 @@
       "durableSuccessEvidence": "sync.acknowledged",
       "recoveryOwner": "sync.worker",
       "privacySafeFailureCode": "sync_effect_uncertain",
-      "growingCollectionIds": ["sync_outbox", "event_chain"],
+      "growingCollectionIds": [
+        "sync_outbox",
+        "event_chain"
+      ],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "reconcile_required",
@@ -242,7 +274,9 @@
       "durableSuccessEvidence": "remote_command.receipt",
       "recoveryOwner": "remote_command.receiver",
       "privacySafeFailureCode": "remote_effect_uncertain",
-      "growingCollectionIds": ["remote_command_replay"],
+      "growingCollectionIds": [
+        "remote_command_replay"
+      ],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "reconcile_required",
@@ -264,7 +298,9 @@
       "durableSuccessEvidence": "deployment.execution_receipt",
       "recoveryOwner": "organization_deployment",
       "privacySafeFailureCode": "deployment_recovery_required",
-      "growingCollectionIds": ["deployment_attempts"],
+      "growingCollectionIds": [
+        "deployment_attempts"
+      ],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "reconcile_required",
@@ -286,7 +322,11 @@
       "durableSuccessEvidence": "knowledge.materialization.applied",
       "recoveryOwner": "repository_knowledge.durable_apply",
       "privacySafeFailureCode": "migration_recovery_required",
-      "growingCollectionIds": ["migration_journals", "knowledge_projections", "event_chain"],
+      "growingCollectionIds": [
+        "migration_journals",
+        "knowledge_projections",
+        "event_chain"
+      ],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "rollback_or_recovery_required",
@@ -826,7 +866,10 @@
     {
       "threatId": "prompt_authority_injection",
       "disposition": "mitigated",
-      "controls": ["typed_grounding", "exact_authority_coordinates"],
+      "controls": [
+        "typed_grounding",
+        "exact_authority_coordinates"
+      ],
       "evidencePaths": [
         "packages/request-grounding/test/request-grounding.test.ts",
         "apps/cli/test/semantic-grounding.test.ts"
@@ -835,7 +878,11 @@
     {
       "threatId": "path_or_symlink_escape",
       "disposition": "mitigated",
-      "controls": ["repository_relative_validation", "no_follow_open", "snapshot_scope"],
+      "controls": [
+        "repository_relative_validation",
+        "no_follow_open",
+        "snapshot_scope"
+      ],
       "evidencePaths": [
         "packages/documents/test/document-migration-apply.test.ts",
         "packages/project/test/state-retention.test.ts"
@@ -844,7 +891,11 @@
     {
       "threatId": "secret_or_telemetry_leakage",
       "disposition": "mitigated",
-      "controls": ["event_allowlist", "bounded_errors", "runtime_only_credentials"],
+      "controls": [
+        "event_allowlist",
+        "bounded_errors",
+        "runtime_only_credentials"
+      ],
       "evidencePaths": [
         "packages/event-contract/test/redaction.test.ts",
         "packages/organization-credential-source-file/test/owner-only-file-source.test.ts"
@@ -853,7 +904,11 @@
     {
       "threatId": "malicious_capability_dependency",
       "disposition": "mitigated",
-      "controls": ["exact_dependency_lock", "hash_validation", "permission_intersection"],
+      "controls": [
+        "exact_dependency_lock",
+        "hash_validation",
+        "permission_intersection"
+      ],
       "evidencePaths": [
         "packages/capabilities/test/capabilities.test.ts",
         "packages/capabilities/test/capabilities.test.ts"
@@ -862,7 +917,10 @@
     {
       "threatId": "tool_schema_substitution",
       "disposition": "mitigated",
-      "controls": ["descriptor_hash", "activation_receipt_binding"],
+      "controls": [
+        "descriptor_hash",
+        "activation_receipt_binding"
+      ],
       "evidencePaths": [
         "packages/capabilities/test/capabilities.test.ts",
         "packages/orchestrator/test/capability-invocation-events.test.ts"
@@ -871,7 +929,11 @@
     {
       "threatId": "event_or_receipt_forgery",
       "disposition": "mitigated",
-      "controls": ["hash_chain", "schema_validation", "identity_binding"],
+      "controls": [
+        "hash_chain",
+        "schema_validation",
+        "identity_binding"
+      ],
       "evidencePaths": [
         "packages/event-contract/test/event-chain.test.ts",
         "packages/event-store-sqlite/test/event-store.test.ts"
@@ -880,7 +942,11 @@
     {
       "threatId": "replay",
       "disposition": "mitigated",
-      "controls": ["idempotency_key", "nonce_fence", "generation"],
+      "controls": [
+        "idempotency_key",
+        "nonce_fence",
+        "generation"
+      ],
       "evidencePaths": [
         "packages/remote-command-sqlite/test/replay-store.test.ts",
         "packages/organization-deployment-sqlite/test/replay-store.test.ts"
@@ -889,7 +955,11 @@
     {
       "threatId": "cross_repository_or_tenant_confusion",
       "disposition": "mitigated",
-      "controls": ["project_scope", "repository_identity", "destination_binding"],
+      "controls": [
+        "project_scope",
+        "repository_identity",
+        "destination_binding"
+      ],
       "evidencePaths": [
         "packages/hub-sync-sqlite/test/trace-integration.test.ts",
         "packages/sync/test/workstream-replication.test.ts"
@@ -898,7 +968,11 @@
     {
       "threatId": "hook_latency_denial",
       "disposition": "mitigated",
-      "controls": ["availability_safe_empty_response", "bounded_context", "performance_budget"],
+      "controls": [
+        "availability_safe_empty_response",
+        "bounded_context",
+        "performance_budget"
+      ],
       "evidencePaths": [
         "apps/cli/test/terminal-integration.test.ts",
         "docs/evidence/foundation/execution-performance-v1.json"
@@ -907,7 +981,11 @@
     {
       "threatId": "graph_fanout_denial",
       "disposition": "mitigated",
-      "controls": ["delegation_depth", "dependency_fanout", "integration_batch_bound"],
+      "controls": [
+        "delegation_depth",
+        "dependency_fanout",
+        "integration_batch_bound"
+      ],
       "evidencePaths": [
         "packages/agent-workforce/test/assignment-graph.test.ts",
         "packages/agent-workforce/test/workspace-lifecycle.test.ts"
@@ -916,7 +994,11 @@
     {
       "threatId": "cost_amplification",
       "disposition": "mitigated",
-      "controls": ["provider_signal_bound", "normalization_batch_bound", "no_unattended_loop"],
+      "controls": [
+        "provider_signal_bound",
+        "normalization_batch_bound",
+        "no_unattended_loop"
+      ],
       "evidencePaths": [
         "packages/orchestrator/test/managed-provider-run-failures.test.ts",
         "packages/repository-knowledge/test/document-normalization.test.ts"
@@ -925,7 +1007,11 @@
     {
       "threatId": "poisoned_improvement_candidate",
       "disposition": "mitigated",
-      "controls": ["candidate_not_truth", "reviewed_promotion", "exact_approval"],
+      "controls": [
+        "candidate_not_truth",
+        "reviewed_promotion",
+        "exact_approval"
+      ],
       "evidencePaths": [
         "apps/cli/test/development-pattern-command.test.ts",
         "apps/cli/test/development-pattern-command.test.ts"
@@ -934,7 +1020,10 @@
     {
       "threatId": "ui_truth_confusion",
       "disposition": "mitigated",
-      "controls": ["canonical_projection_boundary", "evidence_state_separation"],
+      "controls": [
+        "canonical_projection_boundary",
+        "evidence_state_separation"
+      ],
       "evidencePaths": [
         "packages/context-coverage/test/projector.test.ts",
         "packages/diagnostics/test/terminal-coverage.test.ts"
@@ -943,7 +1032,11 @@
     {
       "threatId": "external_effect_ambiguity",
       "disposition": "mitigated",
-      "controls": ["reconcile_after_uncertainty", "no_automatic_retry", "recovery_required"],
+      "controls": [
+        "reconcile_after_uncertainty",
+        "no_automatic_retry",
+        "recovery_required"
+      ],
       "evidencePaths": [
         "packages/orchestrator/test/workspace-integration.test.ts",
         "packages/organization-deployment-contract/test/organization-fleet.test.ts"
@@ -952,7 +1045,11 @@
     {
       "threatId": "untrusted_third_party_execution",
       "disposition": "disabled_pending_isolation",
-      "controls": ["no_dynamic_module_loading", "explicit_activation", "local_fallback"],
+      "controls": [
+        "no_dynamic_module_loading",
+        "explicit_activation",
+        "local_fallback"
+      ],
       "evidencePaths": [
         "docs/specifications/execution/capabilities.md",
         "packages/capabilities/test/capabilities.test.ts"
@@ -1137,9 +1234,9 @@
       "eventWindow": 1000,
       "assignmentWindow": 128,
       "concurrentWorkers": 4,
-      "durationMs": 0.100833,
-      "cpuMs": 0.137,
-      "processPeakResidentMemoryBytes": 184123392,
+      "durationMs": 0.12,
+      "cpuMs": 0.152,
+      "processPeakResidentMemoryBytes": 186220544,
       "status": "passed"
     },
     {
@@ -1147,9 +1244,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 16,
-      "durationMs": 0.318375,
-      "cpuMs": 0.367,
-      "processPeakResidentMemoryBytes": 184139776,
+      "durationMs": 0.275333,
+      "cpuMs": 0.324,
+      "processPeakResidentMemoryBytes": 186236928,
       "status": "passed"
     },
     {
@@ -1157,9 +1254,9 @@
       "eventWindow": 100000,
       "assignmentWindow": 10000,
       "concurrentWorkers": 32,
-      "durationMs": 2.411542,
-      "cpuMs": 2.814,
-      "processPeakResidentMemoryBytes": 185024512,
+      "durationMs": 2.42575,
+      "cpuMs": 2.798,
+      "processPeakResidentMemoryBytes": 187105280,
       "status": "passed"
     },
     {
@@ -1167,9 +1264,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 32,
-      "durationMs": 0.252792,
-      "cpuMs": 0.368,
-      "processPeakResidentMemoryBytes": 185057280,
+      "durationMs": 0.254459,
+      "cpuMs": 0.359,
+      "processPeakResidentMemoryBytes": 187138048,
       "status": "passed"
     }
   ],
@@ -1345,5 +1442,5 @@
     "credentials": "excluded",
     "absolutePaths": "excluded"
   },
-  "reportId": "adverse_b2f433ad38833b5bb0924168"
+  "reportId": "adverse_30e901a718de31b9507cc982"
 }

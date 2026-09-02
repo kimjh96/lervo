@@ -80,6 +80,9 @@ importers:
       '@lervo/adapter-contract':
         specifier: workspace:*
         version: link:../../packages/adapter-contract
+      '@lervo/adapter-slack':
+        specifier: workspace:*
+        version: link:../../packages/adapter-slack
       '@lervo/agent-workforce':
         specifier: workspace:*
         version: link:../../packages/agent-workforce
@@ -513,18 +516,34 @@ importers:
 
   packages/adapter-slack:
     dependencies:
+      '@lervo/application-contract':
+        specifier: workspace:*
+        version: link:../application-contract
       '@lervo/conversation-contract':
         specifier: workspace:*
         version: link:../conversation-contract
       '@lervo/conversation-platform':
         specifier: workspace:*
         version: link:../conversation-platform
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
+      '@lervo/writing-contract':
+        specifier: workspace:*
+        version: link:../writing-contract
+    devDependencies:
+      '@lervo/assignment-connector-conformance':
+        specifier: workspace:*
+        version: link:../assignment-connector-conformance
+      '@lervo/work-controller':
+        specifier: workspace:*
+        version: link:../work-controller
 
   packages/agent-workforce:
     dependencies:
@@ -545,6 +564,12 @@ importers:
         version: link:../roles
 
   packages/application-contract: {}
+
+  packages/assignment-connector-conformance:
+    dependencies:
+      '@lervo/application-contract':
+        specifier: workspace:*
+        version: link:../application-contract
 
   packages/capabilities:
     dependencies:

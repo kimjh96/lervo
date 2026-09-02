@@ -2,7 +2,7 @@
 
 Status: `accepted input`
 
-As of: 2026-09-01
+As of: 2026-09-02
 
 ## Objective
 
@@ -42,6 +42,12 @@ verification, events, and observed usage.
 A Buzz-like product can connect rooms, threads, mentions, and workflows to Lervo agent
 identity, inbox routing, assignments, handoffs, approval gates, deliberation, artifacts,
 and evidence. Sharing a room never grants repository authority.
+
+The first production outbound slice now demonstrates that boundary for Slack: the host injects
+credential, private destination, artifact, permit, durable replay, and transport authorities while
+Lervo core sees only the reviewed assignment route and hashed evidence. This is connector
+infrastructure for Buzz-like products, not a decision to build their full chat interface inside
+Lervo.
 
 Lervo should supply a minimal local reference surface for workstreams, graphs, blockers,
 approvals, verification, traces, and improvement candidates. It should not reproduce

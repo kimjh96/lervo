@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_33b82e5aa455f32bdf6240d0"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add a production Slack assignment connector with shared conformance and durable recovery."

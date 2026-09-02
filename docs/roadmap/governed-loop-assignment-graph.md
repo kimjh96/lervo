@@ -225,6 +225,29 @@ dogfood journey. Quality, type, package-boundary, build, full tests, documentati
 lifecycle, foundation checks, and task-base release completion must pass with reviewed minor release
 intent.
 
+## GLA11: Production Slack assignment connector
+
+GLA11 turns the provider-neutral GLA8 boundary into one production Slack adapter without granting
+the stock CLI external authority. An authorized host explicitly composes credential, destination,
+artifact, writing-permit, durable state, and transport ports. Core and route plans retain only
+internal coordinates and hashes; native Slack identifiers and the bot token remain adapter-private.
+
+The adapter persists `reserved` before the effect and `sending` immediately before one Web API call.
+Delivered, rejected, and unknown remain exact terminal outcomes. A restart that finds `sending`
+records unknown and never automatically replays. The bounded SQLite store provides explicit
+capacity failure and terminal-only retention. Shared conformance makes the same safety behavior
+portable to future Discord, Teams, or other connectors.
+
+GLA11 is accepted when focused tests prove common connector conformance; stable private inspection;
+descriptor, destination, credential, artifact, permit, and plan drift blocking; durable reservation
+before effect; exact Slack receipt mapping; rejected/unknown separation; restart and same-outbound
+non-retry; contradictory evidence rejection; state capacity and terminal retention bounds; and a
+full CLI host-injection dogfood journey using canonical handoff evidence, CAS artifact bytes, a full
+writing permit, SQLite state, and a controlled transport. Quality, type, package-boundary, build,
+full tests, documentation and knowledge lifecycle, foundation checks, and task-base release
+completion must pass with reviewed minor release intent. Live workspace delivery remains an
+external authorization exercise and is not required for local acceptance.
+
 ## Non-goals
 
 - unattended or timer-based scheduling;
@@ -246,7 +269,8 @@ minor release intent.
 
 ## Next sequence
 
-1. Add production connector adapters only with shared conformance, credential, and recovery proofs.
+1. Add a second connector only when a current product needs it, reusing shared conformance while
+   keeping provider-native credential, destination, receipt, and recovery semantics in its adapter.
 2. Add another improvement metric only after its counting unit, evidence source, ground truth,
    privacy boundary, and versioned policy are explicit.
 
@@ -263,6 +287,7 @@ minor release intent.
 - [ADR-0344](../decisions/execution/orchestration/0344-deliver-assignment-artifacts-through-injected-connectors.md)
 - [ADR-0345](../decisions/execution/orchestration/0345-observe-reviewed-improvement-effects-without-self-learning-claims.md)
 - [ADR-0346](../decisions/execution/orchestration/0346-measure-improvement-effects-from-bounded-local-events.md)
+- [ADR-0347](../decisions/execution/orchestration/0347-deliver-assignments-through-a-production-slack-connector.md)
 - [Assignment interaction specification](../specifications/execution/assignment-interactions.md)
 - [Assignment connector specification](../specifications/execution/assignment-connectors.md)
 - [Assignment routine specification](../specifications/execution/assignment-routines.md)

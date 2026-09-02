@@ -23,6 +23,12 @@ function bounded(value: unknown, prefix?: string): value is string {
   );
 }
 
+function publicationPermitId(value: unknown): value is string {
+  return (
+    bounded(value, "permit") || (typeof value === "string" && /^wpp_[a-f0-9]{16}$/u.test(value))
+  );
+}
+
 function exactKeys(value: object, keys: string[]): boolean {
   const actual = Object.keys(value).sort();
   return actual.length === keys.length && actual.every((key, index) => key === keys[index]);
@@ -90,7 +96,7 @@ export function validateAssignmentConnectorInput(input: {
     throw new TypeError("The assignment connector destination is invalid.");
   if (
     request.publication.surface !== "chat" ||
-    !bounded(request.publication.permitId, "permit") ||
+    !publicationPermitId(request.publication.permitId) ||
     !HASH.test(request.publication.permitHash) ||
     !bounded(request.publication.artifactId, "art") ||
     !HASH.test(request.publication.contentHash)

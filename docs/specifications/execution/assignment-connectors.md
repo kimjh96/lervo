@@ -92,9 +92,63 @@ contradictory or foreign evidence rejection, no retry after unknown, native iden
 bounded errors. The current injected fake exercises orchestration order and replay; it is not a
 production connector.
 
+## Production Slack connector
+
+`@lervo/adapter-slack` provides the first production `AssignmentConnectorPortV1`. An authorized
+host composes it explicitly from six independent boundaries: an environment-backed credential
+source, an internal-to-native destination source, an artifact source, a full writing-publication
+permit source, a durable connector state store, and a Slack Web API transport. The stock CLI does
+not construct these sources and remains unable to send externally.
+
+Inspection exposes only the versioned descriptor and internal destination binding. The binding
+hash covers the private Slack team, channel, and optional parent-thread coordinates, so native
+destination drift invalidates the reviewed plan without disclosing those coordinates. The
+credential source reads a named environment variable at the effect boundary; the token is never
+accepted in a route request, descriptor, destination, reservation, observation, or SQLite record.
+Credential scope must match the private destination team.
+
+Reservation resolves the exact artifact bytes and a schema-valid, content-derived `wpp_*` permit.
+The permit must name the `chat` surface and exact artifact ID and content hash, and its canonical
+hash must equal the reviewed permit hash. Slack text must be non-empty valid UTF-8, at most 4,000
+characters and 16 KiB, and must hash to the reviewed content. The 4,000-character bound follows
+Slack's recommended `chat.postMessage` size and prevents silent truncation. Markup and link or media
+unfurling are disabled.
+
+The SQLite state machine is:
+
+```text
+reserved -> sending -> delivered | rejected | unknown
+                  restart -------^ unknown
+```
+
+`reserved` contains the internal outbound, plan, connector, destination and reservation IDs;
+attempt and authorization hashes; and reservation time. `sending` adds only the attempt time.
+Terminal rows add only hashed delivery evidence and time for `delivered`, or the bounded failure
+code for `rejected` and `unknown`. They never contain tokens, artifact text, permits, native team,
+channel, thread, or message identifiers, or provider error prose. Encountering `sending` after a
+restart atomically records `unknown`; it never sends again. A proven receipt may still replace an
+in-flight `unknown` created by a concurrent observer.
+
+The store accepts at most 100,000 records by default and fails closed at capacity. Operator-owned
+retention may delete only terminal rows older than an explicit timestamp, at most 1,000 per call.
+Unresolved reservations are not purged automatically. The common conformance runner covers stable
+inspection, descriptor and destination drift, authorization before effect, reservation before
+effect, replay, conflict, delivered/rejected/unknown mapping, unknown non-retry, contradictory
+evidence, foreign plans, and native-identifier privacy.
+
+Slack JSON responses with `ok: false` are definitive rejection. A non-success HTTP response,
+timeout, network failure, malformed JSON, missing or mismatched channel or receipt is conservatively
+`unknown`, because the effect cannot be disproved. The connector performs no automatic retry,
+including rate-limit retry. A repository-local dogfood journey exercises the real connector,
+SQLite state, CAS artifact, writing permit, CLI injection, and replay against a controlled transport;
+it is not evidence of a live Slack workspace delivery.
+
 ## References
 
 - [Assignment interactions](assignment-interactions.md)
 - [Execution and evidence specification](../execution.md)
 - [Execution events and privacy](events-and-privacy.md)
 - [ADR-0344](../../decisions/execution/orchestration/0344-deliver-assignment-artifacts-through-injected-connectors.md)
+- [ADR-0347](../../decisions/execution/orchestration/0347-deliver-assignments-through-a-production-slack-connector.md)
+- [Slack `chat.postMessage`](https://docs.slack.dev/reference/methods/chat.postMessage)
+- [Slack Web API rate limits](https://docs.slack.dev/apis/web-api/rate-limits/)
