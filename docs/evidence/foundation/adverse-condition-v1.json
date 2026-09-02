@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidenceBuildDigest": "sha256:1a7bc485f1d73d5631646d15034344843f42b4c57e27e1a5b22f38a2deb3fc2d",
-  "repositoryRevision": "sha256:0a16e5042eacf5fcd5daba04a2043b591a6383a0b247be41d730236fe52ef5b1",
+  "repositoryRevision": "sha256:f759e6f6651b5796540d764b737da548dd596643d5fc5d6be8dd0a2c8a8bf149",
   "environment": {
     "operatingSystem": "darwin",
     "architecture": "arm64",
@@ -1137,9 +1137,9 @@
       "eventWindow": 1000,
       "assignmentWindow": 128,
       "concurrentWorkers": 4,
-      "durationMs": 0.100792,
-      "cpuMs": 0.131,
-      "processPeakResidentMemoryBytes": 184893440,
+      "durationMs": 0.092958,
+      "cpuMs": 0.118,
+      "processPeakResidentMemoryBytes": 185008128,
       "status": "passed"
     },
     {
@@ -1147,9 +1147,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 16,
-      "durationMs": 0.277708,
-      "cpuMs": 0.33,
-      "processPeakResidentMemoryBytes": 184909824,
+      "durationMs": 0.2755,
+      "cpuMs": 0.324,
+      "processPeakResidentMemoryBytes": 185008128,
       "status": "passed"
     },
     {
@@ -1157,9 +1157,9 @@
       "eventWindow": 100000,
       "assignmentWindow": 10000,
       "concurrentWorkers": 32,
-      "durationMs": 2.520083,
-      "cpuMs": 2.908,
-      "processPeakResidentMemoryBytes": 185778176,
+      "durationMs": 2.479625,
+      "cpuMs": 2.83,
+      "processPeakResidentMemoryBytes": 185876480,
       "status": "passed"
     },
     {
@@ -1167,9 +1167,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 32,
-      "durationMs": 0.25425,
-      "cpuMs": 0.363,
-      "processPeakResidentMemoryBytes": 185810944,
+      "durationMs": 0.257209,
+      "cpuMs": 0.369,
+      "processPeakResidentMemoryBytes": 185909248,
       "status": "passed"
     }
   ],
@@ -1345,5 +1345,5 @@
     "credentials": "excluded",
     "absolutePaths": "excluded"
   },
-  "reportId": "adverse_e38319b34d7a4535b16c4335"
+  "reportId": "adverse_600ca6386223c0f517048339"
 }
