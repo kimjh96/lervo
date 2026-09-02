@@ -119,8 +119,9 @@ The first five transitions reuse existing Lervo contracts. The version-1 verifie
 contract now pre-registers a baseline and compares observable source recall, unnecessary
 context, verification success, repeated failure, rework, and user correction after exact
 promotion. Attribution remains unestablished, and unfavorable evidence requests review rather
-than automatic rollback. Production observation adapters and stronger causal designs remain
-future work.
+than automatic rollback. A bounded production local adapter now measures exact repository-wide
+verification success from canonical completion events; metrics without defined local evidence
+remain unavailable, and stronger causal designs remain future work.
 
 ## Adaptable ideas
 

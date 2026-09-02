@@ -25,6 +25,10 @@ The stock CLI can plan from bounded JSON but has no observation-verification aut
 inject `ImprovementObservationPortV1`; provider-native queries, credentials, samples, and raw
 evidence remain adapter-private.
 
+An authorized host may separately use `ImprovementObservationCollectorV1` to prepare a request.
+Collection is not canonical apply authority: register and observe still re-inspect the narrower
+verification port and reproduce the exact observation before writing CAS or an event.
+
 ## Metric policy and claims
 
 Version 1 supports `source_recall`, `unnecessary_context`, `verification_success`,
@@ -50,6 +54,31 @@ Exact replays return the existing event. A conflicting deterministic identity, s
 drift, pattern or target drift, metric drift, invalid timing, malformed receipt, CAS failure, or
 event failure records no success. Missing observations mean unobserved, not zero or no effect.
 
+## Local canonical-event adapter
+
+`@lervo/improvement-observation-local` is the first production observation adapter. Version 1
+supports only `verification_success`, defined as passed `verification.completed` events divided by
+all valid `verification.completed` events in the inclusive project-local observation window.
+Failed and cancelled completions remain in the denominator. The measure is repository-wide within
+the window; it does not prove that a promoted pattern caused an outcome.
+
+The adapter scans one immutable event-store snapshot with explicit scan and evidence limits,
+validates every selected completion, rejects duplicate verification identities, and derives an
+evidence-set hash from privacy-bounded canonical event coordinates. Its receipt binds the adapter
+descriptor, phase, pattern, window, metric, counts, and evidence hash. Apply re-observes the window;
+later backdated evidence makes the reviewed receipt stale instead of being ignored.
+
+`source_recall`, `unnecessary_context`, `repeated_failure`, `rework`, and `user_correction` remain
+unavailable through this adapter because current local events do not establish their ground truth
+or exact counting units. Empty windows, unsupported metrics, and capacity overflow are explicit
+unavailable results rather than zeroes or estimates. Invalid, inaccessible, contradictory, or
+unsafe-to-close sources fail with typed adapter errors.
+
+The shared `@lervo/improvement-observation-conformance` suite checks descriptor stability, exact
+round-trip verification, count, phase, pattern, and window drift rejection, unsupported-metric
+abstention, and unknown-adapter rejection. Storage scanning, metric projection, receipt binding,
+CLI composition, and canonical protocol persistence remain separate responsibilities.
+
 ## Privacy
 
 Events retain only opaque pattern, protocol, comparison, event, plan, artifact, adapter, metric,
@@ -63,3 +92,4 @@ in local CAS; adapter-native evidence stays behind the port.
 - [Repository development-pattern lifecycle](../../specs/repository-development-pattern-lifecycle.md)
 - [Execution events and privacy](events-and-privacy.md)
 - [ADR-0345](../../decisions/execution/orchestration/0345-observe-reviewed-improvement-effects-without-self-learning-claims.md)
+- [ADR-0346](../../decisions/execution/orchestration/0346-measure-improvement-effects-from-bounded-local-events.md)

@@ -125,6 +125,9 @@ importers:
       '@lervo/identity-migration':
         specifier: workspace:*
         version: link:../../packages/identity-migration
+      '@lervo/improvement-observation-local':
+        specifier: workspace:*
+        version: link:../../packages/improvement-observation-local
       '@lervo/knowledge-okf':
         specifier: workspace:*
         version: link:../../packages/knowledge-okf
@@ -1037,6 +1040,31 @@ importers:
       yaml:
         specifier: ^2.9.0
         version: 2.9.0
+
+  packages/improvement-observation-conformance:
+    dependencies:
+      '@lervo/application-contract':
+        specifier: workspace:*
+        version: link:../application-contract
+
+  packages/improvement-observation-local:
+    dependencies:
+      '@lervo/application-contract':
+        specifier: workspace:*
+        version: link:../application-contract
+      '@lervo/project-storage':
+        specifier: workspace:*
+        version: link:../project-storage
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+    devDependencies:
+      '@lervo/improvement-observation-conformance':
+        specifier: workspace:*
+        version: link:../improvement-observation-conformance
 
   packages/interaction:
     dependencies:

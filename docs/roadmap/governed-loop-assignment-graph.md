@@ -205,6 +205,26 @@ event replay, rebuildable projection, and no automatic rollback. Quality, type, 
 build, full tests, documentation and knowledge lifecycle, foundation checks, and task-base release
 completion must pass with reviewed minor release intent.
 
+## GLA10: Bounded local improvement observation adapter
+
+GLA10 adds a production local adapter without giving the stock CLI measurement authority. An
+authorized host may collect a request from local canonical events, but exact register and observe
+apply still re-inspect the narrower verification port and reproduce the reviewed evidence.
+
+The first supported metric is repository-wide `verification_success`: passed canonical
+verification completions divided by every valid completion in an inclusive window. Unsupported,
+empty, and over-capacity measurements remain explicitly unavailable. Event scanning, pure metric
+projection, receipt binding, project-storage lifetime, shared conformance, CLI injection, and CAS
+protocol persistence remain separate responsibilities.
+
+GLA10 is accepted when focused tests prove shared adapter conformance, exact counts and boundary
+inclusion, count, phase, pattern, window, and backdated-evidence drift rejection, duplicate-evidence
+failure, unsupported and empty abstention, scan and evidence capacity limits, safe storage close,
+default no-authority behavior, and a full baseline-to-promotion-to-treatment CLI host-injection
+dogfood journey. Quality, type, package-boundary, build, full tests, documentation and knowledge
+lifecycle, foundation checks, and task-base release completion must pass with reviewed minor release
+intent.
+
 ## Non-goals
 
 - unattended or timer-based scheduling;
@@ -226,8 +246,9 @@ minor release intent.
 
 ## Next sequence
 
-1. Add production connector and observation adapters only with shared conformance, credential, and
-   recovery proofs.
+1. Add production connector adapters only with shared conformance, credential, and recovery proofs.
+2. Add another improvement metric only after its counting unit, evidence source, ground truth,
+   privacy boundary, and versioned policy are explicit.
 
 ## References
 
@@ -241,6 +262,7 @@ minor release intent.
 - [ADR-0342](../decisions/execution/orchestration/0342-project-assignment-interactions-from-workforce-handoffs.md)
 - [ADR-0344](../decisions/execution/orchestration/0344-deliver-assignment-artifacts-through-injected-connectors.md)
 - [ADR-0345](../decisions/execution/orchestration/0345-observe-reviewed-improvement-effects-without-self-learning-claims.md)
+- [ADR-0346](../decisions/execution/orchestration/0346-measure-improvement-effects-from-bounded-local-events.md)
 - [Assignment interaction specification](../specifications/execution/assignment-interactions.md)
 - [Assignment connector specification](../specifications/execution/assignment-connectors.md)
 - [Assignment routine specification](../specifications/execution/assignment-routines.md)

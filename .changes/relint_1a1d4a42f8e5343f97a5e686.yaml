@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1a1d4a42f8e5343f97a5e686"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add bounded local verification telemetry for reviewed improvement observations."

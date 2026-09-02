@@ -53,6 +53,12 @@ export default defineConfig({
       "@lervo/hub-trace": fromRoot("./packages/hub-trace/src/index.ts"),
       "@lervo/interaction": fromRoot("./packages/interaction/src/index.ts"),
       "@lervo/interaction-sqlite": fromRoot("./packages/interaction-sqlite/src/index.ts"),
+      "@lervo/improvement-observation-conformance": fromRoot(
+        "./packages/improvement-observation-conformance/src/index.ts",
+      ),
+      "@lervo/improvement-observation-local": fromRoot(
+        "./packages/improvement-observation-local/src/index.ts",
+      ),
       "@lervo/knowledge": fromRoot("./packages/knowledge/src/index.ts"),
       "@lervo/knowledge-okf": fromRoot("./packages/knowledge-okf/src/index.ts"),
       "@lervo/knowledge-graph": fromRoot("./packages/knowledge-graph/src/index.ts"),

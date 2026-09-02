@@ -56,6 +56,12 @@
       "@lervo/interaction": ["packages/interaction/src/index.ts"],
       "@lervo/interaction-sqlite": ["packages/interaction-sqlite/src/index.ts"],
       "@lervo/identity-migration": ["packages/identity-migration/src/index.ts"],
+      "@lervo/improvement-observation-conformance": [
+        "packages/improvement-observation-conformance/src/index.ts"
+      ],
+      "@lervo/improvement-observation-local": [
+        "packages/improvement-observation-local/src/index.ts"
+      ],
       "@lervo/knowledge": ["packages/knowledge/src/index.ts"],
       "@lervo/knowledge-okf": ["packages/knowledge-okf/src/index.ts"],
       "@lervo/knowledge-graph": ["packages/knowledge-graph/src/index.ts"],

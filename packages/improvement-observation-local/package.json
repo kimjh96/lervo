@@ -1,0 +1,26 @@
+{
+  "name": "@lervo/improvement-observation-local",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@lervo/application-contract": "workspace:*",
+    "@lervo/project-storage": "workspace:*",
+    "@lervo/schemas": "workspace:*",
+    "@lervo/storage-contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@lervo/improvement-observation-conformance": "workspace:*"
+  }
+}

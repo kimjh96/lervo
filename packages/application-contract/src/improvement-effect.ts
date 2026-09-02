@@ -173,3 +173,52 @@ export interface ImprovementObservationPortV1 {
     observations: ImprovementMetricObservationV1[];
   }): Promise<ImprovementMetricObservationV1[]>;
 }
+
+export type ImprovementObservationUnavailableReasonV1 =
+  "evidence_limit_exceeded" | "metric_unsupported" | "no_eligible_evidence";
+
+export interface ImprovementObservationCollectionRequestV1 {
+  phase: "baseline" | "treatment";
+  patternId: string;
+  window: ImprovementObservationWindowV1;
+  metricIds: ImprovementMetricIdV1[];
+}
+
+export interface ImprovementObservationCollectionResultV1 {
+  observations: ImprovementMetricObservationV1[];
+  unavailable: Array<{
+    metricId: ImprovementMetricIdV1;
+    reason: ImprovementObservationUnavailableReasonV1;
+  }>;
+}
+
+/**
+ * Optional preparation capability for a host that is already authorized to query an
+ * observation source. Canonical protocol and comparison apply still use the narrower
+ * verification port above and re-observe exact evidence before mutation.
+ */
+export interface ImprovementObservationCollectorV1 {
+  collect(
+    input: ImprovementObservationCollectionRequestV1,
+  ): Promise<ImprovementObservationCollectionResultV1>;
+}
+
+export type ImprovementObservationPortErrorCodeV1 =
+  | "adapter_not_found"
+  | "evidence_invalid"
+  | "evidence_limit_exceeded"
+  | "evidence_unavailable"
+  | "metric_unsupported"
+  | "observation_mismatch"
+  | "request_invalid";
+
+export class ImprovementObservationPortError extends Error {
+  constructor(
+    readonly code: ImprovementObservationPortErrorCodeV1,
+    message: string,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = "ImprovementObservationPortError";
+  }
+}

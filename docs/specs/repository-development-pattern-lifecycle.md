@@ -26,3 +26,8 @@ events are canonical and the current effect view is rebuildable. The comparison 
 keeps attribution unestablished, and never authorizes automatic rollback or claims model learning,
 truth, correctness, or semantic use. The [verified improvement effect specification](../specifications/execution/verified-improvement-effects.md)
 owns metrics, timing, adapter, privacy, and failure meaning.
+
+The first production local adapter derives only repository-wide verification success from bounded
+canonical verification-completion events. It re-observes exact evidence on apply and leaves every
+metric without a defined local counting unit unavailable. Collection does not change review,
+promotion, canonical-source, or rollback authority.

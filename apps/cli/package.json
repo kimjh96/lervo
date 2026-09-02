@@ -54,6 +54,7 @@
     "@lervo/environment-adapter-tailscale": "workspace:*",
     "@lervo/execution-contract": "workspace:*",
     "@lervo/identity-migration": "workspace:*",
+    "@lervo/improvement-observation-local": "workspace:*",
     "@lervo/knowledge-okf": "workspace:*",
     "@lervo/node-runtime": "workspace:*",
     "@lervo/organization-deployment-contract": "workspace:*",
