@@ -5,6 +5,7 @@ import { capabilityUsage, runCapabilityCommand } from "./capability-command.js";
 import { deliberateUsage, runDeliberateCommand } from "./deliberate-command.js";
 import { inspectDoctorEnvironment } from "./doctor-environment.js";
 import { finalizeGovernedAssignment } from "./governed-assignment-finalization.js";
+import { reconcileGovernedAssignment } from "./governed-completion-reconciliation.js";
 import { inspectGovernedWork } from "./governed-work-inspection.js";
 import { runInitCommand, initUsage } from "./init-command.js";
 import { runLoopCommand, loopUsage } from "./loop-command.js";
@@ -72,6 +73,7 @@ const defaultServices: CliServices = {
   createTerminalStageObservation,
   inspectGovernedWork,
   finalizeGovernedAssignment,
+  reconcileGovernedAssignment,
   prepareSearchQueries: prepareProductionSearchQueries,
 };
 

@@ -74,9 +74,9 @@
     },
     {
       "path": "packages/agent-workforce/src/store.ts",
-      "contentHash": "sha256:e2098498d9d48569a9cb441a8a60fa644f46a72149b7fd676984ef550df9ef47",
+      "contentHash": "sha256:5b45194233cddf84792eae5a8fef085126148f9509d99bf31003df7c839d8115",
       "responsibility": "Durable repository workforce aggregate",
-      "rationale": "Agent and assignment records share one project-bound coordination home, validation model, atomic transition and event rollback, and concurrency retry boundary. Pure admission limits and assignment-DAG cancellation now remain in separate modules, as do workspace lifecycle effects.",
+      "rationale": "Agent and assignment records share one project-bound coordination home, validation model, atomic transition and event rollback, and concurrency retry boundary. Pure admission, assignment-DAG cancellation, prepared-completion validation, and workspace lifecycle effects remain in linked modules.",
       "disposition": "cohesive"
     },
     {
@@ -95,7 +95,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:45dabc00374fbe23dd3a7e1b51665e5085372ba40604f0cd0662f640f0bc3307",
+      "contentHash": "sha256:e3bbd7a461b140b361d84c1cb4a65f6c56db93edeb1da936250fab33d0c2a421",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
       "disposition": "cohesive"
@@ -312,7 +312,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:bf30d93356c82d531f08ae14b4a51e9773a67e0429b1fa64c362bf9b34feb019",
+      "contentHash": "sha256:c12381808449c9135c7b715d41acf13b390e28de3552157f54d868d8b238acaf",
       "responsibility": "Repository schema validator registry",
       "rationale": "The module declaratively registers and exposes validators for the versioned schema catalog; its length follows schema inventory and it owns no domain workflow or external effect.",
       "disposition": "cohesive"

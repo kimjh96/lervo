@@ -1,6 +1,11 @@
 import { executeGovernedAttempt } from "./governed-attempt-runner.js";
+import { executeCompletionReconciliation } from "./governed-completion-reconciliation-command.js";
 import { loopUsage, parseLoopOptions } from "./loop-options.js";
-import { formatGovernedWorkReport, renderGovernedAttemptResult } from "./loop-renderer.js";
+import {
+  formatGovernedWorkReport,
+  renderCompletionReconciliationResult,
+  renderGovernedAttemptResult,
+} from "./loop-renderer.js";
 import type { CliIo, CliServices } from "./types.js";
 
 export { formatGovernedWorkReport, loopUsage };
@@ -25,6 +30,11 @@ export async function runLoopCommand(
         options.json ? `${JSON.stringify(report, null, 2)}\n` : formatGovernedWorkReport(report),
       );
       return report.decision.status === "invalid" ? 1 : 0;
+    }
+    if (options.action === "reconcile") {
+      const result = await executeCompletionReconciliation(options, report, services);
+      io.stdout(renderCompletionReconciliationResult(result, options.json));
+      return 0;
     }
 
     const result = await executeGovernedAttempt(options, report, services);

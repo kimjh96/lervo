@@ -115,6 +115,75 @@ describe("governed loop decision", () => {
     });
   });
 
+  it("never reclaims completed provider work and reconciles only exact prepared evidence", () => {
+    const node = leased("1");
+    const attempts = [
+      {
+        schemaVersion: 1 as const,
+        assignmentId: node.assignmentId,
+        workId: "wrk_111111111111111111111111",
+        runId: "run_111111111111111111111111",
+        relationship: "root" as const,
+        attemptOrdinal: 1,
+        terminalStatus: "completed" as const,
+        verificationStatus: "passed" as const,
+      },
+    ];
+    const graph = projectWorkGraph({
+      projectId,
+      workstreamId,
+      assignments: [node],
+      attempts,
+      observedAt: "2026-09-01T00:06:00.000Z",
+    });
+    const withoutEvidence = decideGovernedLoop({
+      graph,
+      attempts,
+      resources: [],
+      policy: normalizeGovernedLoopPolicy(),
+    });
+    expect(withoutEvidence.actions).toEqual([
+      {
+        kind: "escalate",
+        assignmentId: node.assignmentId,
+        reasonCode: "completion_reconciliation_required",
+      },
+    ]);
+
+    const evidence = {
+      schemaVersion: 1 as const,
+      completionEvidenceId: "acp_111111111111111111111111",
+      workstreamId,
+      assignmentId: node.assignmentId,
+      assignmentRevision: node.revision,
+      agentId,
+      leaseId: node.lease!.leaseId,
+      runId: attempts[0]!.runId,
+      sessionId: "ses_111111111111111111111111",
+      resultArtifactId: "art_111111111111111111111111",
+      resultContentHash: `sha256:${"a".repeat(64)}`,
+      preparedAt: "2026-09-01T00:04:00.000Z",
+    };
+    expect(
+      decideGovernedLoop({
+        graph,
+        attempts,
+        completionEvidence: [evidence],
+        resources: [],
+        policy: normalizeGovernedLoopPolicy(),
+      }),
+    ).toMatchObject({
+      status: "ready",
+      actions: [
+        {
+          kind: "reconcile_completion",
+          assignmentId: node.assignmentId,
+          completionEvidenceId: evidence.completionEvidenceId,
+        },
+      ],
+    });
+  });
+
   it("fails closed for approval and incomplete resource evidence", () => {
     const approvalNode = leased("1");
     approvalNode.approvalRequirements = ["human-review"];

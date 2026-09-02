@@ -1,6 +1,10 @@
 import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.js";
 
 import { adapterContractMessageSchema } from "./adapter.js";
+import {
+  assignmentCompletionPreparedEventPayloadSchema,
+  assignmentCompletionReconciledEventPayloadSchema,
+} from "./assignment-completion-event.js";
 import { capabilityLockSchema, capabilityPackageManifestSchema } from "./capability-package.js";
 import {
   adapterCapabilityActivationReceiptSchema,
@@ -315,6 +319,12 @@ const validators = {
   roleEvaluationResult: ajv.compile(roleEvaluationResultSchema),
   highRiskRoleWorkflow: ajv.compile(highRiskRoleWorkflowSchema),
   runCompletedEventPayload: ajv.compile(runCompletedEventPayloadSchema),
+  assignmentCompletionPreparedEventPayload: ajv.compile(
+    assignmentCompletionPreparedEventPayloadSchema,
+  ),
+  assignmentCompletionReconciledEventPayload: ajv.compile(
+    assignmentCompletionReconciledEventPayloadSchema,
+  ),
   statePrunedEventPayload: ajv.compile(statePrunedEventPayloadSchema),
   sharedContext: ajv.compile(sharedContextPublicationSchema),
   handoffBundle: ajv.compile(handoffBundleSchema),

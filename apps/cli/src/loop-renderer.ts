@@ -1,6 +1,7 @@
 import type { GovernedWorkReportV1 } from "@lervo/application-contract";
 
 import type { GovernedAttemptRunResult } from "./governed-attempt-runner.js";
+import type { GovernedCompletionReconciliationResult } from "./governed-completion-reconciliation-command.js";
 
 function formatAction(action: GovernedWorkReportV1["decision"]["actions"][number]): string {
   return `${action.kind}${action.assignmentId === null ? "" : ` ${action.assignmentId}`} (${action.reasonCode})`;
@@ -12,6 +13,7 @@ export function formatGovernedWorkReport(report: GovernedWorkReportV1): string {
     `workstream: ${report.workstreamId}`,
     `graph: ${report.graph.graphId} · ${report.graph.nodes.length} nodes · ${report.graph.joinAssignmentIds.length} joins`,
     `attempts: ${report.attempts.length}`,
+    `prepared completions: ${report.completionEvidence.length}`,
     `resources: ${
       report.resources.length === 0
         ? "unobserved"
@@ -26,6 +28,16 @@ export function formatGovernedWorkReport(report: GovernedWorkReportV1): string {
     ...report.decision.actions.map((action) => `  ${formatAction(action)}`),
   ];
   return `${lines.join("\n")}\n`;
+}
+
+export function renderCompletionReconciliationResult(
+  result: GovernedCompletionReconciliationResult,
+  json: boolean,
+): string {
+  if (json) return `${JSON.stringify(result, null, 2)}\n`;
+  return result.status === "planned"
+    ? `Completion reconciliation plan ${result.commandId} is ready for ${result.assignmentId}; no state changed.\n`
+    : `Completion reconciliation ${result.commandId} completed ${result.assignmentId}.\n`;
 }
 
 export function renderGovernedAttemptResult(

@@ -92,6 +92,7 @@ export interface WorkforceEvent {
     | "assignment.lease.renewed"
     | "assignment.handoff.recorded"
     | "assignment.cancelled"
+    | "assignment.completion.reconciled"
     | "assignment.completed";
   occurredAt: string;
   actorAgentId: string | null;

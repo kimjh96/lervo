@@ -80,6 +80,20 @@ The second slice provides:
 It does not add an approval issuer, infer model self-approval, cancel leased provider work,
 or make the controller effectful.
 
+## GLA3: Prepared completion reconciliation
+
+The third slice records privacy-bounded completion preparation after managed verification and
+writing-publication acceptance but before ordinary assignment finalization. A matching prepared
+completion can be reconciled through an exact report-bound plan/apply transition without rerunning
+provider work. Missing or stale preparation evidence remains escalation-required, and lease expiry
+alone never turns a completed attempt back into claimable work.
+
+GLA3 is accepted when focused tests prove canonical run and result binding, rejection of foreign
+or malformed preparation, no reclaim after verified completion, explicit no-write planning,
+exact stale-plan recheck, expired-original-lease recovery, and state rollback when reconciliation
+event persistence fails. Quality, type, build, full tests, documentation and knowledge lifecycle,
+foundation checks, and task-base release completion must pass with reviewed minor release intent.
+
 ## Non-goals
 
 - unattended or timer-based scheduling;
@@ -101,11 +115,10 @@ minor release intent.
 
 ## Next sequence
 
-1. Add crash-reconciliation evidence for the narrow completed-run/finalization gap.
-2. Build a minimal local operating client over the headless query and command types.
-3. Add Paperclip-like goal, routine, board, and budget routes as replaceable adapters.
-4. Add Buzz-like inbox, mention, thread, and connector routes without granting room-based authority.
-5. Connect verified improvement candidates and post-promotion effect observation.
+1. Build a minimal local operating client over the headless query and command types.
+2. Add Paperclip-like goal, routine, board, and budget routes as replaceable adapters.
+3. Add Buzz-like inbox, mention, thread, and connector routes without granting room-based authority.
+4. Connect verified improvement candidates and post-promotion effect observation.
 
 ## References
 
@@ -113,4 +126,5 @@ minor release intent.
 - [Agent platform evolution research](../research/lervo-agent-platform-evolution.md)
 - [ADR-0336](../decisions/execution/orchestration/0336-adopt-headless-governed-loop-and-assignment-graph.md)
 - [ADR-0337](../decisions/execution/orchestration/0337-bind-assignment-approval-and-cancellation-authority.md)
+- [ADR-0338](../decisions/execution/orchestration/0338-reconcile-prepared-managed-assignment-completion.md)
 - [Execution specification](../specifications/execution.md)

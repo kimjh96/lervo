@@ -1,5 +1,7 @@
 import {
   validateSchema,
+  type AssignmentCompletionPreparedEventPayload,
+  type AssignmentCompletionReconciledEventPayload,
   type DeliberationArtifactRecordedEventPayload,
   type EventType,
   type KnowledgeCandidateCreatedEventPayload,
@@ -164,6 +166,31 @@ export const eventPayloadAllowlists = {
     "planId",
     "cancelledDependencyIds",
     "revision",
+  ],
+  "assignment.completion.prepared": [
+    "completionEvidenceId",
+    "workstreamId",
+    "assignmentId",
+    "assignmentRevision",
+    "agentId",
+    "leaseId",
+    "resultArtifactId",
+    "resultContentHash",
+    "verificationStatus",
+    "writingPublicationStatus",
+    "preparedAt",
+  ],
+  "assignment.completion.reconciled": [
+    "completionEvidenceId",
+    "reconciliationCommandId",
+    "sourceRunId",
+    "assignmentId",
+    "agentId",
+    "leaseId",
+    "resultArtifactId",
+    "resultContentHash",
+    "revision",
+    "reconciledAt",
   ],
   "assignment.completed": [
     "assignmentId",
@@ -802,6 +829,18 @@ export function sanitizeEventPayload(
     !invalidSchema &&
     type === "run.completed" &&
     !runCompletedCoordinateMatches(sanitized as unknown as RunCompletedEventPayload);
+  const invalidCompletionPreparedCoordinate =
+    !invalidSchema &&
+    type === "assignment.completion.prepared" &&
+    !assignmentCompletionPreparedCoordinateMatches(
+      sanitized as unknown as AssignmentCompletionPreparedEventPayload,
+    );
+  const invalidCompletionReconciledCoordinate =
+    !invalidSchema &&
+    type === "assignment.completion.reconciled" &&
+    !assignmentCompletionReconciledCoordinateMatches(
+      sanitized as unknown as AssignmentCompletionReconciledEventPayload,
+    );
   const invalidWorkstreamCoordinate =
     !invalidSchema &&
     type === "workstream.snapshot.recorded" &&
@@ -817,6 +856,8 @@ export function sanitizeEventPayload(
     invalidKnowledgeCoordinate ||
     invalidVerificationCoordinate ||
     invalidRunCompletedCoordinate ||
+    invalidCompletionPreparedCoordinate ||
+    invalidCompletionReconciledCoordinate ||
     invalidWorkstreamCoordinate ||
     invalidResourceUsageCoordinate
   ) {
@@ -837,6 +878,8 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "adapter.result.captured": "adapterResultCapturedEventPayload",
   "context.referenced": "managedContextReferencedEventPayload",
   "run.completed": "runCompletedEventPayload",
+  "assignment.completion.prepared": "assignmentCompletionPreparedEventPayload",
+  "assignment.completion.reconciled": "assignmentCompletionReconciledEventPayload",
   "deliberation.started": "deliberationStartedEventPayload",
   "deliberation.artifact.recorded": "deliberationArtifactRecordedEventPayload",
   "deliberation.artifact.publication_failed": "deliberationArtifactPublicationFailedEventPayload",
@@ -934,6 +977,18 @@ function runCompletedCoordinateMatches(payload: RunCompletedEventPayload): boole
       ? payload.artifactIds.length === 1
       : payload.artifactIds.length >= 2)
   );
+}
+
+function assignmentCompletionPreparedCoordinateMatches(
+  payload: AssignmentCompletionPreparedEventPayload,
+): boolean {
+  return payload.resultArtifactId === `art_${payload.resultContentHash.slice("sha256:".length)}`;
+}
+
+function assignmentCompletionReconciledCoordinateMatches(
+  payload: AssignmentCompletionReconciledEventPayload,
+): boolean {
+  return payload.resultArtifactId === `art_${payload.resultContentHash.slice("sha256:".length)}`;
 }
 
 function resourceUsageCoordinateMatches(payload: ResourceUsageRecordedEventPayload): boolean {

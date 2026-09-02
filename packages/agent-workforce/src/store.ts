@@ -25,6 +25,12 @@ import {
   createAssignmentCancellationPlan,
   type AssignmentCancellationStep,
 } from "./assignment-graph.js";
+import {
+  preparedCompletionMatchesAssignment,
+  reconciledCompletionPayload,
+  validAssignmentCompletionReconciliation,
+  type AssignmentCompletionReconciliation,
+} from "./assignment-completion-reconciliation.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const ROLE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
@@ -1310,6 +1316,7 @@ async function completeAssignmentOnce(input: {
   failureCode?: string;
   now?: Date;
   recordEvent?: WorkforceEventRecorder;
+  reconciliation?: AssignmentCompletionReconciliation;
 }): Promise<WorkforceAssignment> {
   const now = input.now ?? new Date();
   if (
@@ -1320,9 +1327,36 @@ async function completeAssignmentOnce(input: {
     (input.failureCode !== undefined && !/^[a-z][a-z0-9_]{1,99}$/u.test(input.failureCode))
   )
     fail("assignment_invalid", "The assignment result is invalid.");
+  if (
+    input.reconciliation !== undefined &&
+    !validAssignmentCompletionReconciliation({
+      reconciliation: input.reconciliation,
+      verificationStatus: input.verificationStatus,
+      resultArtifacts: input.resultArtifacts,
+    })
+  ) {
+    fail("assignment_invalid", "The assignment completion reconciliation is invalid.");
+  }
   const assignmentState = await readAssignmentState(input.repositoryRoot, input.assignmentId);
   const assignment = assignmentState.value;
-  exactLease(assignment, input.agentId, input.leaseId, now);
+  if (input.reconciliation === undefined) {
+    exactLease(assignment, input.agentId, input.leaseId, now);
+  } else {
+    if (
+      !preparedCompletionMatchesAssignment({
+        assignment,
+        assignmentRevision: input.reconciliation.assignmentRevision,
+        agentId: input.agentId,
+        leaseId: input.leaseId,
+        preparedAt: input.reconciliation.preparedAt,
+      })
+    ) {
+      fail(
+        "assignment_lease_conflict",
+        "The prepared completion differs from the assignment revision or lease.",
+      );
+    }
+  }
   const status =
     input.verificationStatus === "passed" ? ("completed" as const) : ("failed" as const);
   const next: WorkforceAssignment = {
@@ -1343,20 +1377,36 @@ async function completeAssignmentOnce(input: {
     result: structuredClone(next),
     ...(input.recordEvent === undefined ? {} : { recordEvent: input.recordEvent }),
     expectedBefore: assignmentState.source,
-    event: {
-      type: "assignment.completed",
-      occurredAt: next.updatedAt,
-      actorAgentId: input.agentId,
-      payload: {
-        assignmentId: assignment.assignmentId,
-        agentId: input.agentId,
-        status,
-        verificationStatus: input.verificationStatus,
-        artifactIds: next.resultArtifacts.map((item) => item.artifactId),
-        artifactHashes: next.resultArtifacts.map((item) => item.contentHash),
-        failureCode: next.failureCode,
-      },
-    },
+    event:
+      input.reconciliation === undefined
+        ? {
+            type: "assignment.completed",
+            occurredAt: next.updatedAt,
+            actorAgentId: input.agentId,
+            payload: {
+              assignmentId: assignment.assignmentId,
+              agentId: input.agentId,
+              status,
+              verificationStatus: input.verificationStatus,
+              artifactIds: next.resultArtifacts.map((item) => item.artifactId),
+              artifactHashes: next.resultArtifacts.map((item) => item.contentHash),
+              failureCode: next.failureCode,
+            },
+          }
+        : {
+            type: "assignment.completion.reconciled",
+            occurredAt: next.updatedAt,
+            actorAgentId: input.agentId,
+            payload: reconciledCompletionPayload({
+              reconciliation: input.reconciliation,
+              assignmentId: assignment.assignmentId,
+              agentId: input.agentId,
+              leaseId: input.leaseId,
+              resultArtifact: next.resultArtifacts[0]!,
+              revision: next.revision,
+              reconciledAt: next.updatedAt,
+            }),
+          },
   });
 }
 
@@ -1372,4 +1422,39 @@ export function completeAssignment(input: {
   recordEvent?: WorkforceEventRecorder;
 }): Promise<WorkforceAssignment> {
   return retryConcurrent(() => completeAssignmentOnce(input));
+}
+
+export function reconcileAssignmentCompletion(input: {
+  repositoryRoot: string;
+  assignmentId: string;
+  assignmentRevision: number;
+  agentId: string;
+  leaseId: string;
+  resultArtifact: WorkforceArtifactReference;
+  completionEvidenceId: string;
+  reconciliationCommandId: string;
+  sourceRunId: string;
+  preparedAt: string;
+  now?: Date;
+  recordEvent?: WorkforceEventRecorder;
+}): Promise<WorkforceAssignment> {
+  return retryConcurrent(() =>
+    completeAssignmentOnce({
+      repositoryRoot: input.repositoryRoot,
+      assignmentId: input.assignmentId,
+      agentId: input.agentId,
+      leaseId: input.leaseId,
+      resultArtifacts: [input.resultArtifact],
+      verificationStatus: "passed",
+      ...(input.now === undefined ? {} : { now: input.now }),
+      ...(input.recordEvent === undefined ? {} : { recordEvent: input.recordEvent }),
+      reconciliation: {
+        completionEvidenceId: input.completionEvidenceId,
+        reconciliationCommandId: input.reconciliationCommandId,
+        sourceRunId: input.sourceRunId,
+        assignmentRevision: input.assignmentRevision,
+        preparedAt: input.preparedAt,
+      },
+    }),
+  );
 }

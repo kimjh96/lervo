@@ -1,5 +1,6 @@
 import type {
   ApprovalObservationV1,
+  AssignmentCompletionEvidenceV1,
   GovernedLoopActionV1,
   GovernedLoopDecisionV1,
   GovernedLoopPolicyV1,
@@ -9,6 +10,10 @@ import type {
   WorkGraphV1,
 } from "@lervo/application-contract";
 
+import {
+  attemptRequiresDisposition,
+  decideAssignmentAttempt,
+} from "./assignment-attempt-decision.js";
 import { shortId } from "./hash.js";
 import { approvalCoordinate, indexApprovalObservations } from "./approval-observations.js";
 import { evaluateResourceAdmission } from "./resource-admission.js";
@@ -74,63 +79,6 @@ function approvalAction(
   };
 }
 
-function attemptAction(input: {
-  node: WorkGraphNodeV1;
-  attempts: readonly ManagedAttemptObservationV1[];
-  policy: GovernedLoopPolicyV1;
-  workstreamId: string;
-}): GovernedLoopActionV1 {
-  const attempts = input.attempts
-    .filter((attempt) => attempt.assignmentId === input.node.assignmentId)
-    .sort((left, right) => left.attemptOrdinal - right.attemptOrdinal);
-  const latest = attempts.at(-1);
-  if (latest === undefined) {
-    return {
-      kind: "start_attempt",
-      assignmentId: input.node.assignmentId,
-      reasonCode: "ready",
-      causality: {
-        relationship: "root",
-        workstreamId: input.workstreamId,
-        assignmentId: input.node.assignmentId,
-        agentId: input.node.assigneeAgentId!,
-      },
-    };
-  }
-  if (latest.terminalStatus === "in_progress") {
-    return { kind: "wait", assignmentId: input.node.assignmentId, reasonCode: "active_attempt" };
-  }
-  if (latest.terminalStatus === "completed" && latest.verificationStatus === "passed") {
-    return dispositionAction(
-      "escalate",
-      "completion_reconciliation_required",
-      input.node.assignmentId,
-    );
-  }
-  if (attempts.length >= input.policy.maxAttemptsPerAssignment) {
-    return dispositionAction(
-      input.policy.terminalFailureAction,
-      "attempts_exhausted",
-      input.node.assignmentId,
-    );
-  }
-  return {
-    kind: "retry_attempt",
-    assignmentId: input.node.assignmentId,
-    reasonCode: "attempt_failed",
-    causality: {
-      relationship: "retry",
-      workId: latest.workId,
-      parentRunId: latest.runId,
-      retryOfRunId: latest.runId,
-      attemptOrdinal: latest.attemptOrdinal + 1,
-      workstreamId: input.workstreamId,
-      assignmentId: input.node.assignmentId,
-      agentId: input.node.assigneeAgentId!,
-    },
-  };
-}
-
 function statusOf(actions: readonly GovernedLoopActionV1[]): GovernedLoopDecisionV1["status"] {
   if (actions.some((action) => action.kind === "escalate")) return "escalation_required";
   if (actions.some((action) => action.kind === "block" || action.kind === "await_approval")) {
@@ -139,9 +87,13 @@ function statusOf(actions: readonly GovernedLoopActionV1[]): GovernedLoopDecisio
   if (actions.some((action) => action.kind === "complete_work")) return "complete";
   if (
     actions.some((action) =>
-      ["claim_assignment", "start_attempt", "retry_attempt", "cancel_assignment"].includes(
-        action.kind,
-      ),
+      [
+        "claim_assignment",
+        "start_attempt",
+        "retry_attempt",
+        "cancel_assignment",
+        "reconcile_completion",
+      ].includes(action.kind),
     )
   ) {
     return "ready";
@@ -154,6 +106,7 @@ export function decideGovernedLoop(input: {
   attempts: readonly ManagedAttemptObservationV1[];
   resources: readonly ResourceGroupObservationV1[];
   approvals?: readonly ApprovalObservationV1[];
+  completionEvidence?: readonly AssignmentCompletionEvidenceV1[];
   policy: GovernedLoopPolicyV1;
 }): GovernedLoopDecisionV1 {
   let actions: GovernedLoopActionV1[];
@@ -239,18 +192,26 @@ export function decideGovernedLoop(input: {
               waiting.push(approval);
               continue;
             }
-            if (node.status === "queued" || node.leaseState !== "active") {
+            const terminalAttemptRequiresDisposition = attemptRequiresDisposition({
+              node,
+              attempts: input.attempts,
+            });
+            if (
+              !terminalAttemptRequiresDisposition &&
+              (node.status === "queued" || node.leaseState !== "active")
+            ) {
               ready.push({
                 kind: "claim_assignment",
                 assignmentId: node.assignmentId,
                 reasonCode: node.leaseState === "expired" ? "lease_expired" : "ready",
               });
             } else {
-              const attempt = attemptAction({
+              const attempt = decideAssignmentAttempt({
                 node,
                 attempts: input.attempts,
                 policy: input.policy,
                 workstreamId: input.graph.workstreamId,
+                completionEvidence: input.completionEvidence ?? [],
               });
               if (attempt.kind === "wait") waiting.push(attempt);
               else ready.push(attempt);

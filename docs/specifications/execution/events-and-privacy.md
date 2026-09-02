@@ -76,6 +76,26 @@ Success means one queued or blocked assignment state and its event committed tog
 Plan drift, terminal state, leased work, missing dependency evidence, contention, or event
 failure records no cancellation success; event failure restores the prior assignment bytes.
 
+`assignment.completion.prepared` records a content-derived evidence ID, workstream,
+assignment revision, agent, lease, accepted verification and writing-publication states,
+result artifact coordinates, and preparation time under the exact managed run and session
+envelope. It excludes task and acceptance prose, paths, prompts, provider output, artifact
+bodies, reviewer identity, reasoning, credentials, and provider configuration. Success means
+the governed adapter observed one matching passed `run.completed` event and both completion
+gates while the exact lease was valid; it does not mean assignment state changed. Foreign or
+contradictory run history, stale coordinates, invalid timing, event failure, and historical
+absence create no prepared-completion claim.
+
+`assignment.completion.reconciled` records the prepared-evidence and exact reconciliation
+command IDs, source managed run, assignment, agent, lease, result artifact coordinates,
+resulting revision, and time. It has the same exclusions. Success means the still-matching
+leased assignment state and event committed together; a preparation made during the original
+half-open `[acquiredAt, expiresAt)` lease interval may be applied after expiry. Another revision
+or lease, an out-of-interval
+preparation, a terminal assignment, stale plan, contention, or event failure records no
+reconciliation success, and event failure restores the prior assignment bytes. Missing
+preparation remains escalation-required and never authorizes provider rerun.
+
 Agent state may contain exact capability package IDs, kinds, versions, content hashes, and project or user source scopes. `capabilityHash` binds these coordinates and role-permission decisions. It excludes package bodies, publisher metadata, local paths, MCP configuration values, credentials, and Hub tokens. Registration failure records neither a hired agent nor package authority. Capability installation and Hub publication return operation receipts, add no execution event, and prove no loading, activation, invocation, or use.
 
 Managed `capability.activated` is emitted only after the provider adapter returns a valid exact receipt. Its envelope binds project, run, session, provider actor, and confirmation time. Its payload contains capability ID and kind, version and content hash, adapter and provider-session IDs, evidence (`mcp_connected` or `plugin_loaded`), and a privacy-bounded activation digest. It excludes local paths, commands, arguments, URLs, configuration, credentials and credential names, plugin content, tool inventories, and raw errors. Confirmation failure or timeout emits no activation event, blocks the task turn with `capability_activation_failed`, and appears only as the bounded `run.failed` diagnostic digest. Activation proves connection or load before the turn, not invocation or use.

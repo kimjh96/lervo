@@ -45,6 +45,21 @@ export interface ManagedAttemptObservationV1 {
   verificationStatus: "passed" | "failed" | "not_run" | "unavailable";
 }
 
+export interface AssignmentCompletionEvidenceV1 {
+  schemaVersion: 1;
+  completionEvidenceId: string;
+  workstreamId: string;
+  assignmentId: string;
+  assignmentRevision: number;
+  agentId: string;
+  leaseId: string;
+  runId: string;
+  sessionId: string;
+  resultArtifactId: string;
+  resultContentHash: string;
+  preparedAt: string;
+}
+
 export interface ResourceGroupObservationV1 {
   schemaVersion: 1;
   provider: "codex" | "claude" | "lervo";
@@ -143,6 +158,13 @@ export type GovernedLoopActionV1 =
       causality: ManagedAttemptCausalityV1;
     }
   | {
+      kind: "reconcile_completion";
+      assignmentId: string;
+      reasonCode: "completion_evidence_verified";
+      completionEvidenceId: string;
+      runId: string;
+    }
+  | {
       kind: "await_approval";
       assignmentId: string;
       reasonCode: "approval_missing" | "approval_invalid";
@@ -192,6 +214,7 @@ export interface GovernedWorkReportV1 {
   workstreamId: string;
   graph: WorkGraphV1;
   attempts: ManagedAttemptObservationV1[];
+  completionEvidence: AssignmentCompletionEvidenceV1[];
   resources: ResourceGroupObservationV1[];
   approvals: ApprovalObservationV1[];
   policy: GovernedLoopPolicyV1;
@@ -216,4 +239,23 @@ export interface GovernedAttemptCommandV1 {
   expectedGraphHash: string;
   assignmentId: string;
   causality: ManagedAttemptCausalityV1;
+}
+
+export interface GovernedCompletionReconciliationCommandV1 {
+  schemaVersion: 1;
+  kind: "governed_completion.reconcile";
+  commandId: string;
+  projectId: string;
+  workstreamId: string;
+  expectedGraphHash: string;
+  completionEvidenceId: string;
+  assignmentId: string;
+  assignmentRevision: number;
+  runId: string;
+  sessionId: string;
+  agentId: string;
+  leaseId: string;
+  resultArtifactId: string;
+  resultContentHash: string;
+  preparedAt: string;
 }

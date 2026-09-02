@@ -884,4 +884,51 @@ describe("event payload privacy boundary", () => {
       }),
     );
   });
+
+  it("keeps only exact prepared completion coordinates", () => {
+    const payload = {
+      completionEvidenceId: `acp_${"a".repeat(24)}`,
+      workstreamId: `wks_${"b".repeat(24)}`,
+      assignmentId: `asn_${"c".repeat(24)}`,
+      assignmentRevision: 2,
+      agentId: `agt_${"d".repeat(24)}`,
+      leaseId: `lse_${"e".repeat(24)}`,
+      resultArtifactId: `art_${"f".repeat(64)}`,
+      resultContentHash: `sha256:${"f".repeat(64)}`,
+      verificationStatus: "passed",
+      writingPublicationStatus: "allowed",
+      preparedAt: "2026-09-01T00:00:00.000Z",
+    };
+    expect(
+      sanitizeEventPayload("assignment.completion.prepared", {
+        ...payload,
+        task: "private task",
+        providerOutput: "private output",
+      }),
+    ).toMatchObject({ payload });
+    expect(() =>
+      sanitizeEventPayload("assignment.completion.prepared", {
+        ...payload,
+        resultArtifactId: `art_${"1".repeat(64)}`,
+      }),
+    ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+    const reconciled = {
+      completionEvidenceId: payload.completionEvidenceId,
+      reconciliationCommandId: `gcr_${"1".repeat(24)}`,
+      sourceRunId: "run_completion_fixture",
+      assignmentId: payload.assignmentId,
+      agentId: payload.agentId,
+      leaseId: payload.leaseId,
+      resultArtifactId: payload.resultArtifactId,
+      resultContentHash: payload.resultContentHash,
+      revision: 3,
+      reconciledAt: "2026-09-01T00:01:00.000Z",
+    };
+    expect(
+      sanitizeEventPayload("assignment.completion.reconciled", {
+        ...reconciled,
+        task: "private task",
+      }),
+    ).toMatchObject({ payload: reconciled });
+  });
 });

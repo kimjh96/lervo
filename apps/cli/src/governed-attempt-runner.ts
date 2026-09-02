@@ -130,6 +130,13 @@ export async function executeGovernedAttempt(
           contentHash: outcome.resultArtifact.contentHash,
         },
       ],
+      completionEvidence: {
+        workstreamId: report.workstreamId,
+        assignmentRevision: node.assignmentRevision,
+        runId: outcome.runId,
+        sessionId: outcome.sessionId,
+        writingPublicationStatus: "allowed",
+      },
     });
     return { status: "completed", assignmentId: options.assignmentId, outcome };
   }
