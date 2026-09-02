@@ -59,6 +59,7 @@ export default defineConfig({
       "@lervo/managed-provider-host": fromRoot("./packages/managed-provider-host/src/index.ts"),
       "@lervo/node-runtime": fromRoot("./apps/node-runtime/src/index.ts"),
       "@lervo/orchestrator": fromRoot("./packages/orchestrator/src/index.ts"),
+      "@lervo/operating-client": fromRoot("./apps/operating-client/src/index.ts"),
       "@lervo/policy": fromRoot("./packages/policy/src/index.ts"),
       "@lervo/policy-contract": fromRoot("./packages/policy-contract/src/index.ts"),
       "@lervo/policy-sqlite": fromRoot("./packages/policy-sqlite/src/index.ts"),

@@ -1,3 +1,5 @@
+import { renderGovernedWorkBoard } from "@lervo/operating-client";
+
 import { executeGovernedAttempt } from "./governed-attempt-runner.js";
 import { executeCompletionReconciliation } from "./governed-completion-reconciliation-command.js";
 import { loopUsage, parseLoopOptions } from "./loop-options.js";
@@ -29,6 +31,10 @@ export async function runLoopCommand(
       io.stdout(
         options.json ? `${JSON.stringify(report, null, 2)}\n` : formatGovernedWorkReport(report),
       );
+      return report.decision.status === "invalid" ? 1 : 0;
+    }
+    if (options.action === "board") {
+      io.stdout(renderGovernedWorkBoard(report));
       return report.decision.status === "invalid" ? 1 : 0;
     }
     if (options.action === "reconcile") {

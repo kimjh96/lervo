@@ -24,7 +24,8 @@ manual trigger -> verified checkpoint -> assignment decision -> managed attempt
 | `@lervo/work-controller`        | pure assignment/event projections and next-action decisions     | event append, leases, writes, scheduling       |
 | `@lervo/agent-workforce`        | assignment state, dependencies, leases, handoff, and completion | provider execution or loop policy              |
 | `@lervo/orchestrator`           | one managed attempt and its causal/resource/stage evidence      | multi-attempt policy or product presentation   |
-| CLI and future product adapters | trusted port composition and presentation                       | alternate graph, task, budget, or truth stores |
+| `@lervo/operating-client`       | pure board projection and static local presentation             | storage, policy, commands, or mutation         |
+| CLI and future product adapters | trusted port composition and product presentation               | alternate graph, task, budget, or truth stores |
 
 Events, CAS artifacts, assignment state, verification, and repository state remain
 canonical. Graphs, loop decisions, and operating views are rebuildable projections.
@@ -94,6 +95,20 @@ exact stale-plan recheck, expired-original-lease recovery, and state rollback wh
 event persistence fails. Quality, type, build, full tests, documentation and knowledge lifecycle,
 foundation checks, and task-base release completion must pass with reviewed minor release intent.
 
+## GLA4: Minimal local operating client
+
+The fourth slice adds a read-only graphical reference client over the exact governed-work report.
+`@lervo/operating-client` has no storage, Hub, provider, or mutation dependency. It projects report
+evidence into a board view model and renders deterministic self-contained HTML. The CLI supplies
+that report through `lervo loop board`; the generated document contains no script, form, server,
+network dependency, or state-changing control.
+
+GLA4 is accepted when focused tests prove assignment and dependency projection, attempt, approval,
+completion, action, and resource visibility, deterministic escaped HTML, explicit evidence
+limitations, no mutation-port invocation, and invalid-report exit preservation. Quality, type,
+package-boundary, build, full tests, documentation and knowledge lifecycle, foundation checks, and
+task-base release completion must pass with reviewed minor release intent.
+
 ## Non-goals
 
 - unattended or timer-based scheduling;
@@ -101,7 +116,7 @@ foundation checks, and task-base release completion must pass with reviewed mino
 - third-party code execution inside the controller;
 - estimated money presented as billed cost;
 - automatic approval, cancellation mutation, or uncertain-effect retry;
-- a Paperclip-like board or Buzz-like collaboration database; and
+- a mutable Paperclip-like task database or Buzz-like collaboration database; and
 - changing direct provider terminals from `unmanaged` to managed.
 
 ## Acceptance
@@ -115,10 +130,9 @@ minor release intent.
 
 ## Next sequence
 
-1. Build a minimal local operating client over the headless query and command types.
-2. Add Paperclip-like goal, routine, board, and budget routes as replaceable adapters.
-3. Add Buzz-like inbox, mention, thread, and connector routes without granting room-based authority.
-4. Connect verified improvement candidates and post-promotion effect observation.
+1. Add Paperclip-like goal, routine, richer board, and budget routes as replaceable adapters.
+2. Add Buzz-like inbox, mention, thread, and connector routes without granting room-based authority.
+3. Connect verified improvement candidates and post-promotion effect observation.
 
 ## References
 
@@ -127,4 +141,5 @@ minor release intent.
 - [ADR-0336](../decisions/execution/orchestration/0336-adopt-headless-governed-loop-and-assignment-graph.md)
 - [ADR-0337](../decisions/execution/orchestration/0337-bind-assignment-approval-and-cancellation-authority.md)
 - [ADR-0338](../decisions/execution/orchestration/0338-reconcile-prepared-managed-assignment-completion.md)
+- [ADR-0340](../decisions/execution/orchestration/0340-add-read-only-local-operating-board.md)
 - [Execution specification](../specifications/execution.md)

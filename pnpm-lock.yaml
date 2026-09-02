@@ -131,6 +131,9 @@ importers:
       '@lervo/node-runtime':
         specifier: workspace:*
         version: link:../node-runtime
+      '@lervo/operating-client':
+        specifier: workspace:*
+        version: link:../operating-client
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
@@ -447,6 +450,12 @@ importers:
       zod:
         specifier: 4.4.3
         version: 4.4.3
+
+  apps/operating-client:
+    dependencies:
+      '@lervo/application-contract':
+        specifier: workspace:*
+        version: link:../../packages/application-contract
 
   packages/adapter-claude:
     dependencies:

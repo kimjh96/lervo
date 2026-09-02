@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c44797cffa7780cabf6a8b5f"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add a read-only local operating board over governed work evidence."

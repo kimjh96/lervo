@@ -1,0 +1,63 @@
+import type {
+  ApplicationAssignmentStatus,
+  ApplicationLeaseState,
+  ApprovalObservationV1,
+  AssignmentCompletionEvidenceV1,
+  GovernedLoopActionV1,
+  GovernedLoopDecisionV1,
+  ManagedAttemptObservationV1,
+  ResourceGroupObservationV1,
+} from "@lervo/application-contract";
+
+export interface OperatingBoardSummaryV1 {
+  assignmentCount: number;
+  assignmentStatusCounts: Record<ApplicationAssignmentStatus, number>;
+  attemptCount: number;
+  preparedCompletionCount: number;
+  verifiedApprovalCount: number;
+  attentionApprovalCount: number;
+  resourceGroupCount: number;
+}
+
+export interface OperatingBoardNodeV1 {
+  assignmentId: string;
+  assignmentRevision: number;
+  taskType: string;
+  roleId: string;
+  status: ApplicationAssignmentStatus;
+  priority: number;
+  dependencyIds: string[];
+  isRoot: boolean;
+  isJoin: boolean;
+  approvalRequirementDigests: string[];
+  leaseState: ApplicationLeaseState;
+  assigneeAgentId: string | null;
+  leaseId: string | null;
+  declaredAttemptCount: number;
+  attempts: ManagedAttemptObservationV1[];
+  approvals: ApprovalObservationV1[];
+  completionEvidence: AssignmentCompletionEvidenceV1[];
+  actions: GovernedLoopActionV1[];
+}
+
+export interface OperatingBoardViewV1 {
+  schemaVersion: 1;
+  source: {
+    projectId: string;
+    workstreamId: string;
+    graphId: string;
+    graphHash: string;
+    observedAt: string;
+    decisionId: string;
+  };
+  state: {
+    decisionStatus: GovernedLoopDecisionV1["status"];
+    graphValidity: "valid" | "invalid";
+    graphReasonCodes: string[];
+  };
+  summary: OperatingBoardSummaryV1;
+  nodes: OperatingBoardNodeV1[];
+  actions: GovernedLoopActionV1[];
+  resources: ResourceGroupObservationV1[];
+  limitations: string[];
+}

@@ -7,6 +7,7 @@ import type { RunProvider } from "./managed-run.js";
 
 export const loopUsage = [
   "  lervo loop status [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>:<descriptor-hash>:<tokens>] [--root <path>] [--json]",
+  "  lervo loop board [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>:<descriptor-hash>:<tokens>] [--root <path>]",
   "  lervo loop run --provider <codex|claude> --assignment <id> --agent <id> --lease <id> --path <relative-path> --verification <suite-id> [--verification <suite-id> ...] [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>:<descriptor-hash>:<tokens>] [--root <path>] [--risk <level>] [--json] <request>",
   "  lervo loop reconcile --assignment <id> [--apply <command-id> --write] [--root <path>] [--json]",
 ].join("\n");
@@ -19,6 +20,7 @@ interface LoopOptionsBase {
 
 export type ParsedLoopOptions =
   | (LoopOptionsBase & { action: "help" })
+  | (LoopOptionsBase & { action: "board" })
   | (LoopOptionsBase & { action: "status" })
   | (LoopOptionsBase & {
       action: "reconcile";
@@ -118,6 +120,12 @@ export function parseLoopOptions(args: string[], cwd: string): ParsedLoopOptions
   const action = parsed.positionals.shift();
   if (action === "status") {
     if (parsed.positionals.length > 0) throw new Error("Loop status accepts no request text.");
+    return { ...base, action };
+  }
+  if (action === "board") {
+    if (parsed.positionals.length > 0 || base.json) {
+      throw new Error("Loop board accepts no request text or --json output.");
+    }
     return { ...base, action };
   }
   if (action === "reconcile") {

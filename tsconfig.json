@@ -62,6 +62,7 @@
       "@lervo/managed-provider-host": ["packages/managed-provider-host/src/index.ts"],
       "@lervo/node-runtime": ["apps/node-runtime/src/index.ts"],
       "@lervo/orchestrator": ["packages/orchestrator/src/index.ts"],
+      "@lervo/operating-client": ["apps/operating-client/src/index.ts"],
       "@lervo/organization-credential-source-file": [
         "packages/organization-credential-source-file/src/index.ts"
       ],

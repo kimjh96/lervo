@@ -148,6 +148,49 @@ describe("loop command", () => {
     expect(output.stderr).toEqual([]);
   });
 
+  it("renders the same governed report as a read-only local operating board", async () => {
+    const output = io();
+    const executeManagedRun = vi.fn();
+    const finalizeGovernedAssignment = vi.fn();
+    const reconcileGovernedAssignment = vi.fn();
+    const services = {
+      inspectGovernedWork: vi.fn(async () => report()),
+      executeManagedRun,
+      finalizeGovernedAssignment,
+      reconcileGovernedAssignment,
+    } as unknown as CliServices;
+
+    expect(await runLoopCommand(["board"], output.value, services)).toBe(0);
+    expect(output.stdout.join("")).toContain("<!doctype html>");
+    expect(output.stdout.join("")).toContain("Projection, not authority");
+    expect(output.stdout.join("")).toContain(assignmentId);
+    expect(output.stderr).toEqual([]);
+    expect(executeManagedRun).not.toHaveBeenCalled();
+    expect(finalizeGovernedAssignment).not.toHaveBeenCalled();
+    expect(reconcileGovernedAssignment).not.toHaveBeenCalled();
+  });
+
+  it("renders an invalid governed report while preserving its nonzero status", async () => {
+    const output = io();
+    const invalid = report();
+    invalid.graph.validity = { status: "invalid", reasonCodes: ["dependency_cycle"] };
+    invalid.decision = {
+      schemaVersion: 1,
+      decisionId: "gld_333333333333333333333333",
+      graphHash: invalid.graph.graphHash,
+      status: "invalid",
+      actions: [{ kind: "escalate", assignmentId: null, reasonCode: "graph_invalid" }],
+    };
+    const services = {
+      inspectGovernedWork: vi.fn(async () => invalid),
+    } as unknown as CliServices;
+
+    expect(await runLoopCommand(["board"], output.value, services)).toBe(1);
+    expect(output.stdout.join("")).toContain("dependency_cycle");
+    expect(output.stdout.join("")).toContain("graph_invalid");
+    expect(output.stderr).toEqual([]);
+  });
+
   it("executes through the managed-run port and finalizes only after accepted output", async () => {
     const output = io();
     const executeManagedRun = vi.fn(async () => ({
