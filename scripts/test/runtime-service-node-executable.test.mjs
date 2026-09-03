@@ -335,6 +335,31 @@ describe("runtime service Node executable composition", () => {
     expect(managerCalls).toHaveLength(0);
   });
 
+  it("rejects a directory Node executable before creating a service definition", async () => {
+    const value = await fixture();
+    const nodeDirectory = await mkdtemp(resolve(value.root, "node-directory-"));
+    const output = resolve(value.root, "directory-node-executable.service");
+    await expect(
+      renderRuntimeService([
+        "--manager",
+        "systemd",
+        "--runtime",
+        "hub",
+        "--executable",
+        value.executable,
+        "--node-executable",
+        nodeDirectory,
+        "--config",
+        value.config,
+        "--output",
+        output,
+      ]),
+    ).rejects.toThrow(
+      "The executable, optional Node executable, and config must be real regular files, not symbolic links.",
+    );
+    await expect(readFile(output, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
   it("rejects a symlinked Node executable", async () => {
     if (process.platform === "win32") return;
     const value = await fixture();
