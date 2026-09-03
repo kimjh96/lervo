@@ -694,6 +694,7 @@ describe("managed provider run lifecycle", () => {
           "",
           "Lervo managed file 1/1: src/result.ts",
           "Change only the repository-relative path above in this turn.",
+          "Submit its complete change through exactly one provider file-change request; a second request fails the run.",
         ].join("\n"),
       );
       const events = data.store.list({ runId });

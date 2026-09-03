@@ -10,13 +10,13 @@ The registered-corpus [phase A pilot v2](../../../evidence/search/linked-evidenc
 
 ## Decision
 
-For every managed-write provider turn, append the exact repository-relative target path and instruct the provider to change only that path. Apply the same provider-neutral orchestration rule to one-file and multi-file schedules. Do not add a target instruction to read-only turns.
+For every managed-write provider turn, append the exact repository-relative target path and instruct the provider to change only that path through one complete provider file-change request. State explicitly that a second request fails the run. Apply the same provider-neutral orchestration rule to one-file and multi-file schedules. Do not add a target instruction to read-only turns.
 
 The managed write bridge remains authoritative. Provider-visible text neither grants write authority nor proves compliance. Authorization, completion coordinates, repository snapshots, and byte verification continue to enforce the path boundary. This rule adds no event or state and stores no source body or unrestricted error.
 
 ## Failure meaning
 
-A provider request for another path remains `contract_validation_failed`. A provider that makes no verified change still fails the managed run. The explicit path reduces ambiguity without relaxing either failure.
+A provider request for another path or a second request for the completed path remains `contract_validation_failed`. A provider that makes no verified change still fails the managed run. The explicit path and one-request instruction reduce ambiguity without relaxing either failure.
 
 ## Consequences
 

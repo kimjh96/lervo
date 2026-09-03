@@ -432,6 +432,7 @@ export class ManagedProviderRunCoordinator {
                   "",
                   `Lervo managed file ${index + 1}/${scheduledPaths.length}: ${expectedPath}`,
                   "Change only the repository-relative path above in this turn.",
+                  "Submit its complete change through exactly one provider file-change request; a second request fails the run.",
                 ].join("\n"),
           requestedAt: this.time(),
         };

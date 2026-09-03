@@ -123,7 +123,7 @@
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:562b25c03520ff85e9557161fedcb4884770708e7d46dc135823bcab42b6eee5",
+      "contentHash": "sha256:0b571df483cb2b278824038a3ac035f8ec97bd72da4f68d51042c02adab0c2f5",
       "responsibility": "Managed provider-run coordinator",
       "rationale": "Snapshotting, abort handling, context delivery, turn execution, validation, resource and stage observation composition, and stop are phases of one provider-neutral managed-run state machine; accounting and timing invariants remain in linked modules.",
       "disposition": "cohesive"
