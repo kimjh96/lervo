@@ -116,7 +116,7 @@
     },
     {
       "path": "packages/knowledge-okf/src/okf.ts",
-      "contentHash": "sha256:5128bf340c207ea2d4f2d1c2abd72c717e1c1fce6cddc68165eb7859ab993af0",
+      "contentHash": "sha256:b3fac31cbd1150edee5c7e51dc659cb2faa21cb8dba9ae0e184ccb9bd89b71df",
       "responsibility": "OKF v0.2 exchange adapter",
       "rationale": "Read, lint, query, export, import, and re-export are operations over one external OKF format boundary with shared safety, trust, and byte-preservation rules.",
       "disposition": "cohesive"
@@ -186,7 +186,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/durable-apply.ts",
-      "contentHash": "sha256:9eb70a10659c9ae3660d53e71a63a8e601fa611be6e9d5dc2d716072cea3087e",
+      "contentHash": "sha256:9d5bde8e2af0b667b0e61350bf5cd8628372176d34982715d5c9ffc9c4f6e475",
       "responsibility": "Durable knowledge filesystem transaction",
       "rationale": "Journal creation, binding checks, safe writes, rollback, recovery, and cleanup implement one atomic filesystem transaction protocol.",
       "disposition": "cohesive"

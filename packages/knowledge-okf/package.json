@@ -15,6 +15,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
+    "@lervo/filesystem-durability": "workspace:*",
     "@lervo/project": "workspace:*",
     "@lervo/repository-knowledge": "workspace:*",
     "yaml": "^2.9.0"

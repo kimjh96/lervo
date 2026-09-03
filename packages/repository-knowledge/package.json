@@ -22,6 +22,7 @@
     "@babel/parser": "7.29.8",
     "@lervo/documents": "workspace:*",
     "@lervo/event-contract": "workspace:*",
+    "@lervo/filesystem-durability": "workspace:*",
     "@lervo/project": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/skills": "workspace:*",

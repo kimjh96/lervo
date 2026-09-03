@@ -2,6 +2,8 @@ import { constants } from "node:fs";
 import { mkdir, open } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
+import { syncDirectory } from "@lervo/filesystem-durability";
+
 import { contentHash, readEntry } from "./filesystem.js";
 import { EventWriterActivationError } from "./event-writer-errors.js";
 
@@ -17,19 +19,8 @@ export interface EventWriterActivationJournal {
   afterHash: string;
 }
 
-export function supportsEventWriterDirectorySync(platform: NodeJS.Platform): boolean {
-  return platform !== "win32";
-}
-
 export async function syncEventWriterDirectory(path: string): Promise<void> {
-  // Windows does not support fsync on directory handles; file contents are still synced before rename.
-  if (!supportsEventWriterDirectorySync(process.platform)) return;
-  const handle = await open(path, constants.O_RDONLY);
-  try {
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
+  await syncDirectory(path);
 }
 
 export async function writeDurableEventWriterFile(path: string, content: string): Promise<void> {

@@ -2,6 +2,8 @@ import { constants } from "node:fs";
 import { lstat, mkdir, open, realpath, rmdir, unlink } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 
+import { syncDirectory as syncDurableDirectory } from "@lervo/filesystem-durability";
+
 import { absoluteRepositoryPath, readStableFile } from "./filesystem.js";
 import { sha256 } from "./hash.js";
 import { DocumentMigrationError } from "./types.js";
@@ -22,12 +24,7 @@ export async function writeDurableExclusive(path: string, bytes: Uint8Array): Pr
 }
 
 export async function syncDirectory(path: string): Promise<void> {
-  const handle = await open(path, constants.O_RDONLY);
-  try {
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
+  await syncDurableDirectory(path);
 }
 
 export async function removeFileIfUnchanged(input: {

@@ -2,6 +2,7 @@ import { constants } from "node:fs";
 import { lstat, mkdir, open } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { syncDirectory } from "@lervo/filesystem-durability";
 import { resolveProjectPaths } from "@lervo/project";
 
 import { knowledgeArtifactShard, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
@@ -149,12 +150,7 @@ export async function storeKnowledgeCompilationCandidate(input: {
   } finally {
     await handle?.close();
   }
-  const directoryHandle = await open(shardDirectory, constants.O_RDONLY);
-  try {
-    await directoryHandle.sync();
-  } finally {
-    await directoryHandle.close();
-  }
+  await syncDirectory(shardDirectory);
   return {
     schemaVersion: 1,
     compilationId: input.candidate.compilationId,

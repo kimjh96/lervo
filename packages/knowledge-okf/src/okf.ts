@@ -2,6 +2,7 @@ import { constants } from "node:fs";
 import { lstat, mkdir, open, readFile, readdir, rm } from "node:fs/promises";
 import { dirname, posix, relative, resolve, sep } from "node:path";
 
+import { syncDirectory } from "@lervo/filesystem-durability";
 import { loadProjectManifest } from "@lervo/project";
 import {
   canonicalJson,
@@ -732,12 +733,7 @@ export async function applyOkfImportPlan(input: {
   } finally {
     await handle.close();
   }
-  const directoryHandle = await open(directory, constants.O_RDONLY);
-  try {
-    await directoryHandle.sync();
-  } finally {
-    await directoryHandle.close();
-  }
+  await syncDirectory(directory);
   return {
     schemaVersion: 1,
     planId: current.planId,

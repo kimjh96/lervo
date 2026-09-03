@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
-import { mkdir, open, rename, rm, rmdir, writeFile } from "node:fs/promises";
+import { mkdir, rename, rm, rmdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
+import { syncDirectory } from "@lervo/filesystem-durability";
 
 import { createIdentityMigrationPlan } from "./plan.js";
 import {
@@ -12,15 +13,6 @@ import {
 } from "./types.js";
 
 const IDENTITY_MIGRATION_POLICY_VERSION = `sha256:${createHash("sha256").update("lervo/project-identity-migration/v1").digest("hex")}`;
-
-async function syncDirectory(path: string): Promise<void> {
-  const handle = await open(path, "r");
-  try {
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
-}
 
 async function removeEmptyArchiveParents(archiveRoot: string): Promise<void> {
   for (const path of [archiveRoot, dirname(archiveRoot), dirname(dirname(archiveRoot))]) {

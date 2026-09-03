@@ -48,6 +48,7 @@
       "@lervo/execution-observability": ["packages/execution-observability/src/index.ts"],
       "@lervo/execution-performance": ["packages/execution-performance/src/index.ts"],
       "@lervo/execution-reliability": ["packages/execution-reliability/src/index.ts"],
+      "@lervo/filesystem-durability": ["packages/filesystem-durability/src/index.ts"],
       "@lervo/hub": ["apps/hub/src/index.ts"],
       "@lervo/hub-runtime": ["apps/hub-runtime/src/index.ts"],
       "@lervo/hub-command": ["packages/hub-command/src/index.ts"],

@@ -15,6 +15,7 @@ import {
 import { dirname, relative, resolve, sep } from "node:path";
 
 import { validateDocumentLayoutPermit, type DocumentLayoutPermit } from "@lervo/documents";
+import { syncDirectory } from "@lervo/filesystem-durability";
 
 import { evaluateCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256 } from "./integrity.js";
@@ -100,15 +101,6 @@ function safeTarget(root: string, path: string): string {
       "The knowledge transaction path escapes the repository.",
     );
   return target;
-}
-
-async function syncDirectory(path: string): Promise<void> {
-  const handle = await open(path, constants.O_RDONLY);
-  try {
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
 }
 
 async function ensureSafeParent(root: string, target: string): Promise<void> {

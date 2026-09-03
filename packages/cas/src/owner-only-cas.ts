@@ -1,6 +1,7 @@
-import { chmod, lstat, mkdir, open, opendir, stat, unlink } from "node:fs/promises";
+import { chmod, lstat, mkdir, opendir, stat, unlink } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { syncDirectory } from "@lervo/filesystem-durability";
 import type { ArtifactPutResult, ArtifactStore } from "@lervo/storage-contract";
 
 import { CasError, FileSystemCas } from "./cas.js";
@@ -138,12 +139,7 @@ export class OwnerOnlyFileSystemCas implements ArtifactStore {
         throw new CasError("unsafe_path", "The CAS object to delete is not a safe regular file.");
       }
       await unlink(path);
-      const directory = await open(prefix, "r");
-      try {
-        await directory.sync();
-      } finally {
-        await directory.close();
-      }
+      await syncDirectory(prefix);
       return { deleted: true };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return { deleted: false };
