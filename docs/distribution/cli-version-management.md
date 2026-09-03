@@ -4,7 +4,7 @@ Lervo uses reviewed release-intent files to prepare `@lervo/cli` versions. Prepa
 
 ## Contributor intent
 
-Add one intent when a pull request changes public CLI behavior, implementation in a private workspace package bundled into a released artifact, or standalone Hub and Node distribution tooling or copied assets:
+Add one intent when a pull request changes public CLI behavior, implementation in a private workspace package bundled into a released artifact, standalone Hub and Node distribution tooling or copied assets, or the runtime service renderer and manager bundled by the CLI:
 
 ```bash
 pnpm release:intent:create --impact patch --summary "Correct bounded diagnostics for unavailable provider entrypoints."

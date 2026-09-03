@@ -340,7 +340,7 @@
     },
     {
       "path": "scripts/manage-runtime-service.mjs",
-      "contentHash": "sha256:30674fa0a7b486e5d749157694a257c5d8d68266d50012fec7c9567f1f715360",
+      "contentHash": "sha256:73d199f430e7926f3bd18c214339abe30bf61d9c41de0f8c3c4790fcd777b73c",
       "responsibility": "Runtime service lifecycle manager",
       "rationale": "Parsing, definition validation, status stabilization, install, compensate, remove, activate, and upgrade operate on one service transaction boundary.",
       "disposition": "cohesive"

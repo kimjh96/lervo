@@ -12,13 +12,13 @@ file entries. It was installed at
 `/home/jonghyeok/.local/lib/lervo-hub/0.8.2-6ecaee40`; previous installations were
 retained for rollback.
 
-Systemd uses a separate, content-addressed launcher because its environment could not
-resolve the Node executable named in the bundle's shebang. The launcher invokes
-`/home/jonghyeok/.local/lib/node-v26.5.1-linux-x64/bin/node`. Its SHA-256 is
-`fef521e5b954bea05ae721839fa48e3d57d7833d159fadf39a2741a508f966d7`, and the
-service definition SHA-256 is
-`f531f7010e68ffac3eed7d349b74ac508bdd5246c5bbd90cc7f1dd84e0a40731`. Three
-consecutive observations found the service active.
+The canonical systemd definition now binds the standalone entry point directly to
+`/home/jonghyeok/.local/lib/node-v26.5.1-linux-x64/bin/node`; it does not resolve the
+bundle shebang through ambient `PATH` or call an external launcher. The service
+definition SHA-256 is
+`c69faf08cb1314278d378affe4b25436975063c31e50fdb4b5425451f53af31a`. The prior
+definition and launcher were retained as rollback material but are not on the active
+execution path.
 
 ## Reader evidence and activation
 
@@ -45,12 +45,17 @@ task correctness, graceful shutdown, or future availability.
   status 0. After restart, three consecutive readiness requests returned `ready`, the
   Hub advertised event-reader versions 1 and 2, and all six registered repository Nodes
   returned to `ready`.
-- A standalone Hub service currently needs an external launcher with an absolute Node
-  path when the systemd `PATH` lacks `node`.
+- The service renderer and transactional manager upgraded the definition to bind the
+  exact Node executable and non-executable JavaScript entry point. Systemd reported
+  the service active with `Result=success`, `ExecMainStatus=0`, and no restart; the
+  observed MainPID command matched those canonical arguments.
+- Three consecutive readiness requests returned `ready` after the service-composition
+  upgrade. Repository fleet status was briefly degraded while Nodes reconnected, then
+  all six registered Nodes returned to `ready`.
 
 The HTTP shutdown gap is resolved by explicit idle-connection close plus a tested
 10-second upper drain bound for incomplete active requests. The standalone launcher
-composition gap remains open for a separate change.
+composition gap is resolved by the optional, exact `--node-executable` service input.
 
 ## References
 

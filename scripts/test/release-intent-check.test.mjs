@@ -117,9 +117,11 @@ describe("release intent change classification", () => {
     expect(report).toMatchObject({ valid: true, publishablePathCount: 0 });
   });
 
-  it("requires intent for standalone runtime builders, assets, and workspace closures", async () => {
+  it("requires intent for released runtime tooling, assets, and workspace closures", async () => {
     const without = await fixture(false);
     for (const changedPath of [
+      "scripts/render-runtime-service.mjs",
+      "scripts/manage-runtime-service.mjs",
       "scripts/build-hub-runtime-distribution.mjs",
       "scripts/lib/product-release-version.mjs",
       "apps/hub/assets/trace.js",

@@ -13,6 +13,8 @@ Rendered service definitions still required manual installation. Because activat
 
 `install` and `remove` also require `--write`, a canonical owner-only rendered definition, and real absolute executable and configuration paths. The source is bounded, no-follow, mode-checked, and byte-equal to fresh renderer output.
 
+Standalone JavaScript runtimes may additionally bind `--node-executable <absolute-path>`. When present, the canonical service command is the exact Node executable followed by the runtime entry point and configuration argument. The Node executable must be a real executable regular file; the JavaScript entry point must be a real regular file but need not carry an executable bit. Omitting the option preserves the direct-executable contract. This avoids ambient `PATH` and shebang resolution without embedding Node in either standalone distribution or introducing a runtime-specific wrapper lifecycle. The renderer owns command composition; the manager only validates and applies the exact rendered bytes.
+
 Per-user Hub targets are fixed:
 
 - `~/.config/systemd/user/lervo-hub.service`
@@ -28,7 +30,7 @@ Identical, already-active bytes return unchanged. Failure for a new target compe
 
 Removal acts only when the target equals the canonical source. It stops and disables the service, verifies inactivity and bytes, then deletes the definition. Missing or differing definitions are never guessed. A transactional upgrade binds both exact predecessor and replacement definitions, accepts either a stably operational predecessor or its exact inactive installed form, and restores the predecessor's prior disposition if replacement activation fails. Runtime material uses `SIGHUP` only where the runtime explicitly supports reload.
 
-Fixed failures distinguish argument, authority, manager, source, CAS, conflict, and unknown external apply or removal errors. Output excludes manager streams, commands, definitions, secrets, paths, and causes. Service status is an observation, not evidence of runtime readiness, command execution, or content use.
+Fixed failures distinguish argument, authority, manager, source, CAS, conflict, and unknown external apply or removal errors. A missing, non-executable, or symlinked Node executable fails before any service-manager call. Output excludes manager streams, commands, definitions, secrets, paths, and causes. Absolute paths remain only in the owner-only service definition. Service status is an observation, not evidence of runtime readiness, command execution, or content use.
 
 ## Consequences
 

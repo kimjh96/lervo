@@ -55,6 +55,7 @@ function parse(args) {
     "--definition",
     "--previous-definition",
     "--executable",
+    "--node-executable",
     "--config",
   ]);
   if ([...values.keys()].some((key) => !allowed.has(key))) {
@@ -88,8 +89,11 @@ function parse(args) {
     }
     return { action, manager, runtime, instance: instance ?? null };
   }
+  const nodeExecutable = values.get("--node-executable");
   const expectedSize =
-    (runtime === "node" ? 7 : 6) + (["upgrade", "rollback"].includes(action) ? 1 : 0);
+    (runtime === "node" ? 7 : 6) +
+    (["upgrade", "rollback"].includes(action) ? 1 : 0) +
+    (nodeExecutable === undefined ? 0 : 1);
   if (!write || values.size !== expectedSize) {
     fail("write_not_authorized", "Install and remove require canonical input and --write.");
   }
@@ -100,6 +104,7 @@ function parse(args) {
   for (const value of [
     definition,
     executable,
+    ...(nodeExecutable === undefined ? [] : [nodeExecutable]),
     config,
     ...(["upgrade", "rollback"].includes(action) ? [previousDefinition] : []),
   ]) {
@@ -115,6 +120,7 @@ function parse(args) {
     definition: resolve(definition),
     previousDefinition: previousDefinition === undefined ? null : resolve(previousDefinition),
     executable: resolve(executable),
+    nodeExecutable: nodeExecutable === undefined ? null : resolve(nodeExecutable),
     config: resolve(config),
   };
 }

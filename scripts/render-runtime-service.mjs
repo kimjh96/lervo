@@ -18,7 +18,7 @@ function parse(args) {
       values.has(key)
     ) {
       fail(
-        "Usage: --manager <systemd|launchd> --runtime <hub|node> [--instance <nfi-id>] --executable <absolute-path> --config <absolute-path> --output <new-absolute-path>",
+        "Usage: --manager <systemd|launchd> --runtime <hub|node> [--instance <nfi-id>] --executable <absolute-path> [--node-executable <absolute-path>] --config <absolute-path> --output <new-absolute-path>",
       );
     }
     values.set(key, value);
@@ -28,6 +28,7 @@ function parse(args) {
     "--runtime",
     "--instance",
     "--executable",
+    "--node-executable",
     "--config",
     "--output",
   ]);
@@ -38,7 +39,8 @@ function parse(args) {
   const runtime = values.get("--runtime");
   if (manager !== "systemd" && manager !== "launchd") fail("The service manager is invalid.");
   if (runtime !== "hub" && runtime !== "node") fail("The runtime is invalid.");
-  if (values.size !== (runtime === "node" ? 6 : 5)) {
+  const nodeExecutable = values.get("--node-executable");
+  if (values.size !== (runtime === "node" ? 6 : 5) + (nodeExecutable === undefined ? 0 : 1)) {
     fail("A required service-render argument is missing or an unexpected argument was provided.");
   }
   const instance = values.get("--instance");
@@ -52,6 +54,7 @@ function parse(args) {
   const output = values.get("--output");
   for (const [label, value] of [
     ["executable", executable],
+    ...(nodeExecutable === undefined ? [] : [["Node executable", nodeExecutable]]),
     ["config", config],
     ["output", output],
   ]) {
@@ -64,6 +67,7 @@ function parse(args) {
     runtime,
     instance: instance ?? null,
     executable: resolve(executable),
+    nodeExecutable: nodeExecutable === undefined ? null : resolve(nodeExecutable),
     config: resolve(config),
     output: resolve(output),
   };
@@ -91,15 +95,22 @@ export function runtimeServiceIdentity(input) {
 }
 
 async function assertInputs(input) {
-  const [executable, config] = await Promise.all([lstat(input.executable), lstat(input.config)]);
+  const [executable, nodeExecutable, config] = await Promise.all([
+    lstat(input.executable),
+    input.nodeExecutable === null ? null : lstat(input.nodeExecutable),
+    lstat(input.config),
+  ]);
   if (
     !executable.isFile() ||
     executable.isSymbolicLink() ||
+    (nodeExecutable !== null && (!nodeExecutable.isFile() || nodeExecutable.isSymbolicLink())) ||
     !config.isFile() ||
     config.isSymbolicLink()
   )
-    fail("The executable and config must be real regular files, not symbolic links.");
-  await access(input.executable, constants.X_OK);
+    fail(
+      "The executable, optional Node executable, and config must be real regular files, not symbolic links.",
+    );
+  await access(input.nodeExecutable ?? input.executable, constants.X_OK);
 }
 
 function systemdEscape(value) {
@@ -117,12 +128,18 @@ function xml(value) {
 
 function systemd(input) {
   const title = input.runtime === "hub" ? "Lervo Hub" : `Lervo Node ${input.instance}`;
-  return `[Unit]\nDescription=${title}\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=${systemdEscape(input.executable)} --config ${systemdEscape(input.config)}\nExecReload=/bin/kill -HUP $MAINPID\nKillSignal=SIGTERM\nRestart=on-failure\nRestartSec=5s\nTimeoutStopSec=120s\nUMask=0077\nNoNewPrivileges=true\n\n[Install]\nWantedBy=default.target\n`;
+  const command = [input.nodeExecutable, input.executable]
+    .filter((value) => value !== null)
+    .map(systemdEscape)
+    .join(" ");
+  return `[Unit]\nDescription=${title}\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nExecStart=${command} --config ${systemdEscape(input.config)}\nExecReload=/bin/kill -HUP $MAINPID\nKillSignal=SIGTERM\nRestart=on-failure\nRestartSec=5s\nTimeoutStopSec=120s\nUMask=0077\nNoNewPrivileges=true\n\n[Install]\nWantedBy=default.target\n`;
 }
 
 function launchd(input) {
   const label = runtimeServiceIdentity(input).label;
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>Label</key>\n  <string>${label}</string>\n  <key>ProgramArguments</key>\n  <array>\n    <string>${xml(input.executable)}</string>\n    <string>--config</string>\n    <string>${xml(input.config)}</string>\n  </array>\n  <key>RunAtLoad</key>\n  <true/>\n  <key>KeepAlive</key>\n  <dict>\n    <key>SuccessfulExit</key>\n    <false/>\n  </dict>\n  <key>ProcessType</key>\n  <string>Background</string>\n  <key>ThrottleInterval</key>\n  <integer>5</integer>\n  <key>Umask</key>\n  <integer>63</integer>\n</dict>\n</plist>\n`;
+  const nodeArgument =
+    input.nodeExecutable === null ? "" : `    <string>${xml(input.nodeExecutable)}</string>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>Label</key>\n  <string>${label}</string>\n  <key>ProgramArguments</key>\n  <array>\n${nodeArgument}    <string>${xml(input.executable)}</string>\n    <string>--config</string>\n    <string>${xml(input.config)}</string>\n  </array>\n  <key>RunAtLoad</key>\n  <true/>\n  <key>KeepAlive</key>\n  <dict>\n    <key>SuccessfulExit</key>\n    <false/>\n  </dict>\n  <key>ProcessType</key>\n  <string>Background</string>\n  <key>ThrottleInterval</key>\n  <integer>5</integer>\n  <key>Umask</key>\n  <integer>63</integer>\n</dict>\n</plist>\n`;
 }
 
 export async function createRuntimeServiceDefinition(input) {
@@ -136,6 +153,9 @@ export async function createRuntimeServiceDefinition(input) {
     ...instanceArgs,
     "--executable",
     input.executable,
+    ...(input.nodeExecutable === undefined || input.nodeExecutable === null
+      ? []
+      : ["--node-executable", input.nodeExecutable]),
     "--config",
     input.config,
     "--output",

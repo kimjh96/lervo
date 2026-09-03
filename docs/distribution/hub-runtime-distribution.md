@@ -9,7 +9,7 @@ This platform-specific distribution runs without an npm registry or Lervo source
 - Verify included files against `lervo-hub-distribution.manifest.json` and `sbom.cdx.json`.
 - Successful installation does not prove listener startup, storage readiness, node connectivity, or service activation.
 
-Obtain the archive SHA-256 through a separate trusted channel and compare the exact digest before installation. Extract into a new, previously absent directory. Prepare owner-only configuration and cryptographic material separately, then explicitly activate the Hub with the service renderer and manager.
+Obtain the archive SHA-256 through a separate trusted channel and compare the exact digest before installation. Extract into a new, previously absent directory. Prepare owner-only configuration and cryptographic material separately, then explicitly activate the Hub with the service renderer and manager. Pass the installed `dist/bin.js` as `--executable` and a verified Node.js binary as `--node-executable`; the resulting service definition does not depend on an ambient `PATH` or an externally maintained launcher.
 
 On `SIGINT` or `SIGTERM`, the runtime stops accepting requests immediately and gives active HTTP responses 10 seconds to drain. Connections still active at the deadline are closed so an abandoned client cannot hold service replacement open indefinitely. A fixed warning identifies that forced-drain disposition without exposing request or peer details; cleanup and SQLite close still complete before the process exits successfully.
 

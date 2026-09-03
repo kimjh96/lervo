@@ -48,9 +48,11 @@ function workspaceClosure(catalog, seeds) {
   return [...selected].map((name) => catalog.get(name).directory);
 }
 
-function standaloneDistributionPath(path) {
+function releasedToolingPath(path) {
   return (
     [
+      "scripts/render-runtime-service.mjs",
+      "scripts/manage-runtime-service.mjs",
       "scripts/build-hub-runtime-distribution.mjs",
       "scripts/check-hub-runtime-distribution.mjs",
       "scripts/install-hub-runtime-distribution.mjs",
@@ -125,7 +127,7 @@ export async function inspectReleaseIntent(input) {
     : intents;
   const publishablePaths = changedPaths.filter((path) => {
     if (exempt(path)) return false;
-    if (standaloneDistributionPath(path)) return true;
+    if (releasedToolingPath(path)) return true;
     if (path.startsWith("apps/cli/src/") || path === "apps/cli/package.json") return true;
     return releaseArtifactDirectories.some(
       (directory) => path.startsWith(`${directory}/src/`) || path === `${directory}/package.json`,
