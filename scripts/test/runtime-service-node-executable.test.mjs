@@ -256,6 +256,60 @@ describe("runtime service Node executable composition", () => {
     ).resolves.toMatchObject({ change: "installed", active: true });
   });
 
+  it("rejects service management with a different exact Node executable", async () => {
+    const value = await fixture();
+    const definition = resolve(value.root, "definition.service");
+    const differentNodeExecutable = resolve(value.root, "different node runtime");
+    await writeFile(differentNodeExecutable, "#!/bin/sh\n", { mode: 0o700 });
+    await chmod(differentNodeExecutable, 0o700);
+    await renderRuntimeService([
+      "--manager",
+      "systemd",
+      "--runtime",
+      "hub",
+      "--executable",
+      value.executable,
+      "--node-executable",
+      value.nodeExecutable,
+      "--config",
+      value.config,
+      "--output",
+      definition,
+    ]);
+    const managerCalls = [];
+    const runCommand = async (command, args) => {
+      managerCalls.push({ command, args });
+      return { exitCode: 0 };
+    };
+    await expect(
+      manageRuntimeService(
+        [
+          "--action",
+          "install",
+          "--manager",
+          "systemd",
+          "--runtime",
+          "hub",
+          "--definition",
+          definition,
+          "--executable",
+          value.executable,
+          "--node-executable",
+          differentNodeExecutable,
+          "--config",
+          value.config,
+          "--write",
+        ],
+        {
+          platform: "linux",
+          homeDirectory: value.root,
+          runCommand,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "service_definition_mismatch" });
+    expect(managerCalls).toHaveLength(0);
+  });
+
   it("rejects a symlinked Node executable", async () => {
     if (process.platform === "win32") return;
     const value = await fixture();
