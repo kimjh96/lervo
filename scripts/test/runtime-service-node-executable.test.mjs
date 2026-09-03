@@ -379,6 +379,59 @@ describe("runtime service Node executable composition", () => {
     expect(managerCalls).toHaveLength(0);
   });
 
+  it("rejects duplicate Node executable arguments before invoking a service manager command", async () => {
+    const value = await fixture();
+    const definition = resolve(value.root, "definition.service");
+    await renderRuntimeService([
+      "--manager",
+      "systemd",
+      "--runtime",
+      "hub",
+      "--executable",
+      value.executable,
+      "--node-executable",
+      value.nodeExecutable,
+      "--config",
+      value.config,
+      "--output",
+      definition,
+    ]);
+    const managerCalls = [];
+    const runCommand = async (command, args) => {
+      managerCalls.push({ command, args });
+      return { exitCode: 0 };
+    };
+    await expect(
+      manageRuntimeService(
+        [
+          "--action",
+          "install",
+          "--manager",
+          "systemd",
+          "--runtime",
+          "hub",
+          "--definition",
+          definition,
+          "--executable",
+          value.executable,
+          "--node-executable",
+          value.nodeExecutable,
+          "--node-executable",
+          value.nodeExecutable,
+          "--config",
+          value.config,
+          "--write",
+        ],
+        {
+          platform: "linux",
+          homeDirectory: value.root,
+          runCommand,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "invalid_arguments" });
+    expect(managerCalls).toHaveLength(0);
+  });
+
   it("rejects service management that omits the Node executable bound by the definition", async () => {
     const value = await fixture();
     const definition = resolve(value.root, "definition.service");
