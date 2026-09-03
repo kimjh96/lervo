@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "reportVersion": "foundation-readiness-v1",
-  "repositoryRevision": "sha256:f68e45c584dd34c97c2fab23239d267fca73916205c7533717105346111be0b8",
-  "releaseBaseRevision": "f2787be969966ebfbfeb7ebf02c9da368fe63a98",
+  "repositoryRevision": "sha256:ff477f5368261e032208c7e5e170cb45bc4853fca8b639f808927a8ef9e18d56",
+  "releaseBaseRevision": "5ca60aa8973f9fd734f757df8fd8c5b3b0604768",
   "environment": {
     "operatingSystem": "darwin",
     "architecture": "arm64",
@@ -11,13 +11,13 @@
   "constituentReports": [
     {
       "path": "docs/evidence/foundation/execution-performance-v1.json",
-      "reportId": "perf_49f44ffd769c54e2e6eb4234",
-      "contentHash": "sha256:8fc38b110e7b16177274745df2c5fbdda04099ca2d0488ec25a8177c97ff09c4"
+      "reportId": "perf_a8b707323b8b14aedafd7cfc",
+      "contentHash": "sha256:b3e11869bc83b91c5b14b003b2e0513c9a7e7e0b1d24de906d2f13b4a0ca36fb"
     },
     {
       "path": "docs/evidence/foundation/adverse-condition-v1.json",
-      "reportId": "adverse_389c4ea49f07e8d8877898e4",
-      "contentHash": "sha256:fad14e6fe3e88727cb4be5d79d540bea82e15f4dd83810d2d41b305a65a14e4c"
+      "reportId": "adverse_fb94d3d4ebeaea2fdccd614f",
+      "contentHash": "sha256:26859aa656f6f73e15c1e67df7ae6bf40beaea6cb8fc8b73e4b622fd5ce74692"
     }
   ],
   "suiteBindings": [
@@ -67,7 +67,7 @@
     },
     {
       "path": "packages/execution-contract/test/resource-accounting.test.ts",
-      "contentHash": "sha256:4d633b6d09cbb5e8fbc5ecfcfccd59f00eb442dc05f2031667db085d93718405"
+      "contentHash": "sha256:6fdf903e63d7b29e98d56f61bd6f6a729c2c45955fd05af16035a9a155daff16"
     },
     {
       "path": "packages/execution-contract/test/stage-timing.test.ts",
@@ -144,227 +144,227 @@
   "observations": [
     {
       "sequence": 1,
-      "observedAt": "2026-09-03T01:52:30.223Z",
-      "repositoryRevision": "sha256:f68e45c584dd34c97c2fab23239d267fca73916205c7533717105346111be0b8",
+      "observedAt": "2026-09-03T09:27:44.409Z",
+      "repositoryRevision": "sha256:ff477f5368261e032208c7e5e170cb45bc4853fca8b639f808927a8ef9e18d56",
       "status": "passed",
       "checks": [
         {
           "checkId": "contracts",
           "status": "passed",
-          "durationMs": 1681.02,
-          "outputHash": "sha256:f194c2b5036c6fa66b88301b09bbeec198b2bb4fb87cc623b062de18b7fb670a"
+          "durationMs": 1578.488,
+          "outputHash": "sha256:f283760e7ff987001efe19cd14af66a917de24c6c5e75549cd740897dec75952"
         },
         {
           "checkId": "replay",
           "status": "passed",
-          "durationMs": 2069.268,
-          "outputHash": "sha256:2242037ec0351064a72914ae00870290b085cc890bc54b96585cf5190d6a02f1"
+          "durationMs": 2006.241,
+          "outputHash": "sha256:aea07beec38f728f074b1f5dfec175c453b3f04fc785a504e676d0a60cb6e5da"
         },
         {
           "checkId": "performance",
           "status": "passed",
-          "durationMs": 1216.885,
-          "outputHash": "sha256:dfe48d3c47f4f89b2e8b41516bd9c0c4a4430ebedd4ee4d72288dc72d1455c88"
+          "durationMs": 1123.352,
+          "outputHash": "sha256:5ec3e82fe8cb293a9c4a4d8c57209b407a6427aa5c1dc37ceab0355125ad6983"
         },
         {
           "checkId": "recovery",
           "status": "passed",
-          "durationMs": 2034.901,
-          "outputHash": "sha256:4022f75fd4d7f0e26639b3cb77674698378b5c43dcca57ac83f2e31e275bade4"
+          "durationMs": 1834.977,
+          "outputHash": "sha256:61ccdc2e8d7a0120418805a76de383a1e063850b77ba0bf2ae071f0a7ee07735"
         },
         {
           "checkId": "security",
           "status": "passed",
-          "durationMs": 1871.647,
-          "outputHash": "sha256:69a3f71b8107f20e9e03e6d8f753b18a790ff89bfc88c7cbd972f052b251d532"
+          "durationMs": 1852.4,
+          "outputHash": "sha256:991a42a0d11358378b850a2b9c556bbc987bac911d37b69f1d742b844aa92bb3"
         },
         {
           "checkId": "capacity",
           "status": "passed",
-          "durationMs": 1922.127,
-          "outputHash": "sha256:12d8434c6e3429e0e5667f328a8dce0b2442156b762f2fd91f799e2d761d823b"
+          "durationMs": 1837.319,
+          "outputHash": "sha256:fda5a784797a78ff27f39a940f0138cee28b91eb5838b65321eddb9fb6ea5cd8"
         },
         {
           "checkId": "managed_journeys",
           "status": "passed",
-          "durationMs": 5030.548,
-          "outputHash": "sha256:6dd0c41f0e758f1243ba34cfa09e79648791a066b83cfb8f78496aa64eb1a8d4"
+          "durationMs": 4634.951,
+          "outputHash": "sha256:4245b485e6d557e99e388672418bb25af1f74602ad5783930058cd969862290f"
         },
         {
           "checkId": "fresh_clone",
           "status": "passed",
-          "durationMs": 28045.897,
-          "outputHash": "sha256:1473d4547d6a62e67af875b3a30f1cec8d7bf39ecc36660b7cc5e68dbdae395a"
+          "durationMs": 23366.016,
+          "outputHash": "sha256:69917040a8d2dc2927ba7641124a3a06ae17b63109655ba8f6ad73b7aded5589"
         },
         {
           "checkId": "distribution",
           "status": "passed",
-          "durationMs": 43528.655,
+          "durationMs": 41501.437,
           "outputHash": "sha256:6a5254041b890c5db578db469b8031922483d3ea080792d7334f63d24a44df53"
         },
         {
           "checkId": "drift",
           "status": "passed",
-          "durationMs": 220.504,
+          "durationMs": 194.285,
           "outputHash": "sha256:334e0daeb58ac9ff4d76d506fd48e65229d060af5a13136171e34b8f0743bb83"
         },
         {
           "checkId": "release_completion",
           "status": "passed",
-          "durationMs": 263.455,
-          "outputHash": "sha256:38755b0ba9d77731106f0c42dae242b75d0c58a8f52e1937e26661428d26e76a"
+          "durationMs": 256.448,
+          "outputHash": "sha256:8ac930e5bf3d1508da0faac8213d5355155eb469d083366704e768ad9999be25"
         }
       ]
     },
     {
       "sequence": 2,
-      "observedAt": "2026-09-03T01:53:55.849Z",
-      "repositoryRevision": "sha256:f68e45c584dd34c97c2fab23239d267fca73916205c7533717105346111be0b8",
+      "observedAt": "2026-09-03T09:29:04.454Z",
+      "repositoryRevision": "sha256:ff477f5368261e032208c7e5e170cb45bc4853fca8b639f808927a8ef9e18d56",
       "status": "passed",
       "checks": [
         {
           "checkId": "contracts",
           "status": "passed",
-          "durationMs": 1704.095,
-          "outputHash": "sha256:3f19de73f6c33f20406f0656d2f45f9a34cd68c63fafaeb0bf4931f8435d184d"
+          "durationMs": 1572.919,
+          "outputHash": "sha256:3ddad7cf9b9a9058a2c10ae41079789a8bf09df568da39e9b5cb62d6dc95eeca"
         },
         {
           "checkId": "replay",
           "status": "passed",
-          "durationMs": 2318.023,
-          "outputHash": "sha256:4788777b2ec7e5614affe4351458675ff894404aff1c3ebee44dae3d805fb077"
+          "durationMs": 2024.493,
+          "outputHash": "sha256:a12352b07ba7869fb696c30f93915ee231804784d38c01ed4dd4f43b97631da0"
         },
         {
           "checkId": "performance",
           "status": "passed",
-          "durationMs": 1168.764,
-          "outputHash": "sha256:dfe48d3c47f4f89b2e8b41516bd9c0c4a4430ebedd4ee4d72288dc72d1455c88"
+          "durationMs": 1128.995,
+          "outputHash": "sha256:5ec3e82fe8cb293a9c4a4d8c57209b407a6427aa5c1dc37ceab0355125ad6983"
         },
         {
           "checkId": "recovery",
           "status": "passed",
-          "durationMs": 1899.959,
-          "outputHash": "sha256:afb934eaca9365acd8ba12b60c4d70d5e08a8fcfeb9b192282bd3aa9424e0b15"
+          "durationMs": 1841.245,
+          "outputHash": "sha256:61ccdc2e8d7a0120418805a76de383a1e063850b77ba0bf2ae071f0a7ee07735"
         },
         {
           "checkId": "security",
           "status": "passed",
-          "durationMs": 2010.444,
-          "outputHash": "sha256:69a3f71b8107f20e9e03e6d8f753b18a790ff89bfc88c7cbd972f052b251d532"
+          "durationMs": 1864.464,
+          "outputHash": "sha256:76e6b7c09851c381215116f8e51349ade7b029380f8bf531a3491cf9bee72604"
         },
         {
           "checkId": "capacity",
           "status": "passed",
-          "durationMs": 1938.948,
-          "outputHash": "sha256:12d8434c6e3429e0e5667f328a8dce0b2442156b762f2fd91f799e2d761d823b"
+          "durationMs": 1842.503,
+          "outputHash": "sha256:76a4c710faf7c1c13a9328f8217a02fac83699ce0705207e454553d3d963f5ca"
         },
         {
           "checkId": "managed_journeys",
           "status": "passed",
-          "durationMs": 4745.424,
-          "outputHash": "sha256:4239d9d3a516d6215b36a08d0733352c45ce082be217decb3e02c64e40baa2ba"
+          "durationMs": 4570.758,
+          "outputHash": "sha256:815dce72909de8362843743fa35a7533128641f132f56e48abefbfa6922c572b"
         },
         {
           "checkId": "fresh_clone",
           "status": "passed",
-          "durationMs": 26026.868,
-          "outputHash": "sha256:1473d4547d6a62e67af875b3a30f1cec8d7bf39ecc36660b7cc5e68dbdae395a"
+          "durationMs": 23261.913,
+          "outputHash": "sha256:69917040a8d2dc2927ba7641124a3a06ae17b63109655ba8f6ad73b7aded5589"
         },
         {
           "checkId": "distribution",
           "status": "passed",
-          "durationMs": 43137.992,
+          "durationMs": 41273.908,
           "outputHash": "sha256:6a5254041b890c5db578db469b8031922483d3ea080792d7334f63d24a44df53"
         },
         {
           "checkId": "drift",
           "status": "passed",
-          "durationMs": 204.301,
+          "durationMs": 193.631,
           "outputHash": "sha256:334e0daeb58ac9ff4d76d506fd48e65229d060af5a13136171e34b8f0743bb83"
         },
         {
           "checkId": "release_completion",
           "status": "passed",
-          "durationMs": 260.488,
-          "outputHash": "sha256:38755b0ba9d77731106f0c42dae242b75d0c58a8f52e1937e26661428d26e76a"
+          "durationMs": 258.2,
+          "outputHash": "sha256:8ac930e5bf3d1508da0faac8213d5355155eb469d083366704e768ad9999be25"
         }
       ]
     },
     {
       "sequence": 3,
-      "observedAt": "2026-09-03T01:55:20.508Z",
-      "repositoryRevision": "sha256:f68e45c584dd34c97c2fab23239d267fca73916205c7533717105346111be0b8",
+      "observedAt": "2026-09-03T09:30:24.484Z",
+      "repositoryRevision": "sha256:ff477f5368261e032208c7e5e170cb45bc4853fca8b639f808927a8ef9e18d56",
       "status": "passed",
       "checks": [
         {
           "checkId": "contracts",
           "status": "passed",
-          "durationMs": 1618.733,
-          "outputHash": "sha256:12fa7e514d1d5897cae22970dbfaf5cf8d4dbe1293e57e748a90209dd3c173d0"
+          "durationMs": 1592.632,
+          "outputHash": "sha256:4a32fc1778ce83d433088940599eab5b999a990fece537b870902b9ba4883d30"
         },
         {
           "checkId": "replay",
           "status": "passed",
-          "durationMs": 2068.429,
-          "outputHash": "sha256:10cfa05125a4adad2e4c6e2780324d8aec0bc0e745214683e49c95747acf4504"
+          "durationMs": 1990.41,
+          "outputHash": "sha256:e68d9df0d3ac786643e3848c587ecaaeabff9c45859864c3d5f4f1621ca6909e"
         },
         {
           "checkId": "performance",
           "status": "passed",
-          "durationMs": 1140.373,
-          "outputHash": "sha256:dfe48d3c47f4f89b2e8b41516bd9c0c4a4430ebedd4ee4d72288dc72d1455c88"
+          "durationMs": 1134.646,
+          "outputHash": "sha256:5ec3e82fe8cb293a9c4a4d8c57209b407a6427aa5c1dc37ceab0355125ad6983"
         },
         {
           "checkId": "recovery",
           "status": "passed",
-          "durationMs": 1874.057,
-          "outputHash": "sha256:4022f75fd4d7f0e26639b3cb77674698378b5c43dcca57ac83f2e31e275bade4"
+          "durationMs": 1864.751,
+          "outputHash": "sha256:4218986b6868bd2b3b27a3eccdd0691336aeb075b6a1c8aaf849525d6083138a"
         },
         {
           "checkId": "security",
           "status": "passed",
-          "durationMs": 1871.342,
-          "outputHash": "sha256:69a3f71b8107f20e9e03e6d8f753b18a790ff89bfc88c7cbd972f052b251d532"
+          "durationMs": 1849.748,
+          "outputHash": "sha256:991a42a0d11358378b850a2b9c556bbc987bac911d37b69f1d742b844aa92bb3"
         },
         {
           "checkId": "capacity",
           "status": "passed",
-          "durationMs": 2077.747,
-          "outputHash": "sha256:fc79f6205f58f6ab608d1b75d0f074eecd4396d15443fceb09b2d906a4989867"
+          "durationMs": 1837.163,
+          "outputHash": "sha256:76a4c710faf7c1c13a9328f8217a02fac83699ce0705207e454553d3d963f5ca"
         },
         {
           "checkId": "managed_journeys",
           "status": "passed",
-          "durationMs": 4893.565,
-          "outputHash": "sha256:84eebac0129b75b1ef2739ebd3617e2f1a973bec2654ad5d161d482e02131ede"
+          "durationMs": 4566.1,
+          "outputHash": "sha256:ee830766d7ab7634dcc49192991a775186a8924206a1d47c061e3c33b5d31bde"
         },
         {
           "checkId": "fresh_clone",
           "status": "passed",
-          "durationMs": 25483.102,
-          "outputHash": "sha256:1473d4547d6a62e67af875b3a30f1cec8d7bf39ecc36660b7cc5e68dbdae395a"
+          "durationMs": 23190.62,
+          "outputHash": "sha256:69917040a8d2dc2927ba7641124a3a06ae17b63109655ba8f6ad73b7aded5589"
         },
         {
           "checkId": "distribution",
           "status": "passed",
-          "durationMs": 42968.451,
+          "durationMs": 41342.502,
           "outputHash": "sha256:6a5254041b890c5db578db469b8031922483d3ea080792d7334f63d24a44df53"
         },
         {
           "checkId": "drift",
           "status": "passed",
-          "durationMs": 198.469,
+          "durationMs": 195.539,
           "outputHash": "sha256:334e0daeb58ac9ff4d76d506fd48e65229d060af5a13136171e34b8f0743bb83"
         },
         {
           "checkId": "release_completion",
           "status": "passed",
-          "durationMs": 256.694,
-          "outputHash": "sha256:38755b0ba9d77731106f0c42dae242b75d0c58a8f52e1937e26661428d26e76a"
+          "durationMs": 254.271,
+          "outputHash": "sha256:8ac930e5bf3d1508da0faac8213d5355155eb469d083366704e768ad9999be25"
         }
       ]
     }
   ],
   "allPassed": true,
-  "reportId": "fready_7f72b519bb2ac43a4acbf898"
+  "reportId": "fready_8678b572774fb9c990f7d2b0"
 }
