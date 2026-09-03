@@ -1,5 +1,6 @@
 import {
   ResourceUsageAccumulator,
+  resourceScopeForRelationship,
   resourceAccountingDescriptorBytes,
   resourceAccountingDescriptorHash,
 } from "@lervo/execution-contract";
@@ -7,7 +8,6 @@ import type {
   AdapterDescriptor,
   AdapterNormalizedEvent,
   ResourceAccountingDescriptor,
-  ResourceUsageRecordedEventPayload,
   WorkCausalityRecordedEventPayload,
 } from "@lervo/schemas";
 import type { ContextArtifactPort } from "@lervo/context-delivery";
@@ -15,16 +15,6 @@ import type { ContextArtifactPort } from "@lervo/context-delivery";
 import { ManagedProviderRunError } from "./provider-run-types.js";
 import type { ManagedEventSpec } from "./telemetry.js";
 import type { ManagedRunCoordinates } from "./types.js";
-
-function resourceScope(
-  relationship: WorkCausalityRecordedEventPayload["relationship"],
-): ResourceUsageRecordedEventPayload["scope"] {
-  if (relationship === "subagent") return "subagent_provider";
-  if (relationship === "publication_evaluation") return "publication_evaluation";
-  if (relationship === "deliberation") return "deliberation";
-  if (relationship === "improvement_evaluation") return "improvement_evaluation";
-  return "primary_provider";
-}
 
 export class ManagedResourceObservation {
   private readonly accumulator: ResourceUsageAccumulator;
@@ -41,7 +31,7 @@ export class ManagedResourceObservation {
       runId: coordinates.runId,
       sessionId: coordinates.sessionId,
       providerSessionId: coordinates.sessionId,
-      scope: resourceScope(causality.relationship),
+      scope: resourceScopeForRelationship(causality.relationship),
     });
   }
 

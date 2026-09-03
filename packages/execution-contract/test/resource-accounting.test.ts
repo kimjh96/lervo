@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ResourceUsageAccumulator,
   resourceAccountingDescriptorHash,
+  resourceScopeForRelationship,
 } from "../src/resource-accounting.js";
 import type { AdapterNormalizedEvent, ResourceAccountingDescriptor } from "@lervo/schemas";
 
@@ -107,5 +108,16 @@ describe("resource accounting", () => {
     expect(resourceAccountingDescriptorHash(structuredClone(descriptor))).toBe(
       resourceAccountingDescriptorHash(descriptor),
     );
+  });
+
+  it("maps causal relationships to stable accounting scopes", () => {
+    expect(resourceScopeForRelationship("root")).toBe("primary_provider");
+    expect(resourceScopeForRelationship("retry")).toBe("primary_provider");
+    expect(resourceScopeForRelationship("repair")).toBe("primary_provider");
+    expect(resourceScopeForRelationship("verification")).toBe("primary_provider");
+    expect(resourceScopeForRelationship("subagent")).toBe("subagent_provider");
+    expect(resourceScopeForRelationship("publication_evaluation")).toBe("publication_evaluation");
+    expect(resourceScopeForRelationship("deliberation")).toBe("deliberation");
+    expect(resourceScopeForRelationship("improvement_evaluation")).toBe("improvement_evaluation");
   });
 });

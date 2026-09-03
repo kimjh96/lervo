@@ -180,6 +180,10 @@ import { tracePageReportSchema } from "./trace-page-report.js";
 import { traceCapabilitiesReportSchema } from "./trace-capabilities-report.js";
 import { terminalCoverageReportSchema } from "./terminal-coverage-report.js";
 import {
+  terminalBudgetPolicySchema,
+  terminalBudgetReportSchema,
+} from "./terminal-budget-report.js";
+import {
   terminalContextPreparedEventPayloadSchema,
   terminalReferenceObservedEventPayloadSchema,
   terminalTurnObservedEventPayloadSchema,
@@ -342,6 +346,8 @@ const validators = {
   tracePageReport: ajv.compile(tracePageReportSchema),
   traceCapabilitiesReport: ajv.compile(traceCapabilitiesReportSchema),
   terminalCoverageReport: ajv.compile(terminalCoverageReportSchema),
+  terminalBudgetPolicy: ajv.compile(terminalBudgetPolicySchema),
+  terminalBudgetReport: ajv.compile(terminalBudgetReportSchema),
   managedContextCoverageReport: ajv.getSchema(managedContextCoverageReportSchema.$id)!,
   managedContextInjectedEventPayload: ajv.compile(managedContextInjectedEventPayloadSchema),
   adapterResultCapturedEventPayload: ajv.compile(adapterResultCapturedEventPayloadSchema),

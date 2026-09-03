@@ -41,8 +41,8 @@ The first slice provides:
   cancellation propagation, block, escalation, or completion;
 - at most 16 attempts per assignment and 32 parallel assignments, with active attempts
   consuming capacity before another claim, start, or retry is recommended;
-- exact provider and accounting-descriptor token admission thresholds without
-  cross-provider or cross-descriptor addition or an advance-reservation claim;
+- exact provider, resource-scope, and accounting-descriptor token admission thresholds without
+  cross-provider, cross-scope, or cross-descriptor addition or an advance-reservation claim;
 - complete, partial, unavailable, and invalid resource handling, never inferred zero;
 - assignment- and agent-bound causal root and retry records;
 - fail-closed attempt-to-assignment and provider-resource attribution checks;
@@ -116,6 +116,12 @@ report and relates exact configured token admission limits to exact provider and
 resource observations. `lervo loop objective` reads no managed-work state; `lervo loop budget`
 performs no mutation and reports partial, unavailable, invalid, or absent evidence as unknown. The
 local board composes both independent reports and continues to escape prose and provide no controls.
+
+The completed follow-up traverses every causally linked managed run for accounting while preserving
+root and retry as the attempt model. It includes resource scope in group and policy coordinates,
+marks missing started child-run observations incomplete, and retains unscoped limits only as a
+fail-closed compatibility form. Direct-terminal latency and per-context query-projection budgets
+remain a separate diagnostic contract and do not turn unmanaged provider work into a governed run.
 
 GLA5 is accepted when focused tests prove verified objective translation, no managed-work query for
 objective inspection, exact accounting-group matching, no unknown-to-zero conversion, observed
@@ -334,6 +340,7 @@ minor release intent.
 - [ADR-0347](../decisions/execution/orchestration/0347-deliver-assignments-through-a-production-slack-connector.md)
 - [ADR-0348](../decisions/execution/orchestration/improvement/0348-measure-exact-repeated-verification-failures.md)
 - [ADR-0349](../decisions/execution/orchestration/improvement/0349-expose-local-improvement-observations-through-an-explicit-cli-host.md)
+- [ADR-0354](../decisions/operations/trace/0354-enforce-scope-complete-resource-and-terminal-budgets.md)
 - [Assignment interaction specification](../specifications/execution/assignment-interactions.md)
 - [Assignment connector specification](../specifications/execution/assignment-connectors.md)
 - [Assignment routine specification](../specifications/execution/assignment-routines.md)

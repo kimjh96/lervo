@@ -6,13 +6,13 @@ import type { GovernedLoopPolicyV1, GovernedTokenLimitV1 } from "@lervo/applicat
 import type { RunProvider } from "./managed-run.js";
 
 export const loopUsage = [
-  "  lervo loop status [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>:<descriptor-hash>:<tokens>] [--root <path>] [--json]",
-  "  lervo loop board [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>:<descriptor-hash>:<tokens>] [--root <path>]",
+  "  lervo loop status [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--root <path>] [--json]",
+  "  lervo loop board [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--root <path>]",
   "  lervo loop objective [--root <path>] [--json]",
-  "  lervo loop budget [--token-limit <provider>:<descriptor-hash>:<tokens>] [--root <path>] [--json]",
+  "  lervo loop budget [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--root <path>] [--json]",
   "  lervo loop thread --assignment <id> [--root <path>] [--json]",
   "  lervo loop inbox --agent <id> [--root <path>] [--json]",
-  "  lervo loop run --provider <codex|claude> --assignment <id> --agent <id> --lease <id> --path <relative-path> --verification <suite-id> [--verification <suite-id> ...] [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>:<descriptor-hash>:<tokens>] [--root <path>] [--risk <level>] [--json] <request>",
+  "  lervo loop run --provider <codex|claude> --assignment <id> --agent <id> --lease <id> --path <relative-path> --verification <suite-id> [--verification <suite-id> ...] [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--root <path>] [--risk <level>] [--json] <request>",
   "  lervo loop reconcile --assignment <id> [--apply <command-id> --write] [--root <path>] [--json]",
 ].join("\n");
 
@@ -63,14 +63,20 @@ function positiveInteger(value: string | undefined, fallback: number, maximum: n
 
 function tokenLimits(values: string[] | undefined): GovernedTokenLimitV1[] {
   return (values ?? []).map((value) => {
-    const match = /^(codex|claude|lervo):(sha256:[a-f0-9]{64}):([1-9]\d*)$/u.exec(value);
+    const match =
+      /^(codex|claude|lervo):(?:(primary_provider|subagent_provider|query_projection|publication_evaluation|deliberation|improvement_evaluation):)?(sha256:[a-f0-9]{64}):([1-9]\d*)$/u.exec(
+        value,
+      );
     if (match === null) {
-      throw new Error("--token-limit requires <provider>:<descriptor-hash>:<tokens>.");
+      throw new Error("--token-limit requires <provider>[:<scope>]:<descriptor-hash>:<tokens>.");
     }
     return {
       provider: match[1] as GovernedTokenLimitV1["provider"],
-      accountingDescriptorHash: match[2]!,
-      stopAfterObservedTotalTokens: Number(match[3]),
+      ...(match[2] === undefined
+        ? {}
+        : { scope: match[2] as NonNullable<GovernedTokenLimitV1["scope"]> }),
+      accountingDescriptorHash: match[3]!,
+      stopAfterObservedTotalTokens: Number(match[4]),
     };
   });
 }

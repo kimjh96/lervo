@@ -263,6 +263,7 @@ describe("governed loop decision", () => {
         {
           schemaVersion: 1,
           provider: "codex",
+          scope: "primary_provider",
           source: "provider_reported",
           accountingMode: "turn_cumulative",
           accountingDescriptorHash: descriptor,
@@ -330,6 +331,7 @@ describe("governed loop decision", () => {
         {
           schemaVersion: 1,
           provider: "codex",
+          scope: "primary_provider",
           source: "provider_reported",
           accountingMode: "turn_cumulative",
           accountingDescriptorHash: descriptor,
@@ -338,11 +340,24 @@ describe("governed loop decision", () => {
           runCount: 1,
           reasonCodes: [],
         },
+        {
+          schemaVersion: 1,
+          provider: "codex",
+          scope: "subagent_provider",
+          source: "provider_reported",
+          accountingMode: "turn_cumulative",
+          accountingDescriptorHash: descriptor,
+          completeness: "complete",
+          totalTokens: 50,
+          runCount: 1,
+          reasonCodes: [],
+        },
       ],
       policy: normalizeGovernedLoopPolicy({
         tokenLimits: [
           {
             provider: "codex",
+            scope: "primary_provider",
             accountingDescriptorHash: descriptor,
             stopAfterObservedTotalTokens: 100,
           },

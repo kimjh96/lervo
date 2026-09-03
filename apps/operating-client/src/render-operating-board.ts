@@ -120,7 +120,7 @@ function renderResources(view: OperatingBoardViewV1): string {
     (resource) => `<li>
       <div>${badge(resource.provider)} ${badge(resource.completeness)}</div>
       <strong>${escapeHtml(resource.totalTokens ?? "unavailable")} tokens</strong>
-      <span>${escapeHtml(resource.source)} · ${escapeHtml(resource.accountingMode)} · ${resource.runCount} runs</span>
+      <span>${escapeHtml(resource.scope)} · ${escapeHtml(resource.source)} · ${escapeHtml(resource.accountingMode)} · ${resource.runCount} runs</span>
       <code>${escapeHtml(resource.accountingDescriptorHash)}</code>
       ${resource.reasonCodes.length === 0 ? "" : `<small>${escapeHtml(resource.reasonCodes.join(", "))}</small>`}
     </li>`,
@@ -133,7 +133,7 @@ function renderBudgets(view: OperatingBoardViewV1): string {
     (budget) => `<li>
       <div>${badge(budget.provider)} ${badge(budget.thresholdState)} ${badge(budget.completeness)}</div>
       <strong>${escapeHtml(budget.observedTokens ?? "unknown")} / ${budget.limitTokens} tokens</strong>
-      <span>remaining observed: ${escapeHtml(budget.remainingObservedTokens ?? "unknown")}</span>
+      <span>${escapeHtml(budget.scope ?? "unscoped legacy")} · remaining observed: ${escapeHtml(budget.remainingObservedTokens ?? "unknown")}</span>
       <code>${escapeHtml(budget.accountingDescriptorHash)}</code>
     </li>`,
   );

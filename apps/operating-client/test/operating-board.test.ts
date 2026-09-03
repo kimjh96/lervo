@@ -95,6 +95,7 @@ function report(): GovernedWorkReportV1 {
       {
         schemaVersion: 1,
         provider: "codex",
+        scope: "primary_provider",
         source: "provider_reported",
         accountingMode: "turn_cumulative",
         accountingDescriptorHash: `sha256:${"d".repeat(64)}`,
@@ -121,6 +122,7 @@ function report(): GovernedWorkReportV1 {
       tokenLimits: [
         {
           provider: "codex",
+          scope: "primary_provider",
           accountingDescriptorHash: `sha256:${"d".repeat(64)}`,
           stopAfterObservedTotalTokens: 1500,
         },
@@ -248,6 +250,7 @@ describe("local operating board", () => {
     expect(view.budgets).toEqual([
       expect.objectContaining({
         provider: "codex",
+        scope: "primary_provider",
         observedTokens: 1234,
         remainingObservedTokens: 266,
         thresholdState: "below",
@@ -262,6 +265,24 @@ describe("local operating board", () => {
     ]);
     expect(view.limitations.join(" ")).toContain("read-only projection");
     expect(view.limitations.join(" ")).toContain("Selected, loaded, injected, and used");
+  });
+
+  it("keeps a legacy unscoped budget unknown when multiple resource scopes match", () => {
+    const value = report();
+    delete value.policy.tokenLimits[0]!.scope;
+    value.resources.push({
+      ...value.resources[0]!,
+      scope: "subagent_provider",
+      totalTokens: 50,
+    });
+
+    expect(projectOperatingBoard(value).budgets[0]).toMatchObject({
+      scope: null,
+      observedTokens: null,
+      remainingObservedTokens: null,
+      completeness: "unobserved",
+      thresholdState: "unknown",
+    });
   });
 
   it("renders deterministic, escaped, self-contained HTML with dependency navigation", () => {

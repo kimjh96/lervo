@@ -45,6 +45,14 @@ export interface ManagedAttemptObservationV1 {
   verificationStatus: "passed" | "failed" | "not_run" | "unavailable";
 }
 
+export type GovernedResourceScopeV1 =
+  | "primary_provider"
+  | "subagent_provider"
+  | "query_projection"
+  | "publication_evaluation"
+  | "deliberation"
+  | "improvement_evaluation";
+
 export interface AssignmentCompletionEvidenceV1 {
   schemaVersion: 1;
   completionEvidenceId: string;
@@ -63,6 +71,7 @@ export interface AssignmentCompletionEvidenceV1 {
 export interface ResourceGroupObservationV1 {
   schemaVersion: 1;
   provider: "codex" | "claude" | "lervo";
+  scope: GovernedResourceScopeV1;
   source: "provider_reported" | "lervo_measured";
   accountingMode: "turn_cumulative" | "session_cumulative" | "operation_delta";
   accountingDescriptorHash: string;
@@ -113,6 +122,7 @@ export interface ApprovalAuthorityPort {
 
 export interface GovernedTokenLimitV1 {
   provider: "codex" | "claude" | "lervo";
+  scope?: GovernedResourceScopeV1;
   accountingDescriptorHash: string;
   stopAfterObservedTotalTokens: number;
 }

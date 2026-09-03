@@ -20,7 +20,7 @@ export function formatGovernedWorkReport(report: GovernedWorkReportV1): string {
         : report.resources
             .map(
               (resource) =>
-                `${resource.provider}/${resource.accountingDescriptorHash.slice(0, 15)}=${resource.totalTokens ?? "unavailable"} (${resource.completeness})`,
+                `${resource.provider}/${resource.scope}/${resource.accountingDescriptorHash.slice(0, 15)}=${resource.totalTokens ?? "unavailable"} (${resource.completeness})`,
             )
             .join(", ")
     }`,

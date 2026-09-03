@@ -19,6 +19,7 @@ export function evaluateResourceAdmission(input: {
     const matches = input.resources.filter(
       (resource) =>
         resource.provider === limit.provider &&
+        (limit.scope === undefined || resource.scope === limit.scope) &&
         resource.accountingDescriptorHash === limit.accountingDescriptorHash,
     );
     if (matches.length !== 1 || matches[0]!.completeness !== "complete") {

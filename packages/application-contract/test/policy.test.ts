@@ -25,4 +25,26 @@ describe("governed loop policy", () => {
       "coordinates are invalid",
     );
   });
+
+  it("keeps otherwise identical limits distinct by resource scope", () => {
+    const accountingDescriptorHash = `sha256:${"a".repeat(64)}`;
+    expect(
+      normalizeGovernedLoopPolicy({
+        tokenLimits: [
+          {
+            provider: "codex",
+            scope: "primary_provider",
+            accountingDescriptorHash,
+            stopAfterObservedTotalTokens: 100,
+          },
+          {
+            provider: "codex",
+            scope: "subagent_provider",
+            accountingDescriptorHash,
+            stopAfterObservedTotalTokens: 50,
+          },
+        ],
+      }).tokenLimits,
+    ).toHaveLength(2);
+  });
 });

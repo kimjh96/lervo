@@ -13,6 +13,8 @@ export type {
   TraceCapabilitiesReport,
   TerminalCoverageReport,
   TerminalTurnCoverage,
+  TerminalBudgetPolicy,
+  TerminalBudgetReport,
   ManagedContextCoverageReport,
   ManagedContextDocumentCoverage,
   WorkExecutionReport,
@@ -35,7 +37,8 @@ export class DiagnosticsError extends Error {
       | "trace_result_too_large"
       | "trace_run_not_found"
       | "trace_work_not_found"
-      | "terminal_coverage_invalid",
+      | "terminal_coverage_invalid"
+      | "terminal_budget_invalid",
     message: string,
     options?: ErrorOptions,
   ) {

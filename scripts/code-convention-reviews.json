@@ -312,7 +312,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:36ecb7a3ca1975aeac1f88822fe42d307548b09ba3b83da6fc964561ac25bdfd",
+      "contentHash": "sha256:5371ec98aef2ece3d872193144c5937eb7a5bcbac2feaa7d89ebef1bfa4459ae",
       "responsibility": "Repository schema validator registry",
       "rationale": "The module declaratively registers and exposes validators for the versioned schema catalog; its length follows schema inventory and it owns no domain workflow or external effect.",
       "disposition": "cohesive"

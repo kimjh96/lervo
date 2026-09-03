@@ -25,11 +25,13 @@ const evidenceLimitations = [
 
 export function projectObservedBudgets(report: GovernedWorkReportV1): OperatingBudgetGroupV1[] {
   return report.policy.tokenLimits.map((limit) => {
-    const observation = report.resources.find(
+    const matches = report.resources.filter(
       (resource) =>
         resource.provider === limit.provider &&
+        (limit.scope === undefined || resource.scope === limit.scope) &&
         resource.accountingDescriptorHash === limit.accountingDescriptorHash,
     );
+    const observation = matches.length === 1 ? matches[0] : undefined;
     const observedTokens =
       observation?.completeness === "complete" ? observation.totalTokens : null;
     const thresholdState =
@@ -40,6 +42,7 @@ export function projectObservedBudgets(report: GovernedWorkReportV1): OperatingB
           : ("below" as const);
     return {
       provider: limit.provider,
+      scope: limit.scope ?? null,
       accountingDescriptorHash: limit.accountingDescriptorHash,
       limitTokens: limit.stopAfterObservedTotalTokens,
       observedTokens,

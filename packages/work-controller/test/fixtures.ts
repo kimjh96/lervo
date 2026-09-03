@@ -63,7 +63,15 @@ export function event(
 export function causalityPayload(input: {
   assignmentId: string;
   workId?: string;
-  relationship?: "root" | "retry";
+  relationship?:
+    | "root"
+    | "retry"
+    | "repair"
+    | "subagent"
+    | "verification"
+    | "publication_evaluation"
+    | "deliberation"
+    | "improvement_evaluation";
   parentRunId?: string | null;
   retryOfRunId?: string | null;
   attemptOrdinal?: number;
@@ -74,7 +82,7 @@ export function causalityPayload(input: {
     executionContractVersion: 1,
     relationship,
     parentRunId: relationship === "root" ? null : input.parentRunId!,
-    retryOfRunId: relationship === "root" ? null : input.retryOfRunId!,
+    retryOfRunId: relationship === "retry" ? input.retryOfRunId! : null,
     attemptOrdinal: input.attemptOrdinal ?? 1,
     workstreamId,
     assignmentId: input.assignmentId,

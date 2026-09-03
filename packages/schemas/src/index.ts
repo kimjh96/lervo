@@ -62,6 +62,7 @@ export * from "./trace-report.js";
 export * from "./trace-page-report.js";
 export * from "./trace-capabilities-report.js";
 export * from "./terminal-coverage-report.js";
+export * from "./terminal-budget-report.js";
 export * from "./terminal-observation-event.js";
 export * from "./terminal-turn-declaration-event.js";
 export * from "./validate.js";

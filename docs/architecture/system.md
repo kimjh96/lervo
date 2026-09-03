@@ -54,9 +54,9 @@ Managed runs require a verified workstream delivered with E1–E3. After reader-
 The headless application boundary rebuilds current assignment, causal-attempt, resource, and
 next-action reports. `@lervo/application-contract` owns public shapes;
 `@lervo/work-controller` owns pure projections; applications compose existing effects without
-bypassing lease, approval, verification, event, or recovery authority. Token admission thresholds
-are exact to provider and accounting descriptor. Unlike groups stay separate, and observed usage
-is neither a reservation nor a billing cap.
+bypassing lease, approval, verification, event, or recovery authority. Resource and terminal
+budgets preserve causal scope, environment boundaries, and typed absence; see
+[resource and performance budgets](../specifications/execution/resource-and-performance-budgets.md).
 
 See [interactions](../specifications/execution/assignment-interactions.md),
 [routines](../specifications/execution/assignment-routines.md), and

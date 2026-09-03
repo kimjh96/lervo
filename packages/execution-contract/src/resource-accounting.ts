@@ -5,6 +5,7 @@ import {
   type ResourceAccountingDescriptor,
   type ResourceUsage,
   type ResourceUsageRecordedEventPayload,
+  type WorkCausalityRecordedEventPayload,
   validateSchema,
 } from "@lervo/schemas";
 
@@ -111,6 +112,16 @@ export interface ResourceObservationCoordinates {
   sessionId: string;
   providerSessionId: string;
   scope: ResourceUsageRecordedEventPayload["scope"];
+}
+
+export function resourceScopeForRelationship(
+  relationship: WorkCausalityRecordedEventPayload["relationship"],
+): ResourceUsageRecordedEventPayload["scope"] {
+  if (relationship === "subagent") return "subagent_provider";
+  if (relationship === "publication_evaluation") return "publication_evaluation";
+  if (relationship === "deliberation") return "deliberation";
+  if (relationship === "improvement_evaluation") return "improvement_evaluation";
+  return "primary_provider";
 }
 
 /** Reduces normalized usage while keeping native provider SDK shapes behind adapters. */

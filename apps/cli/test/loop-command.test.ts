@@ -290,6 +290,7 @@ describe("loop command", () => {
     value.policy.tokenLimits = [
       {
         provider: "codex",
+        scope: "primary_provider",
         accountingDescriptorHash: `sha256:${"d".repeat(64)}`,
         stopAfterObservedTotalTokens: 1500,
       },
@@ -298,6 +299,7 @@ describe("loop command", () => {
       {
         schemaVersion: 1,
         provider: "codex",
+        scope: "primary_provider",
         source: "provider_reported",
         accountingMode: "turn_cumulative",
         accountingDescriptorHash: `sha256:${"d".repeat(64)}`,
@@ -311,7 +313,25 @@ describe("loop command", () => {
       inspectGovernedWork: vi.fn(async () => value),
     } as unknown as CliServices;
 
-    expect(await runLoopCommand(["budget", "--json"], output.value, services)).toBe(0);
+    expect(
+      await runLoopCommand(
+        [
+          "budget",
+          "--token-limit",
+          `codex:primary_provider:sha256:${"d".repeat(64)}:1500`,
+          "--json",
+        ],
+        output.value,
+        services,
+      ),
+    ).toBe(0);
+    expect(services.inspectGovernedWork).toHaveBeenCalledWith(
+      expect.objectContaining({
+        policy: expect.objectContaining({
+          tokenLimits: [expect.objectContaining({ scope: "primary_provider" })],
+        }),
+      }),
+    );
     expect(JSON.parse(output.stdout.join(""))).toEqual([
       expect.objectContaining({ observedTokens: 1200, remainingObservedTokens: 300 }),
     ]);

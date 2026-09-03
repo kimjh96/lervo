@@ -100,6 +100,11 @@ work route. Direct terminal coverage keeps whole-task usage unavailable and repo
 query-projection receipt usage separately. Missing FH3 stage observations remain typed
 and keep the aggregate report partial rather than fabricating completion.
 
+Follow-up hardening on 2026-09-03 made governed accounting traverse the complete causal work tree,
+kept scope in every application group and limit coordinate, and made missing started child-run
+observations fail closed. Legacy unscoped limits remain compatible only when they resolve to one
+exact group.
+
 ## FH3: Stage timing and hook performance
 
 Instrument before optimizing.
@@ -135,6 +140,11 @@ environment and source digests, resource distributions, stage diagnosis, signed
 instrumentation overhead, and paired retrieval, lifecycle, and privacy checks. The
 checked evidence and strict budgets are recorded in
 [foundation execution performance evidence](../../evidence/foundation/execution-performance-v1.md).
+
+Follow-up hardening on 2026-09-03 added a versioned read-only terminal budget report and CLI gate.
+It preserves profile boundaries, requires a configurable population with a 30-sample default,
+applies the accepted p95 and external-ceiling budgets, and optionally evaluates query-projection
+tokens per context without claiming whole-task usage.
 
 ## FH4: Adverse-condition proof
 

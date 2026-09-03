@@ -6,6 +6,7 @@ import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage"
 import { RepositoryKnowledgeError } from "@lervo/repository-knowledge";
 
 import { formatTerminalCoverageReport } from "./terminal-coverage-format.js";
+import { runTerminalBudgetCommand } from "./terminal-budget-command.js";
 import { terminalUsage } from "./terminal-command-usage.js";
 import { runTerminalDeclareCommand } from "./terminal-declaration-command.js";
 import { runTerminalHookCommand } from "./terminal-hook-command.js";
@@ -67,6 +68,7 @@ export async function runTerminalCommand(
   if (args[0] === "hook") return runTerminalHookCommand(args.slice(1), io, services);
   if (args[0] === "declare") return runTerminalDeclareCommand(args.slice(1), io);
   if (args[0] === "coverage") return runCoverage(args.slice(1), io);
+  if (args[0] === "budget") return runTerminalBudgetCommand(args.slice(1), io);
   if (args[0] === "status") {
     let parsed;
     try {

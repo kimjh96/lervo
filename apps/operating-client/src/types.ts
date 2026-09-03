@@ -75,6 +75,7 @@ export interface OperatingBoardViewV1 {
 
 export interface OperatingBudgetGroupV1 {
   provider: "codex" | "claude" | "lervo";
+  scope: ResourceGroupObservationV1["scope"] | null;
   accountingDescriptorHash: string;
   limitTokens: number;
   observedTokens: number | null;

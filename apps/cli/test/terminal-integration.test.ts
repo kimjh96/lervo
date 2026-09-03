@@ -297,6 +297,25 @@ describe("terminal integration CLI", () => {
     } finally {
       await storage.close();
     }
+    const budgetMessages: string[] = [];
+    const budgetErrors: string[] = [];
+    expect(
+      await runCli(["terminal", "budget", "--limit", "1", "--minimum-samples", "1", "--json"], {
+        cwd: root,
+        stdout: (message: string) => budgetMessages.push(message),
+        stderr: (message: string) => budgetErrors.push(message),
+      }),
+      budgetErrors.join(""),
+    ).toBe(0);
+    expect(JSON.parse(budgetMessages.join(""))).toMatchObject({
+      reportKind: "unmanaged_terminal_budget",
+      disposition: "passed",
+      hookProfiles: [
+        { hookEvent: "Stop", status: "below" },
+        { hookEvent: "UserPromptSubmit", status: "below" },
+      ],
+      queryProjections: [{ status: "not_configured" }],
+    });
   });
 
   it("uses query projection without invoking effect grounding or a separate admission path", async () => {
@@ -1447,6 +1466,37 @@ describe("terminal integration CLI", () => {
     expect(
       report.reports[0]?.documents.some((document) => document.highestObservation === "referenced"),
     ).toBe(true);
+    const budgetMessages: string[] = [];
+    const budgetExit = await runCli(
+      [
+        "terminal",
+        "budget",
+        "--provider",
+        "codex",
+        "--limit",
+        "1",
+        "--minimum-samples",
+        "1",
+        "--json",
+      ],
+      {
+        cwd: root,
+        stdout: (message: string) => budgetMessages.push(message),
+        stderr: (message: string) => stopErrors.push(message),
+      },
+    );
+    const budgetReport = JSON.parse(budgetMessages.join(""));
+    expect(budgetReport).toMatchObject({
+      reportKind: "unmanaged_terminal_budget",
+      disposition: "escalation_required",
+      wholeTaskUsage: {
+        status: "unsupported",
+        reasonCode: "unmanaged_provider_usage_unobserved",
+      },
+      hookProfiles: [],
+      queryProjections: [{ status: "not_configured" }],
+    });
+    expect(budgetExit, `${stopErrors.join("")}\n${JSON.stringify(budgetReport)}`).toBe(1);
     const storage = await openProjectStorage(root);
     try {
       const persisted = JSON.stringify(storage.events.list({ limit: 1000 }));

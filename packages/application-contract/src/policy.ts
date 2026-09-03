@@ -1,6 +1,18 @@
-import type { GovernedLoopPolicyV1, GovernedTokenLimitV1 } from "./types.js";
+import type {
+  GovernedLoopPolicyV1,
+  GovernedResourceScopeV1,
+  GovernedTokenLimitV1,
+} from "./types.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
+const RESOURCE_SCOPES: readonly GovernedResourceScopeV1[] = [
+  "primary_provider",
+  "subagent_provider",
+  "query_projection",
+  "publication_evaluation",
+  "deliberation",
+  "improvement_evaluation",
+];
 
 function positiveInteger(value: number, maximum: number, field: string): number {
   if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
@@ -14,6 +26,7 @@ function normalizeTokenLimits(values: readonly GovernedTokenLimitV1[]): Governed
   const limits = values
     .map((value) => ({
       provider: value.provider,
+      ...(value.scope === undefined ? {} : { scope: value.scope }),
       accountingDescriptorHash: value.accountingDescriptorHash,
       stopAfterObservedTotalTokens: positiveInteger(
         value.stopAfterObservedTotalTokens,
@@ -22,18 +35,22 @@ function normalizeTokenLimits(values: readonly GovernedTokenLimitV1[]): Governed
       ),
     }))
     .sort((left, right) =>
-      `${left.provider}\0${left.accountingDescriptorHash}`.localeCompare(
-        `${right.provider}\0${right.accountingDescriptorHash}`,
+      `${left.provider}\0${left.scope ?? "*"}\0${left.accountingDescriptorHash}`.localeCompare(
+        `${right.provider}\0${right.scope ?? "*"}\0${right.accountingDescriptorHash}`,
       ),
     );
   if (
     limits.some(
       (value) =>
         !["codex", "claude", "lervo"].includes(value.provider) ||
+        (value.scope !== undefined && !RESOURCE_SCOPES.includes(value.scope)) ||
         !HASH.test(value.accountingDescriptorHash),
     ) ||
-    new Set(limits.map((value) => `${value.provider}\0${value.accountingDescriptorHash}`)).size !==
-      limits.length
+    new Set(
+      limits.map(
+        (value) => `${value.provider}\0${value.scope ?? "*"}\0${value.accountingDescriptorHash}`,
+      ),
+    ).size !== limits.length
   ) {
     throw new TypeError("The governed-loop token-limit coordinates are invalid.");
   }

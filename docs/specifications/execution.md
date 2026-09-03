@@ -5,7 +5,7 @@ As of: 2026-09-01
 
 ## 1. Scope
 
-Defines provider-neutral contracts for managed runs, evidence, documents, knowledge, telemetry, and recovery. ADRs retain rationale.
+Defines provider-neutral managed execution and evidence contracts. ADRs retain rationale.
 
 ## 2. Managed run lifecycle
 
@@ -24,7 +24,7 @@ Direct Codex and Claude hooks use a repository-local, self-verifying contract-v2
 
 Preparation creates no managed run and proves no acceptance, understanding, or use. Direct root `Stop` records bounded lifecycle and reference observations when possible. Non-current state records `action_required` with completion `allowed`; unmatched or failed audits return empty success without evidence. Agents still update workstreams and declarations after changes. Attached workers retain fail-closed isolation. Reference tokens are standalone Markdown HTML comments; legacy v1 tokens remain valid in flight.
 
-A current workstream must match its latest event and CAS artifact. Managed runs load exact bytes before E3. Direct hooks prepend at most 8 KiB and record bounded identity, revision, hash, byte, and scope coordinates. Missing or stale direct state is a finding, not permission or completion evidence. Resolved history belongs in canonical documents.
+A current workstream must match its latest event and CAS artifact. Managed runs load exact bytes before E3. Direct hooks prepend at most 8 KiB and record bounded identity, revision, hash, byte, and scope coordinates. Missing or stale direct state is a finding, not permission or completion evidence.
 
 Managed sessions suppress native project hooks. Graph-selected registered documents use bounded post-search projections and ordinary E1–E3 evidence (ADR-0216, ADR-0217). Ordinary runs do not select linked-only sources after search. The [managed linked-evidence specification](execution/managed-linked-evidence-canary.md) preserves the default-off exact canary, E1–E4 separation, bounded records, historical activation evidence, later production retirement, rejected prompt-only attempt, typed boundary, claim eligibility, paired control, and retirement.
 
@@ -159,4 +159,5 @@ Verification covers schema and redaction tests; shared adapter contracts; write 
 - [Hub and Node coordination](coordination/hub-and-node.md)
 - [Capability package supply chain](execution/capabilities.md)
 - [Stage observation and performance](execution/stage-observation-and-performance.md)
+- [Resource and performance budgets](execution/resource-and-performance-budgets.md)
 - [Adverse-condition safety](execution/adverse-condition-safety.md)
