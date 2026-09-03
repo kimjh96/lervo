@@ -49,6 +49,30 @@ describe("runtime service Node executable composition", () => {
     );
   });
 
+  it("rejects duplicate Node executable arguments before creating a service definition", async () => {
+    const value = await fixture();
+    const output = resolve(value.root, "duplicate-node-executable.service");
+    await expect(
+      renderRuntimeService([
+        "--manager",
+        "systemd",
+        "--runtime",
+        "hub",
+        "--executable",
+        value.executable,
+        "--node-executable",
+        value.nodeExecutable,
+        "--node-executable",
+        value.nodeExecutable,
+        "--config",
+        value.config,
+        "--output",
+        output,
+      ]),
+    ).rejects.toThrow();
+    await expect(readFile(output, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
   it("rejects a non-executable Node executable", async () => {
     if (process.platform === "win32") return;
     const value = await fixture();
