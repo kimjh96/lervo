@@ -357,6 +357,56 @@ describe("runtime service Node executable composition", () => {
     expect(managerCalls).toHaveLength(0);
   });
 
+  it("rejects service management that omits the Node executable bound by the definition", async () => {
+    const value = await fixture();
+    const definition = resolve(value.root, "definition.service");
+    await renderRuntimeService([
+      "--manager",
+      "systemd",
+      "--runtime",
+      "hub",
+      "--executable",
+      value.executable,
+      "--node-executable",
+      value.nodeExecutable,
+      "--config",
+      value.config,
+      "--output",
+      definition,
+    ]);
+    await chmod(value.executable, 0o700);
+    const managerCalls = [];
+    const runCommand = async (command, args) => {
+      managerCalls.push({ command, args });
+      return { exitCode: 0 };
+    };
+    await expect(
+      manageRuntimeService(
+        [
+          "--action",
+          "install",
+          "--manager",
+          "systemd",
+          "--runtime",
+          "hub",
+          "--definition",
+          definition,
+          "--executable",
+          value.executable,
+          "--config",
+          value.config,
+          "--write",
+        ],
+        {
+          platform: "linux",
+          homeDirectory: value.root,
+          runCommand,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "service_definition_mismatch" });
+    expect(managerCalls).toHaveLength(0);
+  });
+
   it("rejects a directory Node executable before creating a service definition", async () => {
     const value = await fixture();
     const nodeDirectory = await mkdtemp(resolve(value.root, "node-directory-"));
