@@ -71,6 +71,25 @@ describe("runtime service Node executable composition", () => {
     ).rejects.toThrow();
   });
 
+  it("rejects a non-executable runtime entry point without a Node executable", async () => {
+    if (process.platform === "win32") return;
+    const value = await fixture();
+    await expect(
+      renderRuntimeService([
+        "--manager",
+        "systemd",
+        "--runtime",
+        "hub",
+        "--executable",
+        value.executable,
+        "--config",
+        value.config,
+        "--output",
+        resolve(value.root, "non-executable-runtime.service"),
+      ]),
+    ).rejects.toThrow();
+  });
+
   it("systemd-escapes the exact Node executable before the runtime entry point", async () => {
     const value = await fixture();
     const nodeExecutable = resolve(value.root, `node %runtime\\ "quoted"`);
