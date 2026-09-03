@@ -49,8 +49,11 @@ describe("runtime service Node executable composition", () => {
     );
   });
 
-  it("renders Node as the first launchd program argument", async () => {
+  it("XML-escapes the exact Node executable before the launchd runtime entry point", async () => {
     const value = await fixture();
+    const nodeExecutable = resolve(value.root, `node & <runtime> "'`);
+    await writeFile(nodeExecutable, "#!/bin/sh\n", { mode: 0o700 });
+    await chmod(nodeExecutable, 0o700);
     const output = resolve(value.root, "com.lervo.hub.plist");
     await renderRuntimeService([
       "--manager",
@@ -60,14 +63,21 @@ describe("runtime service Node executable composition", () => {
       "--executable",
       value.executable,
       "--node-executable",
-      value.nodeExecutable,
+      nodeExecutable,
       "--config",
       value.config,
       "--output",
       output,
     ]);
     const content = await readFile(output, "utf8");
-    expect(content.indexOf(value.nodeExecutable)).toBeLessThan(content.indexOf(value.executable));
+    const escapedNodeExecutable = nodeExecutable.replace(
+      `node & <runtime> "'`,
+      "node &amp; &lt;runtime&gt; &quot;&apos;",
+    );
+    expect(content).toContain(
+      `  <array>\n    <string>${escapedNodeExecutable}</string>\n    <string>${value.executable}</string>`,
+    );
+    expect(content).not.toContain(`<string>${nodeExecutable}</string>`);
   });
 
   it("binds service management to the same canonical Node executable", async () => {
