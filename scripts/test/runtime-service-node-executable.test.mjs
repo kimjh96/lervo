@@ -120,6 +120,28 @@ describe("runtime service Node executable composition", () => {
     await expect(readFile(output, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
   });
 
+  it("rejects a Node executable path containing a line break before creating a service definition", async () => {
+    const value = await fixture();
+    const output = resolve(value.root, "line-break-node-executable.service");
+    await expect(
+      renderRuntimeService([
+        "--manager",
+        "systemd",
+        "--runtime",
+        "hub",
+        "--executable",
+        value.executable,
+        "--node-executable",
+        `${value.nodeExecutable}\nExecStart=/bin/sh`,
+        "--config",
+        value.config,
+        "--output",
+        output,
+      ]),
+    ).rejects.toThrow("Node executable path must be absolute and contain no line breaks.");
+    await expect(readFile(output, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
   it("rejects a non-executable Node executable", async () => {
     if (process.platform === "win32") return;
     const value = await fixture();
