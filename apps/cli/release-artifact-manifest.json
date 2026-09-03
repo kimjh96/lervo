@@ -2,7 +2,7 @@
   "schemaVersion": 5,
   "artifact": {
     "name": "@lervo/cli",
-    "version": "0.9.0",
+    "version": "0.9.1",
     "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
     "keywords": [
       "ai-agents",
@@ -153,8 +153,8 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 5324111,
-        "sha256": "sha256:1364dbb489c22deb7dba9c997eca4e0670f770b88dac8bac3d2429f42bb8e4ea"
+        "size": 5324269,
+        "sha256": "sha256:9cf7df3f6854e356210596612e73318c3451e7438f74d6ae64495d614cfed024"
       },
       {
         "path": "dist/node-runtime.js",
@@ -168,7 +168,7 @@
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:8017e38c10734fa757daa654497ecd9d42df5da06a3032def04f36c98a9d38c2"
+    "contentDigest": "sha256:5252a1beefba2a9237f984f2cb7520d264306ebd7cb47c767d2e238546ffb831"
   },
   "dependencies": {
     "portable": [
@@ -281,5 +281,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:c1c3e6fceee1b363557849dbf0ccf8bdce884ab2824a096d0eea7004d21e2df2"
+  "artifactDigest": "sha256:01bd3dd0b58abc3def75cffe064c9b0afd3217204a59eac75562bbdfaadb51fb"
 }
