@@ -54,32 +54,6 @@ lervo knowledge materialize <review-id>
 
 Compilation does not prove truth. Conflicts and managed-block changes require exact approval.
 
-## Verified local improvement observations
-
-Prepare a version-1 baseline or treatment collection request containing `phase`, `patternId`, an
-inclusive `window`, and `metricIds`, then explicitly authorize local canonical-event observation:
-
-```sh
-lervo knowledge pattern effect collect --from collection.json --local-events --json
-```
-
-The local adapter currently measures `verification_success` and `repeated_failure`. The report is
-read-only, retains unestablished attribution, and does not change canonical state. Use its exact
-adapter descriptor and observations in the existing register or observe request. Planning remains
-read-only; apply requires the reviewed plan and an explicit local observation grant:
-
-```sh
-lervo knowledge pattern effect register --from protocol.json --json
-lervo knowledge pattern effect register --from protocol.json \
-  --apply <plan-id> --write --local-events
-lervo knowledge pattern effect observe --from observation.json --json
-lervo knowledge pattern effect observe --from observation.json \
-  --apply <plan-id> --write --local-events
-```
-
-Exact apply re-observes the requested window. Collection does not prove causation, correctness, or
-model learning, and it does not authorize promotion or rollback.
-
 ## Documents and provider entrypoints
 
 Use `lervo knowledge structure delete|move|split|merge` with the reviewed plan ID and every required exact item approval. Use `lervo knowledge normalize` for the reviewed content stage; it is also available through `migrate knowledge --provider`.
