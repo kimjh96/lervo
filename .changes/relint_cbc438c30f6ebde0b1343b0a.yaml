@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_cbc438c30f6ebde0b1343b0a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Bound Hub shutdown by draining and closing stalled HTTP connections."

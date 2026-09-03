@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e696b6ac36790df293b879ae"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Prefer the latest versioned repository verification suite for automatic deliberation."

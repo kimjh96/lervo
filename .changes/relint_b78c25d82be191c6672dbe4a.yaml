@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_b78c25d82be191c6672dbe4a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Add adverse-condition safety evidence and fail closed on uncertain provider retries."

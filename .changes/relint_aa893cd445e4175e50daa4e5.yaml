@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_aa893cd445e4175e50daa4e5"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add scoped managed resource budgets and terminal performance budget reporting."

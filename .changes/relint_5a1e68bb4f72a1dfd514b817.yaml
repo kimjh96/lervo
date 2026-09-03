@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5a1e68bb4f72a1dfd514b817"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Allow runtime services to bind an exact Node.js executable without a wrapper."

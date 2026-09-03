@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7eff4e16c767db41fba3fa4f"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add authority-bound assignment approvals and exact cancellation transitions."

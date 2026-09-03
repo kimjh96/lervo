@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_523c13e22768c82e4d54da6c"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Refactor terminal hook orchestration into bounded responsibility modules."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_cdedc5fcbff9785ef1ca2ebd"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Tell managed providers to submit each target through one complete file-change request."

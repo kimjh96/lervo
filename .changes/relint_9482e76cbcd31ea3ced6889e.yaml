@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_9482e76cbcd31ea3ced6889e"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add provider-neutral assignment connector delivery planning and injected adapters."

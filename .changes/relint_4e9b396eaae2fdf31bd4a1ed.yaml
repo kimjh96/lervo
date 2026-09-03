@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4e9b396eaae2fdf31bd4a1ed"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add exact recovery for prepared governed assignment completion."

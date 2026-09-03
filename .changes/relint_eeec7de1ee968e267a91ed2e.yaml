@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_eeec7de1ee968e267a91ed2e"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add reader-first event writer selection, recovery, and rollback commands"

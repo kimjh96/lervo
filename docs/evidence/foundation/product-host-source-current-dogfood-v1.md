@@ -9,8 +9,9 @@ As of: 2026-09-03
 This observation exercised the built CLI's unmanaged Codex terminal hook in the Lervo repository
 with two Korean natural-language requests relevant to a future product host. It tested current
 repository retrieval, exact loaded-document coordinates, query-projection token visibility, and
-prompt/Stop stage timing. It did not run a packed external consumer yet and authorized no npm,
-GitHub, Hub, connector, credential, or product mutation.
+prompt/Stop stage timing. A separate packed external-consumer smoke then exercised the version 0.9.0
+product-host protocol. Neither path authorized npm, GitHub, Hub, connector, credential, or product
+mutation.
 
 The raw prompts and provider output are not stored in this document. Scenario summaries, opaque
 request and event digests, bounded usage, selected current paths, and stage aggregates are retained.
@@ -85,6 +86,15 @@ node apps/cli/dist/bin.js terminal budget --provider codex --limit 20 --minimum-
 The first command reproduces exact event-bound measurements while the local event retention window
 contains these coordinates. The latter commands intentionally show the difference between a latest
 smoke sample and the retained historical population.
+
+## Packed consumer verification
+
+`pnpm smoke:packed-cli` built the real `@lervo/cli` 0.9.0 tarball, installed it into an empty
+temporary consumer, verified all 21 product-host routes—10 workforce, 7 operating, and 4
+collaboration—and completed the local CLI-only host journey without installing a workspace-private
+Lervo package. It also verified the native Claude runtime artifact. This proves packed protocol and
+installation behavior, not an external product UI, managed provider task, connector delivery, or
+publication.
 
 ## References
 

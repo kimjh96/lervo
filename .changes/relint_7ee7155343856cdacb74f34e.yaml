@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7ee7155343856cdacb74f34e"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add verified post-promotion improvement effect observation through injected adapters."

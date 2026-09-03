@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_246f4b6ddfcd3dacde984054"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Authorize distributed event writer activation from verified Node fleet and Hub reader evidence"

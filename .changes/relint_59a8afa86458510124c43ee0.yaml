@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_59a8afa86458510124c43ee0"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add provider-neutral managed work resource reports to local and Hub trace."
