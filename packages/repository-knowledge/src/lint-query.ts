@@ -20,7 +20,10 @@ import {
 import { scanRepositoryKnowledge } from "./scanner.js";
 import { loadStoredClaims, loadStoredConcepts, loadStoredRelations } from "./store-reader.js";
 import { inspectGroupedDecisionPaths } from "./decision-layout.js";
-import { inspectConfiguredDocumentNormalization } from "./document-normalization.js";
+import {
+  inspectConfiguredDocumentNormalization,
+  type DocumentNormalizationLifecycleInspection,
+} from "./document-normalization.js";
 import {
   legacyStructuralManifestPath,
   structuralBundleDirectory,
@@ -30,6 +33,7 @@ import {
 import type {
   KnowledgeLintIssue,
   KnowledgeLintResult,
+  RepositoryKnowledgePreparedScanOptions,
   RepositoryKnowledgeScanOptions,
 } from "./types.js";
 
@@ -310,7 +314,11 @@ async function lintRepositoryLayout(root: string, issues: KnowledgeLintIssue[]):
 
 export async function lintRepositoryKnowledge(
   repositoryRoot: string,
-  options: { allowTransactionPlanId?: string } & RepositoryKnowledgeScanOptions = {},
+  options: {
+    allowTransactionPlanId?: string;
+    preparedNormalization?: DocumentNormalizationLifecycleInspection;
+  } & RepositoryKnowledgeScanOptions &
+    RepositoryKnowledgePreparedScanOptions = {},
 ): Promise<KnowledgeLintResult> {
   const root = resolve(repositoryRoot);
   await assertNoKnowledgeMaterializationTransaction({
@@ -394,15 +402,18 @@ export async function lintRepositoryKnowledge(
   }
   const project = await loadProjectManifest(root);
   await lintInstructionBridgeRecords(root, project.projectId, issues);
-  const normalization = await inspectConfiguredDocumentNormalization({
-    repositoryRoot: root,
-    ...(options.supplementalSources === undefined
-      ? {}
-      : { supplementalSources: options.supplementalSources }),
-    ...(options.allowTransactionPlanId === undefined
-      ? {}
-      : { allowTransactionPlanId: options.allowTransactionPlanId }),
-  });
+  const normalization =
+    options.preparedNormalization ??
+    (await inspectConfiguredDocumentNormalization({
+      repositoryRoot: root,
+      ...(options.supplementalSources === undefined
+        ? {}
+        : { supplementalSources: options.supplementalSources }),
+      ...(options.preparedScan === undefined ? {} : { preparedScan: options.preparedScan }),
+      ...(options.allowTransactionPlanId === undefined
+        ? {}
+        : { allowTransactionPlanId: options.allowTransactionPlanId }),
+    }));
   for (const record of normalization.records) {
     if (record.status === "invalid")
       issues.push({
@@ -424,15 +435,20 @@ export async function lintRepositoryKnowledge(
   }
   const policy = await loadRepositoryKnowledgePolicy(root);
   const generated = await generatedKnowledgePaths(root);
-  const scan = await scanRepositoryKnowledge({
-    repositoryRoot: root,
-    projectId: project.projectId,
-    policy,
-    generatedPaths: generated,
-    ...(options.supplementalSources === undefined
-      ? {}
-      : { supplementalSources: options.supplementalSources }),
-  });
+  const scan =
+    options.preparedScan ??
+    (await scanRepositoryKnowledge({
+      repositoryRoot: root,
+      projectId: project.projectId,
+      policy,
+      generatedPaths: generated,
+      ...(options.supplementalSources === undefined
+        ? {}
+        : { supplementalSources: options.supplementalSources }),
+    }));
+  if (scan.projectId !== project.projectId || scan.policyId !== policy.policyId) {
+    throw new Error("The prepared knowledge scan does not match the current project policy.");
+  }
   const currentManifest = manifests.find(
     (item) => item.sourceSnapshotId === repositoryKnowledgePublicationSnapshotId(scan),
   );

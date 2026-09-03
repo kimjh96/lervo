@@ -13,6 +13,7 @@ import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
 import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
 import {
   RepositoryKnowledgeError,
+  type RepositoryKnowledgePreparedScanOptions,
   type RepositoryKnowledgeScanOptions,
   type RepositorySource,
 } from "./types.js";
@@ -146,14 +147,15 @@ export function serializableKnowledgeInstructionBootstrapPlan(
 export async function createKnowledgeInstructionBootstrapPlan(input: {
   repositoryRoot: string;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
+  preparedScan?: RepositoryKnowledgePreparedScanOptions["preparedScan"];
 }): Promise<KnowledgeInstructionBootstrapPlan> {
   const root = resolve(input.repositoryRoot);
-  const { policy, scan } = await scanConfiguredRepositoryKnowledge(
-    root,
-    input.supplementalSources === undefined
+  const { policy, scan } = await scanConfiguredRepositoryKnowledge(root, {
+    ...(input.supplementalSources === undefined
       ? {}
-      : { supplementalSources: input.supplementalSources },
-  );
+      : { supplementalSources: input.supplementalSources }),
+    ...(input.preparedScan === undefined ? {} : { preparedScan: input.preparedScan }),
+  });
   const agents = includedSource(scan.sources, "AGENTS.md");
   const claude = includedSource(scan.sources, "CLAUDE.md");
   const agentsPresent = agents !== null || (await safeFilePresent(resolve(root, "AGENTS.md")));

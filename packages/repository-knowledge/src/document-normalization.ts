@@ -22,6 +22,7 @@ import {
   type KnowledgeFileOperation,
   type RepositoryKnowledgeScan,
   type RepositoryKnowledgeScanOptions,
+  type RepositoryKnowledgePreparedScanOptions,
   type RepositorySource,
   type RepositorySourceUnit,
 } from "./types.js";
@@ -1556,6 +1557,7 @@ export interface DocumentNormalizationLifecycleInspection {
 export async function inspectConfiguredDocumentNormalization(input: {
   repositoryRoot: string;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
+  preparedScan?: RepositoryKnowledgePreparedScanOptions["preparedScan"];
   allowTransactionPlanId?: string;
 }): Promise<DocumentNormalizationLifecycleInspection> {
   const root = resolve(input.repositoryRoot);
@@ -1564,6 +1566,7 @@ export async function inspectConfiguredDocumentNormalization(input: {
       ...(input.supplementalSources === undefined
         ? {}
         : { supplementalSources: input.supplementalSources }),
+      ...(input.preparedScan === undefined ? {} : { preparedScan: input.preparedScan }),
       ...(input.allowTransactionPlanId === undefined
         ? {}
         : { allowTransactionPlanId: input.allowTransactionPlanId }),

@@ -152,6 +152,14 @@ export interface RepositoryKnowledgeScan {
   units: RepositorySourceUnit[];
 }
 
+export interface RepositoryKnowledgePreparedScanOptions {
+  /**
+   * Reuses a scan prepared inside the same bounded, read-only inspection.
+   * Consumers must not retain it across repository mutations.
+   */
+  preparedScan?: RepositoryKnowledgeScan;
+}
+
 export type KnowledgeOperationAction = "create" | "update" | "delete" | "unchanged" | "conflict";
 
 export interface KnowledgeFileOperation {

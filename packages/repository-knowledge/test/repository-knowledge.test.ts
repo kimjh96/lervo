@@ -59,6 +59,25 @@ afterEach(async () => {
 });
 
 describe("repository knowledge migration", () => {
+  it("reuses only a prepared scan with matching project and policy coordinates", async () => {
+    const root = await repository();
+    await writeFile(resolve(root, "README.md"), "# Prepared scan\n");
+    await initialize(root);
+    const { scan } = await scanConfiguredRepositoryKnowledge(root);
+
+    const direct = await createKnowledgeMigrationPlan({ repositoryRoot: root });
+    const reused = await createKnowledgeMigrationPlan({ repositoryRoot: root, preparedScan: scan });
+    expect(reused.planId).toBe(direct.planId);
+    expect(reused.operations).toEqual(direct.operations);
+
+    await expect(
+      createKnowledgeMigrationPlan({
+        repositoryRoot: root,
+        preparedScan: { ...scan, policyId: "policy_foreign" },
+      }),
+    ).rejects.toThrow(/prepared knowledge scan project or policy differs/u);
+  });
+
   it("projects a reviewed one-hop relation onto one registered current document", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs"));

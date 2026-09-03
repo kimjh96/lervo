@@ -26,6 +26,7 @@ import { loadStoredConcepts } from "./store-reader.js";
 import { structuralConceptDirectory } from "./structural-projection.js";
 import {
   RepositoryKnowledgeError,
+  type RepositoryKnowledgePreparedScanOptions,
   type KnowledgeFileOperation,
   type RepositoryKnowledgeScanOptions,
 } from "./types.js";
@@ -245,16 +246,17 @@ export async function createKnowledgeInstructionBridgePlan(input: {
   repositoryRoot: string;
   provider: InstructionBridgeProvider;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
+  preparedScan?: RepositoryKnowledgePreparedScanOptions["preparedScan"];
 }): Promise<KnowledgeInstructionBridgePlan> {
   const root = resolve(input.repositoryRoot);
   const profile = instructionBridgeProfile(input.provider);
   const [{ policy, scan }, beforeRegistry] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(
-      root,
-      input.supplementalSources === undefined
+    scanConfiguredRepositoryKnowledge(root, {
+      ...(input.supplementalSources === undefined
         ? {}
-        : { supplementalSources: input.supplementalSources },
-    ),
+        : { supplementalSources: input.supplementalSources }),
+      ...(input.preparedScan === undefined ? {} : { preparedScan: input.preparedScan }),
+    }),
     registryDigest(root),
   ]);
   const scannedCanonical = scan.sources.find((item) => item.path === profile.canonicalPath);

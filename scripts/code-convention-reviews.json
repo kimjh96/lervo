@@ -151,14 +151,14 @@
     },
     {
       "path": "packages/repository-knowledge/src/compiler.ts",
-      "contentHash": "sha256:a870e9fd53264f7a189e59124449f6864bed05498b8dfa0ba7b4e084c9e2bb76",
+      "contentHash": "sha256:6205e5d0c9e69364876edb8526e62c96f3634b0f50028231f6d25c200271fd99",
       "responsibility": "Deterministic structural knowledge compiler",
       "rationale": "Publication rendering, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:f701534d1e35149ee4d0c936b84dcfd69c3da10851a413115a91e34957b799bb",
+      "contentHash": "sha256:cc62dfbaf88ecfb7c0634856516c3e3f043a17be686d674fa98ec8b541b5d7be",
       "responsibility": "Reviewed document normalization lifecycle",
       "rationale": "Profiles, envelopes, candidate validation, compiler invocation, storage, inspection, plan, and exact-approved apply all share one content-bound normalization contract.",
       "disposition": "cohesive"
@@ -193,14 +193,14 @@
     },
     {
       "path": "packages/repository-knowledge/src/instruction-bridge.ts",
-      "contentHash": "sha256:31900d1f585e7dfd776c53863af1d49e847c6ea0bc6f924ead25559b0dccbc59",
+      "contentHash": "sha256:dea9b4523cec9fac0e37a7cebb3404cb7cbb4719ac88427b0768bc02a803b825",
       "responsibility": "Provider instruction bridge lifecycle",
       "rationale": "Profile resolution, registry binding, structural refresh, plan creation, and exact-approved apply share one instruction-bridge lifecycle; target construction and classification are extracted.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/lint-query.ts",
-      "contentHash": "sha256:fbbd2340d1dff588720702459581cb6aeebec1fc67ced479cb830f8279d3bd11",
+      "contentHash": "sha256:0ec9fb6041809f5d266e6131c0626db60097047ef572d0f62bdaa9f58c71b467",
       "responsibility": "Repository knowledge lifecycle lint",
       "rationale": "Query behavior and safe publication access were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars.",
       "disposition": "cohesive"
@@ -228,7 +228,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:62b482297711fb764ae03d81ec02fcf6ad0c98cae71e068f6dc86da149fd8895",
+      "contentHash": "sha256:616822c6b570c028ef31d8a28101d1290936bd8dbd8b91abe9bd4bb8c996b47c",
       "responsibility": "Repository document-layout migration",
       "rationale": "Classification, link rebasing, neutral ownership-record migration, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction; tool-specific formatter configuration is outside this boundary.",
       "disposition": "cohesive"
@@ -270,7 +270,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:17b61258bea20799f355cefbabf23abf96db620c658b226f954eefb6eef0f77b",
+      "contentHash": "sha256:59330b2c6baba75b707ab8784f93ddfb3d149f4acb3511716a1c50786ab044d4",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, and typed domain failures without owning their implementations.",
       "disposition": "cohesive"

@@ -70,6 +70,14 @@ capability-free runner startup and one query-producing provider turn, not a sepa
 synthetic readiness turn. Direct hooks do not observe the provider turn outside the
 hook.
 
+Terminal lifecycle inspection may reuse one exact prepared repository-knowledge scan across its
+read-only compiler checks. Its knowledge-only result may be retained as a rebuildable local cache
+bound to the CLI version, repository snapshot revision, and supplemental-source digest. An active
+materialization transaction, any coordinate mismatch, invalid state, or a technical inspection
+failure prevents reuse. Cache reuse changes neither lifecycle findings nor evidence meaning. The
+current direct-terminal environment profile leaves cache state `unknown`; timing reports therefore
+do not infer a warm or cold cohort from cache behavior.
+
 A version 1 writer skips version 2 stage evidence and preserves the documented
 availability-safe hook result. A version 2 writer stores the profile in local CAS and
 appends a system-authored event. Measurement or persistence failure records no false

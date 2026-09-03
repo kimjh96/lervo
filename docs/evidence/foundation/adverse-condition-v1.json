@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidenceBuildDigest": "sha256:1a7bc485f1d73d5631646d15034344843f42b4c57e27e1a5b22f38a2deb3fc2d",
-  "repositoryRevision": "sha256:016efcff0deb165a33c29703080c974091b0d422aded0949689ec3b1d6f9bd24",
+  "repositoryRevision": "sha256:a5c43ca23f0bc96b42e3bd82bc717e141aef082678e895a0c3bc8e1c9533c14c",
   "environment": {
     "operatingSystem": "darwin",
     "architecture": "arm64",
@@ -1061,6 +1061,16 @@
       "reconstruction": "normal_producer"
     },
     {
+      "collectionId": "terminal_knowledge_lifecycle_cache",
+      "owner": "terminal_runtime",
+      "authority": "derived",
+      "growthPolicy": "replace_current",
+      "maximumItems": 1,
+      "operationWindow": 1,
+      "overflow": "reject_before_mutation",
+      "reconstruction": "normal_producer"
+    },
+    {
       "collectionId": "capability_locks",
       "owner": "capabilities",
       "authority": "derived",
@@ -1137,9 +1147,9 @@
       "eventWindow": 1000,
       "assignmentWindow": 128,
       "concurrentWorkers": 4,
-      "durationMs": 0.0965,
-      "cpuMs": 0.122,
-      "processPeakResidentMemoryBytes": 187482112,
+      "durationMs": 0.099458,
+      "cpuMs": 0.125,
+      "processPeakResidentMemoryBytes": 187252736,
       "status": "passed"
     },
     {
@@ -1147,9 +1157,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 16,
-      "durationMs": 0.320125,
-      "cpuMs": 0.374,
-      "processPeakResidentMemoryBytes": 187498496,
+      "durationMs": 0.281666,
+      "cpuMs": 0.34,
+      "processPeakResidentMemoryBytes": 187252736,
       "status": "passed"
     },
     {
@@ -1157,9 +1167,9 @@
       "eventWindow": 100000,
       "assignmentWindow": 10000,
       "concurrentWorkers": 32,
-      "durationMs": 2.448792,
-      "cpuMs": 2.855,
-      "processPeakResidentMemoryBytes": 188350464,
+      "durationMs": 2.423125,
+      "cpuMs": 2.772,
+      "processPeakResidentMemoryBytes": 188104704,
       "status": "passed"
     },
     {
@@ -1167,9 +1177,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 32,
-      "durationMs": 0.253667,
-      "cpuMs": 0.374,
-      "processPeakResidentMemoryBytes": 188383232,
+      "durationMs": 0.25475,
+      "cpuMs": 0.358,
+      "processPeakResidentMemoryBytes": 188137472,
       "status": "passed"
     }
   ],
@@ -1219,7 +1229,7 @@
     {
       "area": "recovery",
       "path": "apps/cli/test/terminal-integration.test.ts",
-      "sourceHash": "sha256:3e76373e347b0f294e05305d6fe04bee55670b8d08b9d8073038c93885e322e1"
+      "sourceHash": "sha256:a4ddc613867d6eb4545b6e737e6428816288b82b8c518b27eae67aa06d86f0de"
     },
     {
       "area": "compatibility",
@@ -1324,7 +1334,7 @@
     {
       "area": "compatibility",
       "path": "packages/repository-knowledge/test/repository-knowledge.test.ts",
-      "sourceHash": "sha256:a2f3f6f6cbb63398fb8698b9ab853a7ed31a78769917c721aa6ec385871b8ea7"
+      "sourceHash": "sha256:e236dfeb883d206ce299f13ff9a2ee120d85ec7cb10818634d544748e060498f"
     },
     {
       "area": "compatibility",
@@ -1345,5 +1355,5 @@
     "credentials": "excluded",
     "absolutePaths": "excluded"
   },
-  "reportId": "adverse_48d0515a88503690633b4b8a"
+  "reportId": "adverse_d3b4b947b0eceff773da040d"
 }

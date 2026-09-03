@@ -252,6 +252,19 @@ describe("terminal integration CLI", () => {
     expect(await invoke("UserPromptSubmit")).toBe(0);
     expect(await invoke("Stop")).toBe(0);
 
+    const lifecycleCacheSource = await readFile(
+      resolve(root, ".lervo/state/terminal-integration/knowledge-lifecycle-cache.json"),
+      "utf8",
+    );
+    expect(JSON.parse(lifecycleCacheSource)).toMatchObject({
+      schemaVersion: 1,
+      cliVersion: expect.stringMatching(/^\d+\.\d+\.\d+$/u),
+      repositoryRevision: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+      supplementalSourcesDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+      issues: expect.any(Array),
+    });
+    expect(lifecycleCacheSource).not.toContain("Explain the terminal fixture");
+
     const storage = await openProjectStorage(root);
     try {
       const stages = storage.events

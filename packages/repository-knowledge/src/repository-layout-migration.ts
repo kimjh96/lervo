@@ -48,6 +48,7 @@ import {
 } from "./document-layout.js";
 import {
   RepositoryKnowledgeError,
+  type RepositoryKnowledgePreparedScanOptions,
   type KnowledgeFileOperation,
   type RepositoryKnowledgeScanOptions,
   type RepositorySource,
@@ -574,17 +575,18 @@ export function serializableRepositoryLayoutMigrationPlan(
 export async function createRepositoryLayoutMigrationPlan(input: {
   repositoryRoot: string;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
+  preparedScan?: RepositoryKnowledgePreparedScanOptions["preparedScan"];
 }): Promise<RepositoryLayoutMigrationPlan> {
   const root = resolve(input.repositoryRoot);
   const taxonomyPath = resolve(root, ".lervo/knowledge/document-layout.yaml");
   const taxonomySource = await readFile(taxonomyPath, "utf8");
   const [{ policy, scan }, storedConcepts, generatedPaths, taxonomy] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(
-      root,
-      input.supplementalSources === undefined
+    scanConfiguredRepositoryKnowledge(root, {
+      ...(input.supplementalSources === undefined
         ? {}
-        : { supplementalSources: input.supplementalSources },
-    ),
+        : { supplementalSources: input.supplementalSources }),
+      ...(input.preparedScan === undefined ? {} : { preparedScan: input.preparedScan }),
+    }),
     loadStoredConcepts(root),
     recordedGeneratedKnowledgePaths(root),
     loadDecisionTaxonomy(root),

@@ -146,6 +146,12 @@ It preserves profile boundaries, requires a configurable population with a 30-sa
 applies the accepted p95 and external-ceiling budgets, and optionally evaluates query-projection
 tokens per context without claiming whole-task usage.
 
+Source-current product-host dogfood on 2026-09-03 then exposed repeated full knowledge scans in
+direct Stop lifecycle inspection. The bounded optimization now shares one immutable scan, separates
+ordered structural planning from independent validation, and reuses only an exact CLI-, repository-,
+and supplemental-source-bound local projection. A repeated exact-state Stop observation fell below
+the 5-second budget; the first post-invalidation observation and historical p95 remain visible.
+
 ## FH4: Adverse-condition proof
 
 Prove current effects safe before a loop can repeat them.
@@ -173,7 +179,7 @@ Implementation state on 2026-09-01: FH4 is implemented. A provider-neutral effec
 contract and reviewed inventory cover 13 current state-changing categories. The checked
 adverse-condition report binds 65 deterministic recovery projections, focused runtime
 suite hashes, all current top-level event allowlist fields, an integrated 15-case threat
-model, 17 growing-collection policies, four capacity profiles, and upgrade, failed-
+model, 18 growing-collection policies, four capacity profiles, and upgrade, failed-
 upgrade, rollback, migration-idempotence, state-recovery, and retrieval-drift rehearsals.
 Provider start, stream, and stop uncertainty is no longer marked retryable. Workforce
 capacity has one owner and pure bounded cancellation propagates through existing

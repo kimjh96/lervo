@@ -3,16 +3,7 @@ import { resolve } from "node:path";
 
 import { captureRepositorySnapshot } from "@lervo/orchestrator";
 import { openProjectStorage } from "@lervo/project-storage";
-import {
-  createKnowledgeInstructionBootstrapPlan,
-  createKnowledgeInstructionBridgePlan,
-  createKnowledgeMigrationPlan,
-  createRepositoryLayoutMigrationPlan,
-  inspectConfiguredDocumentNormalization,
-  inspectTerminalIntegration,
-  lintRepositoryKnowledge,
-  RepositoryKnowledgeError,
-} from "@lervo/repository-knowledge";
+import { inspectTerminalIntegration } from "@lervo/repository-knowledge";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import {
@@ -24,31 +15,13 @@ import type {
   PreparedTerminalTurnExpectation,
   TerminalLifecycleInspection,
 } from "./terminal-hook-contract.js";
+import { inspectTerminalRepositoryKnowledgeLifecycle } from "./terminal-knowledge-lifecycle-inspection.js";
 import {
   latestTerminalTurnDeclaration,
   terminalDeliberationDeclarationMatches,
 } from "./terminal-turn-observation.js";
 import { inspectTerminalWorkspace } from "./terminal-workspace-lifecycle.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
-
-function repositoryLifecycleFailure(input: {
-  code: string;
-  command: string;
-  error: unknown;
-}): TerminalLifecycleInspection["issues"][number] {
-  return {
-    code: input.code,
-    command: input.command,
-    ...(input.error instanceof RepositoryKnowledgeError
-      ? {
-          detail:
-            input.error.publicDiagnostic === undefined
-              ? input.error.code
-              : `${input.error.publicDiagnostic.code}: ${input.error.publicDiagnostic.message}`,
-        }
-      : {}),
-  };
-}
 
 export async function inspectTerminalLifecycle(
   root: string,
@@ -184,125 +157,13 @@ export async function inspectTerminalLifecycle(
           : "terminal_integration_stale",
       command: "lervo migrate knowledge",
     });
-  let instructionBootstrapStatus:
-    Awaited<ReturnType<typeof createKnowledgeInstructionBootstrapPlan>>["status"] | null = null;
-  try {
-    const instructionBootstrap = await createKnowledgeInstructionBootstrapPlan({
-      repositoryRoot: root,
+  issues.push(
+    ...(await inspectTerminalRepositoryKnowledgeLifecycle({
+      root,
+      repositoryRevision: currentRepository.revision,
       supplementalSources,
-    });
-    instructionBootstrapStatus = instructionBootstrap.status;
-  } catch (error) {
-    issues.push(
-      repositoryLifecycleFailure({
-        code: "instruction_canonical_bootstrap_failed",
-        command: "lervo migrate knowledge",
-        error,
-      }),
-    );
-  }
-  if (instructionBootstrapStatus !== null && instructionBootstrapStatus !== "not_applicable")
-    issues.push({
-      code: `instruction_canonical_bootstrap_${instructionBootstrapStatus}`,
-      command: "lervo migrate knowledge",
-    });
-  let layout: Awaited<ReturnType<typeof createRepositoryLayoutMigrationPlan>> | null = null;
-  if (instructionBootstrapStatus === "not_applicable") {
-    try {
-      layout = await createRepositoryLayoutMigrationPlan({
-        repositoryRoot: root,
-        supplementalSources,
-      });
-    } catch (error) {
-      issues.push(
-        repositoryLifecycleFailure({
-          code: "repository_layout_inspection_failed",
-          command: "lervo migrate knowledge",
-          error,
-        }),
-      );
-    }
-  }
-  if (layout !== null && layout.status !== "current")
-    issues.push({ code: `repository_layout_${layout.status}`, command: "lervo migrate knowledge" });
-  let structuralCurrent = false;
-  if (layout?.status === "current") {
-    try {
-      const structural = await createKnowledgeMigrationPlan({
-        repositoryRoot: root,
-        mode: "migrate",
-        supplementalSources,
-      });
-      structuralCurrent = structural.operations.every((item) => item.action === "unchanged");
-      if (!structuralCurrent)
-        issues.push({
-          code: `repository_knowledge_${structural.status}`,
-          command: "lervo migrate knowledge",
-        });
-    } catch (error) {
-      issues.push(
-        repositoryLifecycleFailure({
-          code: "repository_knowledge_inspection_failed",
-          command: "lervo migrate knowledge",
-          error,
-        }),
-      );
-    }
-  }
-  if (structuralCurrent) {
-    try {
-      const bridge = await createKnowledgeInstructionBridgePlan({
-        repositoryRoot: root,
-        provider: "claude",
-        supplementalSources,
-      });
-      if (bridge.status !== "current")
-        issues.push({
-          code: `claude_instruction_bridge_${bridge.status}`,
-          command: "lervo migrate knowledge",
-        });
-    } catch (error) {
-      issues.push(
-        repositoryLifecycleFailure({
-          code: "claude_instruction_bridge_inspection_failed",
-          command: "lervo migrate knowledge",
-          error,
-        }),
-      );
-    }
-  }
-  try {
-    const lint = await lintRepositoryKnowledge(root, { supplementalSources });
-    if (!lint.valid)
-      issues.push({ code: "repository_knowledge_lint_failed", command: "lervo knowledge lint" });
-  } catch (error) {
-    issues.push(
-      repositoryLifecycleFailure({
-        code: "repository_knowledge_lint_inspection_failed",
-        command: "lervo knowledge lint",
-        error,
-      }),
-    );
-  }
-  try {
-    const normalization = await inspectConfiguredDocumentNormalization({
-      repositoryRoot: root,
-      supplementalSources,
-    });
-    if (normalization.pendingDocuments.length > 0)
-      issues.push({
-        code: "document_normalization_pending",
-        command: "lervo migrate knowledge --provider codex",
-      });
-  } catch (error) {
-    issues.push(
-      repositoryLifecycleFailure({
-        code: "document_normalization_inspection_failed",
-        command: "lervo migrate knowledge --provider codex",
-        error,
-      }),
-    );
-  }
+    })),
+  );
   const activation = await readTerminalActivationReceipts(root);
   const runtimeActivation = await inspectTerminalRuntimeActivation(root, activation);
   return {

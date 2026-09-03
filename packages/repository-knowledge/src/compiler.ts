@@ -18,6 +18,7 @@ import type {
   KnowledgeMigrationPlan,
   RepositoryKnowledgeScan,
   RepositoryKnowledgeScanOptions,
+  RepositoryKnowledgePreparedScanOptions,
   RepositorySource,
   RepositorySourceUnit,
   RepositoryEntrypointDisposition,
@@ -910,14 +911,15 @@ export async function createKnowledgeMigrationPlan(input: {
   repairMode?: KnowledgeMigrationPlan["repairMode"];
   reconciliationMode?: KnowledgeMigrationPlan["reconciliation"]["strategy"];
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
+  preparedScan?: RepositoryKnowledgePreparedScanOptions["preparedScan"];
 }): Promise<KnowledgeMigrationPlan> {
   const root = resolve(input.repositoryRoot);
-  const { manifest, policy, scan, previous } = await configuredRepositoryKnowledgeScan(
-    root,
-    input.supplementalSources === undefined
+  const { manifest, policy, scan, previous } = await configuredRepositoryKnowledgeScan(root, {
+    ...(input.supplementalSources === undefined
       ? {}
-      : { supplementalSources: input.supplementalSources },
-  );
+      : { supplementalSources: input.supplementalSources }),
+    ...(input.preparedScan === undefined ? {} : { preparedScan: input.preparedScan }),
+  });
   return buildKnowledgeMigrationPlan({
     root,
     manifest,
@@ -1084,7 +1086,8 @@ export async function createKnowledgeMigrationPlanForScan(input: {
 
 async function configuredRepositoryKnowledgeScan(
   repositoryRoot: string,
-  options: RepositoryKnowledgeScanOptions & { allowTransactionPlanId?: string } = {},
+  options: RepositoryKnowledgeScanOptions &
+    RepositoryKnowledgePreparedScanOptions & { allowTransactionPlanId?: string } = {},
 ): Promise<{
   manifest: Awaited<ReturnType<typeof loadProjectManifest>>;
   policy: Awaited<ReturnType<typeof loadRepositoryKnowledgePolicy>>;
@@ -1101,21 +1104,30 @@ async function configuredRepositoryKnowledgeScan(
   const manifest = await loadProjectManifest(root);
   const policy = await loadRepositoryKnowledgePolicy(root);
   const previous = await previousGenerated(root);
-  const scan = await scanRepositoryKnowledge({
-    repositoryRoot: root,
-    projectId: manifest.projectId,
-    policy,
-    generatedPaths: previous.paths,
-    ...(options.supplementalSources === undefined
-      ? {}
-      : { supplementalSources: options.supplementalSources }),
-  });
+  const scan =
+    options.preparedScan ??
+    (await scanRepositoryKnowledge({
+      repositoryRoot: root,
+      projectId: manifest.projectId,
+      policy,
+      generatedPaths: previous.paths,
+      ...(options.supplementalSources === undefined
+        ? {}
+        : { supplementalSources: options.supplementalSources }),
+    }));
+  if (scan.projectId !== manifest.projectId || scan.policyId !== policy.policyId) {
+    throw new RepositoryKnowledgeError(
+      "knowledge_plan_stale",
+      "The prepared knowledge scan project or policy differs from the current repository.",
+    );
+  }
   return { manifest, policy, scan, previous };
 }
 
 export async function scanConfiguredRepositoryKnowledge(
   repositoryRoot: string,
-  options: RepositoryKnowledgeScanOptions & { allowTransactionPlanId?: string } = {},
+  options: RepositoryKnowledgeScanOptions &
+    RepositoryKnowledgePreparedScanOptions & { allowTransactionPlanId?: string } = {},
 ): Promise<{
   manifest: Awaited<ReturnType<typeof loadProjectManifest>>;
   policy: Awaited<ReturnType<typeof loadRepositoryKnowledgePolicy>>;

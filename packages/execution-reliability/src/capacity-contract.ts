@@ -119,6 +119,16 @@ export const foundationGrowingCollections: readonly GrowingCollectionContract[] 
     reconstruction: "normal_producer",
   },
   {
+    collectionId: "terminal_knowledge_lifecycle_cache",
+    owner: "terminal_runtime",
+    authority: "derived",
+    growthPolicy: "replace_current",
+    maximumItems: 1,
+    operationWindow: 1,
+    overflow: "reject_before_mutation",
+    reconstruction: "normal_producer",
+  },
+  {
     collectionId: "capability_locks",
     owner: "capabilities",
     authority: "derived",
