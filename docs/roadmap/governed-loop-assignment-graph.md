@@ -338,4 +338,5 @@ minor release intent.
 - [Assignment connector specification](../specifications/execution/assignment-connectors.md)
 - [Assignment routine specification](../specifications/execution/assignment-routines.md)
 - [Verified improvement effects](../specifications/execution/verified-improvement-effects.md)
+- [Verified improvement-effect dogfood](../evidence/pilots/verified-improvement-effect-dogfood.md)
 - [Execution specification](../specifications/execution.md)
