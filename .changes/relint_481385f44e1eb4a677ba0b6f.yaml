@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_481385f44e1eb4a677ba0b6f"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Preserve historical terminal context events when syncing upgraded repositories."
