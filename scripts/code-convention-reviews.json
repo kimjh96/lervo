@@ -305,7 +305,7 @@
     },
     {
       "path": "packages/schemas/src/terminal-observation-event.ts",
-      "contentHash": "sha256:cd935ea1ed1355da4f47b358c0e109b76d8af78d5e208b2937460e9f09be0820",
+      "contentHash": "sha256:ebbffbb6be465b464e95dbb908e52e0f9a890541410556e21b1e86dd3875493e",
       "responsibility": "Declarative terminal observation event schemas",
       "rationale": "The module contains only the bounded JSON Schema declarations and inferred payload types for one terminal observation lifecycle; runtime validation, redaction, persistence, and orchestration remain in their owning modules.",
       "disposition": "cohesive"

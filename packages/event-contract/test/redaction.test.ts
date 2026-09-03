@@ -191,6 +191,24 @@ describe("event payload privacy boundary", () => {
         normalizedRuleText: "private normalized rule",
       }).payload,
     ).toEqual(withDurableInstruction);
+    const historicalGrounded = {
+      ...prepared,
+      requestDigest: `sha256:${"2".repeat(64)}`,
+      groundingStatus: "abstain",
+      groundingWorkflowId: null,
+      groundingSourceClasses: [],
+      groundingSubjectIds: [],
+      groundingProviderIds: [],
+      groundingReasons: ["semantic_resolution_failed"],
+      selectionStatus: "not_selected",
+      loadingStatus: "not_run",
+      hookPreparationStatus: "observed",
+      providerInjectionStatus: "unobserved",
+      providerUseStatus: "unknown",
+    };
+    expect(sanitizeEventPayload("terminal.context.prepared", historicalGrounded).payload).toEqual(
+      historicalGrounded,
+    );
     const currentPrepared = {
       ...withDurableInstruction,
       repositoryRevision: `sha256:${"1".repeat(64)}`,
@@ -277,6 +295,12 @@ describe("event payload privacy boundary", () => {
       sanitizeEventPayload("terminal.context.prepared", {
         ...prepared,
         durableInstructionStatus: "ignored",
+      }),
+    ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+    expect(() =>
+      sanitizeEventPayload("terminal.context.prepared", {
+        ...prepared,
+        queryProjectionReceipt: currentPrepared.queryProjectionReceipt,
       }),
     ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
     expect(() =>

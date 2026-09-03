@@ -9,9 +9,9 @@ Terminal observation events are immutable canonical evidence. Later integration 
 
 ## Decision
 
-Payload schemas retain their original required base. Each later coordinate revision is an all-or-none additive group enforced through dependent requirements: prepared context may include the complete workstream group, and current producers also include repository revision; observed turns may include the complete repository-change and final-workstream group. Partial hybrid groups are invalid.
+Payload schemas retain their original required base. Each later coordinate revision is an all-or-none additive group enforced through dependent requirements: prepared context may include the complete semantic-grounding, query-projection-receipt, durable-instruction, workstream, and workspace groups, and current producers include their latest applicable groups; observed turns may include the complete repository-change, final-workstream, and workspace groups. A query-projection receipt requires its complete semantic-grounding group, but the earlier semantic-grounding group remains valid without the later receipt. Partial hybrid groups are invalid.
 
-Validation accepts historical base events, intermediate complete groups, and current complete groups without rewriting, deleting, or re-emitting history. Producers continue emitting the latest full coordinates. Consumers interpret missing later groups as unobserved, never as false, unchanged, current, or successful.
+Validation accepts historical base events, intermediate complete groups, and current complete groups without rewriting, deleting, or re-emitting history. Producers continue emitting the latest full coordinates. Consumers interpret missing later groups, including an absent query-projection receipt on a valid earlier grounding event, as unobserved, never as false, unchanged, current, or successful.
 
 ## Privacy and failure meaning
 
