@@ -197,6 +197,28 @@ describe("runtime service definition renderer", () => {
     expect(await readFile(output, "utf8")).toBe(original);
   });
 
+  it("rejects a relative output path before creating any service definition", async () => {
+    const value = await fixture();
+    const relative = "lervo-relative-output.service";
+
+    await expect(
+      renderRuntimeService([
+        "--manager",
+        "systemd",
+        "--runtime",
+        "hub",
+        "--executable",
+        value.executable,
+        "--config",
+        value.config,
+        "--output",
+        relative,
+      ]),
+    ).rejects.toThrow();
+    await expect(lstat(resolve(relative))).rejects.toThrow();
+    await expect(lstat(resolve(value.root, relative))).rejects.toThrow();
+  });
+
   it("requires a bounded Node instance and renders distinct service identities", async () => {
     const value = await fixture();
     await expect(
