@@ -41,6 +41,13 @@ Claims retain their observation boundary:
 - a successful hook response is not evidence that every lifecycle effect succeeded; and
 - model output or repeated behavior is not proof that the model learned correctly.
 
+The versioned automatic repository suite keeps ordinary graph-visible source changes on bounded
+related tests and escalates known static-graph blind spots to full local regression testing. The
+escalation policy covers repository execution scripts, runtime-loaded files, workflow definitions,
+and test or workspace configuration; it does not convert local regression success into evidence of
+external-provider, network, packaging, or release behavior. Each suite version retains its own
+identity and evidence meaning.
+
 ## Review checkpoints
 
 Review occurs at three irreversible boundaries:

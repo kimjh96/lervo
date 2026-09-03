@@ -1,0 +1,28 @@
+schemaVersion: 1
+suiteId: repository.default.v4
+stopOnFailure: true
+commands:
+  - commandId: repository-lint
+    executable: pnpm
+    arguments:
+      - lint
+    cwd: .
+    timeoutMs: 300000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []
+  - commandId: repository-typecheck
+    executable: pnpm
+    arguments:
+      - typecheck
+    cwd: .
+    timeoutMs: 900000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []
+  - commandId: repository-risk-based-tests
+    executable: node
+    arguments:
+      - scripts/run-changed-runtime-verification.mjs
+    cwd: .
+    timeoutMs: 900000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []
