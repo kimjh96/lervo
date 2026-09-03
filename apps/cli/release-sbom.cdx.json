@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:4f79868c-b8bf-57b4-b095-b8d6c3a0c03e",
+  "serialNumber": "urn:uuid:c570654c-9098-5b35-bbcf-026f3810c258",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -21,15 +21,15 @@
     },
     "component": {
       "type": "application",
-      "bom-ref": "pkg:npm/%40lervo/cli@0.9.1",
+      "bom-ref": "pkg:npm/%40lervo/cli@0.9.2",
       "group": "@lervo",
       "name": "cli",
-      "version": "0.9.1",
-      "purl": "pkg:npm/%40lervo/cli@0.9.1",
+      "version": "0.9.2",
+      "purl": "pkg:npm/%40lervo/cli@0.9.2",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "9cf7df3f6854e356210596612e73318c3451e7438f74d6ae64495d614cfed024"
+          "content": "04ba4223ac73ad59f490ce7c8a3935c68549c5d1fae78e2d0b31e2ed6b41bab9"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:01bd3dd0b58abc3def75cffe064c9b0afd3217204a59eac75562bbdfaadb51fb"
+          "value": "sha256:5571a9452a343ea872eb6d92c03edc013ba5824e07b855f258e7e8d6039447c4"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:be7c58aa6490358da7acb88dda6570ef63af112d11b90da0c1ce6cc3d6ffed12"
+          "value": "sha256:a3ff6e4ce5e01d785ea0e4b2b843ce550f7b3f5e85f06b121db04f1ac9162c66"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -640,6 +640,21 @@
       "name": "execution-observability",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/execution-observability@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/filesystem-durability@0.1.0",
+      "group": "@lervo",
+      "name": "filesystem-durability",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/filesystem-durability@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -4005,7 +4020,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40lervo/cli@0.9.1",
+      "ref": "pkg:npm/%40lervo/cli@0.9.2",
       "dependsOn": [
         "pkg:npm/%40anthropic-ai/claude-agent-sdk@0.3.226",
         "pkg:npm/%40anthropic-ai/sdk@0.117.1",
@@ -4031,6 +4046,7 @@
         "pkg:npm/%40lervo/event-store-sqlite@0.1.0",
         "pkg:npm/%40lervo/execution-contract@0.1.0",
         "pkg:npm/%40lervo/execution-observability@0.1.0",
+        "pkg:npm/%40lervo/filesystem-durability@0.1.0",
         "pkg:npm/%40lervo/hub-sync@0.1.0",
         "pkg:npm/%40lervo/identity-migration@0.1.0",
         "pkg:npm/%40lervo/improvement-observation-local@0.1.0",

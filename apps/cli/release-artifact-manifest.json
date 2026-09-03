@@ -2,7 +2,7 @@
   "schemaVersion": 5,
   "artifact": {
     "name": "@lervo/cli",
-    "version": "0.9.1",
+    "version": "0.9.2",
     "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
     "keywords": [
       "ai-agents",
@@ -56,6 +56,7 @@
       "@lervo/event-store-sqlite@0.1.0",
       "@lervo/execution-contract@0.1.0",
       "@lervo/execution-observability@0.1.0",
+      "@lervo/filesystem-durability@0.1.0",
       "@lervo/hub-sync@0.1.0",
       "@lervo/identity-migration@0.1.0",
       "@lervo/improvement-observation-local@0.1.0",
@@ -139,7 +140,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:be7c58aa6490358da7acb88dda6570ef63af112d11b90da0c1ce6cc3d6ffed12"
+    "bundleDigest": "sha256:a3ff6e4ce5e01d785ea0e4b2b843ce550f7b3f5e85f06b121db04f1ac9162c66"
   },
   "archive": {
     "rootFiles": [
@@ -153,13 +154,13 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 5324269,
-        "sha256": "sha256:9cf7df3f6854e356210596612e73318c3451e7438f74d6ae64495d614cfed024"
+        "size": 5324148,
+        "sha256": "sha256:04ba4223ac73ad59f490ce7c8a3935c68549c5d1fae78e2d0b31e2ed6b41bab9"
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 2604646,
-        "sha256": "sha256:c7ab0a15bee9f62598bfc08327590e3f90fa897783f4689c436a7eeec3ea4f95"
+        "size": 2604935,
+        "sha256": "sha256:a52aea8f8955e39459d75af1a5ed0ef959aff61252c0e21783bbf5dc9ac7cdb9"
       },
       {
         "path": "dist/terminal-hook.js",
@@ -168,7 +169,7 @@
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:5252a1beefba2a9237f984f2cb7520d264306ebd7cb47c767d2e238546ffb831"
+    "contentDigest": "sha256:012c3bdfb270d620d1ad79a8b3553a177da0d92f309d7b281c52ee0f62ec2eb4"
   },
   "dependencies": {
     "portable": [
@@ -281,5 +282,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:01bd3dd0b58abc3def75cffe064c9b0afd3217204a59eac75562bbdfaadb51fb"
+  "artifactDigest": "sha256:5571a9452a343ea872eb6d92c03edc013ba5824e07b855f258e7e8d6039447c4"
 }
