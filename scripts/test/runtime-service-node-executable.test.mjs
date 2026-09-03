@@ -49,6 +49,35 @@ describe("runtime service Node executable composition", () => {
     );
   });
 
+  it("systemd-escapes the exact Node executable before the runtime entry point", async () => {
+    const value = await fixture();
+    const nodeExecutable = resolve(value.root, `node %runtime\\ "quoted"`);
+    await writeFile(nodeExecutable, "#!/bin/sh\n", { mode: 0o700 });
+    await chmod(nodeExecutable, 0o700);
+    const output = resolve(value.root, "lervo-hub-escaped.service");
+    await renderRuntimeService([
+      "--manager",
+      "systemd",
+      "--runtime",
+      "hub",
+      "--executable",
+      value.executable,
+      "--node-executable",
+      nodeExecutable,
+      "--config",
+      value.config,
+      "--output",
+      output,
+    ]);
+    const escapedNodeExecutable = nodeExecutable.replace(
+      `node %runtime\\ "quoted"`,
+      `node %%runtime\\\\ \\"quoted\\"`,
+    );
+    expect(await readFile(output, "utf8")).toContain(
+      `ExecStart="${escapedNodeExecutable}" "${value.executable}" --config "${value.config}"`,
+    );
+  });
+
   it("XML-escapes the exact Node executable before the launchd runtime entry point", async () => {
     const value = await fixture();
     const nodeExecutable = resolve(value.root, `node & <runtime> "'`);
