@@ -59,6 +59,52 @@ export interface PreparedProviderQueryRunner {
   close(): Promise<void>;
 }
 
+export interface PreparedDirectProviderQueryRunner {
+  runner: NoCapabilityProviderJsonRunner;
+  runtimeContract:
+    "codex.persistent_isolated_thread_direct.v1" | "claude.serialized_process_direct.v1";
+  close(): Promise<void>;
+}
+
+export interface ProviderQueryRunnerDependencies {
+  createCodexRunner: typeof createCodexPersistentQueryRunner;
+  createSerializedRunner: typeof createNoCapabilityProviderJsonRunner;
+}
+
+const defaultDependencies: ProviderQueryRunnerDependencies = {
+  createCodexRunner: createCodexPersistentQueryRunner,
+  createSerializedRunner: createNoCapabilityProviderJsonRunner,
+};
+
+interface OpenedProviderQueryRunner {
+  runner: NoCapabilityProviderJsonRunner;
+  close(): Promise<void>;
+}
+
+async function openProviderQueryRunner(
+  provider: RunProvider,
+  options: {
+    model?: string;
+    systemPrompt: string;
+    timeoutMs: number;
+  },
+  dependencies: ProviderQueryRunnerDependencies,
+): Promise<OpenedProviderQueryRunner> {
+  if (provider === "codex") {
+    const prepared = await dependencies.createCodexRunner(options);
+    return { runner: prepared.runner, close: prepared.close };
+  }
+  return {
+    runner: await dependencies.createSerializedRunner({
+      provider,
+      ...(options.model === undefined ? {} : { model: options.model }),
+      systemPrompt: options.systemPrompt,
+      timeoutMs: options.timeoutMs,
+    }),
+    close: async () => undefined,
+  };
+}
+
 function record(value: unknown): Record<string, unknown> | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -114,21 +160,10 @@ export async function prepareProviderQueryRunner(
     timeoutMs: number;
     now?: () => number;
   },
+  dependencies: ProviderQueryRunnerDependencies = defaultDependencies,
 ): Promise<PreparedProviderQueryRunner> {
   const now = options.now ?? Date.now;
-  const prepared =
-    provider === "codex"
-      ? await createCodexPersistentQueryRunner(options)
-      : {
-          runner: await createNoCapabilityProviderJsonRunner({
-            provider,
-            ...(options.model === undefined ? {} : { model: options.model }),
-            systemPrompt: options.systemPrompt,
-            timeoutMs: options.timeoutMs,
-          }),
-          runtimeContract: "claude.serialized_process_admission.v2" as const,
-          close: async () => undefined,
-        };
+  const prepared = await openProviderQueryRunner(provider, options, dependencies);
   const runner = prepared.runner;
   const startedAt = now();
   try {
@@ -148,11 +183,34 @@ export async function prepareProviderQueryRunner(
         durationMs: now() - startedAt,
         usage: admission.usage,
       }),
-      runtimeContract: prepared.runtimeContract,
+      runtimeContract:
+        provider === "codex"
+          ? "codex.persistent_isolated_thread_admission.v3"
+          : "claude.serialized_process_admission.v2",
       close: prepared.close,
     };
   } catch (error) {
     await prepared.close().catch(() => undefined);
     throw error;
   }
+}
+
+export async function prepareDirectProviderQueryRunner(
+  provider: RunProvider,
+  options: {
+    model?: string;
+    systemPrompt: string;
+    timeoutMs: number;
+  },
+  dependencies: ProviderQueryRunnerDependencies = defaultDependencies,
+): Promise<PreparedDirectProviderQueryRunner> {
+  const prepared = await openProviderQueryRunner(provider, options, dependencies);
+  return {
+    runner: prepared.runner,
+    runtimeContract:
+      provider === "codex"
+        ? "codex.persistent_isolated_thread_direct.v1"
+        : "claude.serialized_process_direct.v1",
+    close: prepared.close,
+  };
 }

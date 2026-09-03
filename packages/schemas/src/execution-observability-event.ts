@@ -195,7 +195,7 @@ export const resourceUsageRecordedEventPayloadSchema = {
   additionalProperties: false,
 } as const;
 
-export const executionStageIds = [
+export const executionStageIdsV1 = [
   "ingress_integrity",
   "repository_discovery",
   "projection_admission",
@@ -214,6 +214,8 @@ export const executionStageIds = [
   "lifecycle_inspection",
   "total",
 ] as const;
+
+export const executionStageIds = [...executionStageIdsV1, "query_projection"] as const;
 
 export const executionStageIdSchema = { type: "string", enum: executionStageIds } as const;
 
@@ -244,7 +246,7 @@ const executionStagesObservedProperties = {
     anyOf: [{ type: "string", enum: ["UserPromptSubmit", "Stop"] }, { type: "null" }],
   },
   observationSetId: { type: "string", pattern: "^stgobs_[a-f0-9]{24}$" },
-  stageCatalogVersion: { type: "integer", const: 1 },
+  stageCatalogVersion: { type: "integer", enum: [1, 2] },
   environmentProfileDigest: sha256Schema,
   repositoryProfile: { type: "string", enum: ["small", "medium", "large", "custom"] },
   stages: {

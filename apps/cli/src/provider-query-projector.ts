@@ -17,7 +17,9 @@ import {
 
 import type { RunProvider } from "./managed-run.js";
 import {
+  prepareDirectProviderQueryRunner,
   prepareProviderQueryRunner,
+  type PreparedDirectProviderQueryRunner,
   type PreparedProviderQueryRunner,
   type ProviderQueryRunnerAdmission,
 } from "./provider-query-runner.js";
@@ -113,7 +115,7 @@ export interface ProcessSearchQueryProjectorOptions {
 }
 
 export type ProductionQueryProjectorRuntimeContract =
-  "codex.persistent_isolated_thread_admission.v3" | "claude.serialized_process_admission.v2";
+  "codex.persistent_isolated_thread_direct.v1" | "claude.serialized_process_direct.v1";
 
 function searchQueryProjectorIdentity(
   provider: RunProvider,
@@ -125,7 +127,7 @@ function searchQueryProjectorIdentity(
     version: 1,
     buildId: searchQueryProjectorBuildId(
       canonicalJson({
-        contract: "lervo.provider-query-projector.v7",
+        contract: "lervo.provider-query-projector.v8",
         provider,
         model,
         runtimeContract,
@@ -142,8 +144,8 @@ function searchQueryProjectorIdentity(
 export function productionSearchQueryProjectorIdentity(provider: RunProvider) {
   const runtimeContract: ProductionQueryProjectorRuntimeContract =
     provider === "codex"
-      ? "codex.persistent_isolated_thread_admission.v3"
-      : "claude.serialized_process_admission.v2";
+      ? "codex.persistent_isolated_thread_direct.v1"
+      : "claude.serialized_process_direct.v1";
   return searchQueryProjectorIdentity(provider, "provider-default", runtimeContract);
 }
 
@@ -250,6 +252,12 @@ export interface PreparedProcessSearchQueryProjector {
   close(): Promise<void>;
 }
 
+export interface PreparedDirectProcessSearchQueryProjector {
+  projector: SearchQueryProjectorPort;
+  runtimeContract: ProductionQueryProjectorRuntimeContract;
+  close(): Promise<void>;
+}
+
 export interface PreparedProductionSearchQueries {
   projectSearchQueries: ProjectProductionSearchQueries;
   close(): Promise<void>;
@@ -279,9 +287,35 @@ export async function prepareProcessSearchQueryProjector(
   };
 }
 
+export async function prepareDirectProcessSearchQueryProjector(
+  provider: RunProvider,
+  options: Pick<
+    ProcessSearchQueryProjectorOptions,
+    "model" | "timeoutMs" | "now" | "onFailure"
+  > = {},
+): Promise<PreparedDirectProcessSearchQueryProjector> {
+  const prepared: PreparedDirectProviderQueryRunner = await prepareDirectProviderQueryRunner(
+    provider,
+    {
+      ...(options.model === undefined ? {} : { model: options.model }),
+      systemPrompt: isolatedJsonSystemPrompt,
+      timeoutMs: options.timeoutMs ?? 20_000,
+    },
+  );
+  return {
+    projector: createProcessSearchQueryProjector(provider, {
+      ...options,
+      runner: prepared.runner,
+      runtimeContract: prepared.runtimeContract,
+    }),
+    runtimeContract: prepared.runtimeContract,
+    close: prepared.close,
+  };
+}
+
 export async function prepareProductionSearchQueries(
   provider: RunProvider,
-  prepareProjector: typeof prepareProcessSearchQueryProjector = prepareProcessSearchQueryProjector,
+  prepareProjector: typeof prepareDirectProcessSearchQueryProjector = prepareDirectProcessSearchQueryProjector,
 ): Promise<PreparedProductionSearchQueries> {
   const prepared = await prepareProjector(provider, { timeoutMs: 20_000 });
   return {

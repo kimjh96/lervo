@@ -2,7 +2,7 @@
 
 Status: `active`
 
-As of: 2026-09-01
+As of: 2026-09-03
 
 This document defines Lervo-owned stage timing and the reproducible performance gate
 linked from the [execution specification](../execution.md). It does not extend execution
@@ -63,8 +63,12 @@ environment profiles.
 
 Direct hooks measure only Lervo-owned ingress, repository discovery, lifecycle
 inspection, corpus preparation, query projection, repository snapshot, search, exact
-loading, context assembly, event commit, and total. They do not observe the provider
-turn outside the hook.
+loading, context assembly, event commit, and total. Catalog version 2 names the current
+provider projection stage `query_projection`; it retains `projection_admission` only so
+catalog version 1 evidence remains readable. A current direct projection includes
+capability-free runner startup and one query-producing provider turn, not a separate
+synthetic readiness turn. Direct hooks do not observe the provider turn outside the
+hook.
 
 A version 1 writer skips version 2 stage evidence and preserves the documented
 availability-safe hook result. A version 2 writer stores the profile in local CAS and
@@ -122,3 +126,4 @@ identity, protocol digest, current source digest, and the absence of exceptions.
 - [Stage evidence ADR](../../decisions/operations/trace/0335-record-and-verify-bounded-execution-stage-evidence.md)
 - [Short-profile measurement floor ADR](../../decisions/operations/trace/0339-calibrate-short-profile-performance-measurement-floor.md)
 - [Foundation execution performance evidence](../../evidence/foundation/execution-performance-v1.md)
+- [Direct terminal projection operational evidence](../../evidence/foundation/terminal-direct-query-projection-operational-v1.md)

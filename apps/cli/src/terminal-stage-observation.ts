@@ -104,7 +104,7 @@ export class TerminalStageObservation implements TerminalStageObservationPort {
         terminalObservationId,
         terminalHook,
         observationSetId: `stgobs_${randomUUID().replaceAll("-", "").slice(0, 24)}`,
-        stageCatalogVersion: 1,
+        stageCatalogVersion: 2,
         environmentProfileDigest: profileHash,
         repositoryProfile: this.profile.repositoryProfile,
         stages: this.recorder.snapshot(),

@@ -259,6 +259,7 @@ describe("terminal integration CLI", () => {
         .filter((event) => event.type === "execution.stages.observed");
       expect(stages).toHaveLength(2);
       expect(stages.map((event) => event.schemaVersion)).toEqual([2, 2]);
+      expect(stages.map((event) => event.payload.stageCatalogVersion)).toEqual([2, 2]);
       expect(stages[0]!.payload).toMatchObject({
         executionMode: "unmanaged_terminal",
         workId: null,
@@ -270,7 +271,7 @@ describe("terminal integration CLI", () => {
         expect.arrayContaining([
           "ingress_integrity",
           "repository_discovery",
-          "projection_admission",
+          "query_projection",
           "corpus_preparation",
           "search",
           "context_assembly",

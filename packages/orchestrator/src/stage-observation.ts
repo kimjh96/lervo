@@ -112,7 +112,7 @@ export class ManagedStageObservation {
         terminalObservationId: null,
         terminalHook: null,
         observationSetId: `stgobs_${randomUUID().replaceAll("-", "").slice(0, 24)}`,
-        stageCatalogVersion: 1,
+        stageCatalogVersion: 2,
         environmentProfileDigest,
         repositoryProfile: this.profile.repositoryProfile,
         stages: this.recorder.snapshot(),

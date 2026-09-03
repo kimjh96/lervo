@@ -139,7 +139,7 @@ describe("local search evaluation candidate comparison", () => {
     expect(JSON.parse(status.output)).toEqual({
       selection: {
         mode: "product_default",
-        qualificationId: "spqual_999f55bdaa9336fb6733d2ba",
+        qualificationId: "spqual_18bb11bf0b6a01f9a33190bc",
         candidateId: "lexical-v2",
         engine: { id: "lexical", version: 2 },
         reviewId: null,
@@ -150,7 +150,7 @@ describe("local search evaluation candidate comparison", () => {
       resolverState: "ready",
       failureCode: null,
       verificationReceiptId: null,
-      productQualificationId: "spqual_999f55bdaa9336fb6733d2ba",
+      productQualificationId: "spqual_18bb11bf0b6a01f9a33190bc",
     });
 
     const unsupportedAdoption = await command(root, [

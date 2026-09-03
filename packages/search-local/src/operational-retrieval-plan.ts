@@ -161,8 +161,10 @@ export async function resolveOperationalSearchRetrievalPlan(input: {
   if (
     input.productDefault !== undefined &&
     current.selected.mode === "candidate" &&
-    current.selected.planId === input.productDefault.plan.planId
+    (current.selected.planId === input.productDefault.plan.planId ||
+      (input.productDefault.supersededPlanIds ?? []).includes(current.selected.planId))
   ) {
+    await verifyHistory({ ...input, history });
     return {
       selection: productDefaultSelection(input.productDefault),
       selectionTransitionId: null,

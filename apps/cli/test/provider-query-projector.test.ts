@@ -215,7 +215,10 @@ describe.each(["codex", "claude"] as const)("%s query projector adapter", (provi
     });
     const prepared = await prepareProductionSearchQueries(provider, async () => ({
       projector,
-      admission: {} as never,
+      runtimeContract:
+        provider === "codex"
+          ? "codex.persistent_isolated_thread_direct.v1"
+          : "claude.serialized_process_direct.v1",
       close,
     }));
     try {

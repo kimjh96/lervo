@@ -150,7 +150,7 @@ export async function createCodexPersistentQueryRunner(
   dependencies: CodexPersistentQueryRunnerDependencies = defaultDependencies,
 ): Promise<{
   runner: NoCapabilityProviderJsonRunner;
-  runtimeContract: "codex.persistent_isolated_thread_admission.v3";
+  runtimeContract: "codex.persistent_isolated_thread.v1";
   close(): Promise<void>;
 }> {
   const directory = await dependencies.createDirectory();
@@ -190,7 +190,7 @@ export async function createCodexPersistentQueryRunner(
         resolve: async (value, signal) => (await observed(value, signal)).value,
         resolveObserved: observed,
       },
-      runtimeContract: "codex.persistent_isolated_thread_admission.v3",
+      runtimeContract: "codex.persistent_isolated_thread.v1",
       close: async () => {
         await client!.close();
         await dependencies.removeDirectory(directory);

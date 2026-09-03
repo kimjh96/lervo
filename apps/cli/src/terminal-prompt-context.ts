@@ -127,7 +127,7 @@ export async function prepareTerminalPromptContext(input: {
       ? { context: { contextRequirement: "none" }, contextAnchors: [] }
       : createCurrentWorkstreamSearchProjectionContext(currentWorkstream);
   const requestDigest = sha256(input.prompt);
-  const queryProjection = await input.timing.measure("projection_admission", () =>
+  const queryProjection = await input.timing.measure("query_projection", () =>
     input.services.projectSearchQueries({
       request: input.prompt,
       requestDigest,

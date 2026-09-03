@@ -16,6 +16,7 @@ export interface ProductDefaultSearchEngine {
 export interface ProductDefaultSearchRetrievalPlan {
   qualificationId: string;
   plan: SearchRetrievalPlan;
+  supersededPlanIds?: string[];
 }
 
 export interface ProductDefaultSearchEngineSelection {
@@ -50,7 +51,14 @@ export function assertProductDefaultSearchRetrievalPlan(
   value: ProductDefaultSearchRetrievalPlan,
 ): void {
   assertSearchRetrievalPlan(value.plan);
-  if (!QUALIFICATION_ID_PATTERN.test(value.qualificationId)) {
+  const supersededPlanIds = value.supersededPlanIds ?? [];
+  if (
+    !QUALIFICATION_ID_PATTERN.test(value.qualificationId) ||
+    supersededPlanIds.length > 8 ||
+    new Set(supersededPlanIds).size !== supersededPlanIds.length ||
+    supersededPlanIds.includes(value.plan.planId) ||
+    supersededPlanIds.some((planId) => !/^srplan_[a-f0-9]{24}$/u.test(planId))
+  ) {
     throw new TypeError("The product-default retrieval-plan qualification is invalid.");
   }
 }

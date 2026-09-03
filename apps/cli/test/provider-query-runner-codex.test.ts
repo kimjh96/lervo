@@ -98,6 +98,8 @@ describe("Codex persistent query runner", () => {
       fake.value,
     );
 
+    expect(prepared.runtimeContract).toBe("codex.persistent_isolated_thread.v1");
+
     const first = await prepared.runner.resolveObserved!(responseInput);
     const second = await prepared.runner.resolveObserved!(responseInput);
     await prepared.close();

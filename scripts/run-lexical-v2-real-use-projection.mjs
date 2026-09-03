@@ -11,7 +11,7 @@ import {
   sha256,
 } from "../packages/repository-knowledge/dist/index.js";
 import { collectLocalKnowledgeSources } from "../apps/cli/dist/knowledge-sources.js";
-import { prepareProcessSearchQueryProjector } from "../apps/cli/dist/provider-query-projector.js";
+import { prepareDirectProcessSearchQueryProjector } from "../apps/cli/dist/provider-query-projector.js";
 import { createRepositoryKnowledgeSearchCorpus } from "../apps/cli/dist/repository-search-corpus.js";
 import { createCurrentWorkstreamSearchProjectionContext } from "../apps/cli/dist/search-projection-context.js";
 import { verifiedCurrentWorkstream } from "../apps/cli/dist/workstream-services.js";
@@ -81,7 +81,7 @@ async function main() {
   };
   const { workstream } = await currentWorkstreamContext();
   const currentSearchProjectionContext = createCurrentWorkstreamSearchProjectionContext(workstream);
-  const preparedProjector = await prepareProcessSearchQueryProjector(parsed.values.provider, {
+  const preparedProjector = await prepareDirectProcessSearchQueryProjector(parsed.values.provider, {
     timeoutMs: 20_000,
     onFailure: (error) => {
       const message = error instanceof Error ? error.message : String(error);
@@ -161,7 +161,17 @@ async function main() {
         contextText: "excluded",
         projectedQueryText: "excluded",
       },
-      projectorAdmission: preparedProjector.admission,
+      projectorLifecycle: {
+        schemaVersion: 1,
+        mode: "direct",
+        runtimeContract: preparedProjector.runtimeContract,
+        preObservationModelTurns: 0,
+        privacy: {
+          requestText: "excluded",
+          responseText: "excluded",
+          providerOutput: "excluded",
+        },
+      },
       cases,
       acceptance: {
         lexicalV1PassedCases: cases.filter((item) => item.arms.lexical_v1?.passed).length,
@@ -215,7 +225,7 @@ async function main() {
         projectorBuildIds: [
           ...new Set(cases.map((item) => item.projectionReceipt.projector.buildId)),
         ],
-        projectorAdmission: report.projectorAdmission,
+        projectorLifecycle: report.projectorLifecycle,
         observations: cases.map((item) => ({
           caseId: item.caseId,
           repetition: item.repetition,

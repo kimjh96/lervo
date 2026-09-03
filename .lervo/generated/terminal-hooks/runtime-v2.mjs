@@ -40338,7 +40338,7 @@ var resourceUsageRecordedEventPayloadSchema = {
   ],
   additionalProperties: false
 };
-var executionStageIds = [
+var executionStageIdsV1 = [
   "ingress_integrity",
   "repository_discovery",
   "projection_admission",
@@ -40357,6 +40357,7 @@ var executionStageIds = [
   "lifecycle_inspection",
   "total"
 ];
+var executionStageIds = [...executionStageIdsV1, "query_projection"];
 var executionStageIdSchema = { type: "string", enum: executionStageIds };
 var executionStageObservationSchema = {
   type: "object",
@@ -40384,7 +40385,7 @@ var executionStagesObservedProperties = {
     anyOf: [{ type: "string", enum: ["UserPromptSubmit", "Stop"] }, { type: "null" }]
   },
   observationSetId: { type: "string", pattern: "^stgobs_[a-f0-9]{24}$" },
-  stageCatalogVersion: { type: "integer", const: 1 },
+  stageCatalogVersion: { type: "integer", enum: [1, 2] },
   environmentProfileDigest: sha256Schema,
   repositoryProfile: { type: "string", enum: ["small", "medium", "large", "custom"] },
   stages: {
@@ -46753,9 +46754,9 @@ function serializeCanonical(value, ancestors) {
   if (ancestors.has(value))
     throw new TypeError("Canonical JSON does not allow cyclic references.");
   ancestors.add(value);
-  const record4 = value;
+  const record3 = value;
   try {
-    return `{${Object.keys(record4).sort().map((key2) => `${JSON.stringify(key2)}:${serializeCanonical(record4[key2], ancestors)}`).join(",")}}`;
+    return `{${Object.keys(record3).sort().map((key2) => `${JSON.stringify(key2)}:${serializeCanonical(record3[key2], ancestors)}`).join(",")}}`;
   } finally {
     ancestors.delete(value);
   }
@@ -50729,7 +50730,7 @@ var RepositoryCoordinationRecords = class _RepositoryCoordinationRecords {
     const directory = targetDirectory(this.home, collection);
     const names = (await readdir4(directory)).filter((name2) => RECORD_ID.test(name2.slice(0, -5)) && name2.endsWith(".json")).sort();
     const records = await Promise.all(names.map((name2) => this.read(collection, name2.slice(0, -5))));
-    return records.filter((record4) => record4 !== null);
+    return records.filter((record3) => record3 !== null);
   }
 };
 
@@ -63648,16 +63649,16 @@ async function boundedCandidatePaths(root2) {
   return paths;
 }
 function validateRecord(value) {
-  const record4 = value;
-  if (record4 === null || typeof record4 !== "object" || record4.schemaVersion !== 1 || typeof record4.candidateId !== "string" || !/^kcanon_[a-f0-9]{24}$/u.test(record4.candidateId) || !["candidate", "pending", "promoted", "rejected"].includes(record4.state ?? "") || typeof record4.beforeRevision !== "string" || typeof record4.afterRevision !== "string" || !Array.isArray(record4.sourceBindings) || record4.sourceBindings.length === 0 || record4.sourceBindings.length > MAXIMUM_CHANGED_PATHS || !record4.sourceBindings.every((item) => safePath(item.path) && (item.beforeHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.beforeHash)) && (item.afterHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.afterHash)) && sourceResponsibility(item.path) === item.responsibility) || !Array.isArray(record4.recommendedRoots) || !record4.recommendedRoots.every((path) => safePath(path)) || typeof record4.createdAt !== "string" || record4.review !== null && (typeof record4.review !== "object" || typeof record4.review.reviewerId !== "string" || !["defer", "reject"].includes(record4.review.decision) || typeof record4.review.reviewedAt !== "string") || record4.promotion !== null && (typeof record4.promotion !== "object" || typeof record4.promotion.reviewerId !== "string" || !safePath(record4.promotion.targetPath) || !/^sha256:[a-f0-9]{64}$/u.test(record4.promotion.targetContentHash) || typeof record4.promotion.promotedAt !== "string"))
+  const record3 = value;
+  if (record3 === null || typeof record3 !== "object" || record3.schemaVersion !== 1 || typeof record3.candidateId !== "string" || !/^kcanon_[a-f0-9]{24}$/u.test(record3.candidateId) || !["candidate", "pending", "promoted", "rejected"].includes(record3.state ?? "") || typeof record3.beforeRevision !== "string" || typeof record3.afterRevision !== "string" || !Array.isArray(record3.sourceBindings) || record3.sourceBindings.length === 0 || record3.sourceBindings.length > MAXIMUM_CHANGED_PATHS || !record3.sourceBindings.every((item) => safePath(item.path) && (item.beforeHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.beforeHash)) && (item.afterHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.afterHash)) && sourceResponsibility(item.path) === item.responsibility) || !Array.isArray(record3.recommendedRoots) || !record3.recommendedRoots.every((path) => safePath(path)) || typeof record3.createdAt !== "string" || record3.review !== null && (typeof record3.review !== "object" || typeof record3.review.reviewerId !== "string" || !["defer", "reject"].includes(record3.review.decision) || typeof record3.review.reviewedAt !== "string") || record3.promotion !== null && (typeof record3.promotion !== "object" || typeof record3.promotion.reviewerId !== "string" || !safePath(record3.promotion.targetPath) || !/^sha256:[a-f0-9]{64}$/u.test(record3.promotion.targetContentHash) || typeof record3.promotion.promotedAt !== "string"))
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonicalization candidate record is invalid.");
-  return record4;
+  return record3;
 }
 async function readCandidate(root2, path) {
   const bytes = await readFile11(resolve25(root2, path), "utf8");
-  const record4 = validateRecord(JSON.parse(bytes));
+  const record3 = validateRecord(JSON.parse(bytes));
   let stale = false;
-  for (const binding of record4.sourceBindings) {
+  for (const binding of record3.sourceBindings) {
     try {
       const stats = await lstat17(resolve25(root2, binding.path));
       if (!stats.isFile() || stats.isSymbolicLink())
@@ -63670,8 +63671,8 @@ async function readCandidate(root2, path) {
     }
   }
   return {
-    ...record4,
-    observedState: stale && !["promoted", "rejected"].includes(record4.state) ? "stale" : record4.state,
+    ...record3,
+    observedState: stale && !["promoted", "rejected"].includes(record3.state) ? "stale" : record3.state,
     contentHash: sha2562(bytes)
   };
 }
@@ -63679,12 +63680,12 @@ async function listCanonicalizationCandidates(repositoryRoot) {
   const root2 = resolve25(repositoryRoot);
   return Promise.all((await boundedCandidatePaths(root2)).map((path) => readCandidate(root2, path)));
 }
-async function writeRecord(root2, record4) {
-  const path = resolve25(root2, candidatePath(record4.candidateId));
+async function writeRecord(root2, record3) {
+  const path = resolve25(root2, candidatePath(record3.candidateId));
   await mkdir7(dirname7(path), { recursive: true });
   const temporary = `${path}.next`;
   await rm6(temporary, { force: true });
-  await writeFile(temporary, `${canonicalJson3(record4)}
+  await writeFile(temporary, `${canonicalJson3(record3)}
 `, { encoding: "utf8", flag: "wx" });
   await rename5(temporary, path);
 }
@@ -63725,7 +63726,7 @@ async function assessCanonicalization(input) {
     afterRevision: input.afterRevision,
     sourceBindings
   });
-  const record4 = {
+  const record3 = {
     schemaVersion: 1,
     candidateId,
     state: input.disposition === "pending_user_approval" ? "pending" : "candidate",
@@ -63741,11 +63742,11 @@ async function assessCanonicalization(input) {
   };
   const existing = (await listCanonicalizationCandidates(input.repositoryRoot)).find((item) => item.candidateId === candidateId);
   if (existing === void 0)
-    await writeRecord(resolve25(input.repositoryRoot), record4);
+    await writeRecord(resolve25(input.repositoryRoot), record3);
   const candidate = existing ?? await readCandidate(resolve25(input.repositoryRoot), candidatePath(candidateId));
   return {
     schemaVersion: 1,
-    status: record4.state === "pending" ? "pending" : "candidate",
+    status: record3.state === "pending" ? "pending" : "candidate",
     changedPathCount: changedPaths.length,
     canonicalPathCount: canonicalResponsibilities.size,
     candidate
@@ -63927,32 +63928,32 @@ async function inspectConfiguredDocumentNormalization(input) {
     maximumFiles: 2e4
   });
   for (const path of paths) {
-    let record4 = null;
+    let record3 = null;
     try {
-      record4 = (0, import_yaml19.parse)(await readFile12(resolve26(root2, path), "utf8"));
+      record3 = (0, import_yaml19.parse)(await readFile12(resolve26(root2, path), "utf8"));
     } catch {
     }
-    if (record4 === null || ![1, 2].includes(record4.schemaVersion) || record4.schemaVersion === 2 && (record4.byteOwnership?.owner !== "reviewer" || record4.byteOwnership.rewritePolicy !== "reviewed_exact") || !/^knormdoc_[a-f0-9]{24}$/u.test(record4.recordId) || path !== shardedKnowledgeArtifactPath(".lervo/knowledge/document-normalizations", record4.recordId, "yaml") || record4.outputLanguage !== policy.publication.language || record4.formatVersion !== "lervo.document.v1" || !Array.isArray(record4.outputs) || record4.outputs.length < 1 || record4.outputs.some((output) => !HASH3.test(output.contentHash) || output.userRegionHash !== void 0 && !HASH3.test(output.userRegionHash)) || !Array.isArray(record4.resourceBindings) || record4.resourceBindings.some((resource) => typeof resource.path !== "string" || !HASH3.test(resource.contentHash))) {
+    if (record3 === null || ![1, 2].includes(record3.schemaVersion) || record3.schemaVersion === 2 && (record3.byteOwnership?.owner !== "reviewer" || record3.byteOwnership.rewritePolicy !== "reviewed_exact") || !/^knormdoc_[a-f0-9]{24}$/u.test(record3.recordId) || path !== shardedKnowledgeArtifactPath(".lervo/knowledge/document-normalizations", record3.recordId, "yaml") || record3.outputLanguage !== policy.publication.language || record3.formatVersion !== "lervo.document.v1" || !Array.isArray(record3.outputs) || record3.outputs.length < 1 || record3.outputs.some((output) => !HASH3.test(output.contentHash) || output.userRegionHash !== void 0 && !HASH3.test(output.userRegionHash)) || !Array.isArray(record3.resourceBindings) || record3.resourceBindings.some((resource) => typeof resource.path !== "string" || !HASH3.test(resource.contentHash))) {
       records.push({
         path,
-        recordId: record4?.recordId ?? null,
+        recordId: record3?.recordId ?? null,
         status: "invalid",
         outputPaths: []
       });
       continue;
     }
-    const hashes = await Promise.all(record4.outputs.map((output) => hashAt(resolve26(root2, output.path))));
-    const userHashes = await Promise.all(record4.outputs.map((output) => output.userRegionHash === void 0 ? null : userRegionHashAt(resolve26(root2, output.path))));
-    const resources = await Promise.all(record4.resourceBindings.map((resource) => hashAt(resolve26(root2, resource.path))));
-    const status = hashes.every((hash2, index2) => hash2 === record4.outputs[index2].contentHash || record4.outputs[index2].userRegionHash !== void 0 && userHashes[index2] === record4.outputs[index2].userRegionHash) && resources.every((hash2, index2) => hash2 === record4.resourceBindings[index2].contentHash) ? "current" : "stale";
+    const hashes = await Promise.all(record3.outputs.map((output) => hashAt(resolve26(root2, output.path))));
+    const userHashes = await Promise.all(record3.outputs.map((output) => output.userRegionHash === void 0 ? null : userRegionHashAt(resolve26(root2, output.path))));
+    const resources = await Promise.all(record3.resourceBindings.map((resource) => hashAt(resolve26(root2, resource.path))));
+    const status = hashes.every((hash2, index2) => hash2 === record3.outputs[index2].contentHash || record3.outputs[index2].userRegionHash !== void 0 && userHashes[index2] === record3.outputs[index2].userRegionHash) && resources.every((hash2, index2) => hash2 === record3.resourceBindings[index2].contentHash) ? "current" : "stale";
     if (status === "current")
-      for (const output of record4.outputs)
+      for (const output of record3.outputs)
         current.add(output.path);
     records.push({
       path,
-      recordId: record4.recordId,
+      recordId: record3.recordId,
       status,
-      outputPaths: record4.outputs.map((output) => output.path)
+      outputPaths: record3.outputs.map((output) => output.path)
     });
   }
   const eligible = eligibleDocuments(scan, policy.publicationRoot, taxonomy, policy.normalization?.exclude);
@@ -64126,16 +64127,16 @@ async function inspectRepositoryDocumentRewriters(input) {
     loadDocumentRegistry(root2)
   ]);
   const ownershipByPath = /* @__PURE__ */ new Map();
-  for (const record4 of Object.values(registry2.documents)) {
-    if (record4.ownership.mode === "user")
+  for (const record3 of Object.values(registry2.documents)) {
+    if (record3.ownership.mode === "user")
       continue;
-    ownershipByPath.set(record4.path, {
-      path: record4.path,
-      owner: record4.ownership.mode === "managed_blocks" ? "shared_regions" : "lervo",
+    ownershipByPath.set(record3.path, {
+      path: record3.path,
+      owner: record3.ownership.mode === "managed_blocks" ? "shared_regions" : "lervo",
       rewritePolicy: "lervo_exact"
     });
   }
-  for (const path of lifecycle.records.flatMap((record4) => record4.status === "current" ? record4.outputPaths : [])) {
+  for (const path of lifecycle.records.flatMap((record3) => record3.status === "current" ? record3.outputPaths : [])) {
     ownershipByPath.set(path, { path, owner: "reviewer", rewritePolicy: "reviewed_exact" });
   }
   const ownership = [...ownershipByPath.values()].sort((left, right) => left.path.localeCompare(right.path));
@@ -65142,20 +65143,20 @@ async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
     ...options.supplementalSources === void 0 ? {} : { supplementalSources: options.supplementalSources },
     ...options.allowTransactionPlanId === void 0 ? {} : { allowTransactionPlanId: options.allowTransactionPlanId }
   });
-  for (const record4 of normalization.records) {
-    if (record4.status === "invalid")
+  for (const record3 of normalization.records) {
+    if (record3.status === "invalid")
       issues.push({
         code: "invalid_document_normalization_record",
         severity: "error",
-        path: record4.path,
+        path: record3.path,
         message: "The document normalization lifecycle record is invalid."
       });
-    const historicalPublicReadme = record4.outputPaths.length === 1 && record4.outputPaths[0] === "README.md";
-    if (record4.status === "stale" && !historicalPublicReadme)
+    const historicalPublicReadme = record3.outputPaths.length === 1 && record3.outputPaths[0] === "README.md";
+    if (record3.status === "stale" && !historicalPublicReadme)
       issues.push({
         code: "document_normalization_stale",
         severity: "warning",
-        path: record4.path,
+        path: record3.path,
         message: "A normalized document family changed after its reviewed rewrite. Create a new content-bound normalization candidate."
       });
   }
@@ -66005,22 +66006,22 @@ async function createRepositoryLayoutMigrationPlan(input) {
     ]
   ] : []));
   const allowedRoutePaths = new Set(taxonomy.routes.map((route) => route.path));
-  for (const record4 of lineage.records.filter((item) => item.activeTerminal)) {
-    const name2 = basename9(record4.value.toPath);
-    const cameFromLegacyFlatRoot = taxonomy.legacyRoots.some((legacyRoot) => record4.value.identityPath === `${legacyRoot}/${name2}`);
+  for (const record3 of lineage.records.filter((item) => item.activeTerminal)) {
+    const name2 = basename9(record3.value.toPath);
+    const cameFromLegacyFlatRoot = taxonomy.legacyRoots.some((legacyRoot) => record3.value.identityPath === `${legacyRoot}/${name2}`);
     const canonicalPrefix = `${taxonomy.decisionRoot}/`;
-    if (!cameFromLegacyFlatRoot || !record4.value.toPath.startsWith(canonicalPrefix))
+    if (!cameFromLegacyFlatRoot || !record3.value.toPath.startsWith(canonicalPrefix))
       continue;
-    const relativeDestination = record4.value.toPath.slice(canonicalPrefix.length);
+    const relativeDestination = record3.value.toPath.slice(canonicalPrefix.length);
     const currentRoutePath = relativeDestination.slice(0, relativeDestination.lastIndexOf("/"));
     const isRetiredRoute = !allowedRoutePaths.has(currentRoutePath);
     const isPreviousDefaultFallback = taxonomy.taxonomyId === "decisions.default" && currentRoutePath === "foundation";
     if (!isRetiredRoute && !isPreviousDefaultFallback)
       continue;
-    const source = includedSources.get(record4.value.toPath);
+    const source = includedSources.get(record3.value.toPath);
     if (source === void 0)
       continue;
-    const reclassified = classifyFlatDecision(record4.value.identityPath, source.content, taxonomy);
+    const reclassified = classifyFlatDecision(record3.value.identityPath, source.content, taxonomy);
     if (reclassified.kind !== "classified" || reclassified.destination.toPath === source.path)
       continue;
     candidates.push({
@@ -68852,19 +68853,19 @@ function eventFor(input) {
 }
 async function readWorkspace(repositoryRoot, workspaceId) {
   const records = await RepositoryCoordinationRecords.open(repositoryRoot);
-  const record4 = await records.read("workspaces", workspaceId);
-  if (record4 === null)
+  const record3 = await records.read("workspaces", workspaceId);
+  if (record3 === null)
     return null;
-  if (!isAgentWorkspace(record4.value) || record4.value.workspaceId !== workspaceId)
+  if (!isAgentWorkspace(record3.value) || record3.value.workspaceId !== workspaceId)
     invalid3("The stored workspace record is invalid.");
-  return { workspace: structuredClone(record4.value), contentHash: record4.contentHash };
+  return { workspace: structuredClone(record3.value), contentHash: record3.contentHash };
 }
 async function listWorkspaces(repositoryRoot) {
   const records = await RepositoryCoordinationRecords.open(repositoryRoot);
   const stored = await records.list("workspaces");
-  if (stored.some((record4) => !isAgentWorkspace(record4.value)))
+  if (stored.some((record3) => !isAgentWorkspace(record3.value)))
     invalid3("A stored workspace record is invalid.");
-  return stored.map((record4) => structuredClone(record4.value)).sort((left, right) => left.workspaceId.localeCompare(right.workspaceId));
+  return stored.map((record3) => structuredClone(record3.value)).sort((left, right) => left.workspaceId.localeCompare(right.workspaceId));
 }
 async function updateWorkspace(input) {
   const records = await RepositoryCoordinationRecords.open(input.repositoryRoot);
@@ -69633,7 +69634,8 @@ function assertSearchRetrievalPlan(plan2) {
 var QUALIFICATION_ID_PATTERN = /^spqual_[a-f0-9]{24}$/u;
 function assertProductDefaultSearchRetrievalPlan(value) {
   assertSearchRetrievalPlan(value.plan);
-  if (!QUALIFICATION_ID_PATTERN.test(value.qualificationId)) {
+  const supersededPlanIds2 = value.supersededPlanIds ?? [];
+  if (!QUALIFICATION_ID_PATTERN.test(value.qualificationId) || supersededPlanIds2.length > 8 || new Set(supersededPlanIds2).size !== supersededPlanIds2.length || supersededPlanIds2.includes(value.plan.planId) || supersededPlanIds2.some((planId) => !/^srplan_[a-f0-9]{24}$/u.test(planId))) {
     throw new TypeError("The product-default retrieval-plan qualification is invalid.");
   }
 }
@@ -72053,7 +72055,8 @@ async function resolveOperationalSearchRetrievalPlan(input) {
       productQualificationId: null
     };
   }
-  if (input.productDefault !== void 0 && current.selected.mode === "candidate" && current.selected.planId === input.productDefault.plan.planId) {
+  if (input.productDefault !== void 0 && current.selected.mode === "candidate" && (current.selected.planId === input.productDefault.plan.planId || (input.productDefault.supersededPlanIds ?? []).includes(current.selected.planId))) {
+    await verifyHistory({ ...input, history });
     return {
       selection: productDefaultSelection(input.productDefault),
       selectionTransitionId: null,
@@ -73379,7 +73382,7 @@ async function createCodexPersistentQueryRunner(input, dependencies = defaultDep
         resolve: async (value, signal) => (await observed(value, signal)).value,
         resolveObserved: observed
       },
-      runtimeContract: "codex.persistent_isolated_thread_admission.v3",
+      runtimeContract: "codex.persistent_isolated_thread.v1",
       close: async () => {
         await client.close();
         await dependencies.removeDirectory(directory);
@@ -73419,69 +73422,32 @@ var admissionInput = {
   untrustedRequest: "repository retrieval readiness",
   boundedContext: { contextRequirement: "none" }
 };
-function record3(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value) ? value : null;
-}
-function admissionBody(value) {
-  const body = record3(value);
-  if (body === null || body.schemaVersion !== 1 || !Array.isArray(body.retrievalQueries) || body.retrievalQueries.length !== 1 || body.retrievalQueries.some((item) => typeof item !== "string" || item.length === 0)) {
-    throw new Error("The provider query-runner admission response is invalid.");
+var defaultDependencies2 = {
+  createCodexRunner: createCodexPersistentQueryRunner,
+  createSerializedRunner: createNoCapabilityProviderJsonRunner
+};
+async function openProviderQueryRunner(provider, options, dependencies) {
+  if (provider === "codex") {
+    const prepared = await dependencies.createCodexRunner(options);
+    return { runner: prepared.runner, close: prepared.close };
   }
-}
-function admissionReceipt(input) {
-  if (input.usage === null) {
-    throw new Error("The provider query-runner admission did not report complete usage.");
-  }
-  const core = {
-    schemaVersion: 1,
-    provider: input.provider,
-    strategy: input.strategy,
-    status: "ready",
-    durationMs: input.durationMs,
-    usage: input.usage,
-    privacy: {
-      requestText: "excluded",
-      responseText: "excluded",
-      providerOutput: "excluded"
-    }
-  };
   return {
-    ...core,
-    admissionId: `pqadm_${sha2562(canonicalJson3(core)).slice("sha256:".length, 24 + "sha256:".length)}`
-  };
-}
-async function prepareProviderQueryRunner(provider, options) {
-  const now = options.now ?? Date.now;
-  const prepared = provider === "codex" ? await createCodexPersistentQueryRunner(options) : {
-    runner: await createNoCapabilityProviderJsonRunner({
+    runner: await dependencies.createSerializedRunner({
       provider,
       ...options.model === void 0 ? {} : { model: options.model },
       systemPrompt: options.systemPrompt,
       timeoutMs: options.timeoutMs
     }),
-    runtimeContract: "claude.serialized_process_admission.v2",
     close: async () => void 0
   };
-  const runner = prepared.runner;
-  const startedAt = now();
-  try {
-    const admission = runner.resolveObserved === void 0 ? { value: await runner.resolve(admissionInput), usage: null } : await runner.resolveObserved(admissionInput);
-    admissionBody(admission.value);
-    return {
-      runner,
-      admission: admissionReceipt({
-        provider,
-        strategy: provider === "codex" ? "persistent_isolated_thread_admission" : "serialized_process_admission",
-        durationMs: now() - startedAt,
-        usage: admission.usage
-      }),
-      runtimeContract: prepared.runtimeContract,
-      close: prepared.close
-    };
-  } catch (error) {
-    await prepared.close().catch(() => void 0);
-    throw error;
-  }
+}
+async function prepareDirectProviderQueryRunner(provider, options, dependencies = defaultDependencies2) {
+  const prepared = await openProviderQueryRunner(provider, options, dependencies);
+  return {
+    runner: prepared.runner,
+    runtimeContract: provider === "codex" ? "codex.persistent_isolated_thread_direct.v1" : "claude.serialized_process_direct.v1",
+    close: prepared.close
+  };
 }
 
 // apps/cli/src/provider-query-projector.ts
@@ -73541,7 +73507,7 @@ function searchQueryProjectorIdentity(provider, model, runtimeContract) {
     version: 1,
     buildId: searchQueryProjectorBuildId(
       canonicalJson3({
-        contract: "lervo.provider-query-projector.v7",
+        contract: "lervo.provider-query-projector.v8",
         provider,
         model,
         runtimeContract,
@@ -73555,7 +73521,7 @@ function searchQueryProjectorIdentity(provider, model, runtimeContract) {
   };
 }
 function productionSearchQueryProjectorIdentity(provider) {
-  const runtimeContract = provider === "codex" ? "codex.persistent_isolated_thread_admission.v3" : "claude.serialized_process_admission.v2";
+  const runtimeContract = provider === "codex" ? "codex.persistent_isolated_thread_direct.v1" : "claude.serialized_process_direct.v1";
   return searchQueryProjectorIdentity(provider, "provider-default", runtimeContract);
 }
 function createProcessSearchQueryProjector(provider, options = {}) {
@@ -73643,24 +73609,26 @@ function createProcessSearchQueryProjector(provider, options = {}) {
     }
   };
 }
-async function prepareProcessSearchQueryProjector(provider, options = {}) {
-  const prepared = await prepareProviderQueryRunner(provider, {
-    ...options.model === void 0 ? {} : { model: options.model },
-    systemPrompt: isolatedJsonSystemPrompt,
-    timeoutMs: options.timeoutMs ?? 2e4,
-    ...options.now === void 0 ? {} : { now: options.now }
-  });
+async function prepareDirectProcessSearchQueryProjector(provider, options = {}) {
+  const prepared = await prepareDirectProviderQueryRunner(
+    provider,
+    {
+      ...options.model === void 0 ? {} : { model: options.model },
+      systemPrompt: isolatedJsonSystemPrompt,
+      timeoutMs: options.timeoutMs ?? 2e4
+    }
+  );
   return {
     projector: createProcessSearchQueryProjector(provider, {
       ...options,
       runner: prepared.runner,
       runtimeContract: prepared.runtimeContract
     }),
-    admission: prepared.admission,
+    runtimeContract: prepared.runtimeContract,
     close: prepared.close
   };
 }
-async function prepareProductionSearchQueries(provider, prepareProjector = prepareProcessSearchQueryProjector) {
+async function prepareProductionSearchQueries(provider, prepareProjector = prepareDirectProcessSearchQueryProjector) {
   const prepared = await prepareProjector(provider, { timeoutMs: 2e4 });
   return {
     async projectSearchQueries(input) {
@@ -73682,12 +73650,20 @@ async function projectProductionSearchQueries(input, prepareProjector = prepareP
 }
 
 // apps/cli/src/product-default-search.ts
+var qualifiedProjectors = ["codex", "claude"].map((provider) => ({
+  provider,
+  projector: productionSearchQueryProjectorIdentity(provider)
+}));
+var supersededPlanIds = ["srplan_db810188acfc08abd0b5bd4a"];
 var qualification = {
-  decisionId: "adr-0328-product-default-lexical-v2",
-  evidenceHash: "sha256:e9408bc445900f9cc09677d9684e610e31a1e987765eec2d58371fe41d1a0b30",
+  decisionIds: ["adr-0328-product-default-lexical-v2", "adr-0353-direct-query-projection"],
+  engineEvidenceHash: "sha256:e9408bc445900f9cc09677d9684e610e31a1e987765eec2d58371fe41d1a0b30",
+  projectorEvidenceHash: "sha256:ddaed652bcdffaa24dbe5e86733c4d744b6c3b84fe6f5bdef4c11664627e48a9",
   candidateId: "lexical-v2",
   engine: LEXICAL_V2_SEARCH_ENGINE,
-  adapterBuildId: LEXICAL_V2_ADAPTER_BUILD_ID
+  adapterBuildId: LEXICAL_V2_ADAPTER_BUILD_ID,
+  projectors: qualifiedProjectors.map(({ projector }) => projector),
+  supersededPlanIds
 };
 var PRODUCT_DEFAULT_SEARCH_QUALIFICATION_ID = contentId("spqual", qualification);
 var productDefaultSearchEngine = {
@@ -73699,9 +73675,9 @@ var productDefaultSearchEngine = {
 var plan = createSearchRetrievalPlan({
   projection: {
     required: true,
-    populations: ["codex", "claude"].map((provider) => ({
+    populations: qualifiedProjectors.map(({ provider, projector }) => ({
       populationId: `provider.${provider}`,
-      projector: productionSearchQueryProjectorIdentity(provider)
+      projector
     })),
     maximumQueries: 8,
     maximumQueryCharacters: 500
@@ -73725,7 +73701,8 @@ var plan = createSearchRetrievalPlan({
 });
 var productDefaultSearchRetrievalPlan = {
   qualificationId: PRODUCT_DEFAULT_SEARCH_QUALIFICATION_ID,
-  plan
+  plan,
+  supersededPlanIds: [...supersededPlanIds]
 };
 
 // packages/search-adapter-bm25f/dist/indexer.js
@@ -74050,7 +74027,7 @@ async function prepareTerminalPromptContext(input) {
   const searchProjectionContext = currentWorkstream === null ? { context: { contextRequirement: "none" }, contextAnchors: [] } : createCurrentWorkstreamSearchProjectionContext(currentWorkstream);
   const requestDigest = sha2562(input.prompt);
   const queryProjection = await input.timing.measure(
-    "projection_admission",
+    "query_projection",
     () => input.services.projectSearchQueries({
       request: input.prompt,
       requestDigest,
@@ -74672,7 +74649,7 @@ var TerminalStageObservation = class {
         terminalObservationId,
         terminalHook,
         observationSetId: `stgobs_${randomUUID8().replaceAll("-", "").slice(0, 24)}`,
-        stageCatalogVersion: 1,
+        stageCatalogVersion: 2,
         environmentProfileDigest: profileHash,
         repositoryProfile: this.profile.repositoryProfile,
         stages: this.recorder.snapshot()

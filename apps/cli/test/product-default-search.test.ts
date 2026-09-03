@@ -17,8 +17,9 @@ describe("product-default search", () => {
     });
     expect(productDefaultSearchRetrievalPlan).toMatchObject({
       qualificationId: PRODUCT_DEFAULT_SEARCH_QUALIFICATION_ID,
+      supersededPlanIds: ["srplan_db810188acfc08abd0b5bd4a"],
       plan: {
-        planId: "srplan_db810188acfc08abd0b5bd4a",
+        planId: "srplan_317d592259ccbf6029f534f5",
         retrieval: {
           candidateId: "lexical-v2",
           engine: { id: "lexical", version: 2 },
@@ -31,10 +32,10 @@ describe("product-default search", () => {
 
   it("binds the current production projector builds for both providers", () => {
     expect(productionSearchQueryProjectorIdentity("codex").buildId).toBe(
-      "sqbuild_4c2f405568b9ff5c1de91332",
+      "sqbuild_4567982e194ed62053cdcb25",
     );
     expect(productionSearchQueryProjectorIdentity("claude").buildId).toBe(
-      "sqbuild_67f6aaa4c3afeaa5a6d55acc",
+      "sqbuild_76f588303e15c0916982d03e",
     );
   });
 });

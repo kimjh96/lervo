@@ -147,6 +147,52 @@ describe("local search retrieval-plan activation", () => {
     });
   });
 
+  it("promotes a verified superseded product plan without deleting local history", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-superseded-product-plan-"));
+    roots.push(root);
+    const projectId = "prj_superseded_product_fixture";
+    await applyInitPlan(await createInitPlan({ root, projectId }));
+    await mkdir(resolve(root, "docs"));
+    const evidence = "# Reviewed evidence\n";
+    await writeFile(resolve(root, "docs/evidence.md"), evidence);
+    const evidenceHash = `sha256:${createHash("sha256").update(evidence).digest("hex")}`;
+    const previous = bundle(projectId, evidenceHash);
+    const { planId: _previousPlanId, ...previousDefinition } = previous.plan;
+    const currentPlan = createSearchRetrievalPlan({
+      ...previousDefinition,
+      projection: { ...previous.plan.projection, maximumQueries: 7 },
+    });
+    await recordSearchRetrievalPlanActivationBundle(root, previous);
+    await activateLocalSearchRetrievalPlan({
+      repositoryRoot: root,
+      projectId,
+      bundleId: previous.bundleId,
+      operatorId: "owner",
+      decidedAt: new Date("2026-09-03T07:00:00.000Z"),
+    });
+
+    await expect(
+      inspectOperationalSearchRetrievalPlan({
+        repositoryRoot: root,
+        projectId,
+        productDefault: {
+          qualificationId: `spqual_${"a".repeat(24)}`,
+          plan: currentPlan,
+          supersededPlanIds: [previous.plan.planId],
+        },
+      }),
+    ).resolves.toMatchObject({
+      selection: {
+        mode: "product_default",
+        qualificationId: `spqual_${"a".repeat(24)}`,
+        planId: currentPlan.planId,
+      },
+      transitions: 1,
+      resolverState: "ready",
+      productQualificationId: `spqual_${"a".repeat(24)}`,
+    });
+  });
+
   it("resolves an immutable bundle and returns to the local baseline by explicit rollback", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-retrieval-plan-"));
     roots.push(root);
