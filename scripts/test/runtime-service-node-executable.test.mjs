@@ -49,6 +49,31 @@ describe("runtime service Node executable composition", () => {
     );
   });
 
+  it("retains the exact launchd Node instance label while prepending Node.js", async () => {
+    const value = await fixture();
+    const instance = "nfi_0123456789abcdef01234567";
+    const output = resolve(value.root, "com.lervo.node.0123456789abcdef01234567.plist");
+    await renderRuntimeService([
+      "--manager",
+      "launchd",
+      "--runtime",
+      "node",
+      "--instance",
+      instance,
+      "--executable",
+      value.executable,
+      "--node-executable",
+      value.nodeExecutable,
+      "--config",
+      value.config,
+      "--output",
+      output,
+    ]);
+    expect(await readFile(output, "utf8")).toContain(
+      `  <key>Label</key>\n  <string>com.lervo.node.0123456789abcdef01234567</string>\n  <key>ProgramArguments</key>\n  <array>\n    <string>${value.nodeExecutable}</string>\n    <string>${value.executable}</string>`,
+    );
+  });
+
   it("rejects duplicate Node executable arguments before creating a service definition", async () => {
     const value = await fixture();
     const output = resolve(value.root, "duplicate-node-executable.service");
