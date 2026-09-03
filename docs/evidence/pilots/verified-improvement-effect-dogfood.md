@@ -55,6 +55,10 @@ the existing local cache. Future automatic deliberation prefers the highest vers
 explicit managed runs must name version 2. This does not alter the baseline, treatment, or
 comparison above. Runtime-focused tests remain a separate and stronger verification layer.
 
+ADR-0351 then added `repository.default.v3`, which retains version 2 and follows its static checks
+with bounded Vitest related-test execution. Version 3 is a prospective verification contract; it
+does not reinterpret any pilot event or establish causality.
+
 ## References
 
 - [Evidence-bound improvement observations](../../instructions/evidence-bound-improvement-observations.md)
@@ -62,3 +66,4 @@ comparison above. Runtime-focused tests remain a separate and stronger verificat
 - [Repository development-pattern lifecycle](../../specs/repository-development-pattern-lifecycle.md)
 - [Governed loop and assignment graph](../../roadmap/governed-loop-assignment-graph.md)
 - [ADR-0350](../../decisions/execution/verification/0350-version-default-repository-static-verification.md)
+- [ADR-0351](../../decisions/execution/verification/0351-add-bounded-related-runtime-tests.md)

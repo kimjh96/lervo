@@ -1,0 +1,36 @@
+schemaVersion: 1
+suiteId: repository.default.v3
+stopOnFailure: true
+commands:
+  - commandId: repository-lint
+    executable: pnpm
+    arguments:
+      - lint
+    cwd: .
+    timeoutMs: 300000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []
+  - commandId: repository-typecheck
+    executable: pnpm
+    arguments:
+      - typecheck
+    cwd: .
+    timeoutMs: 900000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []
+  - commandId: repository-related-tests
+    executable: pnpm
+    arguments:
+      - exec
+      - vitest
+      - run
+      - --changed
+      - HEAD
+      - --passWithNoTests
+      - --pool=threads
+      - --maxWorkers=1
+      - --reporter=dot
+    cwd: .
+    timeoutMs: 900000
+    maxOutputBytes: 1048576
+    environmentVariableNames: []

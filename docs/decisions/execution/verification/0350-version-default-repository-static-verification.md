@@ -67,3 +67,4 @@ independently designed changed-file verification concern.
 - [ADR-0176](0176-bounded-verification-result-sources.md)
 - [ADR-0200](../providers/0200-natural-language-terminal-turn-finalization.md)
 - [Improvement-effect dogfood](../../../evidence/pilots/verified-improvement-effect-dogfood.md)
+- [ADR-0351](0351-add-bounded-related-runtime-tests.md)
