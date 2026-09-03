@@ -26,9 +26,16 @@ export async function foundationSourceRevision(repositoryRoot) {
     .sort();
   const hash = createHash("sha256");
   for (const path of files) {
+    let content;
+    try {
+      content = await readFile(resolve(repositoryRoot, path));
+    } catch (error) {
+      if (error?.code === "ENOENT") continue;
+      throw error;
+    }
     hash.update(path);
     hash.update("\0");
-    hash.update(await readFile(resolve(repositoryRoot, path)));
+    hash.update(content);
     hash.update("\0");
   }
   return `sha256:${hash.digest("hex")}`;
