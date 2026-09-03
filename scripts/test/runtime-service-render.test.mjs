@@ -1,4 +1,4 @@
-import { chmod, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -171,6 +171,30 @@ describe("runtime service definition renderer", () => {
       ]),
     ).rejects.toThrow();
     expect(await readFile(target, "utf8")).toBe(original);
+  });
+
+  it("rejects an existing regular output file without changing its bytes", async () => {
+    const value = await fixture();
+    const output = resolve(value.root, "lervo-hub.service");
+    const original = "[Unit]\nDescription=Unrelated existing definition\n";
+    await writeFile(output, original, { mode: 0o600 });
+
+    await expect(
+      renderRuntimeService([
+        "--manager",
+        "systemd",
+        "--runtime",
+        "hub",
+        "--executable",
+        value.executable,
+        "--config",
+        value.config,
+        "--output",
+        output,
+      ]),
+    ).rejects.toThrow();
+    expect((await lstat(output)).isFile()).toBe(true);
+    expect(await readFile(output, "utf8")).toBe(original);
   });
 
   it("requires a bounded Node instance and renders distinct service identities", async () => {
