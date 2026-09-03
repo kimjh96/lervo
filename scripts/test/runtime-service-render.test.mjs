@@ -147,6 +147,32 @@ describe("runtime service definition renderer", () => {
     ).rejects.toThrow();
   });
 
+  it("rejects an existing output symlink without changing its target", async () => {
+    if (process.platform === "win32") return;
+    const value = await fixture();
+    const target = resolve(value.root, "existing-definition");
+    const output = resolve(value.root, "lervo-hub.service");
+    const original = "existing service definition\n";
+    await writeFile(target, original, { mode: 0o600 });
+    await symlink(target, output);
+
+    await expect(
+      renderRuntimeService([
+        "--manager",
+        "systemd",
+        "--runtime",
+        "hub",
+        "--executable",
+        value.executable,
+        "--config",
+        value.config,
+        "--output",
+        output,
+      ]),
+    ).rejects.toThrow();
+    expect(await readFile(target, "utf8")).toBe(original);
+  });
+
   it("requires a bounded Node instance and renders distinct service identities", async () => {
     const value = await fixture();
     await expect(
