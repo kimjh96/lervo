@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidenceBuildDigest": "sha256:1a7bc485f1d73d5631646d15034344843f42b4c57e27e1a5b22f38a2deb3fc2d",
-  "repositoryRevision": "sha256:d6d030b6ad8eb787ffd4f51a6f98ae89464a1ffeb899b78dbffec01b6dd13ac4",
+  "repositoryRevision": "sha256:f68e45c584dd34c97c2fab23239d267fca73916205c7533717105346111be0b8",
   "environment": {
     "operatingSystem": "darwin",
     "architecture": "arm64",
@@ -1137,9 +1137,9 @@
       "eventWindow": 1000,
       "assignmentWindow": 128,
       "concurrentWorkers": 4,
-      "durationMs": 0.101416,
-      "cpuMs": 0.127,
-      "processPeakResidentMemoryBytes": 184811520,
+      "durationMs": 0.101542,
+      "cpuMs": 0.138,
+      "processPeakResidentMemoryBytes": 185073664,
       "status": "passed"
     },
     {
@@ -1147,9 +1147,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 16,
-      "durationMs": 0.282834,
+      "durationMs": 0.277666,
       "cpuMs": 0.328,
-      "processPeakResidentMemoryBytes": 184811520,
+      "processPeakResidentMemoryBytes": 185090048,
       "status": "passed"
     },
     {
@@ -1157,9 +1157,9 @@
       "eventWindow": 100000,
       "assignmentWindow": 10000,
       "concurrentWorkers": 32,
-      "durationMs": 2.458292,
-      "cpuMs": 2.806,
-      "processPeakResidentMemoryBytes": 185679872,
+      "durationMs": 2.46625,
+      "cpuMs": 2.908,
+      "processPeakResidentMemoryBytes": 185958400,
       "status": "passed"
     },
     {
@@ -1167,9 +1167,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 32,
-      "durationMs": 0.25725,
-      "cpuMs": 0.354,
-      "processPeakResidentMemoryBytes": 185712640,
+      "durationMs": 0.25875,
+      "cpuMs": 0.377,
+      "processPeakResidentMemoryBytes": 185991168,
       "status": "passed"
     }
   ],
@@ -1345,5 +1345,5 @@
     "credentials": "excluded",
     "absolutePaths": "excluded"
   },
-  "reportId": "adverse_94b751ff652070cc498d8a50"
+  "reportId": "adverse_389c4ea49f07e8d8877898e4"
 }
