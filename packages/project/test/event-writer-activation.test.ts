@@ -15,6 +15,7 @@ import {
   planEventWriterRollback,
   recoverEventWriterActivation,
 } from "../src/index.js";
+import { supportsEventWriterDirectorySync } from "../src/event-writer-activation-transaction-io.js";
 
 const roots: string[] = [];
 const projectId = "prj_writer01";
@@ -91,6 +92,12 @@ afterEach(async () => {
 });
 
 describe("event writer activation", () => {
+  it("uses directory fsync only on platforms that support directory handles", () => {
+    expect(supportsEventWriterDirectorySync("win32")).toBe(false);
+    expect(supportsEventWriterDirectorySync("darwin")).toBe(true);
+    expect(supportsEventWriterDirectorySync("linux")).toBe(true);
+  });
+
   it("keeps an absent coordinate on the implicit version 1 default", async () => {
     const root = await fixture();
 

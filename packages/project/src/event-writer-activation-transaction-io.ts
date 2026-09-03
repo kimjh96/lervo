@@ -17,7 +17,13 @@ export interface EventWriterActivationJournal {
   afterHash: string;
 }
 
+export function supportsEventWriterDirectorySync(platform: NodeJS.Platform): boolean {
+  return platform !== "win32";
+}
+
 export async function syncEventWriterDirectory(path: string): Promise<void> {
+  // Windows does not support fsync on directory handles; file contents are still synced before rename.
+  if (!supportsEventWriterDirectorySync(process.platform)) return;
   const handle = await open(path, constants.O_RDONLY);
   try {
     await handle.sync();

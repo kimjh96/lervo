@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_470a72710087308c3396f6cb"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Restore Windows support for durable event writer activation."
