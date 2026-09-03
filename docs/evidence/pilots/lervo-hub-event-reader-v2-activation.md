@@ -5,18 +5,19 @@ Date: 2026-09-03
 
 ## Installation and service
 
-The current Hub 0.8.2 archive for Linux x64 glibc has SHA-256
-`5364cd29bf3851bd60c365b22444d2bc14217fb4c7bce10027dcd9bbe1e8cb82`. Target-side
-verification confirmed its 26 file entries before it was installed at
-`/home/jonghyeok/.local/lib/lervo-hub/0.8.2-5364cd29`. The previous installation was
+The current deployed Hub 0.8.2 archive for Linux x64 glibc has SHA-256
+`6ecaee40b7984f1a6aac38fe086bcbcde0ad414b504f63b1d384508cbe4383d8`.
+Independent local and target-side digest checks matched, and its manifest contains 26
+file entries. It was installed at
+`/home/jonghyeok/.local/lib/lervo-hub/0.8.2-6ecaee40`; previous installations were
 retained for rollback.
 
 Systemd uses a separate, content-addressed launcher because its environment could not
 resolve the Node executable named in the bundle's shebang. The launcher invokes
 `/home/jonghyeok/.local/lib/node-v26.5.1-linux-x64/bin/node`. Its SHA-256 is
-`8dff9a27a0ee0e8d5f5db5531a6f4a5e6ec46d390c2d6e9654f65d40a42e9751`, and the
+`fef521e5b954bea05ae721839fa48e3d57d7833d159fadf39a2741a508f966d7`, and the
 service definition SHA-256 is
-`92b9de7909d8bbc9ef8922e0c0256d3776110e32f0e9c349ff771907b1efebff`. Three
+`f531f7010e68ffac3eed7d349b74ac508bdd5246c5bbd90cc7f1dd84e0a40731`. Three
 consecutive observations found the service active.
 
 ## Reader evidence and activation
@@ -34,14 +35,22 @@ The activation followed the reader-first process, applies only to future events,
 preserves version 1 history. By itself, it does not prove Node delivery, provider use,
 task correctness, graceful shutdown, or future availability.
 
-## Operational follow-up
+## Operational verification and follow-up
 
-- Hub shutdown exceeded the 30-second transactional wait. Systemd then reached its
-  120-second timeout and sent `SIGKILL`.
+- The prior Hub reproduced the shutdown defect with established loopback connections:
+  it stopped listening but remained in systemd `stop-sigterm` until explicitly
+  terminated.
+- The replacement runtime had four established loopback connections immediately before
+  the same stop test. It stopped in 0.02 seconds with systemd `Result=success` and exit
+  status 0. After restart, three consecutive readiness requests returned `ready`, the
+  Hub advertised event-reader versions 1 and 2, and all six registered repository Nodes
+  returned to `ready`.
 - A standalone Hub service currently needs an external launcher with an absolute Node
   path when the systemd `PATH` lacks `node`.
 
-Both gaps remain open until a separately verified implementation removes them.
+The HTTP shutdown gap is resolved by explicit idle-connection close plus a tested
+10-second upper drain bound for incomplete active requests. The standalone launcher
+composition gap remains open for a separate change.
 
 ## References
 

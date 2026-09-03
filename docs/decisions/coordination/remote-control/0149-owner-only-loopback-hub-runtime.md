@@ -17,10 +17,12 @@ Schema-version-1 JSON is strict, resolves paths relative to the configuration fi
 
 No bearer credential, key, or identity is generated. Trust distribution, secret backup, encrypted-key prompts, and external secret managers remain deployment concerns. Without ADR-0158 TLS configuration, both parser and direct API allow only `127.0.0.1` or `::1`.
 
-`SIGINT`, `SIGTERM`, and close converge on one promise: stop accepting HTTP and finish responses, abort cleanup waits and settle bounded work, then close SQLite. Runtime or cleanup failure initiates the same shutdown. Partial startup closes stores already opened.
+`SIGINT`, `SIGTERM`, and close converge on one promise: stop accepting HTTP, allow active responses a fixed 10-second drain, close any connections still active at that deadline, abort cleanup waits and settle bounded work, then close SQLite. Runtime or cleanup failure initiates the same shutdown. Partial startup closes stores already opened.
 
-No execution event or state is added. Startup output contains only loopback host and port. Fixed public errors are `invalid_arguments`, `invalid_config`, `unsafe_runtime_file`, `startup_failed`, `listen_failed`, `shutdown_failed`, `hub_server_runtime_failed`, and `artifact_cleanup_runtime_failed`; causes remain internal.
+The close result names the HTTP disposition as `graceful` or `forced`. `forced` means only that connections remained at the drain deadline; it interrupts those connections, emits one fixed secret-free warning, and still exits successfully after cleanup and SQLite close. It is not reported as `shutdown_failed`, because the bounded close contract completed. The disposition contains no peer address, request path, request body, credential, or other connection detail and is not persisted as an event or durable state.
+
+No execution event or persistent state is added. Startup output contains only loopback host and port. Fixed public errors are `invalid_arguments`, `invalid_config`, `unsafe_runtime_file`, `startup_failed`, `listen_failed`, `shutdown_failed`, `hub_server_runtime_failed`, and `artifact_cleanup_runtime_failed`; causes remain internal.
 
 ## Consequences
 
-Fixtures verify relative paths, permission rejection, external plaintext rejection, strict fields and bounds, authenticated live HTTP, ordered `SIGTERM` shutdown, database reopen and audit, and secret redaction. This is the first safe Hub process entrypoint, not production TLS, secret management, supervision, or service installation.
+Fixtures verify relative paths, permission rejection, external plaintext rejection, strict fields and bounds, authenticated live HTTP, graceful and deadline-forced connection drain, ordered `SIGTERM` shutdown, database reopen and audit, and secret redaction. This is the first safe Hub process entrypoint, not production TLS, secret management, supervision, or service installation.

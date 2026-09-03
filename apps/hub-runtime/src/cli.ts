@@ -41,6 +41,9 @@ export async function runHubRuntimeCli(
       const address = await deployment.listen();
       ports.stdout(`Lervo Hub started on ${address.host}:${address.port}.\n`);
       const result = await deployment.closed;
+      if (result.serverDrain === "forced") {
+        ports.stderr("Lervo Hub forced remaining HTTP connections closed after drain timeout.\n");
+      }
       if (result.status === "failed") {
         ports.stderr(`Lervo Hub stopped (${result.failureCode}).\n`);
         return 1;

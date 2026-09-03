@@ -13,6 +13,7 @@ function deployment(overrides: Partial<HubRuntimeDeployment> = {}): HubRuntimeDe
     close: async () => ({
       status: "stopped",
       artifactCleanup: { status: "stopped", loop: null },
+      serverDrain: "graceful",
     }),
     ...overrides,
   };
@@ -25,6 +26,7 @@ describe("Hub runtime process signals", () => {
     const close = vi.fn(async () => ({
       status: "stopped" as const,
       artifactCleanup: { status: "stopped" as const, loop: null },
+      serverDrain: "graceful" as const,
     }));
     const binding = attachHubRuntimeSignalHandlers(
       deployment({ reloadRuntimeMaterials, close }),
@@ -42,6 +44,7 @@ describe("Hub runtime process signals", () => {
     const close = vi.fn(async () => ({
       status: "stopped" as const,
       artifactCleanup: { status: "stopped" as const, loop: null },
+      serverDrain: "graceful" as const,
     }));
     const binding = attachHubRuntimeSignalHandlers(
       deployment({

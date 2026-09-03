@@ -53,9 +53,9 @@
     },
     {
       "path": "apps/hub-runtime/src/deployment.ts",
-      "contentHash": "sha256:025afa8f08822b58b1f3ca3a1925daf41889ab8cadcda579452574ae43081a5b",
+      "contentHash": "sha256:4d471e20b5ce112014c376aa6a93a45456e9fc2976672cc1de8254f8a65c9ad5",
       "responsibility": "Hub runtime deployment composition",
-      "rationale": "TLS loading, server composition, shutdown, and health wiring are phases of one Hub deployment boundary; domain policy remains in injected packages.",
+      "rationale": "TLS material loading, dependency and server composition, reload, resource lifecycle orchestration, and health wiring are phases of one Hub deployment boundary; HTTP connection-drain mechanics and domain policy remain in linked modules.",
       "disposition": "cohesive"
     },
     {

@@ -11,6 +11,8 @@ This platform-specific distribution runs without an npm registry or Lervo source
 
 Obtain the archive SHA-256 through a separate trusted channel and compare the exact digest before installation. Extract into a new, previously absent directory. Prepare owner-only configuration and cryptographic material separately, then explicitly activate the Hub with the service renderer and manager.
 
+On `SIGINT` or `SIGTERM`, the runtime stops accepting requests immediately and gives active HTTP responses 10 seconds to drain. Connections still active at the deadline are closed so an abandoned client cannot hold service replacement open indefinitely. A fixed warning identifies that forced-drain disposition without exposing request or peer details; cleanup and SQLite close still complete before the process exits successfully.
+
 The Hub bundle has no external or native runtime imports. Release operators may therefore build a target-labelled archive on another host with `pnpm hub:distribution:build -- --output <absolute.tar.gz> --platform linux-x64-glibc --write`. The build still runs the configured Hub smoke test against the exact bundled bytes. Before writing the installation, the target-side installer independently requires matches for the declared OS, architecture, and libc.
 
 Private workspace package versions are implementation coordinates, not operational Hub release identifiers. The embedded package manifest, SBOM root, distribution manifest, and artifact sidecar must all match the public Lervo product version.

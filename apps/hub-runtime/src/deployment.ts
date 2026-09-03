@@ -19,6 +19,7 @@ import type { HubRuntimeConfig } from "./config-types.js";
 import { HubRuntimeError } from "./errors.js";
 import { loadHubRuntimeCredentials } from "./credentials.js";
 import { readOwnerOnlyFile } from "./secure-file.js";
+import { closeHubRuntimeServer, type HubServerDrainDisposition } from "./server-shutdown.js";
 import { prepareOwnerOnlyDatabasePath } from "./secure-storage.js";
 import {
   assertHubRuntimeSigningReplacement,
@@ -43,6 +44,7 @@ export interface HubRuntimeCloseResult {
   status: "stopped" | "failed";
   failureCode?: "artifact_cleanup_runtime_failed" | "hub_server_runtime_failed";
   artifactCleanup: HubArtifactCleanupLifecycleResult;
+  serverDrain: HubServerDrainDisposition;
 }
 
 export interface HubRuntimeDeployment {
@@ -51,13 +53,6 @@ export interface HubRuntimeDeployment {
   reloadCredentials(): Promise<void>;
   reloadRuntimeMaterials(): Promise<void>;
   close(): Promise<HubRuntimeCloseResult>;
-}
-
-async function closeServer(server: HubRuntimeServer): Promise<void> {
-  if (!server.listening) return;
-  await new Promise<void>((resolve, reject) =>
-    server.close((error) => (error === undefined ? resolve() : reject(error))),
-  );
 }
 
 class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
@@ -86,7 +81,11 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
       this.rejectClosed = reject;
     });
     this.server.once("close", () => {
-      if (this.closePromise === null) this.beginFinalization(this.finishResources());
+      if (this.closePromise === null) {
+        this.beginFinalization(
+          this.finishResources().then((result) => ({ ...result, serverDrain: "graceful" })),
+        );
+      }
     });
     this.server.on("error", () => {
       if (this.listenStarted) {
@@ -202,8 +201,9 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
 
   private async shutdown(): Promise<HubRuntimeCloseResult> {
     let closeFailure: unknown;
+    let serverDrain: HubServerDrainDisposition = "graceful";
     try {
-      await closeServer(this.server);
+      serverDrain = await closeHubRuntimeServer(this.server);
     } catch (error) {
       closeFailure = error;
     }
@@ -213,10 +213,10 @@ class DefaultHubRuntimeDeployment implements HubRuntimeDeployment {
         cause: closeFailure,
       });
     }
-    return result;
+    return { ...result, serverDrain };
   }
 
-  private async finishResources(): Promise<HubRuntimeCloseResult> {
+  private async finishResources(): Promise<Omit<HubRuntimeCloseResult, "serverDrain">> {
     try {
       const artifactCleanup = await this.artifactCleanup.stop();
       await this.store.close();
