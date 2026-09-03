@@ -31,6 +31,12 @@ Behavioral obligations belong in canonical instruction documents. Product, archi
 
 Terminal preparation records a bounded repository path/hash snapshot in ignored local state. Final declaration compares it with current bytes, classifies changed paths through typed responsibility rules, and automatically records a bounded candidate when implementation or provider-surface evidence has no matching changed canonical target. Candidate records contain hashes and typed coordinates, never prompt text or phrase mappings.
 
+The repository snapshot bounds assessment input to 20,000 entries. A large refactor may change
+more than 256 paths when matching canonical responsibilities changed in the same turn because
+the assessment stores no per-path evidence for a current result. A candidate remains limited to
+256 unmatched source bindings and fails closed before writing when that evidence bound is
+exceeded.
+
 Assessment may report `current`, `candidate`, or `pending`; candidate inspection also observes `promoted`, `rejected`, and `stale`. Defer and reject require an exact candidate hash and reviewer identity. Promotion additionally requires an exact current canonical-target hash with the same responsibility and never writes the target. Repetition, provider agreement, candidate generation, and file presence never automatically promote user-owned content.
 
 ### Semantic durable-rule intake

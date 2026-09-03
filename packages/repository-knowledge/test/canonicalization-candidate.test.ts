@@ -154,6 +154,64 @@ describe("typed canonicalization candidates", () => {
     });
   });
 
+  it("assesses large canonicalized changes without expanding candidate evidence", async () => {
+    const root = await repository();
+    const sourcePaths = Object.fromEntries(
+      Array.from({ length: 300 }, (_, index) => [
+        `packages/example-${index}/src/index.ts`,
+        sha256(`source-${index}`),
+      ]),
+    );
+    const assessment = await assessCanonicalization({
+      repositoryRoot: root,
+      beforeRevision: sha256("before-large-current"),
+      afterRevision: sha256("after-large-current"),
+      beforeFiles: {
+        ...sourcePaths,
+        "docs/specs/large-change.md": sha256("spec-before"),
+      },
+      afterFiles: {
+        ...Object.fromEntries(
+          Object.keys(sourcePaths).map((path, index) => [path, sha256(`updated-${index}`)]),
+        ),
+        "docs/specs/large-change.md": sha256("spec-after"),
+      },
+      disposition: "canonical_sources_updated",
+      now: new Date("2026-09-04T00:00:00.000Z"),
+    });
+    expect(assessment).toEqual({
+      schemaVersion: 1,
+      status: "current",
+      changedPathCount: 301,
+      canonicalPathCount: 1,
+      candidate: null,
+    });
+  });
+
+  it("keeps noncanonical candidate evidence bounded independently of changed path count", async () => {
+    const root = await repository();
+    const beforeFiles = Object.fromEntries(
+      Array.from({ length: 257 }, (_, index) => [
+        `packages/example-${index}/src/index.ts`,
+        sha256(`before-${index}`),
+      ]),
+    );
+    const afterFiles = Object.fromEntries(
+      Object.keys(beforeFiles).map((path, index) => [path, sha256(`after-${index}`)]),
+    );
+    await expect(
+      assessCanonicalization({
+        repositoryRoot: root,
+        beforeRevision: sha256("before-large-candidate"),
+        afterRevision: sha256("after-large-candidate"),
+        beforeFiles,
+        afterFiles,
+        disposition: "canonical_sources_current",
+        now: new Date("2026-09-04T00:00:00.000Z"),
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_source_limit_exceeded" });
+  });
+
   it("promotes a provider-surface obligation only after it is written to a canonical instruction route", async () => {
     const root = await repository();
     await writeFile(resolve(root, "CLAUDE.md"), "Follow the repository commit policy.\n");

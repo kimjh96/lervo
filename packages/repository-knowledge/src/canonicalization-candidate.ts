@@ -54,7 +54,7 @@ export interface CanonicalizationAssessment {
 
 const ROOT = ".lervo/state/knowledge/canonicalization-candidates";
 const MAXIMUM_CANDIDATES = 64;
-const MAXIMUM_CHANGED_PATHS = 256;
+const MAXIMUM_SOURCE_BINDINGS = 256;
 
 function safePath(path: string): boolean {
   return (
@@ -172,7 +172,7 @@ function validateRecord(value: unknown): CanonicalizationCandidateRecord {
     typeof record.afterRevision !== "string" ||
     !Array.isArray(record.sourceBindings) ||
     record.sourceBindings.length === 0 ||
-    record.sourceBindings.length > MAXIMUM_CHANGED_PATHS ||
+    record.sourceBindings.length > MAXIMUM_SOURCE_BINDINGS ||
     !record.sourceBindings.every(
       (item) =>
         safePath(item.path) &&
@@ -255,11 +255,6 @@ export async function assessCanonicalization(input: {
   const changedPaths = [...paths]
     .filter((path) => input.beforeFiles[path] !== input.afterFiles[path])
     .sort();
-  if (changedPaths.length > MAXIMUM_CHANGED_PATHS)
-    throw new RepositoryKnowledgeError(
-      "knowledge_source_limit_exceeded",
-      `Canonicalization assessment exceeds ${MAXIMUM_CHANGED_PATHS} changed paths.`,
-    );
   const canonicalResponsibilities = new Set(
     changedPaths.flatMap((path) => {
       const responsibility = canonicalResponsibility(path);
@@ -279,6 +274,11 @@ export async function assessCanonicalization(input: {
       },
     ];
   });
+  if (sourceBindings.length > MAXIMUM_SOURCE_BINDINGS)
+    throw new RepositoryKnowledgeError(
+      "knowledge_source_limit_exceeded",
+      `Canonicalization candidate exceeds ${MAXIMUM_SOURCE_BINDINGS} source bindings.`,
+    );
   if (sourceBindings.length === 0)
     return {
       schemaVersion: 1,
