@@ -74,6 +74,8 @@ The new entrypoint selected `full` for this implementation with three
 risk-based full regression took 332,025 milliseconds. The managed runner bound the observation to
 repository revision
 `sha256:93c5f28975ae5444d45c041f5b24f97c972066fa40e0197d0598504b398c1a76`.
+After the implementation commit, the same entrypoint selected `related` for a clean worktree with
+zero changed paths and exited successfully when Vitest found no related test files.
 
 ## Consequences
 
