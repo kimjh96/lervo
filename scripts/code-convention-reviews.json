@@ -325,24 +325,38 @@
       "disposition": "cohesive"
     },
     {
-      "path": "scripts/lib/hub-runtime-distribution.mjs",
-      "contentHash": "sha256:5ddac245c28da023a79994bfd1425e8f43a4b577c61777a9f3d79b9d59408382",
+      "path": "scripts/distribution/lib/hub-runtime-distribution.mjs",
+      "contentHash": "sha256:b9441d14a861c29e697707201cdd283eb1faf0d5838b31f80a162443c2e4dd90",
       "responsibility": "Hub runtime distribution builder",
       "rationale": "Manifest, SBOM, archive, validation, installation safety, and smoke verification are phases of one Hub distribution artifact contract.",
       "disposition": "cohesive"
     },
     {
-      "path": "scripts/lib/node-runtime-distribution.mjs",
-      "contentHash": "sha256:3e1d5d601464a129f26d279c296848bf3f1b4056eec19a1092c2f6c4443eee23",
+      "path": "scripts/distribution/lib/node-runtime-distribution.mjs",
+      "contentHash": "sha256:27b667e854b17684b30f30b1ffffb832af1ca007138e8f5ad057b822d236203e",
       "responsibility": "Node runtime distribution builder",
       "rationale": "Dependency inventory, manifest, SBOM, archive, platform validation, and verification are phases of one Node distribution artifact contract.",
       "disposition": "cohesive"
     },
     {
-      "path": "scripts/manage-runtime-service.mjs",
-      "contentHash": "sha256:73d199f430e7926f3bd18c214339abe30bf61d9c41de0f8c3c4790fcd777b73c",
+      "path": "scripts/distribution/lib/real-managed-provider-https-pilot.mjs",
+      "contentHash": "sha256:19c3a0c5174ac6c2709030b2e4facad49c04edd555d66f37d6ca037fcc7b8871",
+      "responsibility": "Managed-provider HTTPS acceptance pilot",
+      "rationale": "Temporary project setup, process control, HTTPS calls, event observation, assertions, and cleanup compose one end-to-end acceptance scenario; command invocation is a separate thin entrypoint.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "scripts/distribution/lib/runtime-service-management.mjs",
+      "contentHash": "sha256:493b0110cfc13fc3d569aecf7bf7339aa6466b108ed13ac8a7fcaca7dadd5fd8",
       "responsibility": "Runtime service lifecycle manager",
-      "rationale": "Parsing, definition validation, status stabilization, install, compensate, remove, activate, and upgrade operate on one service transaction boundary.",
+      "rationale": "Parsing, definition validation, status stabilization, install, compensate, remove, activate, and upgrade operate on one service transaction boundary; status presentation and process exit behavior are isolated in the command adapter.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "scripts/evaluation/lib/lexical-v2-provider-comparison.mjs",
+      "contentHash": "sha256:50dd61b2a7f47991bcfcfebea4d0b63b216e89b738e631a76b54e54667bb7526",
+      "responsibility": "Lexical-v2 paired provider execution",
+      "rationale": "The module composes the bounded suite, isolated workspaces, provider-neutral evidence selection, paired arm schedule, and cleanup; command invocation, versioned acceptance, report evaluation, provider preparation and transports, and selection policy remain separate.",
       "disposition": "cohesive"
     },
     {
@@ -364,20 +378,6 @@
       "contentHash": "sha256:1da19d9d9cde816be48cb6930341ac4230f36b906a7369c7ff4395871d774721",
       "responsibility": "Versioned provider-shadow pilot contract validation",
       "rationale": "The module composes and validates one lineage of immutable provider-shadow contracts; policy, preparation I/O, execution, observation, and review remain in separate modules, while the length follows explicit historical contract variants.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "scripts/run-lexical-v2-provider-comparison.mjs",
-      "contentHash": "sha256:fa5d714ef42dc77148dd43a81236fbe154746b7b7272cc4a4885c1ccf8ea3dc1",
-      "responsibility": "Lexical-v2 paired provider execution",
-      "rationale": "The entrypoint composes the bounded suite, isolated workspaces, provider-neutral evidence selection, paired arm schedule, and cleanup; versioned acceptance, report evaluation, provider preparation and transports, and selection policy remain in separate modules.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "scripts/run-real-managed-provider-https-pilot.mjs",
-      "contentHash": "sha256:fc578150a196e28321a2fa6a97209982dca175a6e9c6476718c8b7dbd8813135",
-      "responsibility": "Managed-provider HTTPS acceptance pilot",
-      "rationale": "Temporary project setup, process control, HTTPS calls, event observation, assertions, and cleanup compose one end-to-end acceptance scenario.",
       "disposition": "cohesive"
     }
   ]

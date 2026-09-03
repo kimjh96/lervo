@@ -25,4 +25,4 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 - `apps/cli/test/upgrade-node.test.ts`
 - `apps/cli/test/repository-command.test.ts`
 - `packages/repository-knowledge/test/repository-layout-migration.test.ts`
-- `scripts/test/runtime-service-management.test.mjs`
+- `scripts/distribution/test/runtime-service-management.test.mjs`

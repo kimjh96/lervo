@@ -9,7 +9,7 @@ The ADR-0117 candidate needs a real `release:publication:stage` command. A Boole
 
 ## Decision
 
-The root script invokes `scripts/stage-cli-release-publication.mjs`. It accepts only absolute paths for the release directory, publication authorization, and new result directory.
+The root script invokes `scripts/release/commands/stage-cli-release-publication.mjs`. It accepts only absolute paths for the release directory, publication authorization, and new result directory.
 
 Authorization must be a regular file no larger than 64 KiB. Under existing limits, the release directory may contain only the tarball, manifest, SBOM, and two attestation bundles. The command revalidates the manifest, SBOM, three authorized subject hashes, and the tarball's SHA-256, integrity, and shasum. Bundles participate in the before/after snapshot; `attested-cli` retains signature-verification ownership.
 

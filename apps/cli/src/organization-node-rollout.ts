@@ -16,7 +16,7 @@ import {
 
 import { applyNodeFleetOnboarding, type NodeFleetApplyReceipt } from "./node-fleet-apply.js";
 // @ts-expect-error The release-tested service renderer intentionally remains plain ESM.
-import { createRuntimeServiceDefinition } from "../../../scripts/render-runtime-service.mjs";
+import { createRuntimeServiceDefinition } from "../../../scripts/distribution/render-runtime-service.mjs";
 
 export interface InstalledOrganizationNodeRolloutBinding {
   registryPath: string;

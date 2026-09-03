@@ -2,7 +2,7 @@
 
 Status: `complete`
 
-As of: 2026-09-01
+As of: 2026-09-04
 
 ## Purpose
 
@@ -44,6 +44,20 @@ external providers remain effects behind ports.
 | sync, Node, and Hub              | capability negotiation and byte-preserving transfer                                       | local approval authority              |
 | diagnostics and Hub trace        | shared projector consumption                                                              | duplicate projection logic            |
 | CLI                              | command parsing and presentation                                                          | storage imports or independent totals |
+
+Repository automation now follows the separate
+[repository script architecture](../../architecture/repository-scripts.md). The previous flat
+root, `lib`, and `test` collections are grouped by release, distribution, evaluation,
+foundation, and quality ownership. Shared script contracts have no reverse domain dependency;
+release composes distribution, and distribution depends only on shared contracts. An automated
+quality check protects path ownership, package entrypoints, relative imports, test boundaries,
+and dependency direction.
+
+The runtime-service manager, managed-provider HTTPS pilot, and lexical-v2 provider comparison
+have thin command adapters and separate implementation modules. Longer implementation modules
+remain subject to exact-content structural review. One V18 canary root executable remains as a
+digest-verified historical-evidence exception; the restructuring did not rewrite its reviewed
+bytes or the evidence-bound natural-language evaluation namespace.
 
 The new projector package is created only with its first implementation artifact. This
 roadmap does not create an empty package placeholder.

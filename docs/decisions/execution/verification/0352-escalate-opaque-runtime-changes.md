@@ -20,7 +20,7 @@ repository-authored escalation policy without creating a competing source depend
 Preserve `repository.default` through `repository.default.v3` as immutable historical evidence
 definitions. Add `.lervo/verifications/repository.default.v4.yaml`, retaining lint and type checking
 and replacing the fixed related-test command with
-`node scripts/run-changed-runtime-verification.mjs`.
+`node scripts/distribution/run-changed-runtime-verification.mjs`.
 
 The runner observes tracked, staged, modified, and untracked paths relative to `HEAD`. It uses
 NUL-delimited Git output, a 1 MiB bound per Git observation, and a maximum of 4,096 distinct paths.

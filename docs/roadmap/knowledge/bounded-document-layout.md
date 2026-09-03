@@ -40,7 +40,7 @@ Implement [ADR-0222](../../decisions/knowledge/repository/0222-bounded-role-base
 
 Observed on 2026-08-26:
 
-- `pnpm exec vitest run scripts/test/format-ownership.test.mjs` passed all three ownership tests.
+- `pnpm exec vitest run scripts/quality/test/format-ownership.test.mjs` passed all three ownership tests.
 - `pnpm format:check` passed through the repository wrapper.
 - `pnpm exec prettier --check .` reported 39 Markdown files whose bytes it would change.
 

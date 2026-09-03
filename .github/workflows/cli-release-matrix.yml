@@ -139,7 +139,7 @@ jobs:
           node-version: 22.13.0
           package-manager-cache: false
       - name: Verify exact current release notes
-        run: node scripts/check-cli-release-notes.mjs --expected-tag "${GITHUB_REF_NAME}"
+        run: node scripts/release/commands/check-cli-release-notes.mjs --expected-tag "${GITHUB_REF_NAME}"
       - name: Create or reconcile the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

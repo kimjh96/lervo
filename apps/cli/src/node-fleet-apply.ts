@@ -14,9 +14,9 @@ import {
 
 // These release-tested service primitives are bundled into the installed CLI.
 // @ts-expect-error The repository service script intentionally remains plain ESM.
-import { manageRuntimeService } from "../../../scripts/manage-runtime-service.mjs";
+import { manageRuntimeService } from "../../../scripts/distribution/manage-runtime-service.mjs";
 // @ts-expect-error The repository service script intentionally remains plain ESM.
-import { createRuntimeServiceDefinition } from "../../../scripts/render-runtime-service.mjs";
+import { createRuntimeServiceDefinition } from "../../../scripts/distribution/render-runtime-service.mjs";
 
 import {
   failNodeFleetApply as fail,

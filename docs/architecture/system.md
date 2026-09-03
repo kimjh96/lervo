@@ -123,15 +123,16 @@ Canonical ownership, sync defaults, and fail-closed recovery rules are defined i
 
 ## Package direction
 
-Contracts and schemas do not depend on provider adapters or applications. Domain packages depend on contracts; storage and provider packages implement ports; applications compose them. `scripts/check-package-boundaries.mjs` enforces this graph.
+Contracts and schemas do not depend on provider adapters or applications. Domain packages depend on contracts; storage and provider packages implement ports; applications compose them. `scripts/quality/check-package-boundaries.mjs` enforces this graph.
 
 The application contract remains a contract package, not an application
 implementation. The work controller may depend on provider-neutral contracts and
 workforce snapshots; it cannot import CLI, storage adapters, or provider adapters.
 Product applications depend inward on that boundary.
 
-## Detailed references
+## References
 
 - [Execution and evidence specification](../specifications/execution.md)
 - [Repository knowledge specification](../specs/repository-knowledge-compilation.md)
-- [Architecture decisions](../decisions/)
+- [Script layout](repository-scripts.md)
+- [Decisions](../decisions/)

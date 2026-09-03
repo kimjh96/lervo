@@ -21,7 +21,7 @@ commands:
   - commandId: repository-risk-based-tests
     executable: node
     arguments:
-      - scripts/run-changed-runtime-verification.mjs
+      - scripts/distribution/run-changed-runtime-verification.mjs
     cwd: .
     timeoutMs: 900000
     maxOutputBytes: 1048576

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_2ccd8b711db5044189bb203c"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reorganize repository automation behind owned domains and stable entrypoints."

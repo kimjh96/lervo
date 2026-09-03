@@ -12,7 +12,7 @@ import {
 } from "./node-fleet-apply-contract.js";
 
 // @ts-expect-error The repository service script intentionally remains plain ESM.
-import { manageRuntimeService } from "../../../scripts/manage-runtime-service.mjs";
+import { manageRuntimeService } from "../../../scripts/distribution/manage-runtime-service.mjs";
 
 const readyObservations = 3;
 const readyIntervalMs = 500;

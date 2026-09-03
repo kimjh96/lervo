@@ -13,7 +13,7 @@ The `verification_authored`, `pending_human_review` suite demonstrates conforman
 
 ```sh
 pnpm evaluation:grounding:run -- --json
-pnpm exec vitest run scripts/test/grounding-runner.test.mjs scripts/test/natural-language-evaluation.test.mjs
+pnpm exec vitest run scripts/evaluation/test/grounding-runner.test.mjs scripts/evaluation/test/natural-language-evaluation.test.mjs
 ```
 
 Before execution, the evaluator validates the suite. It invokes the resolver without case expectations and compares six dimensions independently; source classes and behavior collections are set-compared. The deterministic report contains only case IDs, categories, Boolean verdicts, bounded failure meanings, digests, and counts.

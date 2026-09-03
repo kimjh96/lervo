@@ -3,8 +3,8 @@ import { resolve } from "node:path";
 
 import { build } from "esbuild";
 
-import { nodeSqliteBundlePlugin } from "../../../scripts/lib/node-sqlite-bundle.mjs";
-import { normalizeGeneratedTextFile } from "../../../scripts/lib/generated-text.mjs";
+import { nodeSqliteBundlePlugin } from "../../../scripts/distribution/lib/node-sqlite-bundle.mjs";
+import { normalizeGeneratedTextFile } from "../../../scripts/quality/lib/generated-text.mjs";
 
 const cliRoot = resolve(import.meta.dirname, "..");
 const repositoryRoot = resolve(cliRoot, "../..");

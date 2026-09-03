@@ -11,7 +11,7 @@ Transition completion requires a public release, stage-only workflow, npm Truste
 
 `release:bootstrap:workflow-candidate` is read-only. Its default output is human-readable; `--json` returns metadata and `--workflow-yaml` returns exact candidate bytes. Machine modes are mutually exclusive.
 
-The reader snapshots `.github/workflows/cli-release-matrix.yml` up to 256 KiB and `package.json` up to 1 MiB, then verifies unchanged bytes. Workflow must be lossless UTF-8 LF YAML, and the manifest must be two-space JSON with a final LF. The manifest must contain the exact `release:publication:stage` script for `scripts/stage-cli-release-publication.mjs`; otherwise fail with `first_publication_workflow_activation_stage_command_missing`.
+The reader snapshots `.github/workflows/cli-release-matrix.yml` up to 256 KiB and `package.json` up to 1 MiB, then verifies unchanged bytes. Workflow must be lossless UTF-8 LF YAML, and the manifest must be two-space JSON with a final LF. The manifest must contain the exact `release:publication:stage` script for `scripts/release/commands/stage-cli-release-publication.mjs`; otherwise fail with `first_publication_workflow_activation_stage_command_missing`.
 
 The source must contain `attested-cli` and lack a publish command, `npm-release` environment, and `publish-cli` job. A YAML AST supplies only the end offset of the top-level `jobs` mapping. The generator inserts one fixed job and copies every other byte.
 

@@ -1,4 +1,4 @@
-import { workspaceCommitScopes } from "./scripts/lib/workspace-commit-scopes.mjs";
+import { workspaceCommitScopes } from "./scripts/quality/lib/workspace-commit-scopes.mjs";
 
 export default {
   extends: ["@commitlint/config-conventional"],

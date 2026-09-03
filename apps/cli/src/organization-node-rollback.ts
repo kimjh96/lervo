@@ -14,7 +14,7 @@ import {
 } from "@lervo/repository-registry";
 
 // @ts-expect-error The release-tested service renderer intentionally remains plain ESM.
-import { createRuntimeServiceDefinition } from "../../../scripts/render-runtime-service.mjs";
+import { createRuntimeServiceDefinition } from "../../../scripts/distribution/render-runtime-service.mjs";
 import { applyNodeFleetRollback, type NodeFleetRollbackReceipt } from "./node-fleet-rollback.js";
 import {
   inspectOrganizationRolloutExecutable,
