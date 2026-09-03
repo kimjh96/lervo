@@ -79,7 +79,7 @@ export async function runImprovementEffectCommand(
         request: parseLocalImprovementObservationRequest(
           await readRequest<ImprovementObservationCollectionRequestV1>(requestPath),
         ),
-        host: services.createLocalImprovementObservationHost({ repositoryRoot }),
+        host: await services.createLocalImprovementObservationHost({ repositoryRoot }),
       });
       io.stdout(
         parsed.values.json
@@ -97,7 +97,7 @@ export async function runImprovementEffectCommand(
         "Effect routing requires register or observe, a request, and paired apply/write fields.",
       );
     const localHost = localEvents
-      ? services.createLocalImprovementObservationHost?.({ repositoryRoot })
+      ? await services.createLocalImprovementObservationHost?.({ repositoryRoot })
       : undefined;
     if (localEvents && localHost === undefined)
       throw new Error("The local improvement observation host is unavailable.");

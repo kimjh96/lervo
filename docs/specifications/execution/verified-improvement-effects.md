@@ -103,9 +103,10 @@ abstention, and unknown-adapter rejection. Storage scanning, metric projection, 
 CLI composition, and canonical protocol persistence remain separate responsibilities.
 
 The CLI host keeps adapter construction, collection orchestration, rendering, command parsing,
-canonical routing, and storage separate. `--local-events` grants observation authority only to that
-invocation. Without it, collection fails before storage access and register or observe apply retains
-the existing no-adapter failure. No background observation or implicit fallback is enabled.
+canonical routing, and storage separate. It loads the local adapter lazily only after
+`--local-events` grants observation authority to that invocation. Without the flag, collection
+fails before storage access and register or observe apply retains the existing no-adapter failure.
+No background observation or implicit fallback is enabled.
 
 ## Privacy
 

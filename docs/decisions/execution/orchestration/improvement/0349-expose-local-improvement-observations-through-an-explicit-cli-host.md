@@ -13,8 +13,8 @@ boundary between ordinary planning and repository-event observation.
 
 ## Decision
 
-Package the private local observation adapter in the CLI artifact and activate it only for an
-individual command carrying `--local-events`. Add a read-only `knowledge pattern effect collect`
+Package the private local observation adapter in the CLI artifact and load and activate it only for
+an individual command carrying `--local-events`. Add a read-only `knowledge pattern effect collect`
 action that accepts one version-1 collection document and returns the exact adapter descriptor,
 requested phase, pattern, window and metrics, verified observations, and explicit unavailable
 results. The report states `attribution: unestablished` and `canonicalMutation: none`.

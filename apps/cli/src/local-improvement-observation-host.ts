@@ -15,7 +15,7 @@ export interface LocalImprovementObservationHostV1 {
 
 export type CreateLocalImprovementObservationHost = (input: {
   repositoryRoot: string;
-}) => LocalImprovementObservationHostV1;
+}) => LocalImprovementObservationHostV1 | Promise<LocalImprovementObservationHostV1>;
 
 export const createLocalImprovementObservationHost: CreateLocalImprovementObservationHost = ({
   repositoryRoot,

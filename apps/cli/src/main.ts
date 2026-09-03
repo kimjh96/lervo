@@ -23,7 +23,6 @@ import {
 } from "./assignment-connector-command.js";
 import { runInitCommand, initUsage } from "./init-command.js";
 import { runLoopCommand, loopUsage } from "./loop-command.js";
-import { createLocalImprovementObservationHost } from "./local-improvement-observation-host.js";
 import { executeManagedRun } from "./managed-run.js";
 import { executeManagedDeliberation } from "./managed-deliberation.js";
 import { environmentUsage, runEnvironmentCommand } from "./environment-command.js";
@@ -95,7 +94,11 @@ const defaultServices: CliServices = {
   finalizeGovernedAssignment,
   reconcileGovernedAssignment,
   prepareSearchQueries: prepareProductionSearchQueries,
-  createLocalImprovementObservationHost,
+  createLocalImprovementObservationHost: async (input) => {
+    const { createLocalImprovementObservationHost } =
+      await import("./local-improvement-observation-host.js");
+    return createLocalImprovementObservationHost(input);
+  },
 };
 
 export async function runCli(
