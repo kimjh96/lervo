@@ -1,4 +1,4 @@
-import { chmod, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -24,6 +24,25 @@ async function fixture() {
 }
 
 describe("runtime service definition renderer", () => {
+  it("writes a newly rendered service definition with owner-only permissions", async () => {
+    if (process.platform === "win32") return;
+    const value = await fixture();
+    const output = resolve(value.root, "owner-only.service");
+    await renderRuntimeService([
+      "--manager",
+      "systemd",
+      "--runtime",
+      "hub",
+      "--executable",
+      value.executable,
+      "--config",
+      value.config,
+      "--output",
+      output,
+    ]);
+    expect((await stat(output)).mode & 0o777).toBe(0o600);
+  });
+
   it("creates a non-overwriting systemd unit with reload and graceful shutdown contracts", async () => {
     const value = await fixture();
     const output = resolve(value.root, "lervo-hub.service");
