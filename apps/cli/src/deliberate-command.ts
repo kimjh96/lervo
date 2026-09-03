@@ -1,7 +1,7 @@
-import { readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
+import { resolveAutomaticVerificationSuite } from "./automatic-verification-suite.js";
 import type { ManagedDeliberationOutcome } from "./managed-deliberation.js";
 import type { RunProvider } from "./managed-run.js";
 import type { CliIo, CliServices } from "./types.js";
@@ -113,38 +113,6 @@ function errorCode(error: unknown): string {
   return typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(code)
     ? code
     : "deliberation_failed";
-}
-
-async function automaticVerificationSuite(repositoryRoot: string): Promise<string> {
-  let entries;
-  try {
-    entries = await readdir(resolve(repositoryRoot, ".lervo/verifications"), {
-      withFileTypes: true,
-    });
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    throw Object.assign(
-      new Error(
-        "Automatic deliberation has no configured verification suite. Add .lervo/verifications/repository.default.yaml or pass an explicit configured suite; provider execution has not started.",
-      ),
-      { code: "deliberation_verification_unconfigured" },
-    );
-  }
-  const suiteIds = entries
-    .filter((entry) => entry.isFile() && !entry.isSymbolicLink() && entry.name.endsWith(".yaml"))
-    .map((entry) => entry.name.slice(0, -".yaml".length))
-    .filter((suiteId) => /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(suiteId));
-  if (suiteIds.includes("repository.default")) return "repository.default";
-  const nonPilot = suiteIds.filter((suiteId) => !suiteId.startsWith("lervo.pilot."));
-  if (nonPilot.length === 1) return nonPilot[0]!;
-  throw Object.assign(
-    new Error(
-      "Automatic deliberation requires a repository.default verification suite or exactly one non-pilot suite.",
-    ),
-    {
-      code: "deliberation_verification_ambiguous",
-    },
-  );
 }
 
 function reason(outcome: ManagedDeliberationOutcome): string {
@@ -269,7 +237,7 @@ export async function runDeliberateCommand(
               repositoryRoot,
               proposerProvider: caller as RunProvider,
               reviewerProvider: (caller === "codex" ? "claude" : "codex") as RunProvider,
-              verificationSuiteIds: [await automaticVerificationSuite(repositoryRoot)],
+              verificationSuiteIds: [await resolveAutomaticVerificationSuite(repositoryRoot)],
               topic,
             }
           : storedPolicyMode

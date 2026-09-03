@@ -44,9 +44,16 @@ before commit `761c945`.
 
 This does not invalidate the registered rate: the event truthfully reports the configured suite's
 result. It does show that `verification_success` is a proxy for that exact suite, not proof of task
-correctness. Expanding changed-file-aware JavaScript verification is therefore a separate
+correctness. Expanding JavaScript verification is therefore a separate
 foundation improvement candidate. It must version the suite and evaluation design rather than
 retroactively changing either observation window.
+
+After this pilot closed, ADR-0350 preserved `repository.default` for historical revalidation and
+added `repository.default.v2` with repository ESLint before type checking. The measured lint
+command rejects the observed unresolved JavaScript identifier and completed in 0.56 seconds with
+the existing local cache. Future automatic deliberation prefers the highest versioned default;
+explicit managed runs must name version 2. This does not alter the baseline, treatment, or
+comparison above. Runtime-focused tests remain a separate and stronger verification layer.
 
 ## References
 
@@ -54,3 +61,4 @@ retroactively changing either observation window.
 - [Verified improvement effects](../../specifications/execution/verified-improvement-effects.md)
 - [Repository development-pattern lifecycle](../../specs/repository-development-pattern-lifecycle.md)
 - [Governed loop and assignment graph](../../roadmap/governed-loop-assignment-graph.md)
+- [ADR-0350](../../decisions/execution/verification/0350-version-default-repository-static-verification.md)

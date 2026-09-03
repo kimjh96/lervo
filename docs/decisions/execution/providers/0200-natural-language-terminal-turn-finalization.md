@@ -24,7 +24,7 @@ An unchanged turn may complete without creating or advancing a workstream and wi
 
 `terminal.turn.declared` stores only an opaque declaration and context event ID, repository revision, task mode, canonicalization disposition, knowledge disposition, deliberation disposition and optional deliberation ID, and time. It stores no prompt, response, summary, path, document body, credential, or raw provider coordinate. The declaration is explicitly an unmanaged agent claim. Repository revision, knowledge lifecycle, workstream state, and deliberation completion are checked independently; internal reasoning remains unsupported.
 
-Injected context supplies exact provider-specific bookkeeping commands and bounded enum values. Users are never asked to run them. When task-level deliberation is requested, `lervo deliberate --auto --caller <provider>` selects `repository.default`, or exactly one non-pilot verification suite, and runs the existing managed two-provider workflow.
+Injected context supplies exact provider-specific bookkeeping commands and bounded enum values. Users are never asked to run them. When task-level deliberation is requested, `lervo deliberate --auto --caller <provider>` selects the highest versioned `repository.default.vN` suite, the historical unversioned default, or exactly one non-pilot suite, in that order, and runs the existing managed two-provider workflow.
 
 Current workstream snapshots may contain bounded `pendingDecisions` and `pendingApprovals`. They are unresolved current items, not an append-only decision log. A later agent treats a natural-language user reply as resolution input, removes the pending item after authorized application, and promotes durable outcomes to canonical documentation.
 
