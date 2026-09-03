@@ -211,6 +211,15 @@ routes:
       - event store
       - cas
       - cleanup
+  - id: execution.applications
+    path: execution/applications
+    priority: 57
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - product host
+      - application protocol
+      - application boundary
+      - operating client
   - id: execution.providers
     path: execution/providers
     priority: 53

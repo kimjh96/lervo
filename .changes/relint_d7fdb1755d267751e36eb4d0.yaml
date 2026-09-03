@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d7fdb1755d267751e36eb4d0"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Expose a versioned packed product-host protocol."

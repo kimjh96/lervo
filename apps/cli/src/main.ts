@@ -1,5 +1,6 @@
 import { openProjectStorage } from "@lervo/project-storage";
 
+import { applicationUsage, runApplicationCommand } from "./application-command.js";
 import { doctorUsage, runDoctorCommand } from "./doctor-command.js";
 import { capabilityUsage, runCapabilityCommand } from "./capability-command.js";
 import { deliberateUsage, runDeliberateCommand } from "./deliberate-command.js";
@@ -57,6 +58,7 @@ ${initUsage}
 ${upgradeUsage}
 ${migrateUsage}
 ${knowledgeUsage}
+${applicationUsage}
 ${loopUsage}
 ${runUsage}
 ${deliberateUsage}
@@ -119,6 +121,7 @@ export async function runCli(
   if (command === "upgrade") return runUpgradeCommand(args.slice(1), io);
   if (command === "migrate") return runMigrateCommand(args.slice(1), io);
   if (command === "knowledge") return runKnowledgeCommand(args.slice(1), io, services);
+  if (command === "application") return runApplicationCommand(args.slice(1), io);
   if (command === "loop") return runLoopCommand(args.slice(1), io, services);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);
   if (command === "deliberate") return runDeliberateCommand(args.slice(1), io, services);

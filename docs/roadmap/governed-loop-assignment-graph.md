@@ -1,6 +1,6 @@
 # Governed loop and assignment graph
 
-Status: `active`
+Status: `complete`
 
 As of: 2026-09-03
 
@@ -298,6 +298,26 @@ installed host path, and packed CLI inclusion. Quality, type, package-boundary, 
 documentation and knowledge lifecycle, foundation checks, and task-base release completion must
 pass with reviewed minor release intent.
 
+## GLA14: Packed product-host protocol
+
+GLA14 exposes one versioned, effect-free capability report through
+`lervo application capabilities --json`. It inventories the existing workforce, operating, and
+collaboration routes; names their result contracts, output forms, effects, authority, and
+availability; and declares product UI, product databases, unattended scheduling, dynamic graph
+mutation, implicit approval, and unmanaged terminal execution unsupported.
+
+The protocol uses the sole public `@lervo/cli` artifact rather than prematurely publishing the
+workspace-private application packages. Its packed external-consumer fixture imports no workspace
+package, creates one local agent, workstream, and assignment through CLI commands, and reads the
+objective, graph, budget, thread, inbox, and static board without a Hub, provider, or connector
+effect. Existing domain commands remain the only policy and mutation owners.
+
+GLA14 is accepted when focused tests prove deterministic discovery, effect and authority
+classification, connector adapter requirements, and explicit non-capabilities; the real packed
+consumer proves the local product-host journey and absence of private-package installation; and
+quality, type, package-boundary, build, full tests, documentation and knowledge lifecycle,
+foundation checks, and task-base release completion pass with reviewed minor release intent.
+
 ## Non-goals
 
 - unattended or timer-based scheduling;
@@ -317,7 +337,7 @@ canonical store. Quality, type, package-boundary, build, relevant full tests,
 documentation lifecycle, and task-base release-completion checks must pass with reviewed
 minor release intent.
 
-## Next sequence
+## Conditional future sequence
 
 1. Add a second connector only when a current product needs it, reusing shared conformance while
    keeping provider-native credential, destination, receipt, and recovery semantics in its adapter.
@@ -341,6 +361,7 @@ minor release intent.
 - [ADR-0348](../decisions/execution/orchestration/improvement/0348-measure-exact-repeated-verification-failures.md)
 - [ADR-0349](../decisions/execution/orchestration/improvement/0349-expose-local-improvement-observations-through-an-explicit-cli-host.md)
 - [ADR-0354](../decisions/operations/trace/0354-enforce-scope-complete-resource-and-terminal-budgets.md)
+- [ADR-0355](../decisions/execution/applications/0355-expose-versioned-packed-product-host-protocol.md)
 - [Assignment interaction specification](../specifications/execution/assignment-interactions.md)
 - [Assignment connector specification](../specifications/execution/assignment-connectors.md)
 - [Assignment routine specification](../specifications/execution/assignment-routines.md)

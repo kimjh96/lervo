@@ -66,6 +66,8 @@ Use `lervo knowledge export okf` and `lervo knowledge import okf` for OKF v0.2 b
 
 `lervo run` keeps document and knowledge searches separate. Selected sources require current-byte validation and adapter delivery receipts; later use is not inferred.
 
+External products discover the no-Hub boundary with `lervo application capabilities --json`. It grants no UI, database, scheduling, approval, provider, or connector authority.
+
 Configure a provider and tracked suite under `.lervo/verifications/`, then use the one-file managed boundary:
 
 ```sh

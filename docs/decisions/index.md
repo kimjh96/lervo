@@ -6,6 +6,7 @@ Lervo groups decisions by bounded semantic domain. Numeric ADR prefixes remain s
 
 - [Foundation](foundation/)
 - [Execution orchestration](execution/orchestration/)
+- [Execution applications](execution/applications/)
 - [Managed providers](execution/providers/)
 - [Execution verification](execution/verification/)
 - [Knowledge documents](knowledge/documents/)

@@ -7,7 +7,7 @@ Lervo is a local-first operating layer for durable, inspectable AI-assisted repo
 - Managed Codex and Claude runs with explicit lifecycle evidence.
 - Bounded knowledge from repository documents, instructions, code, configuration, schemas, tests, verification, and other sources.
 - Read-only plans, repository-scoped decisions, exact approvals, durable apply, rollback, lint, and query workflows.
-- Generated knowledge maps, provider-neutral `AGENTS.md`, Claude's `@AGENTS.md` bridge, and optional authenticated Hub/node coordination.
+- Generated knowledge maps, provider-neutral instructions, a product-host protocol, and optional Hub/node coordination.
 
 Discovery, selection, loading, injection, reference, and use are distinct; Lervo claims only what telemetry proves.
 
