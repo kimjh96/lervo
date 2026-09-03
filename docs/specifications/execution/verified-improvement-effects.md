@@ -1,7 +1,7 @@
 # Verified improvement effects
 
 Status: `active`
-As of: 2026-09-02
+As of: 2026-09-03
 
 This specification defines privacy-bounded post-promotion observation for reviewed development
 patterns. It measures observable repository outcomes. It does not update model weights, prove
@@ -21,13 +21,25 @@ semantic correctness, establish causation, or authorize automatic rollback.
    after promotion. Exact apply re-verifies the treatment, stores the comparison in CAS, and appends
    `development.pattern.effect.observed`.
 
-The stock CLI can plan from bounded JSON but has no observation-verification authority. A host must
-inject `ImprovementObservationPortV1`; provider-native queries, credentials, samples, and raw
-evidence remain adapter-private.
+The stock CLI can plan from bounded JSON without observation authority. Its local host is activated
+only when an individual command carries `--local-events`; an embedding host may instead inject
+`ImprovementObservationPortV1`. Provider-native queries, credentials, samples, and raw evidence
+remain adapter-private.
 
 An authorized host may separately use `ImprovementObservationCollectorV1` to prepare a request.
 Collection is not canonical apply authority: register and observe still re-inspect the narrower
 verification port and reproduce the exact observation before writing CAS or an event.
+
+The installed CLI exposes that preparation as `knowledge pattern effect collect --local-events`.
+Its version-1 input names the phase, pattern, inclusive window, and requested metric IDs. Output
+binds those coordinates to the inspected adapter descriptor, observations, and explicit unavailable
+results, and states `attribution: unestablished` and `canonicalMutation: none`. The output is
+ephemeral and can be used to prepare the existing baseline or treatment request; it is not a
+protocol, comparison, approval, or success event.
+
+The same flag on register or observe supplies the local verification port only. Plan creation does
+not need the flag. Apply continues to require the exact plan ID and `--write`, then reopens local
+event evidence and reproduces the reviewed counts and receipts before any canonical mutation.
 
 ## Metric policy and claims
 
@@ -90,6 +102,11 @@ round-trip verification, count, phase, pattern, and window drift rejection, unsu
 abstention, and unknown-adapter rejection. Storage scanning, metric projection, receipt binding,
 CLI composition, and canonical protocol persistence remain separate responsibilities.
 
+The CLI host keeps adapter construction, collection orchestration, rendering, command parsing,
+canonical routing, and storage separate. `--local-events` grants observation authority only to that
+invocation. Without it, collection fails before storage access and register or observe apply retains
+the existing no-adapter failure. No background observation or implicit fallback is enabled.
+
 ## Privacy
 
 Events retain only opaque pattern, protocol, comparison, event, plan, artifact, adapter, metric,
@@ -105,3 +122,4 @@ in local CAS; adapter-native evidence stays behind the port.
 - [ADR-0345](../../decisions/execution/orchestration/0345-observe-reviewed-improvement-effects-without-self-learning-claims.md)
 - [ADR-0346](../../decisions/execution/orchestration/0346-measure-improvement-effects-from-bounded-local-events.md)
 - [ADR-0348](../../decisions/execution/orchestration/improvement/0348-measure-exact-repeated-verification-failures.md)
+- [ADR-0349](../../decisions/execution/orchestration/improvement/0349-expose-local-improvement-observations-through-an-explicit-cli-host.md)

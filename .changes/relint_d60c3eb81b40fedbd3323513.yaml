@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d60c3eb81b40fedbd3323513"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add explicit local-event collection and verification for reviewed improvement effects."

@@ -5,13 +5,20 @@ import { parseArgs } from "node:util";
 import type {
   ImprovementEffectObservationRequestV1,
   ImprovementEvaluationProtocolRequestV1,
+  ImprovementObservationCollectionRequestV1,
 } from "@lervo/application-contract";
 
 import { routeImprovementEffect, routeImprovementProtocol } from "./improvement-effect-routing.js";
+import {
+  collectLocalImprovementObservations,
+  parseLocalImprovementObservationRequest,
+} from "./improvement-observation-collection.js";
+import { formatLocalImprovementObservationReport } from "./improvement-observation-format.js";
 import type { CliIo, CliServices } from "./types.js";
 
-export const improvementEffectUsage = `  lervo knowledge pattern effect register --from <protocol.json> [--apply <plan-id> --write] [--root <path>] [--json]
-  lervo knowledge pattern effect observe --from <observation.json> [--apply <plan-id> --write] [--root <path>] [--json]`;
+export const improvementEffectUsage = `  lervo knowledge pattern effect collect --from <collection.json> --local-events [--root <path>] [--json]
+  lervo knowledge pattern effect register --from <protocol.json> [--local-events] [--apply <plan-id> --write] [--root <path>] [--json]
+  lervo knowledge pattern effect observe --from <observation.json> [--local-events] [--apply <plan-id> --write] [--root <path>] [--json]`;
 
 async function readRequest<T>(path: string): Promise<T> {
   const content = await readFile(path, "utf8");
@@ -27,7 +34,10 @@ async function readRequest<T>(path: string): Promise<T> {
 export async function runImprovementEffectCommand(
   args: string[],
   io: CliIo,
-  services: Pick<CliServices, "improvementObservationPort"> = {},
+  services: Pick<
+    CliServices,
+    "createLocalImprovementObservationHost" | "improvementObservationPort"
+  > = {},
 ): Promise<number> {
   try {
     const action = args[0];
@@ -42,28 +52,61 @@ export async function runImprovementEffectCommand(
         root: { type: "string" },
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
+        "local-events": { type: "boolean" },
       },
     });
     if (parsed.values.help) {
       io.stdout(`${improvementEffectUsage}\n`);
       return 0;
     }
+    const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    const requestPath =
+      parsed.values.from === undefined ? undefined : resolve(io.cwd, parsed.values.from);
+    const localEvents = parsed.values["local-events"] ?? false;
+    if (action === "collect") {
+      if (
+        requestPath === undefined ||
+        !localEvents ||
+        parsed.values.apply !== undefined ||
+        (parsed.values.write ?? false)
+      )
+        throw new Error(
+          "Collection requires a request and --local-events, and does not accept apply/write fields.",
+        );
+      if (services.createLocalImprovementObservationHost === undefined)
+        throw new Error("The local improvement observation host is unavailable.");
+      const report = await collectLocalImprovementObservations({
+        request: parseLocalImprovementObservationRequest(
+          await readRequest<ImprovementObservationCollectionRequestV1>(requestPath),
+        ),
+        host: services.createLocalImprovementObservationHost({ repositoryRoot }),
+      });
+      io.stdout(
+        parsed.values.json
+          ? `${JSON.stringify(report, null, 2)}\n`
+          : formatLocalImprovementObservationReport(report),
+      );
+      return 0;
+    }
     if (
       !["register", "observe"].includes(action ?? "") ||
-      parsed.values.from === undefined ||
+      requestPath === undefined ||
       (parsed.values.apply === undefined) !== !(parsed.values.write ?? false)
     )
       throw new Error(
         "Effect routing requires register or observe, a request, and paired apply/write fields.",
       );
+    const localHost = localEvents
+      ? services.createLocalImprovementObservationHost?.({ repositoryRoot })
+      : undefined;
+    if (localEvents && localHost === undefined)
+      throw new Error("The local improvement observation host is unavailable.");
+    const observer = localHost?.verifier ?? services.improvementObservationPort;
     const common = {
-      repositoryRoot: resolve(io.cwd, parsed.values.root ?? "."),
+      repositoryRoot,
       ...(parsed.values.apply === undefined ? {} : { applyPlanId: parsed.values.apply }),
-      ...(services.improvementObservationPort === undefined
-        ? {}
-        : { observer: services.improvementObservationPort }),
+      ...(observer === undefined ? {} : { observer }),
     };
-    const requestPath = resolve(io.cwd, parsed.values.from);
     const result =
       action === "register"
         ? await routeImprovementProtocol({

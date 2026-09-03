@@ -58,6 +58,7 @@
       "@lervo/execution-observability@0.1.0",
       "@lervo/hub-sync@0.1.0",
       "@lervo/identity-migration@0.1.0",
+      "@lervo/improvement-observation-local@0.1.0",
       "@lervo/knowledge-okf@0.1.0",
       "@lervo/knowledge@0.1.0",
       "@lervo/managed-provider-host@0.1.0",
@@ -138,7 +139,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:082716dcc01337e0d0bdc27c823e4db91bcab18d959bc81ad0769d6ebeea39d0"
+    "bundleDigest": "sha256:be7c58aa6490358da7acb88dda6570ef63af112d11b90da0c1ce6cc3d6ffed12"
   },
   "archive": {
     "rootFiles": [
@@ -147,13 +148,13 @@
     "files": [
       {
         "path": "README.md",
-        "size": 3916,
-        "sha256": "sha256:5f95f6f71b1dd9939a9fa540d0c06c25474368d18df0c1259d7e03037a452c3c"
+        "size": 5158,
+        "sha256": "sha256:8c755eb780693b3971a2f746ad71f38d5e2a14eba977a174c9d6d30ec8eadfdf"
       },
       {
         "path": "dist/bin.js",
-        "size": 5157983,
-        "sha256": "sha256:63c835776f58061e3c28c7ffe8d403a02b3693a27916988afe48aa20012df6f0"
+        "size": 5178002,
+        "sha256": "sha256:93673a4e17be98f869ca603a973a39f1b66f7722bdda87394391becb7e34ea68"
       },
       {
         "path": "dist/node-runtime.js",
@@ -167,7 +168,7 @@
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:77a0bd75dce92c6ac2f58471cc51abe098cec3556afea144a48e8f9e5f9e0731"
+    "contentDigest": "sha256:fcc3ccfef5b38c28a2753b10a317260d32010e6ad1099c6c0331b044d7308346"
   },
   "dependencies": {
     "portable": [
@@ -280,5 +281,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:46dcfa12545387db750c164821c7cd5263b5d73b458c63871ba09bc8f4f7fc99"
+  "artifactDigest": "sha256:5bc96bfb16a8c46a05946545881de4e3dffe573cf68caa69d0b701aa79a52676"
 }

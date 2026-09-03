@@ -29,7 +29,10 @@ export { knowledgeUsage } from "./knowledge-usage.js";
 export async function runKnowledgeCommand(
   args: string[],
   io: CliIo,
-  services: Pick<CliServices, "improvementObservationPort"> = {},
+  services: Pick<
+    CliServices,
+    "createLocalImprovementObservationHost" | "improvementObservationPort"
+  > = {},
 ): Promise<number> {
   const subcommand = args[0];
   if (subcommand === "export" || subcommand === "import" || subcommand === "okf")

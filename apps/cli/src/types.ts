@@ -19,6 +19,7 @@ import type {
   PrepareProductionSearchQueries,
   ProjectProductionSearchQueries,
 } from "./provider-query-projector.js";
+import type { CreateLocalImprovementObservationHost } from "./local-improvement-observation-host.js";
 
 export interface CliIo {
   cwd: string;
@@ -51,6 +52,7 @@ export interface CliServices {
   prepareSearchQueries?: PrepareProductionSearchQueries | undefined;
   assignmentConnectorPort?: AssignmentConnectorPortV1 | undefined;
   improvementObservationPort?: ImprovementObservationPortV1 | undefined;
+  createLocalImprovementObservationHost?: CreateLocalImprovementObservationHost | undefined;
 }
 
 export type CliServiceOverrides = Partial<CliServices>;

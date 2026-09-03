@@ -2,7 +2,7 @@
 
 Status: `accepted input`
 
-As of: 2026-09-02
+As of: 2026-09-03
 
 ## Objective
 
@@ -54,6 +54,11 @@ of a suite/non-passed-command signature from bounded canonical events. It preser
 platform boundary: products may present the observation, while raw evidence, attribution limits,
 review authority, and canonical mutation remain governed by Lervo contracts. Signature recurrence
 is not presented as root-cause identity or autonomous model learning.
+
+The installed CLI now serves as the first explicit local observation host. A per-command
+`--local-events` grant can collect the two metrics or reverify an exact register or observe apply;
+ordinary planning and all other commands retain no implicit measurement authority. Collection
+output is ephemeral and declares both unestablished attribution and no canonical mutation.
 
 Lervo should supply a minimal local reference surface for workstreams, graphs, blockers,
 approvals, verification, traces, and improvement candidates. It should not reproduce

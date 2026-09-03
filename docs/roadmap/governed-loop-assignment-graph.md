@@ -2,7 +2,7 @@
 
 Status: `active`
 
-As of: 2026-09-02
+As of: 2026-09-03
 
 ## Goal
 
@@ -271,6 +271,27 @@ Quality, type, package-boundary, build, full tests, documentation and knowledge 
 foundation checks, and task-base release completion must pass. Release intent is required only when
 an embedding product adds this private adapter to a published artifact closure.
 
+## GLA13: Explicit local improvement observation host
+
+GLA13 packages the private local observation adapter in the installed CLI while preserving
+per-command authority. `knowledge pattern effect collect --local-events` reads a version-1 bounded
+request and emits the adapter descriptor, exact request coordinates, both supported observations,
+explicit unavailable results, unestablished attribution, and a declaration that no canonical state
+changed. Without the flag, collection fails before event-storage access.
+
+The same flag supplies the local verifier to existing register and observe apply operations. It does
+not replace the exact plan ID or `--write`; apply still re-observes the reviewed window before CAS or
+event mutation. Adapter composition, collection, rendering, command parsing, canonical routing, and
+storage remain separate. No metric, event, state store, background observer, provider authority,
+automatic promotion, rollback, or model-learning claim is added.
+
+GLA13 is accepted when focused tests prove versioned collection, explicit authority, exact
+descriptor and two-metric output, unavailable propagation, no-mutation reporting, text rendering,
+default no-authority behavior, full baseline-to-promotion-to-treatment comparison through the
+installed host path, and packed CLI inclusion. Quality, type, package-boundary, build, full tests,
+documentation and knowledge lifecycle, foundation checks, and task-base release completion must
+pass with reviewed minor release intent.
+
 ## Non-goals
 
 - unattended or timer-based scheduling;
@@ -312,6 +333,7 @@ minor release intent.
 - [ADR-0346](../decisions/execution/orchestration/0346-measure-improvement-effects-from-bounded-local-events.md)
 - [ADR-0347](../decisions/execution/orchestration/0347-deliver-assignments-through-a-production-slack-connector.md)
 - [ADR-0348](../decisions/execution/orchestration/improvement/0348-measure-exact-repeated-verification-failures.md)
+- [ADR-0349](../decisions/execution/orchestration/improvement/0349-expose-local-improvement-observations-through-an-explicit-cli-host.md)
 - [Assignment interaction specification](../specifications/execution/assignment-interactions.md)
 - [Assignment connector specification](../specifications/execution/assignment-connectors.md)
 - [Assignment routine specification](../specifications/execution/assignment-routines.md)

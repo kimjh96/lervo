@@ -1,84 +1,21 @@
-import { randomBytes } from "node:crypto";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { createProjectStorageImprovementObservationAdapter } from "@lervo/improvement-observation-local";
-import { openProjectStorage } from "@lervo/project-storage";
 import {
   canonicalJson,
   scanConfiguredRepositoryKnowledge,
   sha256,
 } from "@lervo/repository-knowledge";
-import { loadVerificationSuite, runVerificationSuite } from "@lervo/verification";
 import { afterEach, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
+import { appendLocalVerificationEvidence } from "./improvement-effect-local-fixture.js";
 
 const roots: string[] = [];
 afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
 );
-
-async function appendVerificationEvidence(input: {
-  root: string;
-  statuses: Array<"passed" | "failed">;
-  startedAt: number;
-}): Promise<{ startedAt: string; endedAt: string }> {
-  const storage = await openProjectStorage(input.root);
-  const completed: string[] = [];
-  try {
-    const suite = await loadVerificationSuite(input.root, "observation.fixture");
-    for (const [index, status] of input.statuses.entries()) {
-      let clock = input.startedAt + index * 10;
-      const repositoryRevision = sha256(`revision ${index} ${input.startedAt}`);
-      const verification = await runVerificationSuite(
-        {
-          repositoryRoot: input.root,
-          repositoryRevision,
-          suite,
-          artifactStore: storage.artifacts,
-          captureRepositoryRevision: async () => repositoryRevision,
-        },
-        {
-          now: () => new Date(clock++),
-          environment: { ...process.env, OBSERVATION_FAIL: status === "failed" ? "1" : "0" },
-        },
-      );
-      const identity = randomBytes(8).toString("hex");
-      completed.push(verification.result.completedAt);
-      storage.events.append({
-        eventId: `evt_${identity}`,
-        projectId: storage.manifest.projectId,
-        runId: `run_${identity}`,
-        sessionId: `ses_${identity}`,
-        type: "verification.completed",
-        occurredAt: verification.result.completedAt,
-        actor: { kind: "system" },
-        schemaVersion: 1,
-        policyVersion: sha256(`policy ${identity}`),
-        payload: {
-          verificationId: verification.result.verificationId,
-          suiteId: verification.result.suiteId,
-          suiteHash: verification.result.suiteHash,
-          repositoryRevision: verification.result.repositoryRevision,
-          status: verification.result.status,
-          resultArtifactId: verification.resultArtifact.artifactId,
-          resultContentHash: verification.resultArtifact.contentHash,
-          nonPassedCommandIds: verification.result.commands
-            .filter((command) => command.status !== "passed")
-            .map((command) => command.commandId),
-        },
-      });
-    }
-  } finally {
-    await storage.close();
-  }
-  return {
-    startedAt: completed[0]!,
-    endedAt: completed.at(-1)!,
-  };
-}
 
 it("dogfoods local verification telemetry through explicit CLI host injection", async () => {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-local-improvement-observer-"));
@@ -178,20 +115,71 @@ it("dogfoods local verification telemetry through explicit CLI host injection", 
   ).toBe(0);
   const reviewContentHash = (JSON.parse(output.pop()!) as { reviewContentHash: string })
     .reviewContentHash;
-  const adapter = createProjectStorageImprovementObservationAdapter({ repositoryRoot: root });
-  const baselineWindow = await appendVerificationEvidence({
+  const baselineWindow = await appendLocalVerificationEvidence({
     root,
     statuses: [...Array<"passed">(8).fill("passed"), ...Array<"failed">(4).fill("failed")],
     startedAt: Date.now() - 60_000,
   });
-  const descriptor = await adapter.inspect("iobs_lervo_local_events");
-  const baseline = await adapter.collect({
-    phase: "baseline",
-    patternId: pattern.patternId,
-    window: baselineWindow,
-    metricIds: ["verification_success", "repeated_failure"],
+  const baselineCollectionPath = resolve(inputDirectory, "baseline-collection.json");
+  await writeFile(
+    baselineCollectionPath,
+    `${JSON.stringify({
+      schemaVersion: 1,
+      phase: "baseline",
+      patternId: pattern.patternId,
+      window: baselineWindow,
+      metricIds: ["verification_success", "repeated_failure"],
+    })}\n`,
+  );
+  expect(
+    await runCli(
+      ["knowledge", "pattern", "effect", "collect", "--from", baselineCollectionPath, "--json"],
+      io,
+    ),
+  ).toBe(1);
+  expect(errors.pop()).toContain("Collection requires a request and --local-events");
+  expect(
+    await runCli(
+      [
+        "knowledge",
+        "pattern",
+        "effect",
+        "collect",
+        "--from",
+        baselineCollectionPath,
+        "--local-events",
+        "--json",
+      ],
+      io,
+    ),
+  ).toBe(0);
+  const baseline = JSON.parse(output.pop()!) as {
+    adapter: {
+      schemaVersion: 1;
+      adapterId: string;
+      adapterVersion: string;
+      descriptorHash: string;
+      availability: "available";
+      authentication: "adapter_verified";
+      rawEvidence: "adapter_private";
+      capabilities: ["rate_observation.verify"];
+    };
+    observations: Array<{
+      metricId: "verification_success" | "repeated_failure";
+      numerator: number;
+      denominator: number;
+      evidenceSetHash: string;
+      observationReceiptHash: string;
+    }>;
+    unavailable: unknown[];
+    canonicalMutation: string;
+  };
+  expect(baseline).toMatchObject({
+    unavailable: [],
+    canonicalMutation: "none",
   });
-  expect(baseline.unavailable).toEqual([]);
+  const descriptor = baseline.adapter;
+  const baselineObservations = baseline.observations;
   const registeredAt = new Date().toISOString();
   const protocol = {
     schemaVersion: 1 as const,
@@ -202,7 +190,7 @@ it("dogfoods local verification telemetry through explicit CLI host injection", 
     requestDigest: sha256(canonicalJson({ purpose: "local baseline" })),
     adapter: descriptor,
     baselineWindow,
-    baseline: baseline.observations,
+    baseline: baselineObservations,
     registeredAt,
   };
   const protocolPath = resolve(inputDirectory, "protocol.json");
@@ -211,7 +199,6 @@ it("dogfoods local verification telemetry through explicit CLI host injection", 
     await runCli(
       ["knowledge", "pattern", "effect", "register", "--from", protocolPath, "--json"],
       io,
-      { improvementObservationPort: adapter },
     ),
   ).toBe(0);
   const protocolPlan = JSON.parse(output.pop()!) as {
@@ -229,9 +216,9 @@ it("dogfoods local verification telemetry through explicit CLI host injection", 
         "--apply",
         protocolPlan.plan.planId,
         "--write",
+        "--local-events",
       ],
       io,
-      { improvementObservationPort: adapter },
     ),
   ).toBe(0);
 
@@ -256,17 +243,43 @@ it("dogfoods local verification telemetry through explicit CLI host injection", 
       io,
     ),
   ).toBe(0);
-  const treatmentWindow = await appendVerificationEvidence({
+  const treatmentWindow = await appendLocalVerificationEvidence({
     root,
     statuses: [...Array<"passed">(11).fill("passed"), "failed"],
     startedAt: Date.now() + 1_000,
   });
-  const treatment = await adapter.collect({
-    phase: "treatment",
-    patternId: pattern.patternId,
-    window: treatmentWindow,
-    metricIds: ["verification_success", "repeated_failure"],
-  });
+  const treatmentCollectionPath = resolve(inputDirectory, "treatment-collection.json");
+  await writeFile(
+    treatmentCollectionPath,
+    `${JSON.stringify({
+      schemaVersion: 1,
+      phase: "treatment",
+      patternId: pattern.patternId,
+      window: treatmentWindow,
+      metricIds: ["verification_success", "repeated_failure"],
+    })}\n`,
+  );
+  output.length = 0;
+  expect(
+    await runCli(
+      [
+        "knowledge",
+        "pattern",
+        "effect",
+        "collect",
+        "--from",
+        treatmentCollectionPath,
+        "--local-events",
+        "--json",
+      ],
+      io,
+    ),
+  ).toBe(0);
+  const treatment = JSON.parse(output.pop()!) as {
+    observations: typeof baselineObservations;
+    unavailable: unknown[];
+  };
+  expect(treatment.unavailable).toEqual([]);
   const observation = {
     schemaVersion: 1 as const,
     protocolId: protocolPlan.plan.protocolId,
@@ -284,7 +297,6 @@ it("dogfoods local verification telemetry through explicit CLI host injection", 
     await runCli(
       ["knowledge", "pattern", "effect", "observe", "--from", observationPath, "--json"],
       io,
-      { improvementObservationPort: adapter },
     ),
   ).toBe(0);
   const observationPlan = JSON.parse(output.pop()!) as {
@@ -306,9 +318,9 @@ it("dogfoods local verification telemetry through explicit CLI host injection", 
         "--apply",
         observationPlan.plan.planId,
         "--write",
+        "--local-events",
       ],
       io,
-      { improvementObservationPort: adapter },
     ),
   ).toBe(0);
   expect(errors).toEqual([]);
