@@ -4,13 +4,19 @@ Status: `accepted`
 
 ## Context
 
-Managed write authorization binds exact repository-relative paths and rejects all other mutations. However, provider-visible turn instructions named the target only for schedules containing multiple files. A single-file provider therefore had to infer its target even though the write bridge knew the exact path.
+Managed write authorization binds exact repository-relative paths and rejects all other mutations. Provider-visible turn instructions previously named the target only for schedules containing multiple files, requiring a single-file provider to infer its target even though the write bridge knew the exact path.
 
 The registered-corpus [phase A pilot v2](../../../evidence/search/linked-evidence-shadow-phase-a-registered-pilot-v2.md) exposed this ambiguity. Its second run treated the retained first output as the current target and attempted to modify it. The bridge rejected the mismatched coordinates before `run.completed`, but the provider should have received the target explicitly.
 
 ## Decision
 
-For every managed-write provider turn, append the exact repository-relative target path and instruct the provider to change only that path through one complete provider file-change request. State explicitly that a second request fails the run. Apply the same provider-neutral orchestration rule to one-file and multi-file schedules. Do not add a target instruction to read-only turns.
+For every managed-write provider turn:
+
+- Append the exact repository-relative target path.
+- Instruct the provider to change only that path through one complete provider file-change request.
+- State explicitly that a second request fails the run.
+
+Apply this provider-neutral orchestration rule to one-file and multi-file schedules. Do not add a target instruction to read-only turns.
 
 The managed write bridge remains authoritative. Provider-visible text neither grants write authority nor proves compliance. Authorization, completion coordinates, repository snapshots, and byte verification continue to enforce the path boundary. This rule adds no event or state and stores no source body or unrestricted error.
 

@@ -5,12 +5,18 @@ This platform-specific distribution runs without an npm registry or Lervo source
 - Entry point: `dist/bin.js`
 - Runtime: Node.js 22.13 or later
 - Version: the owning Lervo product release from the public `@lervo/cli` manifest
-- Excludes configuration, bearer tokens, trust keys, CA certificates, and repositories.
-- Verify included files and the dependency closure against `lervo-node-distribution.manifest.json` and `sbom.cdx.json`.
-- Successful installation does not prove Hub connectivity, provider authentication, service activation, or readiness.
+- Excludes configuration, bearer tokens, trust keys, CA certificates, and repositories
+- Verify included files and the dependency closure against `lervo-node-distribution.manifest.json` and `sbom.cdx.json`
+- Successful installation does not prove Hub connectivity, provider authentication, service activation, or readiness
 
-Obtain the archive SHA-256 through a separate trusted channel and compare it with the platform SHA-256 tool. Extract into a new, previously absent directory, then run `node dist/bin.js --config <config.json>`.
+Obtain the archive SHA-256 through a separate trusted channel and compare it with the platform SHA-256 tool. Extract the archive into a new, previously absent directory, then run:
 
-On a host containing the Lervo repository tools, `node:distribution:install` can verify `--expected-sha256` and install into a new target. Prepare owner-only configuration separately, then explicitly activate the Node with the service renderer and manager. For a standalone `dist/bin.js`, pass its path as `--executable` and a verified Node.js binary as `--node-executable` so service activation does not rely on ambient `PATH` or a separate launcher.
+```sh
+node dist/bin.js --config <config.json>
+```
+
+On a host containing the Lervo repository tools, `node:distribution:install` can verify `--expected-sha256` and install into a new target. Prepare owner-only configuration separately, then explicitly activate the Node with the service renderer and manager.
+
+For a standalone `dist/bin.js`, pass its path as `--executable` and a verified Node.js binary as `--node-executable`. Service activation must not rely on ambient `PATH` or a separate launcher.
 
 Private workspace package versions are implementation coordinates, not operational Node release identifiers. The embedded package manifest, SBOM root, distribution manifest, and artifact sidecar must all match the public Lervo product version.

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8bda7120fb41464efa09666f
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_46023415d4175df26904bc7b
+outputLanguage: en
+outputs:
+  - byteCount: 2218
+    contentHash: sha256:51e583e4253d4a461d16d76af5beb503ca8327f02bc273714f9a0a462bc8d10e
+    path: docs/distribution/hub-runtime-distribution.md
+    userRegionHash: sha256:51e583e4253d4a461d16d76af5beb503ca8327f02bc273714f9a0a462bc8d10e
+profile: repository_document
+recordId: knormdoc_c63f1fe79338a19b35e7b0ad
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bd5376ea2c0f706fdba0a8edeeb62ca379e6420fcde85219b99564e4d63ff157
+sourcePath: docs/distribution/hub-runtime-distribution.md
+sourceUnitVersionIds:
+  - uv_573c2401275ebe51a6654cbd

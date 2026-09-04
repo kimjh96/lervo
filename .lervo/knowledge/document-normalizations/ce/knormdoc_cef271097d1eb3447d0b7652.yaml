@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_db5e8ef509c9537d683eb8ff
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5aa10b22d8a56b582c589f17
+outputLanguage: en
+outputs:
+  - byteCount: 2797
+    contentHash: sha256:8c1c2b3b199db5341d5ea872ec8a437058db119519b535cd74c4cb8cb94bb2b3
+    path: docs/specs/repository-development-pattern-lifecycle.md
+    userRegionHash: sha256:8c1c2b3b199db5341d5ea872ec8a437058db119519b535cd74c4cb8cb94bb2b3
+profile: specification_document
+recordId: knormdoc_cef271097d1eb3447d0b7652
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a226cf01b6e4dee21431da10b9e01ad5da42033475580f90bb8f4da280fa42b1
+sourcePath: docs/specs/repository-development-pattern-lifecycle.md
+sourceUnitVersionIds:
+  - uv_35e3b4dd16d2bfb74b6610d6
+  - uv_a9ea2dbedc72edc2534db406
+  - uv_c1a24656ee9ae9a460f37f9b
+  - uv_c9ecbf3f435ac72cd9f78a07
+  - uv_cf078a9740a759e52335d0b3

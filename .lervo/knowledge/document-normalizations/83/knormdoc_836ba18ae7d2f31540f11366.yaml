@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8bda7120fb41464efa09666f
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_885b79bfd9005ad641548b29
+outputLanguage: en
+outputs:
+  - byteCount: 3393
+    contentHash: sha256:fc078761e26dc1e11a2785653b39f9a09e97e0927151167e912900c9e79894e2
+    path: docs/decisions/coordination/remote-control/0149-owner-only-loopback-hub-runtime.md
+    userRegionHash: sha256:fc078761e26dc1e11a2785653b39f9a09e97e0927151167e912900c9e79894e2
+profile: decision_record
+recordId: knormdoc_836ba18ae7d2f31540f11366
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b3777b3dd9c22d0fb5de7a7e5584348c429f4e2f81c7113b1c5abc6375b03749
+sourcePath: docs/decisions/coordination/remote-control/0149-owner-only-loopback-hub-runtime.md
+sourceUnitVersionIds:
+  - uv_37387cf306a89b403677b626
+  - uv_5b330f0ea3d77f75292bb63e
+  - uv_793df2c0d98c22c0085e26f0
+  - uv_b2451288ddb8d6a6183f41fd

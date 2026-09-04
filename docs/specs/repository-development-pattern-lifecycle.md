@@ -13,21 +13,12 @@ Defines the evidence, review, promotion, and stale-source contract for reusable 
 
 ## Review and promotion
 
-Candidates move through `observed -> candidate -> reviewed -> promoted|rejected|deferred -> superseded`. Exact-hash review and separate promotion bind target hashes, verification, and both agent routes. Promotion creates a missing target or accepts identical bytes; different existing bytes block. Non-check targets extend only the managed AGENTS route consumed by Claude's import.
+Candidates progress through `observed -> candidate -> reviewed -> promoted|rejected|deferred -> superseded`. Exact-hash review and separate promotion bind target hashes, verification, and both agent routes. Promotion creates a missing target or accepts identical bytes; different existing bytes block it. Non-check targets extend only the managed AGENTS route consumed by Claude's import.
 
-Candidate and review bodies are immutable CAS artifacts; bounded events rebuild current state. Changed source makes unpromoted work stale and blocks apply, but never rewrites a promoted canonical target. Request keywords grant no authority, and user-owned content is never auto-promoted. Promotion creates only the responsibility-owned target; AGENTS and CLAUDE stay fixed and resolve that target through repository knowledge query.
+Candidate and review bodies are immutable CAS artifacts; bounded events rebuild current state. Changed source makes unpromoted work stale and blocks apply, but never rewrites a promoted canonical target. Request keywords grant no authority, and user-owned content is never auto-promoted. Promotion creates only the responsibility-owned target; AGENTS and CLAUDE remain fixed and resolve that target through repository knowledge query.
 
 ## Post-promotion effect observation
 
-An accepted pattern may register an exact baseline protocol only while its state is `reviewed`.
-After its exact promotion event, a separate treatment observation may compare the same adapter,
-metric set, and unchanged target. Protocol and comparison bodies are CAS artifacts; privacy-bounded
-events are canonical and the current effect view is rebuildable. The comparison is observational,
-keeps attribution unestablished, and never authorizes automatic rollback or claims model learning,
-truth, correctness, or semantic use. The [verified improvement effect specification](../specifications/execution/verified-improvement-effects.md)
-owns metrics, timing, adapter, privacy, and failure meaning.
+An accepted pattern may register an exact baseline protocol only while its state is `reviewed`. After its exact promotion event, a separate treatment observation may compare the same adapter, metric set, and unchanged target. Protocol and comparison bodies are CAS artifacts; privacy-bounded events are canonical, and the current effect view is rebuildable. The comparison is observational, leaves attribution unestablished, and never authorizes automatic rollback or claims model learning, truth, correctness, or semantic use. The [verified improvement effect specification](../specifications/execution/verified-improvement-effects.md) owns metrics, timing, adapter, privacy, and failure meaning.
 
-The first production local adapter derives only repository-wide verification success from bounded
-canonical verification-completion events. It re-observes exact evidence on apply and leaves every
-metric without a defined local counting unit unavailable. Collection does not change review,
-promotion, canonical-source, or rollback authority.
+The first production local adapter derives only repository-wide verification success from bounded canonical verification-completion events. It re-observes exact evidence on apply and leaves unavailable every metric without a defined local counting unit. Collection does not change review, promotion, canonical-source, or rollback authority.

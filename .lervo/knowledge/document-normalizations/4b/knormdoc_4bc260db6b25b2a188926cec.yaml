@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8bda7120fb41464efa09666f
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f2c76a4e2a7319ec72acc7c3
+outputLanguage: en
+outputs:
+  - byteCount: 4687
+    contentHash: sha256:9b6bb8bb84b4aa4278a55dadf79d14d7d059baf8dae0f268b4e8e2a64eff7e60
+    path: docs/decisions/operations/services/0202-repository-node-fleet-identity-and-registry.md
+    userRegionHash: sha256:9b6bb8bb84b4aa4278a55dadf79d14d7d059baf8dae0f268b4e8e2a64eff7e60
+profile: decision_record
+recordId: knormdoc_4bc260db6b25b2a188926cec
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7a52e5c8f3b36b98c8dec6c28b1d7061dfbcf9e6700e3c8af3cf6bd3992cf2b5
+sourcePath: docs/decisions/operations/services/0202-repository-node-fleet-identity-and-registry.md
+sourceUnitVersionIds:
+  - uv_41740fc37eea3f7c0a6f8353
+  - uv_7f76833a0b6f0fc23926fca0
+  - uv_89d5e1cb898b4d195fedd36c
+  - uv_94e97f74e95042d21a594332
+  - uv_a6a0705e9aac584d2763a10d

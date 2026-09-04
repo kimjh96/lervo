@@ -14,17 +14,34 @@ The starting evidence is the
 31 lint-visible stale families are separate from 57 newly introduced pending documents at the
 task-base revision.
 
-## Why provider execution is deferred
+## Execution boundary and result
 
-At the inventory boundary, the legacy all-pending behavior would select 88 documents, 589,372
-source bytes, and 45 provider envelopes rather than the reviewed 31-family scope. The implemented
-`--scope stale --preflight` boundary now prevents that widening and exposes byte, envelope, cache,
-and call-capacity evidence. The command does not yet expose normalization-token usage even though
-the provider subprocess may report it.
+At the inventory boundary, the legacy all-pending behavior would have selected 88 documents,
+589,372 source bytes, and 45 provider envelopes rather than the reviewed 31-family scope. The
+implemented `--scope stale --preflight` boundary prevented that widening and exposed byte,
+envelope, cache, call-capacity, observed-token, and elapsed-time evidence before each workset.
 
-Usage and elapsed-time observation are now implemented. Candidate generation remains deferred
-until the source-current stale preflight is repeated with explicit token and elapsed-time ceilings.
-No user-owned document rewrite is authorized by this roadmap.
+The renewal completed 32 of 33 lint-visible stale families: the 31 inventoried families plus two
+specifications that became stale later, less the release-bound CLI package README described below.
+Every applied item was regenerated against its current snapshot and received exact per-source
+review. A Codex candidate that dropped a fleet-shipping responsibility was not applied; an
+independently generated Claude candidate preserved it and received its own review and approval.
+The accepted fallback used one provider call in 32,224 milliseconds and observed 11,473 input
+tokens, 3,074 output tokens, and 14,547 total tokens. All other applied final-pass candidates were
+validated cache hits attributed to zero new calls and tokens.
+
+`apps/cli/README.md` remains the single stale family. The reviewed Codex candidate changed the
+attested package README bytes and caused the complete test suite to reject the existing release
+archive metadata. A separately generated Claude candidate also changed those bytes and proposed an
+unacceptable split. It used one provider call in 31,898 milliseconds and observed 9,188 input
+tokens, 1,204 cached input tokens, 3,114 output tokens, and 12,302 total tokens. Neither candidate
+was applied. Finishing this family requires reviewed CLI release preparation or a separately
+specified exact-source renewal mechanism; this roadmap does not authorize either implicitly.
+
+Knowledge lint is valid with one explicit stale-normalization warning. The 62 remaining pending
+documents have no current normalization record and remain a separate onboarding backlog; this
+renewal did not silently widen into them. Provider output did not authorize its own application,
+and this roadmap grants no user-byte write authority.
 
 ## Implemented foundation
 
@@ -67,9 +84,10 @@ No user-owned document rewrite is authorized by this roadmap.
    the other 16 sources and replaced by a separate valid Claude fallback candidate. Two later
    stale specification sources remain a separate valid workset. No candidate was applied. Keep
    ignored candidate bytes separate from canonical lifecycle records.
-7. Review every source against its current bytes and protected material. Apply only an exact,
-   content-bound plan with every displayed per-source approval; then refresh structural knowledge,
-   lint, and replan.
+7. **In progress.** Review every source against its current bytes and protected material. Apply only
+   an exact, content-bound plan with every displayed per-source approval; then refresh structural
+   knowledge, lint, and replan. Thirty-two families are current; finish the release-bound package
+   README only through reviewed release preparation or an approved exact-source renewal contract.
 
 ## Provider selection
 

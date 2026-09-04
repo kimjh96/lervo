@@ -28,15 +28,15 @@ Lervo starts an agent through a provider adapter, supplies bounded context, reco
 
 Exact adapter receipts prove managed E3 delivery. A provider-bound structured result may add E4 only by returning an exact token for the injected document version. E4 proves an observable output citation, not understanding, correctness, or internal use.
 
-Repository-installed Codex and Claude hooks make direct terminals Lervo-aware, not managed. Each prompt performs a fail-closed local knowledge query; each Stop checks lifecycle currency. Lervo may retain privacy-bounded preparation and exact output-reference observations but cannot infer provider acceptance or internal use. Managed writes and verification still require a managed run.
+Repository-installed Codex and Claude hooks make direct terminals Lervo-aware, not managed. Every prompt performs a fail-closed local knowledge query, and every Stop checks lifecycle currency. Lervo may retain privacy-bounded preparation and exact output-reference observations but cannot infer provider acceptance or internal use. Managed writes and verification still require a managed run.
 
-Mutable continuation belongs to a revisioned Lervo workstream, not a root handoff document or conversation memory. Managed runs load its exact state through the normal evidence pipeline; direct provider hooks prepare a bounded verified projection. Durable decisions are promoted to canonical repository documents instead of accumulating in the workstream.
+Mutable continuation belongs to a revisioned Lervo workstream, not a root handoff document or conversation memory. Managed runs load its exact state through the normal evidence pipeline; direct provider hooks prepare a bounded, verified projection. Durable decisions are promoted to canonical repository documents rather than accumulated in the workstream.
 
 ### Repository knowledge
 
 Explicit privacy and size policies govern discovery of code, configuration, schemas, tests, documents, agent instructions, skills, verification results, execution events, revision identity, logs, and unsupported-file metadata. Structural extraction creates navigation and source identity. Semantic candidates require reconciliation and human review.
 
-Migration creates an explicit repository structure and documentation system. Documents use repository-scoped semantic routes and reviewed audience-specific formats. Behavioral instructions use provider-neutral pages routed from AGENTS. Portable skills use `.agents/skills` with resource-bound lifecycle records. Provider configuration remains provider-specific. Moving or rewriting user bytes—including adding Lervo-owned provider hooks—requires exact content-bound approval.
+Migration creates an explicit repository structure and documentation system. Documents use repository-scoped semantic routes and reviewed audience-specific formats. Behavioral instructions use provider-neutral pages routed from AGENTS. Portable skills use `.agents/skills` with resource-bound lifecycle records. Provider configuration remains provider-specific. Moving or rewriting user bytes, including adding Lervo-owned provider hooks, requires exact content-bound approval.
 
 ### Evidence language
 
@@ -48,17 +48,9 @@ A Hub may synchronize allowed events, route signed commands, and show cross-proj
 
 ### Governed continuation
 
-After foundation readiness, Lervo projects current assignments and managed-run evidence
-through a provider-neutral headless application contract. A governed loop may recommend
-claim, attempt, bounded retry, wait, block, escalation, or completion, but canonical
-authority remains with workstreams, assignments, leases, events, verification, and
-repository state. Initial continuation is manually triggered and does not grant
-unattended scheduling, implicit approval, or dynamic graph mutation.
+After foundation readiness, Lervo projects current assignments and managed-run evidence through a provider-neutral headless application contract. A governed loop may recommend claim, attempt, bounded retry, wait, block, escalation, or completion, but canonical authority remains with workstreams, assignments, leases, events, verification, and repository state. Initial continuation is manually triggered and grants neither unattended scheduling, implicit approval, nor dynamic graph mutation.
 
-Separately installed product hosts discover the versioned local boundary through
-`lervo application capabilities --json`. The packed CLI protocol exposes workforce, operating, and
-collaboration routes without publishing storage internals or granting product UI, database, Hub,
-provider, approval, scheduler, or connector authority.
+Separately installed product hosts discover the versioned local boundary through `lervo application capabilities --json`. The packed CLI protocol exposes workforce, operating, and collaboration routes without publishing storage internals or granting product UI, database, Hub, provider, approval, scheduler, or connector authority.
 
 ### Repository lifecycle
 

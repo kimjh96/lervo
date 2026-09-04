@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8bda7120fb41464efa09666f
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_aa0b2a50b94a0dd306bcde60
+outputLanguage: en
+outputs:
+  - byteCount: 2811
+    contentHash: sha256:a5b5483d4b0cdae92b3228142f8a6af2e7213af3cd5e54a793d9a83f42ca074d
+    path: docs/decisions/operations/services/0165-runtime-readiness-and-preflight-boundary.md
+    userRegionHash: sha256:a5b5483d4b0cdae92b3228142f8a6af2e7213af3cd5e54a793d9a83f42ca074d
+profile: decision_record
+recordId: knormdoc_d6aa84ec8ab9ed33515506ae
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ed9b79810b06521c100425eaffe2fef3a69216c4a7baad7f0b89179c32fd0ac7
+sourcePath: docs/decisions/operations/services/0165-runtime-readiness-and-preflight-boundary.md
+sourceUnitVersionIds:
+  - uv_48e11a1b7191f7bda723a645
+  - uv_63fd27fddad5283e59aca30c
+  - uv_a824bfb661a0b28f07e957e2
+  - uv_eb7ec21bee1a2ad90b1cc0fa

@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_410314a43ebae0068f8d6074
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ece700ec8124fde16f7c99dc
+outputLanguage: en
+outputs:
+  - byteCount: 2406
+    contentHash: sha256:ddc2324fa8d749ca0bccec2f2d276bf399dccea7be00a26d54f2294f0804203b
+    path: docs/decisions/execution/providers/0208-additive-terminal-observation-schema-compatibility.md
+    userRegionHash: sha256:ddc2324fa8d749ca0bccec2f2d276bf399dccea7be00a26d54f2294f0804203b
+profile: decision_record
+recordId: knormdoc_dc3de1d87609cc5fbf613e6a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d7d464e667685b98cb468e9e43064bc91526270d15c6c21f79a114a294b896ab
+sourcePath: docs/decisions/execution/providers/0208-additive-terminal-observation-schema-compatibility.md
+sourceUnitVersionIds:
+  - uv_00032e0b6f1ca30a998e85a8
+  - uv_2fbf99d2ecdaeff5c85fa0c9
+  - uv_754c3b1330cf6094e6d08a96
+  - uv_8d2610c24c9b0e86e5375329
+  - uv_b662527a26508b0c4a61223a
+  - uv_dfed5086a87b171ae22487bf

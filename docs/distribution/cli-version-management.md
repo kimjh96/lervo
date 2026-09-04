@@ -1,16 +1,21 @@
 # CLI version and release management
 
-Lervo uses reviewed release-intent files to prepare `@lervo/cli` versions. Preparation may change repository bytes and create the exact release tag, but it cannot stage or publish an npm package.
+Lervo uses reviewed release-intent files to prepare `@lervo/cli` versions. Preparation may change repository bytes and create the exact release tag, but cannot stage or publish an npm package.
 
 ## Contributor intent
 
-Add one intent when a pull request changes public CLI behavior, implementation in a private workspace package bundled into a released artifact, standalone Hub and Node distribution tooling or copied assets, or the runtime service renderer and manager bundled by the CLI:
+Add one intent when a pull request changes:
+
+- Public CLI behavior.
+- Implementation in a private workspace package bundled into a released artifact.
+- Standalone Hub or Node distribution tooling or copied assets.
+- The runtime service renderer or manager bundled by the CLI.
 
 ```bash
 pnpm release:intent:create --impact patch --summary "Correct bounded diagnostics for unavailable provider entrypoints."
 ```
 
-Use `patch` for a compatible correction, `minor` for compatible new behavior, and `major` for an incompatible public contract. Before 1.0, both `minor` and `major` advance the minor number; `major` retains the reviewed breaking-change meaning. A Conventional Commit `!` or `BREAKING CHANGE` marker requires matching `major` intent and never replaces it.
+Use `patch` for a compatible correction, `minor` for compatible new behavior, and `major` for an incompatible public contract. Before 1.0, `minor` and `major` both advance the minor number, while `major` retains the reviewed breaking-change meaning. A Conventional Commit `!` or `BREAKING CHANGE` marker requires matching `major` intent and never replaces it.
 
 Tests, documentation, release-management files, and internal refactors outside every released-artifact closure are exempt. Refactors inside the CLI, Hub, or Node closure require intent because the checker cannot prove packaged behavior is unchanged. CI rejects missing, malformed, content-ID-mismatched, or unnecessary records. Hub and Node use `@lervo/cli` as their sole product release coordinate; their private workspace versions are not independent releases.
 
@@ -24,9 +29,9 @@ The local default uses the configured upstream merge base, then the latest reach
 
 ## Release pull request
 
-On `main`, `.github/workflows/release-preparation.yml` aggregates pending intent into the fixed `lervo/release-cli` branch. Review the public version, sorted summaries in `.changes/current-release.md`, lockfile, release artifact manifest, SBOM, consumed intent, and exact source revision. New intent updates the same pull request. Preparation consumes every pending item; creation and loading fail closed above the 128-item bound. The queue is transient, not history.
+On `main`, `.github/workflows/release-preparation.yml` aggregates pending intent into the fixed `lervo/release-cli` branch. Review the public version, sorted summaries in `.changes/current-release.md`, lockfile, release artifact manifest, SBOM, consumed intent, and exact source revision. New intent updates the same pull request.
 
-The current release-note projection is replaced, never appended. No cumulative changelog or directory receives one file per release. Immutable Git revisions and GitHub Releases retain historical notes.
+Preparation consumes every pending item. Creation and loading fail closed above the 128-item bound. The queue is transient, not history. The current release-note projection is replaced, never appended. No cumulative changelog or directory receives one file per release; immutable Git revisions and GitHub Releases retain historical notes.
 
 Preparation may consume intent only into the version calculated by the reviewed impact policy. The completion checker reconstructs intent from bounded Git ancestry and requires exact release-note, manifest, and SBOM versions. Deleting intent and manually editing a package version does not satisfy completion.
 

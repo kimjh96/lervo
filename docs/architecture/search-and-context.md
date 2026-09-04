@@ -13,7 +13,7 @@ Search recommends but does not prove use. Selection records why an item was chos
 
 Operational retrieval uses `SearchEnginePort` and `SearchIndexPort`. Product-qualified `lexical-v2` is the no-transition default; `lexical-v1` is the local rollback baseline. Engine adapters own only indexing and ranking. Corpus acquisition, query grounding, context selection, provider delivery, credentials, and network authority remain outside these ports.
 
-The registered `lexical-v2` build `sebuild_e9f2ac9398b0f58d03143e7a` passed the v20 local and cross-provider engineering gates. A provider-neutral projection and independent-query fusion plan also passed all four exact human-reviewed real-use cases for both providers. ADR-0328 established the initial product default; ADR-0353 replaced its admitted projector pair with the reviewed direct pair. Current qualification `spqual_18bb11bf0b6a01f9a33190bc` content-binds the engine evidence, direct-projector evidence, exact shipped builds, and the verified superseded product-plan lineage. Every current repository uses that engine and complete plan by default without repeating project-specific evaluation. ADR-0321 remains the immutable selection boundary for a different repository-specific complete plan.
+The registered `lexical-v2` build `sebuild_e9f2ac9398b0f58d03143e7a` passed the v20 local and cross-provider engineering gates. A provider-neutral projection and independent-query fusion plan also passed all four exact human-reviewed real-use cases for both providers. ADR-0328 established the initial product default; ADR-0353 replaced its admitted projector pair with the reviewed direct pair. Current qualification `spqual_18bb11bf0b6a01f9a33190bc` content-binds the engine evidence, direct-projector evidence, exact shipped builds, and verified superseded product-plan lineage. Every current repository uses that engine and complete plan by default without repeating project-specific evaluation. ADR-0321 remains the immutable selection boundary for a different repository-specific complete plan.
 
 Any other local engine or external adapter must:
 
@@ -45,11 +45,7 @@ V2 separates index preparation from query execution, binds an immutable preparat
 
 For unmanaged direct terminal preparation, query projection is limited to registered knowledge in the current repository. An empty or failed projection has no evidentiary meaning for another repository or an external or shared service. Source expansion requires a separately available tool and authority; it is never derived from keyword, synonym, translation, or phrase routing.
 
-Production terminal projection opens one capability-free provider runner and performs
-one query-producing model turn. It does not perform the historical synthetic admission
-turn. The provider-neutral projection port, digest and query bounds, isolated Codex
-thread, serialized Claude process, usage receipt, and owner-close contract remain
-unchanged; provider lifecycle details remain outside search core.
+Production terminal projection opens one capability-free provider runner and performs one query-producing model turn. It does not perform the historical synthetic admission turn. The provider-neutral projection port, digest and query bounds, isolated Codex thread, serialized Claude process, usage receipt, and owner-close contract remain unchanged; provider lifecycle details remain outside search core.
 
 The operational plan resolver first checks an explicit local selection. Without one, it resolves the shipped product qualification, rebuilds the current repository-knowledge Markdown corpus, verifies the registered engine and projector builds, executes independent queries through `SearchEnginePort`, fuses validated coordinates, and maps selected paths to current concepts. A different local candidate still reads a content-bound bundle from `.lervo/search-retrieval-plan-bundles`, verifies immutable transitions, and requires its exact reviewed corpus. A legacy activation of the exact product-default plan no longer pins the current corpus to that historical review. Both v2 and the v1 rollback baseline remain local and require neither a Hub nor a provider credential.
 

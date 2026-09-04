@@ -19,11 +19,7 @@ If both storage locations exist, Lervo removes only a project-bound, integrity-c
 
 Knowledge compilation writes only `.lervo/state/knowledge/current/inventory.json`, `source-units.json`, and `impact.json`. Inventory is compact JSON. Source units retain counts, kinds, and a binding digest instead of complete historical units. `lervo migrate knowledge` converts every prior inventory, source-unit, and impact generation into an exact-hash delete operation.
 
-Direct terminal lifecycle inspection may replace one
-`.lervo/state/terminal-integration/knowledge-lifecycle-cache.json` projection. It is bound to the
-installed CLI version, exact repository revision, and supplemental-source digest, contains only
-bounded issue diagnostics, and is reconstructed by a complete lifecycle inspection after deletion
-or mismatch.
+Direct terminal lifecycle inspection may replace one `.lervo/state/terminal-integration/knowledge-lifecycle-cache.json` projection. It is bound to the installed CLI version, exact repository revision, and supplemental-source digest; contains only bounded issue diagnostics; and is reconstructed by a complete lifecycle inspection after deletion or mismatch.
 
 Canonical claims and relations carry stable source-unit IDs. Changed or missing current units remain observable without historical cache files. Legacy version-only evidence becomes `unknown` after cache deletion; Lervo does not promote a derived cache into canonical evidence.
 
