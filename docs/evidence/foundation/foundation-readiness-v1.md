@@ -62,6 +62,11 @@ pnpm foundation:readiness:run --base <task-base> \
 pnpm foundation:check
 ```
 
+Foundation evidence runners resolve the repository Prettier configuration and write the final
+formatted JSON bytes before readiness hashes constituent reports. `pnpm format:check` must
+therefore pass immediately after generation without changing an evidence file; post-generation
+formatting invalidates the readiness binding and requires fresh observations.
+
 The source revision excludes only rebuildable foundation JSON and generated repository
 knowledge projections. Editing contracts, tests, scripts, documentation, manifests, or
 other tracked source invalidates the checked report.

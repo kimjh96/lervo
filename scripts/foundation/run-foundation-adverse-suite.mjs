@@ -9,6 +9,7 @@ import {
 } from "../../packages/execution-reliability/dist/index.js";
 import { observeFoundationCapacityProfile } from "./adverse/capacity-observation.mjs";
 import { hashFoundationAdverseSuites } from "./adverse/suite-bindings.mjs";
+import { formatFoundationEvidenceJson } from "./evidence/json-output.mjs";
 import { foundationSourceRevision } from "./evidence/source-revision.mjs";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
@@ -29,8 +30,12 @@ const report = createFoundationAdverseEvidenceReport({
   capacityProfiles,
   evidenceSuites: await hashFoundationAdverseSuites(repositoryRoot),
 });
-const output = `${JSON.stringify(report, null, 2)}\n`;
-if (parsed.values.write) await writeFile(resolve(repositoryRoot, parsed.values.write), output);
+const outputPath = resolve(
+  repositoryRoot,
+  parsed.values.write ?? "docs/evidence/foundation/adverse-condition-v1.json",
+);
+const output = await formatFoundationEvidenceJson(report, outputPath);
+if (parsed.values.write) await writeFile(outputPath, output);
 process.stdout.write(
   parsed.values.summary
     ? `${JSON.stringify(

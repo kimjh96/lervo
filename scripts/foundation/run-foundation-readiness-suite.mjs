@@ -10,6 +10,7 @@ import {
 } from "./readiness/check-bindings.mjs";
 import { runFoundationCommand } from "./readiness/command-runner.mjs";
 import { createFoundationReadinessReport } from "./readiness/report.mjs";
+import { formatFoundationEvidenceJson } from "./evidence/json-output.mjs";
 import { foundationSourceRevision } from "./evidence/source-revision.mjs";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
@@ -81,8 +82,12 @@ const report = createFoundationReadinessReport({
   ],
   observations,
 });
-const output = `${JSON.stringify(report, null, 2)}\n`;
-if (parsed.values.write) await writeFile(resolve(repositoryRoot, parsed.values.write), output);
+const outputPath = resolve(
+  repositoryRoot,
+  parsed.values.write ?? "docs/evidence/foundation/foundation-readiness-v1.json",
+);
+const output = await formatFoundationEvidenceJson(report, outputPath);
+if (parsed.values.write) await writeFile(outputPath, output);
 process.stdout.write(
   parsed.values.summary
     ? `${JSON.stringify({ reportId: report.reportId, allPassed: true, observations: 3, checksPerObservation: checkIds.length }, null, 2)}\n`
