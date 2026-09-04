@@ -69534,6 +69534,10 @@ function identity(stats) {
 function sameIdentity(left, right) {
   return left.dev === right.dev && left.ino === right.ino && left.size === right.size && left.mtimeNs === right.mtimeNs && left.ctimeNs === right.ctimeNs;
 }
+function sameRepositoryPathIdentity(pathIdentity, openedIdentity, platform = process.platform) {
+  const deviceMatches = pathIdentity.dev === openedIdentity.dev || platform === "win32" && pathIdentity.dev === 0n;
+  return deviceMatches && pathIdentity.ino === openedIdentity.ino && pathIdentity.size === openedIdentity.size && pathIdentity.mtimeNs === openedIdentity.mtimeNs && pathIdentity.ctimeNs === openedIdentity.ctimeNs;
+}
 async function canonicalRepositoryRoot2(root2) {
   const absoluteRoot = resolve45(root2);
   let stats;
@@ -69607,7 +69611,7 @@ async function readRepositoryFile(root2, path, maximumBytes2 = Number.MAX_SAFE_I
     const after = identity(await handle.stat({ bigint: true }));
     const pathStats = await lstat32(inspected.absolutePath, { bigint: true });
     const resolvedPath = await realpath2(inspected.absolutePath);
-    if (!sameIdentity(before, after) || boundedBytesRead !== void 0 && boundedBytesRead !== Number(before.size) || after.size > BigInt(maximumBytes2) || pathStats.isSymbolicLink() || pathStats.dev !== after.dev || pathStats.ino !== after.ino || resolvedPath !== inspected.absolutePath) {
+    if (!sameIdentity(before, after) || boundedBytesRead !== void 0 && boundedBytesRead !== Number(before.size) || after.size > BigInt(maximumBytes2) || pathStats.isSymbolicLink() || !sameRepositoryPathIdentity(identity(pathStats), after) || resolvedPath !== inspected.absolutePath) {
       throw new ContextPreparationError("document_changed_during_read", `The document path or content changed while it was being read: ${normalized2}`);
     }
     return bytes;
@@ -74513,11 +74517,31 @@ async function prepareProductionSearchQueries(provider, prepareProjector = prepa
   };
 }
 async function projectProductionSearchQueries(input, prepareProjector = prepareProductionSearchQueries) {
-  const prepared = await prepareProjector(input.provider);
+  const startedAt = Date.now();
+  let prepared;
+  try {
+    prepared = await prepareProjector(input.provider);
+  } catch {
+    const limits = input.limits ?? {
+      maximumQueries: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES,
+      maximumQueryCharacters: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS
+    };
+    return createSearchQueryProjection({
+      projector: productionSearchQueryProjectorIdentity(input.provider),
+      requestDigest: input.requestDigest,
+      contextDigest: input.contextDigest,
+      projectorResultDigest: failedResultDigest,
+      requestedLanguage: input.requestedLanguage,
+      queries: [],
+      durationMs: Date.now() - startedAt,
+      status: "failed",
+      limits
+    });
+  }
   try {
     return await prepared.projectSearchQueries(input);
   } finally {
-    await prepared.close();
+    await prepared.close().catch(() => void 0);
   }
 }
 
