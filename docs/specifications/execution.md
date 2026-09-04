@@ -68,11 +68,7 @@ Every managed-write provider turn receives the exact repository-relative target 
 
 Snapshots cover repository-authored source and tracked generated files. They exclude runtime data and state, dependencies, and conventional generated build or cache directories. User content changes only through explicit content-bound operations. Managed blocks preserve outside bytes. Generated files may change or be deleted only when recorded generation proves current-hash ownership.
 
-Repository assignments bind role, dependency, acceptance, verification, approval, workstream, and
-path coordinates. Short atomic leases serialize overlapping scopes while disjoint root agents and
-subagents share one lease and handoff contract. Managed execution revalidates lease, provider, role,
-path, and suite authority before provider creation. Generation-bound expiry permits recovery but
-never proves former external work stopped.
+Repository assignments bind role, dependency, acceptance, verification, approval, workstream, and path coordinates. Short atomic leases serialize overlapping scopes while disjoint root agents and subagents share one lease and handoff contract. Managed execution revalidates lease, provider, role, path, and suite authority before provider creation. Generation-bound expiry permits recovery but never proves former external work stopped.
 
 See [interactions](execution/assignment-interactions.md),
 [routines](execution/assignment-routines.md), and
@@ -86,14 +82,9 @@ Suites declare exact commands, working directories, limits, and outcomes. Lervo 
 
 ## 8. Repository knowledge
 
-Tracked sources and canonical Markdown govern knowledge; `.lervo` stores policy,
-provenance, manifests, and rebuildable state. Structural planning is read-only, exact
-bindings and approvals protect bytes, and isolated provider output never becomes truth
-merely because it materialized successfully.
+Tracked sources and canonical Markdown govern knowledge; `.lervo` stores policy, provenance, manifests, and rebuildable state. Structural planning is read-only, exact bindings and approvals protect bytes, and isolated provider output never becomes truth merely because it materialized successfully.
 
-The [repository knowledge compilation specification](../specs/repository-knowledge-compilation.md)
-owns scanner, taxonomy, normalization bounds, caching, retry, publication, durable
-apply, lifecycle, skill, entrypoint, agent-surface, and recovery details.
+The [repository knowledge compilation specification](../specs/repository-knowledge-compilation.md) owns scanner, taxonomy, normalization bounds, caching, retry, publication, durable apply, lifecycle, skill, entrypoint, agent-surface, and recovery details.
 
 ## 9. Entrypoints and language
 
@@ -107,20 +98,13 @@ Human writing binds `publication.language` to `writing_en-human`, semantic check
 
 The [execution events and privacy specification](execution/events-and-privacy.md) defines allowlisted payloads, workforce events, knowledge and terminal integration events, additive terminal-observation compatibility, workstream snapshots, activation receipts, coverage, privacy exclusions, and failure meaning. Events remain canonical hash-chained evidence; absent telemetry never becomes inferred success or provider-use claims. Managed linked-evidence canary record bounds and privacy exclusions remain defined by its specification.
 
-Reader compatibility, writer activation, and failure codes belong to the linked event
-specification. [Stage observation and performance](execution/stage-observation-and-performance.md)
-defines timing, environment, projection, and performance gates. Missing evidence never
-becomes success, zero usage, duration, or inferred ancestry.
+Reader compatibility, writer activation, and failure codes belong to the linked event specification. [Stage observation and performance](execution/stage-observation-and-performance.md) defines timing, environment, projection, and performance gates. Missing evidence never becomes success, zero usage, duration, or inferred ancestry.
 
 ## 11. Durable apply and recovery
 
 The owner-only journal validates the plan and current bytes, stages outputs, backs up originals, publishes or deletes, lints, commits the event, then cleans backups and empty parents. Pre-commit failure restores originals. Post-commit cleanup failure preserves outputs and requires recovery. Interrupted transactions block mutation. Rollback recreates only parents pruned by that transaction before restoring exact backups, including deleted shards and moved documents.
 
-The [adverse-condition safety specification](execution/adverse-condition-safety.md)
-defines the common effect inventory, exact completion/rollback/recovery projection,
-cancellation and backpressure bounds, telemetry field registry, threat model, capacity
-and retention profiles, and compatibility rehearsals. External uncertainty is never an
-automatic retry signal.
+The [adverse-condition safety specification](execution/adverse-condition-safety.md) defines the common effect inventory, exact completion/rollback/recovery projection, cancellation and backpressure bounds, telemetry field registry, threat model, capacity and retention profiles, and compatibility rehearsals. External uncertainty is never an automatic retry signal.
 
 ## 12. Hub and remote execution
 

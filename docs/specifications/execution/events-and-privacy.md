@@ -7,117 +7,35 @@ This document defines event evidence and privacy guarantees linked from the [exe
 
 ## Event envelope compatibility
 
-The shared reader accepts envelope schema versions 1 and 2 and preserves valid mixed
-hash chains without rewriting their bytes or meaning. Version 1 remains the default
-writer; activated managed execution writes version 2. A supported but malformed envelope is `event_invalid` at
-the event-contract boundary and an integrity failure where stored bytes are decoded. An
-unknown integer envelope version is `event_schema_unsupported`; local storage, sync,
-and Hub intake reject it before mutation. Invalid hashes and payload allowlists remain
-integrity failures rather than unsupported-version failures.
+The shared reader accepts envelope schema versions 1 and 2 and preserves valid mixed hash chains without rewriting their bytes or meaning. Version 1 remains the default writer; activated managed execution writes version 2. A supported but malformed envelope is `event_invalid` at the event-contract boundary and an integrity failure where stored bytes are decoded. An unknown integer envelope version is `event_schema_unsupported`; local storage, sync, and Hub intake reject it before mutation. Invalid hashes and payload allowlists remain integrity failures rather than unsupported-version failures.
 
-Envelope version 2 makes the following payload contracts readable. FH1 emits the causal
-contract, FH2 emits managed resource observations, and FH3 emits bounded managed and
-direct-terminal stage observations:
+Envelope version 2 makes the following payload contracts readable. FH1 emits the causal contract, FH2 emits managed resource observations, and FH3 emits bounded managed and direct-terminal stage observations:
 
-- `work.causality.recorded` retains opaque work, run-relationship, attempt, workstream,
-  assignment, and agent coordinates. Root, retry, and other child shapes are
-  discriminated in the payload schema. One event per run, one root per work, existing
-  same-work parents, exact retry ordinals, acyclic ancestry, and idempotent recovery are
-  enforced before provider startup. Deliberation uses one control root with role and
-  publication-evaluation children.
-- `resource.usage.recorded` retains an opaque observation and source digest, scope,
-  source, accounting mode and descriptor hash, status, bounded counters, and reason
-  code. Counts are non-negative; cached input cannot exceed input, reasoning output
-  cannot exceed output, and total equals input plus output. `unavailable` and `invalid`
-  contain no fabricated usage. Provider identity and native counter semantics remain in
-  a canonical local CAS descriptor, not this event. A descriptor-storage failure creates
-  no dangling resource observation.
-- `execution.stages.observed` retains managed or unmanaged mode, an opaque work or
-  terminal coordinate, nullable managed work ID, nullable terminal hook, observation
-  and environment digests, repository profile, and at most 32 catalogued stage results.
-  Current managed producers use a null terminal hook; current direct producers use
-  `UserPromptSubmit` or `Stop`. Historical sets without this additive field remain
-  readable but project with an unavailable hook coordinate. The canonical local CAS
-  environment profile contains build, nullable adapter and provider,
-  OS, architecture, Node, corpus counts when observed, cache state, and concurrency. It
-  excludes paths, prompts, queries, outputs, credentials, and vendor span names.
+- `work.causality.recorded` retains opaque work, run-relationship, attempt, workstream, assignment, and agent coordinates. Root, retry, and other child shapes are discriminated in the payload schema. One event per run, one root per work, existing same-work parents, exact retry ordinals, acyclic ancestry, and idempotent recovery are enforced before provider startup. Deliberation uses one control root with role and publication-evaluation children.
+- `resource.usage.recorded` retains an opaque observation and source digest, scope, source, accounting mode and descriptor hash, status, bounded counters, and reason code. Counts are non-negative; cached input cannot exceed input, reasoning output cannot exceed output, and total equals input plus output. `unavailable` and `invalid` contain no fabricated usage. Provider identity and native counter semantics remain in a canonical local CAS descriptor, not this event. A descriptor-storage failure creates no dangling resource observation.
+- `execution.stages.observed` retains managed or unmanaged mode, an opaque work or terminal coordinate, nullable managed work ID, nullable terminal hook, observation and environment digests, repository profile, and at most 32 catalogued stage results. Current managed producers use a null terminal hook; current direct producers use `UserPromptSubmit` or `Stop`. Historical sets without this additive field remain readable but project with an unavailable hook coordinate. The canonical local CAS environment profile contains build, nullable adapter and provider, OS, architecture, Node, corpus counts when observed, cache state, and concurrency. It excludes paths, prompts, queries, outputs, credentials, and vendor span names.
 
-All three payloads use exact top-level allowlists. Resource counter names are the only
-approved token-like nested keys. Schema, discriminator, arithmetic, or privacy failure
-prevents sync acceptance and creates no observation success. Missing resource or stage
-events mean `unobserved`, not zero usage or successful stage measurement. A requested
-historical run without a causal event is `legacy_unlinked`; missing ancestry is never
-reconstructed from correlation.
+All three payloads use exact top-level allowlists. Resource counter names are the only approved token-like nested keys. Schema, discriminator, arithmetic, or privacy failure prevents sync acceptance and creates no observation success. Missing resource or stage events mean `unobserved`, not zero usage or successful stage measurement. A requested historical run without a causal event is `legacy_unlinked`; missing ancestry is never reconstructed from correlation.
 
-Managed stage-profile persistence fails before provider startup. A direct version 1
-writer skips version 2 stage evidence without blocking the hook. Direct measurement or
-persistence failure emits no false stage success and leaves terminal coverage partial or
-unavailable; it does not erase or reinterpret a valid context or turn event. Exact
-observation-set duplicates are idempotent, while contradictory IDs, invalid trees,
-duplicate hook sets, and cross-run or cross-session joins make the projection invalid.
+Managed stage-profile persistence fails before provider startup. A direct version 1 writer skips version 2 stage evidence without blocking the hook. Direct measurement or persistence failure emits no false stage success and leaves terminal coverage partial or unavailable; it does not erase or reinterpret a valid context or turn event. Exact observation-set duplicates are idempotent, while contradictory IDs, invalid trees, duplicate hook sets, and cross-run or cross-session joins make the projection invalid.
 
 ## Workforce events
 
 Workforce events contain only opaque agent, assignment, lease, handoff, artifact, context-event, role/task, role-version, role-contract-hash, status, generation, expiry, and digest coordinates. They exclude role prose and source paths, task prose, acceptance text, repository paths, prompts, outputs, artifact bodies, reasoning, credentials, and provider configuration. State and event commit together, restoring bytes on event failure. Invalid or stale role contracts, contention, expiry, and rejected claims record no execution success.
 
-Routine-created `assignment.created` events additionally retain nullable required-capability hash,
-routine ID, template version and hash, invocation ID, `manual` trigger kind and digest, node key, and
-approval digest. They exclude the template, trigger request, idempotency key, criteria, approval
-text, and paths. These fields prove deterministic assignment provenance, not trigger delivery,
-scheduling, claim, provider startup, or execution. Historical absence means ordinary assignment
-creation. A failed node records no creation event; previously committed nodes remain an exact
-partial invocation for idempotent replan and resume.
+Routine-created `assignment.created` events additionally retain nullable required-capability hash, routine ID, template version and hash, invocation ID, `manual` trigger kind and digest, node key, and approval digest. They exclude the template, trigger request, idempotency key, criteria, approval text, and paths. These fields prove deterministic assignment provenance, not trigger delivery, scheduling, claim, provider startup, or execution. Historical absence means ordinary assignment creation. A failed node records no creation event; previously committed nodes remain an exact partial invocation for idempotent replan and resume.
 
-`assignment.handoff.recorded` is also the canonical success evidence for one assignment mention
-route. The mention plan itself is not an event or effect. Thread and inbox views rebuild from the
-handoff's assignment, sender, recipient, request digest, artifact, context-event, and time
-coordinates. The event proves only that the workforce state and route record committed together;
-it does not prove message delivery, acknowledgment, provider receipt, understanding, action,
-review, verification, or consensus. Bodies and mention prose remain excluded.
+`assignment.handoff.recorded` is also the canonical success evidence for one assignment mention route. The mention plan itself is not an event or effect. Thread and inbox views rebuild from the handoff's assignment, sender, recipient, request digest, artifact, context-event, and time coordinates. The event proves only that the workforce state and route record committed together; it does not prove message delivery, acknowledgment, provider receipt, understanding, action, review, verification, or consensus. Bodies and mention prose remain excluded.
 
-Assignment connector delivery adds no repository event. Its injected adapter durably owns
-`reserved`, `current`, or `conflict` pre-send state and `delivered`, `rejected`, or `unknown`
-terminal observation. Core validation binds exact plan, outbound, connector, internal destination,
-reservation, attempt, receipt-hash, delivery-key-hash, bounded failure-code, and time fields. Native
-platform identifiers, credentials, content bodies, paths, and unrestricted errors remain adapter
-private. Unknown means an effect may have occurred and never authorizes automatic retry. Connector
-delivery does not upgrade workforce route, acknowledgment, attention, or execution evidence.
+Assignment connector delivery adds no repository event. Its injected adapter durably owns `reserved`, `current`, or `conflict` pre-send state and `delivered`, `rejected`, or `unknown` terminal observation. Core validation binds exact plan, outbound, connector, internal destination, reservation, attempt, receipt-hash, delivery-key-hash, bounded failure-code, and time fields. Native platform identifiers, credentials, content bodies, paths, and unrestricted errors remain adapter private. Unknown means an effect may have occurred and never authorizes automatic retry. Connector delivery does not upgrade workforce route, acknowledgment, attention, or execution evidence.
 
-The governed-loop graph remains rebuildable and adds no durable graph state. Its report
-replays current assignment state plus existing causal, run, verification, and resource
-events. Approval requirements leave the report only as digests. Verified approval
-observations bind opaque assignment, authority, approval, evidence-hash, and validity
-coordinates; they exclude requirement text, approver identity, signatures, credentials,
-and evidence bodies. A next-action decision remains a projection, not an approval,
-assignment mutation, provider invocation, or completion event.
+The governed-loop graph remains rebuildable and adds no durable graph state. Its report replays current assignment state plus existing causal, run, verification, and resource events. Approval requirements leave the report only as digests. Verified approval observations bind opaque assignment, authority, approval, evidence-hash, and validity coordinates; they exclude requirement text, approver identity, signatures, credentials, and evidence bodies. A next-action decision remains a projection, not an approval, assignment mutation, provider invocation, or completion event.
 
-`assignment.cancelled` records the opaque assignment ID, previous status, reason
-(`requested` or `dependency_cancelled`), exact cancellation plan ID, direct cancelled
-dependency IDs, resulting revision, and time. It excludes task and acceptance prose,
-paths, lease sessions, provider output, prompts, reasoning, credentials, and actor identity.
-Success means one queued or blocked assignment state and its event committed together.
-Plan drift, terminal state, leased work, missing dependency evidence, contention, or event
-failure records no cancellation success; event failure restores the prior assignment bytes.
+`assignment.cancelled` records the opaque assignment ID, previous status, reason (`requested` or `dependency_cancelled`), exact cancellation plan ID, direct cancelled dependency IDs, resulting revision, and time. It excludes task and acceptance prose, paths, lease sessions, provider output, prompts, reasoning, credentials, and actor identity. Success means one queued or blocked assignment state and its event committed together. Plan drift, terminal state, leased work, missing dependency evidence, contention, or event failure records no cancellation success; event failure restores the prior assignment bytes.
 
-`assignment.completion.prepared` records a content-derived evidence ID, workstream,
-assignment revision, agent, lease, accepted verification and writing-publication states,
-result artifact coordinates, and preparation time under the exact managed run and session
-envelope. It excludes task and acceptance prose, paths, prompts, provider output, artifact
-bodies, reviewer identity, reasoning, credentials, and provider configuration. Success means
-the governed adapter observed one matching passed `run.completed` event and both completion
-gates while the exact lease was valid; it does not mean assignment state changed. Foreign or
-contradictory run history, stale coordinates, invalid timing, event failure, and historical
-absence create no prepared-completion claim.
+`assignment.completion.prepared` records a content-derived evidence ID, workstream, assignment revision, agent, lease, accepted verification and writing-publication states, result artifact coordinates, and preparation time under the exact managed run and session envelope. It excludes task and acceptance prose, paths, prompts, provider output, artifact bodies, reviewer identity, reasoning, credentials, and provider configuration. Success means the governed adapter observed one matching passed `run.completed` event and both completion gates while the exact lease was valid; it does not mean assignment state changed. Foreign or contradictory run history, stale coordinates, invalid timing, event failure, and historical absence create no prepared-completion claim.
 
-`assignment.completion.reconciled` records the prepared-evidence and exact reconciliation
-command IDs, source managed run, assignment, agent, lease, result artifact coordinates,
-resulting revision, and time. It has the same exclusions. Success means the still-matching
-leased assignment state and event committed together; a preparation made during the original
-half-open `[acquiredAt, expiresAt)` lease interval may be applied after expiry. Another revision
-or lease, an out-of-interval
-preparation, a terminal assignment, stale plan, contention, or event failure records no
-reconciliation success, and event failure restores the prior assignment bytes. Missing
-preparation remains escalation-required and never authorizes provider rerun.
+`assignment.completion.reconciled` records the prepared-evidence and exact reconciliation command IDs, source managed run, assignment, agent, lease, result artifact coordinates, resulting revision, and time. It has the same exclusions. Success means the still-matching leased assignment state and event committed together; a preparation made during the original half-open `[acquiredAt, expiresAt)` lease interval may be applied after expiry. Another revision or lease, an out-of-interval preparation, a terminal assignment, stale plan, contention, or event failure records no reconciliation success, and event failure restores the prior assignment bytes. Missing preparation remains escalation-required and never authorizes provider rerun.
 
 Agent state may contain exact capability package IDs, kinds, versions, content hashes, and project or user source scopes. `capabilityHash` binds these coordinates and role-permission decisions. It excludes package bodies, publisher metadata, local paths, MCP configuration values, credentials, and Hub tokens. Registration failure records neither a hired agent nor package authority. Capability installation and Hub publication return operation receipts, add no execution event, and prove no loading, activation, invocation, or use.
 
@@ -159,17 +77,7 @@ All workspace payloads exclude absolute and repository-relative paths, branch na
 
 `development.pattern.observed` records pattern and observation IDs, provider, source-snapshot and evidence digests, independent occurrence count, and time. `development.pattern.transitioned` records transition and pattern IDs, prior and next lifecycle states, candidate and review artifact coordinates, target kind, exact approval digest, and time. They exclude candidate and review bodies, occurrence and target paths, verification commands, reviewer identity, source text, credentials, and model output. Observation proves only evidence submission, not that a convention is true or approved. Transition success means the immutable artifact or exact promotion transaction committed. Storage or event failure records no transition, and promotion restores changed bytes.
 
-`development.pattern.evaluation.registered` records the exact pre-promotion protocol, plan,
-candidate, review, intended target, adapter, baseline-window, baseline-observation, metric, artifact,
-and time coordinates. `development.pattern.effect.observed` records the exact protocol, promotion,
-comparison, unchanged target, adapter, treatment-window, treatment-observation, aggregate,
-attribution, rollback disposition, metric count, artifact, and time coordinates. Bodies, paths,
-request prose, raw samples, native IDs, user identities, credentials, and unrestricted errors are
-excluded. Registration proves only that an injected adapter verified the bound baseline before
-promotion. Effect observation proves only the bound comparison; attribution is always
-`unestablished`, and `review_required` never authorizes automatic rollback or model-learning,
-truth, correctness, or semantic-use claims. Invalid timing or binding, adapter drift, storage or
-event failure creates no success event.
+`development.pattern.evaluation.registered` records the exact pre-promotion protocol, plan, candidate, review, intended target, adapter, baseline-window, baseline-observation, metric, artifact, and time coordinates. `development.pattern.effect.observed` records the exact protocol, promotion, comparison, unchanged target, adapter, treatment-window, treatment-observation, aggregate, attribution, rollback disposition, metric count, artifact, and time coordinates. Bodies, paths, request prose, raw samples, native IDs, user identities, credentials, and unrestricted errors are excluded. Registration proves only that an injected adapter verified the bound baseline before promotion. Effect observation proves only the bound comparison; attribution is always `unestablished`, and `review_required` never authorizes automatic rollback or model-learning, truth, correctness, or semantic-use claims. Invalid timing or binding, adapter drift, storage or event failure creates no success event.
 
 `terminal.integration.applied` records contract, providers, provider-target path digests and after-hashes, generated-runtime path digest and after-hash, approval hash, and time. It excludes prompts, bodies, raw configuration, commands, runtime bytes, credentials, absolute paths, and output. Failure rolls back and emits no success event.
 
@@ -191,20 +99,11 @@ Terminal observation evolution is additive and history-preserving. The original 
 
 `lervo terminal coverage` is rebuildable. Preparation is diagnostic; managed delivery is unavailable without an adapter receipt; explicit reference is nullable when Stop output is unavailable; relevance is nullable without ground truth. No combined score exists.
 
-Terminal coverage also keeps resource meanings separate. Whole-task provider usage is
-always `unavailable` with `unmanaged_provider_usage_unobserved` because direct provider
-execution is outside the managed adapter boundary. Usage directly retained by the
-query-projection receipt is reported separately as `partial` with
-`accounting_descriptor_unavailable`; a missing receipt counter is
-`query_projection_usage_unavailable`. Neither value is billed cost.
+Terminal coverage also keeps resource meanings separate. Whole-task provider usage is always `unavailable` with `unmanaged_provider_usage_unobserved` because direct provider execution is outside the managed adapter boundary. Usage directly retained by the query-projection receipt is reported separately as `partial` with `accounting_descriptor_unavailable`; a missing receipt counter is `query_projection_usage_unavailable`. Neither value is billed cost.
 
 Managed `context.injected` events include adapter and provider session and, for every document, E3 receipt, ID, hash, and scope. `adapter.result.captured` records adapter, provider session, turns, digest, bytes, media type, and reference support without content. `context.referenced` records validated E4 linked to that result and E3 version. Unknown, stale, altered, cross-turn, or cross-generation tokens create no E4. Contradictory persisted coordinates fail projection. Result and E4 events commit atomically; failure fails the run. Local trace and Hub use one projector; Hub coverage uses complete history despite response pagination.
 
-Managed resource descriptors contain provider and adapter identity, accounting mode,
-normalization and native-counter semantic IDs, support state, and nullable model and
-service tier. Their schemas exclude credentials and unrestricted native metadata. The
-shared work report groups observations by provider, scope, source, mode, and descriptor
-hash; it does not combine cross-provider totals or infer price.
+Managed resource descriptors contain provider and adapter identity, accounting mode, normalization and native-counter semantic IDs, support state, and nullable model and service tier. Their schemas exclude credentials and unrestricted native metadata. The shared work report groups observations by provider, scope, source, mode, and descriptor hash; it does not combine cross-provider totals or infer price.
 
 ## References
 
