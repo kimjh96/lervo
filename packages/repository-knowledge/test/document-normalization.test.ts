@@ -8,7 +8,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   applyDocumentNormalizationPlan,
   compileConfiguredDocumentNormalizationCandidate,
+  createConfiguredDocumentNormalizationPreflight,
   createDocumentNormalizationPlan,
+  inspectConfiguredDocumentNormalization,
   lintRepositoryKnowledge,
   loadDocumentNormalizationCandidate,
   sha256,
@@ -123,6 +125,196 @@ function normalizedResponse(
 }
 
 describe("document content normalization", () => {
+  it("preflights and compiles only stale reviewed documents without hiding new pending work", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/operations"), { recursive: true });
+    await writeFile(resolve(root, "docs/operations/reviewed.md"), "# Reviewed\n\nOriginal.\n");
+    const initialCalls: DocumentNormalizationEnvelope[] = [];
+    const normalizer: RepositoryDocumentNormalizationCompiler = {
+      descriptor: compiler([]).descriptor,
+      async normalize(envelope) {
+        initialCalls.push(envelope);
+        return normalizedResponse(envelope);
+      },
+    };
+    const initial = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
+    const initialPlan = await createDocumentNormalizationPlan({
+      repositoryRoot: root,
+      candidate: initial,
+      now: new Date("2026-09-04T00:00:00.000Z"),
+    });
+    await applyDocumentNormalizationPlan({
+      plan: initialPlan,
+      candidate: initial,
+      approvals: initialPlan.items.map((item) => ({
+        operationId: item.operationId,
+        approvalHash: item.approvalHash,
+      })),
+      now: new Date("2026-09-04T00:00:00.000Z"),
+      recordApplied: () => undefined,
+    });
+    await writeFile(resolve(root, "docs/operations/reviewed.md"), "# Reviewed\n\nChanged.\n");
+    await writeFile(resolve(root, "docs/operations/new.md"), "# New\n\nUnreviewed.\n");
+    const calls: DocumentNormalizationEnvelope[] = [];
+    const replacementNormalizer: RepositoryDocumentNormalizationCompiler = {
+      descriptor: normalizer.descriptor,
+      async normalize(envelope) {
+        calls.push(envelope);
+        return normalizedResponse(envelope);
+      },
+    };
+
+    const preflight = await createConfiguredDocumentNormalizationPreflight({
+      repositoryRoot: root,
+      compiler: replacementNormalizer,
+      scope: "stale",
+    });
+
+    expect(calls).toEqual([]);
+    expect(preflight).toMatchObject({
+      status: "ready",
+      workset: {
+        scope: "stale",
+        repository: {
+          pendingDocuments: 2,
+          staleDocuments: 1,
+          unrecordedDocuments: 1,
+        },
+        selectedDocuments: 1,
+      },
+      selection: { envelopeCount: 1, cacheHits: 0, cacheMisses: 1 },
+    });
+    expect(preflight.selection.documents.map((document) => document.path)).toEqual([
+      "docs/operations/reviewed.md",
+    ]);
+
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: replacementNormalizer,
+      signal: new AbortController().signal,
+      scope: "stale",
+    });
+    expect(candidate.workset).toEqual(preflight.workset);
+    expect(candidate.items.map((item) => item.sourcePath)).toEqual(["docs/operations/reviewed.md"]);
+    const cachedPreflight = await createConfiguredDocumentNormalizationPreflight({
+      repositoryRoot: root,
+      compiler: replacementNormalizer,
+      scope: "stale",
+    });
+    expect(cachedPreflight.selection).toMatchObject({ cacheHits: 1, cacheMisses: 0 });
+    const plan = await createDocumentNormalizationPlan({
+      repositoryRoot: root,
+      candidate,
+      now: new Date("2026-09-04T01:00:00.000Z"),
+    });
+    expect(plan.status).toBe("review_required");
+    await applyDocumentNormalizationPlan({
+      plan,
+      candidate,
+      approvals: plan.items.map((item) => ({
+        operationId: item.operationId,
+        approvalHash: item.approvalHash,
+      })),
+      now: new Date("2026-09-04T01:00:00.000Z"),
+      recordApplied: () => undefined,
+    });
+    const lifecycle = await inspectConfiguredDocumentNormalization({ repositoryRoot: root });
+    expect(lifecycle.pendingDocuments).toEqual(["docs/operations/new.md"]);
+  });
+
+  it("blocks provider generation before a declared workset ceiling is exceeded", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/operations"), { recursive: true });
+    await writeFile(resolve(root, "docs/operations/bounded.md"), "# Bounded\n\nContent.\n");
+    const calls: DocumentNormalizationEnvelope[] = [];
+    const normalizer = compiler(calls);
+    const preflight = await createConfiguredDocumentNormalizationPreflight({
+      repositoryRoot: root,
+      compiler: normalizer,
+      ceilings: { maximumSourceBytes: 1 },
+    });
+    expect(preflight.status).toBe("blocked");
+    expect(preflight.blockers).toEqual([
+      expect.objectContaining({ code: "source_bytes_exceeded", limit: 1 }),
+    ]);
+    await expect(
+      compileConfiguredDocumentNormalizationCandidate({
+        repositoryRoot: root,
+        compiler: normalizer,
+        signal: new AbortController().signal,
+        ceilings: { maximumSourceBytes: 1 },
+      }),
+    ).rejects.toMatchObject({ code: "normalization_budget_exceeded" });
+    expect(calls).toEqual([]);
+  });
+
+  it("reserves bounded batch-fallback capacity before provider generation", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/operations"), { recursive: true });
+    await writeFile(resolve(root, "docs/operations/alpha.md"), "# Alpha\n\nContent.\n");
+    await writeFile(resolve(root, "docs/operations/beta.md"), "# Beta\n\nContent.\n");
+    const calls: DocumentNormalizationEnvelope[] = [];
+    const normalizer = compiler(calls);
+    const preflight = await createConfiguredDocumentNormalizationPreflight({
+      repositoryRoot: root,
+      compiler: normalizer,
+      ceilings: { maximumProviderCalls: 2 },
+    });
+    expect(preflight).toMatchObject({
+      status: "blocked",
+      selection: { envelopeCount: 1, cacheMisses: 2, providerCallCapacity: 3 },
+      blockers: [{ code: "provider_calls_exceeded", observed: 3, limit: 2 }],
+    });
+    await expect(
+      compileConfiguredDocumentNormalizationCandidate({
+        repositoryRoot: root,
+        compiler: normalizer,
+        signal: new AbortController().signal,
+        ceilings: { maximumProviderCalls: 2 },
+      }),
+    ).rejects.toMatchObject({ code: "normalization_budget_exceeded" });
+    expect(calls).toEqual([]);
+  });
+
+  it("keeps invalid lifecycle records out of the stale scope", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/operations"), { recursive: true });
+    await writeFile(resolve(root, "docs/operations/pending.md"), "# Pending\n\nContent.\n");
+    const recordId = "knormdoc_aaaaaaaaaaaaaaaaaaaaaaaa";
+    await mkdir(resolve(root, ".lervo/knowledge/document-normalizations/aa"), {
+      recursive: true,
+    });
+    await writeFile(
+      resolve(root, `.lervo/knowledge/document-normalizations/aa/${recordId}.yaml`),
+      `schemaVersion: 1\nrecordId: ${recordId}\nsourcePath: docs/operations/pending.md\noutputs: []\n`,
+    );
+    const calls: DocumentNormalizationEnvelope[] = [];
+    const normalizer = compiler(calls);
+    const stale = await createConfiguredDocumentNormalizationPreflight({
+      repositoryRoot: root,
+      compiler: normalizer,
+      scope: "stale",
+    });
+    const allPending = await createConfiguredDocumentNormalizationPreflight({
+      repositoryRoot: root,
+      compiler: normalizer,
+      scope: "all_pending",
+    });
+    expect(stale).toMatchObject({
+      status: "current",
+      workset: {
+        repository: { pendingDocuments: 1, staleDocuments: 0, unrecordedDocuments: 1 },
+        selectedDocuments: 0,
+      },
+    });
+    expect(allPending.workset.selectedDocuments).toBe(1);
+    expect(calls).toEqual([]);
+  });
+
   it("keeps dependency environments and preservation collections outside normalization", async () => {
     const root = await repository();
     await mkdir(resolve(root, ".venv/licenses"), { recursive: true });

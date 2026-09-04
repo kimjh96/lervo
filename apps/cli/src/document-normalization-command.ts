@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
-import { parseArgs } from "node:util";
 
 import {
   applyDocumentNormalizationPlan,
   canonicalJson,
   compileConfiguredDocumentNormalizationCandidate,
+  createConfiguredDocumentNormalizationPreflight,
   createDocumentNormalizationPlan,
   lintRepositoryKnowledge,
   loadDocumentNormalizationCandidate,
@@ -17,11 +17,13 @@ import { createProcessDocumentNormalizationCompiler } from "@lervo/repository-kn
 import { openProjectStorage } from "@lervo/project-storage";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
+import {
+  documentNormalizationUsage,
+  parseDocumentNormalizationOptions,
+} from "./document-normalization-options.js";
+import { formatDocumentNormalizationPreflight } from "./document-normalization-preflight-format.js";
 import type { CliIo } from "./types.js";
 import { normalizationKnowledgeLintCodes, validateKnowledgeStage } from "./knowledge-stage-lint.js";
-
-const usage =
-  "lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]";
 
 function approvals(
   values: string[] | undefined,
@@ -55,6 +57,7 @@ function formatPlan(plan: DocumentNormalizationPlan, artifactPath: string): stri
     `plan: ${plan.planId}`,
     `candidate: ${plan.candidateId ?? "none"}`,
     `candidate artifact: ${artifactPath}`,
+    `workset: ${plan.workset.worksetId} · scope: ${plan.workset.scope}`,
     `language: ${plan.outputLanguage} · format: ${plan.formatVersion}`,
     `source documents: ${plan.items.length} · output documents: ${plan.items.reduce((sum, item) => sum + item.outputs.length, 0)}`,
   ];
@@ -74,57 +77,37 @@ function formatPlan(plan: DocumentNormalizationPlan, artifactPath: string): stri
 
 export async function runDocumentNormalizationCommand(args: string[], io: CliIo): Promise<number> {
   try {
-    const parsed = parseArgs({
-      args,
-      strict: true,
-      allowPositionals: false,
-      options: {
-        root: { type: "string" },
-        provider: { type: "string" },
-        candidate: { type: "string" },
-        model: { type: "string" },
-        executable: { type: "string" },
-        "timeout-ms": { type: "string" },
-        apply: { type: "string" },
-        "approve-item": { type: "string", multiple: true },
-        json: { type: "boolean" },
-        help: { type: "boolean", short: "h" },
-      },
-    });
-    if (parsed.values.help) {
-      io.stdout(`${usage}\n`);
+    const options = parseDocumentNormalizationOptions(args);
+    if (options.help) {
+      io.stdout(`${documentNormalizationUsage}\n`);
       return 0;
     }
-    if ((parsed.values.provider === undefined) === (parsed.values.candidate === undefined))
-      throw new Error("Specify exactly one of --provider or --candidate.");
-    if (
-      parsed.values.provider !== undefined &&
-      parsed.values.provider !== "codex" &&
-      parsed.values.provider !== "claude"
-    )
-      throw new Error("--provider must be codex or claude.");
-    if (parsed.values.apply !== undefined && parsed.values.candidate === undefined)
-      throw new Error(
-        "Applying normalization requires the stored --candidate ID shown by the planning command.",
-      );
-    const timeoutMs =
-      parsed.values["timeout-ms"] === undefined ? undefined : Number(parsed.values["timeout-ms"]);
-    if (
-      timeoutMs !== undefined &&
-      (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 600_000)
-    )
-      throw new Error("--timeout-ms must be an integer between 1000 and 600000.");
-    const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    const repositoryRoot = resolve(io.cwd, options.root ?? ".");
     const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
     let candidate;
     let stored;
-    if (parsed.values.provider !== undefined) {
+    if (options.provider !== undefined) {
       const compiler = await createProcessDocumentNormalizationCompiler({
-        provider: parsed.values.provider,
-        ...(parsed.values.model === undefined ? {} : { model: parsed.values.model }),
-        ...(parsed.values.executable === undefined ? {} : { executable: parsed.values.executable }),
-        ...(timeoutMs === undefined ? {} : { timeoutMs }),
+        provider: options.provider,
+        ...(options.model === undefined ? {} : { model: options.model }),
+        ...(options.executable === undefined ? {} : { executable: options.executable }),
+        ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
       });
+      if (options.preflight) {
+        const preflight = await createConfiguredDocumentNormalizationPreflight({
+          repositoryRoot,
+          compiler,
+          scope: options.scope,
+          ceilings: options.ceilings,
+          supplementalSources,
+        });
+        io.stdout(
+          options.json
+            ? `${JSON.stringify(preflight, null, 2)}\n`
+            : formatDocumentNormalizationPreflight(preflight),
+        );
+        return preflight.status === "blocked" ? 1 : 0;
+      }
       const controller = new AbortController();
       const abort = (): void => controller.abort(new Error("document normalization cancelled"));
       process.once("SIGINT", abort);
@@ -134,6 +117,8 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
           repositoryRoot,
           compiler,
           signal: controller.signal,
+          scope: options.scope,
+          ceilings: options.ceilings,
           supplementalSources,
           onShardProgress: ({ index, total, status, documentCount, cachedDocumentCount }) => {
             const documents = `${documentCount} document${documentCount === 1 ? "" : "s"}`;
@@ -161,7 +146,7 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
     } else {
       candidate = await loadDocumentNormalizationCandidate({
         repositoryRoot,
-        candidateId: parsed.values.candidate!,
+        candidateId: options.candidate!,
       });
       stored = {
         candidateId: candidate.candidateId,
@@ -176,17 +161,17 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
       now: new Date(),
       supplementalSources,
     });
-    if (parsed.values.apply === undefined) {
-      if ((parsed.values["approve-item"]?.length ?? 0) > 0)
+    if (options.apply === undefined) {
+      if ((options.approveItems?.length ?? 0) > 0)
         throw new Error("--approve-item must be used with --apply.");
       io.stdout(
-        parsed.values.json
+        options.json
           ? `${JSON.stringify(printablePlan(plan, stored.artifactPath), null, 2)}\n`
           : formatPlan(plan, stored.artifactPath),
       );
       return plan.status === "blocked" ? 1 : 0;
     }
-    if (parsed.values.apply !== plan.planId)
+    if (options.apply !== plan.planId)
       throw new Error(
         "The requested plan ID does not match the current document normalization plan.",
       );
@@ -199,7 +184,7 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
       const receipt = await applyDocumentNormalizationPlan({
         plan,
         candidate,
-        approvals: approvals(parsed.values["approve-item"]),
+        approvals: approvals(options.approveItems),
         now: new Date(),
         supplementalSources,
         recordApplied: async (applied) => {
@@ -251,7 +236,7 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
               compilerVersion: candidate.compiler.compilerVersion,
               compilerBuildId: candidate.compiler.compilerBuildId,
               approvalDigest: applied.approvalDigest,
-              coverage: candidate.coverage,
+              coverage: { ...candidate.coverage, workset: candidate.workset },
               bundleIds: [],
               createdConceptIds: [],
               updatedConceptIds: [],
@@ -289,7 +274,7 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
         },
       });
       io.stdout(
-        parsed.values.json
+        options.json
           ? `${JSON.stringify(receipt, null, 2)}\n`
           : `Repository documents normalized.\nplan: ${receipt.planId}\nsource documents: ${receipt.normalizedDocumentCount}\noutput documents: ${receipt.outputDocumentCount}\nRun lervo migrate knowledge again to refresh structural navigation.\n`,
       );
@@ -298,7 +283,9 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
       await storage.close();
     }
   } catch (error) {
-    io.stderr(`${error instanceof Error ? error.message : String(error)}\n${usage}\n`);
+    io.stderr(
+      `${error instanceof Error ? error.message : String(error)}\n${documentNormalizationUsage}\n`,
+    );
     return 1;
   }
 }

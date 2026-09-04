@@ -15,6 +15,17 @@ import {
 } from "./durable-apply.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { bytePreservedDocumentCollection } from "./document-layout.js";
+import { createDocumentNormalizationShardCache } from "./document-normalization-cache.js";
+import {
+  assertDocumentNormalizationPreflightReady,
+  createDocumentNormalizationPreflightReport,
+  documentNormalizationWorksetBinding,
+  selectDocumentNormalizationPaths,
+  type DocumentNormalizationPreflight,
+  type DocumentNormalizationResourceCeilings,
+  type DocumentNormalizationScope,
+  type DocumentNormalizationWorksetBinding,
+} from "./document-normalization-workset.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { repositoryPathMatchesPatterns } from "./scanner.js";
 import {
@@ -33,7 +44,6 @@ const MAX_CONCURRENT_SHARDS = 3;
 const MAX_OUTPUT_DOCUMENTS = 12;
 const MAX_OUTPUT_BYTES = 32 * 1024;
 const MAX_CANDIDATE_BYTES = 16 * 1024 * 1024;
-const MAX_SHARD_CACHE_BYTES = 4 * 1024 * 1024;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const DOCUMENT_NORMALIZATION_PROFILES = new Set<DocumentNormalizationProfile>([
   "human_readme",
@@ -190,6 +200,7 @@ export interface DocumentNormalizationCandidate {
   outputLanguage: string;
   formatVersion: "lervo.document.v1";
   compiler: DocumentNormalizationCompilerDescriptor;
+  workset: DocumentNormalizationWorksetBinding;
   shardIds: string[];
   items: DocumentNormalizationCandidateItem[];
   coverage: {
@@ -229,6 +240,7 @@ export interface DocumentNormalizationPlan {
   candidateId: string | null;
   outputLanguage: string;
   formatVersion: "lervo.document.v1";
+  workset: DocumentNormalizationWorksetBinding;
   items: DocumentNormalizationCandidateItem[];
   blockers: Array<{ code: "destination_exists" | "candidate_stale"; path: string }>;
   operations: Array<
@@ -244,6 +256,7 @@ export interface DocumentNormalizationReceipt {
   projectId: string;
   sourceSnapshotId: string;
   candidateId: string;
+  workset: DocumentNormalizationWorksetBinding;
   approvalDigest: string;
   normalizedDocumentCount: number;
   outputDocumentCount: number;
@@ -892,6 +905,13 @@ function validateDocumentNormalizationCandidate(candidate: DocumentNormalization
     !HASH.test(candidate.compiler.compilerBuildId) ||
     !["codex", "claude"].includes(candidate.compiler.provider) ||
     candidate.compiler.isolation !== "external_no_capabilities" ||
+    candidate.workset === null ||
+    typeof candidate.workset !== "object" ||
+    !/^knormset_[a-f0-9]{24}$/u.test(candidate.workset.worksetId) ||
+    !["all_pending", "stale"].includes(candidate.workset.scope) ||
+    candidate.workset.complete !== true ||
+    candidate.workset.repository === null ||
+    typeof candidate.workset.repository !== "object" ||
     !Array.isArray(candidate.shardIds) ||
     !Array.isArray(candidate.items) ||
     candidate.coverage === null ||
@@ -1034,6 +1054,38 @@ function validateDocumentNormalizationCandidate(candidate: DocumentNormalization
     candidate.coverage.sourceUnits !== sourceUnitCount
   )
     invalidCandidate("coverage does not match the candidate operations");
+  const repositoryCounts = candidate.workset.repository;
+  if (
+    [
+      repositoryCounts.eligibleDocuments,
+      repositoryCounts.currentDocuments,
+      repositoryCounts.pendingDocuments,
+      repositoryCounts.staleDocuments,
+      repositoryCounts.unrecordedDocuments,
+      candidate.workset.selectedDocuments,
+      candidate.workset.sourceBytes,
+    ].some((count) => !Number.isSafeInteger(count) || count < 0) ||
+    repositoryCounts.currentDocuments + repositoryCounts.pendingDocuments !==
+      repositoryCounts.eligibleDocuments ||
+    repositoryCounts.staleDocuments + repositoryCounts.unrecordedDocuments !==
+      repositoryCounts.pendingDocuments ||
+    candidate.workset.selectedDocuments !== candidate.items.length ||
+    candidate.workset.sourceBytes !==
+      candidate.items.reduce((sum, item) => sum + item.sourceByteCount, 0)
+  )
+    invalidCandidate("the workset counts do not match the repository or candidate operations");
+  const expectedWorkset = documentNormalizationWorksetBinding({
+    scope: candidate.workset.scope,
+    sourceSnapshotId: candidate.sourceSnapshotId,
+    ...repositoryCounts,
+    documents: candidate.items.map((item) => ({
+      path: item.sourcePath,
+      contentHash: item.sourceContentHash,
+      byteCount: item.sourceByteCount,
+    })),
+  });
+  if (canonicalJson(expectedWorkset) !== canonicalJson(candidate.workset))
+    invalidCandidate("the workset identity does not match its selected source content");
   const { schemaVersion: _schemaVersion, candidateId, ...materials } = candidate;
   if (stableId("knorm", candidateMaterials(materials)) !== candidateId)
     invalidCandidate("the content binding does not match the candidate ID");
@@ -1063,8 +1115,13 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
     input.taxonomy,
     input.normalizationExclude,
   );
-  const current = await currentNormalizedPaths(input.root, input.candidate.outputLanguage);
-  const expected = eligible.filter((item) => !current.has(item.source.path));
+  const lifecycle = await normalizationLifecyclePaths(input.root, input.candidate.outputLanguage);
+  const pending = eligible.filter((item) => !lifecycle.current.has(item.source.path));
+  const expected = pending.filter(
+    (item) =>
+      input.candidate.workset.scope === "all_pending" ||
+      lifecycle.staleSources.has(item.source.path),
+  );
   const expectedByPath = new Map(expected.map((item) => [item.source.path, item]));
   const candidatePaths = new Set(input.candidate.items.map((item) => item.sourcePath));
   if (
@@ -1074,6 +1131,24 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
     invalidCandidate(
       "the claimed complete source set does not match the current normalization lifecycle",
     );
+  const expectedWorkset = documentNormalizationWorksetBinding({
+    scope: input.candidate.workset.scope,
+    sourceSnapshotId: input.scan.snapshotId,
+    eligibleDocuments: eligible.length,
+    currentDocuments: eligible.length - pending.length,
+    pendingDocuments: pending.length,
+    staleDocuments: pending.filter((item) => lifecycle.staleSources.has(item.source.path)).length,
+    documents: expected.map((item) => ({
+      path: item.source.path,
+      contentHash: item.source.contentHash,
+      byteCount: item.source.byteCount,
+    })),
+  });
+  if (
+    input.scan.snapshotId === input.candidate.sourceSnapshotId &&
+    canonicalJson(expectedWorkset) !== canonicalJson(input.candidate.workset)
+  )
+    invalidCandidate("the workset does not match the current normalization lifecycle");
 
   const hasRootAgentInstructions = input.scan.sources.some(
     (source) => source.path === "AGENTS.md" && source.status === "included",
@@ -1157,6 +1232,8 @@ export async function compileDocumentNormalizationCandidate(input: {
   compiler: RepositoryDocumentNormalizationCompiler;
   signal: AbortSignal;
   currentPaths?: ReadonlySet<string>;
+  selectedPaths?: ReadonlySet<string>;
+  workset?: DocumentNormalizationWorksetBinding;
   loadShardResponse?: (envelope: DocumentNormalizationEnvelope) => Promise<unknown | null>;
   storeShardResponse?: (
     envelope: DocumentNormalizationEnvelope,
@@ -1169,12 +1246,17 @@ export async function compileDocumentNormalizationCandidate(input: {
       "knowledge_compile_policy_violation",
       `Unsupported document normalization language: ${input.outputLanguage}`,
     );
-  const eligible = eligibleDocuments(
+  const allEligible = eligibleDocuments(
     input.scan,
     input.publicationRoot,
     input.taxonomy,
     input.normalizationExclude,
-  ).filter((item) => !input.currentPaths?.has(item.source.path));
+  );
+  const eligible = allEligible.filter((item) =>
+    input.selectedPaths === undefined
+      ? !input.currentPaths?.has(item.source.path)
+      : input.selectedPaths.has(item.source.path),
+  );
   const envelopes = normalizationEnvelopes({
     scan: input.scan,
     outputLanguage: input.outputLanguage,
@@ -1406,6 +1488,21 @@ export async function compileDocumentNormalizationCandidate(input: {
     outputLanguage: input.outputLanguage,
     formatVersion: "lervo.document.v1",
     compiler: input.compiler.descriptor,
+    workset:
+      input.workset ??
+      documentNormalizationWorksetBinding({
+        scope: "all_pending",
+        sourceSnapshotId: input.scan.snapshotId,
+        eligibleDocuments: allEligible.length,
+        currentDocuments: allEligible.length - eligible.length,
+        pendingDocuments: eligible.length,
+        staleDocuments: 0,
+        documents: eligible.map((item) => ({
+          path: item.source.path,
+          contentHash: item.source.contentHash,
+          byteCount: item.source.byteCount,
+        })),
+      }),
     shardIds: envelopes.map((envelope) => envelope.shardId),
     items,
     coverage: {
@@ -1486,7 +1583,60 @@ async function userRegionHashAt(path: string): Promise<string | null> {
   }
 }
 
-async function currentNormalizedPaths(root: string, outputLanguage: string): Promise<Set<string>> {
+function validDocumentNormalizationRecord(
+  value: unknown,
+  path: string,
+  outputLanguage: string,
+): value is DocumentNormalizationRecord {
+  if (value === null || typeof value !== "object") return false;
+  const record = value as Partial<DocumentNormalizationRecord>;
+  return !(
+    ![1, 2].includes(record.schemaVersion ?? 0) ||
+    (record.schemaVersion === 2 &&
+      (record.byteOwnership?.owner !== "reviewer" ||
+        record.byteOwnership.rewritePolicy !== "reviewed_exact")) ||
+    typeof record.recordId !== "string" ||
+    !/^knormdoc_[a-f0-9]{24}$/u.test(record.recordId) ||
+    path !==
+      shardedKnowledgeArtifactPath(
+        ".lervo/knowledge/document-normalizations",
+        record.recordId,
+        "yaml",
+      ) ||
+    typeof record.sourcePath !== "string" ||
+    !safeRelativePath(record.sourcePath) ||
+    record.outputLanguage !== outputLanguage ||
+    record.formatVersion !== "lervo.document.v1" ||
+    !Array.isArray(record.outputs) ||
+    record.outputs.length < 1 ||
+    record.outputs.some(
+      (output) =>
+        output === null ||
+        typeof output !== "object" ||
+        typeof output.path !== "string" ||
+        !safeRelativePath(output.path) ||
+        typeof output.contentHash !== "string" ||
+        !HASH.test(output.contentHash) ||
+        (output.userRegionHash !== undefined &&
+          (typeof output.userRegionHash !== "string" || !HASH.test(output.userRegionHash))),
+    ) ||
+    !Array.isArray(record.resourceBindings) ||
+    record.resourceBindings.some(
+      (resource) =>
+        resource === null ||
+        typeof resource !== "object" ||
+        typeof resource.path !== "string" ||
+        !safeRelativePath(resource.path) ||
+        typeof resource.contentHash !== "string" ||
+        !HASH.test(resource.contentHash),
+    )
+  );
+}
+
+async function normalizationLifecyclePaths(
+  root: string,
+  outputLanguage: string,
+): Promise<{ current: Set<string>; staleSources: Set<string> }> {
   const paths = await listKnowledgeArtifactPaths({
     root,
     directory: ".lervo/knowledge/document-normalizations",
@@ -1494,26 +1644,15 @@ async function currentNormalizedPaths(root: string, outputLanguage: string): Pro
     maximumFiles: 20_000,
   });
   const current = new Set<string>();
+  const staleSources = new Set<string>();
   for (const path of paths) {
-    let record: DocumentNormalizationRecord;
+    let record: unknown = null;
     try {
       record = parse(await readFile(resolve(root, path), "utf8")) as DocumentNormalizationRecord;
     } catch {
-      throw new RepositoryKnowledgeError(
-        "knowledge_reconciliation_conflict",
-        "A document normalization lifecycle record is invalid.",
-      );
+      /* Invalid records remain pending but never qualify a source as stale. */
     }
-    if (
-      ![1, 2].includes(record.schemaVersion) ||
-      (record.schemaVersion === 2 &&
-        (record.byteOwnership?.owner !== "reviewer" ||
-          record.byteOwnership.rewritePolicy !== "reviewed_exact")) ||
-      record.outputLanguage !== outputLanguage ||
-      record.formatVersion !== "lervo.document.v1" ||
-      !Array.isArray(record.outputs)
-    )
-      continue;
+    if (!validDocumentNormalizationRecord(record, path, outputLanguage)) continue;
     const hashes = await Promise.all(
       record.outputs.map((output) => hashAt(resolve(root, output.path))),
     );
@@ -1523,20 +1662,19 @@ async function currentNormalizedPaths(root: string, outputLanguage: string): Pro
       ),
     );
     const resources = await Promise.all(
-      (record.resourceBindings ?? []).map((resource) => hashAt(resolve(root, resource.path))),
+      record.resourceBindings.map((resource) => hashAt(resolve(root, resource.path))),
     );
-    if (
+    const isCurrent =
       hashes.every(
         (hash, index) =>
           hash === record.outputs[index]!.contentHash ||
           (record.outputs[index]!.userRegionHash !== undefined &&
             userHashes[index] === record.outputs[index]!.userRegionHash),
-      ) &&
-      resources.every((hash, index) => hash === record.resourceBindings[index]!.contentHash)
-    )
-      for (const output of record.outputs) current.add(output.path);
+      ) && resources.every((hash, index) => hash === record.resourceBindings[index]!.contentHash);
+    if (isCurrent) for (const output of record.outputs) current.add(output.path);
+    else staleSources.add(record.sourcePath);
   }
-  return current;
+  return { current, staleSources };
 }
 
 export interface DocumentNormalizationLifecycleInspection {
@@ -1582,42 +1720,22 @@ export async function inspectConfiguredDocumentNormalization(input: {
     maximumFiles: 20_000,
   });
   for (const path of paths) {
-    let record: DocumentNormalizationRecord | null = null;
+    let record: unknown = null;
     try {
       record = parse(await readFile(resolve(root, path), "utf8")) as DocumentNormalizationRecord;
     } catch {
       /* reported below */
     }
-    if (
-      record === null ||
-      ![1, 2].includes(record.schemaVersion) ||
-      (record.schemaVersion === 2 &&
-        (record.byteOwnership?.owner !== "reviewer" ||
-          record.byteOwnership.rewritePolicy !== "reviewed_exact")) ||
-      !/^knormdoc_[a-f0-9]{24}$/u.test(record.recordId) ||
-      path !==
-        shardedKnowledgeArtifactPath(
-          ".lervo/knowledge/document-normalizations",
-          record.recordId,
-          "yaml",
-        ) ||
-      record.outputLanguage !== policy.publication.language ||
-      record.formatVersion !== "lervo.document.v1" ||
-      !Array.isArray(record.outputs) ||
-      record.outputs.length < 1 ||
-      record.outputs.some(
-        (output) =>
-          !HASH.test(output.contentHash) ||
-          (output.userRegionHash !== undefined && !HASH.test(output.userRegionHash)),
-      ) ||
-      !Array.isArray(record.resourceBindings) ||
-      record.resourceBindings.some(
-        (resource) => typeof resource.path !== "string" || !HASH.test(resource.contentHash),
-      )
-    ) {
+    if (!validDocumentNormalizationRecord(record, path, policy.publication.language)) {
       records.push({
         path,
-        recordId: record?.recordId ?? null,
+        recordId:
+          record !== null &&
+          typeof record === "object" &&
+          "recordId" in record &&
+          typeof record.recordId === "string"
+            ? record.recordId
+            : null,
         status: "invalid",
         outputPaths: [],
       });
@@ -1675,9 +1793,66 @@ export async function compileConfiguredDocumentNormalizationCandidate(input: {
   repositoryRoot: string;
   compiler: RepositoryDocumentNormalizationCompiler;
   signal: AbortSignal;
+  scope?: DocumentNormalizationScope;
+  ceilings?: Partial<DocumentNormalizationResourceCeilings>;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
   onShardProgress?: (progress: DocumentNormalizationShardProgress) => void;
 }): Promise<DocumentNormalizationCandidate> {
+  const prepared = await prepareConfiguredDocumentNormalization({
+    repositoryRoot: input.repositoryRoot,
+    compiler: input.compiler,
+    ...(input.scope === undefined ? {} : { scope: input.scope }),
+    ...(input.ceilings === undefined ? {} : { ceilings: input.ceilings }),
+    ...(input.supplementalSources === undefined
+      ? {}
+      : { supplementalSources: input.supplementalSources }),
+  });
+  assertDocumentNormalizationPreflightReady(prepared.preflight);
+  let providerCalls = 0;
+  const boundedCompiler: RepositoryDocumentNormalizationCompiler = {
+    descriptor: input.compiler.descriptor,
+    normalize(envelope, signal) {
+      if (providerCalls >= prepared.preflight.ceilings.maximumProviderCalls)
+        throw new RepositoryKnowledgeError(
+          "normalization_budget_exceeded",
+          "The document normalization provider-call ceiling was reached before the next call.",
+        );
+      providerCalls += 1;
+      return input.compiler.normalize(envelope, signal);
+    },
+  };
+  return compileDocumentNormalizationCandidate({
+    scan: prepared.scan,
+    publicationRoot: prepared.publicationRoot,
+    outputLanguage: prepared.outputLanguage,
+    taxonomy: prepared.taxonomy,
+    normalizationExclude: prepared.normalizationExclude,
+    compiler: boundedCompiler,
+    signal: input.signal,
+    selectedPaths: prepared.selectedPaths,
+    workset: prepared.preflight.workset,
+    loadShardResponse: prepared.cache.load,
+    storeShardResponse: prepared.cache.store,
+    ...(input.onShardProgress === undefined ? {} : { onShardProgress: input.onShardProgress }),
+  });
+}
+
+async function prepareConfiguredDocumentNormalization(input: {
+  repositoryRoot: string;
+  compiler: RepositoryDocumentNormalizationCompiler;
+  scope?: DocumentNormalizationScope;
+  ceilings?: Partial<DocumentNormalizationResourceCeilings>;
+  supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
+}): Promise<{
+  scan: RepositoryKnowledgeScan;
+  publicationRoot: string;
+  outputLanguage: string;
+  taxonomy: DecisionTaxonomy;
+  normalizationExclude: string[];
+  selectedPaths: Set<string>;
+  cache: ReturnType<typeof createDocumentNormalizationShardCache>;
+  preflight: DocumentNormalizationPreflight;
+}> {
   const root = resolve(input.repositoryRoot);
   const [{ policy, scan }, taxonomy] = await Promise.all([
     scanConfiguredRepositoryKnowledge(
@@ -1688,88 +1863,97 @@ export async function compileConfiguredDocumentNormalizationCandidate(input: {
     ),
     loadDecisionTaxonomy(root),
   ]);
-  const cacheInput = (envelope: DocumentNormalizationEnvelope): unknown => ({
-    cacheContract: "document-v2",
-    compiler: input.compiler.descriptor,
-    envelope: {
-      schemaVersion: envelope.schemaVersion,
-      outputLanguage: envelope.outputLanguage,
-      formatVersion: envelope.formatVersion,
-      control: envelope.control,
-      documents: envelope.documents,
-    },
+  const lifecycle = await normalizationLifecyclePaths(root, policy.publication.language);
+  const eligible = eligibleDocuments(
+    scan,
+    policy.publicationRoot,
+    taxonomy,
+    policy.normalization?.exclude,
+  );
+  const pending = eligible.filter((item) => !lifecycle.current.has(item.source.path));
+  const pendingPaths = new Set(pending.map((item) => item.source.path));
+  const stale = pending.filter((item) => lifecycle.staleSources.has(item.source.path));
+  const selectedPaths = selectDocumentNormalizationPaths({
+    scope: input.scope ?? "all_pending",
+    pendingPaths,
+    stalePaths: lifecycle.staleSources,
   });
-  const cacheId = (envelope: DocumentNormalizationEnvelope): string =>
-    stableId("knormcache", cacheInput(envelope));
-  const cachePath = (envelope: DocumentNormalizationEnvelope): string =>
-    shardedKnowledgeArtifactPath(
-      ".lervo/state/knowledge/normalization-shards",
-      cacheId(envelope),
-      "json",
-    );
-  const loadShardResponse = async (
-    envelope: DocumentNormalizationEnvelope,
-  ): Promise<unknown | null> => {
-    try {
-      const bytes = await readFile(resolve(root, cachePath(envelope)));
-      if (bytes.byteLength > MAX_SHARD_CACHE_BYTES) return null;
-      const stored = JSON.parse(bytes.toString("utf8")) as {
-        schemaVersion?: unknown;
-        cacheId?: unknown;
-        response?: unknown;
-      };
-      return stored.schemaVersion === 1 && stored.cacheId === cacheId(envelope)
-        ? (stored.response ?? null)
-        : null;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT" || error instanceof SyntaxError)
-        return null;
-      throw error;
-    }
-  };
-  const storeShardResponse = async (
-    envelope: DocumentNormalizationEnvelope,
-    response: DocumentNormalizationResponse,
-  ): Promise<void> => {
-    const id = cacheId(envelope);
-    const absolute = resolve(root, cachePath(envelope));
-    const bytes = Buffer.from(
-      `${canonicalJson({ schemaVersion: 1, cacheContract: "document-v2", cacheId: id, compiler: input.compiler.descriptor, documentInputHash: sha256(canonicalJson(cacheInput(envelope))), response })}\n`,
-    );
-    if (bytes.byteLength > MAX_SHARD_CACHE_BYTES)
-      throw new RepositoryKnowledgeError(
-        "knowledge_source_limit_exceeded",
-        "A document normalization shard cache exceeds the artifact limit.",
-      );
-    await mkdir(dirname(absolute), { recursive: true, mode: 0o700 });
-    const existing = await hashAt(absolute);
-    if (existing !== null) return;
-    let handle;
-    try {
-      handle = await open(
-        absolute,
-        constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0),
-        0o600,
-      );
-      await handle.writeFile(bytes);
-      await handle.sync();
-    } finally {
-      await handle?.close();
-    }
-  };
-  return compileDocumentNormalizationCandidate({
+  const selected = pending.filter((item) => selectedPaths.has(item.source.path));
+  const envelopes = normalizationEnvelopes({
+    scan,
+    outputLanguage: policy.publication.language,
+    documents: selected,
+  });
+  const cache = createDocumentNormalizationShardCache({
+    repositoryRoot: root,
+    compiler: input.compiler,
+  });
+  const binding = documentNormalizationWorksetBinding({
+    scope: input.scope ?? "all_pending",
+    sourceSnapshotId: scan.snapshotId,
+    eligibleDocuments: eligible.length,
+    currentDocuments: eligible.length - pending.length,
+    pendingDocuments: pending.length,
+    staleDocuments: stale.length,
+    documents: selected.map((item) => ({
+      path: item.source.path,
+      contentHash: item.source.contentHash,
+      byteCount: item.source.byteCount,
+    })),
+  });
+  const preflight = await createDocumentNormalizationPreflightReport({
+    binding,
+    sourceSnapshotId: scan.snapshotId,
+    outputLanguage: policy.publication.language,
+    compiler: input.compiler.descriptor,
+    envelopes,
+    lifecycleByPath: new Map(
+      selected.map((item) => [
+        item.source.path,
+        lifecycle.staleSources.has(item.source.path) ? "stale" : "unrecorded",
+      ]),
+    ),
+    isCached: async (envelope) => {
+      const cached = await cache.load(envelope);
+      if (cached === null) return false;
+      try {
+        requiredResponse(cached, envelope);
+        return true;
+      } catch (error) {
+        if (
+          error instanceof RepositoryKnowledgeError &&
+          ["knowledge_compile_failed", "knowledge_compile_policy_violation"].includes(error.code)
+        )
+          return false;
+        throw error;
+      }
+    },
+    ...(input.ceilings === undefined ? {} : { ceilings: input.ceilings }),
+  });
+  return {
     scan,
     publicationRoot: policy.publicationRoot,
     outputLanguage: policy.publication.language,
     taxonomy,
     normalizationExclude: policy.normalization?.exclude ?? [],
-    compiler: input.compiler,
-    signal: input.signal,
-    currentPaths: await currentNormalizedPaths(root, policy.publication.language),
-    loadShardResponse,
-    storeShardResponse,
-    ...(input.onShardProgress === undefined ? {} : { onShardProgress: input.onShardProgress }),
-  });
+    selectedPaths,
+    cache,
+    preflight,
+  };
+}
+
+export async function createConfiguredDocumentNormalizationPreflight(input: {
+  repositoryRoot: string;
+  compiler: RepositoryDocumentNormalizationCompiler;
+  scope?: DocumentNormalizationScope;
+  ceilings?: Partial<DocumentNormalizationResourceCeilings>;
+  supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
+}): Promise<DocumentNormalizationPreflight> {
+  return (
+    await prepareConfiguredDocumentNormalization({
+      ...input,
+    })
+  ).preflight;
 }
 
 function candidatePath(candidateId: string): string {
@@ -1983,6 +2167,7 @@ export async function createDocumentNormalizationPlan(input: {
     candidateId: input.candidate.items.length === 0 ? null : input.candidate.candidateId,
     outputLanguage: input.candidate.outputLanguage,
     formatVersion: input.candidate.formatVersion,
+    workset: input.candidate.workset,
     items: input.candidate.items,
     blockers,
     operations,
@@ -2045,6 +2230,7 @@ export async function applyDocumentNormalizationPlan(input: {
     projectId: current.projectId,
     sourceSnapshotId: current.sourceSnapshotId,
     candidateId: input.candidate.candidateId,
+    workset: input.candidate.workset,
     approvalDigest: sha256(
       canonicalJson(
         current.items.map((item) => ({

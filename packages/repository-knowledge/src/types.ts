@@ -391,6 +391,7 @@ export class RepositoryKnowledgeError extends Error {
       | "knowledge_rollback_failed"
       | "knowledge_impact_invalid"
       | "knowledge_lint_failed"
+      | "normalization_budget_exceeded"
       | "document_directory_file_capacity_exceeded"
       | "document_directory_child_capacity_exceeded"
       | "document_repository_capacity_exceeded"

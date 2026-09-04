@@ -1,6 +1,6 @@
 # Document normalization evidence renewal
 
-Status: `planned`
+Status: `active`
 
 As of: 2026-09-04
 
@@ -16,30 +16,41 @@ task-base revision.
 
 ## Why provider execution is deferred
 
-`lervo knowledge normalize --provider <provider>` currently selects every eligible document without
-current evidence. At the inventory boundary that means 88 documents, 589,372 source bytes, and 45
-provider envelopes rather than the reviewed 31-family scope. The same command does not expose
-normalization-token usage even though the provider subprocess may report it.
+At the inventory boundary, the legacy all-pending behavior would select 88 documents, 589,372
+source bytes, and 45 provider envelopes rather than the reviewed 31-family scope. The implemented
+`--scope stale --preflight` boundary now prevents that widening and exposes byte, envelope, cache,
+and call-capacity evidence. The command does not yet expose normalization-token usage even though
+the provider subprocess may report it.
 
-Running that command now would be operationally valid but would be the wrong bounded action. It
-would widen review and cost without first making either visible. Candidate generation remains
-deferred; no user-owned document rewrite is authorized by this roadmap.
+Running candidate generation remains deferred until usage and elapsed-time observation are added.
+No user-owned document rewrite is authorized by this roadmap.
+
+## Implemented foundation
+
+- `stale` and `all-pending` are content-bound scopes with repository and selection coverage kept
+  distinct in candidates, plans, receipts, and applied-event coverage.
+- Read-only preflight reports exact path/hash/byte inputs, envelopes, validated cache reuse,
+  compiler coordinates, and byte/call ceilings without a normalization request.
+- Source-byte and conservative provider-call capacity fail before generation, and execution has a
+  second call counter at the compiler boundary.
+- Applying a partial stale candidate leaves unrelated new pending documents visible.
 
 ## Delivery order
 
 1. Complete the read-only stale-family inventory and bind every family to its reviewed record,
    matching Git baseline, current delta, and review-breadth class.
-2. Add a provider-neutral, content-bound normalization workset that can select `stale` separately
+2. **Complete.** Add a provider-neutral, content-bound normalization workset that can select `stale` separately
    from `all-pending`. Preserve the repository-wide completion calculation: a partial workset may
    renew its records but cannot report the whole normalization lifecycle current.
-3. Add a read-only preflight that reports the exact selected paths and hashes, source bytes,
+3. **Complete.** Add a read-only preflight that reports the exact selected paths and hashes, source bytes,
    envelope count, cache hits and misses for the chosen compiler descriptor, and configured
    ceilings before any normalization process starts.
 4. Extend the normalization compiler boundary with observed usage. Provider adapters parse their
    own output; core receives neutral input, output, cached, and total-token fields or an explicit
    `unavailable` value. Aggregate usage and elapsed time without retaining prompts or document
    bodies.
-5. Enforce exact workset, input-byte, provider-call, elapsed-time, and observed-token ceilings.
+5. **Partial.** Exact workset, input-byte, and conservative provider-call ceilings are enforced.
+   Add elapsed-time and observed-token ceilings after step 4.
    Never represent missing usage as zero, and stop before the next envelope when a post-call budget
    is exhausted.
 6. Generate three separately reviewable worksets: five reference repairs, 17 localized changes,

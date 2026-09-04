@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_33462780068a2721182794b1"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add bounded stale-document normalization worksets and provider preflight."

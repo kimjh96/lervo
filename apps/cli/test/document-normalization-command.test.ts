@@ -1,4 +1,4 @@
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -22,12 +22,15 @@ describe("document normalization CLI", () => {
       "# Runtime notes\n\n## Start\n\nRun the runtime.\n",
     );
     const executable = resolve(root, "codex-normalizer-fixture.mjs");
+    const invocationLog = resolve(root, ".lervo/state/normalization-invocations.log");
     await writeFile(
       executable,
       `#!/usr/bin/env node
+import { appendFileSync } from "node:fs";
 const args = process.argv.slice(2);
 if (args.includes("--version")) { console.log("codex-normalizer-fixture 1.0.0"); process.exit(0); }
 if (args[0] === "debug") { console.log("[]"); process.exit(0); }
+appendFileSync(${JSON.stringify(invocationLog)}, "normalize\\n");
 let input = "";
 for await (const chunk of process.stdin) input += chunk;
 const parsed = JSON.parse(input);
@@ -48,6 +51,37 @@ console.log(JSON.stringify({ type: "turn.completed" }));
       stderr: (message: string) => errors.push(message),
     };
     expect(await runCli(["init"], io)).toBe(0);
+    messages.length = 0;
+
+    expect(
+      await runCli(
+        [
+          "knowledge",
+          "normalize",
+          "--provider",
+          "codex",
+          "--executable",
+          executable,
+          "--scope",
+          "all-pending",
+          "--preflight",
+          "--json",
+        ],
+        io,
+      ),
+      errors.join(""),
+    ).toBe(0);
+    const preflight = JSON.parse(messages.join("")) as {
+      status: string;
+      workset: { scope: string; selectedDocuments: number };
+      selection: { cacheMisses: number };
+    };
+    expect(preflight).toMatchObject({
+      status: "ready",
+      workset: { scope: "all_pending", selectedDocuments: 1 },
+      selection: { cacheMisses: 1 },
+    });
+    await expect(access(invocationLog)).rejects.toMatchObject({ code: "ENOENT" });
     messages.length = 0;
 
     expect(

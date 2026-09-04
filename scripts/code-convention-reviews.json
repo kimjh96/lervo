@@ -158,9 +158,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:cc62dfbaf88ecfb7c0634856516c3e3f043a17be686d674fa98ec8b541b5d7be",
+      "contentHash": "sha256:411938da21aa282795e7fd71f2c371f94ea9df79da2ef54dd9dd38b7f598bb23",
       "responsibility": "Reviewed document normalization lifecycle",
-      "rationale": "Profiles, envelopes, candidate validation, compiler invocation, storage, inspection, plan, and exact-approved apply all share one content-bound normalization contract.",
+      "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation orchestration, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Workset/preflight contracts, shard-cache storage, and CLI parsing or rendering are separate modules.",
       "disposition": "cohesive"
     },
     {
@@ -270,7 +270,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:59330b2c6baba75b707ab8784f93ddfb3d149f4acb3511716a1c50786ab044d4",
+      "contentHash": "sha256:ae25956ff0272b12ca04313744aa175c576d340be28da2cee7e16947598a833f",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, and typed domain failures without owning their implementations.",
       "disposition": "cohesive"

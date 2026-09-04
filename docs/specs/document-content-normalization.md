@@ -15,6 +15,33 @@ Coverage maps every source section to one or more declared outputs using complet
 
 Candidates and shard responses remain ignored local state. Cache identity binds the envelope and compiler build. Plans bind exact candidate bytes and require per-source approval. Apply never reruns the provider: it writes candidates and sharded lifecycle records through the journal, then emits `knowledge.materialization.applied` with `operation=normalize_documents`.
 
+## Worksets and preflight
+
+`lervo knowledge normalize --provider codex|claude --scope all-pending|stale` selects a
+content-bound workset. `all-pending` is the backward-compatible default. `stale` selects only
+eligible sources with a valid prior reviewed normalization record that is no longer current; new
+pending sources remain outside that workset. Every candidate binds repository eligible, current,
+pending, stale, and unrecorded counts in addition to its selected document hashes and bytes.
+Workset completeness is not repository-wide currency.
+
+Add `--preflight` to inspect the exact selection without a normalization request or repository
+write. The local report contains selected paths and hashes, lifecycle disposition, source bytes,
+envelopes, compiler-bound cache hits and misses, and conservative provider-call capacity. The
+compiler executable may be probed to bind its descriptor. A cache entry counts as a hit only after
+the ordinary response and no-capability validation succeeds.
+
+The default bounds are 1,048,576 selected source bytes and 256 provider calls. Override them with
+`--max-source-bytes` and `--max-provider-calls`. Call capacity includes batch fallback; a blocked
+preflight prevents generation, and actual execution cannot cross the same call ceiling. The
+`normalization_budget_exceeded` failure records that a byte or call bound prevented a provider
+request. Token and elapsed-time ceilings require observed compiler usage and are not part of this
+version.
+
+An applied event includes only the bounded workset identity, scope, counts, and bytes inside its
+coverage. Exact selected paths and hashes remain in local preflight, candidate, and review output,
+not telemetry. A partial `stale` apply replaces only selected records, and lifecycle inspection
+continues to report unrelated pending sources.
+
 Records bind output and resource hashes plus a user-region hash that excludes managed blocks. Replacement retires older records, and the same transaction refreshes registered rewrite configuration. Post-apply lint failure rolls back; later byte mismatches become stale and require review.
 
 Repository document layout follows [ADR-0222](../decisions/knowledge/repository/0222-bounded-role-based-document-layout.md). One tree evaluator serves planning, lint and durable permits. Tracked roles locate human documents; provider adapters alone locate provider entrypoints. Bounded rewrite descriptors reconcile byte owners, while unobserved rewrites remain unmanaged.
@@ -23,4 +50,5 @@ Repository document layout follows [ADR-0222](../decisions/knowledge/repository/
 
 - [Repository knowledge compilation](repository-knowledge-compilation.md)
 - [Reviewed document content normalization](../decisions/knowledge/repository/0195-reviewed-document-content-normalization.md)
+- [Bound document normalization worksets and preflight](../decisions/knowledge/documents/0358-bound-document-normalization-worksets-and-preflight.md)
 - [Bounded role-based document layout](../decisions/knowledge/repository/0222-bounded-role-based-document-layout.md)

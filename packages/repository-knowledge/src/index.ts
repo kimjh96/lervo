@@ -15,6 +15,7 @@ export * from "./document-structure-move.js";
 export * from "./document-structure-merge.js";
 export * from "./document-structure-split.js";
 export * from "./document-normalization.js";
+export * from "./document-normalization-workset.js";
 export * from "./decision-layout.js";
 export * from "./development-pattern.js";
 export * from "./document-layout.js";
