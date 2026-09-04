@@ -91,12 +91,13 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   );
   assert.equal(eventActivation.selectedEventSchemaVersion, 2);
 
+  const providerSessionId = "packed-canonicalization-session";
   const prepared = parsed(
     await runCli(
       ["terminal", "hook", "--provider", "codex", "--contract", "2"],
       JSON.stringify({
         hook_event_name: "UserPromptSubmit",
-        session_id: "packed-canonicalization-session",
+        session_id: providerSessionId,
         turn_id: "packed-canonicalization-turn",
         prompt: "Record the durable outcome for the product-host fixture.",
       }),
@@ -106,8 +107,16 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
     const coverage = parsed(
       await runCli(["terminal", "coverage", "--provider", "codex", "--limit", "5", "--json"]),
     );
+    const providerSessionDigest = sha256(`codex\0${providerSessionId}`);
+    const trace = parsed(
+      await runCli([
+        "trace",
+        `run_unmanaged_${providerSessionDigest.slice("sha256:".length, "sha256:".length + 24)}`,
+        "--json",
+      ]),
+    );
     assert.fail(
-      `Packed terminal context was unavailable; bounded terminal coverage: ${JSON.stringify(coverage)}`,
+      `Packed terminal context was unavailable; bounded terminal coverage: ${JSON.stringify(coverage)}; bounded terminal trace: ${JSON.stringify(trace)}`,
     );
   }
   const observationId = /--observation (tobs_[A-Za-z0-9_-]+)/u.exec(
