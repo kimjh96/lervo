@@ -1,0 +1,54 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bc407eaddb4e3535c5868a1b
+outputLanguage: en
+outputs:
+  - byteCount: 1067
+    contentHash: sha256:e72d009032989a11a65e1bd9b271be29df47a3eedd60a7d7e50e8d7ad4ab899c
+    path: docs/research/lervo-foundation-hardening/acceptance-gates-and-sequence.md
+    userRegionHash: sha256:e72d009032989a11a65e1bd9b271be29df47a3eedd60a7d7e50e8d7ad4ab899c
+  - byteCount: 4600
+    contentHash: sha256:0b6aa89028c980993177cfb62c575f5b99feb4b312a282525a21f6a8a13cf438
+    path: docs/research/lervo-foundation-hardening/acceptance-gates-and-sequence/delivery-sequence.md
+    userRegionHash: sha256:0b6aa89028c980993177cfb62c575f5b99feb4b312a282525a21f6a8a13cf438
+  - byteCount: 3128
+    contentHash: sha256:c1e4270b985a419d9c6d6c9048eb0448efded877d7462b1e3045fc3bdfbd2784
+    path: docs/research/lervo-foundation-hardening/acceptance-gates-and-sequence/gates.md
+    userRegionHash: sha256:c1e4270b985a419d9c6d6c9048eb0448efded877d7462b1e3045fc3bdfbd2784
+profile: handoff_document
+recordId: knormdoc_02bc5dc19e545fe5a87af0f0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e5188be395a7f11dcd06205069648164edd5770060337b3d7058333941b96536
+sourcePath: docs/research/lervo-foundation-hardening/acceptance-gates-and-sequence.md
+sourceUnitVersionIds:
+  - uv_0c0dfd5a532dc676d9798bc1
+  - uv_199edde61e69a49396429018
+  - uv_23b5744479076cf109555495
+  - uv_2bb300600f02c33a053d39b6
+  - uv_2e5cd90ebe89b7236268ef1d
+  - uv_3f0de9f0252f1e2a02d2f3c8
+  - uv_59c611b5bb7d21842e97c06d
+  - uv_751dc81965810dd7bf76b2c7
+  - uv_754cf8902f3b8c3d00a393d3
+  - uv_90b098b598a49d44e53d51c0
+  - uv_9397ff169c369d01ae4d8ceb
+  - uv_94f9e0facb332f48165f3866
+  - uv_a3c0a8c7f45a5e7f0d176685
+  - uv_ac8a56d64e780b5ea5f0881a
+  - uv_b654e531048af1aa0f5ae741
+  - uv_bb360a42026bfe5ba25c4fbe
+  - uv_c7a3cd15c766f36023270f93
+  - uv_ca411db970318d239c0f1b71
+  - uv_cb8d669fa2cd9c0f6761e377
+  - uv_d0b3eb880b8ee21117ee4379
+  - uv_ea91a2a6bc2ab93ce4a0850e

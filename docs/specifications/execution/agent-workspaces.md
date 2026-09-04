@@ -18,7 +18,7 @@ This planned execution-space contract refines, without replacing, assignment pat
 
 Implemented foundations include owner-only coordination in the Git common directory; conflict-safe legacy migration; content-hash compare-and-swap records and allowlisted events; pure transition, path-scope, ordering, and cleanup decisions; a provider-neutral host port; and a native Git adapter with idempotent detached-worktree provisioning, exact base-relative inspection, stable native identity, marker validation, dirty-worktree protection, and non-force removal. Assignment orchestration supports read-only provision planning, exact apply, stale-lease rejection, and recovery.
 
-Direct terminal preparation activates one writer only for an exact ready workspace. Worker Stop rechecks the marker, workspace revision, writer, assignment lease, and base-relative path partition, then records a path-private checkpoint without foreign global workstream or knowledge updates. Integrator and unattached Stop retain repository-wide finalization. `lervo workspace inspect` reads the local binding without mutation. Direct provider execution is telemetry-limited and is not managed provider execution.
+Direct terminal preparation activates one writer only for an exact ready or checkpoint-paused workspace. Worker Stop rechecks the marker, workspace revision, writer, assignment lease, and base-relative path partition, records a path-private checkpoint without foreign global workstream or knowledge updates, then releases the writer through `active -> paused`. A fresh verified provider session may resume repository work through `paused -> active`; this does not restore provider conversation memory. Integrator and unattached Stop retain repository-wide finalization. `lervo workspace inspect` reads the local binding and bounded writer-liveness observation without mutation. Direct provider execution is telemetry-limited and is not managed provider execution.
 
 Immutable sealing uses a read-only, content-bound plan and exact apply recheck. It freezes the writer; accepts only clean, committed, in-scope bytes with a reachable base; binds ordered commits, result and verification artifacts, approval and recovery status; and publishes a deterministic queue entry. Orphaned or stale queue records are projected only when the exact generation reached `integration_pending`.
 
@@ -67,6 +67,8 @@ Users need not relay commands between agents. Provisioning normally occurs durin
 | absent | `provisioning` | exact creation plan, assignment scope, active agent | no host effect yet |
 | `provisioning` | `ready` | adapter result, marker, clean checkout, exact base | uncertain effect becomes `recovery_required` |
 | `ready` | `active` | current local lease and single writer | rejection proves no write authority |
+| `active` | `paused` | exact scoped checkpoint and writer freeze | failed pause retains the writer and requires inspection |
+| `paused` | `active` | current generation, assignment lease, marker, host, provider, and new single writer | rejection leaves the checkout paused |
 | `active` | `sealing` | writer freeze and current generation | deny new writes |
 | `sealing` | `sealed` | quiescence, clean Git state, exact result and verification artifact | unfinished bytes remain recoverable, not completed |
 | `sealed` | `integration_pending` | completed dependencies and immutable queue entry | no attempt yet |
@@ -102,6 +104,8 @@ At `Stop`, a worker diffs against its prepared revision and partitions coordinat
 - `writer_lease_lost`
 
 The hook does not require advancing a foreign repository-wide workstream or repairing global knowledge caused by another workspace. Worker completion requires a current assignment checkpoint and, when requested, a sealed workspace. Integrator Stop retains repository-wide migration, bridge, knowledge, lint, normalization, workstream-update, and declaration requirements. Unattached direct terminals retain the fail-closed global contract.
+
+After a current worker checkpoint, Stop clears the writer and records `paused`. The next verified session receives a new writer digest and resumes from repository, assignment, lease, and checkpoint state, not from hidden conversation memory. A missing Stop or stale liveness observation never permits takeover. `lastSeenAt` is diagnostic only and cannot release authority.
 
 ## Sealed result contract
 
@@ -150,7 +154,7 @@ Hub loss behavior:
 - After claim but before expiry: managed gates may continue until recorded expiry under local policy.
 - Expired or superseded reservation: freeze new writes and automatic integration; preserve the workspace for revalidation and a higher generation.
 
-Authorized readers may see reservation conflicts and workspace summary status. Hub cannot invoke cleanup. A Node may react to Hub-visible integration only through its own exact local cleanup plan.
+Authorized readers may see reservation conflicts and workspace summary status. Summaries preserve checkpoint pause and later activation as distinct monotonic states; they do not turn liveness into writer authority. Hub cannot invoke cleanup. A Node may react to Hub-visible integration only through its own exact local cleanup plan.
 
 ## Events, privacy, and claims
 

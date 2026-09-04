@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e8211d874cf8cefa308ab59e
+outputLanguage: en
+outputs:
+  - byteCount: 4109
+    contentHash: sha256:fd7cea92a129a61c5d8bc6d63ecf55d252b97a92693791f8dabd92143660646d
+    path: docs/evidence/search/lexical-v2/terminal-direct-query-projection-v1.md
+    userRegionHash: sha256:fd7cea92a129a61c5d8bc6d63ecf55d252b97a92693791f8dabd92143660646d
+profile: repository_document
+recordId: knormdoc_23ba5ebff1c5a6a75627a4e2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ddaed652bcdffaa24dbe5e86733c4d744b6c3b84fe6f5bdef4c11664627e48a9
+sourcePath: docs/evidence/search/lexical-v2/terminal-direct-query-projection-v1.md
+sourceUnitVersionIds:
+  - uv_4f5fef681a9fb8b5aead6fe7
+  - uv_8f623d09934f6ecb65b56672
+  - uv_b351b545095495898237dd21
+  - uv_b5903c84f0b1fdaea99f402d
+  - uv_ce746355734b379c808f0edb
+  - uv_d47cc06ebf0d2d4ebaade5f3
+  - uv_e05e355b83b644cbcd0b2e69

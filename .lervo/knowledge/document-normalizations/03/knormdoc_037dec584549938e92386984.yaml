@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7e511183f43ebdada85ddd1f
+outputLanguage: en
+outputs:
+  - byteCount: 4361
+    contentHash: sha256:32eeec8f5d3f8f74e3e814e03d60d960ab01cf4cc5b43ba2c11ebbdbf7df8840
+    path: docs/decisions/execution/providers/hooks/0364-bind-declarations-to-knowledge-evidence-and-separate-hook-build-cohorts.md
+    userRegionHash: sha256:32eeec8f5d3f8f74e3e814e03d60d960ab01cf4cc5b43ba2c11ebbdbf7df8840
+profile: decision_record
+recordId: knormdoc_037dec584549938e92386984
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:50b3775693450f332484be00bc5ffe5fe602175b73bcb06283a079663ea4fdc4
+sourcePath: docs/decisions/execution/providers/hooks/0364-bind-declarations-to-knowledge-evidence-and-separate-hook-build-cohorts.md
+sourceUnitVersionIds:
+  - uv_1368eb23762742438e0a403c
+  - uv_28e1862aed1f84a835fc0faa
+  - uv_5e8546abafc9b034c0ca9366
+  - uv_ddb9a318d8a9e79eb0eb219e
+  - uv_ddfd508e6357896d1964c961
+  - uv_eb1a5829ae65faeb3500cf3b

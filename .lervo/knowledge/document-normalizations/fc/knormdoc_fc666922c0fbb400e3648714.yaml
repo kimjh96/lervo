@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9b3d1181792e9b252261cba0
+outputLanguage: en
+outputs:
+  - byteCount: 8130
+    contentHash: sha256:f234a17d26438e0fb0224c16418be7f39bdc43321c11f6aae3c55237d248c484
+    path: docs/research/lervo-foundation-hardening/observability-and-performance.md
+    userRegionHash: sha256:f234a17d26438e0fb0224c16418be7f39bdc43321c11f6aae3c55237d248c484
+profile: repository_document
+recordId: knormdoc_fc666922c0fbb400e3648714
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:219a30f4ae5a0b6cedf329ea91df9a9b8a21db5e25ef913b8340b76e253ed78c
+sourcePath: docs/research/lervo-foundation-hardening/observability-and-performance.md
+sourceUnitVersionIds:
+  - uv_1e57af440aa9614ad5af42a0
+  - uv_2b85953d370f7825da486eb1
+  - uv_375229ad0abeb3ad7940ae41
+  - uv_4441c410a960254f0e71906a
+  - uv_7266d316674a090c7fb9afe4
+  - uv_7bc8c7496d94dd9bf047f7a7
+  - uv_956b5174bf10eabf0bba6765
+  - uv_98efad42f0564c241b2fd6a7
+  - uv_dae91217716b5901eab47966
+  - uv_f8dc73b2008b7f7f5637d007

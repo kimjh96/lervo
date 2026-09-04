@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3bea76db1647b52444afd3ca
+outputLanguage: en
+outputs:
+  - byteCount: 4508
+    contentHash: sha256:ec983f494355639fdf5087e07fb1203deeb280bae6088a4e55d1084dcff3a947
+    path: docs/decisions/operations/trace/0357-fail-closed-on-unstable-performance-measurement-environments.md
+    userRegionHash: sha256:ec983f494355639fdf5087e07fb1203deeb280bae6088a4e55d1084dcff3a947
+profile: decision_record
+recordId: knormdoc_e981f120adbb38fe21cc3323
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:71d05b9e9bb6ba5db316f45be93b15076682c2ec1b54c0d005bf547ebf60ece8
+sourcePath: docs/decisions/operations/trace/0357-fail-closed-on-unstable-performance-measurement-environments.md
+sourceUnitVersionIds:
+  - uv_658ab1fe03f22107c78b3f4d
+  - uv_7a8d7b938d315b235b15f3a2
+  - uv_875f4f93b76d5fc3738bcba9
+  - uv_a8549dab5197ae89f1d7266e
+  - uv_ad3f27037b8a73d14eeb4841
+  - uv_c74bed00c40b5d834d3def7c

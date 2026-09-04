@@ -35207,7 +35207,7 @@ var require_postcss = __commonJS({
 });
 
 // apps/cli/src/terminal-hook-bin.ts
-import { createHash as createHash22 } from "node:crypto";
+import { createHash as createHash23 } from "node:crypto";
 import { readFile as readFile23 } from "node:fs/promises";
 import { dirname as dirname15, resolve as resolve60 } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -47932,8 +47932,8 @@ function timestamp(value) {
   return milliseconds;
 }
 function validateArtifact(artifact2) {
-  const digest7 = artifact2.contentHash.slice("sha256:".length);
-  if (artifact2.artifactId !== `art_${digest7}` || artifact2.uri !== `lervo-cas://sha256/${digest7}`) {
+  const digest6 = artifact2.contentHash.slice("sha256:".length);
+  if (artifact2.artifactId !== `art_${digest6}` || artifact2.uri !== `lervo-cas://sha256/${digest6}`) {
     invalidResult("The verification output artifact coordinates do not match the content hash.");
   }
 }
@@ -50761,8 +50761,8 @@ async function coordinationRoot(repositoryRoot) {
 function validMarker(value, projectId) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return false;
-  const marker2 = value;
-  return marker2.schemaVersion === 1 && marker2.kind === "lervo_repository_coordination_home" && REPOSITORY_INSTANCE_ID.test(marker2.repositoryInstanceId) && marker2.projectId === projectId && ["git_common_directory", "standalone_checkout"].includes(marker2.storageKind) && Number.isFinite(Date.parse(marker2.createdAt));
+  const marker = value;
+  return marker.schemaVersion === 1 && marker.kind === "lervo_repository_coordination_home" && REPOSITORY_INSTANCE_ID.test(marker.repositoryInstanceId) && marker.projectId === projectId && ["git_common_directory", "standalone_checkout"].includes(marker.storageKind) && Number.isFinite(Date.parse(marker.createdAt));
 }
 async function readMarker(path, projectId) {
   const info = await lstat8(path);
@@ -50780,7 +50780,7 @@ async function readMarker(path, projectId) {
 }
 async function markerFor(input) {
   const path = resolve10(input.root, "repository.json");
-  const marker2 = {
+  const marker = {
     schemaVersion: 1,
     kind: "lervo_repository_coordination_home",
     repositoryInstanceId: `rpi_${randomBytes(12).toString("hex")}`,
@@ -50791,13 +50791,13 @@ async function markerFor(input) {
   try {
     const handle = await open3(path, constants3.O_WRONLY | constants3.O_CREAT | constants3.O_EXCL | (constants3.O_NOFOLLOW ?? 0), 384);
     try {
-      await handle.writeFile(`${JSON.stringify(marker2, null, 2)}
+      await handle.writeFile(`${JSON.stringify(marker, null, 2)}
 `);
       await handle.sync();
     } finally {
       await handle.close();
     }
-    return marker2;
+    return marker;
   } catch (error) {
     if (error.code !== "EEXIST")
       throw error;
@@ -50862,18 +50862,18 @@ async function resolveRepositoryCoordinationHome(repositoryRoot, options = {}) {
   await ensurePrivateDirectory(coordinate.root);
   const release = await acquireInitializationLock(coordinate.root);
   try {
-    const marker2 = await markerFor({
+    const marker = await markerFor({
       root: coordinate.root,
       projectId: manifest.projectId,
       storageKind: coordinate.storageKind,
       now: options.now ?? /* @__PURE__ */ new Date()
     });
-    if (marker2.storageKind !== coordinate.storageKind)
+    if (marker.storageKind !== coordinate.storageKind)
       invalid2("The repository coordination storage kind changed.");
     const home = {
       schemaVersion: 1,
-      repositoryInstanceId: marker2.repositoryInstanceId,
-      storageKind: marker2.storageKind,
+      repositoryInstanceId: marker.repositoryInstanceId,
+      storageKind: marker.storageKind,
       root: coordinate.root,
       workforce: resolve10(coordinate.root, "workforce"),
       workspaces: resolve10(coordinate.root, "workspaces"),
@@ -51106,11 +51106,11 @@ var RepositoryKnowledgeError = class extends Error {
 var ARTIFACT_ID = /^[a-z][a-z0-9_-]*_([a-f0-9]{24,64})$/u;
 var SHARD = /^[a-f0-9]{2}$/u;
 function knowledgeArtifactShard(id) {
-  const digest7 = ARTIFACT_ID.exec(id)?.[1];
-  if (digest7 === void 0) {
+  const digest6 = ARTIFACT_ID.exec(id)?.[1];
+  if (digest6 === void 0) {
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A knowledge artifact ID cannot be mapped to a deterministic shard.");
   }
-  return digest7.slice(0, 2);
+  return digest6.slice(0, 2);
 }
 function shardedKnowledgeArtifactPath(directory, id, extension2) {
   return `${directory.replace(/\/$/u, "")}/${knowledgeArtifactShard(id)}/${id}.${extension2}`;
@@ -57676,15 +57676,15 @@ function tokenizeAttention(effects, ok) {
   const attentionMarkers2 = this.parser.constructs.attentionMarkers.null;
   const previous2 = this.previous;
   const before = classifyCharacter(previous2);
-  let marker2;
+  let marker;
   return start;
   function start(code) {
-    marker2 = code;
+    marker = code;
     effects.enter("attentionSequence");
     return inside(code);
   }
   function inside(code) {
-    if (code === marker2) {
+    if (code === marker) {
       effects.consume(code);
       return inside;
     }
@@ -57692,8 +57692,8 @@ function tokenizeAttention(effects, ok) {
     const after = classifyCharacter(code);
     const open27 = !after || after === 2 && before || attentionMarkers2.includes(code);
     const close = !before || before === 2 && after || attentionMarkers2.includes(previous2);
-    token._open = Boolean(marker2 === 42 ? open27 : open27 && (before || !close));
-    token._close = Boolean(marker2 === 42 ? close : close && (after || !open27));
+    token._open = Boolean(marker === 42 ? open27 : open27 && (before || !close));
+    token._close = Boolean(marker === 42 ? close : close && (after || !open27));
     return ok(code);
   }
 }
@@ -57986,7 +57986,7 @@ function tokenizeCodeFenced(effects, ok, nok) {
   };
   let initialPrefix = 0;
   let sizeOpen = 0;
-  let marker2;
+  let marker;
   return start;
   function start(code) {
     return beforeSequenceOpen(code);
@@ -57994,14 +57994,14 @@ function tokenizeCodeFenced(effects, ok, nok) {
   function beforeSequenceOpen(code) {
     const tail = self.events[self.events.length - 1];
     initialPrefix = tail && tail[1].type === "linePrefix" ? tail[2].sliceSerialize(tail[1], true).length : 0;
-    marker2 = code;
+    marker = code;
     effects.enter("codeFenced");
     effects.enter("codeFencedFence");
     effects.enter("codeFencedFenceSequence");
     return sequenceOpen(code);
   }
   function sequenceOpen(code) {
-    if (code === marker2) {
+    if (code === marker) {
       sizeOpen++;
       effects.consume(code);
       return sequenceOpen;
@@ -58034,7 +58034,7 @@ function tokenizeCodeFenced(effects, ok, nok) {
       effects.exit("codeFencedFenceInfo");
       return factorySpace(effects, metaBefore, "whitespace")(code);
     }
-    if (code === 96 && code === marker2) {
+    if (code === 96 && code === marker) {
       return nok(code);
     }
     effects.consume(code);
@@ -58056,7 +58056,7 @@ function tokenizeCodeFenced(effects, ok, nok) {
       effects.exit("codeFencedFenceMeta");
       return infoBefore(code);
     }
-    if (code === 96 && code === marker2) {
+    if (code === 96 && code === marker) {
       return nok(code);
     }
     effects.consume(code);
@@ -58107,14 +58107,14 @@ function tokenizeCodeFenced(effects, ok, nok) {
       return markdownSpace(code) ? factorySpace(effects2, beforeSequenceClose, "linePrefix", self.parser.constructs.disable.null.includes("codeIndented") ? void 0 : 4)(code) : beforeSequenceClose(code);
     }
     function beforeSequenceClose(code) {
-      if (code === marker2) {
+      if (code === marker) {
         effects2.enter("codeFencedFenceSequence");
         return sequenceClose(code);
       }
       return nok2(code);
     }
     function sequenceClose(code) {
-      if (code === marker2) {
+      if (code === marker) {
         size++;
         effects2.consume(code);
         return sequenceClose;
@@ -58902,7 +58902,7 @@ function factoryLabel(effects, ok, nok, type, markerType, stringType) {
 
 // node_modules/.pnpm/micromark-factory-title@2.0.1/node_modules/micromark-factory-title/index.js
 function factoryTitle(effects, ok, nok, type, markerType, stringType) {
-  let marker2;
+  let marker;
   return start;
   function start(code) {
     if (code === 34 || code === 39 || code === 40) {
@@ -58910,13 +58910,13 @@ function factoryTitle(effects, ok, nok, type, markerType, stringType) {
       effects.enter(markerType);
       effects.consume(code);
       effects.exit(markerType);
-      marker2 = code === 40 ? 41 : code;
+      marker = code === 40 ? 41 : code;
       return begin;
     }
     return nok(code);
   }
   function begin(code) {
-    if (code === marker2) {
+    if (code === marker) {
       effects.enter(markerType);
       effects.consume(code);
       effects.exit(markerType);
@@ -58927,9 +58927,9 @@ function factoryTitle(effects, ok, nok, type, markerType, stringType) {
     return atBreak(code);
   }
   function atBreak(code) {
-    if (code === marker2) {
+    if (code === marker) {
       effects.exit(stringType);
-      return begin(marker2);
+      return begin(marker);
     }
     if (code === null) {
       return nok(code);
@@ -58946,7 +58946,7 @@ function factoryTitle(effects, ok, nok, type, markerType, stringType) {
     return inside(code);
   }
   function inside(code) {
-    if (code === marker2 || code === null || markdownLineEnding(code)) {
+    if (code === marker || code === null || markdownLineEnding(code)) {
       effects.exit("chunkString");
       return atBreak(code);
     }
@@ -58954,7 +58954,7 @@ function factoryTitle(effects, ok, nok, type, markerType, stringType) {
     return code === 92 ? escape2 : inside;
   }
   function escape2(code) {
-    if (code === marker2 || code === 92) {
+    if (code === marker || code === 92) {
       effects.consume(code);
       return inside;
     }
@@ -59277,7 +59277,7 @@ function resolveToHtmlFlow(events) {
 }
 function tokenizeHtmlFlow(effects, ok, nok) {
   const self = this;
-  let marker2;
+  let marker;
   let closingTag;
   let buffer;
   let index2;
@@ -59304,7 +59304,7 @@ function tokenizeHtmlFlow(effects, ok, nok) {
     }
     if (code === 63) {
       effects.consume(code);
-      marker2 = 3;
+      marker = 3;
       return self.interrupt ? ok : continuationDeclarationInside;
     }
     if (asciiAlpha(code)) {
@@ -59317,18 +59317,18 @@ function tokenizeHtmlFlow(effects, ok, nok) {
   function declarationOpen(code) {
     if (code === 45) {
       effects.consume(code);
-      marker2 = 2;
+      marker = 2;
       return commentOpenInside;
     }
     if (code === 91) {
       effects.consume(code);
-      marker2 = 5;
+      marker = 5;
       index2 = 0;
       return cdataOpenInside;
     }
     if (asciiAlpha(code)) {
       effects.consume(code);
-      marker2 = 4;
+      marker = 4;
       return self.interrupt ? ok : continuationDeclarationInside;
     }
     return nok(code);
@@ -59364,18 +59364,18 @@ function tokenizeHtmlFlow(effects, ok, nok) {
       const slash = code === 47;
       const name2 = buffer.toLowerCase();
       if (!slash && !closingTag && htmlRawNames.includes(name2)) {
-        marker2 = 1;
+        marker = 1;
         return self.interrupt ? ok(code) : continuation(code);
       }
       if (htmlBlockNames.includes(buffer.toLowerCase())) {
-        marker2 = 6;
+        marker = 6;
         if (slash) {
           effects.consume(code);
           return basicSelfClosing;
         }
         return self.interrupt ? ok(code) : continuation(code);
       }
-      marker2 = 7;
+      marker = 7;
       return self.interrupt && !self.parser.lazy[self.now().line] ? nok(code) : closingTag ? completeClosingTagAfter(code) : completeAttributeNameBefore(code);
     }
     if (code === 45 || asciiAlphanumeric(code)) {
@@ -59490,27 +59490,27 @@ function tokenizeHtmlFlow(effects, ok, nok) {
     return nok(code);
   }
   function continuation(code) {
-    if (code === 45 && marker2 === 2) {
+    if (code === 45 && marker === 2) {
       effects.consume(code);
       return continuationCommentInside;
     }
-    if (code === 60 && marker2 === 1) {
+    if (code === 60 && marker === 1) {
       effects.consume(code);
       return continuationRawTagOpen;
     }
-    if (code === 62 && marker2 === 4) {
+    if (code === 62 && marker === 4) {
       effects.consume(code);
       return continuationClose;
     }
-    if (code === 63 && marker2 === 3) {
+    if (code === 63 && marker === 3) {
       effects.consume(code);
       return continuationDeclarationInside;
     }
-    if (code === 93 && marker2 === 5) {
+    if (code === 93 && marker === 5) {
       effects.consume(code);
       return continuationCdataInside;
     }
-    if (markdownLineEnding(code) && (marker2 === 6 || marker2 === 7)) {
+    if (markdownLineEnding(code) && (marker === 6 || marker === 7)) {
       effects.exit("htmlFlowData");
       return effects.check(blankLineBefore, continuationAfter, continuationStart)(code);
     }
@@ -59580,7 +59580,7 @@ function tokenizeHtmlFlow(effects, ok, nok) {
       effects.consume(code);
       return continuationClose;
     }
-    if (code === 45 && marker2 === 2) {
+    if (code === 45 && marker === 2) {
       effects.consume(code);
       return continuationDeclarationInside;
     }
@@ -59632,7 +59632,7 @@ var htmlText = {
 };
 function tokenizeHtmlText(effects, ok, nok) {
   const self = this;
-  let marker2;
+  let marker;
   let index2;
   let returnState;
   return start;
@@ -59860,7 +59860,7 @@ function tokenizeHtmlText(effects, ok, nok) {
     }
     if (code === 34 || code === 39) {
       effects.consume(code);
-      marker2 = code;
+      marker = code;
       return tagOpenAttributeValueQuoted;
     }
     if (markdownLineEnding(code)) {
@@ -59875,9 +59875,9 @@ function tokenizeHtmlText(effects, ok, nok) {
     return tagOpenAttributeValueUnquoted;
   }
   function tagOpenAttributeValueQuoted(code) {
-    if (code === marker2) {
+    if (code === marker) {
       effects.consume(code);
-      marker2 = void 0;
+      marker = void 0;
       return tagOpenAttributeValueQuotedAfter;
     }
     if (code === null) {
@@ -60232,18 +60232,18 @@ var thematicBreak = {
 };
 function tokenizeThematicBreak(effects, ok, nok) {
   let size = 0;
-  let marker2;
+  let marker;
   return start;
   function start(code) {
     effects.enter("thematicBreak");
     return before(code);
   }
   function before(code) {
-    marker2 = code;
+    marker = code;
     return atBreak(code);
   }
   function atBreak(code) {
-    if (code === marker2) {
+    if (code === marker) {
       effects.enter("thematicBreakSequence");
       return sequence(code);
     }
@@ -60254,7 +60254,7 @@ function tokenizeThematicBreak(effects, ok, nok) {
     return nok(code);
   }
   function sequence(code) {
-    if (code === marker2) {
+    if (code === marker) {
       effects.consume(code);
       size++;
       return sequence;
@@ -60447,7 +60447,7 @@ function resolveToSetextUnderline(events, context) {
 }
 function tokenizeSetextUnderline(effects, ok, nok) {
   const self = this;
-  let marker2;
+  let marker;
   return start;
   function start(code) {
     let index2 = self.events.length;
@@ -60460,7 +60460,7 @@ function tokenizeSetextUnderline(effects, ok, nok) {
     }
     if (!self.parser.lazy[self.now().line] && (self.interrupt || paragraph)) {
       effects.enter("setextHeadingLine");
-      marker2 = code;
+      marker = code;
       return before(code);
     }
     return nok(code);
@@ -60470,7 +60470,7 @@ function tokenizeSetextUnderline(effects, ok, nok) {
     return inside(code);
   }
   function inside(code) {
-    if (code === marker2) {
+    if (code === marker) {
       effects.consume(code);
       return inside;
     }
@@ -62101,63 +62101,63 @@ function parseManagedMarkdownBlocks(bytes) {
       diagnostics.push({ code: "marker_not_commonmark_html", range: candidate.byteRange });
       continue;
     }
-    const marker2 = parseMarker(candidate);
-    if (marker2 === null) {
+    const marker = parseMarker(candidate);
+    if (marker === null) {
       diagnostics.push({ code: "invalid_marker_syntax", range: candidate.byteRange });
       continue;
     }
-    markers.push(marker2);
+    markers.push(marker);
   }
   const blocks = [];
   const completedIds = /* @__PURE__ */ new Set();
   let open27;
-  for (const marker2 of markers) {
-    if (marker2.kind === "begin") {
+  for (const marker of markers) {
+    if (marker.kind === "begin") {
       if (open27 !== void 0) {
         diagnostics.push({
           code: "nested_begin_marker",
-          range: marker2.byteRange,
-          blockId: marker2.blockId
+          range: marker.byteRange,
+          blockId: marker.blockId
         });
         continue;
       }
       open27 = {
-        marker: marker2,
-        contentStart: marker2.byteRange.end + marker2.line.lineTerminatorBytes
+        marker,
+        contentStart: marker.byteRange.end + marker.line.lineTerminatorBytes
       };
       continue;
     }
     if (open27 === void 0) {
       diagnostics.push({
         code: "unexpected_end_marker",
-        range: marker2.byteRange,
-        blockId: marker2.blockId
+        range: marker.byteRange,
+        blockId: marker.blockId
       });
       continue;
     }
-    if (marker2.blockId !== open27.marker.blockId) {
+    if (marker.blockId !== open27.marker.blockId) {
       diagnostics.push({
         code: "mismatched_end_marker",
-        range: marker2.byteRange,
-        blockId: marker2.blockId
+        range: marker.byteRange,
+        blockId: marker.blockId
       });
       continue;
     }
-    if (marker2.family !== open27.marker.family) {
+    if (marker.family !== open27.marker.family) {
       diagnostics.push({
         code: "mixed_marker_family",
-        range: marker2.byteRange,
-        blockId: marker2.blockId
+        range: marker.byteRange,
+        blockId: marker.blockId
       });
     }
-    const contentEnd = marker2.byteRange.start;
-    const fullEnd = marker2.byteRange.end + marker2.line.lineTerminatorBytes;
+    const contentEnd = marker.byteRange.start;
+    const fullEnd = marker.byteRange.end + marker.line.lineTerminatorBytes;
     const block = {
-      blockId: marker2.blockId,
+      blockId: marker.blockId,
       markerFamily: open27.marker.family,
       startMarkerRange: open27.marker.byteRange,
       contentRange: { start: open27.contentStart, end: contentEnd },
-      endMarkerRange: marker2.byteRange,
+      endMarkerRange: marker.byteRange,
       fullRange: { start: open27.marker.byteRange.start, end: fullEnd }
     };
     if (block.contentRange.end - block.contentRange.start > MAXIMUM_MANAGED_BLOCK_BYTES) {
@@ -62236,8 +62236,8 @@ function managedBlockPatchCandidateBytes(candidate) {
 function calculateManagedBlockPatchCandidateId(candidate) {
   const value = candidate;
   const { candidateId: _candidateId, ...content3 } = value;
-  const digest7 = sha2563(canonicalJsonBytes(content3));
-  return `mbpc_${digest7.slice("sha256:".length, "sha256:".length + 16)}`;
+  const digest6 = sha2563(canonicalJsonBytes(content3));
+  return `mbpc_${digest6.slice("sha256:".length, "sha256:".length + 16)}`;
 }
 
 // packages/documents/dist/document-layout.js
@@ -63911,13 +63911,9 @@ var MAX_SHARD_BYTES = 256 * 1024;
 // packages/repository-knowledge/dist/canonicalization-candidate.js
 import { lstat as lstat17, mkdir as mkdir7, readFile as readFile11, readdir as readdir9, rename as rename5, rm as rm6, writeFile } from "node:fs/promises";
 import { dirname as dirname7, resolve as resolve25 } from "node:path";
-var ROOT = ".lervo/state/knowledge/canonicalization-candidates";
-var MAXIMUM_CANDIDATES = 64;
-var MAXIMUM_SOURCE_BINDINGS = 256;
-function safePath(path) {
-  return path.length > 0 && !path.startsWith("/") && !path.includes("\\") && !path.split("/").some((part) => part.length === 0 || part === "." || part === "..");
-}
-function canonicalResponsibility(path) {
+
+// packages/repository-knowledge/dist/canonicalization-responsibility.js
+function canonicalResponsibilityForPath(path) {
   if (path === "AGENTS.md" || path.startsWith("docs/instructions/"))
     return "behavioral_instruction";
   if (path.startsWith("docs/specs/") || path.startsWith("docs/specifications/") || path.startsWith("docs/architecture/"))
@@ -63928,8 +63924,8 @@ function canonicalResponsibility(path) {
     return "executable_verification";
   return null;
 }
-function sourceResponsibility(path) {
-  const canonical2 = canonicalResponsibility(path);
+function sourceResponsibilityForPath(path) {
+  const canonical2 = canonicalResponsibilityForPath(path);
   if (canonical2 !== null)
     return canonical2;
   if (path.startsWith(".lervo/state/") || path.startsWith("docs/knowledge/"))
@@ -63942,7 +63938,7 @@ function sourceResponsibility(path) {
     return "architecture_or_specification";
   return null;
 }
-function recommendedRoot(responsibility) {
+function recommendedCanonicalRoot(responsibility) {
   if (responsibility === "behavioral_instruction")
     return "docs/instructions";
   if (responsibility === "architecture_or_specification")
@@ -63952,6 +63948,72 @@ function recommendedRoot(responsibility) {
   if (responsibility === "executable_verification")
     return "tests";
   return ".lervo/state/workstreams";
+}
+
+// packages/repository-knowledge/dist/canonicalization-outcome.js
+var HASH3 = /^sha256:[a-f0-9]{64}$/u;
+var MAXIMUM_OUTCOME_TARGETS = 8;
+var MAXIMUM_OUTCOME_SOURCE_PATHS = 256;
+var MAXIMUM_PROPOSED_BYTES = 12 * 1024;
+function safePath(path) {
+  return typeof path === "string" && path.length > 0 && !path.startsWith("/") && !path.includes("\\") && !path.split("/").some((part) => part.length === 0 || part === "." || part === "..");
+}
+function validSourcePaths(value) {
+  return Array.isArray(value) && value.length <= MAXIMUM_OUTCOME_SOURCE_PATHS && value.every(safePath) && new Set(value).size === value.length;
+}
+function validSummary(value) {
+  return typeof value === "string" && value.trim().length > 0 && Buffer.byteLength(value) <= 512 && !value.includes("\0");
+}
+function parseCanonicalizationOutcome(value) {
+  const outcome = value;
+  const baseValid = outcome !== null && typeof outcome === "object" && outcome.schemaVersion === 1 && validSummary(outcome.summary);
+  const noDurableValid = baseValid && outcome.kind === "no_durable_change" && ["implementation_only", "verification_only", "already_canonical", "transient"].includes(outcome.reasonCode ?? "") && validSourcePaths(outcome.sourcePaths);
+  const canonicalUpdateValid = baseValid && outcome.kind === "canonical_update" && Array.isArray(outcome.targets) && outcome.targets.length > 0 && outcome.targets.length <= MAXIMUM_OUTCOME_TARGETS && outcome.targets.every((target) => safePath(target.path) && canonicalResponsibilityForPath(target.path) !== null && typeof target.contentHash === "string" && HASH3.test(target.contentHash) && validSourcePaths(target.sourcePaths)) && new Set(outcome.targets.map((target) => target.path)).size === outcome.targets.length;
+  const reviewDraftValid = baseValid && outcome.kind === "review_draft" && Array.isArray(outcome.drafts) && outcome.drafts.length > 0 && outcome.drafts.length <= MAXIMUM_OUTCOME_TARGETS && outcome.drafts.every((draft) => safePath(draft.targetPath) && canonicalResponsibilityForPath(draft.targetPath) !== null && validSourcePaths(draft.sourcePaths) && typeof draft.proposedMarkdown === "string" && draft.proposedMarkdown.trim().length > 0 && Buffer.byteLength(draft.proposedMarkdown) <= MAXIMUM_PROPOSED_BYTES && typeof draft.proposedContentHash === "string" && HASH3.test(draft.proposedContentHash) && sha2562(draft.proposedMarkdown) === draft.proposedContentHash) && new Set(outcome.drafts.map((draft) => draft.targetPath)).size === outcome.drafts.length;
+  if (!noDurableValid && !canonicalUpdateValid && !reviewDraftValid)
+    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonicalization outcome is invalid or exceeds its bounded contract.");
+  return outcome;
+}
+function sameMembers(left, right) {
+  return left.length === right.length && left.toSorted().every((item, index2) => item === right.toSorted()[index2]);
+}
+function validateCanonicalizationOutcomeForChange(input) {
+  const outcome = parseCanonicalizationOutcome(input.outcome);
+  const expectedKind = input.disposition === "canonical_sources_updated" ? "canonical_update" : input.disposition === "pending_user_approval" ? "review_draft" : "no_durable_change";
+  if (outcome.kind !== expectedKind)
+    throw new RepositoryKnowledgeError("knowledge_approval_required", `The ${input.disposition} disposition requires a ${expectedKind} outcome.`);
+  const changedPaths = [
+    .../* @__PURE__ */ new Set([...Object.keys(input.beforeFiles), ...Object.keys(input.afterFiles)])
+  ].filter((path) => input.beforeFiles[path] !== input.afterFiles[path]).toSorted();
+  const expectedSources = changedPaths.filter((path) => sourceResponsibilityForPath(path) !== null && canonicalResponsibilityForPath(path) === null);
+  const boundSources = outcome.kind === "no_durable_change" ? outcome.sourcePaths : outcome.kind === "canonical_update" ? outcome.targets.flatMap((target) => target.sourcePaths) : outcome.drafts.flatMap((draft) => draft.sourcePaths);
+  if (new Set(boundSources).size !== boundSources.length || !sameMembers(boundSources, expectedSources))
+    throw new RepositoryKnowledgeError("knowledge_approval_required", "The canonicalization outcome must bind every changed noncanonical source exactly once.");
+  if (outcome.kind === "canonical_update") {
+    for (const target of outcome.targets) {
+      if (input.afterFiles[target.path] !== target.contentHash || input.beforeFiles[target.path] === input.afterFiles[target.path])
+        throw new RepositoryKnowledgeError("knowledge_plan_stale", "A declared canonical target is not an exact changed repository file.");
+      const targetResponsibility = canonicalResponsibilityForPath(target.path);
+      if (target.sourcePaths.some((path) => sourceResponsibilityForPath(path) !== targetResponsibility))
+        throw new RepositoryKnowledgeError("knowledge_approval_required", "A canonical target does not match the responsibility of its bound sources.");
+    }
+  }
+  if (outcome.kind === "review_draft") {
+    for (const draft of outcome.drafts) {
+      const targetResponsibility = canonicalResponsibilityForPath(draft.targetPath);
+      if (draft.sourcePaths.some((path) => sourceResponsibilityForPath(path) !== targetResponsibility))
+        throw new RepositoryKnowledgeError("knowledge_approval_required", "A proposed canonical target does not match the responsibility of its bound sources.");
+    }
+  }
+}
+
+// packages/repository-knowledge/dist/canonicalization-candidate.js
+var ROOT = ".lervo/state/knowledge/canonicalization-candidates";
+var MAXIMUM_ACTIVE_CANDIDATES = 64;
+var MAXIMUM_CANDIDATE_RECORDS = 256;
+var MAXIMUM_SOURCE_BINDINGS = 256;
+function safePath2(path) {
+  return path.length > 0 && !path.startsWith("/") && !path.includes("\\") && !path.split("/").some((part) => part.length === 0 || part === "." || part === "..");
 }
 function candidatePath(candidateId) {
   return `${ROOT}/${candidateId.slice("kcanon_".length, "kcanon_".length + 2)}/${candidateId}.json`;
@@ -63977,14 +64039,16 @@ async function boundedCandidatePaths(root2) {
       paths.push(`${ROOT}/${shard.name}/${entry.name}`);
     }
   }
-  if (paths.length > MAXIMUM_CANDIDATES)
-    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", `The canonicalization candidate registry exceeds ${MAXIMUM_CANDIDATES} records.`);
+  if (paths.length > MAXIMUM_CANDIDATE_RECORDS)
+    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", `The canonicalization candidate registry exceeds ${MAXIMUM_CANDIDATE_RECORDS} records.`);
   return paths;
 }
 function validateRecord(value) {
   const record3 = value;
-  if (record3 === null || typeof record3 !== "object" || record3.schemaVersion !== 1 || typeof record3.candidateId !== "string" || !/^kcanon_[a-f0-9]{24}$/u.test(record3.candidateId) || !["candidate", "pending", "promoted", "rejected"].includes(record3.state ?? "") || typeof record3.beforeRevision !== "string" || typeof record3.afterRevision !== "string" || !Array.isArray(record3.sourceBindings) || record3.sourceBindings.length === 0 || record3.sourceBindings.length > MAXIMUM_SOURCE_BINDINGS || !record3.sourceBindings.every((item) => safePath(item.path) && (item.beforeHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.beforeHash)) && (item.afterHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.afterHash)) && sourceResponsibility(item.path) === item.responsibility) || !Array.isArray(record3.recommendedRoots) || !record3.recommendedRoots.every((path) => safePath(path)) || typeof record3.createdAt !== "string" || record3.review !== null && (typeof record3.review !== "object" || typeof record3.review.reviewerId !== "string" || !["defer", "reject"].includes(record3.review.decision) || typeof record3.review.reviewedAt !== "string") || record3.promotion !== null && (typeof record3.promotion !== "object" || typeof record3.promotion.reviewerId !== "string" || !safePath(record3.promotion.targetPath) || !/^sha256:[a-f0-9]{64}$/u.test(record3.promotion.targetContentHash) || typeof record3.promotion.promotedAt !== "string"))
+  if (record3 === null || typeof record3 !== "object" || record3.schemaVersion !== 1 || typeof record3.candidateId !== "string" || !/^kcanon_[a-f0-9]{24}$/u.test(record3.candidateId) || !["candidate", "pending", "promoted", "rejected"].includes(record3.state ?? "") || typeof record3.beforeRevision !== "string" || typeof record3.afterRevision !== "string" || !Array.isArray(record3.sourceBindings) || record3.sourceBindings.length === 0 || record3.sourceBindings.length > MAXIMUM_SOURCE_BINDINGS || !record3.sourceBindings.every((item) => safePath2(item.path) && (item.beforeHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.beforeHash)) && (item.afterHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.afterHash)) && sourceResponsibilityForPath(item.path) === item.responsibility) || !Array.isArray(record3.recommendedRoots) || !record3.recommendedRoots.every((path) => safePath2(path)) || typeof record3.createdAt !== "string" || record3.review !== null && (typeof record3.review !== "object" || typeof record3.review.reviewerId !== "string" || !["defer", "reject"].includes(record3.review.decision) || typeof record3.review.reviewedAt !== "string") || record3.promotion !== null && (typeof record3.promotion !== "object" || typeof record3.promotion.reviewerId !== "string" || !safePath2(record3.promotion.targetPath) || !/^sha256:[a-f0-9]{64}$/u.test(record3.promotion.targetContentHash) || typeof record3.promotion.promotedAt !== "string"))
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonicalization candidate record is invalid.");
+  if (record3.outcome !== void 0)
+    parseCanonicalizationOutcome(record3.outcome);
   return record3;
 }
 async function readCandidate(root2, path) {
@@ -64025,13 +64089,23 @@ async function writeRecord(root2, record3) {
 async function assessCanonicalization(input) {
   const paths = /* @__PURE__ */ new Set([...Object.keys(input.beforeFiles), ...Object.keys(input.afterFiles)]);
   const changedPaths = [...paths].filter((path) => input.beforeFiles[path] !== input.afterFiles[path]).sort();
-  const canonicalResponsibilities = new Set(changedPaths.flatMap((path) => {
-    const responsibility = canonicalResponsibility(path);
+  if (input.outcome !== void 0)
+    validateCanonicalizationOutcomeForChange({
+      outcome: input.outcome,
+      disposition: input.disposition,
+      beforeFiles: input.beforeFiles,
+      afterFiles: input.afterFiles
+    });
+  const canonicalResponsibilities = new Set(input.outcome === void 0 ? changedPaths.flatMap((path) => {
+    const responsibility = canonicalResponsibilityForPath(path);
     return responsibility === null ? [] : [responsibility];
-  }));
+  }) : input.outcome.kind === "canonical_update" ? input.outcome.targets.flatMap((target) => {
+    const responsibility = canonicalResponsibilityForPath(target.path);
+    return responsibility === null ? [] : [responsibility];
+  }) : []);
   const sourceBindings = changedPaths.flatMap((path) => {
-    const responsibility = sourceResponsibility(path);
-    if (responsibility === null || canonicalResponsibility(path) !== null)
+    const responsibility = sourceResponsibilityForPath(path);
+    if (responsibility === null || canonicalResponsibilityForPath(path) !== null)
       return [];
     if (canonicalResponsibilities.has(responsibility))
       return [];
@@ -64057,7 +64131,8 @@ async function assessCanonicalization(input) {
   const candidateId = stableId("kcanon", {
     beforeRevision: input.beforeRevision,
     afterRevision: input.afterRevision,
-    sourceBindings
+    sourceBindings,
+    outcome: input.outcome ?? null
   });
   const record3 = {
     schemaVersion: 1,
@@ -64067,13 +64142,17 @@ async function assessCanonicalization(input) {
     afterRevision: input.afterRevision,
     sourceBindings,
     recommendedRoots: [
-      ...new Set(sourceBindings.map((item) => recommendedRoot(item.responsibility)))
+      ...new Set(sourceBindings.map((item) => recommendedCanonicalRoot(item.responsibility)))
     ].sort(),
     createdAt: input.now.toISOString(),
+    ...input.outcome === void 0 ? {} : { outcome: input.outcome },
     review: null,
     promotion: null
   };
-  const existing = (await listCanonicalizationCandidates(input.repositoryRoot)).find((item) => item.candidateId === candidateId);
+  const candidates = await listCanonicalizationCandidates(input.repositoryRoot);
+  const existing = candidates.find((item) => item.candidateId === candidateId);
+  if (existing === void 0 && candidates.filter((item) => item.observedState === "candidate" || item.observedState === "pending").length >= MAXIMUM_ACTIVE_CANDIDATES)
+    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", `The canonicalization candidate registry has ${MAXIMUM_ACTIVE_CANDIDATES} active records.`);
   if (existing === void 0)
     await writeRecord(resolve25(input.repositoryRoot), record3);
   const candidate = existing ?? await readCandidate(resolve25(input.repositoryRoot), candidatePath(candidateId));
@@ -64162,7 +64241,7 @@ var defaultDocumentNormalizationResourceCeilings = {
 var MAX_ENVELOPE_BYTES = 32 * 1024;
 var MAX_OUTPUT_BYTES = 32 * 1024;
 var MAX_CANDIDATE_BYTES = 16 * 1024 * 1024;
-var HASH3 = /^sha256:[a-f0-9]{64}$/u;
+var HASH4 = /^sha256:[a-f0-9]{64}$/u;
 function normalizationProfile(source) {
   if (!/\.md$/iu.test(source.path))
     return null;
@@ -64262,7 +64341,7 @@ function validDocumentNormalizationRecord(value, path, outputLanguage) {
   if (value === null || typeof value !== "object")
     return false;
   const record3 = value;
-  return !(![1, 2].includes(record3.schemaVersion ?? 0) || record3.schemaVersion === 2 && (record3.byteOwnership?.owner !== "reviewer" || record3.byteOwnership.rewritePolicy !== "reviewed_exact") || typeof record3.recordId !== "string" || !/^knormdoc_[a-f0-9]{24}$/u.test(record3.recordId) || path !== shardedKnowledgeArtifactPath(".lervo/knowledge/document-normalizations", record3.recordId, "yaml") || typeof record3.sourcePath !== "string" || !safeRelativePath(record3.sourcePath) || record3.outputLanguage !== outputLanguage || record3.formatVersion !== "lervo.document.v1" || !Array.isArray(record3.outputs) || record3.outputs.length < 1 || record3.outputs.some((output) => output === null || typeof output !== "object" || typeof output.path !== "string" || !safeRelativePath(output.path) || typeof output.contentHash !== "string" || !HASH3.test(output.contentHash) || output.userRegionHash !== void 0 && (typeof output.userRegionHash !== "string" || !HASH3.test(output.userRegionHash))) || !Array.isArray(record3.resourceBindings) || record3.resourceBindings.some((resource) => resource === null || typeof resource !== "object" || typeof resource.path !== "string" || !safeRelativePath(resource.path) || typeof resource.contentHash !== "string" || !HASH3.test(resource.contentHash)));
+  return !(![1, 2].includes(record3.schemaVersion ?? 0) || record3.schemaVersion === 2 && (record3.byteOwnership?.owner !== "reviewer" || record3.byteOwnership.rewritePolicy !== "reviewed_exact") || typeof record3.recordId !== "string" || !/^knormdoc_[a-f0-9]{24}$/u.test(record3.recordId) || path !== shardedKnowledgeArtifactPath(".lervo/knowledge/document-normalizations", record3.recordId, "yaml") || typeof record3.sourcePath !== "string" || !safeRelativePath(record3.sourcePath) || record3.outputLanguage !== outputLanguage || record3.formatVersion !== "lervo.document.v1" || !Array.isArray(record3.outputs) || record3.outputs.length < 1 || record3.outputs.some((output) => output === null || typeof output !== "object" || typeof output.path !== "string" || !safeRelativePath(output.path) || typeof output.contentHash !== "string" || !HASH4.test(output.contentHash) || output.userRegionHash !== void 0 && (typeof output.userRegionHash !== "string" || !HASH4.test(output.userRegionHash))) || !Array.isArray(record3.resourceBindings) || record3.resourceBindings.some((resource) => resource === null || typeof resource !== "object" || typeof resource.path !== "string" || !safeRelativePath(resource.path) || typeof resource.contentHash !== "string" || !HASH4.test(resource.contentHash)));
 }
 async function inspectConfiguredDocumentNormalization(input) {
   const root2 = resolve26(input.repositoryRoot);
@@ -64719,7 +64798,7 @@ function createInstructionBridgeTarget(input) {
 }
 
 // packages/repository-knowledge/dist/instruction-bridge.js
-var HASH4 = /^sha256:[a-f0-9]{64}$/;
+var HASH5 = /^sha256:[a-f0-9]{64}$/;
 var decoder2 = new TextDecoder("utf-8", { fatal: true });
 var profiles = {
   claude: {
@@ -64738,7 +64817,7 @@ function instructionBridgeProfile(provider) {
 function validExistingBridgeRecord(bytes, profile8, bridgeId) {
   try {
     const value = (0, import_yaml21.parse)(bytes.toString("utf8"));
-    return value !== null && typeof value === "object" && value.schemaVersion === 1 && value.bridgeId === bridgeId && value.profile?.id === profile8.profileId && value.profile.version === profile8.profileVersion && value.profile.provider === profile8.provider && value.profile.discoveryContract === profile8.discoveryContract && value.canonical?.path === profile8.canonicalPath && typeof value.canonical.contentHash === "string" && HASH4.test(value.canonical.contentHash) && value.target?.path === profile8.targetPath && value.target.blockId === profile8.blockId && typeof value.target.contentHash === "string" && HASH4.test(value.target.contentHash) && typeof value.target.managedContentHash === "string" && HASH4.test(value.target.managedContentHash);
+    return value !== null && typeof value === "object" && value.schemaVersion === 1 && value.bridgeId === bridgeId && value.profile?.id === profile8.profileId && value.profile.version === profile8.profileVersion && value.profile.provider === profile8.provider && value.profile.discoveryContract === profile8.discoveryContract && value.canonical?.path === profile8.canonicalPath && typeof value.canonical.contentHash === "string" && HASH5.test(value.canonical.contentHash) && value.target?.path === profile8.targetPath && value.target.blockId === profile8.blockId && typeof value.target.contentHash === "string" && HASH5.test(value.target.contentHash) && typeof value.target.managedContentHash === "string" && HASH5.test(value.target.managedContentHash);
   } catch {
     return false;
   }
@@ -66248,8 +66327,8 @@ function rebaseMarkdownLinks(content3, fromPath, toPath) {
             throw new RepositoryKnowledgeError("knowledge_unit_extraction_failed", "The Markdown reference coordinates cannot be determined.");
           const slice2 = content3.slice(start, end);
           const destinationMarker = node2.type === "definition" ? "]:" : "](";
-          const marker2 = slice2.indexOf(destinationMarker);
-          const local = marker2 < 0 ? -1 : slice2.indexOf(node2.url, marker2 + destinationMarker.length);
+          const marker = slice2.indexOf(destinationMarker);
+          const local = marker < 0 ? -1 : slice2.indexOf(node2.url, marker + destinationMarker.length);
           if (local < 0)
             throw new RepositoryKnowledgeError("knowledge_unit_extraction_failed", "The Markdown reference destination cannot be determined.");
           replacements.push({
@@ -67514,7 +67593,7 @@ ${terminalUsage}
 }
 
 // apps/cli/src/terminal-declaration-command.ts
-import { resolve as resolve48 } from "node:path";
+import { resolve as resolve50 } from "node:path";
 import { parseArgs as parseArgs2 } from "node:util";
 
 // packages/agent-workforce/dist/limits.js
@@ -68933,7 +69012,7 @@ var AgentWorkforceError = class extends Error {
 };
 
 // packages/agent-workforce/dist/assignment-routine-state.js
-var HASH5 = /^sha256:[a-f0-9]{64}$/u;
+var HASH6 = /^sha256:[a-f0-9]{64}$/u;
 var ROUTINE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
 var VERSION2 = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
 var INVOCATION_ID = /^rin_[a-f0-9]{24}$/u;
@@ -68941,11 +69020,11 @@ function validWorkforceRoutineProvenance(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return false;
   const item = value;
-  return ROUTINE_ID.test(item.routineId) && item.routineId.length <= 100 && VERSION2.test(item.templateVersion) && HASH5.test(item.templateHash) && INVOCATION_ID.test(item.invocationId) && item.triggerKind === "manual" && HASH5.test(item.triggerDigest) && ROUTINE_ID.test(item.nodeKey) && item.nodeKey.length <= 100;
+  return ROUTINE_ID.test(item.routineId) && item.routineId.length <= 100 && VERSION2.test(item.templateVersion) && HASH6.test(item.templateHash) && INVOCATION_ID.test(item.invocationId) && item.triggerKind === "manual" && HASH6.test(item.triggerDigest) && ROUTINE_ID.test(item.nodeKey) && item.nodeKey.length <= 100;
 }
 
 // packages/agent-workforce/dist/store.js
-var HASH6 = /^sha256:[a-f0-9]{64}$/u;
+var HASH7 = /^sha256:[a-f0-9]{64}$/u;
 var ROLE_ID2 = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
 var ROLE_VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
 var AGENT_ID = /^agt_[a-f0-9]{24}$/u;
@@ -68976,30 +69055,30 @@ function validTime(value) {
 function boundedStrings(value, maximum, pattern) {
   return Array.isArray(value) && value.length <= maximum && value.every((item) => typeof item === "string" && item.length > 0 && item.length <= 1024 && (pattern === void 0 || pattern.test(item))) && new Set(value).size === value.length;
 }
-function safePath2(value) {
+function safePath3(value) {
   return value === "*" || value.length <= 1024 && value.length > 0 && posix8.normalize(value) === value && !value.startsWith("/") && !value.includes("../") && !value.includes("\\") && !value.includes("\0");
 }
 function validAgent(agent, projectId) {
   if (agent === null || typeof agent !== "object" || Array.isArray(agent))
     return false;
   const value = agent;
-  return value.schemaVersion === 1 && AGENT_ID.test(value.agentId) && value.projectId === projectId && ROLE_ID2.test(value.roleId) && value.roleId.length <= 100 && (value.roleVersion === void 0 || ROLE_VERSION.test(value.roleVersion)) && (value.roleContractHash === void 0 || HASH6.test(value.roleContractHash)) && HASH6.test(value.roleProfileHash) && HASH6.test(value.capabilityHash) && ["codex", "claude", "any"].includes(value.provider) && boundedStrings(value.skillIds, 32) && (value.capabilityPackages === void 0 || Array.isArray(value.capabilityPackages) && value.capabilityPackages.length <= 64 && value.capabilityPackages.every((item) => item !== null && typeof item === "object" && /^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u.test(item.capabilityId) && ["skill", "mcp_server", "provider_plugin", "bundle"].includes(item.kind) && ROLE_VERSION.test(item.version) && HASH6.test(item.contentHash) && ["project", "user"].includes(item.sourceKind))) && boundedStrings(value.responsibilityPaths, 64) && value.responsibilityPaths.every(safePath2) && (value.parentAgentId === null || AGENT_ID.test(value.parentAgentId)) && Number.isSafeInteger(value.delegationDepth) && value.delegationDepth >= 0 && value.delegationDepth <= workforceLimits.maximumDelegationDepth && ["active", "suspended", "retired"].includes(value.status) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime(value.createdAt) && validTime(value.updatedAt);
+  return value.schemaVersion === 1 && AGENT_ID.test(value.agentId) && value.projectId === projectId && ROLE_ID2.test(value.roleId) && value.roleId.length <= 100 && (value.roleVersion === void 0 || ROLE_VERSION.test(value.roleVersion)) && (value.roleContractHash === void 0 || HASH7.test(value.roleContractHash)) && HASH7.test(value.roleProfileHash) && HASH7.test(value.capabilityHash) && ["codex", "claude", "any"].includes(value.provider) && boundedStrings(value.skillIds, 32) && (value.capabilityPackages === void 0 || Array.isArray(value.capabilityPackages) && value.capabilityPackages.length <= 64 && value.capabilityPackages.every((item) => item !== null && typeof item === "object" && /^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u.test(item.capabilityId) && ["skill", "mcp_server", "provider_plugin", "bundle"].includes(item.kind) && ROLE_VERSION.test(item.version) && HASH7.test(item.contentHash) && ["project", "user"].includes(item.sourceKind))) && boundedStrings(value.responsibilityPaths, 64) && value.responsibilityPaths.every(safePath3) && (value.parentAgentId === null || AGENT_ID.test(value.parentAgentId)) && Number.isSafeInteger(value.delegationDepth) && value.delegationDepth >= 0 && value.delegationDepth <= workforceLimits.maximumDelegationDepth && ["active", "suspended", "retired"].includes(value.status) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime(value.createdAt) && validTime(value.updatedAt);
 }
 function validArtifact(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) && ARTIFACT_ID2.test(value.artifactId) && HASH6.test(value.contentHash);
+  return value !== null && typeof value === "object" && !Array.isArray(value) && ARTIFACT_ID2.test(value.artifactId) && HASH7.test(value.contentHash);
 }
 function validHandoff(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return false;
   const item = value;
-  return HANDOFF_ID.test(item.handoffId) && AGENT_ID.test(item.fromAgentId) && AGENT_ID.test(item.toAgentId) && HASH6.test(item.requestDigest) && Array.isArray(item.artifactReferences) && item.artifactReferences.length <= 32 && item.artifactReferences.every(validArtifact) && boundedStrings(item.contextEvidenceEventIds, 64, EVENT_ID) && validTime(item.createdAt) && (item.acknowledgedAt === null || validTime(item.acknowledgedAt));
+  return HANDOFF_ID.test(item.handoffId) && AGENT_ID.test(item.fromAgentId) && AGENT_ID.test(item.toAgentId) && HASH7.test(item.requestDigest) && Array.isArray(item.artifactReferences) && item.artifactReferences.length <= 32 && item.artifactReferences.every(validArtifact) && boundedStrings(item.contextEvidenceEventIds, 64, EVENT_ID) && validTime(item.createdAt) && (item.acknowledgedAt === null || validTime(item.acknowledgedAt));
 }
 function validAssignment(value, projectId) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return false;
   const item = value;
   const lease = item.lease;
-  return item.schemaVersion === 1 && ASSIGNMENT_ID.test(item.assignmentId) && item.projectId === projectId && /^[a-z][a-z0-9._-]{1,99}$/u.test(item.taskType) && ROLE_ID2.test(item.roleId) && item.roleId.length <= 100 && (item.roleVersion === void 0 || ROLE_VERSION.test(item.roleVersion)) && (item.roleContractHash === void 0 || HASH6.test(item.roleContractHash)) && (item.requiredCapabilityHash === void 0 || item.requiredCapabilityHash === null || HASH6.test(item.requiredCapabilityHash)) && (item.routine === void 0 || item.routine === null || validWorkforceRoutineProvenance(item.routine)) && ["queued", "leased", "blocked", "completed", "failed", "cancelled"].includes(item.status) && Number.isSafeInteger(item.priority) && item.priority >= 0 && item.priority <= 100 && boundedStrings(item.dependencyIds, 64, ASSIGNMENT_ID) && !item.dependencyIds.includes(item.assignmentId) && boundedStrings(item.acceptanceCriteria, 32) && boundedStrings(item.verificationSuiteIds, 32) && boundedStrings(item.approvalRequirements, 32) && boundedStrings(item.expectedPaths, 128) && item.expectedPaths.every(safePath2) && (item.workstreamId === null || WORKSTREAM_ID.test(item.workstreamId)) && (item.assigneeAgentId === null || AGENT_ID.test(item.assigneeAgentId)) && (lease === null || /^lse_[a-f0-9]{24}$/u.test(lease.leaseId) && AGENT_ID.test(lease.agentId) && SESSION_ID.test(lease.sessionId) && Number.isSafeInteger(lease.generation) && lease.generation >= 1 && validTime(lease.acquiredAt) && validTime(lease.expiresAt)) && Array.isArray(item.handoffs) && item.handoffs.length <= 256 && item.handoffs.every(validHandoff) && Array.isArray(item.resultArtifacts) && item.resultArtifacts.length <= 64 && item.resultArtifacts.every(validArtifact) && (item.failureCode === null || /^[a-z][a-z0-9_]{1,99}$/u.test(item.failureCode)) && Number.isSafeInteger(item.revision) && item.revision >= 1 && validTime(item.createdAt) && validTime(item.updatedAt);
+  return item.schemaVersion === 1 && ASSIGNMENT_ID.test(item.assignmentId) && item.projectId === projectId && /^[a-z][a-z0-9._-]{1,99}$/u.test(item.taskType) && ROLE_ID2.test(item.roleId) && item.roleId.length <= 100 && (item.roleVersion === void 0 || ROLE_VERSION.test(item.roleVersion)) && (item.roleContractHash === void 0 || HASH7.test(item.roleContractHash)) && (item.requiredCapabilityHash === void 0 || item.requiredCapabilityHash === null || HASH7.test(item.requiredCapabilityHash)) && (item.routine === void 0 || item.routine === null || validWorkforceRoutineProvenance(item.routine)) && ["queued", "leased", "blocked", "completed", "failed", "cancelled"].includes(item.status) && Number.isSafeInteger(item.priority) && item.priority >= 0 && item.priority <= 100 && boundedStrings(item.dependencyIds, 64, ASSIGNMENT_ID) && !item.dependencyIds.includes(item.assignmentId) && boundedStrings(item.acceptanceCriteria, 32) && boundedStrings(item.verificationSuiteIds, 32) && boundedStrings(item.approvalRequirements, 32) && boundedStrings(item.expectedPaths, 128) && item.expectedPaths.every(safePath3) && (item.workstreamId === null || WORKSTREAM_ID.test(item.workstreamId)) && (item.assigneeAgentId === null || AGENT_ID.test(item.assigneeAgentId)) && (lease === null || /^lse_[a-f0-9]{24}$/u.test(lease.leaseId) && AGENT_ID.test(lease.agentId) && SESSION_ID.test(lease.sessionId) && Number.isSafeInteger(lease.generation) && lease.generation >= 1 && validTime(lease.acquiredAt) && validTime(lease.expiresAt)) && Array.isArray(item.handoffs) && item.handoffs.length <= 256 && item.handoffs.every(validHandoff) && Array.isArray(item.resultArtifacts) && item.resultArtifacts.length <= 64 && item.resultArtifacts.every(validArtifact) && (item.failureCode === null || /^[a-z][a-z0-9_]{1,99}$/u.test(item.failureCode)) && Number.isSafeInteger(item.revision) && item.revision >= 1 && validTime(item.createdAt) && validTime(item.updatedAt);
 }
 async function state(root2) {
   const manifest = await loadProjectManifest(root2);
@@ -69152,14 +69231,14 @@ async function assertAssignmentExecutionAuthority(input) {
   exactLease(assignment, input.agentId, input.leaseId, now);
   const expectedPaths = [...new Set(input.expectedPaths)].sort();
   const suites = [...new Set(input.verificationSuiteIds)].sort();
-  if (expectedPaths.length !== input.expectedPaths.length || !expectedPaths.every(safePath2) || !expectedPaths.every((path) => assignment.expectedPaths.some((scope) => scope === "*" || path === scope || path.startsWith(`${scope}/`))) || JSON.stringify(suites) !== JSON.stringify([...assignment.verificationSuiteIds].sort()))
+  if (expectedPaths.length !== input.expectedPaths.length || !expectedPaths.every(safePath3) || !expectedPaths.every((path) => assignment.expectedPaths.some((scope) => scope === "*" || path === scope || path.startsWith(`${scope}/`))) || JSON.stringify(suites) !== JSON.stringify([...assignment.verificationSuiteIds].sort()))
     fail13("assignment_path_conflict", "The managed run paths or verification suites differ from the leased assignment.");
   return { assignment: structuredClone(assignment), agent: structuredClone(agent) };
 }
 
 // packages/agent-workforce/dist/workspace-lifecycle.js
 import { isAbsolute as isAbsolute3 } from "node:path";
-var HASH7 = /^sha256:[a-f0-9]{64}$/u;
+var HASH8 = /^sha256:[a-f0-9]{64}$/u;
 var COMMIT = /^[a-f0-9]{40,64}$/u;
 var WORKSPACE_ID = /^wsp_[a-f0-9]{24}$/u;
 var REPOSITORY_INSTANCE_ID2 = /^rpi_[a-f0-9]{24}$/u;
@@ -69168,7 +69247,8 @@ var SAFE_PATH = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))(?!.*\\)(?!.*\0).{1,1024}$/u;
 var transitions = {
   provisioning: ["ready", "recovery_required"],
   ready: ["active", "recovery_required"],
-  active: ["sealing", "recovery_required"],
+  active: ["active", "paused", "sealing", "recovery_required"],
+  paused: ["active", "sealing", "recovery_required"],
   sealing: ["sealed", "recovery_required"],
   sealed: ["integration_pending", "recovery_required"],
   integration_pending: ["integrating", "integration_conflict", "recovery_required"],
@@ -69187,13 +69267,13 @@ function validTime2(value) {
   return Number.isFinite(Date.parse(value));
 }
 function validSession(value) {
-  return value === null || /^ses_[A-Za-z0-9_-]{8,128}$/u.test(value.sessionId) && validTime2(value.startedAt);
+  return value === null || /^ses_[A-Za-z0-9_-]{8,128}$/u.test(value.sessionId) && validTime2(value.startedAt) && (value.lastSeenAt === void 0 || validTime2(value.lastSeenAt) && Date.parse(value.lastSeenAt) >= Date.parse(value.startedAt));
 }
 function validSeal(value) {
-  return value !== null && COMMIT.test(value.baseCommit) && COMMIT.test(value.headCommit) && COMMIT.test(value.treeHash) && HASH7.test(value.changedPathSetDigest) && Number.isSafeInteger(value.changedPathCount) && value.changedPathCount >= 0 && value.changedPaths.length === value.changedPathCount && value.changedPaths.length <= 1e4 && value.changedPaths.every((path) => SAFE_PATH.test(path)) && new Set(value.changedPaths).size === value.changedPaths.length && value.commitIds.length <= 1e4 && value.commitIds.every((commitId) => COMMIT.test(commitId)) && ARTIFACT_ID3.test(value.resultArtifactId) && HASH7.test(value.resultArtifactHash) && value.verificationResults.length <= 64 && value.verificationResults.every((result) => /^[a-z][a-z0-9._-]{1,99}$/u.test(result.suiteId) && HASH7.test(result.policyHash) && ARTIFACT_ID3.test(result.resultArtifactId) && HASH7.test(result.resultArtifactHash) && validTime2(result.completedAt) && result.passed) && !value.approvalPending && !value.recoveryPending && (value.sourceWorkstream === null || /^wks_[a-f0-9]{24}$/u.test(value.sourceWorkstream.workstreamId) && Number.isSafeInteger(value.sourceWorkstream.revision) && value.sourceWorkstream.revision >= 1 && HASH7.test(value.sourceWorkstream.snapshotHash)) && validTime2(value.sealedAt) && (value.noChange ? value.changedPathCount === 0 && value.commitIds.length === 0 && value.headCommit === value.baseCommit : value.changedPathCount > 0 && value.commitIds.length > 0);
+  return value !== null && COMMIT.test(value.baseCommit) && COMMIT.test(value.headCommit) && COMMIT.test(value.treeHash) && HASH8.test(value.changedPathSetDigest) && Number.isSafeInteger(value.changedPathCount) && value.changedPathCount >= 0 && value.changedPaths.length === value.changedPathCount && value.changedPaths.length <= 1e4 && value.changedPaths.every((path) => SAFE_PATH.test(path)) && new Set(value.changedPaths).size === value.changedPaths.length && value.commitIds.length <= 1e4 && value.commitIds.every((commitId) => COMMIT.test(commitId)) && ARTIFACT_ID3.test(value.resultArtifactId) && HASH8.test(value.resultArtifactHash) && value.verificationResults.length <= 64 && value.verificationResults.every((result) => /^[a-z][a-z0-9._-]{1,99}$/u.test(result.suiteId) && HASH8.test(result.policyHash) && ARTIFACT_ID3.test(result.resultArtifactId) && HASH8.test(result.resultArtifactHash) && validTime2(result.completedAt) && result.passed) && !value.approvalPending && !value.recoveryPending && (value.sourceWorkstream === null || /^wks_[a-f0-9]{24}$/u.test(value.sourceWorkstream.workstreamId) && Number.isSafeInteger(value.sourceWorkstream.revision) && value.sourceWorkstream.revision >= 1 && HASH8.test(value.sourceWorkstream.snapshotHash)) && validTime2(value.sealedAt) && (value.noChange ? value.changedPathCount === 0 && value.commitIds.length === 0 && value.headCommit === value.baseCommit : value.changedPathCount > 0 && value.commitIds.length > 0);
 }
 function isAgentWorkspace(value) {
-  return value.schemaVersion === 1 && WORKSPACE_ID.test(value.workspaceId) && REPOSITORY_INSTANCE_ID2.test(value.repositoryInstanceId) && Number.isSafeInteger(value.generation) && value.generation >= 1 && Number.isSafeInteger(value.leaseGeneration) && value.leaseGeneration >= 1 && ["worker", "integrator"].includes(value.executionKind) && ["git", "orca"].includes(value.host.kind) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(value.host.version) && (value.host.nativeInstanceDigest === null || HASH7.test(value.host.nativeInstanceDigest)) && COMMIT.test(value.baseCommit) && HASH7.test(value.integrationTargetDigest) && /^wpl_[a-f0-9]{24}$/u.test(value.creationPlanId) && HASH7.test(value.markerHash) && HASH7.test(value.pathDigest) && (value.ownerWorkspacePath === void 0 || value.ownerWorkspacePath.length <= 4096 && !value.ownerWorkspacePath.includes("\0") && isAbsolute3(value.ownerWorkspacePath)) && validSession(value.writerSession) && (value.sealedResult === null || validSeal(value.sealedResult)) && (value.integrationQueueEntryId === null || /^inq_[a-f0-9]{24}$/u.test(value.integrationQueueEntryId)) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime2(value.createdAt) && validTime2(value.updatedAt);
+  return value.schemaVersion === 1 && WORKSPACE_ID.test(value.workspaceId) && REPOSITORY_INSTANCE_ID2.test(value.repositoryInstanceId) && Number.isSafeInteger(value.generation) && value.generation >= 1 && Number.isSafeInteger(value.leaseGeneration) && value.leaseGeneration >= 1 && ["worker", "integrator"].includes(value.executionKind) && ["git", "orca"].includes(value.host.kind) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(value.host.version) && (value.host.nativeInstanceDigest === null || HASH8.test(value.host.nativeInstanceDigest)) && COMMIT.test(value.baseCommit) && HASH8.test(value.integrationTargetDigest) && /^wpl_[a-f0-9]{24}$/u.test(value.creationPlanId) && HASH8.test(value.markerHash) && HASH8.test(value.pathDigest) && (value.ownerWorkspacePath === void 0 || value.ownerWorkspacePath.length <= 4096 && !value.ownerWorkspacePath.includes("\0") && isAbsolute3(value.ownerWorkspacePath)) && validSession(value.writerSession) && Object.hasOwn(transitions, value.state) && (value.sealedResult === null || validSeal(value.sealedResult)) && (value.integrationQueueEntryId === null || /^inq_[a-f0-9]{24}$/u.test(value.integrationQueueEntryId)) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime2(value.createdAt) && validTime2(value.updatedAt);
 }
 function requireEvidence(evidence, fields) {
   const missing = fields.filter((field2) => evidence[field2] !== true);
@@ -69207,6 +69287,11 @@ function validateTransitionEvidence(input) {
   if (nextState === "active") {
     if (input.writerSession === void 0 || input.writerSession === null)
       fail14("workspace_transition_conflict", "Workspace activation requires one writer session.");
+  }
+  if (nextState === "paused") {
+    requireEvidence(evidence, ["writerFrozen"]);
+    if (input.writerSession !== null)
+      fail14("workspace_transition_conflict", "Workspace pause must release its writer session.");
   }
   if (nextState === "sealing") {
     requireEvidence(evidence, ["writerFrozen"]);
@@ -70374,6 +70459,9 @@ import { randomUUID as randomUUID4 } from "node:crypto";
 var TERMINAL_OBSERVATION_POLICY_VERSION = sha2562(
   "lervo.terminal.unmanaged-observation.v1"
 );
+var TERMINAL_HOOK_BUILD_DIGEST = sha2562(
+  "lervo.terminal.hook-runtime.lifecycle-cache-and-shared-scan.v2"
+);
 function allTerminalEvents2(events) {
   const result = [];
   let afterSeq = 0;
@@ -70386,8 +70474,8 @@ function allTerminalEvents2(events) {
   }
   return result;
 }
-function digestSuffix2(digest7) {
-  return digest7.slice("sha256:".length, "sha256:".length + 24);
+function digestSuffix2(digest6) {
+  return digest6.slice("sha256:".length, "sha256:".length + 24);
 }
 function unmanagedTerminalCoordinates(provider, input) {
   const providerSessionDigest = sha2562(`${provider}\0${input.providerSessionId}`);
@@ -70423,38 +70511,98 @@ function terminalEventDraft(input) {
   };
 }
 
-// apps/cli/src/terminal-prepared-snapshot.ts
+// apps/cli/src/terminal-knowledge-lifecycle-cache.ts
 import { constants as constants15 } from "node:fs";
 import { randomUUID as randomUUID5 } from "node:crypto";
-import { lstat as lstat34, mkdir as mkdir12, open as open19, readFile as readFile19, readdir as readdir16, rename as rename9, rm as rm9 } from "node:fs/promises";
+import { lstat as lstat34, mkdir as mkdir12, open as open19, readFile as readFile19, rename as rename9, rm as rm9 } from "node:fs/promises";
 import { resolve as resolve47 } from "node:path";
-var DIRECTORY = ".lervo/state/terminal-integration/prepared-snapshots";
-var MAXIMUM_SNAPSHOTS = 64;
-var MAXIMUM_BYTES = 8 * 1024 * 1024;
-function snapshotPath(root2, observationId) {
-  if (!/^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(observationId))
-    throw new Error("The prepared snapshot observation ID is invalid.");
-  return resolve47(root2, DIRECTORY, `${observationId}.json`);
+
+// apps/cli/src/version-command.ts
+import { createRequire } from "node:module";
+var require2 = createRequire(import.meta.url);
+var semanticVersionPattern = /^\d+\.\d+\.\d+$/;
+function readCliPackageVersion() {
+  const manifest = require2("../package.json");
+  if (typeof manifest.version !== "string" || !semanticVersionPattern.test(manifest.version)) {
+    throw new Error("invalid CLI package version");
+  }
+  return manifest.version;
 }
-function validate(value) {
-  const snapshot = value;
-  if (snapshot === null || typeof snapshot !== "object" || snapshot.schemaVersion !== 1 || typeof snapshot.observationId !== "string" || typeof snapshot.revision !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(snapshot.revision) || snapshot.files === null || typeof snapshot.files !== "object" || Array.isArray(snapshot.files) || Object.keys(snapshot.files).length > 2e4 || !Object.entries(snapshot.files).every(
-    ([path, hash2]) => path.length > 0 && !path.startsWith("/") && !path.includes("\\") && !path.split("/").some((part) => part.length === 0 || part === "." || part === "..") && typeof hash2 === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash2)
-  ))
-    throw new Error("The prepared repository snapshot is invalid.");
-  return snapshot;
+
+// apps/cli/src/terminal-knowledge-lifecycle-cache.ts
+var CACHE_PATH = ".lervo/state/terminal-integration/knowledge-lifecycle-cache.json";
+var MAXIMUM_CACHE_BYTES = 64 * 1024;
+var HASH9 = /^sha256:[a-f0-9]{64}$/u;
+function supplementalSourcesDigest(sources) {
+  return sha2562(
+    canonicalJson3(
+      sources.map((source) => ({
+        path: source.path,
+        kind: source.kind,
+        classification: source.classification,
+        contentHash: sha2562(source.content),
+        origin: source.origin,
+        unitKind: source.unitKind,
+        locator: source.locator,
+        title: source.title,
+        adapter: source.adapter
+      }))
+    )
+  );
 }
-async function writePreparedRepositorySnapshot(root2, snapshot) {
-  const directory = resolve47(root2, DIRECTORY);
+function cacheCoordinates(input) {
+  return {
+    cliVersion: readCliPackageVersion(),
+    repositoryRevision: input.repositoryRevision,
+    supplementalSourcesDigest: supplementalSourcesDigest(input.supplementalSources)
+  };
+}
+function validIssue(value) {
+  const issue = value;
+  return issue !== null && typeof issue === "object" && typeof issue.code === "string" && issue.code.length >= 1 && issue.code.length <= 128 && typeof issue.command === "string" && issue.command.length >= 1 && issue.command.length <= 512 && (issue.detail === void 0 || typeof issue.detail === "string" && issue.detail.length <= 2 * 1024);
+}
+function validateCache(value) {
+  const cache = value;
+  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 1 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH9.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH9.test(cache.supplementalSourcesDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue)) {
+    return null;
+  }
+  return cache;
+}
+async function readTerminalKnowledgeLifecycleCache(input) {
+  try {
+    const target = resolve47(input.root, CACHE_PATH);
+    const stats = await lstat34(target);
+    if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_CACHE_BYTES) return null;
+    const cache = validateCache(JSON.parse(await readFile19(target, "utf8")));
+    if (cache === null) return null;
+    const expected = cacheCoordinates(input);
+    if (cache.cliVersion !== expected.cliVersion || cache.repositoryRevision !== expected.repositoryRevision || cache.supplementalSourcesDigest !== expected.supplementalSourcesDigest) {
+      return null;
+    }
+    return cache.issues;
+  } catch {
+    return null;
+  }
+}
+async function writeTerminalKnowledgeLifecycleCache(input) {
+  if (!HASH9.test(input.repositoryRevision) || input.issues.length > 128 || !input.issues.every(validIssue)) {
+    throw new Error("The terminal knowledge lifecycle cache input is invalid.");
+  }
+  const directory = resolve47(input.root, ".lervo/state/terminal-integration");
   await mkdir12(directory, { recursive: true, mode: 448 });
-  const stats = await lstat34(directory);
-  if (!stats.isDirectory() || stats.isSymbolicLink())
-    throw new Error("Unsafe prepared snapshot state directory.");
-  const bytes = `${JSON.stringify(snapshot)}
+  const directoryStats = await lstat34(directory);
+  if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink())
+    throw new Error("Unsafe terminal knowledge lifecycle cache directory.");
+  const cache = {
+    schemaVersion: 1,
+    ...cacheCoordinates(input),
+    issues: input.issues
+  };
+  const bytes = `${JSON.stringify(cache)}
 `;
-  if (Buffer.byteLength(bytes) > MAXIMUM_BYTES)
-    throw new Error("The prepared repository snapshot exceeds its storage limit.");
-  const temporary = resolve47(directory, `.prepared-${randomUUID5()}.tmp`);
+  if (Buffer.byteLength(bytes) > MAXIMUM_CACHE_BYTES)
+    throw new Error("The terminal knowledge lifecycle cache exceeds its storage limit.");
+  const temporary = resolve47(directory, `.knowledge-lifecycle-${randomUUID5()}.tmp`);
   let handle;
   try {
     handle = await open19(
@@ -70466,24 +70614,274 @@ async function writePreparedRepositorySnapshot(root2, snapshot) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename9(temporary, snapshotPath(root2, snapshot.observationId));
+    await rename9(temporary, resolve47(input.root, CACHE_PATH));
   } finally {
     await handle?.close();
     await rm9(temporary, { force: true });
+  }
+}
+
+// apps/cli/src/terminal-knowledge-lifecycle-inspection.ts
+var TRANSIENT_INSPECTION_FAILURES = /* @__PURE__ */ new Set([
+  "instruction_canonical_bootstrap_failed",
+  "repository_layout_inspection_failed",
+  "repository_knowledge_inspection_failed",
+  "claude_instruction_bridge_inspection_failed",
+  "repository_knowledge_lint_inspection_failed",
+  "document_normalization_inspection_failed"
+]);
+function lifecycleFailure(input) {
+  return {
+    code: input.code,
+    command: input.command,
+    ...input.error instanceof RepositoryKnowledgeError ? {
+      detail: input.error.publicDiagnostic === void 0 ? input.error.code : `${input.error.publicDiagnostic.code}: ${input.error.publicDiagnostic.message}`
+    } : {}
+  };
+}
+function sharedScan(scan) {
+  return scan === void 0 ? {} : { preparedScan: scan };
+}
+async function inspectStructuralLifecycle(input) {
+  const issues = [];
+  let instructionBootstrapStatus = null;
+  try {
+    const instructionBootstrap = await createKnowledgeInstructionBootstrapPlan({
+      repositoryRoot: input.root,
+      supplementalSources: input.supplementalSources,
+      ...sharedScan(input.preparedScan)
+    });
+    instructionBootstrapStatus = instructionBootstrap.status;
+  } catch (error) {
+    issues.push(
+      lifecycleFailure({
+        code: "instruction_canonical_bootstrap_failed",
+        command: "lervo migrate knowledge",
+        error
+      })
+    );
+  }
+  if (instructionBootstrapStatus !== null && instructionBootstrapStatus !== "not_applicable") {
+    issues.push({
+      code: `instruction_canonical_bootstrap_${instructionBootstrapStatus}`,
+      command: "lervo migrate knowledge"
+    });
+  }
+  let layout = null;
+  if (instructionBootstrapStatus === "not_applicable") {
+    try {
+      layout = await createRepositoryLayoutMigrationPlan({
+        repositoryRoot: input.root,
+        supplementalSources: input.supplementalSources,
+        ...sharedScan(input.preparedScan)
+      });
+    } catch (error) {
+      issues.push(
+        lifecycleFailure({
+          code: "repository_layout_inspection_failed",
+          command: "lervo migrate knowledge",
+          error
+        })
+      );
+    }
+  }
+  if (layout !== null && layout.status !== "current") {
+    issues.push({ code: `repository_layout_${layout.status}`, command: "lervo migrate knowledge" });
+  }
+  let structuralCurrent = false;
+  if (layout?.status === "current") {
+    try {
+      const structural = await createKnowledgeMigrationPlan({
+        repositoryRoot: input.root,
+        mode: "migrate",
+        supplementalSources: input.supplementalSources,
+        ...sharedScan(input.preparedScan)
+      });
+      structuralCurrent = structural.operations.every((item) => item.action === "unchanged");
+      if (!structuralCurrent) {
+        issues.push({
+          code: `repository_knowledge_${structural.status}`,
+          command: "lervo migrate knowledge"
+        });
+      }
+    } catch (error) {
+      issues.push(
+        lifecycleFailure({
+          code: "repository_knowledge_inspection_failed",
+          command: "lervo migrate knowledge",
+          error
+        })
+      );
+    }
+  }
+  if (structuralCurrent) {
+    try {
+      const bridge = await createKnowledgeInstructionBridgePlan({
+        repositoryRoot: input.root,
+        provider: "claude",
+        supplementalSources: input.supplementalSources,
+        ...sharedScan(input.preparedScan)
+      });
+      if (bridge.status !== "current") {
+        issues.push({
+          code: `claude_instruction_bridge_${bridge.status}`,
+          command: "lervo migrate knowledge"
+        });
+      }
+    } catch (error) {
+      issues.push(
+        lifecycleFailure({
+          code: "claude_instruction_bridge_inspection_failed",
+          command: "lervo migrate knowledge",
+          error
+        })
+      );
+    }
+  }
+  return issues;
+}
+async function inspectValidationLifecycle(input) {
+  const lintIssues = [];
+  let normalization;
+  let normalizationError;
+  try {
+    normalization = await inspectConfiguredDocumentNormalization({
+      repositoryRoot: input.root,
+      supplementalSources: input.supplementalSources,
+      ...sharedScan(input.preparedScan)
+    });
+  } catch (error) {
+    normalizationError = error;
+  }
+  try {
+    const lint = await lintRepositoryKnowledge(input.root, {
+      supplementalSources: input.supplementalSources,
+      ...sharedScan(input.preparedScan),
+      ...normalization === void 0 ? {} : { preparedNormalization: normalization }
+    });
+    if (!lint.valid) {
+      lintIssues.push({
+        code: "repository_knowledge_lint_failed",
+        command: "lervo knowledge lint"
+      });
+    }
+  } catch (error) {
+    lintIssues.push(
+      lifecycleFailure({
+        code: "repository_knowledge_lint_inspection_failed",
+        command: "lervo knowledge lint",
+        error
+      })
+    );
+  }
+  if (normalization !== void 0) {
+    if (normalization.pendingDocuments.length > 0) {
+      lintIssues.push({
+        code: "document_normalization_pending",
+        command: "lervo migrate knowledge --provider codex"
+      });
+    }
+  } else {
+    lintIssues.push(
+      lifecycleFailure({
+        code: "document_normalization_inspection_failed",
+        command: "lervo migrate knowledge --provider codex",
+        error: normalizationError
+      })
+    );
+  }
+  return lintIssues;
+}
+async function inspectTerminalRepositoryKnowledgeLifecycle(input) {
+  await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: input.root });
+  const cached = await readTerminalKnowledgeLifecycleCache(input);
+  if (cached !== null) return cached;
+  const preparedScan = await scanConfiguredRepositoryKnowledge(input.root, {
+    supplementalSources: input.supplementalSources
+  }).then(({ scan }) => scan).catch(() => void 0);
+  const [structuralIssues, validationIssues] = await Promise.all([
+    inspectStructuralLifecycle({
+      root: input.root,
+      supplementalSources: input.supplementalSources,
+      preparedScan
+    }),
+    inspectValidationLifecycle({
+      root: input.root,
+      supplementalSources: input.supplementalSources,
+      preparedScan
+    })
+  ]);
+  const issues = [...structuralIssues, ...validationIssues];
+  if (preparedScan !== void 0 && !issues.some((issue) => TRANSIENT_INSPECTION_FAILURES.has(issue.code))) {
+    const confirmedRevision = await captureRepositorySnapshot(input.root).then((snapshot) => snapshot.revision).catch(() => null);
+    if (confirmedRevision === input.repositoryRevision) {
+      await writeTerminalKnowledgeLifecycleCache({ ...input, issues }).catch(() => void 0);
+    }
+  }
+  return issues;
+}
+
+// apps/cli/src/terminal-prepared-snapshot.ts
+import { constants as constants16 } from "node:fs";
+import { randomUUID as randomUUID6 } from "node:crypto";
+import { lstat as lstat35, mkdir as mkdir13, open as open20, readFile as readFile20, readdir as readdir16, rename as rename10, rm as rm10 } from "node:fs/promises";
+import { resolve as resolve48 } from "node:path";
+var DIRECTORY = ".lervo/state/terminal-integration/prepared-snapshots";
+var MAXIMUM_SNAPSHOTS = 64;
+var MAXIMUM_BYTES = 8 * 1024 * 1024;
+function snapshotPath(root2, observationId) {
+  if (!/^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(observationId))
+    throw new Error("The prepared snapshot observation ID is invalid.");
+  return resolve48(root2, DIRECTORY, `${observationId}.json`);
+}
+function validate(value) {
+  const snapshot = value;
+  if (snapshot === null || typeof snapshot !== "object" || snapshot.schemaVersion !== 1 || typeof snapshot.observationId !== "string" || typeof snapshot.revision !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(snapshot.revision) || snapshot.files === null || typeof snapshot.files !== "object" || Array.isArray(snapshot.files) || Object.keys(snapshot.files).length > 2e4 || !Object.entries(snapshot.files).every(
+    ([path, hash2]) => path.length > 0 && !path.startsWith("/") && !path.includes("\\") && !path.split("/").some((part) => part.length === 0 || part === "." || part === "..") && typeof hash2 === "string" && /^sha256:[a-f0-9]{64}$/u.test(hash2)
+  ))
+    throw new Error("The prepared repository snapshot is invalid.");
+  return snapshot;
+}
+async function writePreparedRepositorySnapshot(root2, snapshot) {
+  const directory = resolve48(root2, DIRECTORY);
+  await mkdir13(directory, { recursive: true, mode: 448 });
+  const stats = await lstat35(directory);
+  if (!stats.isDirectory() || stats.isSymbolicLink())
+    throw new Error("Unsafe prepared snapshot state directory.");
+  const bytes = `${JSON.stringify(snapshot)}
+`;
+  if (Buffer.byteLength(bytes) > MAXIMUM_BYTES)
+    throw new Error("The prepared repository snapshot exceeds its storage limit.");
+  const temporary = resolve48(directory, `.prepared-${randomUUID6()}.tmp`);
+  let handle;
+  try {
+    handle = await open20(
+      temporary,
+      constants16.O_WRONLY | constants16.O_CREAT | constants16.O_EXCL | (constants16.O_NOFOLLOW ?? 0),
+      384
+    );
+    await handle.writeFile(bytes);
+    await handle.sync();
+    await handle.close();
+    handle = void 0;
+    await rename10(temporary, snapshotPath(root2, snapshot.observationId));
+  } finally {
+    await handle?.close();
+    await rm10(temporary, { force: true });
   }
   const entries = (await readdir16(directory, { withFileTypes: true })).filter(
     (entry) => entry.isFile() && /^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}\.json$/u.test(entry.name)
   ).sort((left, right) => left.name.localeCompare(right.name));
   for (const entry of entries.slice(0, Math.max(0, entries.length - MAXIMUM_SNAPSHOTS)))
-    await rm9(resolve47(directory, entry.name), { force: true });
+    await rm10(resolve48(directory, entry.name), { force: true });
 }
 async function readPreparedRepositorySnapshot(root2, observationId) {
   try {
     const path = snapshotPath(root2, observationId);
-    const stats = await lstat34(path);
+    const stats = await lstat35(path);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_BYTES)
       throw new Error("The prepared repository snapshot is unsafe.");
-    const snapshot = validate(JSON.parse(await readFile19(path, "utf8")));
+    const snapshot = validate(JSON.parse(await readFile20(path, "utf8")));
     if (snapshot.observationId !== observationId)
       throw new Error("The prepared repository snapshot coordinate does not match.");
     return snapshot;
@@ -70705,7 +71103,7 @@ async function preparedTerminalTurnExpectation(root2, coordinates, provider, pro
     const workspaceRevision = payload.workspaceRevision;
     const assignmentId = payload.assignmentId;
     const leaseGeneration = payload.leaseGeneration;
-    const writerSessionId2 = payload.writerSessionId;
+    const writerSessionId = payload.writerSessionId;
     const bothNull = workstreamId === null && revision === null;
     const bothPresent = typeof workstreamId === "string" && Number.isSafeInteger(revision) && Number(revision) >= 1;
     if (!bothNull && !bothPresent)
@@ -70714,8 +71112,8 @@ async function preparedTerminalTurnExpectation(root2, coordinates, provider, pro
       throw new Error("Prepared repository revision is invalid.");
     if (typeof payload.observationId !== "string")
       throw new Error("Prepared terminal observation coordinate is invalid.");
-    const workspaceNull = workspaceExecutionKind == null && workspaceId == null && workspaceGeneration == null && workspaceRevision == null && assignmentId == null && leaseGeneration == null && writerSessionId2 == null;
-    const workspacePresent = (workspaceExecutionKind === "worker" || workspaceExecutionKind === "integrator") && typeof workspaceId === "string" && Number.isSafeInteger(workspaceGeneration) && Number(workspaceGeneration) >= 1 && Number.isSafeInteger(workspaceRevision) && Number(workspaceRevision) >= 1 && typeof assignmentId === "string" && Number.isSafeInteger(leaseGeneration) && Number(leaseGeneration) >= 1 && typeof writerSessionId2 === "string";
+    const workspaceNull = workspaceExecutionKind == null && workspaceId == null && workspaceGeneration == null && workspaceRevision == null && assignmentId == null && leaseGeneration == null && writerSessionId == null;
+    const workspacePresent = (workspaceExecutionKind === "worker" || workspaceExecutionKind === "integrator") && typeof workspaceId === "string" && Number.isSafeInteger(workspaceGeneration) && Number(workspaceGeneration) >= 1 && Number.isSafeInteger(workspaceRevision) && Number(workspaceRevision) >= 1 && typeof assignmentId === "string" && Number.isSafeInteger(leaseGeneration) && Number(leaseGeneration) >= 1 && typeof writerSessionId === "string";
     if (!workspaceNull && !workspacePresent)
       throw new Error("Prepared workspace coordinates are incomplete.");
     return {
@@ -70734,7 +71132,7 @@ async function preparedTerminalTurnExpectation(root2, coordinates, provider, pro
         workspaceRevision: Number(workspaceRevision),
         assignmentId,
         leaseGeneration: Number(leaseGeneration),
-        writerSessionId: writerSessionId2
+        writerSessionId
       } : null
     };
   } finally {
@@ -70838,6 +71236,83 @@ async function recordObservedTerminalTurn(input) {
   }
 }
 
+// packages/verification/dist/suite-loader.js
+var import_yaml26 = __toESM(require_dist(), 1);
+import { constants as constants17 } from "node:fs";
+import { lstat as lstat36, open as open21, realpath as realpath3 } from "node:fs/promises";
+import { resolve as resolve49 } from "node:path";
+var MAXIMUM_SUITE_BYTES = 64 * 1024;
+var SUITE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
+async function loadVerificationSuite(repositoryRoot, suiteId) {
+  if (!SUITE_ID.test(suiteId) || suiteId.length > 150) {
+    throw new VerificationError("invalid_verification_suite", "The verification suite ID is invalid.");
+  }
+  const root2 = resolve49(repositoryRoot);
+  const directory = resolve49(root2, ".lervo/verifications");
+  try {
+    const stats = await lstat36(directory);
+    const expectedDirectory = resolve49(await realpath3(root2), ".lervo/verifications");
+    if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath3(directory) !== expectedDirectory) {
+      throw new Error("unsafe directory");
+    }
+  } catch (error) {
+    throw new VerificationError("verification_layout_invalid", "The verification suite directory is not a safe real directory.", { cause: error });
+  }
+  const path = resolve49(directory, `${suiteId}.yaml`);
+  let handle;
+  try {
+    const before = await lstat36(path, { bigint: true });
+    if (!before.isFile() || before.isSymbolicLink() || before.size > MAXIMUM_SUITE_BYTES) {
+      throw new VerificationError("verification_layout_invalid", "The verification suite file is not a safe regular file or exceeds the size limit.");
+    }
+    handle = await open21(path, constants17.O_RDONLY | (constants17.O_NOFOLLOW ?? 0));
+    const bytes = await handle.readFile();
+    const after = await handle.stat({ bigint: true });
+    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs) {
+      throw new VerificationError("verification_layout_invalid", "The verification suite changed while it was being read.");
+    }
+    let value;
+    try {
+      value = (0, import_yaml26.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    } catch (error) {
+      throw new VerificationError("invalid_verification_suite", "The verification suite YAML could not be read.", { cause: error });
+    }
+    const suite = value;
+    validateVerificationSuite(suite);
+    if (suite.suiteId !== suiteId) {
+      throw new VerificationError("invalid_verification_suite", "The verification suite filename and suite ID differ.");
+    }
+    return structuredClone(suite);
+  } catch (error) {
+    if (error instanceof VerificationError)
+      throw error;
+    if (error.code === "ENOENT") {
+      throw new VerificationError("verification_suite_not_found", `Verification suite ${suiteId} was not found.`);
+    }
+    throw new VerificationError("verification_layout_invalid", "The verification suite file could not be read safely.", { cause: error });
+  } finally {
+    await handle?.close();
+  }
+}
+
+// apps/cli/src/knowledge-sources.ts
+async function collectLocalKnowledgeSources(repositoryRoot) {
+  const storage = await openProjectStorage(repositoryRoot);
+  try {
+    const verificationSources = await collectVerificationResultSources({
+      events: storage.events,
+      artifacts: storage.artifacts,
+      loadSuite: (suiteId) => loadVerificationSuite(repositoryRoot, suiteId)
+    });
+    return [
+      ...verificationSources,
+      ...collectExecutionEventSources({ events: storage.events })
+    ].sort((left, right) => left.path.localeCompare(right.path));
+  } finally {
+    await storage.close();
+  }
+}
+
 // apps/cli/src/terminal-declaration-command.ts
 function parseTurnDeclarationDraft(value) {
   if (Buffer.byteLength(value) > 16 * 1024)
@@ -70846,6 +71321,7 @@ function parseTurnDeclarationDraft(value) {
   const allowed = /* @__PURE__ */ new Set([
     "taskMode",
     "canonicalizationDisposition",
+    "canonicalizationOutcome",
     "knowledgeDisposition",
     "deliberationDisposition",
     "deliberationId"
@@ -70872,13 +71348,17 @@ function parseTurnDeclarationDraft(value) {
     parsed.canonicalizationDisposition
   ))
     throw new Error("The canonicalizationDisposition is invalid.");
+  const canonicalizationOutcome = parsed.canonicalizationOutcome === null ? null : parseCanonicalizationOutcome(parsed.canonicalizationOutcome);
   if (!knowledge.includes(parsed.knowledgeDisposition))
     throw new Error("The knowledgeDisposition is invalid.");
   if (!deliberation.includes(parsed.deliberationDisposition))
     throw new Error("The deliberationDisposition is invalid.");
   if (parsed.deliberationId !== null && (typeof parsed.deliberationId !== "string" || !/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(parsed.deliberationId)))
     throw new Error("The deliberationId is invalid.");
-  return parsed;
+  return {
+    ...parsed,
+    canonicalizationOutcome
+  };
 }
 async function runTerminalDeclareCommand(args, io) {
   let storage;
@@ -70903,7 +71383,7 @@ async function runTerminalDeclareCommand(args, io) {
     if (!parsed.values.stdin || io.stdin === void 0)
       throw new Error("The declaration must be supplied through --stdin.");
     const draft = parseTurnDeclarationDraft(await io.stdin());
-    const root2 = await resolveTerminalRepositoryRoot(resolve48(io.cwd, parsed.values.root ?? "."));
+    const root2 = await resolveTerminalRepositoryRoot(resolve50(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root2);
     const context = allTerminalEvents2(storage.events).filter(
       (event) => event.type === "terminal.context.prepared" && event.actor.kind === "provider" && event.actor.provider === parsed.values.provider && event.payload.observationId === parsed.values.observation
@@ -70924,6 +71404,10 @@ async function runTerminalDeclareCommand(args, io) {
       throw new Error(
         "An unchanged turn must use read-only canonicalization and knowledge dispositions."
       );
+    if (repositoryChanged && draft.canonicalizationOutcome === null)
+      throw new Error("A repository-changing turn requires a canonicalizationOutcome.");
+    if (!repositoryChanged && draft.canonicalizationOutcome !== null)
+      throw new Error("An unchanged turn must use a null canonicalizationOutcome.");
     const preparedSnapshot = await readPreparedRepositorySnapshot(root2, parsed.values.observation);
     const canonicalizationAssessment = repositoryChanged && preparedSnapshot !== null ? await assessCanonicalization({
       repositoryRoot: root2,
@@ -70932,14 +71416,26 @@ async function runTerminalDeclareCommand(args, io) {
       beforeFiles: preparedSnapshot.files,
       afterFiles: repository.files,
       disposition: draft.canonicalizationDisposition === "not_applicable_read_only" ? "canonical_sources_current" : draft.canonicalizationDisposition,
+      ...draft.canonicalizationOutcome === null ? {} : { outcome: draft.canonicalizationOutcome },
       now: /* @__PURE__ */ new Date()
     }) : null;
+    const knowledgeLifecycleIssues = repositoryChanged ? await inspectTerminalRepositoryKnowledgeLifecycle({
+      root: root2,
+      repositoryRevision: repository.revision,
+      supplementalSources: await collectLocalKnowledgeSources(root2)
+    }) : [];
+    if (repositoryChanged && draft.knowledgeDisposition !== "pending_user_approval" && knowledgeLifecycleIssues.length > 0) {
+      throw new Error(
+        `The declared knowledge disposition is not supported by the current repository lifecycle: ${knowledgeLifecycleIssues.map((issue) => issue.code).join(", ")}.`
+      );
+    }
     const occurredAt = (/* @__PURE__ */ new Date()).toISOString();
+    const { canonicalizationOutcome: _canonicalizationOutcome, ...eventDraft } = draft;
     const payload = {
       declarationId: newTerminalIdentifier("tdecl"),
       contextEventId: context.eventId,
       repositoryRevision: repository.revision,
-      ...draft,
+      ...eventDraft,
       declaredAt: occurredAt
     };
     const validation = validateSchema("terminalTurnDeclaredEventPayload", payload);
@@ -70970,7 +71466,7 @@ async function runTerminalDeclareCommand(args, io) {
       })
     );
     io.stdout(
-      parsed.values.json ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, canonicalizationAssessment, ...payload }, null, 2)}
+      parsed.values.json ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, canonicalizationAssessment, knowledgeLifecycleIssues, ...payload }, null, 2)}
 ` : `Terminal turn disposition declared.
 observation: ${parsed.values.observation}
 repositoryRevision: ${repository.revision}
@@ -70992,34 +71488,34 @@ ${terminalUsage}
 import { parseArgs as parseArgs3 } from "node:util";
 
 // apps/cli/src/terminal-activation-state.ts
-import { constants as constants16 } from "node:fs";
-import { randomUUID as randomUUID6 } from "node:crypto";
-import { lstat as lstat35, mkdir as mkdir13, open as open20, readFile as readFile20, rename as rename10, rm as rm10 } from "node:fs/promises";
-import { resolve as resolve49 } from "node:path";
+import { constants as constants18 } from "node:fs";
+import { randomUUID as randomUUID7 } from "node:crypto";
+import { lstat as lstat37, mkdir as mkdir14, open as open22, readFile as readFile21, rename as rename11, rm as rm11 } from "node:fs/promises";
+import { resolve as resolve51 } from "node:path";
 function activationPath(root2, provider, event) {
-  return resolve49(
+  return resolve51(
     root2,
     ".lervo/state/terminal-integration",
     `${provider}-${event === "UserPromptSubmit" ? "user-prompt-submit" : "stop"}.json`
   );
 }
 async function writeTerminalActivationReceipt(root2, receipt) {
-  const directory = resolve49(root2, ".lervo/state/terminal-integration");
+  const directory = resolve51(root2, ".lervo/state/terminal-integration");
   try {
-    await mkdir13(directory, { mode: 448 });
+    await mkdir14(directory, { mode: 448 });
   } catch (error) {
     if (error.code !== "EEXIST") throw error;
   }
-  const stats = await lstat35(directory);
+  const stats = await lstat37(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe terminal activation state directory.");
   const target = activationPath(root2, receipt.provider, receipt.hookEvent);
-  const temporary = resolve49(directory, `.activation-${randomUUID6()}.tmp`);
+  const temporary = resolve51(directory, `.activation-${randomUUID7()}.tmp`);
   let handle;
   try {
-    handle = await open20(
+    handle = await open22(
       temporary,
-      constants16.O_WRONLY | constants16.O_CREAT | constants16.O_EXCL | (constants16.O_NOFOLLOW ?? 0),
+      constants18.O_WRONLY | constants18.O_CREAT | constants18.O_EXCL | (constants18.O_NOFOLLOW ?? 0),
       384
     );
     await handle.writeFile(`${JSON.stringify(receipt)}
@@ -71027,10 +71523,10 @@ async function writeTerminalActivationReceipt(root2, receipt) {
     await handle.sync();
     await handle.close();
     handle = void 0;
-    await rename10(temporary, target);
+    await rename11(temporary, target);
   } finally {
     await handle?.close();
-    await rm10(temporary, { force: true });
+    await rm11(temporary, { force: true });
   }
 }
 async function readTerminalActivationReceipts(root2) {
@@ -71039,9 +71535,9 @@ async function readTerminalActivationReceipts(root2) {
     for (const event of ["UserPromptSubmit", "Stop"]) {
       try {
         const path = activationPath(root2, provider, event);
-        const stats = await lstat35(path);
+        const stats = await lstat37(path);
         if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 16 * 1024) continue;
-        const value = JSON.parse(await readFile20(path, "utf8"));
+        const value = JSON.parse(await readFile21(path, "utf8"));
         if (value.schemaVersion === 1 && value.contractId === "lervo_terminal_hooks_v2" && value.provider === provider && value.hookEvent === event && typeof value.occurredAt === "string")
           receipts.push(value);
       } catch (error) {
@@ -71104,399 +71600,42 @@ function terminalActivationReadiness(runtime) {
   return { status: actions.length === 0 ? "ready" : "action_required", actions };
 }
 
+// apps/cli/src/terminal-hook-input.ts
+function parseTerminalHookInput(value) {
+  if (Buffer.byteLength(value) > 256 * 1024)
+    throw new Error("Hook input exceeds the bounded input limit.");
+  const parsed = JSON.parse(value);
+  if (parsed?.hook_event_name !== "UserPromptSubmit" && parsed?.hook_event_name !== "Stop")
+    throw new Error("Unsupported provider hook event.");
+  if (typeof parsed.session_id !== "string" || parsed.session_id.trim() === "" || parsed.session_id.length > 512)
+    throw new Error("The provider session coordinate is missing or invalid.");
+  if (parsed.turn_id !== void 0 && (typeof parsed.turn_id !== "string" || parsed.turn_id.trim() === "" || parsed.turn_id.length > 512))
+    throw new Error("The provider turn coordinate is invalid.");
+  if (parsed.hook_event_name === "UserPromptSubmit" && (typeof parsed.prompt !== "string" || parsed.prompt.trim() === "" || parsed.prompt.length > 64 * 1024))
+    throw new Error("The prompt is missing or exceeds the bounded prompt limit.");
+  if (parsed.hook_event_name === "Stop" && parsed.stop_hook_active !== void 0 && typeof parsed.stop_hook_active !== "boolean")
+    throw new Error("The provider Stop continuation state is invalid.");
+  if (parsed.hook_event_name === "Stop" && parsed.last_assistant_message !== void 0 && parsed.last_assistant_message !== null && typeof parsed.last_assistant_message !== "string")
+    throw new Error("The provider completion message is invalid.");
+  return {
+    event: parsed.hook_event_name,
+    providerSessionId: parsed.session_id,
+    providerTurnId: typeof parsed.turn_id === "string" ? parsed.turn_id : null,
+    stopHookActive: parsed.stop_hook_active === true,
+    ...typeof parsed.prompt === "string" ? { prompt: parsed.prompt } : {},
+    ...parsed.last_assistant_message === null || typeof parsed.last_assistant_message === "string" ? { lastAssistantMessage: parsed.last_assistant_message } : {}
+  };
+}
+
 // apps/cli/src/terminal-lifecycle-inspection.ts
 import { lstat as lstat39 } from "node:fs/promises";
 import { resolve as resolve53 } from "node:path";
 
-// packages/verification/dist/suite-loader.js
-var import_yaml26 = __toESM(require_dist(), 1);
-import { constants as constants17 } from "node:fs";
-import { lstat as lstat36, open as open21, realpath as realpath3 } from "node:fs/promises";
-import { resolve as resolve50 } from "node:path";
-var MAXIMUM_SUITE_BYTES = 64 * 1024;
-var SUITE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
-async function loadVerificationSuite(repositoryRoot, suiteId) {
-  if (!SUITE_ID.test(suiteId) || suiteId.length > 150) {
-    throw new VerificationError("invalid_verification_suite", "The verification suite ID is invalid.");
-  }
-  const root2 = resolve50(repositoryRoot);
-  const directory = resolve50(root2, ".lervo/verifications");
-  try {
-    const stats = await lstat36(directory);
-    const expectedDirectory = resolve50(await realpath3(root2), ".lervo/verifications");
-    if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath3(directory) !== expectedDirectory) {
-      throw new Error("unsafe directory");
-    }
-  } catch (error) {
-    throw new VerificationError("verification_layout_invalid", "The verification suite directory is not a safe real directory.", { cause: error });
-  }
-  const path = resolve50(directory, `${suiteId}.yaml`);
-  let handle;
-  try {
-    const before = await lstat36(path, { bigint: true });
-    if (!before.isFile() || before.isSymbolicLink() || before.size > MAXIMUM_SUITE_BYTES) {
-      throw new VerificationError("verification_layout_invalid", "The verification suite file is not a safe regular file or exceeds the size limit.");
-    }
-    handle = await open21(path, constants17.O_RDONLY | (constants17.O_NOFOLLOW ?? 0));
-    const bytes = await handle.readFile();
-    const after = await handle.stat({ bigint: true });
-    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs) {
-      throw new VerificationError("verification_layout_invalid", "The verification suite changed while it was being read.");
-    }
-    let value;
-    try {
-      value = (0, import_yaml26.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-    } catch (error) {
-      throw new VerificationError("invalid_verification_suite", "The verification suite YAML could not be read.", { cause: error });
-    }
-    const suite = value;
-    validateVerificationSuite(suite);
-    if (suite.suiteId !== suiteId) {
-      throw new VerificationError("invalid_verification_suite", "The verification suite filename and suite ID differ.");
-    }
-    return structuredClone(suite);
-  } catch (error) {
-    if (error instanceof VerificationError)
-      throw error;
-    if (error.code === "ENOENT") {
-      throw new VerificationError("verification_suite_not_found", `Verification suite ${suiteId} was not found.`);
-    }
-    throw new VerificationError("verification_layout_invalid", "The verification suite file could not be read safely.", { cause: error });
-  } finally {
-    await handle?.close();
-  }
-}
+// apps/cli/src/terminal-workspace-attachment.ts
+import { randomBytes as randomBytes2 } from "node:crypto";
 
-// apps/cli/src/knowledge-sources.ts
-async function collectLocalKnowledgeSources(repositoryRoot) {
-  const storage = await openProjectStorage(repositoryRoot);
-  try {
-    const verificationSources = await collectVerificationResultSources({
-      events: storage.events,
-      artifacts: storage.artifacts,
-      loadSuite: (suiteId) => loadVerificationSuite(repositoryRoot, suiteId)
-    });
-    return [
-      ...verificationSources,
-      ...collectExecutionEventSources({ events: storage.events })
-    ].sort((left, right) => left.path.localeCompare(right.path));
-  } finally {
-    await storage.close();
-  }
-}
-
-// apps/cli/src/terminal-knowledge-lifecycle-cache.ts
-import { constants as constants18 } from "node:fs";
-import { randomUUID as randomUUID7 } from "node:crypto";
-import { lstat as lstat37, mkdir as mkdir14, open as open22, readFile as readFile21, rename as rename11, rm as rm11 } from "node:fs/promises";
-import { resolve as resolve51 } from "node:path";
-
-// apps/cli/src/version-command.ts
-import { createRequire } from "node:module";
-var require2 = createRequire(import.meta.url);
-var semanticVersionPattern = /^\d+\.\d+\.\d+$/;
-function readCliPackageVersion() {
-  const manifest = require2("../package.json");
-  if (typeof manifest.version !== "string" || !semanticVersionPattern.test(manifest.version)) {
-    throw new Error("invalid CLI package version");
-  }
-  return manifest.version;
-}
-
-// apps/cli/src/terminal-knowledge-lifecycle-cache.ts
-var CACHE_PATH = ".lervo/state/terminal-integration/knowledge-lifecycle-cache.json";
-var MAXIMUM_CACHE_BYTES = 64 * 1024;
-var HASH8 = /^sha256:[a-f0-9]{64}$/u;
-function supplementalSourcesDigest(sources) {
-  return sha2562(
-    canonicalJson3(
-      sources.map((source) => ({
-        path: source.path,
-        kind: source.kind,
-        classification: source.classification,
-        contentHash: sha2562(source.content),
-        origin: source.origin,
-        unitKind: source.unitKind,
-        locator: source.locator,
-        title: source.title,
-        adapter: source.adapter
-      }))
-    )
-  );
-}
-function cacheCoordinates(input) {
-  return {
-    cliVersion: readCliPackageVersion(),
-    repositoryRevision: input.repositoryRevision,
-    supplementalSourcesDigest: supplementalSourcesDigest(input.supplementalSources)
-  };
-}
-function validIssue(value) {
-  const issue = value;
-  return issue !== null && typeof issue === "object" && typeof issue.code === "string" && issue.code.length >= 1 && issue.code.length <= 128 && typeof issue.command === "string" && issue.command.length >= 1 && issue.command.length <= 512 && (issue.detail === void 0 || typeof issue.detail === "string" && issue.detail.length <= 2 * 1024);
-}
-function validateCache(value) {
-  const cache = value;
-  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 1 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH8.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH8.test(cache.supplementalSourcesDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue)) {
-    return null;
-  }
-  return cache;
-}
-async function readTerminalKnowledgeLifecycleCache(input) {
-  try {
-    const target = resolve51(input.root, CACHE_PATH);
-    const stats = await lstat37(target);
-    if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_CACHE_BYTES) return null;
-    const cache = validateCache(JSON.parse(await readFile21(target, "utf8")));
-    if (cache === null) return null;
-    const expected = cacheCoordinates(input);
-    if (cache.cliVersion !== expected.cliVersion || cache.repositoryRevision !== expected.repositoryRevision || cache.supplementalSourcesDigest !== expected.supplementalSourcesDigest) {
-      return null;
-    }
-    return cache.issues;
-  } catch {
-    return null;
-  }
-}
-async function writeTerminalKnowledgeLifecycleCache(input) {
-  if (!HASH8.test(input.repositoryRevision) || input.issues.length > 128 || !input.issues.every(validIssue)) {
-    throw new Error("The terminal knowledge lifecycle cache input is invalid.");
-  }
-  const directory = resolve51(input.root, ".lervo/state/terminal-integration");
-  await mkdir14(directory, { recursive: true, mode: 448 });
-  const directoryStats = await lstat37(directory);
-  if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink())
-    throw new Error("Unsafe terminal knowledge lifecycle cache directory.");
-  const cache = {
-    schemaVersion: 1,
-    ...cacheCoordinates(input),
-    issues: input.issues
-  };
-  const bytes = `${JSON.stringify(cache)}
-`;
-  if (Buffer.byteLength(bytes) > MAXIMUM_CACHE_BYTES)
-    throw new Error("The terminal knowledge lifecycle cache exceeds its storage limit.");
-  const temporary = resolve51(directory, `.knowledge-lifecycle-${randomUUID7()}.tmp`);
-  let handle;
-  try {
-    handle = await open22(
-      temporary,
-      constants18.O_WRONLY | constants18.O_CREAT | constants18.O_EXCL | (constants18.O_NOFOLLOW ?? 0),
-      384
-    );
-    await handle.writeFile(bytes);
-    await handle.sync();
-    await handle.close();
-    handle = void 0;
-    await rename11(temporary, resolve51(input.root, CACHE_PATH));
-  } finally {
-    await handle?.close();
-    await rm11(temporary, { force: true });
-  }
-}
-
-// apps/cli/src/terminal-knowledge-lifecycle-inspection.ts
-var TRANSIENT_INSPECTION_FAILURES = /* @__PURE__ */ new Set([
-  "instruction_canonical_bootstrap_failed",
-  "repository_layout_inspection_failed",
-  "repository_knowledge_inspection_failed",
-  "claude_instruction_bridge_inspection_failed",
-  "repository_knowledge_lint_inspection_failed",
-  "document_normalization_inspection_failed"
-]);
-function lifecycleFailure(input) {
-  return {
-    code: input.code,
-    command: input.command,
-    ...input.error instanceof RepositoryKnowledgeError ? {
-      detail: input.error.publicDiagnostic === void 0 ? input.error.code : `${input.error.publicDiagnostic.code}: ${input.error.publicDiagnostic.message}`
-    } : {}
-  };
-}
-function sharedScan(scan) {
-  return scan === void 0 ? {} : { preparedScan: scan };
-}
-async function inspectStructuralLifecycle(input) {
-  const issues = [];
-  let instructionBootstrapStatus = null;
-  try {
-    const instructionBootstrap = await createKnowledgeInstructionBootstrapPlan({
-      repositoryRoot: input.root,
-      supplementalSources: input.supplementalSources,
-      ...sharedScan(input.preparedScan)
-    });
-    instructionBootstrapStatus = instructionBootstrap.status;
-  } catch (error) {
-    issues.push(
-      lifecycleFailure({
-        code: "instruction_canonical_bootstrap_failed",
-        command: "lervo migrate knowledge",
-        error
-      })
-    );
-  }
-  if (instructionBootstrapStatus !== null && instructionBootstrapStatus !== "not_applicable") {
-    issues.push({
-      code: `instruction_canonical_bootstrap_${instructionBootstrapStatus}`,
-      command: "lervo migrate knowledge"
-    });
-  }
-  let layout = null;
-  if (instructionBootstrapStatus === "not_applicable") {
-    try {
-      layout = await createRepositoryLayoutMigrationPlan({
-        repositoryRoot: input.root,
-        supplementalSources: input.supplementalSources,
-        ...sharedScan(input.preparedScan)
-      });
-    } catch (error) {
-      issues.push(
-        lifecycleFailure({
-          code: "repository_layout_inspection_failed",
-          command: "lervo migrate knowledge",
-          error
-        })
-      );
-    }
-  }
-  if (layout !== null && layout.status !== "current") {
-    issues.push({ code: `repository_layout_${layout.status}`, command: "lervo migrate knowledge" });
-  }
-  let structuralCurrent = false;
-  if (layout?.status === "current") {
-    try {
-      const structural = await createKnowledgeMigrationPlan({
-        repositoryRoot: input.root,
-        mode: "migrate",
-        supplementalSources: input.supplementalSources,
-        ...sharedScan(input.preparedScan)
-      });
-      structuralCurrent = structural.operations.every((item) => item.action === "unchanged");
-      if (!structuralCurrent) {
-        issues.push({
-          code: `repository_knowledge_${structural.status}`,
-          command: "lervo migrate knowledge"
-        });
-      }
-    } catch (error) {
-      issues.push(
-        lifecycleFailure({
-          code: "repository_knowledge_inspection_failed",
-          command: "lervo migrate knowledge",
-          error
-        })
-      );
-    }
-  }
-  if (structuralCurrent) {
-    try {
-      const bridge = await createKnowledgeInstructionBridgePlan({
-        repositoryRoot: input.root,
-        provider: "claude",
-        supplementalSources: input.supplementalSources,
-        ...sharedScan(input.preparedScan)
-      });
-      if (bridge.status !== "current") {
-        issues.push({
-          code: `claude_instruction_bridge_${bridge.status}`,
-          command: "lervo migrate knowledge"
-        });
-      }
-    } catch (error) {
-      issues.push(
-        lifecycleFailure({
-          code: "claude_instruction_bridge_inspection_failed",
-          command: "lervo migrate knowledge",
-          error
-        })
-      );
-    }
-  }
-  return issues;
-}
-async function inspectValidationLifecycle(input) {
-  const lintIssues = [];
-  let normalization;
-  let normalizationError;
-  try {
-    normalization = await inspectConfiguredDocumentNormalization({
-      repositoryRoot: input.root,
-      supplementalSources: input.supplementalSources,
-      ...sharedScan(input.preparedScan)
-    });
-  } catch (error) {
-    normalizationError = error;
-  }
-  try {
-    const lint = await lintRepositoryKnowledge(input.root, {
-      supplementalSources: input.supplementalSources,
-      ...sharedScan(input.preparedScan),
-      ...normalization === void 0 ? {} : { preparedNormalization: normalization }
-    });
-    if (!lint.valid) {
-      lintIssues.push({
-        code: "repository_knowledge_lint_failed",
-        command: "lervo knowledge lint"
-      });
-    }
-  } catch (error) {
-    lintIssues.push(
-      lifecycleFailure({
-        code: "repository_knowledge_lint_inspection_failed",
-        command: "lervo knowledge lint",
-        error
-      })
-    );
-  }
-  if (normalization !== void 0) {
-    if (normalization.pendingDocuments.length > 0) {
-      lintIssues.push({
-        code: "document_normalization_pending",
-        command: "lervo migrate knowledge --provider codex"
-      });
-    }
-  } else {
-    lintIssues.push(
-      lifecycleFailure({
-        code: "document_normalization_inspection_failed",
-        command: "lervo migrate knowledge --provider codex",
-        error: normalizationError
-      })
-    );
-  }
-  return lintIssues;
-}
-async function inspectTerminalRepositoryKnowledgeLifecycle(input) {
-  await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: input.root });
-  const cached = await readTerminalKnowledgeLifecycleCache(input);
-  if (cached !== null) return cached;
-  const preparedScan = await scanConfiguredRepositoryKnowledge(input.root, {
-    supplementalSources: input.supplementalSources
-  }).then(({ scan }) => scan).catch(() => void 0);
-  const [structuralIssues, validationIssues] = await Promise.all([
-    inspectStructuralLifecycle({
-      root: input.root,
-      supplementalSources: input.supplementalSources,
-      preparedScan
-    }),
-    inspectValidationLifecycle({
-      root: input.root,
-      supplementalSources: input.supplementalSources,
-      preparedScan
-    })
-  ]);
-  const issues = [...structuralIssues, ...validationIssues];
-  if (preparedScan !== void 0 && !issues.some((issue) => TRANSIENT_INSPECTION_FAILURES.has(issue.code))) {
-    const confirmedRevision = await captureRepositorySnapshot(input.root).then((snapshot) => snapshot.revision).catch(() => null);
-    if (confirmedRevision === input.repositoryRevision) {
-      await writeTerminalKnowledgeLifecycleCache({ ...input, issues }).catch(() => void 0);
-    }
-  }
-  return issues;
-}
-
-// apps/cli/src/terminal-workspace-lifecycle.ts
-import { createHash as createHash19, randomBytes as randomBytes2 } from "node:crypto";
+// apps/cli/src/terminal-workspace-boundary.ts
+import { createHash as createHash19 } from "node:crypto";
 
 // packages/workspace-host-git/dist/evidence.js
 import { execFile as execFile3 } from "node:child_process";
@@ -71507,7 +71646,7 @@ import { dirname as dirname13, isAbsolute as isAbsolute5, resolve as resolve52 }
 import { promisify as promisify3 } from "node:util";
 var execute2 = promisify3(execFile3);
 var COMMIT2 = /^[a-f0-9]{40,64}$/u;
-var HASH9 = /^sha256:[a-f0-9]{64}$/u;
+var HASH10 = /^sha256:[a-f0-9]{64}$/u;
 var MARKER_NAME = "lervo-workspace-owner.json";
 function fail15(code, message, cause) {
   throw new WorkspaceHostError(code, message, cause === void 0 ? void 0 : { cause });
@@ -71589,11 +71728,11 @@ var GitWorkspaceEvidence = class {
   constructor(binding) {
     this.binding = binding;
   }
-  validMarker(marker2) {
-    return marker2.schemaVersion === 1 && /^wsp_[a-f0-9]{24}$/u.test(marker2.workspaceId) && Number.isSafeInteger(marker2.generation) && marker2.generation >= 1 && /^rpi_[a-f0-9]{24}$/u.test(marker2.repositoryInstanceId) && marker2.adapterKind === this.binding.kind && marker2.adapterVersion === this.binding.version && /^wpl_[a-f0-9]{24}$/u.test(marker2.creationPlanId) && HASH9.test(marker2.pathDigest);
+  validMarker(marker) {
+    return marker.schemaVersion === 1 && /^wsp_[a-f0-9]{24}$/u.test(marker.workspaceId) && Number.isSafeInteger(marker.generation) && marker.generation >= 1 && /^rpi_[a-f0-9]{24}$/u.test(marker.repositoryInstanceId) && marker.adapterKind === this.binding.kind && marker.adapterVersion === this.binding.version && /^wpl_[a-f0-9]{24}$/u.test(marker.creationPlanId) && HASH10.test(marker.pathDigest);
   }
-  validateRequest(repositoryRoot, workspacePath, marker2, allowSamePath = false) {
-    if (!isAbsolute5(repositoryRoot) || !isAbsolute5(workspacePath) || resolve52(repositoryRoot) !== repositoryRoot || resolve52(workspacePath) !== workspacePath || !allowSamePath && repositoryRoot === workspacePath || !this.validMarker(marker2))
+  validateRequest(repositoryRoot, workspacePath, marker, allowSamePath = false) {
+    if (!isAbsolute5(repositoryRoot) || !isAbsolute5(workspacePath) || resolve52(repositoryRoot) !== repositoryRoot || resolve52(workspacePath) !== workspacePath || !allowSamePath && repositoryRoot === workspacePath || !this.validMarker(marker))
       fail15("host_coordinate_invalid", "The Git workspace coordinate is invalid.");
   }
   async markerMatches(workspacePath, expected) {
@@ -71612,8 +71751,8 @@ var GitWorkspaceEvidence = class {
       return false;
     }
   }
-  async writeMarker(workspacePath, marker2) {
-    if (!this.validMarker(marker2))
+  async writeMarker(workspacePath, marker) {
+    if (!this.validMarker(marker))
       fail15("host_coordinate_invalid", "The workspace ownership marker is invalid.");
     const gitDirectory = await git(workspacePath, [
       "rev-parse",
@@ -71622,7 +71761,7 @@ var GitWorkspaceEvidence = class {
     ]);
     const handle = await open23(resolve52(gitDirectory, MARKER_NAME), constants19.O_WRONLY | constants19.O_CREAT | constants19.O_EXCL | (constants19.O_NOFOLLOW ?? 0), 384);
     try {
-      await handle.writeFile(`${JSON.stringify(marker2, null, 2)}
+      await handle.writeFile(`${JSON.stringify(marker, null, 2)}
 `);
       await handle.sync();
     } finally {
@@ -71846,35 +71985,20 @@ var GitWorkspaceHostAdapter = class {
   }
 };
 
-// apps/cli/src/terminal-workspace-lifecycle.ts
-var TerminalWorkspaceIsolationError = class extends Error {
-  constructor(code, message, options) {
-    super(message, options);
-    this.code = code;
-    this.name = "TerminalWorkspaceIsolationError";
-  }
-  code;
-};
-function isolationFailure(code, message, cause) {
-  throw new TerminalWorkspaceIsolationError(
-    code,
-    message,
-    cause === void 0 ? void 0 : { cause }
-  );
-}
+// apps/cli/src/terminal-workspace-boundary.ts
 function stableJson4(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson4).join(",")}]`;
   if (value !== null && typeof value === "object")
     return `{${Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key2, item]) => `${JSON.stringify(key2)}:${stableJson4(item)}`).join(",")}}`;
   return JSON.stringify(value);
 }
-function digest5(value) {
+function terminalWorkspaceDigest(value) {
   return `sha256:${createHash19("sha256").update(stableJson4(value)).digest("hex")}`;
 }
-function writerSessionId(provider, providerSessionId) {
+function terminalWriterSessionId(provider, providerSessionId) {
   return `ses_terminal_${createHash19("sha256").update(`${provider}\0${providerSessionId}`).digest("hex").slice(0, 24)}`;
 }
-function marker(workspace) {
+function terminalWorkspaceMarker(workspace) {
   return {
     schemaVersion: 1,
     workspaceId: workspace.workspaceId,
@@ -71886,7 +72010,7 @@ function marker(workspace) {
     pathDigest: workspace.pathDigest
   };
 }
-function hostFor(workspace) {
+function terminalWorkspaceHost(workspace) {
   if (workspace.host.kind !== "git")
     throw new Error("The workspace host adapter is not available to direct terminal integration.");
   const host = new GitWorkspaceHostAdapter();
@@ -71894,7 +72018,7 @@ function hostFor(workspace) {
     throw new Error("The workspace host adapter version changed before terminal attachment.");
   return host;
 }
-async function exactAssignment(input) {
+async function terminalWorkspaceAssignment(input) {
   const assignment = (await listAssignments(input.root)).find(
     (item) => item.assignmentId === input.workspace.assignmentId
   );
@@ -71912,6 +72036,25 @@ async function exactAssignment(input) {
   });
   return assignment;
 }
+
+// apps/cli/src/terminal-workspace-contract.ts
+var TerminalWorkspaceIsolationError = class extends Error {
+  constructor(code, message, options) {
+    super(message, options);
+    this.code = code;
+    this.name = "TerminalWorkspaceIsolationError";
+  }
+  code;
+};
+function terminalWorkspaceIsolationFailure(code, message, cause) {
+  throw new TerminalWorkspaceIsolationError(
+    code,
+    message,
+    cause === void 0 ? void 0 : { cause }
+  );
+}
+
+// apps/cli/src/terminal-workspace-attachment.ts
 async function attachTerminalWorkspace(input) {
   const pathDigest = repositoryCoordinateDigest(input.root);
   const matches = (await listWorkspaces(input.root)).filter(
@@ -71919,19 +72062,27 @@ async function attachTerminalWorkspace(input) {
   );
   if (matches.length === 0) return null;
   if (matches.length !== 1)
-    isolationFailure(
+    terminalWorkspaceIsolationFailure(
       "shared_workspace_mutation",
       "Multiple active workspace generations claim this checkout."
     );
   let workspace = matches[0];
-  const expectedMarker = marker(workspace);
-  if (digest5(expectedMarker) !== workspace.markerHash)
-    isolationFailure("workspace_marker_mismatch", "The workspace marker binding is invalid.");
+  const expectedMarker = terminalWorkspaceMarker(workspace);
+  if (terminalWorkspaceDigest(expectedMarker) !== workspace.markerHash)
+    terminalWorkspaceIsolationFailure(
+      "workspace_marker_mismatch",
+      "The workspace marker binding is invalid."
+    );
   const now = input.now ?? /* @__PURE__ */ new Date();
   try {
-    await exactAssignment({ root: input.root, workspace, provider: input.provider, now });
+    await terminalWorkspaceAssignment({
+      root: input.root,
+      workspace,
+      provider: input.provider,
+      now
+    });
   } catch (error) {
-    isolationFailure(
+    terminalWorkspaceIsolationFailure(
       "assignment_scope_changed",
       "The workspace assignment lease is not current.",
       error
@@ -71939,25 +72090,31 @@ async function attachTerminalWorkspace(input) {
   }
   let inspected;
   try {
-    inspected = await hostFor(workspace).inspect({
+    inspected = await terminalWorkspaceHost(workspace).inspect({
       repositoryRoot: input.root,
       workspacePath: input.root,
       baseCommit: workspace.baseCommit,
       marker: expectedMarker
     });
   } catch (error) {
-    isolationFailure("workspace_marker_mismatch", "The workspace host inspection failed.", error);
+    terminalWorkspaceIsolationFailure(
+      "workspace_marker_mismatch",
+      "The workspace host inspection failed.",
+      error
+    );
   }
   if (inspected.status !== "present" || !inspected.markerMatched)
-    isolationFailure(
+    terminalWorkspaceIsolationFailure(
       "workspace_marker_mismatch",
       "The terminal checkout does not match its workspace marker."
     );
-  const sessionId = writerSessionId(input.provider, input.providerSessionId);
-  if (workspace.state === "ready") {
+  const sessionId = terminalWriterSessionId(input.provider, input.providerSessionId);
+  let attachmentDisposition;
+  if (workspace.state === "ready" || workspace.state === "paused") {
+    const resumed = workspace.state === "paused";
     const stored = await readWorkspace(input.root, workspace.workspaceId);
     if (stored === null)
-      isolationFailure(
+      terminalWorkspaceIsolationFailure(
         "workspace_marker_mismatch",
         "The workspace record disappeared before activation."
       );
@@ -71970,13 +72127,41 @@ async function attachTerminalWorkspace(input) {
       expectedGeneration: workspace.generation,
       nextState: "active",
       occurredAt: now.toISOString(),
-      writerSession: { sessionId, startedAt: now.toISOString() }
+      writerSession: {
+        sessionId,
+        startedAt: now.toISOString(),
+        lastSeenAt: now.toISOString()
+      }
     })).workspace;
+    attachmentDisposition = resumed ? "resumed" : "activated";
   } else if (workspace.state !== "active" || workspace.writerSession?.sessionId !== sessionId) {
-    isolationFailure(
+    terminalWorkspaceIsolationFailure(
       "writer_lease_lost",
       "The workspace is not writable by this terminal session."
     );
+  } else {
+    const stored = await readWorkspace(input.root, workspace.workspaceId);
+    if (stored === null)
+      terminalWorkspaceIsolationFailure(
+        "workspace_marker_mismatch",
+        "The workspace record disappeared before its writer heartbeat."
+      );
+    workspace = (await updateWorkspace({
+      repositoryRoot: input.root,
+      workspaceId: workspace.workspaceId,
+      expectedContentHash: stored.contentHash,
+      eventId: `evt_${randomBytes2(12).toString("hex")}`,
+      expectedRevision: workspace.revision,
+      expectedGeneration: workspace.generation,
+      nextState: "active",
+      occurredAt: now.toISOString(),
+      writerSession: {
+        ...workspace.writerSession,
+        lastSeenAt: now.toISOString()
+      },
+      reasonCode: "terminal_writer_observed"
+    })).workspace;
+    attachmentDisposition = "continued";
   }
   return {
     executionKind: workspace.executionKind,
@@ -71985,95 +72170,38 @@ async function attachTerminalWorkspace(input) {
     workspaceRevision: workspace.revision,
     assignmentId: workspace.assignmentId,
     leaseGeneration: workspace.leaseGeneration,
-    writerSessionId: sessionId
+    writerSessionId: sessionId,
+    attachmentDisposition
   };
 }
-async function inspectTerminalWorkspace(input) {
-  const issues = [];
-  const stored = await readWorkspace(input.root, input.binding.workspaceId);
-  if (stored === null) {
-    issues.push({ code: "workspace_marker_mismatch", command: "lervo workspace inspect --json" });
-    return {
-      issues,
-      binding: input.binding,
-      workspace: null,
-      assignmentRevision: null,
-      host: null,
-      changedPathSetDigest: null,
-      changedPathCount: null
-    };
-  }
-  const workspace = stored.workspace;
-  if (workspace.generation !== input.binding.workspaceGeneration || workspace.revision !== input.binding.workspaceRevision || workspace.assignmentId !== input.binding.assignmentId || workspace.leaseGeneration !== input.binding.leaseGeneration)
-    issues.push({ code: "workspace_revision_changed", command: "lervo workspace inspect --json" });
-  const sessionId = writerSessionId(input.provider, input.providerSessionId);
-  if (workspace.state !== "active" || workspace.writerSession?.sessionId !== input.binding.writerSessionId || sessionId !== input.binding.writerSessionId)
-    issues.push({ code: "writer_lease_lost", command: "lervo workspace inspect --json" });
-  let assignmentRevision = null;
-  let expectedPaths = [];
-  try {
-    const assignment = await exactAssignment({
-      root: input.root,
-      workspace,
-      provider: input.provider,
-      now: input.now ?? /* @__PURE__ */ new Date()
-    });
-    assignmentRevision = assignment.revision;
-    expectedPaths = assignment.expectedPaths;
-  } catch {
-    issues.push({ code: "assignment_scope_changed", command: "lervo assignment list --json" });
-  }
-  let host = null;
-  let changedPathSetDigest = null;
-  let changedPathCount = null;
-  try {
-    const expectedMarker = marker(workspace);
-    if (digest5(expectedMarker) !== workspace.markerHash)
-      throw new Error("Workspace marker hash mismatch.");
-    host = await hostFor(workspace).inspect({
-      repositoryRoot: input.root,
-      workspacePath: input.root,
-      baseCommit: workspace.baseCommit,
-      marker: expectedMarker
-    });
-    if (host.status !== "present" || !host.markerMatched)
-      issues.push({ code: "workspace_marker_mismatch", command: "lervo workspace inspect --json" });
-    if (host.gitOperationInProgress)
-      issues.push({
-        code: "shared_workspace_mutation",
-        command: "finish or abort the Git operation"
-      });
-    if (host.changedPaths === null) {
-      issues.push({ code: "shared_workspace_mutation", command: "lervo workspace inspect --json" });
-    } else {
-      const partition = partitionWorkspaceChanges({
-        expectedPaths,
-        changedPaths: host.changedPaths,
-        runtimeExcludedPaths: [".lervo/state", ".lervo/data"]
-      });
-      if (partition.outsideScope.length > 0)
-        issues.push({ code: "workspace_path_escape", command: "lervo workspace inspect --json" });
-      changedPathSetDigest = digest5(partition.expected);
-      changedPathCount = partition.expected.length;
-    }
-  } catch {
-    issues.push({ code: "workspace_marker_mismatch", command: "lervo workspace inspect --json" });
-  }
-  return {
-    issues,
-    binding: input.binding,
-    workspace,
-    assignmentRevision,
-    host,
-    changedPathSetDigest,
-    changedPathCount
-  };
+
+// apps/cli/src/terminal-workspace-checkpoint.ts
+import { createHash as createHash20, randomBytes as randomBytes3 } from "node:crypto";
+async function pauseTerminalWorkspace(input) {
+  const { workspace, binding } = input.inspection;
+  if (input.inspection.issues.length > 0 || workspace === null || workspace.state !== "active" || workspace.workspaceId !== input.checkpoint.workspaceId || workspace.revision !== input.checkpoint.workspaceRevision || workspace.writerSession?.sessionId !== binding.writerSessionId || input.checkpoint.writerSessionId !== binding.writerSessionId)
+    throw new Error("The terminal workspace cannot pause without its exact current checkpoint.");
+  const stored = await readWorkspace(input.root, workspace.workspaceId);
+  if (stored === null) throw new Error("The terminal workspace disappeared before pause.");
+  return (await updateWorkspace({
+    repositoryRoot: input.root,
+    workspaceId: workspace.workspaceId,
+    expectedContentHash: stored.contentHash,
+    eventId: `evt_${randomBytes3(12).toString("hex")}`,
+    expectedRevision: workspace.revision,
+    expectedGeneration: workspace.generation,
+    nextState: "paused",
+    occurredAt: input.occurredAt,
+    evidence: { writerFrozen: true },
+    writerSession: null,
+    reasonCode: "terminal_turn_checkpointed"
+  })).workspace;
 }
 async function checkpointTerminalWorkspace(input) {
   const { workspace, host, assignmentRevision, changedPathSetDigest, changedPathCount } = input.inspection;
   if (input.inspection.issues.length > 0 || workspace === null || host === null || host.headCommit === null || host.treeHash === null || host.changedPaths === null || assignmentRevision === null || changedPathSetDigest === null || changedPathCount === null)
     throw new Error("The worker workspace is not eligible for a checkpoint.");
-  const eventId2 = `evt_${createHash19("sha256").update(`workspace-checkpoint\0${input.contextEventId}`).digest("hex").slice(0, 24)}`;
+  const eventId2 = `evt_${createHash20("sha256").update(`workspace-checkpoint\0${input.contextEventId}`).digest("hex").slice(0, 24)}`;
   return recordWorkspaceCheckpoint({
     repositoryRoot: input.root,
     checkpoint: {
@@ -72097,6 +72225,89 @@ async function checkpointTerminalWorkspace(input) {
   });
 }
 
+// apps/cli/src/terminal-workspace-inspection.ts
+async function inspectTerminalWorkspace(input) {
+  const issues = [];
+  const stored = await readWorkspace(input.root, input.binding.workspaceId);
+  if (stored === null) {
+    issues.push({ code: "workspace_marker_mismatch", command: "lervo workspace inspect --json" });
+    return {
+      issues,
+      binding: input.binding,
+      workspace: null,
+      assignmentRevision: null,
+      host: null,
+      changedPathSetDigest: null,
+      changedPathCount: null
+    };
+  }
+  const workspace = stored.workspace;
+  if (workspace.generation !== input.binding.workspaceGeneration || workspace.revision !== input.binding.workspaceRevision || workspace.assignmentId !== input.binding.assignmentId || workspace.leaseGeneration !== input.binding.leaseGeneration)
+    issues.push({ code: "workspace_revision_changed", command: "lervo workspace inspect --json" });
+  const sessionId = terminalWriterSessionId(input.provider, input.providerSessionId);
+  if (workspace.state !== "active" || workspace.writerSession?.sessionId !== input.binding.writerSessionId || sessionId !== input.binding.writerSessionId)
+    issues.push({ code: "writer_lease_lost", command: "lervo workspace inspect --json" });
+  let assignmentRevision = null;
+  let expectedPaths = [];
+  try {
+    const assignment = await terminalWorkspaceAssignment({
+      root: input.root,
+      workspace,
+      provider: input.provider,
+      now: input.now ?? /* @__PURE__ */ new Date()
+    });
+    assignmentRevision = assignment.revision;
+    expectedPaths = assignment.expectedPaths;
+  } catch {
+    issues.push({ code: "assignment_scope_changed", command: "lervo assignment list --json" });
+  }
+  let host = null;
+  let changedPathSetDigest = null;
+  let changedPathCount = null;
+  try {
+    const expectedMarker = terminalWorkspaceMarker(workspace);
+    if (terminalWorkspaceDigest(expectedMarker) !== workspace.markerHash)
+      throw new Error("Workspace marker hash mismatch.");
+    host = await terminalWorkspaceHost(workspace).inspect({
+      repositoryRoot: input.root,
+      workspacePath: input.root,
+      baseCommit: workspace.baseCommit,
+      marker: expectedMarker
+    });
+    if (host.status !== "present" || !host.markerMatched)
+      issues.push({ code: "workspace_marker_mismatch", command: "lervo workspace inspect --json" });
+    if (host.gitOperationInProgress)
+      issues.push({
+        code: "shared_workspace_mutation",
+        command: "finish or abort the Git operation"
+      });
+    if (host.changedPaths === null) {
+      issues.push({ code: "shared_workspace_mutation", command: "lervo workspace inspect --json" });
+    } else {
+      const partition = partitionWorkspaceChanges({
+        expectedPaths,
+        changedPaths: host.changedPaths,
+        runtimeExcludedPaths: [".lervo/state", ".lervo/data"]
+      });
+      if (partition.outsideScope.length > 0)
+        issues.push({ code: "workspace_path_escape", command: "lervo workspace inspect --json" });
+      changedPathSetDigest = terminalWorkspaceDigest(partition.expected);
+      changedPathCount = partition.expected.length;
+    }
+  } catch {
+    issues.push({ code: "workspace_marker_mismatch", command: "lervo workspace inspect --json" });
+  }
+  return {
+    issues,
+    binding: input.binding,
+    workspace,
+    assignmentRevision,
+    host,
+    changedPathSetDigest,
+    changedPathCount
+  };
+}
+
 // apps/cli/src/terminal-lifecycle-inspection.ts
 async function inspectTerminalLifecycle(root2, expected) {
   const [supplementalSources, currentRepository] = await Promise.all([
@@ -72109,6 +72320,7 @@ async function inspectTerminalLifecycle(root2, expected) {
     changed: expected !== void 0 && expected.repositoryRevision !== currentRepository.revision
   };
   const issues = [];
+  let repositoryKnowledgeInspectionRequired = expected === void 0;
   let workspace = null;
   if (expected?.workspaceBinding !== null && expected?.workspaceBinding !== void 0) {
     workspace = await inspectTerminalWorkspace({
@@ -72177,7 +72389,8 @@ async function inspectTerminalLifecycle(root2, expected) {
           command: `lervo terminal declare --provider ${expected.provider} --observation ${expected.observationId} --stdin`
         });
       } else {
-        if (declaration.payload.repositoryRevision !== currentRepository.revision) {
+        const declarationRevisionCurrent = declaration.payload.repositoryRevision === currentRepository.revision;
+        if (!declarationRevisionCurrent) {
           issues.push({
             code: "turn_declaration_stale",
             command: `lervo terminal declare --provider ${expected.provider} --observation ${expected.observationId} --stdin`
@@ -72201,12 +72414,17 @@ async function inspectTerminalLifecycle(root2, expected) {
             command: "obtain the required user decision before applying or completing the repository change"
           });
         }
-        if (!terminalDeliberationDeclarationMatches(workstreamStorage.events, declaration.payload)) {
+        const deliberationCurrent = terminalDeliberationDeclarationMatches(
+          workstreamStorage.events,
+          declaration.payload
+        );
+        if (!deliberationCurrent) {
           issues.push({
             code: "deliberation_declaration_invalid",
             command: "complete or accurately redeclare the requested deliberation lifecycle"
           });
         }
+        repositoryKnowledgeInspectionRequired = declarationRevisionCurrent && declaration.payload.knowledgeDisposition !== "not_applicable_read_only" && declaration.payload.knowledgeDisposition !== "pending_user_approval" && deliberationCurrent;
       }
     }
   } catch {
@@ -72220,13 +72438,15 @@ async function inspectTerminalLifecycle(root2, expected) {
       code: terminal.status === "blocked" ? "terminal_integration_blocked" : "terminal_integration_stale",
       command: "lervo migrate knowledge"
     });
-  issues.push(
-    ...await inspectTerminalRepositoryKnowledgeLifecycle({
-      root: root2,
-      repositoryRevision: currentRepository.revision,
-      supplementalSources
-    })
-  );
+  if ((expected === void 0 || issues.length === 0) && repositoryKnowledgeInspectionRequired) {
+    issues.push(
+      ...await inspectTerminalRepositoryKnowledgeLifecycle({
+        root: root2,
+        repositoryRevision: currentRepository.revision,
+        supplementalSources
+      })
+    );
+  }
   const activation = await readTerminalActivationReceipts(root2);
   const runtimeActivation = await inspectTerminalRuntimeActivation(root2, activation);
   return {
@@ -72596,20 +72816,20 @@ async function loadSearchRetrievalPlanActivationHistory(repositoryRoot) {
     throw new SearchLocalError("observation_limit_exceeded", "The number of retrieval-plan selection transitions exceeds 256.");
   }
   const byPrevious = new Map(records.map((item) => [item.previousActivationId, item]));
-  const ordered = [];
+  const ordered2 = [];
   let previous2 = null;
   while (true) {
     const next = byPrevious.get(previous2?.activationId ?? null);
     if (next === void 0)
       break;
     assertSearchRetrievalPlanActivation(next, previous2);
-    ordered.push(next);
+    ordered2.push(next);
     previous2 = next;
   }
-  if (ordered.length !== records.length) {
+  if (ordered2.length !== records.length) {
     throw new SearchLocalError("observation_invalid", "The retrieval-plan selections do not form one continuous chain.");
   }
-  return ordered;
+  return ordered2;
 }
 
 // packages/search-local/dist/retrieval-plan-bundle-files.js
@@ -72632,9 +72852,9 @@ async function loadSearchRetrievalPlanActivationBundle(repositoryRoot, bundleId)
 }
 
 // packages/search-local/dist/operational-retrieval-plan.js
-import { createHash as createHash20 } from "node:crypto";
+import { createHash as createHash21 } from "node:crypto";
 function hash(bytes) {
-  return `sha256:${createHash20("sha256").update(bytes).digest("hex")}`;
+  return `sha256:${createHash21("sha256").update(bytes).digest("hex")}`;
 }
 function productDefaultSelection(productDefault) {
   assertProductDefaultSearchRetrievalPlan(productDefault);
@@ -72732,9 +72952,9 @@ async function resolveOperationalSearchRetrievalPlan(input) {
 }
 
 // apps/cli/src/repository-search-corpus.ts
-import { createHash as createHash21 } from "node:crypto";
+import { createHash as createHash22 } from "node:crypto";
 function sourceId(path) {
-  return `doc_${createHash21("sha256").update(path).digest("hex").slice(0, 24)}`;
+  return `doc_${createHash22("sha256").update(path).digest("hex").slice(0, 24)}`;
 }
 function createRepositoryKnowledgeSearchCorpus(scan) {
   const byPath = /* @__PURE__ */ new Map();
@@ -74500,9 +74720,9 @@ async function selectOperationalPlanCandidates(input) {
   if (population === void 0 || receipt.status !== "completed" || population.projector.id !== receipt.projector.id || population.projector.version !== receipt.projector.version || population.projector.buildId !== receipt.projector.buildId || receipt.limits.maximumQueries !== plan2.projection.maximumQueries || receipt.limits.maximumQueryCharacters !== plan2.projection.maximumQueryCharacters) {
     throw new Error("The selected retrieval plan does not match the current query projector.");
   }
-  const { scan } = await scanConfiguredRepositoryKnowledge(input.repositoryRoot, {
+  const scan = input.preparedScan ?? (await scanConfiguredRepositoryKnowledge(input.repositoryRoot, {
     supplementalSources: input.supplementalSources
-  });
+  })).scan;
   const corpus = createRepositoryKnowledgeSearchCorpus(scan);
   if (operational.corpusBinding === "reviewed") {
     const reviewedCorpus = operational.bundle.review.corpus;
@@ -74613,7 +74833,7 @@ async function selectTerminalContextCandidates(input) {
 
 // apps/cli/src/terminal-durable-instruction.ts
 async function inspectTerminalInstructionCatalog(input) {
-  const { policy, scan } = await scanConfiguredRepositoryKnowledge(input.repositoryRoot, {
+  const { policy, scan } = input.preparedKnowledge ?? await scanConfiguredRepositoryKnowledge(input.repositoryRoot, {
     supplementalSources: input.supplementalSources
   });
   const sources = scan.sources.filter(
@@ -74633,6 +74853,184 @@ async function inspectTerminalInstructionCatalog(input) {
         )
       }
     }
+  };
+}
+
+// apps/cli/src/operating-attention-format.ts
+function describe(item) {
+  if (item.kind === "workstream_decision") return item.question;
+  if (item.kind === "workstream_approval") return item.summary;
+  if (item.kind === "workstream_blocker") return item.summary;
+  if (item.kind === "canonicalization_review") {
+    return `${item.state} \xB7 sources ${item.sourcePaths.length} \xB7 outcome ${item.outcomeKind ?? "legacy_metadata_only"} \xB7 targets ${(item.proposedTargetPaths.length > 0 ? item.proposedTargetPaths : item.recommendedRoots).join(",")}`;
+  }
+  return `${item.issueCode}${item.detail === null ? "" : ` \xB7 ${item.detail}`}`;
+}
+function formatTerminalAttentionContext(report) {
+  const maximumItems = 12;
+  const selected = report.items.slice(0, maximumItems);
+  return [
+    `Repository attention: ${report.status}; digest: ${report.reportDigest}; items: ${report.summary.totalCount}; omitted: ${report.summary.truncatedCount}; blocking: ${report.summary.blockingCount}; requiresUserAction: ${report.summary.userActionCount}; stale: ${report.summary.staleCount}; canonicalizationCoverage: ${report.coverage.canonicalization}; lifecycleCoverage: ${report.coverage.knowledgeLifecycle}.`,
+    ...selected.map(
+      (item) => `- ${item.kind}:${item.itemId}; owner=${item.actionOwner}; requiresUserAction=${item.requiresUserAction}; blocking=${item.blocking}; ${describe(item)}`
+    ),
+    ...report.items.length > maximumItems ? [
+      `- ${report.items.length - maximumItems} additional items remain in \`lervo application attention --json\`.`
+    ] : [],
+    "Before claiming completion, resolve current agent-owned items that fall within this task. If a current blocking item requires user action, present its bounded question or approval in this turn instead of waiting to encounter it incidentally. Do not infer approval, do not ask the user to run Lervo bookkeeping, and do not treat this prepared projection as receipt or acknowledgment."
+  ].join("\n");
+}
+
+// apps/cli/src/operating-attention-projection.ts
+var MAXIMUM_ATTENTION_ITEMS = 256;
+function canonicalizationItem(candidate) {
+  if (candidate.observedState !== "candidate" && candidate.observedState !== "pending" && candidate.observedState !== "stale") {
+    return null;
+  }
+  return {
+    schemaVersion: 1,
+    kind: "canonicalization_review",
+    itemId: candidate.candidateId,
+    state: candidate.observedState,
+    candidateId: candidate.candidateId,
+    candidateHash: candidate.contentHash,
+    sourcePaths: candidate.sourceBindings.map((binding) => binding.path).sort(),
+    responsibilities: [
+      ...new Set(candidate.sourceBindings.map((binding) => binding.responsibility))
+    ].sort(),
+    recommendedRoots: [...candidate.recommendedRoots].sort(),
+    outcomeKind: candidate.outcome?.kind ?? null,
+    proposedTargetPaths: candidate.outcome?.kind === "canonical_update" ? candidate.outcome.targets.map((target) => target.path).sort() : candidate.outcome?.kind === "review_draft" ? candidate.outcome.drafts.map((draft) => draft.targetPath).sort() : [],
+    hasProposedContent: candidate.outcome?.kind === "review_draft",
+    createdAt: candidate.createdAt,
+    actionOwner: candidate.observedState === "pending" ? "user" : "reviewer",
+    requiresUserAction: candidate.observedState === "pending",
+    blocking: candidate.observedState === "pending",
+    instruction: candidate.observedState === "stale" ? `Inspect stale candidate ${candidate.candidateId}; it permits exact-hash rejection with ${candidate.contentHash} but not defer or promotion.` : candidate.observedState === "pending" ? `Run lervo knowledge canonicalization status ${candidate.candidateId} --json and present its bounded outcome and exact ${candidate.contentHash} review binding; apply no write or promotion without explicit authority.` : `Inspect candidate ${candidate.candidateId} and use exact hash ${candidate.contentHash} for defer, reject, or promotion review.`
+  };
+}
+function lifecycleOwner(issue) {
+  if (issue.code === "turn_approval_pending" || issue.code.includes("review_required")) {
+    return { actionOwner: "user", requiresUserAction: true };
+  }
+  if (issue.code === "document_normalization_pending") {
+    return { actionOwner: "reviewer", requiresUserAction: false };
+  }
+  return { actionOwner: "agent", requiresUserAction: false };
+}
+function ordered(items) {
+  return items.sort((left, right) => {
+    const user = Number(right.requiresUserAction) - Number(left.requiresUserAction);
+    if (user !== 0) return user;
+    const blocking = Number(right.blocking) - Number(left.blocking);
+    if (blocking !== 0) return blocking;
+    const kind = left.kind.localeCompare(right.kind);
+    return kind === 0 ? left.itemId.localeCompare(right.itemId) : kind;
+  });
+}
+function createOperatingAttentionReport(input) {
+  const workstreamItems = input.workstream === null ? [] : [
+    ...(input.workstream.pendingDecisions ?? []).map(
+      (decision) => ({
+        schemaVersion: 1,
+        kind: "workstream_decision",
+        itemId: decision.decisionId,
+        state: "pending",
+        decisionId: decision.decisionId,
+        question: decision.question,
+        choices: decision.choices.map((choice) => ({ ...choice })),
+        recommendedChoiceId: decision.recommendedChoiceId,
+        actionOwner: "user",
+        requiresUserAction: true,
+        blocking: decision.blocking,
+        instruction: `Resolve workstream decision ${decision.decisionId} through an authorized workstream update.`
+      })
+    ),
+    ...(input.workstream.pendingApprovals ?? []).map(
+      (approval) => ({
+        schemaVersion: 1,
+        kind: "workstream_approval",
+        itemId: approval.approvalId,
+        state: "pending",
+        approvalId: approval.approvalId,
+        approvalKind: approval.kind,
+        summary: approval.summary,
+        bindingHash: approval.bindingHash,
+        actionOwner: "user",
+        requiresUserAction: true,
+        blocking: approval.blocking,
+        instruction: `Resolve workstream approval ${approval.approvalId} only against its exact binding hash.`
+      })
+    ),
+    ...input.workstream.blockers.map((summary, blockerIndex) => ({
+      schemaVersion: 1,
+      kind: "workstream_blocker",
+      itemId: `workstream_blocker_${sha2562(summary).slice("sha256:".length, "sha256:".length + 24)}`,
+      state: "blocked",
+      blockerIndex,
+      summary,
+      actionOwner: "unassigned",
+      requiresUserAction: false,
+      blocking: true,
+      instruction: "Inspect the blocker against current repository evidence before assigning an action owner."
+    }))
+  ];
+  const candidateItems = input.canonicalization.candidates.flatMap((candidate) => {
+    const item = canonicalizationItem(candidate);
+    return item === null ? [] : [item];
+  });
+  const lifecycleItems = input.knowledgeLifecycle.coverage === "unavailable" ? [] : input.knowledgeLifecycle.issues.map((issue) => ({
+    schemaVersion: 1,
+    kind: "knowledge_lifecycle",
+    itemId: `knowledge_lifecycle_${sha2562(canonicalJson3(issue)).slice("sha256:".length, "sha256:".length + 24)}`,
+    state: "action_required",
+    issueCode: issue.code,
+    detail: issue.detail ?? null,
+    ...lifecycleOwner(issue),
+    blocking: issue.code === "turn_approval_pending",
+    instruction: issue.command
+  }));
+  const allItems = ordered([
+    ...new Map(
+      [...workstreamItems, ...candidateItems, ...lifecycleItems].map((item) => [item.itemId, item])
+    ).values()
+  ]);
+  const items = allItems.slice(0, MAXIMUM_ATTENTION_ITEMS);
+  const digestInput = {
+    projectId: input.projectId,
+    workstream: input.workstream === null ? null : {
+      workstreamId: input.workstream.workstreamId,
+      revision: input.workstream.revision
+    },
+    coverage: {
+      workstream: input.workstream === null ? "missing" : "current",
+      canonicalization: input.canonicalization.coverage,
+      knowledgeLifecycle: input.knowledgeLifecycle.coverage
+    },
+    items
+  };
+  return {
+    schemaVersion: 1,
+    kind: "operating_attention.report",
+    projectId: input.projectId,
+    workstream: digestInput.workstream,
+    observedAt: input.observedAt.toISOString(),
+    reportDigest: sha2562(canonicalJson3(digestInput)),
+    status: items.length === 0 && input.canonicalization.coverage === "complete" && input.knowledgeLifecycle.coverage !== "unavailable" ? "current" : "action_required",
+    coverage: digestInput.coverage,
+    summary: {
+      totalCount: allItems.length,
+      truncatedCount: allItems.length - items.length,
+      blockingCount: allItems.filter((item) => item.blocking).length,
+      userActionCount: allItems.filter((item) => item.requiresUserAction).length,
+      staleCount: allItems.filter((item) => item.state === "stale").length
+    },
+    items,
+    limitations: [
+      "This report is a read-only projection and grants no review, approval, write, provider, or external-effect authority.",
+      "A prepared attention item does not prove that a provider or user received, understood, acknowledged, or acted on it.",
+      "Unavailable source coverage is unknown, not current or empty."
+    ]
   };
 }
 
@@ -74658,19 +75056,37 @@ function truncateUtf82(value, maximumBytes2) {
   return value.slice(0, end);
 }
 async function prepareTerminalPromptContext(input) {
-  const { supplementalSources, instructionCatalog, currentWorkstream, projectId } = await input.timing.measure("corpus_preparation", async () => {
+  const {
+    supplementalSources,
+    instructionCatalog,
+    currentWorkstream,
+    canonicalization,
+    projectId,
+    preparedKnowledge
+  } = await input.timing.measure("corpus_preparation", async () => {
     const supplementalSources2 = await collectLocalKnowledgeSources(input.root);
-    const instructionCatalog2 = await inspectTerminalInstructionCatalog({
-      repositoryRoot: input.root,
-      supplementalSources: supplementalSources2
-    });
     const workstreamStorage = await openProjectStorage(input.root);
     try {
+      const [preparedKnowledge2, currentWorkstream2, canonicalization2] = await Promise.all([
+        scanConfiguredRepositoryKnowledge(input.root, { supplementalSources: supplementalSources2 }),
+        verifiedCurrentWorkstream(workstreamStorage),
+        listCanonicalizationCandidates(input.root).then(
+          (candidates) => ({ coverage: "complete", candidates }),
+          () => ({ coverage: "unavailable", candidates: [] })
+        )
+      ]);
+      const instructionCatalog2 = await inspectTerminalInstructionCatalog({
+        repositoryRoot: input.root,
+        supplementalSources: supplementalSources2,
+        preparedKnowledge: preparedKnowledge2
+      });
       return {
         supplementalSources: supplementalSources2,
         instructionCatalog: instructionCatalog2,
-        currentWorkstream: await verifiedCurrentWorkstream(workstreamStorage),
-        projectId: workstreamStorage.manifest.projectId
+        currentWorkstream: currentWorkstream2,
+        canonicalization: canonicalization2,
+        projectId: workstreamStorage.manifest.projectId,
+        preparedKnowledge: preparedKnowledge2
       };
     } finally {
       await workstreamStorage.close();
@@ -74678,18 +75094,21 @@ async function prepareTerminalPromptContext(input) {
   });
   const searchProjectionContext = currentWorkstream === null ? { context: { contextRequirement: "none" }, contextAnchors: [] } : createCurrentWorkstreamSearchProjectionContext(currentWorkstream);
   const requestDigest = sha2562(input.prompt);
-  const queryProjection = await input.timing.measure(
-    "query_projection",
-    () => input.services.projectSearchQueries({
-      request: input.prompt,
-      requestDigest,
-      context: searchProjectionContext.context,
-      contextDigest: sha2562(canonicalJson3(searchProjectionContext.context)),
-      contextAnchors: searchProjectionContext.contextAnchors,
-      requestedLanguage: instructionCatalog.semanticCatalog.retrievalLanguage,
-      provider: input.provider
-    })
-  );
+  const [queryProjection, repositorySnapshot] = await Promise.all([
+    input.timing.measure(
+      "query_projection",
+      () => input.services.projectSearchQueries({
+        request: input.prompt,
+        requestDigest,
+        context: searchProjectionContext.context,
+        contextDigest: sha2562(canonicalJson3(searchProjectionContext.context)),
+        contextAnchors: searchProjectionContext.contextAnchors,
+        requestedLanguage: instructionCatalog.semanticCatalog.retrievalLanguage,
+        provider: input.provider
+      })
+    ),
+    input.timing.measure("repository_snapshot", () => captureRepositorySnapshot(input.root))
+  ]);
   const grounding = {
     status: "abstain",
     workflowId: null,
@@ -74705,10 +75124,18 @@ async function prepareTerminalPromptContext(input) {
     targetPath: null,
     reasonIds: ["unmanaged_terminal_retrieval_only"]
   };
-  const repositorySnapshot = await input.timing.measure(
-    "repository_snapshot",
-    () => captureRepositorySnapshot(input.root)
-  );
+  const cachedLifecycleIssues = await readTerminalKnowledgeLifecycleCache({
+    root: input.root,
+    repositoryRevision: repositorySnapshot.revision,
+    supplementalSources
+  });
+  const attention2 = createOperatingAttentionReport({
+    projectId,
+    workstream: currentWorkstream,
+    canonicalization,
+    knowledgeLifecycle: cachedLifecycleIssues === null ? { coverage: "unavailable", issues: [] } : { coverage: "cached", issues: cachedLifecycleIssues },
+    observedAt: /* @__PURE__ */ new Date()
+  });
   const selection = await input.timing.measure(
     "search",
     () => selectTerminalContextCandidates({
@@ -74718,7 +75145,8 @@ async function prepareTerminalPromptContext(input) {
       projection: queryProjection,
       retrievalQueries: queryProjection.queries,
       sourceSnapshotId: instructionCatalog.sourceSnapshotId,
-      supplementalSources
+      supplementalSources,
+      preparedScan: preparedKnowledge.scan
     })
   );
   const assembled = await input.timing.measure("context_assembly", async () => {
@@ -74737,10 +75165,10 @@ async function prepareTerminalPromptContext(input) {
       };
     })();
     const finalizationInstruction = input.workspaceBinding?.executionKind === "worker" ? [
-      `This direct provider turn is attached to worker workspace ${input.workspaceBinding.workspaceId} generation ${input.workspaceBinding.workspaceGeneration}; provider execution remains unmanaged, while checkout ownership and Stop isolation are evidence-bound.`,
+      `This direct provider turn is ${input.workspaceBinding.attachmentDisposition ?? "attached"} on worker workspace ${input.workspaceBinding.workspaceId} generation ${input.workspaceBinding.workspaceGeneration}; provider execution remains unmanaged, while checkout ownership, checkpointed pause, and Stop isolation are evidence-bound.`,
       "Change only assignment-scoped paths. Worker Stop rechecks the ownership marker, writer session, assignment lease, exact workspace revision, and path-scoped diff, then records a workspace checkpoint. It does not advance the repository-wide workstream or repair knowledge movement owned by another workspace.",
       "Commit only when the task or sealing flow requires it; Lervo never invents or silently commits unfinished bytes."
-    ].join("\n\n") : `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${input.provider} --observation ${input.observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; it is not proof of internal reasoning. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
+    ].join("\n\n") : `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${input.provider} --observation ${input.observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; canonicalizationOutcome as one exact v1 object; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. The outcome must bind every changed noncanonical source path exactly once: use kind=canonical_update with summary and targets[{path,contentHash,sourcePaths}] when canonical bytes changed; kind=no_durable_change with summary, reasonCode=implementation_only|verification_only|already_canonical|transient, and sourcePaths when review should reject durable promotion; or kind=review_draft with summary and drafts[{targetPath,sourcePaths,proposedMarkdown,proposedContentHash}] when exact review is required. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; proposal bodies remain local candidate state and are not event content or truth. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
     const workstreamInstruction = input.workspaceBinding?.executionKind === "worker" ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping." : workstream === null ? "If this turn changes repository-authored bytes, the agent must create a bounded checkpoint through the `lervo workstream start --actor agent --provider <current-provider>` plan/apply flow before completion. A read-only inquiry does not create artificial continuation state. The user must not be asked to run bookkeeping commands." : "If this turn changes repository-authored bytes, the agent must record the next bounded revision through the `lervo workstream update --actor agent --provider <current-provider>` plan/apply flow before completion. Preserve identity and origin, replace stale facts instead of accumulating prose, and do not ask the user to run bookkeeping commands. A read-only inquiry does not advance the workstream.";
     const preamble = [
       "Lervo terminal integration v2 used a provider-neutral query projection only for read-only candidate retrieval in the current repository. It did not resolve effects, authority, execution, external systems, or cross-repository routing.",
@@ -74753,6 +75181,7 @@ async function prepareTerminalPromptContext(input) {
       "The following exact-hash publications were loaded and prepared for return through the provider hook. This proves hook-side preparation, not provider acceptance, managed delivery, understanding, or later use.",
       "Use current repository bytes as authority, follow AGENTS.md, and do not treat a recommendation as semantic truth.",
       `durableInstructionStatus: ${durableInstruction.status}; ruleId: none; targetPath: none; reasons: ${durableInstruction.reasonIds.join(",")}. Direct prompt preparation never materializes a repository rule; use the repository's explicit instruction lifecycle for durable changes.`,
+      formatTerminalAttentionContext(attention2),
       "If the final response explicitly relies on a supplied publication, append its exact Lervo evidence marker as a standalone Markdown HTML comment. Keep the marker out of prose and code. Markdown renderers hide the comment, while raw output retains verifiable evidence. A marker proves only an output reference, never understanding or internal use.",
       finalizationInstruction,
       workstreamInstruction
@@ -74811,6 +75240,7 @@ async function prepareTerminalPromptContext(input) {
     repositoryRevision: repositorySnapshot.revision,
     repositoryFiles: repositorySnapshot.files,
     workstream: assembled.workstream,
+    attention: attention2,
     grounding: {
       requestDigest,
       queryDigest: queryProjection.receipt.projectedQueryDigest,
@@ -74872,33 +75302,8 @@ async function recordTerminalStageObservation(input) {
 }
 
 // apps/cli/src/terminal-hook-command.ts
-function parseHookInput(value) {
-  if (Buffer.byteLength(value) > 256 * 1024)
-    throw new Error("Hook input exceeds the bounded input limit.");
-  const parsed = JSON.parse(value);
-  if (parsed?.hook_event_name !== "UserPromptSubmit" && parsed?.hook_event_name !== "Stop")
-    throw new Error("Unsupported provider hook event.");
-  if (typeof parsed.session_id !== "string" || parsed.session_id.trim() === "" || parsed.session_id.length > 512)
-    throw new Error("The provider session coordinate is missing or invalid.");
-  if (parsed.turn_id !== void 0 && (typeof parsed.turn_id !== "string" || parsed.turn_id.trim() === "" || parsed.turn_id.length > 512))
-    throw new Error("The provider turn coordinate is invalid.");
-  if (parsed.hook_event_name === "UserPromptSubmit" && (typeof parsed.prompt !== "string" || parsed.prompt.trim() === "" || parsed.prompt.length > 64 * 1024))
-    throw new Error("The prompt is missing or exceeds the bounded prompt limit.");
-  if (parsed.hook_event_name === "Stop" && parsed.stop_hook_active !== void 0 && typeof parsed.stop_hook_active !== "boolean")
-    throw new Error("The provider Stop continuation state is invalid.");
-  if (parsed.hook_event_name === "Stop" && parsed.last_assistant_message !== void 0 && parsed.last_assistant_message !== null && typeof parsed.last_assistant_message !== "string")
-    throw new Error("The provider completion message is invalid.");
-  return {
-    event: parsed.hook_event_name,
-    providerSessionId: parsed.session_id,
-    providerTurnId: typeof parsed.turn_id === "string" ? parsed.turn_id : null,
-    stopHookActive: parsed.stop_hook_active === true,
-    ...typeof parsed.prompt === "string" ? { prompt: parsed.prompt } : {},
-    ...parsed.last_assistant_message === null || typeof parsed.last_assistant_message === "string" ? { lastAssistantMessage: parsed.last_assistant_message } : {}
-  };
-}
 async function runTerminalHookCommand(args, io, services) {
-  const timing = services.createTerminalStageObservation(TERMINAL_OBSERVATION_POLICY_VERSION);
+  const timing = services.createTerminalStageObservation(TERMINAL_HOOK_BUILD_DIGEST);
   try {
     const { provider, contractId, input } = await timing.measure("ingress_integrity", async () => {
       const parsed = parseArgs3({
@@ -74916,7 +75321,7 @@ async function runTerminalHookCommand(args, io, services) {
       return {
         provider: provider2,
         contractId: parsed.values.contract === "2" ? "lervo_terminal_hooks_v2" : "lervo_terminal_hooks_v1",
-        input: parseHookInput(await io.stdin())
+        input: parseTerminalHookInput(await io.stdin())
       };
     });
     if (input.event === "Stop" && input.stopHookActive) {
@@ -75042,15 +75447,25 @@ ${error.code}: run lervo workspace inspect --json and recover only this assignme
       let workspaceCheckpointEventId = null;
       if (lifecycle.status === "current" && expectation.workspaceBinding?.executionKind === "worker" && lifecycle.workspace !== null) {
         try {
-          workspaceCheckpointEventId = (await timing.measure(
+          const checkpoint = await timing.measure(
             "event_commit",
             () => checkpointTerminalWorkspace({
               root: root2,
               inspection: lifecycle.workspace,
               contextEventId: expectation.contextEventId,
-              occurredAt: expectation.preparedAt
+              occurredAt
             })
-          )).eventId;
+          );
+          workspaceCheckpointEventId = checkpoint.eventId;
+          await timing.measure(
+            "event_commit",
+            () => pauseTerminalWorkspace({
+              root: root2,
+              inspection: lifecycle.workspace,
+              checkpoint,
+              occurredAt
+            })
+          );
         } catch {
           lifecycle.issues.push({
             code: "workspace_checkpoint_failed",
@@ -75320,7 +75735,7 @@ async function verifiedRuntime() {
       await readFile23(resolve60(dirname15(runtimePath), "runtime-v2.json"), "utf8")
     );
     const content3 = await readFile23(runtimePath);
-    return manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === "lervo_terminal_hooks_v2" && manifest.runtimePath === ".lervo/generated/terminal-hooks/runtime-v2.mjs" && manifest.byteCount === content3.byteLength && manifest.contentHash === `sha256:${createHash22("sha256").update(content3).digest("hex")}`;
+    return manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === "lervo_terminal_hooks_v2" && manifest.runtimePath === ".lervo/generated/terminal-hooks/runtime-v2.mjs" && manifest.byteCount === content3.byteLength && manifest.contentHash === `sha256:${createHash23("sha256").update(content3).digest("hex")}`;
   } catch {
     return false;
   }

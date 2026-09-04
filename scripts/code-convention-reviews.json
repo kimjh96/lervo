@@ -158,7 +158,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:32f041d41ddd1cbd410d3636846d55b553405d7bd51ded091647abf15bdeb32f",
+      "contentHash": "sha256:eb4f609397af115d4fbe158ff66af7e0495db9864f12b5d73ee86c31aa84becf",
       "responsibility": "Reviewed document normalization lifecycle",
       "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation orchestration, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Observation policy, explicit selection and workset/preflight contracts, shard-cache storage, and CLI parsing or rendering are separate modules.",
       "disposition": "cohesive"

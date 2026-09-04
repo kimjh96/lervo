@@ -1,15 +1,21 @@
 import { lstat, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
+import {
+  canonicalResponsibilityForPath,
+  recommendedCanonicalRoot,
+  sourceResponsibilityForPath,
+  type CanonicalizationResponsibility,
+} from "./canonicalization-responsibility.js";
+import {
+  parseCanonicalizationOutcome,
+  validateCanonicalizationOutcomeForChange,
+  type CanonicalizationOutcome,
+} from "./canonicalization-outcome.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { RepositoryKnowledgeError } from "./types.js";
 
-export type CanonicalizationResponsibility =
-  | "behavioral_instruction"
-  | "architecture_or_specification"
-  | "product_or_decision"
-  | "executable_verification"
-  | "mutable_continuation";
+export type { CanonicalizationResponsibility } from "./canonicalization-responsibility.js";
 
 export type CanonicalizationCandidateState =
   "candidate" | "pending" | "promoted" | "rejected" | "stale";
@@ -30,6 +36,7 @@ export interface CanonicalizationCandidateRecord {
   sourceBindings: SourceBinding[];
   recommendedRoots: string[];
   createdAt: string;
+  outcome?: CanonicalizationOutcome;
   review: null | { reviewerId: string; decision: "defer" | "reject"; reviewedAt: string };
   promotion: null | {
     reviewerId: string;
@@ -53,7 +60,8 @@ export interface CanonicalizationAssessment {
 }
 
 const ROOT = ".lervo/state/knowledge/canonicalization-candidates";
-const MAXIMUM_CANDIDATES = 64;
+const MAXIMUM_ACTIVE_CANDIDATES = 64;
+const MAXIMUM_CANDIDATE_RECORDS = 256;
 const MAXIMUM_SOURCE_BINDINGS = 256;
 
 function safePath(path: string): boolean {
@@ -63,62 +71,6 @@ function safePath(path: string): boolean {
     !path.includes("\\") &&
     !path.split("/").some((part) => part.length === 0 || part === "." || part === "..")
   );
-}
-
-function canonicalResponsibility(path: string): CanonicalizationResponsibility | null {
-  if (path === "AGENTS.md" || path.startsWith("docs/instructions/"))
-    return "behavioral_instruction";
-  if (
-    path.startsWith("docs/specs/") ||
-    path.startsWith("docs/specifications/") ||
-    path.startsWith("docs/architecture/")
-  )
-    return "architecture_or_specification";
-  if (
-    path.startsWith("docs/product/") ||
-    path.startsWith("docs/decisions/") ||
-    path.startsWith("docs/roadmap/")
-  )
-    return "product_or_decision";
-  if (
-    /(?:^|\/)(?:test|tests|__tests__)\//u.test(path) ||
-    path.startsWith(".github/workflows/") ||
-    path.startsWith("scripts/check-")
-  )
-    return "executable_verification";
-  return null;
-}
-
-function sourceResponsibility(path: string): CanonicalizationResponsibility | null {
-  const canonical = canonicalResponsibility(path);
-  if (canonical !== null) return canonical;
-  if (path.startsWith(".lervo/state/") || path.startsWith("docs/knowledge/")) return null;
-  if (
-    path === "CLAUDE.md" ||
-    path.startsWith(".claude/") ||
-    path.startsWith(".codex/") ||
-    path.startsWith(".github/instructions/")
-  )
-    return "behavioral_instruction";
-  if (path === "HANDOFF.md") return "mutable_continuation";
-  if (
-    path.startsWith("apps/") ||
-    path.startsWith("packages/") ||
-    path.startsWith("src/") ||
-    path.startsWith("config/") ||
-    /\.(?:[cm]?[jt]sx?|py|rb|go|rs|java|kt|swift|cs|cpp|cc|c|h)$/u.test(path) ||
-    /(?:^|\/)(?:package\.json|tsconfig[^/]*\.json|[^/]+\.config\.[cm]?[jt]s)$/u.test(path)
-  )
-    return "architecture_or_specification";
-  return null;
-}
-
-function recommendedRoot(responsibility: CanonicalizationResponsibility): string {
-  if (responsibility === "behavioral_instruction") return "docs/instructions";
-  if (responsibility === "architecture_or_specification") return "docs/specs";
-  if (responsibility === "product_or_decision") return "docs/decisions";
-  if (responsibility === "executable_verification") return "tests";
-  return ".lervo/state/workstreams";
 }
 
 function candidatePath(candidateId: string): string {
@@ -151,10 +103,10 @@ async function boundedCandidatePaths(root: string): Promise<string[]> {
       paths.push(`${ROOT}/${shard.name}/${entry.name}`);
     }
   }
-  if (paths.length > MAXIMUM_CANDIDATES)
+  if (paths.length > MAXIMUM_CANDIDATE_RECORDS)
     throw new RepositoryKnowledgeError(
       "knowledge_source_limit_exceeded",
-      `The canonicalization candidate registry exceeds ${MAXIMUM_CANDIDATES} records.`,
+      `The canonicalization candidate registry exceeds ${MAXIMUM_CANDIDATE_RECORDS} records.`,
     );
   return paths;
 }
@@ -178,7 +130,7 @@ function validateRecord(value: unknown): CanonicalizationCandidateRecord {
         safePath(item.path) &&
         (item.beforeHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.beforeHash)) &&
         (item.afterHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.afterHash)) &&
-        sourceResponsibility(item.path) === item.responsibility,
+        sourceResponsibilityForPath(item.path) === item.responsibility,
     ) ||
     !Array.isArray(record.recommendedRoots) ||
     !record.recommendedRoots.every((path) => safePath(path)) ||
@@ -199,6 +151,7 @@ function validateRecord(value: unknown): CanonicalizationCandidateRecord {
       "knowledge_source_unsafe",
       "The canonicalization candidate record is invalid.",
     );
+  if (record.outcome !== undefined) parseCanonicalizationOutcome(record.outcome);
   return record as CanonicalizationCandidateRecord;
 }
 
@@ -249,21 +202,36 @@ export async function assessCanonicalization(input: {
   beforeFiles: Readonly<Record<string, string>>;
   afterFiles: Readonly<Record<string, string>>;
   disposition: "canonical_sources_current" | "canonical_sources_updated" | "pending_user_approval";
+  outcome?: CanonicalizationOutcome;
   now: Date;
 }): Promise<CanonicalizationAssessment> {
   const paths = new Set([...Object.keys(input.beforeFiles), ...Object.keys(input.afterFiles)]);
   const changedPaths = [...paths]
     .filter((path) => input.beforeFiles[path] !== input.afterFiles[path])
     .sort();
+  if (input.outcome !== undefined)
+    validateCanonicalizationOutcomeForChange({
+      outcome: input.outcome,
+      disposition: input.disposition,
+      beforeFiles: input.beforeFiles,
+      afterFiles: input.afterFiles,
+    });
   const canonicalResponsibilities = new Set(
-    changedPaths.flatMap((path) => {
-      const responsibility = canonicalResponsibility(path);
-      return responsibility === null ? [] : [responsibility];
-    }),
+    input.outcome === undefined
+      ? changedPaths.flatMap((path) => {
+          const responsibility = canonicalResponsibilityForPath(path);
+          return responsibility === null ? [] : [responsibility];
+        })
+      : input.outcome.kind === "canonical_update"
+        ? input.outcome.targets.flatMap((target) => {
+            const responsibility = canonicalResponsibilityForPath(target.path);
+            return responsibility === null ? [] : [responsibility];
+          })
+        : [],
   );
   const sourceBindings = changedPaths.flatMap((path) => {
-    const responsibility = sourceResponsibility(path);
-    if (responsibility === null || canonicalResponsibility(path) !== null) return [];
+    const responsibility = sourceResponsibilityForPath(path);
+    if (responsibility === null || canonicalResponsibilityForPath(path) !== null) return [];
     if (canonicalResponsibilities.has(responsibility)) return [];
     return [
       {
@@ -291,6 +259,7 @@ export async function assessCanonicalization(input: {
     beforeRevision: input.beforeRevision,
     afterRevision: input.afterRevision,
     sourceBindings,
+    outcome: input.outcome ?? null,
   });
   const record: CanonicalizationCandidateRecord = {
     schemaVersion: 1,
@@ -300,15 +269,25 @@ export async function assessCanonicalization(input: {
     afterRevision: input.afterRevision,
     sourceBindings,
     recommendedRoots: [
-      ...new Set(sourceBindings.map((item) => recommendedRoot(item.responsibility))),
+      ...new Set(sourceBindings.map((item) => recommendedCanonicalRoot(item.responsibility))),
     ].sort(),
     createdAt: input.now.toISOString(),
+    ...(input.outcome === undefined ? {} : { outcome: input.outcome }),
     review: null,
     promotion: null,
   };
-  const existing = (await listCanonicalizationCandidates(input.repositoryRoot)).find(
-    (item) => item.candidateId === candidateId,
-  );
+  const candidates = await listCanonicalizationCandidates(input.repositoryRoot);
+  const existing = candidates.find((item) => item.candidateId === candidateId);
+  if (
+    existing === undefined &&
+    candidates.filter(
+      (item) => item.observedState === "candidate" || item.observedState === "pending",
+    ).length >= MAXIMUM_ACTIVE_CANDIDATES
+  )
+    throw new RepositoryKnowledgeError(
+      "knowledge_source_limit_exceeded",
+      `The canonicalization candidate registry has ${MAXIMUM_ACTIVE_CANDIDATES} active records.`,
+    );
   if (existing === undefined) await writeRecord(resolve(input.repositoryRoot), record);
   const candidate =
     existing ?? (await readCandidate(resolve(input.repositoryRoot), candidatePath(candidateId)));
@@ -340,10 +319,10 @@ export async function transitionCanonicalizationCandidate(input: {
       "knowledge_plan_stale",
       "The canonicalization candidate changed after review began.",
     );
-  if (current.observedState === "stale")
+  if (current.observedState === "stale" && input.action !== "reject")
     throw new RepositoryKnowledgeError(
       "knowledge_plan_stale",
-      "The canonicalization candidate source bindings are stale.",
+      "The canonicalization candidate source bindings are stale and permit rejection only.",
     );
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/u.test(input.reviewerId))
     throw new RepositoryKnowledgeError(
@@ -356,9 +335,9 @@ export async function transitionCanonicalizationCandidate(input: {
     if (
       input.targetPath === undefined ||
       input.targetContentHash === undefined ||
-      canonicalResponsibility(input.targetPath) === null ||
+      canonicalResponsibilityForPath(input.targetPath) === null ||
       !current.sourceBindings.some(
-        (binding) => binding.responsibility === canonicalResponsibility(input.targetPath!),
+        (binding) => binding.responsibility === canonicalResponsibilityForPath(input.targetPath!),
       )
     )
       throw new RepositoryKnowledgeError(

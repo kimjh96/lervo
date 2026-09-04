@@ -6,6 +6,8 @@ import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage"
 import { validateSchema, type TerminalTurnDeclaredEventPayload } from "@lervo/schemas";
 import {
   assessCanonicalization,
+  parseCanonicalizationOutcome,
+  type CanonicalizationOutcome,
   type TerminalIntegrationProvider,
 } from "@lervo/repository-knowledge";
 
@@ -15,27 +17,30 @@ import {
   newTerminalIdentifier,
   terminalEventDraft,
 } from "./terminal-event-coordinates.js";
+import { inspectTerminalRepositoryKnowledgeLifecycle } from "./terminal-knowledge-lifecycle-inspection.js";
 import { readPreparedRepositorySnapshot } from "./terminal-prepared-snapshot.js";
 import { resolveTerminalRepositoryRoot } from "./terminal-repository-root.js";
 import { terminalDeliberationDeclarationMatches } from "./terminal-turn-observation.js";
+import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import type { CliIo } from "./types.js";
 
-function parseTurnDeclarationDraft(
-  value: string,
-): Pick<
+type TerminalTurnDeclarationDraft = Pick<
   TerminalTurnDeclaredEventPayload,
   | "taskMode"
   | "canonicalizationDisposition"
   | "knowledgeDisposition"
   | "deliberationDisposition"
   | "deliberationId"
-> {
+> & { canonicalizationOutcome: CanonicalizationOutcome | null };
+
+function parseTurnDeclarationDraft(value: string): TerminalTurnDeclarationDraft {
   if (Buffer.byteLength(value) > 16 * 1024)
     throw new Error("The terminal turn declaration exceeds 16 KiB.");
   const parsed = JSON.parse(value) as Record<string, unknown>;
   const allowed = new Set([
     "taskMode",
     "canonicalizationDisposition",
+    "canonicalizationOutcome",
     "knowledgeDisposition",
     "deliberationDisposition",
     "deliberationId",
@@ -68,6 +73,10 @@ function parseTurnDeclarationDraft(
     )
   )
     throw new Error("The canonicalizationDisposition is invalid.");
+  const canonicalizationOutcome =
+    parsed.canonicalizationOutcome === null
+      ? null
+      : parseCanonicalizationOutcome(parsed.canonicalizationOutcome);
   if (!knowledge.includes(parsed.knowledgeDisposition as (typeof knowledge)[number]))
     throw new Error("The knowledgeDisposition is invalid.");
   if (!deliberation.includes(parsed.deliberationDisposition as (typeof deliberation)[number]))
@@ -78,7 +87,10 @@ function parseTurnDeclarationDraft(
       !/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(parsed.deliberationId))
   )
     throw new Error("The deliberationId is invalid.");
-  return parsed as ReturnType<typeof parseTurnDeclarationDraft>;
+  return {
+    ...(parsed as Omit<TerminalTurnDeclarationDraft, "canonicalizationOutcome">),
+    canonicalizationOutcome,
+  };
 }
 
 export async function runTerminalDeclareCommand(args: string[], io: CliIo): Promise<number> {
@@ -142,6 +154,10 @@ export async function runTerminalDeclareCommand(args: string[], io: CliIo): Prom
       throw new Error(
         "An unchanged turn must use read-only canonicalization and knowledge dispositions.",
       );
+    if (repositoryChanged && draft.canonicalizationOutcome === null)
+      throw new Error("A repository-changing turn requires a canonicalizationOutcome.");
+    if (!repositoryChanged && draft.canonicalizationOutcome !== null)
+      throw new Error("An unchanged turn must use a null canonicalizationOutcome.");
     const preparedSnapshot = await readPreparedRepositorySnapshot(root, parsed.values.observation);
     const canonicalizationAssessment =
       repositoryChanged && preparedSnapshot !== null
@@ -155,15 +171,37 @@ export async function runTerminalDeclareCommand(args: string[], io: CliIo): Prom
               draft.canonicalizationDisposition === "not_applicable_read_only"
                 ? "canonical_sources_current"
                 : draft.canonicalizationDisposition,
+            ...(draft.canonicalizationOutcome === null
+              ? {}
+              : { outcome: draft.canonicalizationOutcome }),
             now: new Date(),
           })
         : null;
+    const knowledgeLifecycleIssues = repositoryChanged
+      ? await inspectTerminalRepositoryKnowledgeLifecycle({
+          root,
+          repositoryRevision: repository.revision,
+          supplementalSources: await collectLocalKnowledgeSources(root),
+        })
+      : [];
+    if (
+      repositoryChanged &&
+      draft.knowledgeDisposition !== "pending_user_approval" &&
+      knowledgeLifecycleIssues.length > 0
+    ) {
+      throw new Error(
+        `The declared knowledge disposition is not supported by the current repository lifecycle: ${knowledgeLifecycleIssues
+          .map((issue) => issue.code)
+          .join(", ")}.`,
+      );
+    }
     const occurredAt = new Date().toISOString();
+    const { canonicalizationOutcome: _canonicalizationOutcome, ...eventDraft } = draft;
     const payload: TerminalTurnDeclaredEventPayload = {
       declarationId: newTerminalIdentifier("tdecl"),
       contextEventId: context.eventId,
       repositoryRevision: repository.revision,
-      ...draft,
+      ...eventDraft,
       declaredAt: occurredAt,
     };
     const validation = validateSchema("terminalTurnDeclaredEventPayload", payload);
@@ -198,7 +236,7 @@ export async function runTerminalDeclareCommand(args: string[], io: CliIo): Prom
     );
     io.stdout(
       parsed.values.json
-        ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, canonicalizationAssessment, ...payload }, null, 2)}\n`
+        ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, canonicalizationAssessment, knowledgeLifecycleIssues, ...payload }, null, 2)}\n`
         : `Terminal turn disposition declared.\nobservation: ${parsed.values.observation}\nrepositoryRevision: ${repository.revision}\ncanonicalization: ${canonicalizationAssessment?.status ?? "not_applicable"}\n`,
     );
     return 0;

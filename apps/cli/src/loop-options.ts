@@ -9,6 +9,7 @@ export const loopUsage = [
   "  lervo loop status [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--root <path>] [--json]",
   "  lervo loop board [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--root <path>]",
   "  lervo loop objective [--root <path>] [--json]",
+  "  lervo loop goal [--root <path>] [--json]",
   "  lervo loop budget [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--root <path>] [--json]",
   "  lervo loop thread --assignment <id> [--root <path>] [--json]",
   "  lervo loop inbox --agent <id> [--root <path>] [--json]",
@@ -27,6 +28,7 @@ export type ParsedLoopOptions =
   | (LoopOptionsBase & { action: "board" })
   | (LoopOptionsBase & { action: "budget" })
   | (LoopOptionsBase & { action: "objective" })
+  | (LoopOptionsBase & { action: "goal" })
   | (LoopOptionsBase & { action: "thread"; assignmentId: string })
   | (LoopOptionsBase & { action: "inbox"; recipientAgentId: string })
   | (LoopOptionsBase & { action: "status" })
@@ -142,7 +144,7 @@ export function parseLoopOptions(args: string[], cwd: string): ParsedLoopOptions
     }
     return { ...base, action };
   }
-  if (action === "objective" || action === "budget") {
+  if (action === "objective" || action === "goal" || action === "budget") {
     if (parsed.positionals.length > 0) {
       throw new Error(`Loop ${action} accepts no request text.`);
     }

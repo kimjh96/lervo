@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7a608d519bbe676c9d09937a
+outputLanguage: en
+outputs:
+  - byteCount: 5618
+    contentHash: sha256:8ed8967b3d4aa50fabc6c0d2701b509748ad91fad183d4a5690ba1562fbacb54
+    path: docs/evidence/foundation/execution-performance-v1.md
+    userRegionHash: sha256:8ed8967b3d4aa50fabc6c0d2701b509748ad91fad183d4a5690ba1562fbacb54
+profile: repository_document
+recordId: knormdoc_f6761fe4c26cb52ed87d2c3f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:442de0f9d9212ddddde9bfebca2130f13dbb49de47f5d7320017f00d376ac5df
+sourcePath: docs/evidence/foundation/execution-performance-v1.md
+sourceUnitVersionIds:
+  - uv_0104f7d2ead481ea39893be7
+  - uv_41ca0645d34749858d0fbef5
+  - uv_860744c88fea1180993d4bc7
+  - uv_87ea70438bcd65b1729cf07b
+  - uv_c0e734706aa87ca3048516d2
+  - uv_c9bab9849578d743a28c13e8

@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c227ac915718f10484e2e6e2
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4f183b184bcc84f0029e3309
+outputLanguage: en
+outputs:
+  - byteCount: 3998
+    contentHash: sha256:d213c4fdfd011ab591c33ffbe79c44e64c3bf8bac8437a2d33053c8aa5161611
+    path: apps/cli/README.md
+    userRegionHash: sha256:d213c4fdfd011ab591c33ffbe79c44e64c3bf8bac8437a2d33053c8aa5161611
+profile: human_readme
+recordId: knormdoc_56cf7a8343d4d9802f95ccad
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d213c4fdfd011ab591c33ffbe79c44e64c3bf8bac8437a2d33053c8aa5161611
+sourcePath: apps/cli/README.md
+sourceUnitVersionIds:
+  - uv_1fb772eba0a6236ec8161f9d
+  - uv_37be6042f483f8a81241c10c
+  - uv_6ef0d5286ca435f9e16be36c
+  - uv_8496e16bd6ac53b052dc44a6
+  - uv_a388b958d766ad291ec00690
+  - uv_c24279a12c0f6beb441db7a9
+  - uv_ca9984e1867c2cf3e06ff70c

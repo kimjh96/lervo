@@ -97,6 +97,7 @@ export type HubWorkspaceSummaryState =
   | "provisioning"
   | "ready"
   | "active"
+  | "paused"
   | "sealing"
   | "sealed"
   | "integration_pending"
@@ -292,6 +293,7 @@ export function isHubWorkspaceSummary(value: unknown): value is HubWorkspaceSumm
       "provisioning",
       "ready",
       "active",
+      "paused",
       "sealing",
       "sealed",
       "integration_pending",

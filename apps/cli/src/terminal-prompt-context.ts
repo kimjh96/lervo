@@ -1,9 +1,12 @@
+import type { OperatingAttentionReportV1 } from "@lervo/application-contract";
 import { captureRepositorySnapshot, type RepositorySnapshot } from "@lervo/orchestrator";
 import { openProjectStorage } from "@lervo/project-storage";
 import type { SearchQueryProjectionReceipt } from "@lervo/search";
 import {
   canonicalJson,
   formatWorkstreamContext,
+  listCanonicalizationCandidates,
+  scanConfiguredRepositoryKnowledge,
   sha256,
   type KnowledgeQueryHit,
   type TerminalIntegrationProvider,
@@ -15,6 +18,9 @@ import { assembleTerminalHookContext } from "./terminal-context-assembly.js";
 import { loadSelectedTerminalDocument } from "./terminal-context-loading.js";
 import { selectTerminalContextCandidates } from "./terminal-context-selection.js";
 import { inspectTerminalInstructionCatalog } from "./terminal-durable-instruction.js";
+import { formatTerminalAttentionContext } from "./operating-attention-format.js";
+import { createOperatingAttentionReport } from "./operating-attention-projection.js";
+import { readTerminalKnowledgeLifecycleCache } from "./terminal-knowledge-lifecycle-cache.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
 import type { CliServices } from "./types.js";
@@ -50,6 +56,7 @@ export interface PreparedTerminalPromptContext {
     deliveredByteCount: number;
     context: string;
   } | null;
+  attention: OperatingAttentionReportV1;
   grounding: {
     requestDigest: string;
     queryDigest: string;
@@ -103,41 +110,61 @@ export async function prepareTerminalPromptContext(input: {
   services: Pick<CliServices, "projectSearchQueries">;
   timing: TerminalStageObservationPort;
 }): Promise<PreparedTerminalPromptContext> {
-  const { supplementalSources, instructionCatalog, currentWorkstream, projectId } =
-    await input.timing.measure("corpus_preparation", async () => {
-      const supplementalSources = await collectLocalKnowledgeSources(input.root);
+  const {
+    supplementalSources,
+    instructionCatalog,
+    currentWorkstream,
+    canonicalization,
+    projectId,
+    preparedKnowledge,
+  } = await input.timing.measure("corpus_preparation", async () => {
+    const supplementalSources = await collectLocalKnowledgeSources(input.root);
+    const workstreamStorage = await openProjectStorage(input.root);
+    try {
+      const [preparedKnowledge, currentWorkstream, canonicalization] = await Promise.all([
+        scanConfiguredRepositoryKnowledge(input.root, { supplementalSources }),
+        verifiedCurrentWorkstream(workstreamStorage),
+        listCanonicalizationCandidates(input.root).then(
+          (candidates) => ({ coverage: "complete" as const, candidates }),
+          () => ({ coverage: "unavailable" as const, candidates: [] }),
+        ),
+      ]);
       const instructionCatalog = await inspectTerminalInstructionCatalog({
         repositoryRoot: input.root,
         supplementalSources,
+        preparedKnowledge,
       });
-      const workstreamStorage = await openProjectStorage(input.root);
-      try {
-        return {
-          supplementalSources,
-          instructionCatalog,
-          currentWorkstream: await verifiedCurrentWorkstream(workstreamStorage),
-          projectId: workstreamStorage.manifest.projectId,
-        };
-      } finally {
-        await workstreamStorage.close();
-      }
-    });
+      return {
+        supplementalSources,
+        instructionCatalog,
+        currentWorkstream,
+        canonicalization,
+        projectId: workstreamStorage.manifest.projectId,
+        preparedKnowledge,
+      };
+    } finally {
+      await workstreamStorage.close();
+    }
+  });
   const searchProjectionContext =
     currentWorkstream === null
       ? { context: { contextRequirement: "none" }, contextAnchors: [] }
       : createCurrentWorkstreamSearchProjectionContext(currentWorkstream);
   const requestDigest = sha256(input.prompt);
-  const queryProjection = await input.timing.measure("query_projection", () =>
-    input.services.projectSearchQueries({
-      request: input.prompt,
-      requestDigest,
-      context: searchProjectionContext.context,
-      contextDigest: sha256(canonicalJson(searchProjectionContext.context)),
-      contextAnchors: searchProjectionContext.contextAnchors,
-      requestedLanguage: instructionCatalog.semanticCatalog.retrievalLanguage,
-      provider: input.provider,
-    }),
-  );
+  const [queryProjection, repositorySnapshot] = await Promise.all([
+    input.timing.measure("query_projection", () =>
+      input.services.projectSearchQueries({
+        request: input.prompt,
+        requestDigest,
+        context: searchProjectionContext.context,
+        contextDigest: sha256(canonicalJson(searchProjectionContext.context)),
+        contextAnchors: searchProjectionContext.contextAnchors,
+        requestedLanguage: instructionCatalog.semanticCatalog.retrievalLanguage,
+        provider: input.provider,
+      }),
+    ),
+    input.timing.measure("repository_snapshot", () => captureRepositorySnapshot(input.root)),
+  ]);
   const grounding = {
     status: "abstain" as const,
     workflowId: null,
@@ -153,9 +180,21 @@ export async function prepareTerminalPromptContext(input: {
     targetPath: null,
     reasonIds: ["unmanaged_terminal_retrieval_only"],
   };
-  const repositorySnapshot = await input.timing.measure("repository_snapshot", () =>
-    captureRepositorySnapshot(input.root),
-  );
+  const cachedLifecycleIssues = await readTerminalKnowledgeLifecycleCache({
+    root: input.root,
+    repositoryRevision: repositorySnapshot.revision,
+    supplementalSources,
+  });
+  const attention = createOperatingAttentionReport({
+    projectId,
+    workstream: currentWorkstream,
+    canonicalization,
+    knowledgeLifecycle:
+      cachedLifecycleIssues === null
+        ? { coverage: "unavailable", issues: [] }
+        : { coverage: "cached", issues: cachedLifecycleIssues },
+    observedAt: new Date(),
+  });
   const selection = await input.timing.measure("search", () =>
     selectTerminalContextCandidates({
       repositoryRoot: input.root,
@@ -165,6 +204,7 @@ export async function prepareTerminalPromptContext(input: {
       retrievalQueries: queryProjection.queries,
       sourceSnapshotId: instructionCatalog.sourceSnapshotId,
       supplementalSources,
+      preparedScan: preparedKnowledge.scan,
     }),
   );
   const assembled = await input.timing.measure("context_assembly", async () => {
@@ -190,11 +230,11 @@ export async function prepareTerminalPromptContext(input: {
     const finalizationInstruction =
       input.workspaceBinding?.executionKind === "worker"
         ? [
-            `This direct provider turn is attached to worker workspace ${input.workspaceBinding.workspaceId} generation ${input.workspaceBinding.workspaceGeneration}; provider execution remains unmanaged, while checkout ownership and Stop isolation are evidence-bound.`,
+            `This direct provider turn is ${input.workspaceBinding.attachmentDisposition ?? "attached"} on worker workspace ${input.workspaceBinding.workspaceId} generation ${input.workspaceBinding.workspaceGeneration}; provider execution remains unmanaged, while checkout ownership, checkpointed pause, and Stop isolation are evidence-bound.`,
             "Change only assignment-scoped paths. Worker Stop rechecks the ownership marker, writer session, assignment lease, exact workspace revision, and path-scoped diff, then records a workspace checkpoint. It does not advance the repository-wide workstream or repair knowledge movement owned by another workspace.",
             "Commit only when the task or sealing flow requires it; Lervo never invents or silently commits unfinished bytes.",
           ].join("\n\n")
-        : `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${input.provider} --observation ${input.observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; it is not proof of internal reasoning. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
+        : `For a repository-changing turn, finish repository verification, the final commit or repository-byte change, workstream advancement, and knowledge refresh first. Declare last with \`lervo terminal declare --provider ${input.provider} --observation ${input.observationId} --stdin\`; any later repository-authored byte change or commit makes that declaration stale. The stdin JSON fields are: taskMode=change|review|continuation|approval_response; canonicalizationDisposition=canonical_sources_current|canonical_sources_updated|pending_user_approval; canonicalizationOutcome as one exact v1 object; knowledgeDisposition=current|refreshed|pending_user_approval; deliberationDisposition=not_requested|completed|no_consensus|failed; deliberationId=null unless bound to a completed Lervo deliberation. The outcome must bind every changed noncanonical source path exactly once: use kind=canonical_update with summary and targets[{path,contentHash,sourcePaths}] when canonical bytes changed; kind=no_durable_change with summary, reasonCode=implementation_only|verification_only|already_canonical|transient, and sourcePaths when review should reject durable promotion; or kind=review_draft with summary and drafts[{targetPath,sourcePaths,proposedMarkdown,proposedContentHash}] when exact review is required. This declaration is an unmanaged agent claim checked against repository, knowledge, workstream, and deliberation evidence; proposal bodies remain local candidate state and are not event content or truth. This is agent bookkeeping; never ask the user to run it. A read-only turn needs no declaration.`;
     const workstreamInstruction =
       input.workspaceBinding?.executionKind === "worker"
         ? "The repository-wide current workstream is informational for this worker. Do not advance it as worker completion bookkeeping."
@@ -212,6 +252,7 @@ export async function prepareTerminalPromptContext(input: {
       "The following exact-hash publications were loaded and prepared for return through the provider hook. This proves hook-side preparation, not provider acceptance, managed delivery, understanding, or later use.",
       "Use current repository bytes as authority, follow AGENTS.md, and do not treat a recommendation as semantic truth.",
       `durableInstructionStatus: ${durableInstruction.status}; ruleId: none; targetPath: none; reasons: ${durableInstruction.reasonIds.join(",")}. Direct prompt preparation never materializes a repository rule; use the repository's explicit instruction lifecycle for durable changes.`,
+      formatTerminalAttentionContext(attention),
       "If the final response explicitly relies on a supplied publication, append its exact Lervo evidence marker as a standalone Markdown HTML comment. Keep the marker out of prose and code. Markdown renderers hide the comment, while raw output retains verifiable evidence. A marker proves only an output reference, never understanding or internal use.",
       finalizationInstruction,
       workstreamInstruction,
@@ -276,6 +317,7 @@ export async function prepareTerminalPromptContext(input: {
     repositoryRevision: repositorySnapshot.revision,
     repositoryFiles: repositorySnapshot.files,
     workstream: assembled.workstream,
+    attention,
     grounding: {
       requestDigest,
       queryDigest: queryProjection.receipt.projectedQueryDigest,

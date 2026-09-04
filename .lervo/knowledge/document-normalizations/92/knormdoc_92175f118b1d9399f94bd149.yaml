@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_adda1d4bbcdf973ec6952cce
+outputLanguage: en
+outputs:
+  - byteCount: 2092
+    contentHash: sha256:bae16c54d8ee7200cf670977500da2f541c531a65c67327bc4990c9c531b3378
+    path: docs/decisions/knowledge/repository/canonicalization/0366-refine-canonicalization-and-governed-work-decision-routes.md
+    userRegionHash: sha256:bae16c54d8ee7200cf670977500da2f541c531a65c67327bc4990c9c531b3378
+profile: decision_record
+recordId: knormdoc_92175f118b1d9399f94bd149
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:73318beff295b74da2fdba79586c8541ff72553d9e3ce2f95182cf179babeba0
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0366-refine-canonicalization-and-governed-work-decision-routes.md
+sourceUnitVersionIds:
+  - uv_10f4c7671747a24fb3d3bc92
+  - uv_1bc55438deca5e7fde9c8cca
+  - uv_892182d37a259f9b50106e2e
+  - uv_c93e9b2c5fff4462b642f26b
+  - uv_fcabd7cab30a4a30b49ea80b
+  - uv_ff8cf31f6ddba9075ea792f9

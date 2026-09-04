@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_85bda6f86e0180e33f1bbd2c
+outputLanguage: en
+outputs:
+  - byteCount: 3290
+    contentHash: sha256:4407e9a911aad3a03ee522bc3d895a37d3905409a209dd2195310779eb632c5e
+    path: docs/decisions/execution/applications/0361-project-operating-attention-without-new-authority.md
+    userRegionHash: sha256:4407e9a911aad3a03ee522bc3d895a37d3905409a209dd2195310779eb632c5e
+profile: decision_record
+recordId: knormdoc_438b58ed72e6e6e4c307e97c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ec56a96f40681e6c4767bd5cf4939622c55051bccff57450e58450481d5e2582
+sourcePath: docs/decisions/execution/applications/0361-project-operating-attention-without-new-authority.md
+sourceUnitVersionIds:
+  - uv_1e35c75aba4ecda0d9ee6716
+  - uv_1ebe4660ec52324d4dee2cd3
+  - uv_537094601ef07edd5ab760ee
+  - uv_72c292f1ab8b958f203e1dc1
+  - uv_933f7d87255d987047eca820
+  - uv_c2f25884189946414cb6ba04

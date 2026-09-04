@@ -13,7 +13,7 @@ Direct provider sessions remain `unmanaged`: Lervo can observe hook input bounda
 
 ## Decision
 
-`terminal.context.prepared` binds the repository revision captured before hook telemetry commits. `terminal.turn.observed` binds the before and after revisions and a derived changed flag. This comparison excludes runtime state under `.lervo/state`.
+`terminal.context.prepared` binds the repository revision captured before hook telemetry commits. `terminal.turn.observed` binds the before and after revisions and a derived changed flag, excluding runtime state under `.lervo/state`.
 
 An unchanged turn may complete without creating or advancing a workstream or making a declaration. A changed turn must:
 
@@ -22,7 +22,9 @@ An unchanged turn may complete without creating or advancing a workstream or mak
 3. Invoke `lervo terminal declare` for the exact prepared observation after all repository changes.
 4. Bind any declared cross-provider deliberation to a matching `deliberation.completed` event.
 
-`terminal.turn.declared` stores only an opaque declaration and context event ID, repository revision, task mode, canonicalization disposition, knowledge disposition, deliberation disposition, optional deliberation ID, and time. It stores no prompt, response, summary, path, document body, credential, or raw provider coordinate. The declaration is explicitly an unmanaged agent claim. Repository revision, knowledge lifecycle, workstream state, and deliberation completion are checked independently; internal reasoning remains unsupported.
+[ADR-0362](../../knowledge/repository/canonicalization/0362-bind-terminal-results-to-canonical-outcomes.md) extends the current declaration command with a required local canonicalization outcome. It binds every changed noncanonical source to exact changed canonical targets, a reviewable no-durable-change rationale, or a proposed Markdown draft. Summary and draft bodies remain outside the event payload.
+
+`terminal.turn.declared` stores only an opaque declaration and context event ID, repository revision, task mode, canonicalization disposition, knowledge disposition, deliberation disposition, optional deliberation ID, and time. It stores no prompt, response, summary, path, document body, credential, or raw provider coordinate. The local candidate may store the bounded outcome and draft, but they are not event content or truth. The declaration is explicitly an unmanaged agent claim. Repository revision, exact outcome bindings, knowledge lifecycle, workstream state, and deliberation completion are checked independently; internal reasoning remains unsupported.
 
 Injected context supplies exact provider-specific bookkeeping commands and bounded enum values. Users are never asked to run them. When task-level deliberation is requested, `lervo deliberate --auto --caller <provider>` selects, in order, the highest versioned `repository.default.vN` suite, the historical unversioned default, or exactly one non-pilot suite, then runs the existing managed two-provider workflow.
 

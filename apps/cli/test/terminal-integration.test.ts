@@ -5,7 +5,12 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
-import { claimAssignment, createAssignment, registerAgent } from "@lervo/agent-workforce";
+import {
+  claimAssignment,
+  createAssignment,
+  readWorkspace,
+  registerAgent,
+} from "@lervo/agent-workforce";
 import { applyWorkspaceProvision, planWorkspaceProvision } from "@lervo/orchestrator";
 
 import {
@@ -252,18 +257,9 @@ describe("terminal integration CLI", () => {
     expect(await invoke("UserPromptSubmit")).toBe(0);
     expect(await invoke("Stop")).toBe(0);
 
-    const lifecycleCacheSource = await readFile(
-      resolve(root, ".lervo/state/terminal-integration/knowledge-lifecycle-cache.json"),
-      "utf8",
-    );
-    expect(JSON.parse(lifecycleCacheSource)).toMatchObject({
-      schemaVersion: 1,
-      cliVersion: expect.stringMatching(/^\d+\.\d+\.\d+$/u),
-      repositoryRevision: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
-      supplementalSourcesDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
-      issues: expect.any(Array),
-    });
-    expect(lifecycleCacheSource).not.toContain("Explain the terminal fixture");
+    await expect(
+      access(resolve(root, ".lervo/state/terminal-integration/knowledge-lifecycle-cache.json")),
+    ).rejects.toMatchObject({ code: "ENOENT" });
 
     const storage = await openProjectStorage(root);
     try {
@@ -505,6 +501,42 @@ describe("terminal integration CLI", () => {
     );
   });
 
+  it("keeps retrieval available and marks attention coverage unavailable for an unsafe candidate registry", async () => {
+    const root = await initializedRepository();
+    await mkdir(resolve(root, ".lervo/state/knowledge/canonicalization-candidates/not-safe"), {
+      recursive: true,
+    });
+    const messages: string[] = [];
+    const errors: string[] = [];
+
+    expect(
+      await runCli(["terminal", "hook", "--provider", "codex", "--contract", "2"], {
+        cwd: root,
+        stdout: (message) => messages.push(message),
+        stderr: (message) => errors.push(message),
+        stdin: async () =>
+          JSON.stringify({
+            hook_event_name: "UserPromptSubmit",
+            session_id: "unsafe-attention-registry-session",
+            turn_id: "unsafe-attention-registry-turn",
+            prompt: "Explain the atlas cache.",
+          }),
+      }),
+      errors.join(""),
+    ).toBe(0);
+    expect(errors).toEqual([]);
+    const result = JSON.parse(messages.join("")) as {
+      hookSpecificOutput: { additionalContext: string };
+    };
+    expect(result.hookSpecificOutput.additionalContext).toContain("immutable blue envelopes");
+    expect(result.hookSpecificOutput.additionalContext).toContain(
+      "canonicalizationCoverage: unavailable",
+    );
+    expect(result.hookSpecificOutput.additionalContext).toContain(
+      "Repository attention: action_required",
+    );
+  });
+
   it("allows prompt submission when local context preparation throws", async () => {
     const root = await initializedRepository();
     const messages: string[] = [];
@@ -578,7 +610,11 @@ describe("terminal integration CLI", () => {
 
   it("checkpoints an attached worker without requiring foreign global lifecycle updates", async () => {
     const fixture = await managedWorkerRepository();
-    const invoke = async (event: "UserPromptSubmit" | "Stop", turnId: string) => {
+    const invoke = async (
+      event: "UserPromptSubmit" | "Stop",
+      turnId: string,
+      providerSessionId = "managed-worker-provider-session",
+    ) => {
       const messages: string[] = [];
       const errors: string[] = [];
       expect(
@@ -591,13 +627,13 @@ describe("terminal integration CLI", () => {
               event === "UserPromptSubmit"
                 ? {
                     hook_event_name: event,
-                    session_id: "managed-worker-provider-session",
+                    session_id: providerSessionId,
                     turn_id: turnId,
                     prompt: "Update the assigned document.",
                   }
                 : {
                     hook_event_name: event,
-                    session_id: "managed-worker-provider-session",
+                    session_id: providerSessionId,
                     turn_id: turnId,
                     last_assistant_message: "Done.",
                   },
@@ -650,6 +686,9 @@ describe("terminal integration CLI", () => {
     });
     await writeFile(resolve(fixture.workspacePath, "README.md"), "# Assigned worker change\n");
     expect(await invoke("Stop", "worker-turn-1")).toEqual({});
+    expect(
+      (await readWorkspace(fixture.workspacePath, fixture.workspaceId))?.workspace,
+    ).toMatchObject({ state: "paused", writerSession: null });
 
     const records = await RepositoryCoordinationRecords.open(fixture.workspacePath);
     const checkpoint = (await records.list<Record<string, unknown>>("events")).find(
@@ -662,9 +701,16 @@ describe("terminal integration CLI", () => {
       checkoutClean: false,
     });
 
-    await invoke("UserPromptSubmit", "worker-turn-2");
+    const resumed = await invoke(
+      "UserPromptSubmit",
+      "worker-turn-2",
+      "replacement-worker-provider-session",
+    );
+    expect(resumed.hookSpecificOutput?.additionalContext).toContain(
+      "is resumed on worker workspace",
+    );
     await writeFile(resolve(fixture.workspacePath, "outside-scope.txt"), "foreign\n");
-    const blocked = await invoke("Stop", "worker-turn-2");
+    const blocked = await invoke("Stop", "worker-turn-2", "replacement-worker-provider-session");
     expect(blocked).toMatchObject({
       decision: "block",
       reason: expect.stringContaining("workspace_path_escape"),
@@ -755,6 +801,7 @@ describe("terminal integration CLI", () => {
       stdout: () => undefined,
       stderr: (message: string) => commandErrors.push(message),
     };
+    let rejectedUnsupportedKnowledgeClaim = false;
     const prompt = async (turnId: string) => {
       const messages: string[] = [];
       expect(
@@ -795,10 +842,45 @@ describe("terminal integration CLI", () => {
       const declaration = JSON.stringify({
         taskMode,
         canonicalizationDisposition: "canonical_sources_current",
-        knowledgeDisposition: "current",
+        canonicalizationOutcome: {
+          schemaVersion: 1,
+          kind: "no_durable_change",
+          summary: "The fixture source change is intentionally implementation-only.",
+          reasonCode: "implementation_only",
+          sourcePaths: ["src/feature.ts"],
+        },
+        knowledgeDisposition: "pending_user_approval",
         deliberationDisposition: "not_requested",
         deliberationId: null,
       });
+      if (!rejectedUnsupportedKnowledgeClaim) {
+        expect(
+          await runCli(
+            [
+              "terminal",
+              "declare",
+              "--provider",
+              "claude",
+              "--observation",
+              observation!,
+              "--stdin",
+            ],
+            {
+              ...quiet,
+              stdin: async () =>
+                declaration.replace(
+                  '"knowledgeDisposition":"pending_user_approval"',
+                  '"knowledgeDisposition":"current"',
+                ),
+            },
+          ),
+        ).toBe(1);
+        expect(commandErrors.join("")).toContain(
+          "The declared knowledge disposition is not supported by the current repository lifecycle",
+        );
+        commandErrors.length = 0;
+        rejectedUnsupportedKnowledgeClaim = true;
+      }
       expect(
         await runCli(
           ["terminal", "declare", "--provider", "claude", "--observation", observation!, "--stdin"],
@@ -817,7 +899,8 @@ describe("terminal integration CLI", () => {
 
     const startContext = await prompt("turn-start");
     expect(startContext).toContain("must create a bounded checkpoint");
-    await writeFile(resolve(root, "feature.ts"), "export const firstCheckpoint = true;\n");
+    await mkdir(resolve(root, "src"));
+    await writeFile(resolve(root, "src/feature.ts"), "export const firstCheckpoint = true;\n");
     expect(await stop("turn-start")).toEqual({});
 
     const draft = JSON.stringify({
@@ -864,10 +947,15 @@ describe("terminal integration CLI", () => {
         observedState: "candidate",
         sourceBindings: [
           expect.objectContaining({
-            path: "feature.ts",
+            path: "src/feature.ts",
             responsibility: "architecture_or_specification",
           }),
         ],
+        outcome: expect.objectContaining({
+          kind: "no_durable_change",
+          reasonCode: "implementation_only",
+          sourcePaths: ["src/feature.ts"],
+        }),
       }),
     ]);
     expect(JSON.stringify(canonicalizationCandidates)).not.toMatch(/keyword|prompt|phrase/iu);
@@ -877,7 +965,12 @@ describe("terminal integration CLI", () => {
 
     const updateContext = await prompt("turn-update");
     expect(updateContext).toContain("revision: 1");
-    await writeFile(resolve(root, "feature.ts"), "export const secondCheckpoint = true;\n");
+    expect(updateContext).toContain("Repository attention: action_required");
+    expect(updateContext).toContain("canonicalization_review:kcanon_");
+    expect(updateContext).toContain(
+      "If a current blocking item requires user action, present its bounded question or approval in this turn",
+    );
+    await writeFile(resolve(root, "src/feature.ts"), "export const secondCheckpoint = true;\n");
     expect(await stop("turn-update")).toEqual({});
     const currentOutput: string[] = [];
     expect(

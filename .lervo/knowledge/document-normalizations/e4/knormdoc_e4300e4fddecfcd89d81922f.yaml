@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fbf7bd0a41f629fd16b7cfe7
+outputLanguage: en
+outputs:
+  - byteCount: 4200
+    contentHash: sha256:92cd19c51e8eb8c84d3292429a3261efb1d46f55247588aa70d0a565cddef544
+    path: docs/specifications/execution/operating-attention.md
+    userRegionHash: sha256:92cd19c51e8eb8c84d3292429a3261efb1d46f55247588aa70d0a565cddef544
+profile: specification_document
+recordId: knormdoc_e4300e4fddecfcd89d81922f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4849a62820fa25a7b74969eae14f76285c0073f32b891a672b86e9b4f9fcb409
+sourcePath: docs/specifications/execution/operating-attention.md
+sourceUnitVersionIds:
+  - uv_0fbdbdf3620430d747bda2ec
+  - uv_5734f4607d08504f6d91f149
+  - uv_5e1a54b55e9d25d6d1e82530
+  - uv_7889ee5b5463ecf8c79d069c
+  - uv_a41f1faa03f4d58bdf904e6b
+  - uv_d3d49751d133b9770187434b
+  - uv_dde85a500f72636aaf16b3ca

@@ -126,6 +126,35 @@ describe("typed canonicalization candidates", () => {
         (item) => item.candidateId === staleAssessment.candidate!.candidateId,
       )?.observedState,
     ).toBe("stale");
+
+    const stale = (await listCanonicalizationCandidates(root)).find(
+      (item) => item.candidateId === staleAssessment.candidate!.candidateId,
+    )!;
+    await expect(
+      transitionCanonicalizationCandidate({
+        repositoryRoot: root,
+        candidateId: stale.candidateId,
+        expectedContentHash: stale.contentHash,
+        action: "promote",
+        reviewerId: "reviewer.three",
+        targetPath: "docs/specs/value.md",
+        targetContentHash: targetHash,
+        now: new Date("2026-08-30T00:06:00.000Z"),
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_plan_stale" });
+    const retired = await transitionCanonicalizationCandidate({
+      repositoryRoot: root,
+      candidateId: stale.candidateId,
+      expectedContentHash: stale.contentHash,
+      action: "reject",
+      reviewerId: "reviewer.three",
+      now: new Date("2026-08-30T00:07:00.000Z"),
+    });
+    expect(retired).toMatchObject({
+      state: "rejected",
+      observedState: "rejected",
+      review: { reviewerId: "reviewer.three", decision: "reject" },
+    });
   });
 
   it("reports current when a matching typed canonical source changes in the same turn", async () => {

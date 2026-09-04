@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8276715e814efdf639c4826c
+outputLanguage: en
+outputs:
+  - byteCount: 3933
+    contentHash: sha256:bc88dd5d4fc31b308bd1147abaeec61b8501588f3c0c8f2faf5001adc6b80fb2
+    path: docs/evidence/pilots/verified-improvement-effect-dogfood.md
+    userRegionHash: sha256:bc88dd5d4fc31b308bd1147abaeec61b8501588f3c0c8f2faf5001adc6b80fb2
+profile: repository_document
+recordId: knormdoc_d1682e91f476f96bede95099
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ac5b4bd34417e5acac36311c157369ecdfbd8293220eafae0d35905d5794f00b
+sourcePath: docs/evidence/pilots/verified-improvement-effect-dogfood.md
+sourceUnitVersionIds:
+  - uv_5455cda93519874a38b5f4e3
+  - uv_553e0162e5ddcce8ff618db8
+  - uv_78d6b8c9b83bdf68079653ae
+  - uv_e31a48354eda639495c95f02
+  - uv_f27bb6f87f1df232fe464a70

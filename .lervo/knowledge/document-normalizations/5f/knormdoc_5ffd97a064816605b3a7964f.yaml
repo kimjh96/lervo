@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f0336279c3eb800995ba3c4f
+outputLanguage: en
+outputs:
+  - byteCount: 2384
+    contentHash: sha256:2f2a92fd57ff4c1a5f19ebcd7daa181ba6455d4f82d209572c0dab35affcc86c
+    path: docs/decisions/execution/orchestration/improvement/0345-observe-reviewed-improvement-effects-without-self-learning-claims.md
+    userRegionHash: sha256:2f2a92fd57ff4c1a5f19ebcd7daa181ba6455d4f82d209572c0dab35affcc86c
+profile: decision_record
+recordId: knormdoc_5ffd97a064816605b3a7964f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b2a4e8f43e2d622eba99ec39aad4927bd847f8bc306f8c70b993389bf3aa2379
+sourcePath: docs/decisions/execution/orchestration/improvement/0345-observe-reviewed-improvement-effects-without-self-learning-claims.md
+sourceUnitVersionIds:
+  - uv_4e2e0312b0bcbb19337d83c4
+  - uv_5dfa04bdbd563de499042513
+  - uv_e2660c26e76b0c80b6d0d4a3
+  - uv_f3d87bbb2e55067e98f36290
+  - uv_f6d9b7d51293b6ab0767670f

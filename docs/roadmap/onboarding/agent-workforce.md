@@ -12,7 +12,7 @@ Completed: 2026-08-25
 
 A repository owner starts with `lervo init`. Lervo discovers supported local providers and repository sources, creates a reviewable onboarding transaction, requests only decisions requiring human authority, completes safe generated stages, reports native provider trust actions, and proves readiness. The owner can then assign work in ordinary language without bookkeeping commands.
 
-An agent is not a prompt persona. Its durable record binds a stable agent ID, role contract and version, allowed provider profile, capabilities, skills, responsibility scope, repository membership, status, and creation evidence. A role is reusable; an agent is one repository-scoped assignee. Provider sessions are replaceable execution instances, not identity or memory.
+An agent's durable record binds a stable agent ID, role contract and version, allowed provider profile, capabilities, skills, responsibility scope, repository membership, status, and creation evidence. A role is reusable; an agent is one repository-scoped assignee. Provider sessions are replaceable execution instances, not identity or memory. An agent is not a prompt persona.
 
 ## Required workflow
 
@@ -23,7 +23,7 @@ An agent is not a prompt persona. Its durable record binds a stable agent ID, ro
 5. Natural-language requests resolve an explicit task type and assignee. Ambiguous authority, role, scope, or external effect becomes one bounded pending decision, never an inferred assignment.
 6. Assignments have stable IDs, priority, dependencies, acceptance criteria, verification suites, approval requirements, workstream linkage, and terminal states. Conversation text is not the task record.
 7. Handoffs bind exact artifacts and context evidence. Recipients load them through the ordinary evidence pipeline; shared conversation memory is never assumed.
-8. Finalization automatically refreshes deterministic knowledge and promotes durable outcomes to canonical documents. Rewriting user content or promoting semantic claims still requires the applicable review contract.
+8. Finalization automatically refreshes deterministic knowledge and assesses changed-path responsibility. The agent must bind every changed noncanonical source to exact updated canonical bytes, a no-durable-change rationale, or proposed Markdown in a local review candidate. Lervo does not rewrite or promote user-owned semantic content implicitly.
 9. Local execution works without a Hub. Optional Hub coordination may replicate authorized roster and assignment coordinates but cannot transfer approval authority.
 
 ## Acceptance
@@ -32,7 +32,7 @@ An agent is not a prompt persona. Its durable record binds a stable agent ID, ro
 - Natural language can hire a role, assign work, inspect progress, resolve a pending decision, and retire an agent.
 - Every accepted assignment is resumable in a fresh Codex or Claude session and on another authorized repository node.
 - Role-specific artifacts pass declared schema, evaluation, writing, and project verification gates.
-- Successful finalization makes generated knowledge current; unsafe or semantic user-document changes remain reviewable and unapplied without approval.
+- Successful finalization makes deterministic generated knowledge current and records unmatched durable evidence as a review candidate; semantic canonical updates require responsible content and applicable approval.
 - Schemas, events, diagnostics, and UI distinguish role, agent, provider session, task, workstream, and evidence identities.
 
 ## Dependencies

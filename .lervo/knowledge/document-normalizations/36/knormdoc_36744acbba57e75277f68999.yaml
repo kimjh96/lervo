@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5e1fb11e504a096da98268b2
+outputLanguage: en
+outputs:
+  - byteCount: 3646
+    contentHash: sha256:6a75e04f55b2dec001d669559d4fd11213c4dbc9ff7cbc01bf1953c83823bed4
+    path: docs/decisions/execution/verification/0351-add-bounded-related-runtime-tests.md
+    userRegionHash: sha256:6a75e04f55b2dec001d669559d4fd11213c4dbc9ff7cbc01bf1953c83823bed4
+profile: decision_record
+recordId: knormdoc_36744acbba57e75277f68999
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4495c28b7751f73ee4e1e6a2f6f8a62dcc19cc434715fd466448f98afba3c153
+sourcePath: docs/decisions/execution/verification/0351-add-bounded-related-runtime-tests.md
+sourceUnitVersionIds:
+  - uv_2c9739c8fee0e1225bf572f1
+  - uv_58d901c6e486dc1851df3234
+  - uv_74b8e0bdd4f1096fc154247c
+  - uv_a13475c9bbfeab63b033fb00
+  - uv_c2d1f6a08449d73a8412d152
+  - uv_f0627724661d7e8b88b55bc6

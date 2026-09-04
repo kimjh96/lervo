@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_068a6b395286da00b0a429dc
+outputLanguage: en
+outputs:
+  - byteCount: 3907
+    contentHash: sha256:877674ecb42408028ebcdac930f438ca8bc32ab777a8fc10e334e34f4a66f02c
+    path: docs/evidence/foundation/terminal-direct-query-projection-operational-v1.md
+    userRegionHash: sha256:877674ecb42408028ebcdac930f438ca8bc32ab777a8fc10e334e34f4a66f02c
+profile: repository_document
+recordId: knormdoc_2b373f4fbad57925700df585
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:08e14a1b5b16f9eb6d41ee95968ace37ce77333dedf0663d8c3adb26c05bd152
+sourcePath: docs/evidence/foundation/terminal-direct-query-projection-operational-v1.md
+sourceUnitVersionIds:
+  - uv_0cdce07471d54de3f80aa72e
+  - uv_425546bc37ee50a688c99080
+  - uv_51666ea4185df0d3e7112646
+  - uv_62986e4bed2b4334a80f3250
+  - uv_7aa1b5ef38e4e27ce07c2d2c
+  - uv_d9fb64ac9f03724da7b12a6a
+  - uv_e65a37d7157682c62e7ebcb8

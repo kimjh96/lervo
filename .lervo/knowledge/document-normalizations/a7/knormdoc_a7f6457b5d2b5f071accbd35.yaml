@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a3251d2120c3a604e472af9b
+outputLanguage: en
+outputs:
+  - byteCount: 4335
+    contentHash: sha256:9e16d06a5862f4039c2b777bf22b4e2ae50cce71efd839679133c37eb9d5e17e
+    path: docs/decisions/execution/orchestration/governed-work/0340-add-read-only-local-operating-board.md
+    userRegionHash: sha256:9e16d06a5862f4039c2b777bf22b4e2ae50cce71efd839679133c37eb9d5e17e
+profile: decision_record
+recordId: knormdoc_a7f6457b5d2b5f071accbd35
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:192f8ee1572450ce2623e3fa60bddb026d658b071d567a5ec617ed560eff4b71
+sourcePath: docs/decisions/execution/orchestration/governed-work/0340-add-read-only-local-operating-board.md
+sourceUnitVersionIds:
+  - uv_0734e7cdc0fd8070050f25ec
+  - uv_24f1c31a966daf3efa27346d
+  - uv_49431f85feba7ffb9104920a
+  - uv_a356bd7f87b96e00c0ae6667
+  - uv_e0d4412066d1513c83e96a83
+  - uv_fa645f6103cd90de89cbb1f5

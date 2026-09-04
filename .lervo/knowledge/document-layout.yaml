@@ -73,6 +73,14 @@ routes:
       - contradiction
       - cross provider
       - compilation comparison
+  - id: knowledge.repository.canonicalization
+    path: knowledge/repository/canonicalization
+    priority: 96
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - knowledge candidates
+      - canonicalization
+      - canonical outcomes
   - id: knowledge.repository
     path: knowledge/repository
     priority: 93
@@ -239,6 +247,21 @@ routes:
       - improvement effect
       - improvement observation
       - repeated verification failures
+  - id: execution.orchestration.governed-work
+    path: execution/orchestration/governed-work
+    priority: 58
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - governed loop
+      - assignment approval
+      - managed assignment completion
+      - operating board
+      - current objective
+      - assignment interactions
+      - assignment routines
+      - assignment artifacts
+      - assignments through
+      - workstream goals
   - id: execution.grounding
     path: execution/grounding
     priority: 55

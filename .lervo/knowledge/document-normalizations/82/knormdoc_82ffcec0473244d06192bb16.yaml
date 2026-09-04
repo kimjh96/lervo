@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2092b85953a2133e0691c4b7
+outputLanguage: en
+outputs:
+  - byteCount: 4417
+    contentHash: sha256:3871e785de0dba9efdce1d3062d3819fe67431a6042ffdd6d6a64f1b33752ff1
+    path: docs/decisions/execution/orchestration/governed-work/0342-project-assignment-interactions-from-workforce-handoffs.md
+    userRegionHash: sha256:3871e785de0dba9efdce1d3062d3819fe67431a6042ffdd6d6a64f1b33752ff1
+profile: decision_record
+recordId: knormdoc_82ffcec0473244d06192bb16
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ef5325449036c48c66cd7e790334c041e82a7f14794c7679e178861ee8039c6e
+sourcePath: docs/decisions/execution/orchestration/governed-work/0342-project-assignment-interactions-from-workforce-handoffs.md
+sourceUnitVersionIds:
+  - uv_41aa720a845e067cc0dcfaad
+  - uv_44cbed90dc45e3094f715bcc
+  - uv_beea68a0eb974bbdc99894d8
+  - uv_c2efcbc20909fe9c52c563fd
+  - uv_c5fe6729860579a1de5106bf
+  - uv_daf6afc8f207a8e2a25c274a

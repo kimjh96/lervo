@@ -1,6 +1,10 @@
-import type { ProductHostCapabilityReportV1 } from "@lervo/application-contract";
+import type {
+  ProductHostCapabilityReport,
+  ProductHostCapabilityReportV1,
+  ProductHostCapabilityReportV2,
+} from "@lervo/application-contract";
 
-export function createProductHostCapabilityReport(): ProductHostCapabilityReportV1 {
+function createProductHostCapabilityReportV1(): ProductHostCapabilityReportV1 {
   return {
     schemaVersion: 1,
     kind: "product_host.capabilities",
@@ -290,4 +294,56 @@ export function createProductHostCapabilityReport(): ProductHostCapabilityReport
       "unmanaged_terminal_execution",
     ],
   };
+}
+
+function createProductHostCapabilityReportV2(): ProductHostCapabilityReportV2 {
+  const versionOne = createProductHostCapabilityReportV1();
+  return {
+    schemaVersion: 2,
+    kind: "product_host.capabilities",
+    protocol: {
+      transport: "local_cli",
+      version: 2,
+      discoveryCommand: ["application", "capabilities", "--protocol", "2", "--json"],
+      requiresHub: false,
+    },
+    canonicalAuthorities: versionOne.canonicalAuthorities,
+    projections: [...versionOne.projections, "operating_attention", "operating_goal"],
+    routes: [
+      ...versionOne.routes,
+      {
+        routeId: "operating_attention.inspect",
+        area: "operating",
+        operation: "query",
+        contractVersion: 1,
+        resultContract: "operating_attention_report",
+        command: ["application", "attention", "--json"],
+        output: "json",
+        effect: "none",
+        authority: "read_only",
+        availability: "available",
+      },
+      {
+        routeId: "operating_goal.inspect",
+        area: "operating",
+        operation: "query",
+        contractVersion: 1,
+        resultContract: "operating_goal_report",
+        command: ["loop", "goal", "--json"],
+        output: "json",
+        effect: "none",
+        authority: "read_only",
+        availability: "available",
+      },
+    ],
+    unsupported: versionOne.unsupported,
+  };
+}
+
+export function createProductHostCapabilityReport(
+  protocolVersion: 1 | 2 = 1,
+): ProductHostCapabilityReport {
+  return protocolVersion === 1
+    ? createProductHostCapabilityReportV1()
+    : createProductHostCapabilityReportV2();
 }

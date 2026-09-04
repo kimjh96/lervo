@@ -37,6 +37,7 @@ export async function inspectTerminalLifecycle(
     changed: expected !== undefined && expected.repositoryRevision !== currentRepository.revision,
   };
   const issues: TerminalLifecycleInspection["issues"] = [];
+  let repositoryKnowledgeInspectionRequired = expected === undefined;
   let workspace: TerminalLifecycleInspection["workspace"] = null;
   if (expected?.workspaceBinding !== null && expected?.workspaceBinding !== undefined) {
     workspace = await inspectTerminalWorkspace({
@@ -105,7 +106,9 @@ export async function inspectTerminalLifecycle(
           command: `lervo terminal declare --provider ${expected.provider} --observation ${expected.observationId} --stdin`,
         });
       } else {
-        if (declaration.payload.repositoryRevision !== currentRepository.revision) {
+        const declarationRevisionCurrent =
+          declaration.payload.repositoryRevision === currentRepository.revision;
+        if (!declarationRevisionCurrent) {
           issues.push({
             code: "turn_declaration_stale",
             command: `lervo terminal declare --provider ${expected.provider} --observation ${expected.observationId} --stdin`,
@@ -133,14 +136,21 @@ export async function inspectTerminalLifecycle(
               "obtain the required user decision before applying or completing the repository change",
           });
         }
-        if (
-          !terminalDeliberationDeclarationMatches(workstreamStorage.events, declaration.payload)
-        ) {
+        const deliberationCurrent = terminalDeliberationDeclarationMatches(
+          workstreamStorage.events,
+          declaration.payload,
+        );
+        if (!deliberationCurrent) {
           issues.push({
             code: "deliberation_declaration_invalid",
             command: "complete or accurately redeclare the requested deliberation lifecycle",
           });
         }
+        repositoryKnowledgeInspectionRequired =
+          declarationRevisionCurrent &&
+          declaration.payload.knowledgeDisposition !== "not_applicable_read_only" &&
+          declaration.payload.knowledgeDisposition !== "pending_user_approval" &&
+          deliberationCurrent;
       }
     }
   } catch {
@@ -157,13 +167,15 @@ export async function inspectTerminalLifecycle(
           : "terminal_integration_stale",
       command: "lervo migrate knowledge",
     });
-  issues.push(
-    ...(await inspectTerminalRepositoryKnowledgeLifecycle({
-      root,
-      repositoryRevision: currentRepository.revision,
-      supplementalSources,
-    })),
-  );
+  if ((expected === undefined || issues.length === 0) && repositoryKnowledgeInspectionRequired) {
+    issues.push(
+      ...(await inspectTerminalRepositoryKnowledgeLifecycle({
+        root,
+        repositoryRevision: currentRepository.revision,
+        supplementalSources,
+      })),
+    );
+  }
   const activation = await readTerminalActivationReceipts(root);
   const runtimeActivation = await inspectTerminalRuntimeActivation(root, activation);
   return {

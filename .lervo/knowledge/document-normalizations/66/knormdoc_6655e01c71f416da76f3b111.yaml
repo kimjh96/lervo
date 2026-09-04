@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e4fca2771f7c92eb1ebf0320
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8ae1744bc722582e94b75301
+outputLanguage: en
+outputs:
+  - byteCount: 2407
+    contentHash: sha256:2a6e4374825d85a240c5bda2925df0f09b12c395c4748546b714103b215d9fb3
+    path: docs/decisions/knowledge/documents/0367-bound-human-readme-normalization-to-package-guide.md
+    userRegionHash: sha256:2a6e4374825d85a240c5bda2925df0f09b12c395c4748546b714103b215d9fb3
+profile: decision_record
+recordId: knormdoc_6655e01c71f416da76f3b111
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a82bdf553b3d99a109a1ba0fb026853c1052ff3d42b49def9405a1775d8c4ed3
+sourcePath: docs/decisions/knowledge/documents/0367-bound-human-readme-normalization-to-package-guide.md
+sourceUnitVersionIds:
+  - uv_6b1310aed240c1fbca4ce349
+  - uv_6d547c122c5aa4e4ecde9abd
+  - uv_a56fd562f978b49caf126343
+  - uv_c63de3c7e32ea2de4abc6e53
+  - uv_c8ef179c9cfd3fafe85574e3
+  - uv_f3226fa0fd0db9db83bff92e

@@ -4,6 +4,7 @@ export type WorkspaceState =
   | "provisioning"
   | "ready"
   | "active"
+  | "paused"
   | "sealing"
   | "sealed"
   | "integration_pending"
@@ -18,6 +19,7 @@ export type WorkspaceState =
 export interface WorkspaceWriterSession {
   sessionId: string;
   startedAt: string;
+  lastSeenAt?: string;
 }
 
 export interface WorkspaceVerificationResult {

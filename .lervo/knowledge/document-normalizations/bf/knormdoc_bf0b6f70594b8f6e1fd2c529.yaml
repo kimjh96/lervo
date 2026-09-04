@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5b082aba4fdf8221052cfaae
+outputLanguage: en
+outputs:
+  - byteCount: 3662
+    contentHash: sha256:3b172812fd625ed31c85231628b8182a25b23c35aa043a410f79ae1eff3a4954
+    path: docs/decisions/knowledge/repository/canonicalization/0030-evidence-bound-knowledge-candidates.md
+    userRegionHash: sha256:3b172812fd625ed31c85231628b8182a25b23c35aa043a410f79ae1eff3a4954
+profile: decision_record
+recordId: knormdoc_bf0b6f70594b8f6e1fd2c529
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:71bd0a2b60fa303f0f5ebfd98886d74d68bbe0aea7bfa5324936ecb83370822b
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0030-evidence-bound-knowledge-candidates.md
+sourceUnitVersionIds:
+  - uv_7934f3cadcdaba54337c50c6
+  - uv_b21d60d2c371c32ecd02c42c
+  - uv_c9fe382347e7f13620d1403b
+  - uv_d3fc9e14a61f587b43a63031
+  - uv_d949d9e090a23874ca972a05
+  - uv_d9c70cb3e6ff69256a9b87c0
+  - uv_e0bc86c51fc9c6d0e3625788
+  - uv_f035871b11d65c25d2db65dc

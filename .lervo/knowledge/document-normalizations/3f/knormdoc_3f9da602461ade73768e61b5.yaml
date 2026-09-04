@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_49588f5ea3333874d3b8bf32
+outputLanguage: en
+outputs:
+  - byteCount: 4062
+    contentHash: sha256:83076500e13cbb22ebd0596e3d243027b4315d362c1c1a9f9cc3a07274e294e0
+    path: docs/decisions/operations/trace/0334-project-provider-resources-into-one-work-report.md
+    userRegionHash: sha256:83076500e13cbb22ebd0596e3d243027b4315d362c1c1a9f9cc3a07274e294e0
+profile: decision_record
+recordId: knormdoc_3f9da602461ade73768e61b5
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0354368ef0b97bf01aa5d331366819541409c783c74a7c49e502b2fb81940987
+sourcePath: docs/decisions/operations/trace/0334-project-provider-resources-into-one-work-report.md
+sourceUnitVersionIds:
+  - uv_4c3d4521f5530ff6434f9ed4
+  - uv_60efbae0a7f6908ecc11cc7a
+  - uv_b37dd389ed0a706ade9dda1d
+  - uv_cc97dc5ee506c2eedd6de166
+  - uv_e7caa8ee71b2f374ee325efe
+  - uv_f9578cdf5cb8594b3fa155d6

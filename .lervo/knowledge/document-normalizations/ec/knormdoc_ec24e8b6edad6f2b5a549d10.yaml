@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8e962ec33a6e733a9e086684
+outputLanguage: en
+outputs:
+  - byteCount: 8767
+    contentHash: sha256:d0cdeb80035669ff7b2fd08fffca6e49bceec9f43f291d2fea66f964925742e5
+    path: docs/decisions/execution/providers/hooks/0353-remove-redundant-terminal-query-admission.md
+    userRegionHash: sha256:d0cdeb80035669ff7b2fd08fffca6e49bceec9f43f291d2fea66f964925742e5
+profile: decision_record
+recordId: knormdoc_ec24e8b6edad6f2b5a549d10
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:354f215b92086034fea5869a4e3953fafe07fac813cc352bcdffdb9090d2a095
+sourcePath: docs/decisions/execution/providers/hooks/0353-remove-redundant-terminal-query-admission.md
+sourceUnitVersionIds:
+  - uv_0c2d81d52aad8d747a53d2ad
+  - uv_2ea49ef28ab373443a7cd91b
+  - uv_4ea5d9430bc9aa8e587561d9
+  - uv_92ba582449817ded61244449
+  - uv_9f9c16a4bfab8a1175473cb6
+  - uv_e5dee7bcb1c04bcc03e29187
+  - uv_f5c500ff1229eac167ed58f8

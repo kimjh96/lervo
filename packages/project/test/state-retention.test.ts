@@ -15,6 +15,7 @@ import {
 const roots: string[] = [];
 const evidence = (overrides: Partial<StateRetentionEvidence> = {}): StateRetentionEvidence => ({
   completedNormalizationCandidateIds: new Set(),
+  completedCanonicalizationCandidateIds: new Set(),
   completedDeliberationIds: new Set(),
   activeDeliberationIds: new Set(),
   ...overrides,
@@ -37,6 +38,7 @@ async function fixture(): Promise<string> {
     ".lervo/state/knowledge/current/inventory.json",
     ".lervo/state/knowledge/normalization-shards/cache.json",
     ".lervo/state/knowledge/normalization-candidates/aa/knorm_aaaaaaaaaaaaaaaaaaaaaaaa.json",
+    ".lervo/state/knowledge/canonicalization-candidates/aa/kcanon_aaaaaaaaaaaaaaaaaaaaaaaa.json",
     ".lervo/state/deliberations/dlb_completed123/work.json",
     ".lervo/state/deliberations/dlb_active123/checkpoint.json",
     ".lervo/state/search/performance-reports/report.json",
@@ -55,6 +57,7 @@ describe("typed derived-state retention", () => {
     const plan = await planStatePrune({
       repositoryRoot: root,
       evidence: evidence({
+        completedCanonicalizationCandidateIds: new Set(["kcanon_aaaaaaaaaaaaaaaaaaaaaaaa"]),
         completedDeliberationIds: new Set(["dlb_completed123"]),
         activeDeliberationIds: new Set(["dlb_active123"]),
       }),
@@ -65,6 +68,7 @@ describe("typed derived-state retention", () => {
     expect(plan.operations.map((item) => item.retentionClass).toSorted()).toEqual([
       "bounded_observation",
       "completed_workspace",
+      "rebuildable_cache",
       "rebuildable_cache",
     ]);
     expect(plan.summaries.find((item) => item.retentionClass === "pending_review")?.fileCount).toBe(
@@ -80,6 +84,7 @@ describe("typed derived-state retention", () => {
   it("applies an exact plan, preserves durable data, and leaves protected state", async () => {
     const root = await fixture();
     const completionEvidence = evidence({
+      completedCanonicalizationCandidateIds: new Set(["kcanon_aaaaaaaaaaaaaaaaaaaaaaaa"]),
       completedDeliberationIds: new Set(["dlb_completed123"]),
       activeDeliberationIds: new Set(["dlb_active123"]),
     });
@@ -100,7 +105,7 @@ describe("typed derived-state retention", () => {
       },
     });
 
-    expect(receipt.removedFiles).toBe(3);
+    expect(receipt.removedFiles).toBe(4);
     expect(recorded).toEqual([plan.planId]);
     expect(await readFile(resolve(root, ".lervo/data/cas/durable"), "utf8")).toContain("durable");
     expect(
@@ -120,6 +125,7 @@ describe("typed derived-state retention", () => {
   it("rejects stale plans and rolls back when durable event recording fails", async () => {
     const root = await fixture();
     const completionEvidence = evidence({
+      completedCanonicalizationCandidateIds: new Set(["kcanon_aaaaaaaaaaaaaaaaaaaaaaaa"]),
       completedDeliberationIds: new Set(["dlb_completed123"]),
       activeDeliberationIds: new Set(["dlb_active123"]),
     });
@@ -171,6 +177,7 @@ describe("typed derived-state retention", () => {
   it("does not invalidate a prune approval when an always-protected current projection advances", async () => {
     const root = await fixture();
     const completionEvidence = evidence({
+      completedCanonicalizationCandidateIds: new Set(["kcanon_aaaaaaaaaaaaaaaaaaaaaaaa"]),
       completedDeliberationIds: new Set(["dlb_completed123"]),
       activeDeliberationIds: new Set(["dlb_active123"]),
     });

@@ -4,6 +4,8 @@ import {
   durableInstructionCatalogEntry,
   scanConfiguredRepositoryKnowledge,
   type GroundedDurableInstruction,
+  type RepositoryKnowledgePolicy,
+  type RepositoryKnowledgeScan,
   type RepositorySupplementalSource,
 } from "@lervo/repository-knowledge";
 
@@ -43,10 +45,16 @@ export interface TerminalDurableInstructionResult {
 export async function inspectTerminalInstructionCatalog(input: {
   repositoryRoot: string;
   supplementalSources: RepositorySupplementalSource[];
+  preparedKnowledge?: {
+    policy: RepositoryKnowledgePolicy;
+    scan: RepositoryKnowledgeScan;
+  };
 }): Promise<TerminalInstructionCatalog> {
-  const { policy, scan } = await scanConfiguredRepositoryKnowledge(input.repositoryRoot, {
-    supplementalSources: input.supplementalSources,
-  });
+  const { policy, scan } =
+    input.preparedKnowledge ??
+    (await scanConfiguredRepositoryKnowledge(input.repositoryRoot, {
+      supplementalSources: input.supplementalSources,
+    }));
   const sources = scan.sources
     .filter(
       (source) =>

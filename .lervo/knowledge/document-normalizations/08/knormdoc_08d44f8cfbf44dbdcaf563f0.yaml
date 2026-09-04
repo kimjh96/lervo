@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d463d11b8722192ea81f70f9
+outputLanguage: en
+outputs:
+  - byteCount: 4027
+    contentHash: sha256:0d222078765c3aaa074ce40132c8ab67234951042cba8e6c4c623b7f492f571d
+    path: docs/decisions/execution/orchestration/governed-work/0344-deliver-assignment-artifacts-through-injected-connectors.md
+    userRegionHash: sha256:0d222078765c3aaa074ce40132c8ab67234951042cba8e6c4c623b7f492f571d
+profile: decision_record
+recordId: knormdoc_08d44f8cfbf44dbdcaf563f0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b92691db10116e145aefaad283179fc7ce1fab8d75351229a096e9208129264e
+sourcePath: docs/decisions/execution/orchestration/governed-work/0344-deliver-assignment-artifacts-through-injected-connectors.md
+sourceUnitVersionIds:
+  - uv_03f513a6865a85f826ea546b
+  - uv_04e237ecbede839f80bb7795
+  - uv_176a68a822413a26488d61bb
+  - uv_3a2a206e5bea4435ff171f75
+  - uv_53d6f76fbdaf314a19e203b7
+  - uv_6de424055a60c038ec316820

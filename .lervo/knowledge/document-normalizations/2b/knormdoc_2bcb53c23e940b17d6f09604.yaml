@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4420e41b223b9bb770b854df
+outputLanguage: en
+outputs:
+  - byteCount: 9413
+    contentHash: sha256:7f8f0004acb493d7a660c975b6ad76c5984c036ec3b7dd771bad4229d137fcf6
+    path: docs/specifications/execution/adverse-condition-safety.md
+    userRegionHash: sha256:7f8f0004acb493d7a660c975b6ad76c5984c036ec3b7dd771bad4229d137fcf6
+profile: specification_document
+recordId: knormdoc_2bcb53c23e940b17d6f09604
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:92b173fcce4903dad7b35a71c1fd4f693b9b40cdc7de7f7cb48e1dadffd63e66
+sourcePath: docs/specifications/execution/adverse-condition-safety.md
+sourceUnitVersionIds:
+  - uv_053511b8149c136d41096308
+  - uv_1367e5653ae57b31fa9784ae
+  - uv_160ec4b03375ecc9a9002e8a
+  - uv_3698f1024bc6c46755a64e86
+  - uv_4f7b64ce2ce88a992b978fef
+  - uv_607a1d74a12d9df42a0d7c60
+  - uv_67d44dd833fc767a274c3d48
+  - uv_92e96c1fe7d68ee9085dc70e
+  - uv_981379f82c0dd1d668112eaa
+  - uv_9dfca598b046a8ba10432998

@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e2b0c0e88ab6701a97a02490
+outputLanguage: en
+outputs:
+  - byteCount: 3676
+    contentHash: sha256:62219d037f35c3591116b8bce2cdbed7631ddcea31ef1db4a7dfc7ac65d7d51c
+    path: docs/decisions/execution/orchestration/improvement/0349-expose-local-improvement-observations-through-an-explicit-cli-host.md
+    userRegionHash: sha256:62219d037f35c3591116b8bce2cdbed7631ddcea31ef1db4a7dfc7ac65d7d51c
+profile: decision_record
+recordId: knormdoc_fc2cc9af919cc66d15988f2e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:73f8a96bb4e2458178eec2e3c28efb7be96235fcc2e2cb96c2ddd445c2f25ae4
+sourcePath: docs/decisions/execution/orchestration/improvement/0349-expose-local-improvement-observations-through-an-explicit-cli-host.md
+sourceUnitVersionIds:
+  - uv_17ed4e56638f504793701617
+  - uv_26ad581e838d0fb2db77741c
+  - uv_3ad177ba5156747d20ef984b
+  - uv_6206b9c5e3a049fc7adf82b6
+  - uv_c8d8e1ebe093d62269585b5c
+  - uv_d6cce2f4b8c287155d0236f8

@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_dea43adf758acb19fd132411
+outputLanguage: en
+outputs:
+  - byteCount: 4007
+    contentHash: sha256:41519be8edcdc2d7f5bd90562b73fd9c5cc7698a75378ca0a16edbd68d915736
+    path: docs/decisions/execution/orchestration/governed-work/0343-materialize-exact-assignment-routines-from-manual-triggers.md
+    userRegionHash: sha256:41519be8edcdc2d7f5bd90562b73fd9c5cc7698a75378ca0a16edbd68d915736
+profile: decision_record
+recordId: knormdoc_181106621db933a69eaa0165
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8341689f3b8e959d06142ea8a362a6cd401e738924a753a99d27fc2d598e83f0
+sourcePath: docs/decisions/execution/orchestration/governed-work/0343-materialize-exact-assignment-routines-from-manual-triggers.md
+sourceUnitVersionIds:
+  - uv_37d6598ed8d9d41dd645eed8
+  - uv_54b0d6223e4cc3977d4a4850
+  - uv_5da6dc20920e581782ff8f44
+  - uv_760af2cc37d38d3b97f163b9
+  - uv_8aa375b8dd450b829e6825e0
+  - uv_ab2f9aefce2b0ec5a925241d

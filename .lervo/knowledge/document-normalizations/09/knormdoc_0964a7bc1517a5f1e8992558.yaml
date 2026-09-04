@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_7d9e313f7e7bc1c071425e84
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fb433552232b7f13dbd6e639
+outputLanguage: en
+outputs:
+  - byteCount: 9589
+    contentHash: sha256:b444ea3570390ae219226fee7b6b5637dd2e79ba31b24aaca9d5194795acb4ee
+    path: docs/roadmap/knowledge/document-normalization-renewal.md
+    userRegionHash: sha256:b444ea3570390ae219226fee7b6b5637dd2e79ba31b24aaca9d5194795acb4ee
+profile: roadmap_document
+recordId: knormdoc_0964a7bc1517a5f1e8992558
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:02c289897fecb47b89108b678aa3babc55e693e25edae481e5b14f04df44feac
+sourcePath: docs/roadmap/knowledge/document-normalization-renewal.md
+sourceUnitVersionIds:
+  - uv_0755494c1eeb5f41deba1f74
+  - uv_0cb85f1c364bb66b46052347
+  - uv_3fb68657b4c5e1d7e1dca946
+  - uv_45a9c197baf8cce13efefc23
+  - uv_5899712d61b56be3852a976a
+  - uv_63f11dcec5547e6dc8a8447b
+  - uv_679baa50cafbd6287749bc06
+  - uv_8935c48cdeac8724a97e39f7
+  - uv_d393b87f1dc21989195dd9c1
+  - uv_d3d53e148b266a734cfd4f6c

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type {
   AssignmentCommunicationReportV1,
   GovernedWorkReportV1,
+  OperatingGoalReportV1,
   OperatingObjectiveReportV1,
 } from "@lervo/application-contract";
 
@@ -167,6 +168,42 @@ function communications(): AssignmentCommunicationReportV1 {
   };
 }
 
+function goal(): OperatingGoalReportV1 {
+  return {
+    schemaVersion: 1,
+    kind: "operating_goal.report",
+    projectId: "prj_fixture001",
+    observedAt: "2026-09-01T00:01:00.000Z",
+    goal: {
+      goalId: workstreamId,
+      authoritySource: "workstream",
+      revision: 7,
+      status: "active",
+      title: "Current operating objective",
+      objective: "Keep evidence and authority separate.",
+      updatedAt: "2026-09-01T00:00:00.000Z",
+    },
+    hierarchy: { kind: "workstream_assignment_dag", graph: report().graph },
+    progress: {
+      total: 1,
+      queued: 0,
+      active: 1,
+      blocked: 0,
+      failed: 0,
+      completed: 0,
+      cancelled: 0,
+    },
+    completion: { status: "active", reasonCodes: [] },
+    authority: {
+      createsGoal: false,
+      changesWorkstream: false,
+      changesAssignments: false,
+      startsProvider: false,
+    },
+    limitations: ["Projection only."],
+  };
+}
+
 function io() {
   const stdout: string[] = [];
   const stderr: string[] = [];
@@ -253,6 +290,23 @@ describe("loop command", () => {
     expect(await runLoopCommand(["objective"], output.value, services)).toBe(0);
     expect(output.stdout.join("")).toContain("Keep evidence and authority separate.");
     expect(inspectGovernedWork).not.toHaveBeenCalled();
+  });
+
+  it("renders the composed goal lifecycle without starting managed work", async () => {
+    const output = io();
+    const executeManagedRun = vi.fn();
+    const services = {
+      inspectOperatingGoal: vi.fn(async () => goal()),
+      executeManagedRun,
+    } as unknown as CliServices;
+
+    expect(await runLoopCommand(["goal", "--json"], output.value, services)).toBe(0);
+    expect(JSON.parse(output.stdout.join(""))).toMatchObject({
+      kind: "operating_goal.report",
+      completion: { status: "active" },
+      authority: { createsGoal: false, startsProvider: false },
+    });
+    expect(executeManagedRun).not.toHaveBeenCalled();
   });
 
   it("reads assignment threads and inboxes without inspecting governed work", async () => {

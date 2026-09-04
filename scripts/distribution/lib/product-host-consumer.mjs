@@ -1,30 +1,13 @@
 import assert from "node:assert/strict";
-import { writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-const routeIds = [
-  "workforce_agent.inspect",
-  "workforce_agent.hire",
-  "workforce_agent.status",
-  "workforce_assignment.inspect",
-  "workforce_assignment.create",
-  "workforce_assignment.claim",
-  "workforce_assignment.renew",
-  "workforce_assignment.cancel",
-  "workforce_assignment.handoff",
-  "workforce_assignment.complete",
-  "operating_objective.inspect",
-  "governed_work.inspect",
-  "observed_budget.inspect",
-  "operating_board.render",
-  "assignment_thread.inspect",
-  "assignment_inbox.inspect",
-  "governed_attempt.execute",
-  "governed_completion.reconcile",
-  "assignment_mention.route",
-  "assignment_routine.materialize",
-  "assignment_connector.route",
-];
+import { verifyPackedProductHostCapabilities } from "./product-host-capability-consumer.mjs";
+
+function sha256(value) {
+  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
 
 function parsed(result) {
   assert.equal(result.stderr, "");
@@ -32,50 +15,7 @@ function parsed(result) {
 }
 
 export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
-  const capabilities = parsed(await runCli(["application", "capabilities", "--json"]));
-  assert.equal(capabilities.schemaVersion, 1);
-  assert.equal(capabilities.kind, "product_host.capabilities");
-  assert.deepEqual(capabilities.protocol, {
-    transport: "local_cli",
-    version: 1,
-    discoveryCommand: ["application", "capabilities", "--json"],
-    requiresHub: false,
-  });
-  assert.deepEqual(
-    capabilities.routes.map((route) => route.routeId),
-    routeIds,
-  );
-  assert.equal(
-    capabilities.routes
-      .filter((route) => route.effect === "none")
-      .every((route) => route.authority === "read_only"),
-    true,
-  );
-  assert.deepEqual(
-    capabilities.routes.find((route) => route.routeId === "assignment_connector.route"),
-    {
-      routeId: "assignment_connector.route",
-      area: "collaboration",
-      operation: "command",
-      contractVersion: 1,
-      resultContract: "assignment_connector_route_result",
-      command: ["assignment", "connector"],
-      output: "json",
-      effect: "external_delivery",
-      authority: "injected_adapter",
-      availability: "adapter_required_for_effect",
-    },
-  );
-  assert.deepEqual(capabilities.unsupported, [
-    "product_ui",
-    "product_database",
-    "unattended_scheduling",
-    "dynamic_graph_mutation",
-    "implicit_approval",
-    "unmanaged_terminal_execution",
-  ]);
-  assert.equal(JSON.stringify(capabilities).includes("workspace:"), false);
-  assert.equal(JSON.stringify(capabilities).includes("@lervo/"), false);
+  const capabilitiesV2 = await verifyPackedProductHostCapabilities(runCli);
 
   const initialAgents = parsed(await runCli(["agent", "list", "--json"]));
   assert.equal(initialAgents.schemaVersion, 1);
@@ -127,6 +67,83 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   );
   assert.equal(workstream.status, "active");
 
+  const prepared = parsed(
+    await runCli(
+      ["terminal", "hook", "--provider", "codex", "--contract", "2"],
+      JSON.stringify({
+        hook_event_name: "UserPromptSubmit",
+        session_id: "packed-canonicalization-session",
+        turn_id: "packed-canonicalization-turn",
+        prompt: "Record the durable outcome for the product-host fixture.",
+      }),
+    ),
+  );
+  const observationId = /--observation (tobs_[A-Za-z0-9_-]+)/u.exec(
+    prepared.hookSpecificOutput.additionalContext,
+  )?.[1];
+  assert.match(observationId, /^tobs_[A-Za-z0-9_-]+$/u);
+  await writeFile(
+    resolve(consumerRoot, "product-host-fixture.ts"),
+    "export const packedCanonicalization = true;\n",
+    "utf8",
+  );
+  const proposedMarkdown =
+    "# Product-host fixture\n\nThe packed canonicalization fixture is enabled.\n";
+  const declaration = parsed(
+    await runCli(
+      [
+        "terminal",
+        "declare",
+        "--provider",
+        "codex",
+        "--observation",
+        observationId,
+        "--stdin",
+        "--json",
+      ],
+      JSON.stringify({
+        taskMode: "change",
+        canonicalizationDisposition: "pending_user_approval",
+        canonicalizationOutcome: {
+          schemaVersion: 1,
+          kind: "review_draft",
+          summary: "The packed fixture proposes a durable specification update.",
+          drafts: [
+            {
+              targetPath: "docs/specs/product-host-fixture.md",
+              sourcePaths: ["product-host-fixture.ts"],
+              proposedMarkdown,
+              proposedContentHash: sha256(proposedMarkdown),
+            },
+          ],
+        },
+        knowledgeDisposition: "pending_user_approval",
+        deliberationDisposition: "not_requested",
+        deliberationId: null,
+      }),
+    ),
+  );
+  assert.equal(declaration.status, "declared");
+  assert.equal(declaration.canonicalizationAssessment.status, "pending");
+  const canonicalizationCandidate = declaration.canonicalizationAssessment.candidate;
+  assert.equal(canonicalizationCandidate.outcome.kind, "review_draft");
+  assert.deepEqual(canonicalizationCandidate.outcome.drafts[0], {
+    targetPath: "docs/specs/product-host-fixture.md",
+    sourcePaths: ["product-host-fixture.ts"],
+    proposedMarkdown,
+    proposedContentHash: sha256(proposedMarkdown),
+  });
+  const candidateStatus = parsed(
+    await runCli([
+      "knowledge",
+      "canonicalization",
+      "status",
+      canonicalizationCandidate.candidateId,
+      "--json",
+    ]),
+  );
+  assert.equal(candidateStatus.candidates[0].contentHash, canonicalizationCandidate.contentHash);
+
   const assignment = parsed(
     await runCli([
       "assignment",
@@ -157,6 +174,78 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   const objective = parsed(await runCli(["loop", "objective", "--json"]));
   assert.equal(objective.workstreamId, workstream.workstreamId);
   assert.equal(objective.objective, draft.objective);
+  const goal = parsed(await runCli(["loop", "goal", "--json"]));
+  assert.equal(goal.kind, "operating_goal.report");
+  assert.equal(goal.goal.goalId, workstream.workstreamId);
+  assert.equal(goal.hierarchy.kind, "workstream_assignment_dag");
+  assert.deepEqual(
+    goal.hierarchy.graph.nodes.map((node) => node.assignmentId),
+    [assignment.assignmentId],
+  );
+  assert.equal(goal.completion.status, "active");
+  assert.deepEqual(goal.authority, {
+    createsGoal: false,
+    changesWorkstream: false,
+    changesAssignments: false,
+    startsProvider: false,
+  });
+
+  const attention = parsed(await runCli(["application", "attention", "--json"]));
+  assert.equal(attention.schemaVersion, 1);
+  assert.equal(attention.kind, "operating_attention.report");
+  assert.equal(attention.workstream.workstreamId, workstream.workstreamId);
+  assert.equal(attention.coverage.workstream, "current");
+  assert.equal(attention.coverage.canonicalization, "complete");
+  assert.equal(attention.coverage.knowledgeLifecycle, "complete");
+  assert.match(attention.reportDigest, /^sha256:[a-f0-9]{64}$/u);
+  assert.equal(
+    attention.limitations.includes(
+      "This report is a read-only projection and grants no review, approval, write, provider, or external-effect authority.",
+    ),
+    true,
+  );
+  assert.equal(
+    attention.items.some(
+      (item) =>
+        item.itemId === canonicalizationCandidate.candidateId &&
+        item.outcomeKind === "review_draft" &&
+        item.hasProposedContent === true &&
+        item.requiresUserAction === true,
+    ),
+    true,
+  );
+  await mkdir(resolve(consumerRoot, "docs/specs"), { recursive: true });
+  await writeFile(
+    resolve(consumerRoot, "docs/specs/product-host-fixture.md"),
+    proposedMarkdown,
+    "utf8",
+  );
+  const promotedCandidate = parsed(
+    await runCli([
+      "knowledge",
+      "canonicalization",
+      "promote",
+      canonicalizationCandidate.candidateId,
+      "--target",
+      "docs/specs/product-host-fixture.md",
+      "--target-hash",
+      sha256(proposedMarkdown),
+      "--reviewer",
+      "packed.fixture",
+      "--approval",
+      canonicalizationCandidate.contentHash,
+      "--json",
+    ]),
+  );
+  assert.equal(promotedCandidate.observedState, "promoted");
+  assert.equal(promotedCandidate.promotion.targetPath, "docs/specs/product-host-fixture.md");
+  const attentionAfterPromotion = parsed(await runCli(["application", "attention", "--json"]));
+  assert.equal(
+    attentionAfterPromotion.items.some(
+      (item) => item.itemId === canonicalizationCandidate.candidateId,
+    ),
+    false,
+  );
 
   const governedWork = parsed(await runCli(["loop", "status", "--json"]));
   assert.equal(governedWork.workstreamId, workstream.workstreamId);
@@ -188,11 +277,11 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   assert.equal(board.stdout.includes(assignment.assignmentId), true);
 
   return {
-    protocolVersion: capabilities.protocol.version,
-    routeCount: capabilities.routes.length,
-    workforceRouteCount: capabilities.routes.filter((route) => route.area === "workforce").length,
-    operatingRouteCount: capabilities.routes.filter((route) => route.area === "operating").length,
-    collaborationRouteCount: capabilities.routes.filter((route) => route.area === "collaboration")
+    protocolVersion: capabilitiesV2.protocol.version,
+    routeCount: capabilitiesV2.routes.length,
+    workforceRouteCount: capabilitiesV2.routes.filter((route) => route.area === "workforce").length,
+    operatingRouteCount: capabilitiesV2.routes.filter((route) => route.area === "operating").length,
+    collaborationRouteCount: capabilitiesV2.routes.filter((route) => route.area === "collaboration")
       .length,
   };
 }

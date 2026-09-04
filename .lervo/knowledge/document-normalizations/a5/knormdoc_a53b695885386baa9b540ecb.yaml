@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_51dc1ab1bd898118b70905e2
+outputLanguage: en
+outputs:
+  - byteCount: 4670
+    contentHash: sha256:511467238ca05d0df914375eb2c08eee3fddf17881915acb6183a13c7e59c9fb
+    path: docs/decisions/operations/trace/0354-enforce-scope-complete-resource-and-terminal-budgets.md
+    userRegionHash: sha256:511467238ca05d0df914375eb2c08eee3fddf17881915acb6183a13c7e59c9fb
+profile: decision_record
+recordId: knormdoc_a53b695885386baa9b540ecb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:be1318ac4165cc91ea59127dd234f7f04fdcb63e8b6c0c992ca55fd79a66fd20
+sourcePath: docs/decisions/operations/trace/0354-enforce-scope-complete-resource-and-terminal-budgets.md
+sourceUnitVersionIds:
+  - uv_2501978bcdd4ae6e41ff86b0
+  - uv_3a28bde0e9e418769bf60e64
+  - uv_4c7c3fc9e195aaf2f5de025e
+  - uv_a38b3af41c4241bfbc16baa8
+  - uv_bd91d542c4d0710349e1b1c7
+  - uv_c41a26336c90b1c0cb17914c

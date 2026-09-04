@@ -22,7 +22,8 @@ const SAFE_PATH = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))(?!.*\\)(?!.*\0).{1,1024}$/u
 const transitions: Readonly<Record<WorkspaceState, readonly WorkspaceState[]>> = {
   provisioning: ["ready", "recovery_required"],
   ready: ["active", "recovery_required"],
-  active: ["sealing", "recovery_required"],
+  active: ["active", "paused", "sealing", "recovery_required"],
+  paused: ["active", "sealing", "recovery_required"],
   sealing: ["sealed", "recovery_required"],
   sealed: ["integration_pending", "recovery_required"],
   integration_pending: ["integrating", "integration_conflict", "recovery_required"],
@@ -53,7 +54,11 @@ function validTime(value: string): boolean {
 function validSession(value: WorkspaceWriterSession | null): boolean {
   return (
     value === null ||
-    (/^ses_[A-Za-z0-9_-]{8,128}$/u.test(value.sessionId) && validTime(value.startedAt))
+    (/^ses_[A-Za-z0-9_-]{8,128}$/u.test(value.sessionId) &&
+      validTime(value.startedAt) &&
+      (value.lastSeenAt === undefined ||
+        (validTime(value.lastSeenAt) &&
+          Date.parse(value.lastSeenAt) >= Date.parse(value.startedAt))))
   );
 }
 
@@ -148,6 +153,7 @@ export function isAgentWorkspace(value: AgentWorkspace): boolean {
         !value.ownerWorkspacePath.includes("\0") &&
         isAbsolute(value.ownerWorkspacePath))) &&
     validSession(value.writerSession) &&
+    Object.hasOwn(transitions, value.state) &&
     (value.sealedResult === null || validSeal(value.sealedResult)) &&
     (value.integrationQueueEntryId === null ||
       /^inq_[a-f0-9]{24}$/u.test(value.integrationQueueEntryId)) &&
@@ -185,6 +191,11 @@ function validateTransitionEvidence(input: {
   if (nextState === "active") {
     if (input.writerSession === undefined || input.writerSession === null)
       fail("workspace_transition_conflict", "Workspace activation requires one writer session.");
+  }
+  if (nextState === "paused") {
+    requireEvidence(evidence, ["writerFrozen"]);
+    if (input.writerSession !== null)
+      fail("workspace_transition_conflict", "Workspace pause must release its writer session.");
   }
   if (nextState === "sealing") {
     requireEvidence(evidence, ["writerFrozen"]);

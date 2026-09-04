@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -36,6 +37,51 @@ export async function runPnpm(args, options = {}) {
     return execFileAsync(process.execPath, [process.env.npm_execpath, ...args], commandOptions);
   }
   return execFileAsync("pnpm", args, commandOptions);
+}
+
+export async function runPnpmWithInput(args, input, options = {}) {
+  const commandOptions = {
+    cwd: repositoryRoot,
+    env: process.env,
+    ...options,
+  };
+  const executable = process.env.npm_execpath ? process.execPath : "pnpm";
+  const commandArgs = process.env.npm_execpath ? [process.env.npm_execpath, ...args] : args;
+  return new Promise((resolvePromise, rejectPromise) => {
+    const child = spawn(executable, commandArgs, {
+      cwd: commandOptions.cwd,
+      env: commandOptions.env,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    const stdout = [];
+    const stderr = [];
+    let byteCount = 0;
+    const append = (target, chunk) => {
+      byteCount += chunk.byteLength;
+      if (byteCount > 10 * 1024 * 1024) {
+        child.kill();
+        rejectPromise(new Error("The pnpm command output exceeded 10 MiB."));
+        return;
+      }
+      target.push(chunk);
+    };
+    child.stdout.on("data", (chunk) => append(stdout, chunk));
+    child.stderr.on("data", (chunk) => append(stderr, chunk));
+    child.once("error", rejectPromise);
+    child.once("close", (code) => {
+      const result = {
+        stdout: Buffer.concat(stdout).toString("utf8"),
+        stderr: Buffer.concat(stderr).toString("utf8"),
+      };
+      if (code === 0) resolvePromise(result);
+      else {
+        const error = new Error(`The pnpm command exited with code ${String(code)}.`);
+        Object.assign(error, result);
+        rejectPromise(error);
+      }
+    });
+    child.stdin.end(input);
+  });
 }
 
 export function pnpmDeployFetchArgs(platform = process.platform) {

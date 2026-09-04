@@ -13,7 +13,8 @@ export const workspaceSummaryTransitions: Readonly<
 > = {
   provisioning: ["ready", "recovery_required"],
   ready: ["active", "recovery_required"],
-  active: ["sealing", "recovery_required"],
+  active: ["paused", "sealing", "recovery_required"],
+  paused: ["active", "sealing", "recovery_required"],
   sealing: ["sealed", "recovery_required"],
   sealed: ["integration_pending", "recovery_required"],
   integration_pending: ["integrating", "integration_conflict", "recovery_required"],

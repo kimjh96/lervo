@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_02a5102dd0c6c0a2dbc45f30
+outputLanguage: en
+outputs:
+  - byteCount: 5638
+    contentHash: sha256:c0b060c7ca959cdfb08e5b846f0bdd6e3941be758505fbff1936b3815cc51597
+    path: docs/decisions/execution/verification/0352-escalate-opaque-runtime-changes.md
+    userRegionHash: sha256:c0b060c7ca959cdfb08e5b846f0bdd6e3941be758505fbff1936b3815cc51597
+profile: decision_record
+recordId: knormdoc_bac4730c8f8f2ce11b11438f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:54496ecfda4d71f9ae19d6b422f55d4ff99bc9a5b15fa1288d6450718eed42c8
+sourcePath: docs/decisions/execution/verification/0352-escalate-opaque-runtime-changes.md
+sourceUnitVersionIds:
+  - uv_059287b96d83d2e82b7b3066
+  - uv_10331ed58faa5be8e5c5be45
+  - uv_3dd235220e3ee0b69dcf7264
+  - uv_72bfd841918bcd0a0eb6284d
+  - uv_98861800bb7cbe0454235108
+  - uv_af9fbc87cf7983284eead673
+  - uv_b6f5403237dc8357b67089eb
+  - uv_f378a9b32d812af214664b7e

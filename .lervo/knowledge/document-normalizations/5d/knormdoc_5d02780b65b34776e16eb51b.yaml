@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_771b70db260ecccae906fdc9
+outputLanguage: en
+outputs:
+  - byteCount: 1071
+    contentHash: sha256:93e4842a3b03d99cad37066b0f1a335537f90c9780c3dbdd6ffa7715c2ed2795
+    path: docs/instructions/evidence-bound-improvement-observations.md
+    userRegionHash: sha256:93e4842a3b03d99cad37066b0f1a335537f90c9780c3dbdd6ffa7715c2ed2795
+profile: instruction_document
+recordId: knormdoc_5d02780b65b34776e16eb51b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b6e747387a6f860e44f497e88e5ab7c023cc4fc79cda2715bc3344b0e7ce2d12
+sourcePath: docs/instructions/evidence-bound-improvement-observations.md
+sourceUnitVersionIds:
+  - uv_8dfe92a8b06e263819f6d4b0

@@ -9,6 +9,7 @@ import {
 
 import { executeGovernedAttempt } from "./governed-attempt-runner.js";
 import { executeCompletionReconciliation } from "./governed-completion-reconciliation-command.js";
+import { formatOperatingGoal } from "./operating-goal-format.js";
 import { loopUsage, parseLoopOptions } from "./loop-options.js";
 import {
   formatGovernedWorkReport,
@@ -40,6 +41,13 @@ export async function runLoopCommand(
           : formatOperatingObjective(objective),
       );
       return 0;
+    }
+    if (options.action === "goal") {
+      const goal = await services.inspectOperatingGoal({
+        repositoryRoot: options.repositoryRoot,
+      });
+      io.stdout(options.json ? `${JSON.stringify(goal, null, 2)}\n` : formatOperatingGoal(goal));
+      return goal.completion.status === "inconsistent" ? 1 : 0;
     }
     if (options.action === "thread" || options.action === "inbox") {
       const communications = await services.inspectAssignmentCommunications({

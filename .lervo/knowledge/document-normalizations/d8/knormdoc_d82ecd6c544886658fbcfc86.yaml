@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_76691eeeb0ca5c561a49c588
+outputLanguage: en
+outputs:
+  - byteCount: 5407
+    contentHash: sha256:03709ad66d0e96f70659c0230593c5c248ae6ab2f9a8493ca91212209f2701c3
+    path: docs/roadmap/foundation-hardening/verification-and-handoff.md
+    userRegionHash: sha256:03709ad66d0e96f70659c0230593c5c248ae6ab2f9a8493ca91212209f2701c3
+profile: roadmap_document
+recordId: knormdoc_d82ecd6c544886658fbcfc86
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a2afedbe60e72c1d85593b8dd62c5f4bbb8e23dac9270f0b16a6c4d9eced8ff8
+sourcePath: docs/roadmap/foundation-hardening/verification-and-handoff.md
+sourceUnitVersionIds:
+  - uv_3a25fb50c935acddedda0fb8
+  - uv_3a5996b09674e213ead4fe88
+  - uv_40842f68e330897f9fc797b1
+  - uv_5ce5588daac06ac90387cf82
+  - uv_7cb102db71945b7aee4f47fc
+  - uv_8421c62de563aec1ead1a300
+  - uv_a958fdccf28515ffbc68fd3e

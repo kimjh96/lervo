@@ -41,6 +41,7 @@ export const defaultStateRetentionPolicy: StateRetentionPolicy = {
 
 export interface StateRetentionEvidence {
   completedNormalizationCandidateIds: ReadonlySet<string>;
+  completedCanonicalizationCandidateIds: ReadonlySet<string>;
   completedDeliberationIds: ReadonlySet<string>;
   activeDeliberationIds: ReadonlySet<string>;
 }

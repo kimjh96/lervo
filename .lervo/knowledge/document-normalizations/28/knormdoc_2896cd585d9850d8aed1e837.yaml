@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_caff63928e9dc603a704bce0
+outputLanguage: en
+outputs:
+  - byteCount: 6336
+    contentHash: sha256:8d3bcdf6cd34de82195114975390a87340579132ca2a5d8e17c5f7bca71700e1
+    path: docs/decisions/operations/trace/0335-record-and-verify-bounded-execution-stage-evidence.md
+    userRegionHash: sha256:8d3bcdf6cd34de82195114975390a87340579132ca2a5d8e17c5f7bca71700e1
+profile: decision_record
+recordId: knormdoc_2896cd585d9850d8aed1e837
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2f4c809529ad3549648a17e22d2f3c70f8dc0fc12f552444e03a9ad190799e04
+sourcePath: docs/decisions/operations/trace/0335-record-and-verify-bounded-execution-stage-evidence.md
+sourceUnitVersionIds:
+  - uv_4138a0d1448779ef0320e3a0
+  - uv_5e72533f878d9cc251deae54
+  - uv_6a20d482d31e3b1841fad83b
+  - uv_89c5390e905c5643f1b7ffae
+  - uv_8f7040c665f03b75540b5b8c
+  - uv_ad511d4e412dac564bfc7f12

@@ -56,6 +56,83 @@ describe("application command", () => {
     expect(output.stderr).toEqual([]);
   });
 
+  it("discovers operating attention additively through protocol version 2", async () => {
+    const output = io();
+
+    expect(
+      await runApplicationCommand(["capabilities", "--protocol", "2", "--json"], output.value),
+    ).toBe(0);
+    const report = JSON.parse(output.stdout.join(""));
+    expect(report.schemaVersion).toBe(2);
+    expect(report.protocol).toEqual({
+      transport: "local_cli",
+      version: 2,
+      discoveryCommand: ["application", "capabilities", "--protocol", "2", "--json"],
+      requiresHub: false,
+    });
+    expect(report.routes.at(-1)).toEqual({
+      routeId: "operating_goal.inspect",
+      area: "operating",
+      operation: "query",
+      contractVersion: 1,
+      resultContract: "operating_goal_report",
+      command: ["loop", "goal", "--json"],
+      output: "json",
+      effect: "none",
+      authority: "read_only",
+      availability: "available",
+    });
+    expect(report.routes.at(-2)).toEqual({
+      routeId: "operating_attention.inspect",
+      area: "operating",
+      operation: "query",
+      contractVersion: 1,
+      resultContract: "operating_attention_report",
+      command: ["application", "attention", "--json"],
+      output: "json",
+      effect: "none",
+      authority: "read_only",
+      availability: "available",
+    });
+    expect(report.projections).toContain("operating_attention");
+    expect(report.projections).toContain("operating_goal");
+  });
+
+  it("renders the injected read-only attention report", async () => {
+    const output = io();
+    const report = {
+      schemaVersion: 1 as const,
+      kind: "operating_attention.report" as const,
+      projectId: "prj_0123456789abcdef",
+      workstream: null,
+      observedAt: "2026-09-04T00:00:00.000Z",
+      reportDigest: `sha256:${"a".repeat(64)}`,
+      status: "current" as const,
+      coverage: {
+        workstream: "missing" as const,
+        canonicalization: "complete" as const,
+        knowledgeLifecycle: "complete" as const,
+      },
+      summary: {
+        totalCount: 0,
+        truncatedCount: 0,
+        blockingCount: 0,
+        userActionCount: 0,
+        staleCount: 0,
+      },
+      items: [],
+      limitations: ["Projection only."],
+    };
+
+    expect(
+      await runApplicationCommand(["attention", "--json"], output.value, {
+        inspectOperatingAttention: async () => report,
+      }),
+    ).toBe(0);
+    expect(JSON.parse(output.stdout.join(""))).toEqual(report);
+    expect(output.stderr).toEqual([]);
+  });
+
   it("keeps external delivery adapter-required and product authority unsupported", () => {
     const report = createProductHostCapabilityReport();
     const connector = report.routes.find((route) => route.routeId === "assignment_connector.route");

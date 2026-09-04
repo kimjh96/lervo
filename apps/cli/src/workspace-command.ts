@@ -3,7 +3,12 @@ import { lstat } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import { listWorkspaces, readWorkspace, readWorkspaceCleanupJournal } from "@lervo/agent-workforce";
+import {
+  listWorkspaces,
+  observeWorkspaceWriterLiveness,
+  readWorkspace,
+  readWorkspaceCleanupJournal,
+} from "@lervo/agent-workforce";
 import {
   applyWorkspaceCleanup,
   planWorkspaceCleanup,
@@ -64,6 +69,7 @@ async function runInspect(args: string[], io: CliIo): Promise<number> {
   const workspaces = (await listWorkspaces(root)).filter(
     (workspace) => workspace.pathDigest === pathDigest && workspace.state !== "removed",
   );
+  const observedAt = new Date();
   const inspections = await Promise.all(
     workspaces.map(async (workspace) => {
       const marker = {
@@ -78,7 +84,12 @@ async function runInspect(args: string[], io: CliIo): Promise<number> {
       };
       const markerHashMatched = digest(marker) === workspace.markerHash;
       if (workspace.host.kind !== "git")
-        return { workspace, markerHashMatched, hostInspection: null };
+        return {
+          workspace,
+          markerHashMatched,
+          hostInspection: null,
+          writerLiveness: observeWorkspaceWriterLiveness({ workspace, observedAt }),
+        };
       const host = new GitWorkspaceHostAdapter();
       const hostInspection =
         host.version === workspace.host.version
@@ -89,7 +100,12 @@ async function runInspect(args: string[], io: CliIo): Promise<number> {
               marker,
             })
           : null;
-      return { workspace, markerHashMatched, hostInspection };
+      return {
+        workspace,
+        markerHashMatched,
+        hostInspection,
+        writerLiveness: observeWorkspaceWriterLiveness({ workspace, observedAt }),
+      };
     }),
   );
   const status =
@@ -100,7 +116,17 @@ async function runInspect(args: string[], io: CliIo): Promise<number> {
           inspections[0]!.hostInspection?.status === "present"
         ? "current"
         : "action_required";
-  const report = { schemaVersion: 1, status, repositoryRoot: root, pathDigest, inspections };
+  const report = {
+    schemaVersion: 1,
+    status,
+    repositoryRoot: root,
+    pathDigest,
+    observedAt: observedAt.toISOString(),
+    inspections,
+    limitations: [
+      "A stale writer observation does not prove provider termination and never releases writer or assignment authority.",
+    ],
+  };
   if (parsed.values.json) io.stdout(`${JSON.stringify(report, null, 2)}\n`);
   else
     io.stdout(

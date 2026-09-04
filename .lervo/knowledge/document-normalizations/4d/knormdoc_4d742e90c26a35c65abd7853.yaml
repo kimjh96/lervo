@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1c84b6c7ab1312daa5ee6df0
+outputLanguage: en
+outputs:
+  - byteCount: 2902
+    contentHash: sha256:877604a61e4909caade7d7b73a24dca2bee9a558ee4a08d2c427ea3a7491228d
+    path: docs/decisions/execution/orchestration/0363-checkpointed-terminal-workspace-pause-and-liveness.md
+    userRegionHash: sha256:877604a61e4909caade7d7b73a24dca2bee9a558ee4a08d2c427ea3a7491228d
+profile: decision_record
+recordId: knormdoc_4d742e90c26a35c65abd7853
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e3c47b7e42aab03947780247eef6f810e6501040772ba6645d2bc445eba49869
+sourcePath: docs/decisions/execution/orchestration/0363-checkpointed-terminal-workspace-pause-and-liveness.md
+sourceUnitVersionIds:
+  - uv_094773baea114f7636ae8122
+  - uv_1a0492d66b8a0bf44fb6e092
+  - uv_4914edbb869522cdbe097c8a
+  - uv_e93b4aea515dfb0767f8d9e6
+  - uv_f911a27b6da09b946e59307c

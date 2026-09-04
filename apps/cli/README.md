@@ -4,7 +4,7 @@ Lervo manages local AI-agent execution, evidence, and repository knowledge. Init
 
 ## Requirements
 
-Node.js 22.13 or later.
+Node.js 22.13+.
 
 ## Install
 
@@ -12,7 +12,7 @@ Node.js 22.13 or later.
 npm install --global @lervo/cli
 ```
 
-From a built checkout:
+From a checkout:
 
 ```sh
 pnpm install
@@ -23,7 +23,7 @@ lervo --version
 
 ## First use
 
-Run from the repository root:
+From the repository root:
 
 ```sh
 lervo init --name my-project
@@ -35,7 +35,7 @@ lervo --help
 
 Preview initialization with `lervo init --dry-run --name my-project`. Initialization completes safe generated stages, creates the initial developer agent, and reports remaining authority boundaries. Migration preserves user bytes without exact approval.
 
-After installing a newer CLI, `lervo upgrade` plans capability, knowledge, hook-runtime, lint, and registered-Node reconciliation. Apply its exact plan; user and provider authority remains separate.
+After installing a newer CLI, run `lervo upgrade`, review its exact reconciliation plan, then apply it. User and provider authority remain separate.
 
 ## Semantic knowledge
 
@@ -56,7 +56,7 @@ Compilation does not prove truth. Conflicts and managed-block changes require ex
 
 ## Documents and provider entrypoints
 
-Use `lervo knowledge structure delete|move|split|merge` with the reviewed plan ID and every required exact item approval. Use `lervo knowledge normalize` for the reviewed content stage; it is also available through `migrate knowledge --provider`.
+Use `lervo knowledge structure delete|move|split|merge` with the reviewed plan and exact item approvals. Use `lervo knowledge normalize` for reviewed content; it is also available through `migrate knowledge --provider`.
 
 `lervo knowledge instruction bridge --provider claude` keeps `AGENTS.md` canonical and manages only the `@AGENTS.md` bridge in `CLAUDE.md`.
 

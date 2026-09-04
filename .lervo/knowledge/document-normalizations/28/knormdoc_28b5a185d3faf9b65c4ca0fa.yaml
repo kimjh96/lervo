@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c53c032858fcfee8c3ebbeb9
+outputLanguage: en
+outputs:
+  - byteCount: 8331
+    contentHash: sha256:6af2013725c29706d6d9798e400cf1ae1c52ad886adce7478f57f01fb2a47335
+    path: docs/decisions/knowledge/repository/canonicalization/0303-branch-safe-knowledge-reconciliation-and-canonicalization.md
+    userRegionHash: sha256:6af2013725c29706d6d9798e400cf1ae1c52ad886adce7478f57f01fb2a47335
+profile: decision_record
+recordId: knormdoc_28b5a185d3faf9b65c4ca0fa
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f4eb4121e1de26d434236076cd901b6fbeaa2febac99103e25d5da02fdfd1c61
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0303-branch-safe-knowledge-reconciliation-and-canonicalization.md
+sourceUnitVersionIds:
+  - uv_2385b02263d04aba19e18bc2
+  - uv_3beb762fe947fa844c1b63a1
+  - uv_3f1db3419edf0b6da683d58a
+  - uv_8c04d69621958163f95337fb
+  - uv_a73163e25cd76ed805c922e7
+  - uv_ab358788970767de28f2b372
+  - uv_c0d4543463457a9935c2c2bc
+  - uv_cfc3362531900c4f46be1e5c
+  - uv_d2fb98e2d8eaf5069656d657
+  - uv_e384c41c14741f2ed84dadf0
+  - uv_ed6f3d0582d08f2296957c8d

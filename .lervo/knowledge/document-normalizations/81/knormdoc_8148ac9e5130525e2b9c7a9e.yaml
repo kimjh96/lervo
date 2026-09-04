@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2df0e60d914dfe40ad9e0a34
+outputLanguage: en
+outputs:
+  - byteCount: 4647
+    contentHash: sha256:b2ba28da0461398e2c1dfb8d520d909a4e518fb2d6fe3fb10d160675427a6b93
+    path: docs/decisions/operations/trace/0356-reuse-exact-terminal-knowledge-lifecycle-inspections.md
+    userRegionHash: sha256:b2ba28da0461398e2c1dfb8d520d909a4e518fb2d6fe3fb10d160675427a6b93
+profile: decision_record
+recordId: knormdoc_8148ac9e5130525e2b9c7a9e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5b8466a066f6bf46026a14d96e0439f827aabf9ffd8f6c59a669f1c668316b72
+sourcePath: docs/decisions/operations/trace/0356-reuse-exact-terminal-knowledge-lifecycle-inspections.md
+sourceUnitVersionIds:
+  - uv_0330a37c30e346d3ff5b4ed9
+  - uv_1baacd8478b460635630a3f9
+  - uv_288786402c4f851044d0153c
+  - uv_6a80b5c0ce6faceb62a2b63b
+  - uv_86cfa89adea9fa6fffd6f0fa
+  - uv_a215f7fe42788aeebb1e5a92

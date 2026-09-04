@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_38e2fc13779acd32337081e2
+outputLanguage: en
+outputs:
+  - byteCount: 4721
+    contentHash: sha256:2053a29f2f3f240e74804e2fa93f457a61b48aeb57227caaecb1581a64e38de0
+    path: docs/decisions/execution/orchestration/governed-work/0338-reconcile-prepared-managed-assignment-completion.md
+    userRegionHash: sha256:2053a29f2f3f240e74804e2fa93f457a61b48aeb57227caaecb1581a64e38de0
+profile: decision_record
+recordId: knormdoc_0f4c8003cd324047db174353
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8a02806a0838356886d3c6460d95e4d0389cc739a8bc064adb3a71272a99ade2
+sourcePath: docs/decisions/execution/orchestration/governed-work/0338-reconcile-prepared-managed-assignment-completion.md
+sourceUnitVersionIds:
+  - uv_12c578f3eb2ed47e3d26ad7b
+  - uv_1b918cdb4b1e87e45face643
+  - uv_61e67750aea6f133dc565bde
+  - uv_815122280f4a17978bc4647e
+  - uv_acd21f5c102a664feab2da58
+  - uv_ecd0a920fd6f0e6e1e010c90

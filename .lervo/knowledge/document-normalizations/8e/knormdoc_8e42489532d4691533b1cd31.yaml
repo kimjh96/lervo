@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_862f83cd6c11cade492ff13e
+outputLanguage: en
+outputs:
+  - byteCount: 4945
+    contentHash: sha256:d2a78dc23f1f231cf60b8ca32a4a3d5a4d5e6831125b13a6df91d7857aec287e
+    path: docs/decisions/operations/trace/0332-authoritative-distributed-event-reader-inventory.md
+    userRegionHash: sha256:d2a78dc23f1f231cf60b8ca32a4a3d5a4d5e6831125b13a6df91d7857aec287e
+profile: decision_record
+recordId: knormdoc_8e42489532d4691533b1cd31
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:dd891a49f9e506179be08dba7ab327b3a9a75f756a2a51d537dd32b55a51b0ae
+sourcePath: docs/decisions/operations/trace/0332-authoritative-distributed-event-reader-inventory.md
+sourceUnitVersionIds:
+  - uv_0d8330bfeb6311ac0d970175
+  - uv_2ef85ee86def0c4a3d437bc6
+  - uv_5be86a4173bb307e9e73c20b
+  - uv_6a481dbe9cd54959fbe3b783
+  - uv_77944575ff825506c02bed34

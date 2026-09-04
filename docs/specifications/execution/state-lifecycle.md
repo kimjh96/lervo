@@ -9,7 +9,7 @@ Gitignored `.lervo/data` stores durable local evidence: the event/outbox databas
 
 Opening storage creates real owner-only roots, rejects symbolic links, and atomically moves legacy `events.sqlite`, Node policy and remote-command replay databases, their SQLite sidecars, CAS, and workforce entries from state to data. Each move is restartable.
 
-The planned isolated-workspace lifecycle adds a repository-instance coordination home inside the owner-only Git common directory. Sibling worktrees share workforce leases, workspace and integration records, scheduler locks, cleanup journals, and coordination events there. These records survive removal of any checkout and remain outside repository snapshots and `.lervo/state` pruning. Conflict-free legacy workforce records may move from checkout data through an exact transaction. Two non-empty authorities or an unsafe Git directory fail closed.
+The planned isolated-workspace lifecycle adds a repository-instance coordination home inside the owner-only Git common directory. Sibling worktrees share workforce leases, workspace and integration records, scheduler locks, cleanup journals, and coordination events there. These records survive checkout removal and remain outside repository snapshots and `.lervo/state` pruning. Conflict-free legacy workforce records may move from checkout data through an exact transaction. Two non-empty authorities or an unsafe Git directory fail closed.
 
 Worktree checkout bytes are user-visible repository working state, not derived `.lervo/state`. Neither `lervo state reset` nor `lervo state prune` may remove them. Dedicated workspace cleanup requires integration or discard evidence, exact ownership, cleanliness, reachability, quiescence, non-force adapter removal, and crash recovery.
 
@@ -17,7 +17,7 @@ If both storage locations exist, Lervo removes only a project-bound, integrity-c
 
 ## Bounded projections
 
-Knowledge compilation writes only `.lervo/state/knowledge/current/inventory.json`, `source-units.json`, and `impact.json`. Inventory is compact JSON. Source units retain counts, kinds, and a binding digest instead of complete historical units. `lervo migrate knowledge` converts every prior inventory, source-unit, and impact generation into an exact-hash delete operation.
+Knowledge compilation writes only `.lervo/state/knowledge/current/inventory.json`, `source-units.json`, and `impact.json`. Inventory is compact JSON. Source units retain counts, kinds, and a binding digest rather than complete historical units. `lervo migrate knowledge` converts every prior inventory, source-unit, and impact generation into an exact-hash delete operation.
 
 Direct terminal lifecycle inspection may replace one `.lervo/state/terminal-integration/knowledge-lifecycle-cache.json` projection. It is bound to the installed CLI version, exact repository revision, and supplemental-source digest; contains only bounded issue diagnostics; and is reconstructed by a complete lifecycle inspection after deletion or mismatch.
 
@@ -34,8 +34,8 @@ When current workstream state is missing, Lervo validates the latest `workstream
 | Class | Owner and identity | Retention and privacy | Reconstruction and failure meaning |
 | --- | --- | --- | --- |
 | `replace_current` | Producing subsystem; stable current-projection path | Always protected; report only counts and bytes | Replaced by the normal producer. Missing or unknown ownership grants no deletion authority. |
-| `rebuildable_cache` | Knowledge/search producer; file path plus exact content hash | Eligible after 14 days, above 128 artifacts, or above 256 MiB. A normalization candidate joins this class only when a tracked lifecycle record binds its ID. Paths and hashes stay out of public output and events. | Rebuilt by migration, query, or normalization. Failure requires recomputation, never evidence loss. |
-| `pending_review` | Review lifecycle; unresolved candidate ID | Always protected regardless of age, count, or bytes; body and path are private | The owning review accepts or rejects it. Missing authority means pending, not disposable. |
+| `rebuildable_cache` | Knowledge/search producer; file path plus exact content hash | Eligible after 14 days, above 128 artifacts, or above 256 MiB. A normalization candidate joins only when a tracked lifecycle record binds its ID; a canonicalization candidate joins only after promotion or rejection. Paths and hashes stay out of public output and events. | Rebuilt by migration, query, or normalization. Failure requires recomputation, never evidence loss. |
+| `pending_review` | Review lifecycle; unresolved candidate ID | Always protected regardless of age, count, or bytes; body and path are private | The owning review accepts or rejects it. A stale canonicalization candidate permits exact-hash rejection but never defer or promotion. Missing authority means pending, not disposable. |
 | `completed_workspace` | Deliberation lifecycle; workspace ID with durable completion event | Eligible after 7 days, above 8 workspaces, or above 128 MiB, only without an active checkpoint, lease, transaction, or recovery marker | Durable events and CAS retain evidence. Missing completion or active state requires recovery protection. |
 | `bounded_observation` | Search/environment producer; observation file and hash | Eligible after 30 days, above 32 observations, or above 32 MiB; report aggregates only | Recreated by its observation entrypoint. Removal makes historical derived diagnostics unavailable. |
 | `recovery_required` | Transaction or execution owner; workspace/marker identity | Always protected; status exposes only a bounded reason code | Explicit recovery must finish or roll back before pruning. Missing or malformed recovery evidence fails closed. |

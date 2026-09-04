@@ -3,6 +3,8 @@ export * from "./artifact-paths.js";
 export * from "./candidate-store.js";
 export * from "./candidate-signatures.js";
 export * from "./canonicalization-candidate.js";
+export * from "./canonicalization-outcome.js";
+export * from "./canonicalization-responsibility.js";
 export * from "./compilation-comparison.js";
 export * from "./compilation-binding.js";
 export * from "./compilation-stability.js";

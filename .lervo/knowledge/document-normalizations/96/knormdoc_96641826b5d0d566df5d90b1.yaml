@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0f1fad8e5e600ca2cc323fe7
+outputLanguage: en
+outputs:
+  - byteCount: 3357
+    contentHash: sha256:eded83620f8d11bdbf07a8fe0f6ed6c5f7eea519f05fdf294d17b8198d742391
+    path: docs/decisions/operations/trace/0339-calibrate-short-profile-performance-measurement-floor.md
+    userRegionHash: sha256:eded83620f8d11bdbf07a8fe0f6ed6c5f7eea519f05fdf294d17b8198d742391
+profile: decision_record
+recordId: knormdoc_96641826b5d0d566df5d90b1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:adde2674597cd4088dddfe5d3e9b2fb488a1221cf2e2c8521baff40e5c8059de
+sourcePath: docs/decisions/operations/trace/0339-calibrate-short-profile-performance-measurement-floor.md
+sourceUnitVersionIds:
+  - uv_017c29dfd96c49f98048cfd1
+  - uv_08ffa1258cb158f7b88a9558
+  - uv_654feae0f4f01abc8368d55d
+  - uv_956ba766ee9c6eb7890b6c87
+  - uv_af8e95bd2c18b1bb066336bf

@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_cf78ac1f47dfbd83341906ae
+outputLanguage: en
+outputs:
+  - byteCount: 24751
+    contentHash: sha256:eaef47adf563564452914ce06f87aa58d951b6bfdced4b06f5f24a82036ac11f
+    path: docs/specifications/execution/agent-workspaces.md
+    userRegionHash: sha256:eaef47adf563564452914ce06f87aa58d951b6bfdced4b06f5f24a82036ac11f
+profile: specification_document
+recordId: knormdoc_a3081b317648b25a684771d0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0bb058c1e472bf4cad60f91ba72b8b6bdf8e425c770389933fcd31632a297f33
+sourcePath: docs/specifications/execution/agent-workspaces.md
+sourceUnitVersionIds:
+  - uv_023e9f455a7571e959e433ac
+  - uv_1a048ae255a37d646502beae
+  - uv_505a87d50573e3dacdb3a45c
+  - uv_512e375bb538b00aedd6f6d4
+  - uv_58361031a3c9cdad0cdcb946
+  - uv_628cf7e8da1daeaf85d8d837
+  - uv_6caf423c97a2b1b74f428e0d
+  - uv_764637ae02b5884c54017691
+  - uv_78858e48d4fc03c59e6a2890
+  - uv_8dc3496acb83b66abdb1bf9e
+  - uv_96e3d11f4ab254265c66c644
+  - uv_ac1ed41f27c5718ca6ebaf18
+  - uv_d6b246034126a783826f4513
+  - uv_f567c9b08d9783f543aa984f
+  - uv_f71fcc1cdde6ff2032f68fe6
+  - uv_fecf5afed677edf6fb2079d0

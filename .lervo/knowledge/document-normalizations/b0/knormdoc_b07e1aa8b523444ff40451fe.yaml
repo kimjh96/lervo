@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ca11ef42855ad4178872bb53
+outputLanguage: en
+outputs:
+  - byteCount: 3774
+    contentHash: sha256:27c11ecd50c4de8663361d490b8ac15834082f5e61a5a09892951b693d57f5b0
+    path: docs/decisions/execution/orchestration/governed-work/0337-bind-assignment-approval-and-cancellation-authority.md
+    userRegionHash: sha256:27c11ecd50c4de8663361d490b8ac15834082f5e61a5a09892951b693d57f5b0
+profile: decision_record
+recordId: knormdoc_b07e1aa8b523444ff40451fe
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1b214924338fc3c376be0c3176f28dbf2e6a098174ecc782376609f451b53132
+sourcePath: docs/decisions/execution/orchestration/governed-work/0337-bind-assignment-approval-and-cancellation-authority.md
+sourceUnitVersionIds:
+  - uv_3bf24f8e83e019609e339232
+  - uv_8e41386fe31066f4c5b01479
+  - uv_a107acdec8a8b8c5d357920e
+  - uv_b3658162f39baab325526783
+  - uv_c35e2979d98dd23b1d8bb4f1
+  - uv_c9d50ec2ec14d269f4ad3d7d

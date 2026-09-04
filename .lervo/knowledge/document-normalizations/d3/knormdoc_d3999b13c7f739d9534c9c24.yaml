@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_343c292de069dc3c5cd23a61
+outputLanguage: en
+outputs:
+  - byteCount: 3628
+    contentHash: sha256:6cc31d71437a176ac57e74fdbba6e1fbcdd055814336622a9cfd635195d6f8fe
+    path: docs/decisions/knowledge/repository/canonicalization/0362-bind-terminal-results-to-canonical-outcomes.md
+    userRegionHash: sha256:6cc31d71437a176ac57e74fdbba6e1fbcdd055814336622a9cfd635195d6f8fe
+profile: decision_record
+recordId: knormdoc_d3999b13c7f739d9534c9c24
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a761fa81cae91754ebbbc9a19b3b2bab035c93d1be3cb26bc72c827cb72c977e
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0362-bind-terminal-results-to-canonical-outcomes.md
+sourceUnitVersionIds:
+  - uv_14741943ca9421938acc022f
+  - uv_6b0ee564033d2f705f3a2822
+  - uv_77592493ad7af2d5fdf36dc8
+  - uv_f011b50c2885cce1ad88fd1c
+  - uv_f8909f47c3c164ac2497f132

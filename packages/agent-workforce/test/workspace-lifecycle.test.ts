@@ -97,6 +97,45 @@ describe("agent workspace lifecycle", () => {
     });
   });
 
+  it("releases one checkpointed writer and permits a later verified resume", () => {
+    const active = {
+      ...workspace("active"),
+      writerSession: {
+        sessionId: "ses_terminal_writer_one",
+        startedAt: "2026-08-26T00:01:00Z",
+        lastSeenAt: "2026-08-26T00:02:00Z",
+      },
+    };
+    const paused = transitionWorkspace({
+      current: active,
+      expectedRevision: 1,
+      expectedGeneration: 1,
+      nextState: "paused",
+      occurredAt: "2026-08-26T00:03:00Z",
+      evidence: { writerFrozen: true },
+      writerSession: null,
+    });
+    expect(paused).toMatchObject({ state: "paused", writerSession: null, revision: 2 });
+
+    const resumed = transitionWorkspace({
+      current: paused,
+      expectedRevision: 2,
+      expectedGeneration: 1,
+      nextState: "active",
+      occurredAt: "2026-08-26T00:04:00Z",
+      writerSession: {
+        sessionId: "ses_terminal_writer_two",
+        startedAt: "2026-08-26T00:04:00Z",
+        lastSeenAt: "2026-08-26T00:04:00Z",
+      },
+    });
+    expect(resumed).toMatchObject({
+      state: "active",
+      writerSession: { sessionId: "ses_terminal_writer_two" },
+      revision: 3,
+    });
+  });
+
   it("partitions worker changes without attributing runtime or foreign paths", () => {
     expect(
       partitionWorkspaceChanges({

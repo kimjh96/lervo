@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7dcff2c18d9abeee28fbd7cc
+outputLanguage: en
+outputs:
+  - byteCount: 11997
+    contentHash: sha256:9fbbcae9ebf2f8404726f4229e7e5c3b5150bf82047d2fbdba827c1a31d055b9
+    path: docs/roadmap/foundation-hardening/delivery-tracks.md
+    userRegionHash: sha256:9fbbcae9ebf2f8404726f4229e7e5c3b5150bf82047d2fbdba827c1a31d055b9
+profile: roadmap_document
+recordId: knormdoc_0edb553f21627ca5ad6e531a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0fb6af674361a560fecf2ef89aab29192805c1a1d316f6020576ff4786663f05
+sourcePath: docs/roadmap/foundation-hardening/delivery-tracks.md
+sourceUnitVersionIds:
+  - uv_2ed52763a6b3a26bc22e7b32
+  - uv_3be984e86edcf0c61ba43721
+  - uv_41e63024e89cbf4937e2796b
+  - uv_623a68d8de85ad7cd599db39
+  - uv_8c146a68036df4a1d9d3362c
+  - uv_bc37ac682a21b31926cd7990
+  - uv_ed31ba0106dbba86cb1c280b
+  - uv_f3b3e2bd6ee1785ccef55d84

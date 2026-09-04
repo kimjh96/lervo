@@ -2,6 +2,7 @@ import {
   loadStoredConcepts,
   queryRepositoryKnowledge,
   scanConfiguredRepositoryKnowledge,
+  type RepositoryKnowledgeScan,
   type RepositorySupplementalSource,
 } from "@lervo/repository-knowledge";
 import {
@@ -23,6 +24,7 @@ async function selectOperationalPlanCandidates(input: {
   provider: RunProvider;
   projection: SearchQueryProjection;
   supplementalSources: RepositorySupplementalSource[];
+  preparedScan?: RepositoryKnowledgeScan;
 }) {
   const defaultPopulation = productDefaultSearchRetrievalPlan.plan.projection.populations.find(
     (item) => item.populationId === `provider.${input.provider}`,
@@ -61,9 +63,13 @@ async function selectOperationalPlanCandidates(input: {
   ) {
     throw new Error("The selected retrieval plan does not match the current query projector.");
   }
-  const { scan } = await scanConfiguredRepositoryKnowledge(input.repositoryRoot, {
-    supplementalSources: input.supplementalSources,
-  });
+  const scan =
+    input.preparedScan ??
+    (
+      await scanConfiguredRepositoryKnowledge(input.repositoryRoot, {
+        supplementalSources: input.supplementalSources,
+      })
+    ).scan;
   const corpus = createRepositoryKnowledgeSearchCorpus(scan);
   if (operational.corpusBinding === "reviewed") {
     const reviewedCorpus = operational.bundle!.review.corpus;
@@ -136,6 +142,7 @@ export async function selectTerminalContextCandidates(input: {
   retrievalQueries: readonly string[];
   sourceSnapshotId: string;
   supplementalSources: RepositorySupplementalSource[];
+  preparedScan?: RepositoryKnowledgeScan;
 }) {
   const operational = await selectOperationalPlanCandidates(input);
   if (operational !== null) return operational;

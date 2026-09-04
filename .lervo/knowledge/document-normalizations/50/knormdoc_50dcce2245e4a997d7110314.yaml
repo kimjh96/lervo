@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7c42672aba7a7ed8cceb4208
+outputLanguage: en
+outputs:
+  - byteCount: 4295
+    contentHash: sha256:49396767d9950b062050b3732f4544937ed64bd5b4fdad05e499af3aa724053d
+    path: docs/roadmap/foundation-hardening.md
+    userRegionHash: sha256:49396767d9950b062050b3732f4544937ed64bd5b4fdad05e499af3aa724053d
+profile: roadmap_document
+recordId: knormdoc_50dcce2245e4a997d7110314
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e7c70574f14c38e67a9328e6bfaa5e2d5effa4e24ae8c43d182a263f22ebf614
+sourcePath: docs/roadmap/foundation-hardening.md
+sourceUnitVersionIds:
+  - uv_69d2e9866f421ac19c619de5
+  - uv_6e8e48e4cc32d2f0aa444953
+  - uv_bc144845835e3202eb6a2858
+  - uv_be5f659e61bab12f9d177645
+  - uv_c83c39bf55778045ba97d9b8
+  - uv_d152ac9ffbad7322edb1d91f
+  - uv_e0e0878c6eb10713c1398cc0

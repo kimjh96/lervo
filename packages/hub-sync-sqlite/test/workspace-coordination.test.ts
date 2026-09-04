@@ -284,11 +284,37 @@ describe("Hub workspace coordination SQLite", () => {
         acceptedAt: active.updatedAt,
       }),
     ).resolves.toMatchObject({ status: "updated", summary: { terminalCount: 1 } });
+    const paused = summary({
+      projectId: project.projectId,
+      repositoryIdentityHash: identity,
+      state: "paused",
+      updatedAt: "2026-08-26T00:03:00.000Z",
+    });
+    await expect(
+      store.publishWorkspaceSummary({
+        destinationId,
+        summary: paused,
+        acceptedAt: paused.updatedAt,
+      }),
+    ).resolves.toMatchObject({ status: "updated", summary: { state: "paused" } });
+    const resumed = summary({
+      projectId: project.projectId,
+      repositoryIdentityHash: identity,
+      state: "active",
+      updatedAt: "2026-08-26T00:04:00.000Z",
+    });
+    await expect(
+      store.publishWorkspaceSummary({
+        destinationId,
+        summary: resumed,
+        acceptedAt: resumed.updatedAt,
+      }),
+    ).resolves.toMatchObject({ status: "updated", summary: { state: "active" } });
     const stale = summary({
       projectId: project.projectId,
       repositoryIdentityHash: identity,
       state: "removed",
-      updatedAt: "2026-08-26T00:03:00.000Z",
+      updatedAt: "2026-08-26T00:05:00.000Z",
     });
     await expect(
       store.publishWorkspaceSummary({ destinationId, summary: stale, acceptedAt: stale.updatedAt }),
@@ -300,7 +326,7 @@ describe("Hub workspace coordination SQLite", () => {
         repositoryIdentityHash: identity,
         acceptedAt: "2026-08-27T00:00:00.000Z",
       }),
-    ).resolves.toEqual([active]);
+    ).resolves.toEqual([resumed]);
     await expect(
       store.listWorkspaceSummaries({
         destinationId,

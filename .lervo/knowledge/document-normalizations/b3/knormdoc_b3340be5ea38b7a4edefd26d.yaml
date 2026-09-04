@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bc560b74b7517656dea4ef8a
+outputLanguage: en
+outputs:
+  - byteCount: 11423
+    contentHash: sha256:8f528edbf444181a1987a52229f8a4c9cffe57bd3793b75db212266f8a47c534
+    path: docs/decisions/operations/trace/0331-adopt-reader-first-causal-work-observability.md
+    userRegionHash: sha256:8f528edbf444181a1987a52229f8a4c9cffe57bd3793b75db212266f8a47c534
+profile: decision_record
+recordId: knormdoc_b3340be5ea38b7a4edefd26d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3563e563f99e8ff4c7f0b89dbffe14c2677b5fdd510d91dde72c2ce17c00a90e
+sourcePath: docs/decisions/operations/trace/0331-adopt-reader-first-causal-work-observability.md
+sourceUnitVersionIds:
+  - uv_151abe074a909edfc5e61f19
+  - uv_1ec9eacaef9544dab8e56b04
+  - uv_4a3f6cca89f732ac3900cb1a
+  - uv_54813066bb531826c3968efd
+  - uv_90aaed92c66ea8479aca7d49
+  - uv_9c3622b79b1548a95b0c5c40
+  - uv_9e1e7c36ba6e1b34ef341dab
+  - uv_ba29da18855ca0035bb9a0b4
+  - uv_cd14c278eebec3bb6eaf01e6
+  - uv_e368f8c3d14cb75928feae9b

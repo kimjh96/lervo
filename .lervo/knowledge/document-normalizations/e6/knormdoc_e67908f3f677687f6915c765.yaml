@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f9653eda0175fd94db03bce2
+outputLanguage: en
+outputs:
+  - byteCount: 6327
+    contentHash: sha256:48dc87acab9557917dd4a63277d6e8a1b499dc9c144286b1562dda341224ae81
+    path: docs/decisions/execution/orchestration/governed-work/0336-adopt-headless-governed-loop-and-assignment-graph.md
+    userRegionHash: sha256:48dc87acab9557917dd4a63277d6e8a1b499dc9c144286b1562dda341224ae81
+profile: decision_record
+recordId: knormdoc_e67908f3f677687f6915c765
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0f88837ba27ddf443eccb27816a6bac1375b3626b805dfa8f727d6c32c445fc8
+sourcePath: docs/decisions/execution/orchestration/governed-work/0336-adopt-headless-governed-loop-and-assignment-graph.md
+sourceUnitVersionIds:
+  - uv_278f3960a5bd972762299713
+  - uv_43f0d189149d23aba6b56076
+  - uv_793576b977708c7c44a2e976
+  - uv_7fd52d0abd7531de8a6b09fe
+  - uv_9638feee9b57da80ff6bac8d
+  - uv_f49f5081815e1cadd7bdaa4c

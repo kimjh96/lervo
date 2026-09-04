@@ -9,6 +9,8 @@ import { finalizeGovernedAssignment } from "./governed-assignment-finalization.j
 import { reconcileGovernedAssignment } from "./governed-completion-reconciliation.js";
 import { inspectGovernedWork } from "./governed-work-inspection.js";
 import { inspectOperatingObjective } from "./operating-objective-inspection.js";
+import { inspectOperatingGoal } from "./operating-goal-inspection.js";
+import { inspectOperatingAttention } from "./operating-attention-inspection.js";
 import { inspectAssignmentCommunications } from "./assignment-communication-inspection.js";
 import {
   assignmentCommunicationUsage,
@@ -92,6 +94,8 @@ const defaultServices: CliServices = {
   createTerminalStageObservation,
   inspectGovernedWork,
   inspectOperatingObjective,
+  inspectOperatingGoal,
+  inspectOperatingAttention,
   inspectAssignmentCommunications,
   finalizeGovernedAssignment,
   reconcileGovernedAssignment,
@@ -121,7 +125,7 @@ export async function runCli(
   if (command === "upgrade") return runUpgradeCommand(args.slice(1), io);
   if (command === "migrate") return runMigrateCommand(args.slice(1), io);
   if (command === "knowledge") return runKnowledgeCommand(args.slice(1), io, services);
-  if (command === "application") return runApplicationCommand(args.slice(1), io);
+  if (command === "application") return runApplicationCommand(args.slice(1), io, services);
   if (command === "loop") return runLoopCommand(args.slice(1), io, services);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);
   if (command === "deliberate") return runDeliberateCommand(args.slice(1), io, services);

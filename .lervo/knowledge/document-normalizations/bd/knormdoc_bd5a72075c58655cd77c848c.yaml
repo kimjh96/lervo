@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8c2a49c3c0a5834f548f2814
+outputLanguage: en
+outputs:
+  - byteCount: 2565
+    contentHash: sha256:f501ab7c9708c3aa0fa4d81c4eca5dd6cb969e692a759328ed6328927184fbc1
+    path: docs/decisions/execution/orchestration/improvement/0346-measure-improvement-effects-from-bounded-local-events.md
+    userRegionHash: sha256:f501ab7c9708c3aa0fa4d81c4eca5dd6cb969e692a759328ed6328927184fbc1
+profile: decision_record
+recordId: knormdoc_bd5a72075c58655cd77c848c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6f1391d14ac55ec45c194ac94ecacc69d9f176260f06711b3fc45aa19e8df81f
+sourcePath: docs/decisions/execution/orchestration/improvement/0346-measure-improvement-effects-from-bounded-local-events.md
+sourceUnitVersionIds:
+  - uv_48ea8c5dd045238cf2600833
+  - uv_4f930057b55130c47a2c58ef
+  - uv_5ce325f5843731921c7078b6
+  - uv_dbd5c67612d594b9f23217ac
+  - uv_eb5a5d580b298f8bcc0a1816

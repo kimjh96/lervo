@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_13ae19581a02659fb7ec3e79
+outputLanguage: en
+outputs:
+  - byteCount: 3624
+    contentHash: sha256:bdbad87e8065816e724c3cd43d2289c596d169f86a3880001821a6d083d3031f
+    path: docs/evidence/pilots/lervo-hub-event-reader-v2-activation.md
+    userRegionHash: sha256:bdbad87e8065816e724c3cd43d2289c596d169f86a3880001821a6d083d3031f
+profile: repository_document
+recordId: knormdoc_bccdd61434e2535584b52e3e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:68322cebda864f209cadeb6abb91b814c0474fe1b71a1d714f8831d22e7b8bcc
+sourcePath: docs/evidence/pilots/lervo-hub-event-reader-v2-activation.md
+sourceUnitVersionIds:
+  - uv_3a4bd946ee3a860f0bdf8c10
+  - uv_81f9db216547db1567aadd09
+  - uv_8b0d52c1f8af04b67ee3721c
+  - uv_b92b1610cff72570da8a6c83
+  - uv_bffbe53b756beb557bb239e6

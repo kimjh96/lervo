@@ -8,6 +8,7 @@ import {
   readJson,
   repositoryRoot,
   runPnpm,
+  runPnpmWithInput,
 } from "../../distribution/lib/installed-cli.mjs";
 import { verifyInstalledClaudeNativeRuntime } from "../../distribution/lib/claude-native-runtime.mjs";
 import {
@@ -128,7 +129,6 @@ async function verifyPackageGuide(consumerRoot) {
     ],
   );
   for (const requiredText of [
-    "Node.js 22.13 or later",
     "npm install --global @lervo/cli",
     "lervo init --name my-project",
     "lervo init --dry-run --name my-project",
@@ -136,14 +136,17 @@ async function verifyPackageGuide(consumerRoot) {
   ]) {
     assert.equal(guide.includes(requiredText), true);
   }
+  assert.match(guide, /\bNode\.js 22\.13(?:\+| or (?:later|newer))(?:\.|\s|$)/u);
   assert.match(
     guide,
     /\b(?:works?|operates?|runs?) without a Hub\b|\bdo(?:es)? not require a Hub\b/u,
   );
 }
 
-async function runConsumerCli(consumerRoot, args) {
-  return runPnpm(["exec", "lervo", ...args], { cwd: consumerRoot });
+async function runConsumerCli(consumerRoot, args, input) {
+  return input === undefined
+    ? runPnpm(["exec", "lervo", ...args], { cwd: consumerRoot })
+    : runPnpmWithInput(["exec", "lervo", ...args], input, { cwd: consumerRoot });
 }
 
 async function verifyConsumerCommands(consumerRoot, expectedVersion, eventContract) {
@@ -231,8 +234,8 @@ async function verifyConsumerCommands(consumerRoot, expectedVersion, eventContra
     [1, 2],
   );
 
-  return verifyPackedProductHostConsumer(consumerRoot, (args) =>
-    runConsumerCli(consumerRoot, args),
+  return verifyPackedProductHostConsumer(consumerRoot, (args, input) =>
+    runConsumerCli(consumerRoot, args, input),
   );
 }
 

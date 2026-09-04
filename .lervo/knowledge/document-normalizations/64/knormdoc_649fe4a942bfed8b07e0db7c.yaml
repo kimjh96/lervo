@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_72729edb338a803ae894f587
+outputLanguage: en
+outputs:
+  - byteCount: 4734
+    contentHash: sha256:16c3c6c93a73a076ecf117d233916a786bf983d02b60d6f3fcb26d376b27c4fd
+    path: docs/decisions/execution/providers/0200-natural-language-terminal-turn-finalization.md
+    userRegionHash: sha256:16c3c6c93a73a076ecf117d233916a786bf983d02b60d6f3fcb26d376b27c4fd
+profile: decision_record
+recordId: knormdoc_649fe4a942bfed8b07e0db7c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a24b6a9e0645159787fe706d12d34d9a858a5250726c2a78e4b3dcc9f5fe1a94
+sourcePath: docs/decisions/execution/providers/0200-natural-language-terminal-turn-finalization.md
+sourceUnitVersionIds:
+  - uv_2b80cdb5b53efb01daa299be
+  - uv_5a35b42181d0db6fc9c00209
+  - uv_6c7da8f142e9aa32367ebe6d
+  - uv_c421f4ec266673e48d964d2f
+  - uv_e465caf50b7517a6012c41ff

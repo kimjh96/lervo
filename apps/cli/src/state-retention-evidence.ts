@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 import { resolveProjectPaths, type StateRetentionEvidence } from "@lervo/project";
 import type { ProjectStorage } from "@lervo/project-storage";
+import { listCanonicalizationCandidates } from "@lervo/repository-knowledge";
 import { visitEventSnapshot } from "@lervo/storage-contract";
 
 async function walkFiles(root: string): Promise<string[]> {
@@ -63,6 +64,11 @@ export async function inspectStateRetentionEvidence(input: {
   }
   return {
     completedNormalizationCandidateIds: await completedCandidateIds(input.repositoryRoot),
+    completedCanonicalizationCandidateIds: new Set(
+      (await listCanonicalizationCandidates(input.repositoryRoot))
+        .filter((candidate) => ["promoted", "rejected"].includes(candidate.observedState))
+        .map((candidate) => candidate.candidateId),
+    ),
     completedDeliberationIds,
     activeDeliberationIds: await activeDeliberationIds(input.repositoryRoot),
   };

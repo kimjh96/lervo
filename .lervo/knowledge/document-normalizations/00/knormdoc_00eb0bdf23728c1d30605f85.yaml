@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_cfda195ac2f134a791e0572b
+outputLanguage: en
+outputs:
+  - byteCount: 4397
+    contentHash: sha256:a2810397d703204c0d8562ff43d2df5856b5a388a0cad57378a0566e0c22e9fb
+    path: docs/decisions/execution/orchestration/governed-work/0341-project-current-objective-and-observed-token-budgets.md
+    userRegionHash: sha256:a2810397d703204c0d8562ff43d2df5856b5a388a0cad57378a0566e0c22e9fb
+profile: decision_record
+recordId: knormdoc_00eb0bdf23728c1d30605f85
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:cc0541acb89ac16397772f9fd668a9ffa7d3b8c3b36cfe50acc79ffed755bfed
+sourcePath: docs/decisions/execution/orchestration/governed-work/0341-project-current-objective-and-observed-token-budgets.md
+sourceUnitVersionIds:
+  - uv_0674fd2c377c3ebc21578626
+  - uv_486358fe60a0bb4d5c91a949
+  - uv_6e03746b09d6400426d0e402
+  - uv_6ec13deafeb25c0b5bea8478
+  - uv_8342891f8b8970db48ca7b92
+  - uv_dfdedd550dcc88663d218cfa

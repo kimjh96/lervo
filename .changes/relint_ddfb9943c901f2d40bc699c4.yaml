@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ddfb9943c901f2d40bc699c4"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add governed operating goals, attention, knowledge outcomes, and checkpointed workspace resume."

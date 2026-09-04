@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0c63c1cd6f7324057b0694a8
+outputLanguage: en
+outputs:
+  - byteCount: 3484
+    contentHash: sha256:e5a56e581caeac71ab76bafb8c2c60f9474322e39d3a13c469113c8f25c7436d
+    path: docs/evidence/foundation/foundation-readiness-v1.md
+    userRegionHash: sha256:e5a56e581caeac71ab76bafb8c2c60f9474322e39d3a13c469113c8f25c7436d
+profile: repository_document
+recordId: knormdoc_02cd185286aa7196e008acef
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a95caa53de58b9ae15ada632b40523d2531a6acd9b22a0e0056cae8e96a18361
+sourcePath: docs/evidence/foundation/foundation-readiness-v1.md
+sourceUnitVersionIds:
+  - uv_17e52b6907f5863d710165f0
+  - uv_1fba3415e7d2f395bcbbb294
+  - uv_6eec778c8fb028ebbda5e7d5
+  - uv_ae54d8bb5a3eb8f8f8c7f526
+  - uv_cf9913211a97e586d15c2bd3

@@ -779,6 +779,54 @@ describe("document content normalization", () => {
     expect(await readFile(resolve(root, "README.md"), "utf8")).toBe(before);
   });
 
+  it("rejects package README output that exceeds the short-entrypoint byte contract", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "apps/cli"), { recursive: true });
+    await writeFile(resolve(root, "apps/cli/README.md"), "# CLI guide\n\nInstall it.\n");
+    const calls: DocumentNormalizationEnvelope[] = [];
+    const normalizer: RepositoryDocumentNormalizationCompiler = {
+      descriptor: compiler([]).descriptor,
+      async normalize(envelope) {
+        calls.push(envelope);
+        const document = envelope.documents[0]!;
+        return {
+          schemaVersion: 1,
+          documents: [
+            {
+              sourcePath: document.path,
+              outputs: [
+                {
+                  path: document.path,
+                  content: `# CLI guide\n\n${"x".repeat(4 * 1024)}\n`,
+                  coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+                },
+              ],
+            },
+          ],
+          telemetry: {
+            filesystemReads: 0,
+            filesystemWrites: 0,
+            shellProcesses: 0,
+            networkRequests: 0,
+            externalActions: 0,
+            toolCalls: 0,
+            complete: true,
+          },
+        };
+      },
+    };
+
+    await expect(
+      compileConfiguredDocumentNormalizationCandidate({
+        repositoryRoot: root,
+        compiler: normalizer,
+        signal: new AbortController().signal,
+        sourcePaths: ["apps/cli/README.md"],
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
+    expect(calls[0]?.documents[0]?.constraints.maximumOutputBytes).toBe(4 * 1024);
+  });
+
   it("does not report a historical root README normalization as stale", async () => {
     const root = await repository();
     await writeFile(resolve(root, "README.md"), "# Current public README\n");

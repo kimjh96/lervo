@@ -87,6 +87,12 @@ function classify(path: string, evidence: StateRetentionEvidence): StateRetentio
       ? "rebuildable_cache"
       : "pending_review";
   }
+  if (path.startsWith("knowledge/canonicalization-candidates/")) {
+    const candidateId = parts.at(-1)?.replace(/\.json$/u, "") ?? "";
+    return evidence.completedCanonicalizationCandidateIds.has(candidateId)
+      ? "rebuildable_cache"
+      : "pending_review";
+  }
   if (parts[0] === "deliberations" && parts[1]) {
     if (evidence.activeDeliberationIds.has(parts[1])) return "recovery_required";
     return evidence.completedDeliberationIds.has(parts[1])

@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_70835ca9751b5c61b87ed846
+outputLanguage: en
+outputs:
+  - byteCount: 6117
+    contentHash: sha256:6af8af9b5e48a63ea4168de28cad1bfb4355b4e396019125849c13888f7683d7
+    path: docs/evidence/foundation/product-host-source-current-dogfood-v1.md
+    userRegionHash: sha256:6af8af9b5e48a63ea4168de28cad1bfb4355b4e396019125849c13888f7683d7
+profile: repository_document
+recordId: knormdoc_e619275d1532d0af8b37ff0c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2a7b4f230bc66762055724e382cc17a7f931e802f4c8c420b6e05aca1f63c4e9
+sourcePath: docs/evidence/foundation/product-host-source-current-dogfood-v1.md
+sourceUnitVersionIds:
+  - uv_0da0a0a9a58a45eb4f98cd20
+  - uv_1e74798124fcb39ed9adc1f0
+  - uv_32a4ce6799714f51dbf89c74
+  - uv_4f2c08cbaf0d202fbc1c892e
+  - uv_7d57e1796bce276ab099e206
+  - uv_8101f83753e1cdfc9c3ae0e7
+  - uv_92574a281971ca946027e434
+  - uv_a98cb8e34f59c0b5acf453fe
+  - uv_c85effe5cc4d712e3a029fc4

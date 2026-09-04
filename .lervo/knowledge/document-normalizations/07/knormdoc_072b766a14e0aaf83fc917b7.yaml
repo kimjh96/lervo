@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_77a03ad08161459c357b39d6
+outputLanguage: en
+outputs:
+  - byteCount: 3430
+    contentHash: sha256:ee47181562710148d89400a74f4b69ff734dc75afc4636b9316bc4ea5424f9b5
+    path: docs/decisions/operations/trace/0333-record-causal-work-before-managed-execution.md
+    userRegionHash: sha256:ee47181562710148d89400a74f4b69ff734dc75afc4636b9316bc4ea5424f9b5
+profile: decision_record
+recordId: knormdoc_072b766a14e0aaf83fc917b7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:730580756b247760a91b8a375a8ca45c91b5a1414dce3efcc71ba423dfc640e2
+sourcePath: docs/decisions/operations/trace/0333-record-causal-work-before-managed-execution.md
+sourceUnitVersionIds:
+  - uv_33dce283c0de09922708bd27
+  - uv_8d82527337307f2712bb1ac1
+  - uv_948bde05984f9e2aaaf161cf
+  - uv_9b8dcead2f564bccddd27600
+  - uv_aeac93f8e87e6b715c2ad8fc
+  - uv_f468bd1dcd9bc2ab13b2757d

@@ -86,4 +86,20 @@ describe("Hub workspace summary reconciliation", () => {
       }),
     ).toThrow("differs from its local workspace identity");
   });
+
+  it("preserves a checkpoint-paused worker state at the Hub summary boundary", () => {
+    const summary = hubWorkspaceSummaryFromEvent({
+      event: {
+        ...event,
+        type: "agent.workspace.state.changed",
+        previousState: "active",
+        state: "paused",
+      },
+      workspace: { ...workspace, state: "paused" },
+      nodeId: "nod_node_0001",
+      repositoryIdentityHash: hash("5"),
+    });
+    expect(isHubWorkspaceSummary(summary)).toBe(true);
+    expect(summary.state).toBe("paused");
+  });
 });

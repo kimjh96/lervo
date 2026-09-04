@@ -9,6 +9,7 @@ const WORKSPACE_STATES: WorkspaceState[] = [
   "provisioning",
   "ready",
   "active",
+  "paused",
   "sealing",
   "sealed",
   "integration_pending",

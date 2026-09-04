@@ -6,13 +6,12 @@ import { sha256, type TerminalIntegrationProvider } from "@lervo/repository-know
 import { writeTerminalActivationReceipt } from "./terminal-activation-state.js";
 import {
   newTerminalIdentifier,
+  TERMINAL_HOOK_BUILD_DIGEST,
   TERMINAL_OBSERVATION_POLICY_VERSION,
   unmanagedTerminalCoordinates,
 } from "./terminal-event-coordinates.js";
-import type {
-  ParsedTerminalHookInput,
-  UnmanagedTerminalCoordinates,
-} from "./terminal-hook-contract.js";
+import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
+import { parseTerminalHookInput } from "./terminal-hook-input.js";
 import { inspectTerminalLifecycle } from "./terminal-lifecycle-inspection.js";
 import { prepareTerminalPromptContext } from "./terminal-prompt-context.js";
 import { resolveTerminalRepositoryRoot } from "./terminal-repository-root.js";
@@ -25,75 +24,18 @@ import {
 import {
   attachTerminalWorkspace,
   checkpointTerminalWorkspace,
+  pauseTerminalWorkspace,
   TerminalWorkspaceIsolationError,
   type TerminalWorkspaceBinding,
 } from "./terminal-workspace-lifecycle.js";
 import type { CliIo, CliServices } from "./types.js";
-
-function parseHookInput(value: string): ParsedTerminalHookInput {
-  if (Buffer.byteLength(value) > 256 * 1024)
-    throw new Error("Hook input exceeds the bounded input limit.");
-  const parsed = JSON.parse(value) as {
-    hook_event_name?: unknown;
-    session_id?: unknown;
-    turn_id?: unknown;
-    prompt?: unknown;
-    stop_hook_active?: unknown;
-    last_assistant_message?: unknown;
-  };
-  if (parsed?.hook_event_name !== "UserPromptSubmit" && parsed?.hook_event_name !== "Stop")
-    throw new Error("Unsupported provider hook event.");
-  if (
-    typeof parsed.session_id !== "string" ||
-    parsed.session_id.trim() === "" ||
-    parsed.session_id.length > 512
-  )
-    throw new Error("The provider session coordinate is missing or invalid.");
-  if (
-    parsed.turn_id !== undefined &&
-    (typeof parsed.turn_id !== "string" ||
-      parsed.turn_id.trim() === "" ||
-      parsed.turn_id.length > 512)
-  )
-    throw new Error("The provider turn coordinate is invalid.");
-  if (
-    parsed.hook_event_name === "UserPromptSubmit" &&
-    (typeof parsed.prompt !== "string" ||
-      parsed.prompt.trim() === "" ||
-      parsed.prompt.length > 64 * 1024)
-  )
-    throw new Error("The prompt is missing or exceeds the bounded prompt limit.");
-  if (
-    parsed.hook_event_name === "Stop" &&
-    parsed.stop_hook_active !== undefined &&
-    typeof parsed.stop_hook_active !== "boolean"
-  )
-    throw new Error("The provider Stop continuation state is invalid.");
-  if (
-    parsed.hook_event_name === "Stop" &&
-    parsed.last_assistant_message !== undefined &&
-    parsed.last_assistant_message !== null &&
-    typeof parsed.last_assistant_message !== "string"
-  )
-    throw new Error("The provider completion message is invalid.");
-  return {
-    event: parsed.hook_event_name,
-    providerSessionId: parsed.session_id,
-    providerTurnId: typeof parsed.turn_id === "string" ? parsed.turn_id : null,
-    stopHookActive: parsed.stop_hook_active === true,
-    ...(typeof parsed.prompt === "string" ? { prompt: parsed.prompt } : {}),
-    ...(parsed.last_assistant_message === null || typeof parsed.last_assistant_message === "string"
-      ? { lastAssistantMessage: parsed.last_assistant_message }
-      : {}),
-  };
-}
 
 export async function runTerminalHookCommand(
   args: string[],
   io: CliIo,
   services: Pick<CliServices, "createTerminalStageObservation" | "projectSearchQueries">,
 ): Promise<number> {
-  const timing = services.createTerminalStageObservation(TERMINAL_OBSERVATION_POLICY_VERSION);
+  const timing = services.createTerminalStageObservation(TERMINAL_HOOK_BUILD_DIGEST);
   try {
     const { provider, contractId, input } = await timing.measure("ingress_integrity", async () => {
       const parsed = parseArgs({
@@ -114,7 +56,7 @@ export async function runTerminalHookCommand(
           parsed.values.contract === "2"
             ? ("lervo_terminal_hooks_v2" as const)
             : ("lervo_terminal_hooks_v1" as const),
-        input: parseHookInput(await io.stdin()),
+        input: parseTerminalHookInput(await io.stdin()),
       };
     });
     if (input.event === "Stop" && input.stopHookActive) {
@@ -241,16 +183,23 @@ export async function runTerminalHookCommand(
         lifecycle.workspace !== null
       ) {
         try {
-          workspaceCheckpointEventId = (
-            await timing.measure("event_commit", () =>
-              checkpointTerminalWorkspace({
-                root,
-                inspection: lifecycle.workspace!,
-                contextEventId: expectation.contextEventId,
-                occurredAt: expectation.preparedAt,
-              }),
-            )
-          ).eventId;
+          const checkpoint = await timing.measure("event_commit", () =>
+            checkpointTerminalWorkspace({
+              root,
+              inspection: lifecycle.workspace!,
+              contextEventId: expectation.contextEventId,
+              occurredAt,
+            }),
+          );
+          workspaceCheckpointEventId = checkpoint.eventId;
+          await timing.measure("event_commit", () =>
+            pauseTerminalWorkspace({
+              root,
+              inspection: lifecycle.workspace!,
+              checkpoint,
+              occurredAt,
+            }),
+          );
         } catch {
           lifecycle.issues.push({
             code: "workspace_checkpoint_failed",

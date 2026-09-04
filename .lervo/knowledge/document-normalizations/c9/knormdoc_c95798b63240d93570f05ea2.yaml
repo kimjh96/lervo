@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b28f678aacf5174c180fc851
+outputLanguage: en
+outputs:
+  - byteCount: 9314
+    contentHash: sha256:ccecdf127d47d6ebc75562264c6143a0c8357cfe3e000b37d93b50d81f1795ac
+    path: docs/specifications/execution/assignment-connectors.md
+    userRegionHash: sha256:ccecdf127d47d6ebc75562264c6143a0c8357cfe3e000b37d93b50d81f1795ac
+profile: specification_document
+recordId: knormdoc_c95798b63240d93570f05ea2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b1fc9616b35ee06718f3376c20ab1f6b93223c5271f61b19e95360978da76fbb
+sourcePath: docs/specifications/execution/assignment-connectors.md
+sourceUnitVersionIds:
+  - uv_1baf445ca86822b07593894c
+  - uv_1ea41617990e27c6598c2b46
+  - uv_31a194f8711e06eea54be2a8
+  - uv_36c8bf18098965acd340bb38
+  - uv_62b1eb383e47695406d0327f
+  - uv_796e0b2f84c7b282eb40018b
+  - uv_8b9400089c6adaf590b65e61
+  - uv_c1ffb0fda80d4074d88100f5

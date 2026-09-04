@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c0a4f0e630da2830e52dd5ef
+outputLanguage: en
+outputs:
+  - byteCount: 2402
+    contentHash: sha256:1aa2304af1d0ac7f65756087431c13adaea3c1ddefafdbab4edaf11b3e30cca3
+    path: docs/decisions/execution/orchestration/governed-work/0365-project-workstream-goals-over-the-assignment-dag.md
+    userRegionHash: sha256:1aa2304af1d0ac7f65756087431c13adaea3c1ddefafdbab4edaf11b3e30cca3
+profile: decision_record
+recordId: knormdoc_d8cc4d375af0170c661c882c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f475d90d90d6fd7cc2a7cc3e273fe9e73a76d407c5722ce77cf3f36e27945df0
+sourcePath: docs/decisions/execution/orchestration/governed-work/0365-project-workstream-goals-over-the-assignment-dag.md
+sourceUnitVersionIds:
+  - uv_13fb81c58866affe39983059
+  - uv_33c56e15f4761fe2a7d1e2eb
+  - uv_3639450d89312455561a3f90
+  - uv_4ff0b2b80a03e002dfbf9dc0
+  - uv_740f14796c96419a4ff3bbf5
+  - uv_aaede57d28ded541cdb28968

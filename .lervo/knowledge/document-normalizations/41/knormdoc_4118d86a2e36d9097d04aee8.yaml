@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_446565cb1f23969d9346daec
+outputLanguage: en
+outputs:
+  - byteCount: 9735
+    contentHash: sha256:d6164e91b829a42c0de630b6d7320ccba9beffff8a332c0a6df87da94e1e7b3a
+    path: docs/research/lervo-foundation-hardening/reliability-security-and-compatibility.md
+    userRegionHash: sha256:d6164e91b829a42c0de630b6d7320ccba9beffff8a332c0a6df87da94e1e7b3a
+profile: repository_document
+recordId: knormdoc_4118d86a2e36d9097d04aee8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b861e05e0437ae73963d8164fed494ce074597b878c81f47166939c428c5e2d9
+sourcePath: docs/research/lervo-foundation-hardening/reliability-security-and-compatibility.md
+sourceUnitVersionIds:
+  - uv_0a63e8cce8306356f18a44ba
+  - uv_0ef8da48d00d0c067acc6d74
+  - uv_18a804dd42e74f7699bd5834
+  - uv_2dc1a9449676ace32bcd2b64
+  - uv_3bb3ea0188977917025a242b
+  - uv_3f640835cdf372a1cfbe4b23
+  - uv_6ecba4aedddcffbba7e4bc59
+  - uv_7db5ef1ba15878f5792f2132
+  - uv_950226f79e1cc2146f972af2
+  - uv_d485e357b3669926af3710e0

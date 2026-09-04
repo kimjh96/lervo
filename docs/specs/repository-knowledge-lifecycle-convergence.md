@@ -5,15 +5,15 @@ As of: 2026-08-30
 
 ## Scope
 
-Defines branch repair, ordered stage convergence, completion canonicalization, and repository-rewriter ownership. The main [repository knowledge compilation specification](repository-knowledge-compilation.md) owns scanning, compilation, review, and publication contracts. [ADR-0303](../decisions/knowledge/repository/0303-branch-safe-knowledge-reconciliation-and-canonicalization.md) retains the rationale. The [branch-safe lifecycle roadmap](../roadmap/knowledge/branch-safe-lifecycle.md) orders the remaining migration.
+Defines branch repair, ordered stage convergence, completion canonicalization, and repository-rewriter ownership. The main [repository knowledge compilation specification](repository-knowledge-compilation.md) owns scanning, compilation, review, and publication contracts. [ADR-0303](../decisions/knowledge/repository/canonicalization/0303-branch-safe-knowledge-reconciliation-and-canonicalization.md) retains the rationale. The [branch-safe lifecycle roadmap](../roadmap/knowledge/branch-safe-lifecycle.md) orders the remaining migration.
 
 ## Structural projection and branch repair
 
 Reviewed user Markdown and semantic sidecars are canonical. Unreviewed structural bundles, concepts, navigation, inventory, impact, and generation manifests are deterministic projections. Compiler schema 2 stores machine projections under `.lervo/state/knowledge/current/`. The configured publication root is a generated working-tree projection excluded from Git by one bounded managed ignore block. Reviewed concepts, claims, relations, source lineage, instruction bridges, normalization records, and semantic manifests remain tracked under `.lervo/knowledge/`.
 
-An unrecorded structural bundle or concept blocks ordinary refresh with a merge-repair diagnostic. `knowledge refresh --rebuild` creates a separate exact plan that may replace only Lervo-owned structural bundle and concept paths. The plan exposes current and desired hashes, and apply rechecks them. Publications, instructions, normalized documents, reviewed claims and relations, and arbitrary user paths remain protected.
+An unrecorded structural bundle or concept blocks ordinary refresh with a merge-repair diagnostic. `knowledge refresh --rebuild` creates a separate exact plan that may replace only Lervo-owned structural bundle and concept paths. The plan exposes current and desired hashes; apply rechecks them. Publications, instructions, normalized documents, reviewed claims and relations, and arbitrary user paths remain protected.
 
-Layout migration deletes recorded legacy structural bundle, concept, and manifest paths only after exact hash checks. When legacy and schema-2 projections coexist, schema-2 state takes precedence and regeneration converges the repository. Existing `.gitignore` bytes remain user-owned and require exact migration approval. Initialization creates the bounded publication block only when `.gitignore` is absent. Independently refreshed branches therefore merge only canonical source changes; an integration head or clean clone rebuilds current navigation without a Hub.
+Layout migration deletes recorded legacy structural bundle, concept, and manifest paths only after exact hash checks. When legacy and schema-2 projections coexist, schema-2 state takes precedence, and regeneration converges the repository. Existing `.gitignore` bytes remain user-owned and require exact migration approval. Initialization creates the bounded publication block only when `.gitignore` is absent. Independently refreshed branches therefore merge only canonical source changes; an integration head or clean clone rebuilds current navigation without a Hub.
 
 ## Ordered stage convergence
 
@@ -31,15 +31,21 @@ Behavioral obligations belong in canonical instruction documents. Product, archi
 
 Terminal preparation records a bounded repository path/hash snapshot in ignored local state. Final declaration compares it with current bytes, classifies changed paths through typed responsibility rules, and automatically records a bounded candidate when implementation or provider-surface evidence has no matching changed canonical target. Candidate records contain hashes and typed coordinates, never prompt text or phrase mappings.
 
-The repository snapshot bounds assessment input to 20,000 entries. A large refactor may change more than 256 paths when matching canonical responsibilities changed in the same turn because the assessment stores no per-path evidence for a current result. A candidate remains limited to 256 unmatched source bindings and fails closed before writing when that evidence bound is exceeded.
+The repository snapshot bounds assessment input to 20,000 entries. A large refactor may change more than 256 paths when matching canonical responsibilities changed in the same turn because assessment stores no per-path evidence for a current result. A candidate is limited to 256 unmatched source bindings and fails closed before writing when that evidence bound is exceeded.
 
 Assessment may report `current`, `candidate`, or `pending`; candidate inspection also observes `promoted`, `rejected`, and `stale`. Defer and reject require an exact candidate hash and reviewer identity. Promotion additionally requires an exact current canonical-target hash with the same responsibility and never writes the target. Repetition, provider agreement, candidate generation, and file presence never automatically promote user-owned content.
 
-### Semantic durable-rule intake
+Repository-changing direct-terminal declarations also carry a bounded local durable outcome. It binds every changed noncanonical source exactly once to an exact changed canonical target, a reviewable no-durable-change rationale, or a responsibility-compatible proposed Markdown draft. Candidate bodies stay out of events and operating-attention output, while exact hashes, target paths, and review state remain inspectable. See [ADR-0362](../decisions/knowledge/repository/canonicalization/0362-bind-terminal-results-to-canonical-outcomes.md).
 
-Terminal grounding carries one exact-key durable-instruction assessment. Automatic materialization is separate from completion candidates and requires an explicit user directive, repository duration, additive low-risk behavior, unambiguous scope, a complete bounded comparison catalog, no conflict, high confidence, ready grounding, and no ambiguity. Examples, quotations, hypotheticals, complaints, questions, current-task commands, inferred preferences, replacements, removals, risky policy, incomplete catalogs, and worker-wide scope fail the automatic gate.
+This closes the prior metadata-only finalization gap without claiming that Lervo understood the result. Promotion continues to verify already-authorized canonical bytes and never implicitly overwrites user-owned content.
+
+### Semantic durable-rule intake contract
+
+The reusable grounding contract can carry one exact-key durable-instruction assessment. An authorized managed or explicit intake consumer may invoke the separate materializer only for an explicit user directive, repository duration, additive low-risk behavior, unambiguous scope, a complete bounded comparison catalog, no conflict, high confidence, ready grounding, and no ambiguity. Examples, quotations, hypotheticals, complaints, questions, current-task commands, inferred preferences, replacements, removals, risky policy, incomplete catalogs, and worker-wide scope fail the automatic gate.
 
 Eligible output is one deterministic Lervo-generated Markdown source under `docs/instructions/generated/`. Semantic identity determines its path. The file contains neither prompt prose nor per-run or snapshot identifiers. Local events retain only request and resolver digests plus materialized coordinates. Repeated identical intake is current; conflicting target bytes block. Uncertain durable proposals remain pending, while inferred reusable behavior uses the two-independent-occurrence development-pattern lifecycle.
+
+ADR-0327 supersedes automatic intake for direct unmanaged terminals: prompt preparation performs retrieval only, emits `unmanaged_terminal_retrieval_only`, and never calls the materializer. The domain planner and materializer exist, but no installed explicit or managed intake route currently owns that end-to-end product outcome. It must not be reported as available until the [product outcome convergence roadmap](../roadmap/product-outcome-convergence.md) supplies and tests such a consumer.
 
 ## Tool-neutral rewrite ownership
 

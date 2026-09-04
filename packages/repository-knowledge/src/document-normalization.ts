@@ -427,7 +427,8 @@ function outputMarkdownLinkTargetIdentities(
 function maximumOutputBytes(profile: DocumentNormalizationProfile): number {
   if (profile === "handoff_document") return 12 * 1024;
   if (profile === "provider_bridge") return 2 * 1024;
-  if (["human_readme", "agent_instruction"].includes(profile)) return 12 * 1024;
+  if (profile === "human_readme") return 4 * 1024;
+  if (profile === "agent_instruction") return 12 * 1024;
   if (["portable_skill", "skill_reference", "instruction_document"].includes(profile))
     return 16 * 1024;
   return MAX_OUTPUT_BYTES;

@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e3f9d69589e2109760be61de
+outputLanguage: en
+outputs:
+  - byteCount: 11865
+    contentHash: sha256:6290b62a822d646532530494b3ea663f94b8b6a515a1fd808a4561a234877fcd
+    path: docs/roadmap/foundation-hardening/architecture-and-contracts.md
+    userRegionHash: sha256:6290b62a822d646532530494b3ea663f94b8b6a515a1fd808a4561a234877fcd
+profile: roadmap_document
+recordId: knormdoc_649c5de2c10c0e4becfb4c46
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9137c43a6ea6ff1ddbcdf6a27aabb0bab2ecc93c922466ab7040f424b807509e
+sourcePath: docs/roadmap/foundation-hardening/architecture-and-contracts.md
+sourceUnitVersionIds:
+  - uv_1783209a79345b3ed868fd3d
+  - uv_1af62211b99a933993b5bad1
+  - uv_1aff2e3054a2d9da52bcceb1
+  - uv_35860250e08b9426d473c40f
+  - uv_3fab3ea20a8949767b6a3d07
+  - uv_794c5b81571a82d2db5a5d9c
+  - uv_a1dfa1425a56ca4cfc3c1af5
+  - uv_a77c71cff6b45205bf4d5726
+  - uv_a8a12dc5a88c15d2f27af180
+  - uv_d302de6cdd2db110eb4da71f
+  - uv_dafe621eba5cebd09e86f0f7

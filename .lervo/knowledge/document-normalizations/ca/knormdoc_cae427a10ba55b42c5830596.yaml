@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a770e000054607cabe910cb3
+outputLanguage: en
+outputs:
+  - byteCount: 3488
+    contentHash: sha256:da269a61c564f5876c258f9e6e6a19a4db27f8ff9f72bfea4f4b361d759d2a66
+    path: docs/evidence/foundation/adverse-condition-v1.md
+    userRegionHash: sha256:da269a61c564f5876c258f9e6e6a19a4db27f8ff9f72bfea4f4b361d759d2a66
+profile: repository_document
+recordId: knormdoc_cae427a10ba55b42c5830596
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1262769eeea835d24415cf52b891551acda9f99a87c3f124b915c6ee1dd780dd
+sourcePath: docs/evidence/foundation/adverse-condition-v1.md
+sourceUnitVersionIds:
+  - uv_0487d05d9153f470c9d24f00
+  - uv_0c90f00fd258d1e91a6df10f
+  - uv_7894af445d5e870c9e194d2b
+  - uv_b48566222e74550c9949d954
+  - uv_d96b0f47868f53f4793b5bde

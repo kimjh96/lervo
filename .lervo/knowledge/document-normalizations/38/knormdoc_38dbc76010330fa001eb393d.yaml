@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_81fa5603902a1f6448e3b8f6
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_98ba574a87fae98cca042232
+outputLanguage: en
+outputs:
+  - byteCount: 9255
+    contentHash: sha256:fa02561991cd0cea36e63355a106fd0f1c7c0bf05067b8e9a81dea47cdf25318
+    path: docs/specs/repository-knowledge-lifecycle-convergence.md
+    userRegionHash: sha256:fa02561991cd0cea36e63355a106fd0f1c7c0bf05067b8e9a81dea47cdf25318
+profile: specification_document
+recordId: knormdoc_38dbc76010330fa001eb393d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:666ec8c8e1d82734695f61b771babe9825ad272063355df812d08b9e4a3c7095
+sourcePath: docs/specs/repository-knowledge-lifecycle-convergence.md
+sourceUnitVersionIds:
+  - uv_2b144ad3587821fdffa842a7
+  - uv_52585478a339a1107c67e8a4
+  - uv_7aa96ff81a4bd63ff137de7c
+  - uv_8d16cd71a1b7eba8888fc5e8
+  - uv_a52af12a6f2018c16dfb7800
+  - uv_aacd56ee8fc50e4325e20a85
+  - uv_ba77addf49fcae1d4869907c
+  - uv_f6fe9d378f64de77b169a6ef

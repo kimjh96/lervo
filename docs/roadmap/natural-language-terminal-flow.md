@@ -25,4 +25,6 @@ Allow users to ask Codex or Claude ordinary repository questions and request imp
 
 Direct provider sessions remain unmanaged. Hook preparation, agent declarations, output references, and repository checks do not prove model attention, understanding, or internal use.
 
+This completed v1 scope does not semantically draft canonical outcomes, automatically promote user-owned content, aggregate outstanding review state into a proactive user attention inbox, or resume a native provider session. Those outcomes are tracked by the [product outcome convergence roadmap](product-outcome-convergence.md).
+
 See [ADR-0200](../decisions/execution/providers/0200-natural-language-terminal-turn-finalization.md), [ADR-0199](../decisions/knowledge/repository/0199-structured-workstream-continuation-state.md), and [ADR-0201](../decisions/coordination/sync/0201-repository-scoped-workstream-replication.md).

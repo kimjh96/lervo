@@ -25,6 +25,7 @@ Integrated worker worktrees are removed automatically only when local evidence p
 8. [Completed] Add optional Hub reservations, separate permissions, append-only audit transitions, authenticated Node summary reconciliation, and independent health.
 9. [Completed] Fix and test v1 capacity at 32 active reservations per project coordinate, 128 retained terminal summaries, 30-day terminal-summary retention, and privacy-bounded local lifecycle-event reconciliation.
 10. [Completed] Expose automatic cleanup only behind an explicit repository-policy input after the common Git and Orca gates; disabled policy and any incomplete proof preserve the worktree.
+11. [Completed] Pause a direct worker only after its exact Stop checkpoint, permit a fresh verified session to resume the same repository assignment, and expose writer liveness without inferring termination or native provider-session resume.
 
 ## Completion evidence
 
@@ -37,6 +38,8 @@ Integrated worker worktrees are removed automatically only when local evidence p
 
 - Two disjoint assignments run concurrently in separate worktrees and share one local scheduler; overlapping claims fail before either writer starts.
 - A second writer or foreign path mutation produces a bounded isolation error. `Stop` does not require the affected worker to update another workspace's global workstream.
+- A successful worker Stop leaves the workspace paused with no writer; a fresh provider session can resume only after exact generation, assignment, lease, marker, host, and scope revalidation.
+- Recent, stale, legacy, and absent writer observations remain distinct, and stale observation never grants takeover authority.
 - A sealed result binds clean commits, changed-path digest, verification, and durable artifacts, and remains integrable after its agent exits.
 - Exactly one integration assignment owns each target generation. Stale targets and conflicts preserve worker results and advance neither the target nor the current workstream.
 - Repository-wide documentation, knowledge, lint, and verification run only against the integrated checkout before the integrator advances the workstream.
@@ -61,5 +64,6 @@ Integrated worker worktrees are removed automatically only when local evidence p
 
 - [Isolated agent workspace ADR](../../decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md)
 - [Agent workspace specification](../../specifications/execution/agent-workspaces.md)
+- [ADR-0363](../../decisions/execution/orchestration/0363-checkpointed-terminal-workspace-pause-and-liveness.md)
 - [Repository agent workforce](agent-workforce.md)
 - [Hub and Node coordination](../../specifications/coordination/hub-and-node.md)
