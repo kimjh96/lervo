@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidenceBuildDigest": "sha256:1a7bc485f1d73d5631646d15034344843f42b4c57e27e1a5b22f38a2deb3fc2d",
-  "repositoryRevision": "sha256:f1bf5dce302b0524aaaf3b99ce808b4981402b3db773ae568bdb58b7aacf8cdb",
+  "repositoryRevision": "sha256:c3111748efa36b6e71a84fd688f3623222b567fc8cf33ce0911cd879e692a86d",
   "environment": {
     "operatingSystem": "darwin",
     "architecture": "arm64",
@@ -1147,9 +1147,9 @@
       "eventWindow": 1000,
       "assignmentWindow": 128,
       "concurrentWorkers": 4,
-      "durationMs": 0.1,
-      "cpuMs": 0.127,
-      "processPeakResidentMemoryBytes": 187449344,
+      "durationMs": 0.109709,
+      "cpuMs": 0.134,
+      "processPeakResidentMemoryBytes": 184909824,
       "status": "passed"
     },
     {
@@ -1157,9 +1157,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 16,
-      "durationMs": 0.273125,
-      "cpuMs": 0.323,
-      "processPeakResidentMemoryBytes": 187465728,
+      "durationMs": 0.276709,
+      "cpuMs": 0.325,
+      "processPeakResidentMemoryBytes": 184926208,
       "status": "passed"
     },
     {
@@ -1167,9 +1167,9 @@
       "eventWindow": 100000,
       "assignmentWindow": 10000,
       "concurrentWorkers": 32,
-      "durationMs": 2.463166,
-      "cpuMs": 2.844,
-      "processPeakResidentMemoryBytes": 188350464,
+      "durationMs": 2.502834,
+      "cpuMs": 2.883,
+      "processPeakResidentMemoryBytes": 185810944,
       "status": "passed"
     },
     {
@@ -1177,9 +1177,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 32,
-      "durationMs": 0.255459,
-      "cpuMs": 0.366,
-      "processPeakResidentMemoryBytes": 188383232,
+      "durationMs": 0.255792,
+      "cpuMs": 0.372,
+      "processPeakResidentMemoryBytes": 185843712,
       "status": "passed"
     }
   ],
@@ -1269,7 +1269,7 @@
     {
       "area": "security",
       "path": "packages/event-contract/test/redaction.test.ts",
-      "sourceHash": "sha256:f7112cf4bd37a36890e71a4a09288f10550142d0770709c967580271a8d8eb06"
+      "sourceHash": "sha256:e47a686b2237a467f85acdaa9606e3e14852630bea78b0e69641d67dc2917a55"
     },
     {
       "area": "recovery",
@@ -1355,5 +1355,5 @@
     "credentials": "excluded",
     "absolutePaths": "excluded"
   },
-  "reportId": "adverse_cc958e25b5e148417c3e2182"
+  "reportId": "adverse_c7cc5b97e1a0c52a2eb4daba"
 }
