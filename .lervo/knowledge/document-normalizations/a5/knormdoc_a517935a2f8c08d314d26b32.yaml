@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_aee6261fa29ba47b0c46bade
+compiler:
+  compilerBuildId: sha256:94c169212651303766eabdc3bbf2e11498aea403e3c709a969f0310e7cf9c233
+  compilerId: lervo.claude.document-normalizer
+  compilerVersion: 1+2.1.236 (Claude Code)
+  isolation: external_no_capabilities
+  provider: claude
+formatVersion: lervo.document.v1
+operationId: knormop_e7847c6780d00a6926a4477b
+outputLanguage: en
+outputs:
+  - byteCount: 6435
+    contentHash: sha256:6e198f27e17eebd8d34828d58c184156fefc470eac9f25bb9799ccb3a9fbc05a
+    path: docs/roadmap/knowledge/bounded-document-layout.md
+    userRegionHash: sha256:6e198f27e17eebd8d34828d58c184156fefc470eac9f25bb9799ccb3a9fbc05a
+profile: roadmap_document
+recordId: knormdoc_a517935a2f8c08d314d26b32
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6e198f27e17eebd8d34828d58c184156fefc470eac9f25bb9799ccb3a9fbc05a
+sourcePath: docs/roadmap/knowledge/bounded-document-layout.md
+sourceUnitVersionIds:
+  - uv_6491110fdd0584b5d1f71eb4
+  - uv_6d96d19ff903623b9ad32395
+  - uv_7775de166086103205824aed
+  - uv_7cc61f1d346454f733cb3dec
+  - uv_a3ddcbbe51ac9d74886cf0ff
+  - uv_f3aba3201cdeb681dba661df
+  - uv_f5dfc05ad6b873b125c7f695
