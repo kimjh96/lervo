@@ -2,7 +2,7 @@
 
 Part of [Product outcome convergence](../product-outcome-convergence.md); its baseline, acceptance-state definitions, and claim boundaries apply.
 
-| User outcome | Current evidence | State | Completion proof still required |
+| User outcome | Current evidence | State | Required proof or preservation |
 | --- | --- | --- | --- |
 | Bounded work is a graph; verification, retry, resource, approval, and completion policy govern each attempt. | Assignment DAG projection, pure controller decisions, manual `loop run`, managed attempts, verification, leases, and completion reconciliation exist. | implemented | Preserve the installed manual journey and its non-autonomy claim. |
 | Root agents and recursive workers retain identity, ancestry, authority, path-conflict protection, and evidence. | Workforce and isolated-workspace contracts cover parent identity, delegation depth, leases, path scope, sealing, integration, and handoff. | implemented | Keep root and subagent contract tests common. |

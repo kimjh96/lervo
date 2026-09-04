@@ -1,13 +1,10 @@
 # Paperclip-, Buzz-, loop-, graph-, and host-product outcomes
 
-Part of [Product outcome convergence](../product-outcome-convergence.md); its baseline, acceptance-state definitions, and claim boundaries apply.
+Part of [Product outcome convergence](../product-outcome-convergence.md); its baseline, acceptance-state definitions, and claim boundaries apply to these outcomes.
 
-| User outcome | Current evidence | State | Completion proof still required |
-| --- | --- | --- | --- |
-| An operator sees objectives, agents, assignments, dependencies, blockers, approvals, verification, and observed budgets together. | The static board covers the graph; protocol-v2 attention covers current authority and knowledge maintenance through installed read-only routes. These are separate projections, not one interactive screen. | partial | A separate product host must compose both reports into one operating view without acquiring repository authority. |
-| Repeatable work is triggered safely. | Exact assignment routines materialize from one manual trigger. Cron, webhook, API, approval-resolution, and assignment wakeups are not installed. | partial | Add each trigger behind a versioned adapter and shared idempotency, authority, budget, and recovery contracts. |
-| Slack receives a governed assignment artifact. | A production outbound adapter keeps credentials and native destinations private, reserves durably before effect, and distinguishes delivered, rejected, and unknown. | implemented | Live-workspace authorization remains an external exercise; inbound Slack and acknowledgment are separate capabilities. |
-| Paperclip-like and Buzz-like complete interfaces are built into Lervo. | Lervo intentionally exposes a headless kernel, static reference surface, and connector ports instead of another task or chat database. | external product | A separate product may supply UI and product-owned presentation state through the versioned host boundary without becoming repository authority. |
-| A separately installed host composes Lervo without private workspace imports. | Default protocol v1 retains 21 routes; explicit v2 adds operating attention and the composed repository goal for 23 routes. The real packed consumer passes against both versions without workspace-private imports. | implemented | Future route changes require the same reviewed protocol and packed compatibility proof. |
-| Execution graphs support bounded dynamic branches, joins, and reviewed topology changes. | Assignment dependencies form an acyclic rebuildable DAG; routines materialize fixed reviewed templates. Dynamic mutation and arbitrary cycles are unsupported. | partial | Introduce a new versioned graph contract only with topology authority, cycle bounds, migration, recovery, and historical replay. |
-| Models, providers, harnesses, retrieval methods, tools, skills, protocols, and UIs remain replaceable. | Core authority and evidence use provider-neutral contracts. Codex, Claude, search, connector, host, and execution-target behavior enter through adapters. | implemented | Every new edge must retain common conformance, explicit capability degradation, migration, rollback, and local-without-Hub acceptance. |
+- [Unified operating view](host-products/operating-view.md): `partial`.
+- [Safe repeatable triggers](host-products/triggers.md): `partial`.
+- [Governed Slack delivery](host-products/slack.md): `implemented`.
+- [Product interfaces and host compatibility](host-products/host-boundary.md): `external product` interfaces; `implemented` host boundary.
+- [Dynamic execution graphs](host-products/execution-graphs.md): `partial`.
+- [Replaceable components](host-products/replaceability.md): `implemented`.
