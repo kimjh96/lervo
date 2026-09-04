@@ -69581,6 +69581,9 @@ async function inspectPath(root2, path) {
   }
   return { absolutePath: current, kind: "file" };
 }
+async function repositoryFileExists(root2, path) {
+  return (await inspectPath(root2, path)).kind === "file";
+}
 async function readRepositoryFile(root2, path, maximumBytes2 = Number.MAX_SAFE_INTEGER) {
   if (!Number.isSafeInteger(maximumBytes2) || maximumBytes2 < 1) {
     throw new ContextPreparationError("document_read_failed", "The document byte limit is invalid.");
@@ -70536,6 +70539,11 @@ function readCliPackageVersion() {
 // apps/cli/src/terminal-knowledge-lifecycle-cache.ts
 var CACHE_PATH = ".lervo/state/terminal-integration/knowledge-lifecycle-cache.json";
 var MAXIMUM_CACHE_BYTES = 64 * 1024;
+var MAXIMUM_PROJECTION_COORDINATE_BYTES = 512 * 1024;
+var KNOWLEDGE_PROJECTION_COORDINATE_PATHS = [
+  ".lervo/state/knowledge/current/source-units.json",
+  ".lervo/state/knowledge/current/structural/manifests/current.json"
+];
 var HASH9 = /^sha256:[a-f0-9]{64}$/u;
 function supplementalSourcesDigest(sources) {
   return sha2562(
@@ -70554,11 +70562,28 @@ function supplementalSourcesDigest(sources) {
     )
   );
 }
-function cacheCoordinates(input) {
+async function knowledgeProjectionDigest(root2) {
+  const coordinates = [];
+  for (const path of KNOWLEDGE_PROJECTION_COORDINATE_PATHS) {
+    try {
+      coordinates.push({
+        path,
+        contentHash: await repositoryFileExists(root2, path) ? sha2562(await readRepositoryFile(root2, path, MAXIMUM_PROJECTION_COORDINATE_BYTES)) : null
+      });
+    } catch {
+      return null;
+    }
+  }
+  return sha2562(canonicalJson3(coordinates));
+}
+async function cacheCoordinates(input) {
+  const projectionDigest = await knowledgeProjectionDigest(input.root);
+  if (projectionDigest === null) return null;
   return {
     cliVersion: readCliPackageVersion(),
     repositoryRevision: input.repositoryRevision,
-    supplementalSourcesDigest: supplementalSourcesDigest(input.supplementalSources)
+    supplementalSourcesDigest: supplementalSourcesDigest(input.supplementalSources),
+    knowledgeProjectionDigest: projectionDigest
   };
 }
 function validIssue(value) {
@@ -70567,7 +70592,7 @@ function validIssue(value) {
 }
 function validateCache(value) {
   const cache = value;
-  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 1 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH9.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH9.test(cache.supplementalSourcesDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue)) {
+  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 2 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH9.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH9.test(cache.supplementalSourcesDigest) || typeof cache.knowledgeProjectionDigest !== "string" || !HASH9.test(cache.knowledgeProjectionDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue)) {
     return null;
   }
   return cache;
@@ -70579,8 +70604,9 @@ async function readTerminalKnowledgeLifecycleCache(input) {
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_CACHE_BYTES) return null;
     const cache = validateCache(JSON.parse(await readFile19(target, "utf8")));
     if (cache === null) return null;
-    const expected = cacheCoordinates(input);
-    if (cache.cliVersion !== expected.cliVersion || cache.repositoryRevision !== expected.repositoryRevision || cache.supplementalSourcesDigest !== expected.supplementalSourcesDigest) {
+    const expected = await cacheCoordinates(input);
+    if (expected === null) return null;
+    if (cache.cliVersion !== expected.cliVersion || cache.repositoryRevision !== expected.repositoryRevision || cache.supplementalSourcesDigest !== expected.supplementalSourcesDigest || cache.knowledgeProjectionDigest !== expected.knowledgeProjectionDigest) {
       return null;
     }
     return cache.issues;
@@ -70592,14 +70618,17 @@ async function writeTerminalKnowledgeLifecycleCache(input) {
   if (!HASH9.test(input.repositoryRevision) || input.issues.length > 128 || !input.issues.every(validIssue)) {
     throw new Error("The terminal knowledge lifecycle cache input is invalid.");
   }
+  const coordinates = await cacheCoordinates(input);
+  if (coordinates === null)
+    throw new Error("The terminal knowledge lifecycle cache coordinates are unavailable.");
   const directory = resolve47(input.root, ".lervo/state/terminal-integration");
   await mkdir12(directory, { recursive: true, mode: 448 });
   const directoryStats = await lstat34(directory);
   if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink())
     throw new Error("Unsafe terminal knowledge lifecycle cache directory.");
   const cache = {
-    schemaVersion: 1,
-    ...cacheCoordinates(input),
+    schemaVersion: 2,
+    ...coordinates,
     issues: input.issues
   };
   const bytes = `${JSON.stringify(cache)}
