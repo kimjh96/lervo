@@ -40,6 +40,8 @@ No user-owned document rewrite is authorized by this roadmap.
 - Runtime resource observations remain separate from deterministic candidate identity and cached
   document results are attributed to zero new provider calls.
 - Applying a partial stale candidate leaves unrelated new pending documents visible.
+- Repeatable explicit source selection binds a review-sized subset inside a lifecycle scope without
+  exposing exact paths through applied-event coverage.
 
 ## Delivery order
 
@@ -59,9 +61,12 @@ No user-owned document rewrite is authorized by this roadmap.
    Add elapsed-time and observed-token ceilings after step 4.
    Never represent missing usage as zero, and stop before the next envelope when a post-call budget
    is exhausted.
-6. Generate three separately reviewable worksets: five reference repairs, 17 localized changes,
-   and nine compound changes. Keep ignored candidate bytes separate from canonical lifecycle
-   records.
+6. **Complete.** Generate three separately reviewable worksets: five reference repairs, 17
+   localized changes, and nine compound changes. Exact path-bounded worksets generated all three
+   groups from validated cache. The one localized existing-destination conflict was isolated from
+   the other 16 sources and replaced by a separate valid Claude fallback candidate. Two later
+   stale specification sources remain a separate valid workset. No candidate was applied. Keep
+   ignored candidate bytes separate from canonical lifecycle records.
 7. Review every source against its current bytes and protected material. Apply only an exact,
    content-bound plan with every displayed per-source approval; then refresh structural knowledge,
    lint, and replan.
@@ -100,6 +105,7 @@ At minimum, the observable outcomes must distinguish:
 | Outcome                           | Meaning                                                                                               |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `workset_stale`                   | A selected source, lifecycle status, policy, or compiler coordinate changed before use.               |
+| `normalization_selection_invalid` | An explicit source path is malformed, duplicated, or outside the selected lifecycle scope.            |
 | `normalization_budget_exceeded`   | A configured byte, call, elapsed-time, or observed-token ceiling prevented another provider call.     |
 | `normalization_usage_unavailable` | The provider completed but did not expose schema-valid usage; no zero-valued measurement is inferred. |
 | `candidate_review_required`       | Candidate bytes are stored locally but no user document or lifecycle record changed.                  |

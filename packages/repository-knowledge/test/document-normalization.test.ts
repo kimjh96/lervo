@@ -226,6 +226,113 @@ describe("document content normalization", () => {
     expect(lifecycle.pendingDocuments).toEqual(["docs/operations/new.md"]);
   });
 
+  it("binds an explicit path subset inside the selected lifecycle scope", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/operations"), { recursive: true });
+    await writeFile(resolve(root, "docs/operations/alpha.md"), "# Alpha\n\nOriginal.\n");
+    await writeFile(resolve(root, "docs/operations/beta.md"), "# Beta\n\nOriginal.\n");
+    const initialCompiler: RepositoryDocumentNormalizationCompiler = {
+      descriptor: compiler([]).descriptor,
+      normalize: async (envelope) => normalizedResponse(envelope),
+    };
+    const initial = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: initialCompiler,
+      signal: new AbortController().signal,
+    });
+    const initialPlan = await createDocumentNormalizationPlan({
+      repositoryRoot: root,
+      candidate: initial,
+      now: new Date("2026-09-04T00:00:00.000Z"),
+    });
+    await applyDocumentNormalizationPlan({
+      plan: initialPlan,
+      candidate: initial,
+      approvals: initialPlan.items.map((item) => ({
+        operationId: item.operationId,
+        approvalHash: item.approvalHash,
+      })),
+      now: new Date("2026-09-04T00:00:00.000Z"),
+      recordApplied: () => undefined,
+    });
+    await writeFile(resolve(root, "docs/operations/alpha.md"), "# Alpha\n\nChanged.\n");
+    await writeFile(resolve(root, "docs/operations/beta.md"), "# Beta\n\nChanged.\n");
+    await writeFile(resolve(root, "docs/operations/new.md"), "# New\n\nUnreviewed.\n");
+    const calls: DocumentNormalizationEnvelope[] = [];
+    const replacementCompiler: RepositoryDocumentNormalizationCompiler = {
+      descriptor: initialCompiler.descriptor,
+      async normalize(envelope) {
+        calls.push(envelope);
+        return normalizedResponse(envelope);
+      },
+    };
+    const sourcePaths = ["docs/operations/beta.md"];
+
+    const preflight = await createConfiguredDocumentNormalizationPreflight({
+      repositoryRoot: root,
+      compiler: replacementCompiler,
+      scope: "stale",
+      sourcePaths,
+    });
+
+    expect(preflight).toMatchObject({
+      status: "ready",
+      workset: {
+        scope: "stale",
+        selection: { kind: "explicit_paths" },
+        repository: { pendingDocuments: 3, staleDocuments: 2, unrecordedDocuments: 1 },
+        selectedDocuments: 1,
+      },
+    });
+    expect(preflight.selection.documents.map((document) => document.path)).toEqual(sourcePaths);
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: replacementCompiler,
+      signal: new AbortController().signal,
+      scope: "stale",
+      sourcePaths,
+    });
+    expect(candidate.workset).toEqual(preflight.workset);
+    const plan = await createDocumentNormalizationPlan({
+      repositoryRoot: root,
+      candidate,
+      now: new Date("2026-09-04T01:00:00.000Z"),
+    });
+    expect(plan.status).toBe("review_required");
+    const receipt = await applyDocumentNormalizationPlan({
+      plan,
+      candidate,
+      approvals: plan.items.map((item) => ({
+        operationId: item.operationId,
+        approvalHash: item.approvalHash,
+      })),
+      now: new Date("2026-09-04T01:00:00.000Z"),
+      recordApplied: () => undefined,
+    });
+    expect(receipt.workset.selection).toEqual({ kind: "explicit_paths" });
+    expect(JSON.stringify(receipt.workset)).not.toContain("docs/operations/beta.md");
+    expect(
+      (await inspectConfiguredDocumentNormalization({ repositoryRoot: root })).pendingDocuments,
+    ).toEqual(["docs/operations/alpha.md", "docs/operations/new.md"]);
+  });
+
+  it("rejects explicit paths outside the lifecycle scope before provider work", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "docs/operations"), { recursive: true });
+    await writeFile(resolve(root, "docs/operations/new.md"), "# New\n\nUnreviewed.\n");
+    const calls: DocumentNormalizationEnvelope[] = [];
+
+    await expect(
+      createConfiguredDocumentNormalizationPreflight({
+        repositoryRoot: root,
+        compiler: compiler(calls),
+        scope: "stale",
+        sourcePaths: ["docs/operations/new.md"],
+      }),
+    ).rejects.toMatchObject({ code: "normalization_selection_invalid" });
+    expect(calls).toEqual([]);
+  });
+
   it("blocks provider generation before a declared workset ceiling is exceeded", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/operations"), { recursive: true });

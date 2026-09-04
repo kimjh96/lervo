@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_aa44bf236c7ece0171519794"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add exact path-bounded document normalization worksets."

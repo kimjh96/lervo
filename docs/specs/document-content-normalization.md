@@ -24,6 +24,13 @@ pending sources remain outside that workset. Every candidate binds repository el
 pending, stale, and unrecorded counts in addition to its selected document hashes and bytes.
 Workset completeness is not repository-wide currency.
 
+Repeat `--source <relative-markdown-path>` to select an exact subset inside the declared lifecycle
+scope. Explicit paths must be unique Markdown sources currently in that scope; invalid selection
+fails before cache lookup or provider work as `normalization_selection_invalid`. The workset ID
+binds the selected path, current hash, and byte tuples, while durable event coverage includes only
+the `explicit_paths` selection kind and aggregate workset coordinates. Exact paths and hashes stay
+in local preflight and candidate output.
+
 Add `--preflight` to inspect the exact selection without a normalization request or repository
 write. The local report contains selected paths and hashes, lifecycle disposition, source bytes,
 envelopes, compiler-bound cache hits and misses, and conservative provider-call capacity. The
@@ -66,4 +73,5 @@ Repository document layout follows [ADR-0222](../decisions/knowledge/repository/
 - [Reviewed document content normalization](../decisions/knowledge/repository/0195-reviewed-document-content-normalization.md)
 - [Bound document normalization worksets and preflight](../decisions/knowledge/documents/0358-bound-document-normalization-worksets-and-preflight.md)
 - [Observed document normalization resources](../decisions/knowledge/documents/0359-observe-document-normalization-resources.md)
+- [Explicit document normalization selection](../decisions/knowledge/documents/0360-bind-explicit-document-normalization-selection.md)
 - [Bounded role-based document layout](../decisions/knowledge/repository/0222-bounded-role-based-document-layout.md)

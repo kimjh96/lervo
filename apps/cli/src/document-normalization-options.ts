@@ -6,7 +6,7 @@ import type {
 } from "@lervo/repository-knowledge";
 
 export const documentNormalizationUsage =
-  "lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--scope <stale|all-pending>] [--preflight] [--max-source-bytes <bytes>] [--max-provider-calls <count>] [--max-observed-tokens <tokens>] [--max-elapsed-ms <ms>] [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]";
+  "lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--scope <stale|all-pending>] [--source <relative-markdown-path>] [--source ...] [--preflight] [--max-source-bytes <bytes>] [--max-provider-calls <count>] [--max-observed-tokens <tokens>] [--max-elapsed-ms <ms>] [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]";
 
 export interface DocumentNormalizationCommandOptions {
   help: boolean;
@@ -14,6 +14,7 @@ export interface DocumentNormalizationCommandOptions {
   provider?: "codex" | "claude";
   candidate?: string;
   scope: DocumentNormalizationScope;
+  sourcePaths?: string[];
   preflight: boolean;
   ceilings: Partial<DocumentNormalizationResourceCeilings>;
   model?: string;
@@ -44,6 +45,7 @@ export function parseDocumentNormalizationOptions(
       provider: { type: "string" },
       candidate: { type: "string" },
       scope: { type: "string" },
+      source: { type: "string", multiple: true },
       preflight: { type: "boolean" },
       "max-source-bytes": { type: "string" },
       "max-provider-calls": { type: "string" },
@@ -76,6 +78,7 @@ export function parseDocumentNormalizationOptions(
     throw new Error("--scope must be stale or all-pending.");
   if (
     (parsed.values.scope !== undefined ||
+      parsed.values.source !== undefined ||
       parsed.values.preflight ||
       parsed.values["max-source-bytes"] !== undefined ||
       parsed.values["max-provider-calls"] !== undefined ||
@@ -83,7 +86,7 @@ export function parseDocumentNormalizationOptions(
       parsed.values["max-elapsed-ms"] !== undefined) &&
     parsed.values.provider === undefined
   )
-    throw new Error("--scope, --preflight, and resource ceilings require --provider.");
+    throw new Error("--scope, --source, --preflight, and resource ceilings require --provider.");
   if (
     parsed.values.preflight &&
     (parsed.values.apply !== undefined || (parsed.values["approve-item"]?.length ?? 0) > 0)
@@ -120,6 +123,7 @@ export function parseDocumentNormalizationOptions(
       : { provider: parsed.values.provider as "codex" | "claude" }),
     ...(parsed.values.candidate === undefined ? {} : { candidate: parsed.values.candidate }),
     scope: parsed.values.scope === "stale" ? "stale" : "all_pending",
+    ...(parsed.values.source === undefined ? {} : { sourcePaths: parsed.values.source }),
     preflight: parsed.values.preflight ?? false,
     ceilings: {
       ...(maximumSourceBytes === undefined ? {} : { maximumSourceBytes }),

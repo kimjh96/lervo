@@ -392,6 +392,7 @@ export class RepositoryKnowledgeError extends Error {
       | "knowledge_impact_invalid"
       | "knowledge_lint_failed"
       | "normalization_budget_exceeded"
+      | "normalization_selection_invalid"
       | "normalization_usage_unavailable"
       | "document_directory_file_capacity_exceeded"
       | "document_directory_child_capacity_exceeded"

@@ -64,6 +64,8 @@ console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 15, 
           executable,
           "--scope",
           "all-pending",
+          "--source",
+          "docs/operations/runtime.md",
           "--max-observed-tokens",
           "1000",
           "--max-elapsed-ms",
@@ -77,13 +79,21 @@ console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 15, 
     ).toBe(0);
     const preflight = JSON.parse(messages.join("")) as {
       status: string;
-      workset: { scope: string; selectedDocuments: number };
+      workset: {
+        scope: string;
+        selection: { kind: string };
+        selectedDocuments: number;
+      };
       selection: { cacheMisses: number };
       ceilings: { maximumObservedTokens: number; maximumElapsedMilliseconds: number };
     };
     expect(preflight).toMatchObject({
       status: "ready",
-      workset: { scope: "all_pending", selectedDocuments: 1 },
+      workset: {
+        scope: "all_pending",
+        selection: { kind: "explicit_paths" },
+        selectedDocuments: 1,
+      },
       selection: { cacheMisses: 1 },
       ceilings: { maximumObservedTokens: 1000, maximumElapsedMilliseconds: 5000 },
     });

@@ -1,3 +1,5 @@
+import { posix } from "node:path";
+
 import { canonicalJson, stableId } from "./integrity.js";
 import { RepositoryKnowledgeError } from "./types.js";
 
@@ -11,6 +13,9 @@ export type DocumentNormalizationScope = "all_pending" | "stale";
 export interface DocumentNormalizationWorksetBinding {
   worksetId: string;
   scope: DocumentNormalizationScope;
+  selection?: {
+    kind: "explicit_paths";
+  };
   repository: {
     eligibleDocuments: number;
     currentDocuments: number;
@@ -97,12 +102,37 @@ export function selectDocumentNormalizationPaths(input: {
   scope: DocumentNormalizationScope;
   pendingPaths: ReadonlySet<string>;
   stalePaths: ReadonlySet<string>;
+  requestedPaths?: readonly string[];
 }): Set<string> {
-  return new Set(
+  const scopePaths = new Set(
     [...input.pendingPaths]
       .filter((path) => input.scope === "all_pending" || input.stalePaths.has(path))
       .sort(),
   );
+  if (input.requestedPaths === undefined) return scopePaths;
+  const requestedPaths = [...input.requestedPaths];
+  if (
+    requestedPaths.length < 1 ||
+    requestedPaths.some(
+      (path) =>
+        typeof path !== "string" ||
+        path.length < 1 ||
+        path.length > 1_024 ||
+        posix.normalize(path) !== path ||
+        path.startsWith("/") ||
+        path.includes("../") ||
+        path.includes("\\") ||
+        path.includes("\u0000") ||
+        !path.endsWith(".md"),
+    ) ||
+    new Set(requestedPaths).size !== requestedPaths.length ||
+    requestedPaths.some((path) => !scopePaths.has(path))
+  )
+    throw new RepositoryKnowledgeError(
+      "normalization_selection_invalid",
+      "Explicit document normalization paths must be unique Markdown sources in the selected lifecycle scope.",
+    );
+  return new Set(requestedPaths.sort());
 }
 
 export function documentNormalizationWorksetBinding(input: {
@@ -113,8 +143,11 @@ export function documentNormalizationWorksetBinding(input: {
   pendingDocuments: number;
   staleDocuments: number;
   documents: ReadonlyArray<{ path: string; contentHash: string; byteCount: number }>;
+  selectionPaths?: readonly string[];
 }): DocumentNormalizationWorksetBinding {
   const documents = [...input.documents].sort((left, right) => left.path.localeCompare(right.path));
+  const selectionPaths =
+    input.selectionPaths === undefined ? undefined : [...input.selectionPaths].sort();
   const counts = [
     input.eligibleDocuments,
     input.currentDocuments,
@@ -134,7 +167,14 @@ export function documentNormalizationWorksetBinding(input: {
         document.byteCount < 1,
     ) ||
     new Set(documents.map((document) => document.path)).size !== documents.length ||
-    documents.length !== (input.scope === "stale" ? input.staleDocuments : input.pendingDocuments)
+    (selectionPaths === undefined &&
+      documents.length !==
+        (input.scope === "stale" ? input.staleDocuments : input.pendingDocuments)) ||
+    (selectionPaths !== undefined &&
+      (selectionPaths.length < 1 ||
+        new Set(selectionPaths).size !== selectionPaths.length ||
+        canonicalJson(selectionPaths) !==
+          canonicalJson(documents.map((document) => document.path))))
   )
     throw new RepositoryKnowledgeError(
       "knowledge_compile_policy_violation",
@@ -148,14 +188,22 @@ export function documentNormalizationWorksetBinding(input: {
     staleDocuments: input.staleDocuments,
     unrecordedDocuments: input.pendingDocuments - input.staleDocuments,
   };
+  const selection =
+    selectionPaths === undefined
+      ? undefined
+      : {
+          kind: "explicit_paths" as const,
+        };
   return {
     worksetId: stableId("knormset", {
       scope: input.scope,
+      ...(selection === undefined ? {} : { selection }),
       sourceSnapshotId: input.sourceSnapshotId,
       repository,
       documents,
     }),
     scope: input.scope,
+    ...(selection === undefined ? {} : { selection }),
     repository,
     selectedDocuments: documents.length,
     sourceBytes,
@@ -178,6 +226,9 @@ export async function createDocumentNormalizationPreflightReport(input: {
     scope: input.binding.scope,
     sourceSnapshotId: input.sourceSnapshotId,
     ...input.binding.repository,
+    ...(input.binding.selection === undefined
+      ? {}
+      : { selectionPaths: envelopeDocuments.map((document) => document.path) }),
     documents: envelopeDocuments.map((document) => ({
       path: document.path,
       contentHash: document.contentHash,

@@ -68,6 +68,7 @@ function formatPlan(
     `candidate: ${plan.candidateId ?? "none"}`,
     `candidate artifact: ${artifactPath}`,
     `workset: ${plan.workset.worksetId} · scope: ${plan.workset.scope}`,
+    `selection mode: ${plan.workset.selection?.kind ?? "complete_scope"}`,
     `language: ${plan.outputLanguage} · format: ${plan.formatVersion}`,
     `source documents: ${plan.items.length} · output documents: ${plan.items.reduce((sum, item) => sum + item.outputs.length, 0)}`,
   ];
@@ -119,6 +120,7 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
           repositoryRoot,
           compiler,
           scope: options.scope,
+          ...(options.sourcePaths === undefined ? {} : { sourcePaths: options.sourcePaths }),
           ceilings: options.ceilings,
           supplementalSources,
         });
@@ -139,6 +141,7 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
           compiler,
           signal: controller.signal,
           scope: options.scope,
+          ...(options.sourcePaths === undefined ? {} : { sourcePaths: options.sourcePaths }),
           ceilings: options.ceilings,
           supplementalSources,
           onShardProgress: ({ index, total, status, documentCount, cachedDocumentCount }) => {

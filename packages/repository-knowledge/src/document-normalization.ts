@@ -926,6 +926,11 @@ function validateDocumentNormalizationCandidate(candidate: DocumentNormalization
     typeof candidate.workset !== "object" ||
     !/^knormset_[a-f0-9]{24}$/u.test(candidate.workset.worksetId) ||
     !["all_pending", "stale"].includes(candidate.workset.scope) ||
+    (candidate.workset.selection !== undefined &&
+      (candidate.workset.selection === null ||
+        typeof candidate.workset.selection !== "object" ||
+        candidate.workset.selection.kind !== "explicit_paths" ||
+        Object.keys(candidate.workset.selection).length !== 1)) ||
     candidate.workset.complete !== true ||
     candidate.workset.repository === null ||
     typeof candidate.workset.repository !== "object" ||
@@ -1095,6 +1100,9 @@ function validateDocumentNormalizationCandidate(candidate: DocumentNormalization
     scope: candidate.workset.scope,
     sourceSnapshotId: candidate.sourceSnapshotId,
     ...repositoryCounts,
+    ...(candidate.workset.selection === undefined
+      ? {}
+      : { selectionPaths: candidate.items.map((item) => item.sourcePath) }),
     documents: candidate.items.map((item) => ({
       path: item.sourcePath,
       contentHash: item.sourceContentHash,
@@ -1134,11 +1142,25 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
   );
   const lifecycle = await normalizationLifecyclePaths(input.root, input.candidate.outputLanguage);
   const pending = eligible.filter((item) => !lifecycle.current.has(item.source.path));
-  const expected = pending.filter(
-    (item) =>
-      input.candidate.workset.scope === "all_pending" ||
-      lifecycle.staleSources.has(item.source.path),
-  );
+  let selectedPaths: Set<string>;
+  try {
+    selectedPaths = selectDocumentNormalizationPaths({
+      scope: input.candidate.workset.scope,
+      pendingPaths: new Set(pending.map((item) => item.source.path)),
+      stalePaths: lifecycle.staleSources,
+      ...(input.candidate.workset.selection === undefined
+        ? {}
+        : { requestedPaths: input.candidate.items.map((item) => item.sourcePath) }),
+    });
+  } catch (error) {
+    if (
+      error instanceof RepositoryKnowledgeError &&
+      error.code === "normalization_selection_invalid"
+    )
+      invalidCandidate("the explicit source selection is outside the current lifecycle scope");
+    throw error;
+  }
+  const expected = pending.filter((item) => selectedPaths.has(item.source.path));
   const expectedByPath = new Map(expected.map((item) => [item.source.path, item]));
   const candidatePaths = new Set(input.candidate.items.map((item) => item.sourcePath));
   if (
@@ -1155,6 +1177,9 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
     currentDocuments: eligible.length - pending.length,
     pendingDocuments: pending.length,
     staleDocuments: pending.filter((item) => lifecycle.staleSources.has(item.source.path)).length,
+    ...(input.candidate.workset.selection === undefined
+      ? {}
+      : { selectionPaths: input.candidate.items.map((item) => item.sourcePath) }),
     documents: expected.map((item) => ({
       path: item.source.path,
       contentHash: item.source.contentHash,
@@ -1850,6 +1875,7 @@ export interface CompileConfiguredDocumentNormalizationCandidateInput {
   compiler: RepositoryDocumentNormalizationCompiler;
   signal: AbortSignal;
   scope?: DocumentNormalizationScope;
+  sourcePaths?: readonly string[];
   ceilings?: Partial<DocumentNormalizationResourceCeilings>;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
   onShardProgress?: (progress: DocumentNormalizationShardProgress) => void;
@@ -1862,6 +1888,7 @@ export async function compileConfiguredDocumentNormalizationCandidateObserved(
     repositoryRoot: input.repositoryRoot,
     compiler: input.compiler,
     ...(input.scope === undefined ? {} : { scope: input.scope }),
+    ...(input.sourcePaths === undefined ? {} : { sourcePaths: input.sourcePaths }),
     ...(input.ceilings === undefined ? {} : { ceilings: input.ceilings }),
     ...(input.supplementalSources === undefined
       ? {}
@@ -1895,6 +1922,7 @@ async function prepareConfiguredDocumentNormalization(input: {
   repositoryRoot: string;
   compiler: RepositoryDocumentNormalizationCompiler;
   scope?: DocumentNormalizationScope;
+  sourcePaths?: readonly string[];
   ceilings?: Partial<DocumentNormalizationResourceCeilings>;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
 }): Promise<{
@@ -1931,6 +1959,7 @@ async function prepareConfiguredDocumentNormalization(input: {
     scope: input.scope ?? "all_pending",
     pendingPaths,
     stalePaths: lifecycle.staleSources,
+    ...(input.sourcePaths === undefined ? {} : { requestedPaths: input.sourcePaths }),
   });
   const selected = pending.filter((item) => selectedPaths.has(item.source.path));
   const envelopes = normalizationEnvelopes({
@@ -1949,6 +1978,7 @@ async function prepareConfiguredDocumentNormalization(input: {
     currentDocuments: eligible.length - pending.length,
     pendingDocuments: pending.length,
     staleDocuments: stale.length,
+    ...(input.sourcePaths === undefined ? {} : { selectionPaths: input.sourcePaths }),
     documents: selected.map((item) => ({
       path: item.source.path,
       contentHash: item.source.contentHash,
@@ -2000,6 +2030,7 @@ export async function createConfiguredDocumentNormalizationPreflight(input: {
   repositoryRoot: string;
   compiler: RepositoryDocumentNormalizationCompiler;
   scope?: DocumentNormalizationScope;
+  sourcePaths?: readonly string[];
   ceilings?: Partial<DocumentNormalizationResourceCeilings>;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
 }): Promise<DocumentNormalizationPreflight> {

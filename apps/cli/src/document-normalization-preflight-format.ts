@@ -6,6 +6,7 @@ export function formatDocumentNormalizationPreflight(
   const lines = [
     `Repository document normalization preflight: ${preflight.status}`,
     `workset: ${preflight.workset.worksetId} · scope: ${preflight.workset.scope}`,
+    `selection mode: ${preflight.workset.selection?.kind ?? "complete_scope"}`,
     `compiler: ${preflight.compiler.compilerId} · ${preflight.compiler.compilerBuildId}`,
     `repository: ${preflight.workset.repository.pendingDocuments} pending (${preflight.workset.repository.staleDocuments} stale, ${preflight.workset.repository.unrecordedDocuments} unrecorded)`,
     `selection: ${preflight.workset.selectedDocuments} documents · ${preflight.workset.sourceBytes} bytes · ${preflight.selection.envelopeCount} envelopes`,
