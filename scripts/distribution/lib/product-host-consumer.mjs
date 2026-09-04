@@ -78,6 +78,14 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
       }),
     ),
   );
+  if (prepared.hookSpecificOutput === undefined) {
+    const coverage = parsed(
+      await runCli(["terminal", "coverage", "--provider", "codex", "--limit", "5", "--json"]),
+    );
+    assert.fail(
+      `Packed terminal context was unavailable; bounded terminal coverage: ${JSON.stringify(coverage)}`,
+    );
+  }
   const observationId = /--observation (tobs_[A-Za-z0-9_-]+)/u.exec(
     prepared.hookSpecificOutput.additionalContext,
   )?.[1];
