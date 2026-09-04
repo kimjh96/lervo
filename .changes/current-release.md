@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.11.3" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.11.4" schema="1" -->
 
 ## What's changed
 
-- Support secure repository snapshots on Windows when path stat omits the device identifier.
+- Invalidate terminal knowledge lifecycle caches when the current projection changes.

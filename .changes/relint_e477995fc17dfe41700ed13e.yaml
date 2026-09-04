@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e477995fc17dfe41700ed13e"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Invalidate terminal knowledge lifecycle caches when the current projection changes."
