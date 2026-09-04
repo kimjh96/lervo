@@ -29,6 +29,7 @@ describe("CLI release preparation workflow", () => {
 
   it("reconciles one release branch through exact plan approval and hands off one tag", async () => {
     const workflow = await readWorkflow();
+    assert.equal(workflow.jobs.reconcile["timeout-minutes"], 60);
     const steps = workflow.jobs.reconcile.steps;
     const install = steps.find(({ name }) => name === "Install dependencies");
     const completion = steps.find(({ name }) => name === "Check direct-main release completion");
