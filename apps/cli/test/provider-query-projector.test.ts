@@ -190,6 +190,36 @@ describe.each(["codex", "claude"] as const)("%s query projector adapter", (provi
     expect(close).toHaveBeenCalledTimes(1);
   });
 
+  it("preserves the projection receipt when provider cleanup fails", async () => {
+    const close = vi.fn(async () => {
+      throw new Error("provider cleanup failed");
+    });
+    const projector = createProcessSearchQueryProjector(provider, {
+      runner: {
+        provider,
+        resolve: async () => ({
+          schemaVersion: 1,
+          retrievalQueries: ["local terminal context"],
+        }),
+      },
+      runtimeContract: `${provider}.admitted.v1`,
+    });
+
+    await expect(
+      projectProductionSearchQueries({ ...request(), provider }, async () => ({
+        projectSearchQueries: (input) => projector.project(input),
+        close,
+      })),
+    ).resolves.toMatchObject({
+      queries: [
+        "local terminal context",
+        "docs/decisions/search/engines/0308-require-multi-signal-evidence.md",
+      ],
+      receipt: { status: "completed" },
+    });
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
   it("returns a failed receipt when the production provider cannot be prepared", async () => {
     const prepare = vi.fn(async () => {
       throw new Error("provider unavailable");

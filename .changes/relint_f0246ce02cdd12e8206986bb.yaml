@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f0246ce02cdd12e8206986bb"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep terminal context available when provider runner cleanup fails."

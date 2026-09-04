@@ -357,7 +357,11 @@ export async function projectProductionSearchQueries(
   try {
     return await prepared.projectSearchQueries(input);
   } finally {
-    await prepared.close();
+    // A provider process that already failed can also reject while its adapter
+    // tears down the process tree. Cleanup is best effort at this boundary: it
+    // must not erase the provider-neutral projection receipt or prevent local
+    // terminal context from being assembled.
+    await prepared.close().catch(() => undefined);
   }
 }
 
