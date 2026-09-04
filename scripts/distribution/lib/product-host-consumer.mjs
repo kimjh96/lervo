@@ -67,6 +67,30 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   );
   assert.equal(workstream.status, "active");
 
+  // Stage observations use the v2 event envelope. The acceptance fixture
+  // deliberately exercises rollback above, then re-enables v2 here so a
+  // cross-platform hook failure leaves bounded diagnostic evidence instead
+  // of collapsing to an indistinguishable empty hook response.
+  const eventEvidence = parsed(await runCli(["event-contract", "evidence", "--json"]));
+  const eventEvidencePath = resolve(consumerRoot, "product-host-event-reader-evidence.json");
+  await writeFile(eventEvidencePath, `${JSON.stringify(eventEvidence)}\n`, "utf8");
+  const eventActivationPlan = parsed(
+    await runCli(["event-contract", "activate", "--from", eventEvidencePath, "--json"]),
+  );
+  assert.equal(eventActivationPlan.status, "ready");
+  const eventActivation = parsed(
+    await runCli([
+      "event-contract",
+      "activate",
+      "--from",
+      eventEvidencePath,
+      "--apply",
+      eventActivationPlan.planId,
+      "--json",
+    ]),
+  );
+  assert.equal(eventActivation.selectedEventSchemaVersion, 2);
+
   const prepared = parsed(
     await runCli(
       ["terminal", "hook", "--provider", "codex", "--contract", "2"],
