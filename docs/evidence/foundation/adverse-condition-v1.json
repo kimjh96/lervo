@@ -1,12 +1,8 @@
 {
   "schemaVersion": 1,
   "evidenceBuildDigest": "sha256:1a7bc485f1d73d5631646d15034344843f42b4c57e27e1a5b22f38a2deb3fc2d",
-  "repositoryRevision": "sha256:34e8e0fab6c192182aa11a1667dec7b289219bf07466060e6fe5d90ccfb77132",
-  "environment": {
-    "operatingSystem": "darwin",
-    "architecture": "arm64",
-    "nodeVersion": "v26.5.1"
-  },
+  "repositoryRevision": "sha256:d212ed9e28a7da25f161e86887f68fdb8b832ca8f590f813904251b9b90e32e6",
+  "environment": { "operatingSystem": "darwin", "architecture": "arm64", "nodeVersion": "v26.5.1" },
   "effects": [
     {
       "schemaVersion": 1,
@@ -1147,9 +1143,9 @@
       "eventWindow": 1000,
       "assignmentWindow": 128,
       "concurrentWorkers": 4,
-      "durationMs": 0.109333,
-      "cpuMs": 0.132,
-      "processPeakResidentMemoryBytes": 185008128,
+      "durationMs": 0.099542,
+      "cpuMs": 0.117,
+      "processPeakResidentMemoryBytes": 190152704,
       "status": "passed"
     },
     {
@@ -1157,9 +1153,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 16,
-      "durationMs": 0.286166,
-      "cpuMs": 0.339,
-      "processPeakResidentMemoryBytes": 185008128,
+      "durationMs": 0.271625,
+      "cpuMs": 0.332,
+      "processPeakResidentMemoryBytes": 190185472,
       "status": "passed"
     },
     {
@@ -1167,9 +1163,9 @@
       "eventWindow": 100000,
       "assignmentWindow": 10000,
       "concurrentWorkers": 32,
-      "durationMs": 2.409459,
-      "cpuMs": 2.777,
-      "processPeakResidentMemoryBytes": 185860096,
+      "durationMs": 2.432,
+      "cpuMs": 2.871,
+      "processPeakResidentMemoryBytes": 191070208,
       "status": "passed"
     },
     {
@@ -1177,9 +1173,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 32,
-      "durationMs": 0.256417,
-      "cpuMs": 0.37,
-      "processPeakResidentMemoryBytes": 185909248,
+      "durationMs": 0.249375,
+      "cpuMs": 0.363,
+      "processPeakResidentMemoryBytes": 191102976,
       "status": "passed"
     }
   ],
@@ -1355,5 +1351,5 @@
     "credentials": "excluded",
     "absolutePaths": "excluded"
   },
-  "reportId": "adverse_aaf6e079e1eba4f975ccf38b"
+  "reportId": "adverse_5b24326ca2acb6a1f266612c"
 }
