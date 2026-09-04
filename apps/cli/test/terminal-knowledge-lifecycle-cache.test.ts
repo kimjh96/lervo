@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -72,5 +72,46 @@ describe("terminal knowledge lifecycle cache", () => {
     );
     expect(stored).not.toContain("passed");
     expect(stored).not.toContain("failed");
+  });
+
+  it("invalidates when the current knowledge projection changes", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-terminal-knowledge-cache-"));
+    roots.push(root);
+    const current = resolve(root, ".lervo/state/knowledge/current");
+    const manifestDirectory = resolve(current, "structural/manifests");
+    await mkdir(manifestDirectory, { recursive: true });
+    await writeFile(resolve(current, "source-units.json"), '{"snapshotId":"one"}\n');
+    await writeFile(resolve(manifestDirectory, "current.json"), '{"generation":1}\n');
+    const supplementalSources = [source("passed")];
+    const issues = [{ code: "repository_knowledge_ready", command: "lervo migrate knowledge" }];
+    await writeTerminalKnowledgeLifecycleCache({
+      root,
+      repositoryRevision: revision,
+      supplementalSources,
+      issues,
+    });
+
+    await expect(
+      readTerminalKnowledgeLifecycleCache({
+        root,
+        repositoryRevision: revision,
+        supplementalSources,
+      }),
+    ).resolves.toEqual(issues);
+
+    await writeFile(resolve(current, "source-units.json"), '{"snapshotId":"two"}\n');
+    await expect(
+      readTerminalKnowledgeLifecycleCache({
+        root,
+        repositoryRevision: revision,
+        supplementalSources,
+      }),
+    ).resolves.toBeNull();
+
+    const stored = await readFile(
+      resolve(root, ".lervo/state/terminal-integration/knowledge-lifecycle-cache.json"),
+      "utf8",
+    );
+    expect(stored).not.toContain("snapshotId");
   });
 });
