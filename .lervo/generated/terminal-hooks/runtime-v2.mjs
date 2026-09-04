@@ -63913,7 +63913,7 @@ import { lstat as lstat17, mkdir as mkdir7, readFile as readFile11, readdir as r
 import { dirname as dirname7, resolve as resolve25 } from "node:path";
 var ROOT = ".lervo/state/knowledge/canonicalization-candidates";
 var MAXIMUM_CANDIDATES = 64;
-var MAXIMUM_CHANGED_PATHS = 256;
+var MAXIMUM_SOURCE_BINDINGS = 256;
 function safePath(path) {
   return path.length > 0 && !path.startsWith("/") && !path.includes("\\") && !path.split("/").some((part) => part.length === 0 || part === "." || part === "..");
 }
@@ -63983,7 +63983,7 @@ async function boundedCandidatePaths(root2) {
 }
 function validateRecord(value) {
   const record3 = value;
-  if (record3 === null || typeof record3 !== "object" || record3.schemaVersion !== 1 || typeof record3.candidateId !== "string" || !/^kcanon_[a-f0-9]{24}$/u.test(record3.candidateId) || !["candidate", "pending", "promoted", "rejected"].includes(record3.state ?? "") || typeof record3.beforeRevision !== "string" || typeof record3.afterRevision !== "string" || !Array.isArray(record3.sourceBindings) || record3.sourceBindings.length === 0 || record3.sourceBindings.length > MAXIMUM_CHANGED_PATHS || !record3.sourceBindings.every((item) => safePath(item.path) && (item.beforeHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.beforeHash)) && (item.afterHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.afterHash)) && sourceResponsibility(item.path) === item.responsibility) || !Array.isArray(record3.recommendedRoots) || !record3.recommendedRoots.every((path) => safePath(path)) || typeof record3.createdAt !== "string" || record3.review !== null && (typeof record3.review !== "object" || typeof record3.review.reviewerId !== "string" || !["defer", "reject"].includes(record3.review.decision) || typeof record3.review.reviewedAt !== "string") || record3.promotion !== null && (typeof record3.promotion !== "object" || typeof record3.promotion.reviewerId !== "string" || !safePath(record3.promotion.targetPath) || !/^sha256:[a-f0-9]{64}$/u.test(record3.promotion.targetContentHash) || typeof record3.promotion.promotedAt !== "string"))
+  if (record3 === null || typeof record3 !== "object" || record3.schemaVersion !== 1 || typeof record3.candidateId !== "string" || !/^kcanon_[a-f0-9]{24}$/u.test(record3.candidateId) || !["candidate", "pending", "promoted", "rejected"].includes(record3.state ?? "") || typeof record3.beforeRevision !== "string" || typeof record3.afterRevision !== "string" || !Array.isArray(record3.sourceBindings) || record3.sourceBindings.length === 0 || record3.sourceBindings.length > MAXIMUM_SOURCE_BINDINGS || !record3.sourceBindings.every((item) => safePath(item.path) && (item.beforeHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.beforeHash)) && (item.afterHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.afterHash)) && sourceResponsibility(item.path) === item.responsibility) || !Array.isArray(record3.recommendedRoots) || !record3.recommendedRoots.every((path) => safePath(path)) || typeof record3.createdAt !== "string" || record3.review !== null && (typeof record3.review !== "object" || typeof record3.review.reviewerId !== "string" || !["defer", "reject"].includes(record3.review.decision) || typeof record3.review.reviewedAt !== "string") || record3.promotion !== null && (typeof record3.promotion !== "object" || typeof record3.promotion.reviewerId !== "string" || !safePath(record3.promotion.targetPath) || !/^sha256:[a-f0-9]{64}$/u.test(record3.promotion.targetContentHash) || typeof record3.promotion.promotedAt !== "string"))
     throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonicalization candidate record is invalid.");
   return record3;
 }
@@ -64025,8 +64025,6 @@ async function writeRecord(root2, record3) {
 async function assessCanonicalization(input) {
   const paths = /* @__PURE__ */ new Set([...Object.keys(input.beforeFiles), ...Object.keys(input.afterFiles)]);
   const changedPaths = [...paths].filter((path) => input.beforeFiles[path] !== input.afterFiles[path]).sort();
-  if (changedPaths.length > MAXIMUM_CHANGED_PATHS)
-    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", `Canonicalization assessment exceeds ${MAXIMUM_CHANGED_PATHS} changed paths.`);
   const canonicalResponsibilities = new Set(changedPaths.flatMap((path) => {
     const responsibility = canonicalResponsibility(path);
     return responsibility === null ? [] : [responsibility];
@@ -64046,6 +64044,8 @@ async function assessCanonicalization(input) {
       }
     ];
   });
+  if (sourceBindings.length > MAXIMUM_SOURCE_BINDINGS)
+    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", `Canonicalization candidate exceeds ${MAXIMUM_SOURCE_BINDINGS} source bindings.`);
   if (sourceBindings.length === 0)
     return {
       schemaVersion: 1,
