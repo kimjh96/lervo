@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_9f8ab03b634ed6d4710bd657"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Support secure repository snapshots on Windows when path stat omits the device identifier."

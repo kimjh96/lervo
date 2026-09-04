@@ -39,6 +39,22 @@ function sameIdentity(left: FileIdentity, right: FileIdentity): boolean {
   );
 }
 
+export function sameRepositoryPathIdentity(
+  pathIdentity: FileIdentity,
+  openedIdentity: FileIdentity,
+  platform: NodeJS.Platform = process.platform,
+): boolean {
+  const deviceMatches =
+    pathIdentity.dev === openedIdentity.dev || (platform === "win32" && pathIdentity.dev === 0n);
+  return (
+    deviceMatches &&
+    pathIdentity.ino === openedIdentity.ino &&
+    pathIdentity.size === openedIdentity.size &&
+    pathIdentity.mtimeNs === openedIdentity.mtimeNs &&
+    pathIdentity.ctimeNs === openedIdentity.ctimeNs
+  );
+}
+
 async function canonicalRepositoryRoot(root: string): Promise<string> {
   const absoluteRoot = resolve(root);
   let stats;
@@ -165,8 +181,7 @@ export async function readRepositoryFile(
       (boundedBytesRead !== undefined && boundedBytesRead !== Number(before.size)) ||
       after.size > BigInt(maximumBytes) ||
       pathStats.isSymbolicLink() ||
-      pathStats.dev !== after.dev ||
-      pathStats.ino !== after.ino ||
+      !sameRepositoryPathIdentity(identity(pathStats), after) ||
       resolvedPath !== inspected.absolutePath
     ) {
       throw new ContextPreparationError(
