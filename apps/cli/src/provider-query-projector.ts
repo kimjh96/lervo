@@ -333,7 +333,27 @@ export async function projectProductionSearchQueries(
   input: SearchQueryProjectionRequest & { provider: RunProvider },
   prepareProjector: typeof prepareProductionSearchQueries = prepareProductionSearchQueries,
 ): Promise<SearchQueryProjection> {
-  const prepared = await prepareProjector(input.provider);
+  const startedAt = Date.now();
+  let prepared: PreparedProductionSearchQueries;
+  try {
+    prepared = await prepareProjector(input.provider);
+  } catch {
+    const limits = input.limits ?? {
+      maximumQueries: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES,
+      maximumQueryCharacters: SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS,
+    };
+    return createSearchQueryProjection({
+      projector: productionSearchQueryProjectorIdentity(input.provider),
+      requestDigest: input.requestDigest,
+      contextDigest: input.contextDigest,
+      projectorResultDigest: failedResultDigest,
+      requestedLanguage: input.requestedLanguage,
+      queries: [],
+      durationMs: Date.now() - startedAt,
+      status: "failed",
+      limits,
+    });
+  }
   try {
     return await prepared.projectSearchQueries(input);
   } finally {

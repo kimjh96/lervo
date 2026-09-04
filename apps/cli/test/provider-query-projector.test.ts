@@ -190,6 +190,24 @@ describe.each(["codex", "claude"] as const)("%s query projector adapter", (provi
     expect(close).toHaveBeenCalledTimes(1);
   });
 
+  it("returns a failed receipt when the production provider cannot be prepared", async () => {
+    const prepare = vi.fn(async () => {
+      throw new Error("provider unavailable");
+    });
+
+    await expect(
+      projectProductionSearchQueries({ ...request(), provider }, prepare),
+    ).resolves.toMatchObject({
+      queries: [],
+      receipt: {
+        status: "failed",
+        projectedQueryCount: 0,
+        projector: { id: `provider_query_projection.${provider}` },
+      },
+    });
+    expect(prepare).toHaveBeenCalledTimes(1);
+  });
+
   it("closes the admitted runner when production projection throws", async () => {
     const close = vi.fn(async () => undefined);
     const error = new Error("projection interrupted");

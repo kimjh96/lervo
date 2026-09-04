@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_af26303d55b3ff972d8c80df"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep local terminal context available when provider preparation is unavailable."
