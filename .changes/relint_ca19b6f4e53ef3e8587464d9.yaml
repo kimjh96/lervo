@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ca19b6f4e53ef3e8587464d9"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Observe document normalization token usage and enforce post-call resource ceilings."
