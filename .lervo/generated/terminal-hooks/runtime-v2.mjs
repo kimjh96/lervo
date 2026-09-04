@@ -64143,13 +64143,25 @@ var import_yaml17 = __toESM(require_dist(), 1);
 var import_yaml18 = __toESM(require_dist(), 1);
 
 // packages/repository-knowledge/dist/document-normalization.js
-var import_yaml19 = __toESM(require_dist(), 1);
 import { lstat as lstat18, mkdir as mkdir8, open as open9, readFile as readFile12 } from "node:fs/promises";
 import { basename as basename8, dirname as dirname8, posix as posix5, resolve as resolve26 } from "node:path";
+var import_yaml19 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-normalization-cache.js
+var MAX_SHARD_CACHE_BYTES = 4 * 1024 * 1024;
+
+// packages/repository-knowledge/dist/document-normalization-workset.js
+var defaultDocumentNormalizationResourceCeilings = {
+  maximumSourceBytes: 1024 * 1024,
+  maximumProviderCalls: 256,
+  maximumObservedTokens: null,
+  maximumElapsedMilliseconds: null
+};
+
+// packages/repository-knowledge/dist/document-normalization.js
 var MAX_ENVELOPE_BYTES = 32 * 1024;
 var MAX_OUTPUT_BYTES = 32 * 1024;
 var MAX_CANDIDATE_BYTES = 16 * 1024 * 1024;
-var MAX_SHARD_CACHE_BYTES = 4 * 1024 * 1024;
 var HASH3 = /^sha256:[a-f0-9]{64}$/u;
 function normalizationProfile(source) {
   if (!/\.md$/iu.test(source.path))
@@ -64216,6 +64228,9 @@ function eligibleDocuments(scan, publicationRoot, taxonomy, normalizationExclude
     ];
   }).sort((left, right) => left.source.path.localeCompare(right.source.path));
 }
+function safeRelativePath(path) {
+  return path.length > 0 && path.length <= 1024 && posix5.normalize(path) === path && !path.startsWith("/") && !path.includes("../") && !path.includes("\\") && !path.includes("\0");
+}
 function userRegionHash(content3) {
   return sha2562(content3.replace(/<!-- lervo:begin\b[^>]*-->[\s\S]*?<!-- lervo:end\b[^>]*-->/gu, "<!-- lervo:managed-block -->"));
 }
@@ -64243,6 +64258,12 @@ async function userRegionHashAt(path) {
     throw error;
   }
 }
+function validDocumentNormalizationRecord(value, path, outputLanguage) {
+  if (value === null || typeof value !== "object")
+    return false;
+  const record3 = value;
+  return !(![1, 2].includes(record3.schemaVersion ?? 0) || record3.schemaVersion === 2 && (record3.byteOwnership?.owner !== "reviewer" || record3.byteOwnership.rewritePolicy !== "reviewed_exact") || typeof record3.recordId !== "string" || !/^knormdoc_[a-f0-9]{24}$/u.test(record3.recordId) || path !== shardedKnowledgeArtifactPath(".lervo/knowledge/document-normalizations", record3.recordId, "yaml") || typeof record3.sourcePath !== "string" || !safeRelativePath(record3.sourcePath) || record3.outputLanguage !== outputLanguage || record3.formatVersion !== "lervo.document.v1" || !Array.isArray(record3.outputs) || record3.outputs.length < 1 || record3.outputs.some((output) => output === null || typeof output !== "object" || typeof output.path !== "string" || !safeRelativePath(output.path) || typeof output.contentHash !== "string" || !HASH3.test(output.contentHash) || output.userRegionHash !== void 0 && (typeof output.userRegionHash !== "string" || !HASH3.test(output.userRegionHash))) || !Array.isArray(record3.resourceBindings) || record3.resourceBindings.some((resource) => resource === null || typeof resource !== "object" || typeof resource.path !== "string" || !safeRelativePath(resource.path) || typeof resource.contentHash !== "string" || !HASH3.test(resource.contentHash)));
+}
 async function inspectConfiguredDocumentNormalization(input) {
   const root2 = resolve26(input.repositoryRoot);
   const [{ policy, scan }, taxonomy] = await Promise.all([
@@ -64267,10 +64288,10 @@ async function inspectConfiguredDocumentNormalization(input) {
       record3 = (0, import_yaml19.parse)(await readFile12(resolve26(root2, path), "utf8"));
     } catch {
     }
-    if (record3 === null || ![1, 2].includes(record3.schemaVersion) || record3.schemaVersion === 2 && (record3.byteOwnership?.owner !== "reviewer" || record3.byteOwnership.rewritePolicy !== "reviewed_exact") || !/^knormdoc_[a-f0-9]{24}$/u.test(record3.recordId) || path !== shardedKnowledgeArtifactPath(".lervo/knowledge/document-normalizations", record3.recordId, "yaml") || record3.outputLanguage !== policy.publication.language || record3.formatVersion !== "lervo.document.v1" || !Array.isArray(record3.outputs) || record3.outputs.length < 1 || record3.outputs.some((output) => !HASH3.test(output.contentHash) || output.userRegionHash !== void 0 && !HASH3.test(output.userRegionHash)) || !Array.isArray(record3.resourceBindings) || record3.resourceBindings.some((resource) => typeof resource.path !== "string" || !HASH3.test(resource.contentHash))) {
+    if (!validDocumentNormalizationRecord(record3, path, policy.publication.language)) {
       records.push({
         path,
-        recordId: record3?.recordId ?? null,
+        recordId: record3 !== null && typeof record3 === "object" && "recordId" in record3 && typeof record3.recordId === "string" ? record3.recordId : null,
         status: "invalid",
         outputPaths: []
       });
