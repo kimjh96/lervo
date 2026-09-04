@@ -152,6 +152,12 @@ ordered structural planning from independent validation, and reuses only an exac
 and supplemental-source-bound local projection. A repeated exact-state Stop observation fell below
 the 5-second budget; the first post-invalidation observation and historical p95 remain visible.
 
+Follow-up hardening on 2026-09-04 made measurement-environment instability an explicit independent
+failure. A profile now fails acceptance when its baseline p95 exceeds two times its baseline p50,
+while every existing latency, regression, correctness, and privacy gate remains intact. The
+benchmark performs no automatic retry, and the independent verifier recomputes both budget and
+environment decisions from aggregate distributions.
+
 ## FH4: Adverse-condition proof
 
 Prove current effects safe before a loop can repeat them.

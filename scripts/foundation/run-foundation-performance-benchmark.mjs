@@ -12,6 +12,7 @@ import {
   terminalFixtureProfileSizes,
 } from "./performance/terminal-fixture.mjs";
 import { formatFoundationEvidenceJson } from "./evidence/json-output.mjs";
+import { renderFoundationPerformanceSummary } from "./performance/report-summary.mjs";
 import { foundationPerformanceSourceRevision } from "./performance/source-revision.mjs";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
@@ -100,9 +101,7 @@ async function main() {
     const output = await formatFoundationEvidenceJson(report, outputPath);
     if (parsed.values.write) await writeFile(outputPath, output);
     process.stdout.write(
-      parsed.values.summary
-        ? `${JSON.stringify({ reportId: report.reportId, allProfilesPassed: report.allProfilesPassed, profiles: report.profiles.map((item) => ({ profileId: item.profile.profileId, budgetStatus: item.budgetStatus, candidateP95: item.candidate.durationMs.p95, failureReasons: item.failureReasons })) }, null, 2)}\n`
-        : output,
+      parsed.values.summary ? renderFoundationPerformanceSummary(report) : output,
     );
     process.exitCode = report.allProfilesPassed ? 0 : 1;
   } finally {

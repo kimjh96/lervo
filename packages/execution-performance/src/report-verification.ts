@@ -12,6 +12,10 @@ import {
   type ExecutionPerformanceReport,
   type ExecutionPerformanceSummary,
 } from "./paired-benchmark.js";
+import {
+  assessExecutionPerformanceProfileAcceptance,
+  EXECUTION_PERFORMANCE_BASELINE_TAIL_LIMIT_BASIS_POINTS,
+} from "./profile-acceptance.js";
 import type { PerformanceDistribution } from "./statistics.js";
 
 const SHA256 = /^sha256:[a-f0-9]{64}$/u;
@@ -112,7 +116,7 @@ export function verifyExecutionPerformanceReport(value: unknown): ExecutionPerfo
     const regressionBudgetMilliseconds = performanceRegressionBudgetMilliseconds(
       profile.baseline.durationMs.p95,
     );
-    const reasons = executionPerformanceFailureReasons({
+    const budgetFailureReasons = executionPerformanceFailureReasons({
       profile: profile.profile,
       baseline: profile.baseline,
       candidate: profile.candidate,
@@ -120,17 +124,26 @@ export function verifyExecutionPerformanceReport(value: unknown): ExecutionPerfo
       regressionMilliseconds,
       regressionBudgetMilliseconds,
     });
+    const profileAcceptance = assessExecutionPerformanceProfileAcceptance({
+      baselineDurationMs: profile.baseline.durationMs,
+      budgetFailureReasons,
+    });
     if (
       profile.candidateP95RegressionBasisPoints !== regression ||
       profile.candidateP95RegressionMs !== regressionMilliseconds ||
       profile.candidateP95RegressionBudgetMs !== regressionBudgetMilliseconds ||
-      JSON.stringify(profile.failureReasons) !== JSON.stringify(reasons) ||
-      profile.budgetStatus !== (reasons.length === 0 ? "passed" : "failed")
+      profile.measurementEnvironment?.maximumBaselineP95ToP50BasisPoints !==
+        EXECUTION_PERFORMANCE_BASELINE_TAIL_LIMIT_BASIS_POINTS ||
+      JSON.stringify(profile.measurementEnvironment) !==
+        JSON.stringify(profileAcceptance.measurementEnvironment) ||
+      JSON.stringify(profile.failureReasons) !== JSON.stringify(profileAcceptance.failureReasons) ||
+      profile.budgetStatus !== (budgetFailureReasons.length === 0 ? "passed" : "failed") ||
+      profile.acceptanceStatus !== profileAcceptance.acceptanceStatus
     ) {
-      throw new TypeError("The execution performance budget decision is inconsistent.");
+      throw new TypeError("The execution performance profile decision is inconsistent.");
     }
   }
-  const allProfilesPassed = report.profiles.every((item) => item.budgetStatus === "passed");
+  const allProfilesPassed = report.profiles.every((item) => item.acceptanceStatus === "passed");
   const { reportId: _reportId, ...source } = report;
   if (
     report.allProfilesPassed !== allProfilesPassed ||

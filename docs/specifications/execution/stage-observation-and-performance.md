@@ -2,7 +2,7 @@
 
 Status: `active`
 
-As of: 2026-09-03
+As of: 2026-09-04
 
 This document defines Lervo-owned stage timing and the reproducible performance gate
 linked from the [execution specification](../execution.md). It does not extend execution
@@ -102,7 +102,17 @@ signed paired overhead, and retrieval, lifecycle, and privacy correctness. The s
 digest excludes only the generated report and rebuildable `docs/knowledge/`
 projections. Any other source change makes the report stale.
 
-Version 1 has no exception path. Every profile must satisfy all of these gates:
+Each profile also binds one measurement-environment assessment derived only from the baseline
+duration distribution. `measurementEnvironment.status` is `unstable` when baseline p95 exceeds two
+times baseline p50, or when a positive baseline p95 has a zero p50. The report retains the nullable
+p95-to-p50 ratio, the fixed 20,000 basis-point boundary, and the exact
+`baseline_p95_tail_inflation_exceeded` reason. These aggregate fields have the same privacy boundary
+as the duration distribution and add no host-process details.
+
+Version 1 has no exception path. `budgetStatus` retains the existing numerical and correctness
+decision. `acceptanceStatus` additionally requires a stable measurement environment, and
+`allProfilesPassed` requires every acceptance status to pass. Every profile must satisfy all of
+these gates:
 
 - every sample is below 30 seconds;
 - prompt p95 is at most 15 seconds;
@@ -111,6 +121,11 @@ Version 1 has no exception path. Every profile must satisfy all of these gates:
 - candidate p95 exceeds baseline p95 by no more than the greater of 10 percent or 25
   milliseconds; and
 - neither arm has an execution, timeout, retrieval, lifecycle, or privacy failure.
+
+An unstable environment adds `measurement_environment_unstable` without deleting a simultaneous
+`p95_regression_exceeded` or any other failure. The runner performs one complete observation and no
+automatic retry, filtering, or result selection. An unstable report exits unsuccessfully and cannot
+enter foundation readiness.
 
 The generated JSON is canonical aggregate evidence. Its Markdown companion interprets
 the bound observation without duplicating mutable measurements. Stage evidence proves
@@ -133,5 +148,6 @@ identity, protocol digest, current source digest, and the absence of exceptions.
 - [Execution events and privacy](events-and-privacy.md)
 - [Stage evidence ADR](../../decisions/operations/trace/0335-record-and-verify-bounded-execution-stage-evidence.md)
 - [Short-profile measurement floor ADR](../../decisions/operations/trace/0339-calibrate-short-profile-performance-measurement-floor.md)
+- [Measurement environment ADR](../../decisions/operations/trace/0357-fail-closed-on-unstable-performance-measurement-environments.md)
 - [Foundation execution performance evidence](../../evidence/foundation/execution-performance-v1.md)
 - [Direct terminal projection operational evidence](../../evidence/foundation/terminal-direct-query-projection-operational-v1.md)

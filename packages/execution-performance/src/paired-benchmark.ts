@@ -20,6 +20,10 @@ import {
   performanceBasisPoints,
   performanceRegressionBudgetMilliseconds,
 } from "./budget-policy.js";
+import {
+  assessExecutionPerformanceProfileAcceptance,
+  type ExecutionPerformanceMeasurementEnvironment,
+} from "./profile-acceptance.js";
 
 export type PerformanceArm = "baseline" | "candidate";
 export type PerformanceHook = "UserPromptSubmit" | "Stop";
@@ -80,7 +84,9 @@ export interface ExecutionPerformanceProfileReport {
   candidateP95RegressionBasisPoints: number;
   candidateP95RegressionMs: number;
   candidateP95RegressionBudgetMs: number;
+  measurementEnvironment: ExecutionPerformanceMeasurementEnvironment;
   budgetStatus: "passed" | "failed";
+  acceptanceStatus: "passed" | "failed";
   failureReasons: string[];
 }
 
@@ -125,6 +131,8 @@ const BENCHMARK_PROTOCOL = {
   p99MinimumPopulation: 100,
   correctness: "retrieval_lifecycle_privacy_v1",
   budgets: "foundation_fh3_v3_relative_10_percent_or_25ms_floor",
+  measurementEnvironment: "baseline_p95_to_p50_max_2x_v1",
+  attemptPolicy: "single_complete_observation_no_automatic_retry_v1",
   privacy: "aggregate_only_v1",
 } as const;
 
@@ -286,13 +294,17 @@ export async function runPairedExecutionPerformanceBenchmark<TFixture = undefine
     const regressionBudgetMilliseconds = performanceRegressionBudgetMilliseconds(
       baseline.durationMs.p95,
     );
-    const failureReasons = executionPerformanceFailureReasons({
+    const budgetFailureReasons = executionPerformanceFailureReasons({
       profile,
       baseline,
       candidate,
       regressionBasisPoints,
       regressionMilliseconds,
       regressionBudgetMilliseconds,
+    });
+    const profileAcceptance = assessExecutionPerformanceProfileAcceptance({
+      baselineDurationMs: baseline.durationMs,
+      budgetFailureReasons,
     });
     reports.push({
       profile: structuredClone(profile),
@@ -303,8 +315,10 @@ export async function runPairedExecutionPerformanceBenchmark<TFixture = undefine
       candidateP95RegressionBasisPoints: regressionBasisPoints,
       candidateP95RegressionMs: regressionMilliseconds,
       candidateP95RegressionBudgetMs: regressionBudgetMilliseconds,
-      budgetStatus: failureReasons.length === 0 ? "passed" : "failed",
-      failureReasons,
+      measurementEnvironment: profileAcceptance.measurementEnvironment,
+      budgetStatus: budgetFailureReasons.length === 0 ? "passed" : "failed",
+      acceptanceStatus: profileAcceptance.acceptanceStatus,
+      failureReasons: profileAcceptance.failureReasons,
     });
   }
   const source = {
@@ -313,7 +327,7 @@ export async function runPairedExecutionPerformanceBenchmark<TFixture = undefine
     repositoryRevision: input.repositoryRevision,
     repetitions: input.repetitions,
     profiles: reports,
-    allProfilesPassed: reports.every((item) => item.budgetStatus === "passed"),
+    allProfilesPassed: reports.every((item) => item.acceptanceStatus === "passed"),
     privacy: {
       prompts: "excluded" as const,
       outputs: "excluded" as const,

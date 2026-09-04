@@ -2,7 +2,7 @@
 
 Status: `accepted`
 
-As of: 2026-09-01
+As of: 2026-09-04
 
 This evidence records the provider-free FH3 terminal-hook profiles. The
 [generated JSON report](execution-performance-v1.json) is the bounded aggregate source
@@ -16,6 +16,11 @@ Each profile has 200 paired baseline and candidate observations. Odd repetitions
 baseline first and even repetitions run candidate first. Baseline disables only stage
 recording. Both arms otherwise use the same activated version 2 behavior and start from
 the same fixture snapshot.
+
+The protocol performs one complete observation without an automatic retry. It assesses baseline
+tail stability before accepting a profile. Baseline p95 may not exceed two times baseline p50; a
+positive p95 with a zero p50 is also unstable. This control uses the arm without stage recording, so
+candidate instrumentation cannot determine whether the environment is acceptable.
 
 Small, medium, and large fixtures contain 10, 66, and 258 source documents. A cold
 snapshot has no prior hook; a warm snapshot has one successful unmeasured stage-enabled
@@ -42,6 +47,12 @@ absolute measurement floor for shorter profiles where a durable observation tran
 and filesystem tail variation make a ratio-only decision unstable. The report retains
 the actual ratio, absolute difference, and applicable allowance; no unrecorded exception
 is applied.
+
+The report separately retains `budgetStatus`, `measurementEnvironment`, and `acceptanceStatus`.
+Every accepted profile has a stable measurement environment and a passing budget status. An
+unstable baseline adds `baseline_p95_tail_inflation_exceeded` and
+`measurement_environment_unstable`, remains ineligible even when numerical budgets pass, and does
+not suppress any simultaneous regression or correctness failure.
 
 ## Stage diagnosis and optimization
 
@@ -82,7 +93,7 @@ require regeneration.
 pnpm foundation:performance:check
 ```
 
-The check rebuilds the verifier, validates report structure, protocol digest, statistics,
-budget decisions, correctness, privacy declarations and report identity, recomputes the
-current source-byte revision excluding the generated JSON and rebuildable
+The check rebuilds the verifier, validates report structure, protocol digest, statistics, budget
+decisions, measurement-environment and acceptance decisions, correctness, privacy declarations and
+report identity, recomputes the current source-byte revision excluding the generated JSON and rebuildable
 `docs/knowledge/` projections, and requires all profiles to pass.

@@ -11,6 +11,7 @@ import {
   runPairedExecutionPerformanceBenchmark,
   verifyExecutionPerformanceReport,
 } from "../src/index.js";
+import { assessExecutionPerformanceMeasurementEnvironment } from "../src/profile-acceptance.js";
 
 function environment() {
   return {
@@ -100,6 +101,13 @@ describe("paired execution performance benchmark", () => {
         {
           population: 100,
           budgetStatus: "passed",
+          acceptanceStatus: "passed",
+          measurementEnvironment: {
+            status: "stable",
+            baselineP95ToP50BasisPoints: 10_000,
+            maximumBaselineP95ToP50BasisPoints: 20_000,
+            failureReasons: [],
+          },
           candidate: {
             durationMs: { sampleCount: 100, p99: 10 },
             correctness: { retrieval: "passed", lifecycle: "passed", privacy: "passed" },
@@ -111,6 +119,92 @@ describe("paired execution performance benchmark", () => {
     expect(() => verifyExecutionPerformanceReport({ ...report, allProfilesPassed: false })).toThrow(
       "identity",
     );
+  });
+
+  it("fails an unstable baseline tail without waiving a simultaneous regression", async () => {
+    let nanoseconds = 0n;
+    const declaredEnvironment = environment();
+    const report = await runPairedExecutionPerformanceBenchmark({
+      repositoryRevision: `sha256:${"a".repeat(64)}`,
+      repetitions: 100,
+      profiles: [
+        {
+          profileId: "pf_unstable_tail_prompt",
+          environment: declaredEnvironment,
+          environmentProfileDigest: executionEnvironmentProfileHash(declaredEnvironment),
+          repositoryProfile: "small",
+          cacheState: "warm",
+          concurrency: 1,
+          hookEvent: "UserPromptSubmit",
+          observationUnit: "hook_invocation",
+        },
+      ],
+      ports: {
+        nowNanoseconds: () => nanoseconds,
+        cpuUsage: () => ({ user: 0, system: 0 }),
+        processPeakResidentMemoryBytes: () => 1024,
+        run: async ({ arm, repetition }) => {
+          const baselineMilliseconds = repetition <= 94 ? 100 : 250;
+          nanoseconds += BigInt(
+            (arm === "baseline" ? baselineMilliseconds : baselineMilliseconds + 40) * 1_000_000,
+          );
+          return {
+            outcome: "completed",
+            stages: {},
+            retrievalCorrect: true,
+            lifecycleCorrect: true,
+            privacyCorrect: true,
+          };
+        },
+      },
+    });
+
+    expect(report.profiles[0]).toMatchObject({
+      budgetStatus: "failed",
+      acceptanceStatus: "failed",
+      measurementEnvironment: {
+        status: "unstable",
+        baselineP95ToP50BasisPoints: 25_000,
+        maximumBaselineP95ToP50BasisPoints: 20_000,
+        failureReasons: ["baseline_p95_tail_inflation_exceeded"],
+      },
+      failureReasons: ["p95_regression_exceeded", "measurement_environment_unstable"],
+    });
+    expect(report.allProfilesPassed).toBe(false);
+    expect(verifyExecutionPerformanceReport(report)).toEqual(report);
+    const tampered = structuredClone(report);
+    tampered.profiles[0]!.measurementEnvironment.status = "stable";
+    expect(() => verifyExecutionPerformanceReport(tampered)).toThrow("profile decision");
+  });
+
+  it("keeps the exact tail boundary stable and rejects zero-median positive tails", () => {
+    expect(
+      assessExecutionPerformanceMeasurementEnvironment({
+        sampleCount: 100,
+        p50: 100,
+        p95: 200,
+        p99: 200,
+        maximum: 200,
+      }),
+    ).toMatchObject({
+      status: "stable",
+      baselineP95ToP50BasisPoints: 20_000,
+      failureReasons: [],
+    });
+    expect(
+      assessExecutionPerformanceMeasurementEnvironment({
+        sampleCount: 100,
+        p50: 0,
+        p95: 1,
+        p99: 1,
+        maximum: 1,
+      }),
+    ).toEqual({
+      status: "unstable",
+      baselineP95ToP50BasisPoints: null,
+      maximumBaselineP95ToP50BasisPoints: 20_000,
+      failureReasons: ["baseline_p95_tail_inflation_exceeded"],
+    });
   });
 
   it("keeps the ten-percent gate with a twenty-five-millisecond floor for short profiles", async () => {
