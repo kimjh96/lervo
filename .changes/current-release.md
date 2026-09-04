@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.11.2" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.11.3" schema="1" -->
 
 ## What's changed
 
-- Keep terminal context available when provider runner cleanup fails.
+- Support secure repository snapshots on Windows when path stat omits the device identifier.
