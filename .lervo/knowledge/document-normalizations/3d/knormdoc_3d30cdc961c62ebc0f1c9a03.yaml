@@ -1,0 +1,51 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_59c5f895d27fd6bc545067d9
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a36c5e58e7d439d53223f018
+outputLanguage: en
+outputs:
+  - byteCount: 4513
+    contentHash: sha256:dee9a44ffadd477209f6819f6f33584a084580cbed8a95e996cb58d3219cc5b1
+    path: docs/roadmap/product-outcome-convergence.md
+    userRegionHash: sha256:dee9a44ffadd477209f6819f6f33584a084580cbed8a95e996cb58d3219cc5b1
+  - byteCount: 3617
+    contentHash: sha256:49cbf5717a9074ee9ea3ea6813f30970230696fd7230f0f6288806cfec805d20
+    path: docs/roadmap/product-outcome-convergence/execution.md
+    userRegionHash: sha256:49cbf5717a9074ee9ea3ea6813f30970230696fd7230f0f6288806cfec805d20
+  - byteCount: 1597
+    contentHash: sha256:aa81c989de50a1d873fcbeed764911ff2e98dfc3dadaadb064e0724b4b0412f7
+    path: docs/roadmap/product-outcome-convergence/foundation.md
+    userRegionHash: sha256:aa81c989de50a1d873fcbeed764911ff2e98dfc3dadaadb064e0724b4b0412f7
+  - byteCount: 3033
+    contentHash: sha256:a2f72243df56e91a2bc20b6414173e76f67eb3e953d509b0b96cb9675ee73ca9
+    path: docs/roadmap/product-outcome-convergence/host-products.md
+    userRegionHash: sha256:a2f72243df56e91a2bc20b6414173e76f67eb3e953d509b0b96cb9675ee73ca9
+  - byteCount: 3490
+    contentHash: sha256:daa318e9d60fbf3945472f41fdc332ac6e066acad7d9d0fd22288f48b052310b
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge.md
+    userRegionHash: sha256:daa318e9d60fbf3945472f41fdc332ac6e066acad7d9d0fd22288f48b052310b
+profile: roadmap_document
+recordId: knormdoc_3d30cdc961c62ebc0f1c9a03
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:480afae55f4492568a4bc5da0955c16d078758cc4d11f41d7f667943120b7009
+sourcePath: docs/roadmap/product-outcome-convergence.md
+sourceUnitVersionIds:
+  - uv_091e86dfd3c805d60bd92645
+  - uv_4838c81e447285fd31c19b14
+  - uv_5a711b6e5093b323683b2958
+  - uv_691e32edbabba443391c1132
+  - uv_8020d1b70cde9ec3dffb65bb
+  - uv_9d523ceb30f26175319c661b
+  - uv_9d957439068f84e6093d9fd1
+  - uv_a718c58bc6a3b06628b6878e
+  - uv_c64f09cd9cd8f5fcd14f2450
+  - uv_d6c06140264b42cd98a4ecdf

@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_59c5f895d27fd6bc545067d9
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_20495eb5e6f67a738a7b3928
+outputLanguage: en
+outputs:
+  - byteCount: 6426
+    contentHash: sha256:e3d45d055e0e22b4a8e42b3a5f8564c4a0397b16c1d2325754d2f56793ba32df
+    path: docs/evidence/foundation/terminal-observation-strengthening-v1.md
+    userRegionHash: sha256:e3d45d055e0e22b4a8e42b3a5f8564c4a0397b16c1d2325754d2f56793ba32df
+profile: repository_document
+recordId: knormdoc_e7294c6052eba1b936c30f91
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e6f531fc5dd705ce8fd726650022666f109057797591f472561954a6ded8e1bb
+sourcePath: docs/evidence/foundation/terminal-observation-strengthening-v1.md
+sourceUnitVersionIds:
+  - uv_16b085d88b7a65bf50fb7522
+  - uv_4f422704ed0a1c39c11a6cc7
+  - uv_7cbd8d92bc93ff07159f7f0e
+  - uv_812b837ae0062c940ed22fd1
+  - uv_8a4d2ccedde6887fe46b85e3
+  - uv_a40f9ddd4495ccd3ed58c7c0
+  - uv_e8d91897cfd2df8e031a3a3c
+  - uv_ea8a809b029b925a78acf87b
