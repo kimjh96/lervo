@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_56bdffbcbe944ccde79af1bd
+compiler:
+  compilerBuildId: sha256:a7650cc16f9cbe9eb030168c685b89a030a568055c821a15e73e851db2aedcab
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7c3882f836ef8f97dc4eaec0
+outputLanguage: en
+outputs:
+  - byteCount: 3867
+    contentHash: sha256:c292a7d84f961fe30d507fe8b61af60292d7ef7aa81215c83211a183de07e5c9
+    path: docs/decisions/release/staging/0118-cli-stage-publication-command-boundary.md
+    userRegionHash: sha256:c292a7d84f961fe30d507fe8b61af60292d7ef7aa81215c83211a183de07e5c9
+profile: decision_record
+recordId: knormdoc_09bfde8ed6a88a05258fa241
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:98d6517b4d794d78ad56e8dbaac852deffe642bc953a0c3ea9e972bd95bf4654
+sourcePath: docs/decisions/release/staging/0118-cli-stage-publication-command-boundary.md
+sourceUnitVersionIds:
+  - uv_2ae19a2988acdb80ed70cc1f
+  - uv_5de7e5b9f4fc13605fbe0d33
+  - uv_932b64a77a445d404bb2550e
+  - uv_949088b03482eb72490e4acb
