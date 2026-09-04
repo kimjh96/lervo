@@ -58,12 +58,7 @@ The taxonomy and route must exist. Invalid or stale metadata blocks planning.
 
 Rebuildable outputs live below ignored `.lervo/state/knowledge/current/` or the ignored configured publication root. Reviewed claims, relations, concepts, lineage, bridges, normalization records, and semantic manifests remain tracked canonical records. The compiler retains no historical full source-unit projections and claims only organization and provenance with `unreviewed` assurance.
 
-A bounded read-only lifecycle inspection may prepare one scan and pass it to instruction, layout,
-structural, bridge, normalization, and lint consumers. Each consumer validates project and policy
-coordinates, and the scan cannot be retained across repository mutation. The direct-terminal host
-may cache the resulting knowledge-only issue projection in `.lervo/state`, keyed by the exact CLI
-version, repository snapshot revision, and supplemental-source digest. This is disposable derived
-state, not a canonical knowledge record or completion event.
+A bounded read-only lifecycle inspection may prepare one scan and pass it to instruction, layout, structural, bridge, normalization, and lint consumers. Each consumer validates project and policy coordinates, and the scan cannot be retained across repository mutation. The direct-terminal host may cache the resulting knowledge-only issue projection in `.lervo/state`, keyed by the exact CLI version, repository snapshot revision, and supplemental-source digest. This is disposable derived state, not a canonical knowledge record or completion event.
 
 Reviewed sources and semantic records remain canonical; structural records are rebuildable. [Lifecycle convergence](repository-knowledge-lifecycle-convergence.md) defines merge repair and v2 storage separation.
 

@@ -26,10 +26,7 @@ Direct provider terminals use a narrower native-hook path. Every prompt performs
 
 `.lervo/project.yaml` identifies the repository and privacy defaults. Durable records reside in gitignored `.lervo/data`; rebuildable projections reside in `.lervo/state`. Runtime directories are created lazily. Legacy relocation is atomic and fails closed on conflicting copies.
 
-The optional `.lervo/data/event-contract.json` is the versioned, Lervo-managed future-write
-coordinate. Its absence selects event schema version 1. `@lervo/project` validates and
-recovers the coordinate before project storage injects the selection into the event-store
-adapter; indexes, graphs, and projections cannot change writer authority.
+The optional `.lervo/data/event-contract.json` is the versioned, Lervo-managed future-write coordinate. Its absence selects event schema version 1. `@lervo/project` validates and recovers the coordinate before project storage injects the selection into the event-store adapter; indexes, graphs, and projections cannot change writer authority.
 
 Active continuation is `.lervo/state/workstreams/current.json`. CAS in `.lervo/data/cas` stores exact snapshots and optional legacy-source bytes. `workstream.snapshot.recorded` binds revision and content coordinates without event prose. Migration discovers candidates from bounded content structure, not required names or locations. Before returning context, Lervo rebuilds a missing projection from the latest event and CAS bytes. Canonical Markdown retains long-term facts.
 
@@ -51,16 +48,9 @@ Terminal integration merges approved handlers into Codex and Claude hook configu
 
 Managed runs require a verified workstream delivered with E1–E3. After reader-first writer activation, each managed admission records one provider-neutral causal event before `run.requested`; version-1 writers and invalid ancestry block provider startup. Deliberation uses one control root and explicit child relationships. Work IDs aggregate evidence but grant no objective, assignment, or completion authority. Direct hooks prepare at most 8 KiB and retain bounded coordinates. Unattached and integrator Stop require global checkpoints for changed revisions. Worker Stop validates its workspace, writer, lease, and scoped diff and records a private checkpoint; foreign global movement is informational.
 
-The headless application boundary rebuilds current assignment, causal-attempt, resource, and
-next-action reports. `@lervo/application-contract` owns public shapes;
-`@lervo/work-controller` owns pure projections; applications compose existing effects without
-bypassing lease, approval, verification, event, or recovery authority. Resource and terminal
-budgets preserve causal scope, environment boundaries, and typed absence; see
-[resource and performance budgets](../specifications/execution/resource-and-performance-budgets.md).
+The headless application boundary rebuilds current assignment, causal-attempt, resource, and next-action reports. `@lervo/application-contract` owns public shapes; `@lervo/work-controller` owns pure projections; applications compose existing effects without bypassing lease, approval, verification, event, or recovery authority. Resource and terminal budgets preserve causal scope, environment boundaries, and typed absence; see [resource and performance budgets](../specifications/execution/resource-and-performance-budgets.md).
 
-See [interactions](../specifications/execution/assignment-interactions.md),
-[routines](../specifications/execution/assignment-routines.md), and
-[connectors](../specifications/execution/assignment-connectors.md).
+See [interactions](../specifications/execution/assignment-interactions.md), [routines](../specifications/execution/assignment-routines.md), and [connectors](../specifications/execution/assignment-connectors.md).
 
 Decisions: [context preparation](../decisions/execution/orchestration/0006-deterministic-context-preparation.md), [context delivery](../decisions/execution/providers/0007-provider-neutral-context-delivery.md), [managed context gate](../decisions/execution/orchestration/0008-managed-context-gate-orchestration.md), [Codex adapter](../decisions/execution/providers/0009-codex-app-server-managed-adapter.md), [Claude adapter](../decisions/execution/providers/0010-claude-agent-sdk-managed-adapter.md), [run lifecycle](../decisions/execution/providers/0011-managed-provider-run-lifecycle.md), [terminal integration](../decisions/execution/providers/0196-fail-closed-provider-terminal-integration.md), [unmanaged observation](../decisions/execution/providers/0197-unmanaged-terminal-context-observation.md), [managed grounding](../decisions/execution/providers/0198-managed-context-grounding-and-coverage.md), [natural-language finalization](../decisions/execution/providers/0200-natural-language-terminal-turn-finalization.md), [provider-confirmed capability activation](../decisions/execution/providers/0211-provider-confirmed-capability-activation.md), [isolated agent workspaces](../decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md), and [headless governed loops](../decisions/execution/orchestration/0336-adopt-headless-governed-loop-and-assignment-graph.md).
 
@@ -101,15 +91,7 @@ Installed Nodes use deterministic project, repository, and Node identity. An own
 
 Local event producers do not know Hub endpoints or device credentials. When policy permits and a Node selects a destination, it authenticates registration, checks the Hub cursor against local truth, and durably reconciles the next bounded event prefix into that destination's outbox.
 
-Event-reader compatibility is a provider-neutral, rebuildable capability observation,
-not writer authority. Local diagnostics and Node health advertise their readable
-envelope versions; Hub exposes the same secret-free report through an identity-bound
-health endpoint that sync clients read without sending bearer credentials. Missing or
-incapable peers cannot authorize v2 writing, while local execution and v1 writing remain
-independent of Hub availability. For a Hub-enabled project, the existing owner-only Node
-fleet registry is the complete configured membership authority; the service definition
-and runtime config bind its Node and Hub observation sources. Planning and apply each
-re-observe exact capability and identity, without creating another reader registry.
+Event-reader compatibility is a provider-neutral, rebuildable capability observation, not writer authority. Local diagnostics and Node health advertise their readable envelope versions; Hub exposes the same secret-free report through an identity-bound health endpoint that sync clients read without sending bearer credentials. Missing or incapable peers cannot authorize v2 writing, while local execution and v1 writing remain independent of Hub availability. For a Hub-enabled project, the existing owner-only Node fleet registry is the complete configured membership authority; the service definition and runtime config bind its Node and Hub observation sources. Planning and apply each re-observe exact capability and identity, without creating another reader registry.
 
 Optional Hub coordination reserves path digests before local leases. Summaries are observational; the Hub cannot write, integrate, approve, or clean. See [Hub and Node coordination](../specifications/coordination/hub-and-node.md).
 
@@ -125,10 +107,7 @@ Canonical ownership, sync defaults, and fail-closed recovery rules are defined i
 
 Contracts and schemas do not depend on provider adapters or applications. Domain packages depend on contracts; storage and provider packages implement ports; applications compose them. `scripts/quality/check-package-boundaries.mjs` enforces this graph.
 
-The application contract remains a contract package, not an application
-implementation. The work controller may depend on provider-neutral contracts and
-workforce snapshots; it cannot import CLI, storage adapters, or provider adapters.
-Product applications depend inward on that boundary.
+The application contract remains a contract package, not an application implementation. The work controller may depend on provider-neutral contracts and workforce snapshots; it cannot import CLI, storage adapters, or provider adapters. Product applications depend inward on that boundary.
 
 ## References
 
