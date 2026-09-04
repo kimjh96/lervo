@@ -26,6 +26,8 @@ export interface DocumentNormalizationWorksetBinding {
 export interface DocumentNormalizationResourceCeilings {
   maximumSourceBytes: number;
   maximumProviderCalls: number;
+  maximumObservedTokens: number | null;
+  maximumElapsedMilliseconds: number | null;
 }
 
 export interface DocumentNormalizationPreflight {
@@ -61,7 +63,35 @@ export interface DocumentNormalizationPreflight {
 export const defaultDocumentNormalizationResourceCeilings = {
   maximumSourceBytes: 1024 * 1024,
   maximumProviderCalls: 256,
+  maximumObservedTokens: null,
+  maximumElapsedMilliseconds: null,
 } as const satisfies DocumentNormalizationResourceCeilings;
+
+export function resolveDocumentNormalizationResourceCeilings(
+  overrides: Partial<DocumentNormalizationResourceCeilings> = {},
+): DocumentNormalizationResourceCeilings {
+  const ceilings = {
+    ...defaultDocumentNormalizationResourceCeilings,
+    ...overrides,
+  };
+  if (
+    !Number.isSafeInteger(ceilings.maximumSourceBytes) ||
+    ceilings.maximumSourceBytes < 1 ||
+    !Number.isSafeInteger(ceilings.maximumProviderCalls) ||
+    ceilings.maximumProviderCalls < 1 ||
+    (ceilings.maximumObservedTokens !== null &&
+      (!Number.isSafeInteger(ceilings.maximumObservedTokens) ||
+        ceilings.maximumObservedTokens < 1)) ||
+    (ceilings.maximumElapsedMilliseconds !== null &&
+      (!Number.isSafeInteger(ceilings.maximumElapsedMilliseconds) ||
+        ceilings.maximumElapsedMilliseconds < 1))
+  )
+    throw new RepositoryKnowledgeError(
+      "knowledge_compile_policy_violation",
+      "Document normalization resource ceilings must be null or positive safe integers.",
+    );
+  return ceilings;
+}
 
 export function selectDocumentNormalizationPaths(input: {
   scope: DocumentNormalizationScope;
@@ -168,20 +198,7 @@ export async function createDocumentNormalizationPreflightReport(input: {
       "knowledge_compile_policy_violation",
       "The document normalization preflight does not match its workset, lifecycle, or envelope boundary.",
     );
-  const ceilings = {
-    ...defaultDocumentNormalizationResourceCeilings,
-    ...input.ceilings,
-  };
-  if (
-    !Number.isSafeInteger(ceilings.maximumSourceBytes) ||
-    ceilings.maximumSourceBytes < 1 ||
-    !Number.isSafeInteger(ceilings.maximumProviderCalls) ||
-    ceilings.maximumProviderCalls < 1
-  )
-    throw new RepositoryKnowledgeError(
-      "knowledge_compile_policy_violation",
-      "Document normalization resource ceilings must be positive safe integers.",
-    );
+  const ceilings = resolveDocumentNormalizationResourceCeilings(input.ceilings);
   const documents: DocumentNormalizationPreflight["selection"]["documents"] = [];
   let providerCallCapacity = 0;
   for (const envelope of input.envelopes) {

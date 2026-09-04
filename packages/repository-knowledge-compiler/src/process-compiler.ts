@@ -7,6 +7,7 @@ import {
   canonicalJson,
   RepositoryKnowledgeError,
   sha256,
+  type DocumentNormalizationCompilerObservation,
   type DocumentNormalizationResponse,
   type RepositoryDocumentNormalizationCompiler,
   type RepositorySemanticCompiler,
@@ -702,6 +703,20 @@ function claudeJsonUsage(stdout: string): ProviderJsonUsage | null {
   return totals;
 }
 
+function documentNormalizationTokenUsage(
+  usage: ProviderJsonUsage | null,
+): DocumentNormalizationCompilerObservation["tokenUsage"] {
+  return usage === null
+    ? { status: "unavailable", reason: "normalization_usage_unavailable" }
+    : {
+        status: "observed",
+        inputTokens: usage.inputTokens,
+        cachedInputTokens: usage.cachedInputTokens,
+        outputTokens: usage.outputTokens,
+        totalTokens: usage.totalTokens,
+      };
+}
+
 async function compilerVersion(input: {
   executable: string;
   cwd: string;
@@ -1012,87 +1027,96 @@ export async function createProcessDocumentNormalizationCompiler(
         ? CODEX_NO_CAPABILITY_DISABLED_FEATURES
         : ["all-built-in-tools", "all-mcp", "all-customizations"],
   };
-  return {
-    descriptor: {
-      compilerId: `lervo.${options.provider}.document-normalizer`,
-      compilerVersion: `${ADAPTER_VERSION}+${version}`,
-      compilerBuildId: sha256(canonicalJson(invocationContract)),
-      provider: options.provider,
-      isolation: "external_no_capabilities",
-    },
-    async normalize(envelope, signal) {
-      const directory = await mkdtemp(
-        resolve(tmpdir(), `lervo-${options.provider}-normalization-`),
-      );
-      try {
-        const prompt = canonicalJson({
-          instruction: documentNormalizationInstruction,
-          responseSchema: documentNormalizationResponseSchema,
-          envelope,
-        });
-        const arguments_ =
-          options.provider === "claude"
-            ? [
-                "--print",
-                "--output-format",
-                "json",
-                "--input-format",
-                "text",
-                "--tools",
-                "",
-                "--safe-mode",
-                "--disable-slash-commands",
-                "--strict-mcp-config",
-                "--mcp-config",
-                '{"mcpServers":{}}',
-                "--setting-sources",
-                "",
-                "--no-session-persistence",
-                "--no-chrome",
-                "--permission-mode",
-                "dontAsk",
-                "--system-prompt",
-                documentNormalizationInstruction,
-                ...(options.model === undefined ? [] : ["--model", options.model]),
-              ]
-            : [
-                "exec",
-                "--ignore-user-config",
-                "--ignore-rules",
-                "--strict-config",
-                "--ephemeral",
-                "--sandbox",
-                "read-only",
-                "--skip-git-repo-check",
-                "--json",
-                "-c",
-                "mcp_servers={}",
-                ...codexNoCapabilityFeatureArguments(),
-                ...(options.model === undefined ? [] : ["--model", options.model]),
-                "-",
-              ];
-        const result = await runProcess({
-          executable,
-          arguments: arguments_,
-          cwd: directory,
-          stdin: prompt,
-          signal,
-          timeoutMs,
-          maxOutputBytes: MAX_OUTPUT_BYTES,
-        });
-        if (result.status === "cancelled")
-          throw signal.reason ?? compileFailure("Document normalization was cancelled.");
-        if (result.status !== "completed")
-          throw compileFailure(
-            `The document normalizer process did not complete (${result.status}).`,
-          );
-        return options.provider === "claude"
+  const descriptor = {
+    compilerId: `lervo.${options.provider}.document-normalizer`,
+    compilerVersion: `${ADAPTER_VERSION}+${version}`,
+    compilerBuildId: sha256(canonicalJson(invocationContract)),
+    provider: options.provider,
+    isolation: "external_no_capabilities" as const,
+  };
+  const normalizeObserved: NonNullable<
+    RepositoryDocumentNormalizationCompiler["normalizeObserved"]
+  > = async (envelope, signal) => {
+    const directory = await mkdtemp(resolve(tmpdir(), `lervo-${options.provider}-normalization-`));
+    try {
+      const prompt = canonicalJson({
+        instruction: documentNormalizationInstruction,
+        responseSchema: documentNormalizationResponseSchema,
+        envelope,
+      });
+      const arguments_ =
+        options.provider === "claude"
+          ? [
+              "--print",
+              "--output-format",
+              "json",
+              "--input-format",
+              "text",
+              "--tools",
+              "",
+              "--safe-mode",
+              "--disable-slash-commands",
+              "--strict-mcp-config",
+              "--mcp-config",
+              '{"mcpServers":{}}',
+              "--setting-sources",
+              "",
+              "--no-session-persistence",
+              "--no-chrome",
+              "--permission-mode",
+              "dontAsk",
+              "--system-prompt",
+              documentNormalizationInstruction,
+              ...(options.model === undefined ? [] : ["--model", options.model]),
+            ]
+          : [
+              "exec",
+              "--ignore-user-config",
+              "--ignore-rules",
+              "--strict-config",
+              "--ephemeral",
+              "--sandbox",
+              "read-only",
+              "--skip-git-repo-check",
+              "--json",
+              "-c",
+              "mcp_servers={}",
+              ...codexNoCapabilityFeatureArguments(),
+              ...(options.model === undefined ? [] : ["--model", options.model]),
+              "-",
+            ];
+      const result = await runProcess({
+        executable,
+        arguments: arguments_,
+        cwd: directory,
+        stdin: prompt,
+        signal,
+        timeoutMs,
+        maxOutputBytes: MAX_OUTPUT_BYTES,
+      });
+      if (result.status === "cancelled")
+        throw signal.reason ?? compileFailure("Document normalization was cancelled.");
+      if (result.status !== "completed")
+        throw compileFailure(
+          `The document normalizer process did not complete (${result.status}).`,
+        );
+      const response =
+        options.provider === "claude"
           ? parseClaudeOutput<DocumentNormalizationResponse>(result.stdout)
           : parseCodexOutput<DocumentNormalizationResponse>(result.stdout);
-      } finally {
-        await rm(directory, { recursive: true, force: true });
-      }
-    },
+      const usage =
+        options.provider === "claude"
+          ? claudeJsonUsage(result.stdout)
+          : codexJsonUsage(result.stdout);
+      return { response, tokenUsage: documentNormalizationTokenUsage(usage) };
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  };
+  return {
+    descriptor,
+    normalize: async (envelope, signal) => (await normalizeObserved(envelope, signal)).response,
+    normalizeObserved,
   };
 }
 

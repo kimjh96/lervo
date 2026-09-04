@@ -6,7 +6,7 @@ import type {
 } from "@lervo/repository-knowledge";
 
 export const documentNormalizationUsage =
-  "lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--scope <stale|all-pending>] [--preflight] [--max-source-bytes <bytes>] [--max-provider-calls <count>] [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]";
+  "lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--scope <stale|all-pending>] [--preflight] [--max-source-bytes <bytes>] [--max-provider-calls <count>] [--max-observed-tokens <tokens>] [--max-elapsed-ms <ms>] [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]";
 
 export interface DocumentNormalizationCommandOptions {
   help: boolean;
@@ -47,6 +47,8 @@ export function parseDocumentNormalizationOptions(
       preflight: { type: "boolean" },
       "max-source-bytes": { type: "string" },
       "max-provider-calls": { type: "string" },
+      "max-observed-tokens": { type: "string" },
+      "max-elapsed-ms": { type: "string" },
       model: { type: "string" },
       executable: { type: "string" },
       "timeout-ms": { type: "string" },
@@ -76,7 +78,9 @@ export function parseDocumentNormalizationOptions(
     (parsed.values.scope !== undefined ||
       parsed.values.preflight ||
       parsed.values["max-source-bytes"] !== undefined ||
-      parsed.values["max-provider-calls"] !== undefined) &&
+      parsed.values["max-provider-calls"] !== undefined ||
+      parsed.values["max-observed-tokens"] !== undefined ||
+      parsed.values["max-elapsed-ms"] !== undefined) &&
     parsed.values.provider === undefined
   )
     throw new Error("--scope, --preflight, and resource ceilings require --provider.");
@@ -100,6 +104,14 @@ export function parseDocumentNormalizationOptions(
     parsed.values["max-provider-calls"],
     "--max-provider-calls",
   );
+  const maximumObservedTokens = positiveIntegerOption(
+    parsed.values["max-observed-tokens"],
+    "--max-observed-tokens",
+  );
+  const maximumElapsedMilliseconds = positiveIntegerOption(
+    parsed.values["max-elapsed-ms"],
+    "--max-elapsed-ms",
+  );
   return {
     help: false,
     ...(parsed.values.root === undefined ? {} : { root: parsed.values.root }),
@@ -112,6 +124,8 @@ export function parseDocumentNormalizationOptions(
     ceilings: {
       ...(maximumSourceBytes === undefined ? {} : { maximumSourceBytes }),
       ...(maximumProviderCalls === undefined ? {} : { maximumProviderCalls }),
+      ...(maximumObservedTokens === undefined ? {} : { maximumObservedTokens }),
+      ...(maximumElapsedMilliseconds === undefined ? {} : { maximumElapsedMilliseconds }),
     },
     ...(parsed.values.model === undefined ? {} : { model: parsed.values.model }),
     ...(parsed.values.executable === undefined ? {} : { executable: parsed.values.executable }),

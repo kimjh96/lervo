@@ -1,7 +1,7 @@
 # Document content normalization
 
 Status: `active`
-As of: 2026-08-27
+As of: 2026-09-04
 
 ## Contract
 
@@ -31,11 +31,25 @@ compiler executable may be probed to bind its descriptor. A cache entry counts a
 the ordinary response and no-capability validation succeeds.
 
 The default bounds are 1,048,576 selected source bytes and 256 provider calls. Override them with
-`--max-source-bytes` and `--max-provider-calls`. Call capacity includes batch fallback; a blocked
-preflight prevents generation, and actual execution cannot cross the same call ceiling. The
-`normalization_budget_exceeded` failure records that a byte or call bound prevented a provider
-request. Token and elapsed-time ceilings require observed compiler usage and are not part of this
-version.
+`--max-source-bytes` and `--max-provider-calls`. Optional `--max-observed-tokens` and
+`--max-elapsed-ms` ceilings default to unconfigured and are displayed by preflight without being
+treated as predicted usage. Call capacity includes batch fallback; a blocked preflight prevents
+generation, and actual execution cannot cross the same call ceiling.
+
+Codex and Claude translate native normalization usage behind the compiler adapter into neutral
+input, cached-input, output, and total-token fields. Missing or invalid usage is explicitly
+unavailable and never zero. Core orchestration aggregates provider-call elapsed time and complete
+token observations without retaining prompts, document bodies, or native output. When a token or
+elapsed-time ceiling is configured, envelopes execute serially and reaching the observed boundary
+prevents the next call. Unavailable usage under a token ceiling also prevents continuation. A call
+already in progress is not predicted or preempted.
+
+The immediate local generation result carries the resource observation. Candidate identity,
+candidate storage, approval, lifecycle records, and applied events exclude it so nondeterministic
+elapsed time cannot change content identity and cached results cannot inherit historical usage.
+`normalization_budget_exceeded` means a configured ceiling prevented another provider request;
+`normalization_usage_unavailable` means a declared token ceiling could not safely admit another
+request because provider usage was unobservable.
 
 An applied event includes only the bounded workset identity, scope, counts, and bytes inside its
 coverage. Exact selected paths and hashes remain in local preflight, candidate, and review output,
@@ -51,4 +65,5 @@ Repository document layout follows [ADR-0222](../decisions/knowledge/repository/
 - [Repository knowledge compilation](repository-knowledge-compilation.md)
 - [Reviewed document content normalization](../decisions/knowledge/repository/0195-reviewed-document-content-normalization.md)
 - [Bound document normalization worksets and preflight](../decisions/knowledge/documents/0358-bound-document-normalization-worksets-and-preflight.md)
+- [Observed document normalization resources](../decisions/knowledge/documents/0359-observe-document-normalization-resources.md)
 - [Bounded role-based document layout](../decisions/knowledge/repository/0222-bounded-role-based-document-layout.md)

@@ -1,6 +1,7 @@
 import { constants } from "node:fs";
 import { lstat, mkdir, open, readFile } from "node:fs/promises";
 import { basename, dirname, posix, resolve } from "node:path";
+import { performance } from "node:perf_hooks";
 
 import { parse, stringify } from "yaml";
 import { loadDecisionTaxonomy, type DecisionTaxonomy } from "@lervo/project";
@@ -17,9 +18,16 @@ import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enfo
 import { bytePreservedDocumentCollection } from "./document-layout.js";
 import { createDocumentNormalizationShardCache } from "./document-normalization-cache.js";
 import {
+  createDocumentNormalizationObservationTracker,
+  unavailableDocumentNormalizationTokenUsage,
+  type DocumentNormalizationCompilerObservation,
+  type DocumentNormalizationResourceObservation,
+} from "./document-normalization-observation.js";
+import {
   assertDocumentNormalizationPreflightReady,
   createDocumentNormalizationPreflightReport,
   documentNormalizationWorksetBinding,
+  resolveDocumentNormalizationResourceCeilings,
   selectDocumentNormalizationPaths,
   type DocumentNormalizationPreflight,
   type DocumentNormalizationResourceCeilings,
@@ -162,6 +170,15 @@ export interface DocumentNormalizationResponse {
 export interface RepositoryDocumentNormalizationCompiler {
   readonly descriptor: DocumentNormalizationCompilerDescriptor;
   normalize(envelope: DocumentNormalizationEnvelope, signal: AbortSignal): Promise<unknown>;
+  normalizeObserved?(
+    envelope: DocumentNormalizationEnvelope,
+    signal: AbortSignal,
+  ): Promise<DocumentNormalizationCompilerObservation>;
+}
+
+export interface DocumentNormalizationCompilationResult {
+  candidate: DocumentNormalizationCandidate;
+  resourceObservation: DocumentNormalizationResourceObservation;
 }
 
 export interface DocumentNormalizationShardProgress {
@@ -1223,7 +1240,7 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
   }
 }
 
-export async function compileDocumentNormalizationCandidate(input: {
+export interface CompileDocumentNormalizationCandidateInput {
   scan: RepositoryKnowledgeScan;
   publicationRoot: string;
   outputLanguage: string;
@@ -1240,7 +1257,12 @@ export async function compileDocumentNormalizationCandidate(input: {
     response: DocumentNormalizationResponse,
   ) => Promise<void>;
   onShardProgress?: (progress: DocumentNormalizationShardProgress) => void;
-}): Promise<DocumentNormalizationCandidate> {
+  ceilings?: Partial<DocumentNormalizationResourceCeilings>;
+}
+
+export async function compileDocumentNormalizationCandidateObserved(
+  input: CompileDocumentNormalizationCandidateInput,
+): Promise<DocumentNormalizationCompilationResult> {
   if (input.outputLanguage !== "en")
     throw new RepositoryKnowledgeError(
       "knowledge_compile_policy_violation",
@@ -1262,6 +1284,9 @@ export async function compileDocumentNormalizationCandidate(input: {
     outputLanguage: input.outputLanguage,
     documents: eligible,
   });
+  const resourceTracker = createDocumentNormalizationObservationTracker(
+    resolveDocumentNormalizationResourceCeilings(input.ceilings),
+  );
   const responses: Array<
     { envelope: DocumentNormalizationEnvelope; response: DocumentNormalizationResponse } | undefined
   > = new Array(envelopes.length);
@@ -1332,11 +1357,23 @@ export async function compileDocumentNormalizationCandidate(input: {
           documents: DocumentNormalizationEnvelopeDocument[],
         ): Promise<DocumentNormalizationResponse["documents"]> => {
           const providerEnvelope = envelopeWithDocuments(envelope, documents);
+          resourceTracker.startProviderCall();
+          const startedAt = performance.now();
+          let callFinished = false;
           try {
-            const normalized = requiredResponse(
-              await input.compiler.normalize(providerEnvelope, input.signal),
-              providerEnvelope,
-            );
+            const observed =
+              input.compiler.normalizeObserved === undefined
+                ? {
+                    response: await input.compiler.normalize(providerEnvelope, input.signal),
+                    tokenUsage: unavailableDocumentNormalizationTokenUsage(),
+                  }
+                : await input.compiler.normalizeObserved(providerEnvelope, input.signal);
+            callFinished = true;
+            resourceTracker.finishProviderCall({
+              elapsedMilliseconds: Math.ceil(performance.now() - startedAt),
+              tokenUsage: observed.tokenUsage,
+            });
+            const normalized = requiredResponse(observed.response, providerEnvelope);
             for (const document of normalized.documents) {
               const source = documents.find((item) => item.path === document.sourcePath);
               if (source === undefined)
@@ -1358,6 +1395,11 @@ export async function compileDocumentNormalizationCandidate(input: {
             }
             return normalized.documents;
           } catch (error) {
+            if (!callFinished)
+              resourceTracker.finishProviderCall({
+                elapsedMilliseconds: Math.ceil(performance.now() - startedAt),
+                tokenUsage: unavailableDocumentNormalizationTokenUsage(),
+              });
             if (input.signal.aborted || documents.length === 1) throw error;
             input.onShardProgress?.({
               index: index + 1,
@@ -1396,7 +1438,15 @@ export async function compileDocumentNormalizationCandidate(input: {
     }
   };
   await Promise.all(
-    Array.from({ length: Math.min(MAX_CONCURRENT_SHARDS, envelopes.length) }, worker),
+    Array.from(
+      {
+        length: Math.min(
+          resourceTracker.requiresSerialExecution ? 1 : MAX_CONCURRENT_SHARDS,
+          envelopes.length,
+        ),
+      },
+      worker,
+    ),
   );
   if (firstError !== null) throw firstError;
   const completedResponses = responses.map((response) => {
@@ -1519,7 +1569,13 @@ export async function compileDocumentNormalizationCandidate(input: {
     ...materials,
   };
   validateDocumentNormalizationCandidate(candidate);
-  return candidate;
+  return { candidate, resourceObservation: resourceTracker.observation() };
+}
+
+export async function compileDocumentNormalizationCandidate(
+  input: CompileDocumentNormalizationCandidateInput,
+): Promise<DocumentNormalizationCandidate> {
+  return (await compileDocumentNormalizationCandidateObserved(input)).candidate;
 }
 
 function normalizationRecord(input: {
@@ -1789,7 +1845,7 @@ export async function inspectConfiguredDocumentNormalization(input: {
   };
 }
 
-export async function compileConfiguredDocumentNormalizationCandidate(input: {
+export interface CompileConfiguredDocumentNormalizationCandidateInput {
   repositoryRoot: string;
   compiler: RepositoryDocumentNormalizationCompiler;
   signal: AbortSignal;
@@ -1797,7 +1853,11 @@ export async function compileConfiguredDocumentNormalizationCandidate(input: {
   ceilings?: Partial<DocumentNormalizationResourceCeilings>;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
   onShardProgress?: (progress: DocumentNormalizationShardProgress) => void;
-}): Promise<DocumentNormalizationCandidate> {
+}
+
+export async function compileConfiguredDocumentNormalizationCandidateObserved(
+  input: CompileConfiguredDocumentNormalizationCandidateInput,
+): Promise<DocumentNormalizationCompilationResult> {
   const prepared = await prepareConfiguredDocumentNormalization({
     repositoryRoot: input.repositoryRoot,
     compiler: input.compiler,
@@ -1808,33 +1868,27 @@ export async function compileConfiguredDocumentNormalizationCandidate(input: {
       : { supplementalSources: input.supplementalSources }),
   });
   assertDocumentNormalizationPreflightReady(prepared.preflight);
-  let providerCalls = 0;
-  const boundedCompiler: RepositoryDocumentNormalizationCompiler = {
-    descriptor: input.compiler.descriptor,
-    normalize(envelope, signal) {
-      if (providerCalls >= prepared.preflight.ceilings.maximumProviderCalls)
-        throw new RepositoryKnowledgeError(
-          "normalization_budget_exceeded",
-          "The document normalization provider-call ceiling was reached before the next call.",
-        );
-      providerCalls += 1;
-      return input.compiler.normalize(envelope, signal);
-    },
-  };
-  return compileDocumentNormalizationCandidate({
+  return compileDocumentNormalizationCandidateObserved({
     scan: prepared.scan,
     publicationRoot: prepared.publicationRoot,
     outputLanguage: prepared.outputLanguage,
     taxonomy: prepared.taxonomy,
     normalizationExclude: prepared.normalizationExclude,
-    compiler: boundedCompiler,
+    compiler: input.compiler,
     signal: input.signal,
+    ceilings: prepared.preflight.ceilings,
     selectedPaths: prepared.selectedPaths,
     workset: prepared.preflight.workset,
     loadShardResponse: prepared.cache.load,
     storeShardResponse: prepared.cache.store,
     ...(input.onShardProgress === undefined ? {} : { onShardProgress: input.onShardProgress }),
   });
+}
+
+export async function compileConfiguredDocumentNormalizationCandidate(
+  input: CompileConfiguredDocumentNormalizationCandidateInput,
+): Promise<DocumentNormalizationCandidate> {
+  return (await compileConfiguredDocumentNormalizationCandidateObserved(input)).candidate;
 }
 
 async function prepareConfiguredDocumentNormalization(input: {

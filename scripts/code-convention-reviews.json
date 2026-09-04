@@ -144,9 +144,9 @@
     },
     {
       "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
-      "contentHash": "sha256:41f33abcd5483a5ddf7edc256b97e5ad764848a82723fcec0d5f6e8257dcaca7",
+      "contentHash": "sha256:12c8c733a896291ec22620136c7acfec469426a1cc37ea38796823601b464339",
       "responsibility": "Isolated no-capability provider process adapter",
-      "rationale": "Process control and Codex or Claude response parsing implement one capability-free provider boundary for typed JSON, semantic compilation, and document normalization contracts.",
+      "rationale": "Process control plus Codex and Claude response and usage parsing implement one capability-free provider boundary for typed JSON, semantic compilation, and document normalization contracts; resource admission remains in repository knowledge.",
       "disposition": "cohesive"
     },
     {
@@ -158,9 +158,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:411938da21aa282795e7fd71f2c371f94ea9df79da2ef54dd9dd38b7f598bb23",
+      "contentHash": "sha256:ee83f76437e24f2cdf90bd0287b0716bbfd82afa33855217241ffabd54990290",
       "responsibility": "Reviewed document normalization lifecycle",
-      "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation orchestration, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Workset/preflight contracts, shard-cache storage, and CLI parsing or rendering are separate modules.",
+      "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation orchestration, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Observation policy, workset/preflight contracts, shard-cache storage, and CLI parsing or rendering are separate modules.",
       "disposition": "cohesive"
     },
     {
@@ -270,7 +270,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:ae25956ff0272b12ca04313744aa175c576d340be28da2cee7e16947598a833f",
+      "contentHash": "sha256:d7c392f6ed3a64f95e12bb6379035a3eb70d304fe3cdf1c7191f1923ba5ecaa6",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, and typed domain failures without owning their implementations.",
       "disposition": "cohesive"

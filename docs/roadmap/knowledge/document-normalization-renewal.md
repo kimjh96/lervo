@@ -22,7 +22,8 @@ source bytes, and 45 provider envelopes rather than the reviewed 31-family scope
 and call-capacity evidence. The command does not yet expose normalization-token usage even though
 the provider subprocess may report it.
 
-Running candidate generation remains deferred until usage and elapsed-time observation are added.
+Usage and elapsed-time observation are now implemented. Candidate generation remains deferred
+until the source-current stale preflight is repeated with explicit token and elapsed-time ceilings.
 No user-owned document rewrite is authorized by this roadmap.
 
 ## Implemented foundation
@@ -33,6 +34,11 @@ No user-owned document rewrite is authorized by this roadmap.
   compiler coordinates, and byte/call ceilings without a normalization request.
 - Source-byte and conservative provider-call capacity fail before generation, and execution has a
   second call counter at the compiler boundary.
+- Codex and Claude normalization adapters now return provider-neutral token observations, core
+  aggregates provider-call elapsed time, and optional observed-token and elapsed-time ceilings stop
+  continuation before the next envelope.
+- Runtime resource observations remain separate from deterministic candidate identity and cached
+  document results are attributed to zero new provider calls.
 - Applying a partial stale candidate leaves unrelated new pending documents visible.
 
 ## Delivery order
@@ -45,11 +51,11 @@ No user-owned document rewrite is authorized by this roadmap.
 3. **Complete.** Add a read-only preflight that reports the exact selected paths and hashes, source bytes,
    envelope count, cache hits and misses for the chosen compiler descriptor, and configured
    ceilings before any normalization process starts.
-4. Extend the normalization compiler boundary with observed usage. Provider adapters parse their
+4. **Complete.** Extend the normalization compiler boundary with observed usage. Provider adapters parse their
    own output; core receives neutral input, output, cached, and total-token fields or an explicit
    `unavailable` value. Aggregate usage and elapsed time without retaining prompts or document
    bodies.
-5. **Partial.** Exact workset, input-byte, and conservative provider-call ceilings are enforced.
+5. **Complete.** Exact workset, input-byte, and conservative provider-call ceilings are enforced.
    Add elapsed-time and observed-token ceilings after step 4.
    Never represent missing usage as zero, and stop before the next envelope when a post-call budget
    is exhausted.

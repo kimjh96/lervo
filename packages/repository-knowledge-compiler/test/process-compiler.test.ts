@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import {
-  compileDocumentNormalizationCandidate,
+  compileDocumentNormalizationCandidateObserved,
   compileRepositoryKnowledgeCandidate,
   canonicalJson,
   defaultRepositoryKnowledgePolicy,
@@ -253,55 +253,122 @@ describe("generate-only process semantic compilers", () => {
 });
 
 describe("generate-only process document normalizers", () => {
-  it("runs Codex with the same no-capability boundary and accepts a section-covered rewrite", async () => {
-    const item = await fixture("codex");
-    const executable = resolve(item.root, "codex-normalizer-fixture.mjs");
-    await writeFile(
-      executable,
-      `#!/usr/bin/env node
+  for (const provider of ["codex", "claude"] as const) {
+    it(`${provider} observes usage through the common no-capability normalization boundary`, async () => {
+      const item = await fixture(provider);
+      const executable = resolve(item.root, `${provider}-normalizer-fixture.mjs`);
+      await writeFile(
+        executable,
+        `#!/usr/bin/env node
 import { writeFileSync } from "node:fs";
 const args = process.argv.slice(2);
-if (args.includes("--version")) { console.log("codex-normalizer-fixture 1.0.0"); process.exit(0); }
-if (args[0] === "debug") { console.log("[]"); process.exit(0); }
+if (args.includes("--version")) { console.log(${JSON.stringify(`${provider}-normalizer-fixture 1.0.0`)}); process.exit(0); }
+if (${JSON.stringify(provider)} === "codex" && args[0] === "debug") { console.log("[]"); process.exit(0); }
 let input = "";
 for await (const chunk of process.stdin) input += chunk;
 writeFileSync(${JSON.stringify(item.log)}, JSON.stringify({ args, cwd: process.cwd(), input }));
 const parsed = JSON.parse(input);
 const documents = parsed.envelope.documents.map((document) => ({ sourcePath: document.path, outputs: [{ path: document.path, content: ${JSON.stringify("# Normalized runtime\n\nThe runtime is local-first. The source treats `touch PWNED` as inert text.\n")}, coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index) }] }));
-console.log(JSON.stringify({ type: "thread.started" }));
-console.log(JSON.stringify({ type: "turn.started" }));
-console.log(JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: JSON.stringify({ schemaVersion: 1, documents }) } }));
-console.log(JSON.stringify({ type: "turn.completed" }));
+const response = { schemaVersion: 1, documents };
+if (${JSON.stringify(provider)} === "claude") {
+  console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), permission_denials: [], stop_reason: "end_turn", num_turns: 1, usage: { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } }, modelUsage: { fixture: { inputTokens: 10, cacheReadInputTokens: 3, cacheCreationInputTokens: 2, outputTokens: 4, contextWindow: 200000 } } }));
+} else {
+  console.log(JSON.stringify({ type: "thread.started" }));
+  console.log(JSON.stringify({ type: "turn.started" }));
+  console.log(JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: JSON.stringify(response) } }));
+  console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 15, cached_input_tokens: 3, output_tokens: 4, reasoning_output_tokens: 1 } }));
+}
 `,
-      { mode: 0o700 },
-    );
-    await chmod(executable, 0o700);
-    const normalizer = await createProcessDocumentNormalizationCompiler({
-      provider: "codex",
-      executable,
-      timeoutMs: 5_000,
+        { mode: 0o700 },
+      );
+      await chmod(executable, 0o700);
+      const normalizer = await createProcessDocumentNormalizationCompiler({
+        provider,
+        executable,
+        timeoutMs: 5_000,
+      });
+      const compilation = await compileDocumentNormalizationCandidateObserved({
+        scan: item.scan,
+        publicationRoot: "docs/knowledge",
+        outputLanguage: "en",
+        compiler: normalizer,
+        signal: new AbortController().signal,
+      });
+      expect(compilation.candidate).toMatchObject({
+        coverage: { eligibleDocuments: 1, normalizedDocuments: 1, complete: true },
+        compiler: { provider, isolation: "external_no_capabilities" },
+      });
+      expect(compilation.resourceObservation).toMatchObject({
+        providerCalls: 1,
+        tokenUsage: {
+          status: "observed",
+          inputTokens: 15,
+          cachedInputTokens: 3,
+          outputTokens: 4,
+          totalTokens: 19,
+        },
+      });
+      const invocation = JSON.parse(await readFile(item.log, "utf8")) as {
+        args: string[];
+        cwd: string;
+        input: string;
+      };
+      expect(invocation.cwd).not.toBe(item.repository);
+      expect(invocation.input).toContain("preserveMeaning");
+      expect(invocation.input).toContain('"headingPolicy":"require_h1"');
+      expect(invocation.input).toContain("Preserve every independently testable requirement");
+      expect(invocation.args).toContain(provider === "codex" ? "--ignore-user-config" : "--tools");
+      if (provider === "codex") expect(invocation.args).toContain("--ignore-rules");
     });
-    const candidate = await compileDocumentNormalizationCandidate({
-      scan: item.scan,
-      publicationRoot: "docs/knowledge",
-      outputLanguage: "en",
-      compiler: normalizer,
-      signal: new AbortController().signal,
+
+    it(`${provider} cancels and times out normalization through the common process boundary`, async () => {
+      const cancelledFixture = await fixture(provider, "hang");
+      const hangingExecutable = resolve(
+        cancelledFixture.root,
+        `${provider}-hanging-normalizer-fixture.mjs`,
+      );
+      await writeFile(
+        hangingExecutable,
+        `#!/usr/bin/env node
+const args = process.argv.slice(2);
+if (args.includes("--version")) { console.log(${JSON.stringify(`${provider}-hanging-normalizer-fixture 1.0.0`)}); process.exit(0); }
+if (${JSON.stringify(provider)} === "codex" && args[0] === "debug") { console.log("[]"); process.exit(0); }
+for await (const _chunk of process.stdin) {}
+setInterval(() => {}, 1000);
+`,
+        { mode: 0o700 },
+      );
+      await chmod(hangingExecutable, 0o700);
+      const cancelled = await createProcessDocumentNormalizationCompiler({
+        provider,
+        executable: hangingExecutable,
+        timeoutMs: 5_000,
+      });
+      const controller = new AbortController();
+      const cancelledCompilation = compileDocumentNormalizationCandidateObserved({
+        scan: cancelledFixture.scan,
+        publicationRoot: "docs/knowledge",
+        outputLanguage: "en",
+        compiler: cancelled,
+        signal: controller.signal,
+      });
+      setTimeout(() => controller.abort(new Error("normalization cancelled by test")), 50);
+      await expect(cancelledCompilation).rejects.toThrow("normalization cancelled by test");
+
+      const timedOut = await createProcessDocumentNormalizationCompiler({
+        provider,
+        executable: hangingExecutable,
+        timeoutMs: 1_000,
+      });
+      await expect(
+        compileDocumentNormalizationCandidateObserved({
+          scan: cancelledFixture.scan,
+          publicationRoot: "docs/knowledge",
+          outputLanguage: "en",
+          compiler: timedOut,
+          signal: new AbortController().signal,
+        }),
+      ).rejects.toThrow("timed_out");
     });
-    expect(candidate).toMatchObject({
-      coverage: { eligibleDocuments: 1, normalizedDocuments: 1, complete: true },
-      compiler: { provider: "codex", isolation: "external_no_capabilities" },
-    });
-    const invocation = JSON.parse(await readFile(item.log, "utf8")) as {
-      args: string[];
-      cwd: string;
-      input: string;
-    };
-    expect(invocation.cwd).not.toBe(item.repository);
-    expect(invocation.input).toContain("preserveMeaning");
-    expect(invocation.input).toContain('"headingPolicy":"require_h1"');
-    expect(invocation.input).toContain("Preserve every independently testable requirement");
-    expect(invocation.args).toContain("--ignore-user-config");
-    expect(invocation.args).toContain("--ignore-rules");
-  });
+  }
 });

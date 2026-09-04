@@ -38,7 +38,7 @@ const documents = parsed.envelope.documents.map((document) => ({ sourcePath: doc
 console.log(JSON.stringify({ type: "thread.started" }));
 console.log(JSON.stringify({ type: "turn.started" }));
 console.log(JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: JSON.stringify({ schemaVersion: 1, documents }) } }));
-console.log(JSON.stringify({ type: "turn.completed" }));
+console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 15, cached_input_tokens: 3, output_tokens: 4, reasoning_output_tokens: 1 } }));
 `,
       { mode: 0o700 },
     );
@@ -64,6 +64,10 @@ console.log(JSON.stringify({ type: "turn.completed" }));
           executable,
           "--scope",
           "all-pending",
+          "--max-observed-tokens",
+          "1000",
+          "--max-elapsed-ms",
+          "5000",
           "--preflight",
           "--json",
         ],
@@ -75,11 +79,13 @@ console.log(JSON.stringify({ type: "turn.completed" }));
       status: string;
       workset: { scope: string; selectedDocuments: number };
       selection: { cacheMisses: number };
+      ceilings: { maximumObservedTokens: number; maximumElapsedMilliseconds: number };
     };
     expect(preflight).toMatchObject({
       status: "ready",
       workset: { scope: "all_pending", selectedDocuments: 1 },
       selection: { cacheMisses: 1 },
+      ceilings: { maximumObservedTokens: 1000, maximumElapsedMilliseconds: 5000 },
     });
     await expect(access(invocationLog)).rejects.toMatchObject({ code: "ENOENT" });
     messages.length = 0;
@@ -96,9 +102,18 @@ console.log(JSON.stringify({ type: "turn.completed" }));
       candidateId: string;
       candidateArtifactPath: string;
       items: Array<{ operationId: string; approvalHash: string }>;
+      resourceObservation: {
+        providerCalls: number;
+        elapsedMilliseconds: number;
+        tokenUsage: { status: string; totalTokens: number };
+      };
     };
     expect(plan.candidateArtifactPath).toContain(plan.candidateId);
     expect(plan.items).toHaveLength(1);
+    expect(plan.resourceObservation).toMatchObject({
+      providerCalls: 1,
+      tokenUsage: { status: "observed", totalTokens: 19 },
+    });
     messages.length = 0;
     const apply = [
       "knowledge",

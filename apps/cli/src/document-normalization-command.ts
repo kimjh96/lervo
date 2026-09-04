@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import {
   applyDocumentNormalizationPlan,
   canonicalJson,
-  compileConfiguredDocumentNormalizationCandidate,
+  compileConfiguredDocumentNormalizationCandidateObserved,
   createConfiguredDocumentNormalizationPreflight,
   createDocumentNormalizationPlan,
   lintRepositoryKnowledge,
@@ -12,6 +12,7 @@ import {
   sha256,
   storeDocumentNormalizationCandidate,
   type DocumentNormalizationPlan,
+  type DocumentNormalizationResourceObservation,
 } from "@lervo/repository-knowledge";
 import { createProcessDocumentNormalizationCompiler } from "@lervo/repository-knowledge-compiler";
 import { openProjectStorage } from "@lervo/project-storage";
@@ -36,10 +37,15 @@ function approvals(
   });
 }
 
-function printablePlan(plan: DocumentNormalizationPlan, artifactPath: string): unknown {
+function printablePlan(
+  plan: DocumentNormalizationPlan,
+  artifactPath: string,
+  resourceObservation?: DocumentNormalizationResourceObservation,
+): unknown {
   return {
     ...plan,
     candidateArtifactPath: artifactPath,
+    ...(resourceObservation === undefined ? {} : { resourceObservation }),
     items: plan.items.map((item) => ({
       ...item,
       outputs: item.outputs.map(({ content: _content, ...output }) => output),
@@ -51,7 +57,11 @@ function printablePlan(plan: DocumentNormalizationPlan, artifactPath: string): u
   };
 }
 
-function formatPlan(plan: DocumentNormalizationPlan, artifactPath: string): string {
+function formatPlan(
+  plan: DocumentNormalizationPlan,
+  artifactPath: string,
+  resourceObservation?: DocumentNormalizationResourceObservation,
+): string {
   const lines = [
     `Repository document normalization: ${plan.status}`,
     `plan: ${plan.planId}`,
@@ -61,6 +71,16 @@ function formatPlan(plan: DocumentNormalizationPlan, artifactPath: string): stri
     `language: ${plan.outputLanguage} · format: ${plan.formatVersion}`,
     `source documents: ${plan.items.length} · output documents: ${plan.items.reduce((sum, item) => sum + item.outputs.length, 0)}`,
   ];
+  if (resourceObservation !== undefined) {
+    lines.push(
+      `provider calls: ${resourceObservation.providerCalls} · elapsed: ${resourceObservation.elapsedMilliseconds} ms`,
+    );
+    lines.push(
+      resourceObservation.tokenUsage.status === "observed"
+        ? `tokens: ${resourceObservation.tokenUsage.totalTokens} total (${resourceObservation.tokenUsage.inputTokens} input, ${resourceObservation.tokenUsage.cachedInputTokens} cached input, ${resourceObservation.tokenUsage.outputTokens} output)`
+        : `tokens: unavailable (${resourceObservation.tokenUsage.unavailableProviderCalls}/${resourceObservation.providerCalls} provider calls unavailable)`,
+    );
+  }
   for (const item of plan.items) {
     lines.push(`  ${item.sourcePath} (${item.profile})`);
     for (const output of item.outputs)
@@ -86,6 +106,7 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
     const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
     let candidate;
     let stored;
+    let resourceObservation: DocumentNormalizationResourceObservation | undefined;
     if (options.provider !== undefined) {
       const compiler = await createProcessDocumentNormalizationCompiler({
         provider: options.provider,
@@ -113,7 +134,7 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
       process.once("SIGINT", abort);
       process.once("SIGTERM", abort);
       try {
-        candidate = await compileConfiguredDocumentNormalizationCandidate({
+        const compilation = await compileConfiguredDocumentNormalizationCandidateObserved({
           repositoryRoot,
           compiler,
           signal: controller.signal,
@@ -138,6 +159,8 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
               );
           },
         });
+        candidate = compilation.candidate;
+        resourceObservation = compilation.resourceObservation;
       } finally {
         process.off("SIGINT", abort);
         process.off("SIGTERM", abort);
@@ -166,8 +189,8 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
         throw new Error("--approve-item must be used with --apply.");
       io.stdout(
         options.json
-          ? `${JSON.stringify(printablePlan(plan, stored.artifactPath), null, 2)}\n`
-          : formatPlan(plan, stored.artifactPath),
+          ? `${JSON.stringify(printablePlan(plan, stored.artifactPath, resourceObservation), null, 2)}\n`
+          : formatPlan(plan, stored.artifactPath, resourceObservation),
       );
       return plan.status === "blocked" ? 1 : 0;
     }

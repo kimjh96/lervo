@@ -12,6 +12,8 @@ export function formatDocumentNormalizationPreflight(
     `cache: ${preflight.selection.cacheHits} hits · ${preflight.selection.cacheMisses} misses`,
     `provider call capacity: ${preflight.selection.providerCallCapacity}/${preflight.ceilings.maximumProviderCalls}`,
     `source-byte ceiling: ${preflight.workset.sourceBytes}/${preflight.ceilings.maximumSourceBytes}`,
+    `observed-token ceiling: ${preflight.ceilings.maximumObservedTokens ?? "not configured"}`,
+    `elapsed-time ceiling: ${preflight.ceilings.maximumElapsedMilliseconds === null ? "not configured" : `${preflight.ceilings.maximumElapsedMilliseconds} ms`}`,
   ];
   for (const document of preflight.selection.documents)
     lines.push(
