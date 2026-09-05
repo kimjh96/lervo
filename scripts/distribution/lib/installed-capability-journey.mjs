@@ -135,21 +135,43 @@ async function createMcpPackage(root, hashCapabilityFiles) {
   return manifest;
 }
 
+function codexFixtureEntrypoint(fixture) {
+  return `import(${JSON.stringify(pathToFileURL(fixture).href)}).catch((error) => { console.error(error); process.exitCode = 1; });\n`;
+}
+
 async function installCodexFixtureExecutable(root, fakeBin, fixture) {
   const executable = resolve(fakeBin, process.platform === "win32" ? "codex.exe" : "codex");
   if (process.platform === "win32") {
+    const bootstrap = resolve(fakeBin, "codex-fixture-bootstrap.cjs");
+    const entrypoint = codexFixtureEntrypoint(fixture);
     await Promise.all([
       copyFile(process.execPath, executable),
+      writeFile(resolve(root, "app-server"), entrypoint, "utf8"),
       writeFile(
-        resolve(root, "app-server"),
-        `import(${JSON.stringify(pathToFileURL(fixture).href)}).catch((error) => { console.error(error); process.exitCode = 1; });\n`,
+        bootstrap,
+        [
+          'const { existsSync, writeFileSync } = require("node:fs");',
+          'const { basename, resolve } = require("node:path");',
+          `const entrypoint = ${JSON.stringify(entrypoint)};`,
+          'if (basename(process.execPath).toLowerCase() === "codex.exe") {',
+          "  const path = resolve(process.argv[1]);",
+          '  if (!existsSync(path)) writeFileSync(path, entrypoint, "utf8");',
+          "}",
+          "",
+        ].join("\n"),
         "utf8",
       ),
     ]);
+    return {
+      NODE_OPTIONS: [process.env.NODE_OPTIONS, `--require=${JSON.stringify(bootstrap)}`]
+        .filter(Boolean)
+        .join(" "),
+    };
   } else {
     await copyFile(fixture, executable);
     await chmod(executable, 0o755);
   }
+  return {};
 }
 
 function event(trace, type, capabilityId) {
@@ -174,7 +196,7 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
     mkdir(resolve(root, "src"), { recursive: true }),
     mkdir(fakeBin, { recursive: true }),
   ]);
-  await installCodexFixtureExecutable(root, fakeBin, fixture);
+  const codexFixtureEnvironment = await installCodexFixtureExecutable(root, fakeBin, fixture);
   await runCli(cli, root, [
     "init",
     "--minimal",
@@ -211,6 +233,7 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
   await installCapability(cli, root, mcpSource);
   const env = {
     ...process.env,
+    ...codexFixtureEnvironment,
     PATH: `${fakeBin}${delimiter}${process.env.PATH ?? ""}`,
     LERVO_INSTALLED_CAPABILITY_TARGET: target,
     LERVO_INSTALLED_CAPABILITY_CHANGE_KIND: "update",
