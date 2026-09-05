@@ -19,6 +19,7 @@
     "@lervo/event-store-sqlite": "workspace:*",
     "@lervo/filesystem-durability": "workspace:*",
     "@lervo/project": "workspace:*",
+    "@lervo/runtime-security": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "yaml": "^2.9.0"
   }

@@ -15,6 +15,10 @@ import {
   SEARCH_EVALUATION_CASE_FILE,
   searchEvaluationDirectory,
 } from "./evaluation-file-common.js";
+import {
+  sameFileAcrossStatSurfaces,
+  sameFileWithinStatSurface,
+} from "./stable-file-observation.js";
 import { SearchLocalError } from "./types.js";
 
 const MAX_CASE_BYTES = 64 * 1024;
@@ -26,22 +30,46 @@ function compareText(left: string, right: string): number {
 async function readCase(path: string): Promise<SearchEvaluationCase> {
   let handle;
   try {
-    const before = await lstat(path, { bigint: true });
-    if (!before.isFile() || before.isSymbolicLink() || before.size > BigInt(MAX_CASE_BYTES)) {
+    const beforePath = await lstat(path, { bigint: true });
+    if (
+      !beforePath.isFile() ||
+      beforePath.isSymbolicLink() ||
+      beforePath.size > BigInt(MAX_CASE_BYTES)
+    ) {
       throw new SearchLocalError(
         "evaluation_case_invalid",
         "The search evaluation case is not a safe regular file.",
       );
     }
     handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-    const bytes = await handle.readFile();
-    const after = await handle.stat({ bigint: true });
+    const openedHandle = await handle.stat({ bigint: true });
+    const afterOpenPath = await lstat(path, { bigint: true });
     if (
-      before.dev !== after.dev ||
-      before.ino !== after.ino ||
-      before.size !== after.size ||
-      before.mtimeNs !== after.mtimeNs ||
-      before.ctimeNs !== after.ctimeNs
+      !openedHandle.isFile() ||
+      openedHandle.size > BigInt(MAX_CASE_BYTES) ||
+      !afterOpenPath.isFile() ||
+      afterOpenPath.isSymbolicLink() ||
+      afterOpenPath.size > BigInt(MAX_CASE_BYTES) ||
+      !sameFileWithinStatSurface(beforePath, afterOpenPath) ||
+      !sameFileAcrossStatSurfaces(afterOpenPath, openedHandle)
+    ) {
+      throw new SearchLocalError(
+        "evaluation_case_invalid",
+        "The search evaluation case changed before it was read.",
+      );
+    }
+    const bytes = await handle.readFile();
+    const afterReadHandle = await handle.stat({ bigint: true });
+    const afterReadPath = await lstat(path, { bigint: true });
+    if (
+      !afterReadHandle.isFile() ||
+      afterReadHandle.size > BigInt(MAX_CASE_BYTES) ||
+      !afterReadPath.isFile() ||
+      afterReadPath.isSymbolicLink() ||
+      afterReadPath.size > BigInt(MAX_CASE_BYTES) ||
+      !sameFileWithinStatSurface(openedHandle, afterReadHandle) ||
+      !sameFileWithinStatSurface(afterOpenPath, afterReadPath) ||
+      !sameFileAcrossStatSurfaces(afterReadPath, afterReadHandle)
     ) {
       throw new SearchLocalError(
         "evaluation_case_invalid",

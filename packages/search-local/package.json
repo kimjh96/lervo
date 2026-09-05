@@ -18,6 +18,7 @@
     "@lervo/context": "workspace:*",
     "@lervo/event-contract": "workspace:*",
     "@lervo/project": "workspace:*",
+    "@lervo/runtime-security": "workspace:*",
     "@lervo/search": "workspace:*",
     "yaml": "^2.9.0"
   }

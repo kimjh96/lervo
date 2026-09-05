@@ -7,6 +7,10 @@ import { canonicalJson } from "@lervo/event-contract";
 import { resolveProjectPaths } from "@lervo/project";
 
 import { SearchLocalError } from "./types.js";
+import {
+  sameFileAcrossStatSurfaces,
+  sameFileWithinStatSurface,
+} from "./stable-file-observation.js";
 
 const MAX_OBSERVATIONS = 10_000;
 const MAX_FILE_BYTES = 64 * 1024;
@@ -176,32 +180,48 @@ export async function existingObservationDirectories(
 export async function readObservation<T>(path: string): Promise<T> {
   let handle;
   try {
-    const before = await lstat(path, { bigint: true });
-    if (!before.isFile() || before.isSymbolicLink() || before.size > BigInt(MAX_FILE_BYTES)) {
+    const beforePath = await lstat(path, { bigint: true });
+    if (
+      !beforePath.isFile() ||
+      beforePath.isSymbolicLink() ||
+      beforePath.size > BigInt(MAX_FILE_BYTES)
+    ) {
       throw new SearchLocalError(
         "observation_invalid",
         "The search observation source file is unsafe.",
       );
     }
     handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-    const opened = await handle.stat({ bigint: true });
+    const openedHandle = await handle.stat({ bigint: true });
+    const afterOpenPath = await lstat(path, { bigint: true });
     if (
-      before.dev !== opened.dev ||
-      before.ino !== opened.ino ||
-      opened.size > BigInt(MAX_FILE_BYTES)
+      !openedHandle.isFile() ||
+      openedHandle.size > BigInt(MAX_FILE_BYTES) ||
+      !afterOpenPath.isFile() ||
+      afterOpenPath.isSymbolicLink() ||
+      afterOpenPath.size > BigInt(MAX_FILE_BYTES) ||
+      !sameFileWithinStatSurface(beforePath, afterOpenPath) ||
+      !sameFileAcrossStatSurfaces(afterOpenPath, openedHandle)
     ) {
       throw new SearchLocalError(
         "observation_invalid",
         "The search observation source path changed before it was read.",
       );
     }
-    const buffer = Buffer.alloc(Number(opened.size) + 1);
+    const buffer = Buffer.alloc(Number(openedHandle.size) + 1);
     const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
-    const after = await handle.stat({ bigint: true });
+    const afterReadHandle = await handle.stat({ bigint: true });
+    const afterReadPath = await lstat(path, { bigint: true });
     if (
-      bytesRead !== Number(opened.size) ||
-      opened.size !== after.size ||
-      opened.mtimeNs !== after.mtimeNs
+      bytesRead !== Number(openedHandle.size) ||
+      !afterReadHandle.isFile() ||
+      afterReadHandle.size > BigInt(MAX_FILE_BYTES) ||
+      !afterReadPath.isFile() ||
+      afterReadPath.isSymbolicLink() ||
+      afterReadPath.size > BigInt(MAX_FILE_BYTES) ||
+      !sameFileWithinStatSurface(openedHandle, afterReadHandle) ||
+      !sameFileWithinStatSurface(afterOpenPath, afterReadPath) ||
+      !sameFileAcrossStatSurfaces(afterReadPath, afterReadHandle)
     ) {
       throw new SearchLocalError(
         "observation_invalid",

@@ -573,6 +573,9 @@ importers:
 
   packages/capabilities:
     dependencies:
+      '@lervo/runtime-security':
+        specifier: workspace:*
+        version: link:../runtime-security
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -1070,6 +1073,9 @@ importers:
       '@lervo/project':
         specifier: workspace:*
         version: link:../project
+      '@lervo/runtime-security':
+        specifier: workspace:*
+        version: link:../runtime-security
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -1528,6 +1534,9 @@ importers:
       '@lervo/project':
         specifier: workspace:*
         version: link:../project
+      '@lervo/runtime-security':
+        specifier: workspace:*
+        version: link:../runtime-security
       '@lervo/search':
         specifier: workspace:*
         version: link:../search
@@ -1537,6 +1546,9 @@ importers:
 
   packages/skills:
     dependencies:
+      '@lervo/runtime-security':
+        specifier: workspace:*
+        version: link:../runtime-security
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -1586,6 +1598,9 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
+      '@lervo/runtime-security':
+        specifier: workspace:*
+        version: link:../runtime-security
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas

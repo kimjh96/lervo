@@ -1,31 +1,31 @@
 import { constants, type Stats } from "node:fs";
 import { lstat, open } from "node:fs/promises";
 
+import {
+  sameFileIdentityAcrossStatSurfaces,
+  sameFileIdentityWithinStatSurface,
+} from "@lervo/runtime-security";
+
 import { CapabilityPackageError } from "./types.js";
 
 type FileObservation = Pick<Stats, "dev" | "ino" | "mtimeMs" | "size">;
-
-function sameIdentity(left: FileObservation, right: FileObservation): boolean {
-  return left.dev === right.dev && left.ino === right.ino;
-}
 
 function sameMetadata(left: FileObservation, right: FileObservation): boolean {
   return left.size === right.size && left.mtimeMs === right.mtimeMs;
 }
 
-export function sameFileAcrossStatSurfaces(
+function sameFileAcrossStatSurfaces(
   pathObservation: FileObservation,
   handleObservation: FileObservation,
-  platform: NodeJS.Platform = process.platform,
 ): boolean {
   return (
     sameMetadata(pathObservation, handleObservation) &&
-    (platform === "win32" || sameIdentity(pathObservation, handleObservation))
+    sameFileIdentityAcrossStatSurfaces(pathObservation, handleObservation)
   );
 }
 
 function sameFileWithinStatSurface(before: FileObservation, after: FileObservation): boolean {
-  return sameIdentity(before, after) && sameMetadata(before, after);
+  return sameFileIdentityWithinStatSurface(before, after) && sameMetadata(before, after);
 }
 
 function fail(message: string, cause?: unknown): never {

@@ -5,6 +5,10 @@ import { basename, relative, resolve, sep } from "node:path";
 import { validateSchema, type SkillManifest } from "@lervo/schemas";
 
 import { hashSkillContentFiles } from "./content-hash.js";
+import {
+  sameFileAcrossStatSurfaces,
+  sameFileWithinStatSurface,
+} from "./stable-file-observation.js";
 import { SkillResolutionError, type DiscoveredSkill, type LocalSkillSourceKind } from "./types.js";
 
 const MANIFEST_NAME = "lervo-skill.json";
@@ -31,8 +35,8 @@ function assertWithin(root: string, path: string): void {
 }
 
 async function regularFile(path: string, maximumBytes = MAX_PACKAGE_BYTES): Promise<Uint8Array> {
-  const before = await lstat(path);
-  if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes) {
+  const beforePath = await lstat(path);
+  if (!beforePath.isFile() || beforePath.isSymbolicLink() || beforePath.size > maximumBytes) {
     throw new SkillResolutionError(
       "unsafe_skill_package",
       "A skill package file must be a regular file within the size limit.",
@@ -41,22 +45,34 @@ async function regularFile(path: string, maximumBytes = MAX_PACKAGE_BYTES): Prom
   let handle;
   try {
     handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
-    const opened = await handle.stat();
-    if (before.dev !== opened.dev || before.ino !== opened.ino) {
+    const openedHandle = await handle.stat();
+    const afterOpenPath = await lstat(path);
+    if (
+      !openedHandle.isFile() ||
+      openedHandle.size > maximumBytes ||
+      !afterOpenPath.isFile() ||
+      afterOpenPath.isSymbolicLink() ||
+      afterOpenPath.size > maximumBytes ||
+      !sameFileWithinStatSurface(beforePath, afterOpenPath) ||
+      !sameFileAcrossStatSurfaces(afterOpenPath, openedHandle)
+    ) {
       throw new SkillResolutionError(
         "unsafe_skill_package",
         "The skill package file path changed before it was read.",
       );
     }
     const bytes = await handle.readFile();
-    const after = await handle.stat();
+    const afterReadHandle = await handle.stat();
+    const afterReadPath = await lstat(path);
     if (
-      !after.isFile() ||
-      after.size > maximumBytes ||
-      before.dev !== after.dev ||
-      before.ino !== after.ino ||
-      before.size !== after.size ||
-      before.mtimeMs !== after.mtimeMs
+      !afterReadHandle.isFile() ||
+      afterReadHandle.size > maximumBytes ||
+      !afterReadPath.isFile() ||
+      afterReadPath.isSymbolicLink() ||
+      afterReadPath.size > maximumBytes ||
+      !sameFileWithinStatSurface(openedHandle, afterReadHandle) ||
+      !sameFileWithinStatSurface(afterOpenPath, afterReadPath) ||
+      !sameFileAcrossStatSurfaces(afterReadPath, afterReadHandle)
     ) {
       throw new SkillResolutionError(
         "unsafe_skill_package",

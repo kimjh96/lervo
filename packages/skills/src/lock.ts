@@ -5,6 +5,10 @@ import { dirname, resolve } from "node:path";
 
 import { validateSchema, type SkillLock } from "@lervo/schemas";
 
+import {
+  sameFileAcrossStatSurfaces,
+  sameFileWithinStatSurface,
+} from "./stable-file-observation.js";
 import { SkillResolutionError } from "./types.js";
 
 const MAX_LOCK_BYTES = 4 * 1024 * 1024;
@@ -63,8 +67,8 @@ export async function readSkillLock(path: string): Promise<SkillLock | null> {
 }
 
 async function readExistingLock(path: string): Promise<string> {
-  const before = await lstat(path);
-  if (!before.isFile() || before.isSymbolicLink() || before.size > MAX_LOCK_BYTES) {
+  const beforePath = await lstat(path);
+  if (!beforePath.isFile() || beforePath.isSymbolicLink() || beforePath.size > MAX_LOCK_BYTES) {
     throw new SkillResolutionError(
       "invalid_skill_lock",
       "The existing skills.lock must be a regular file within the size limit.",
@@ -72,22 +76,34 @@ async function readExistingLock(path: string): Promise<string> {
   }
   const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
-    const opened = await handle.stat();
-    if (before.dev !== opened.dev || before.ino !== opened.ino) {
+    const openedHandle = await handle.stat();
+    const afterOpenPath = await lstat(path);
+    if (
+      !openedHandle.isFile() ||
+      openedHandle.size > MAX_LOCK_BYTES ||
+      !afterOpenPath.isFile() ||
+      afterOpenPath.isSymbolicLink() ||
+      afterOpenPath.size > MAX_LOCK_BYTES ||
+      !sameFileWithinStatSurface(beforePath, afterOpenPath) ||
+      !sameFileAcrossStatSurfaces(afterOpenPath, openedHandle)
+    ) {
       throw new SkillResolutionError(
         "invalid_skill_lock",
         "The existing skills.lock path changed before it was read.",
       );
     }
     const bytes = await handle.readFile();
-    const after = await handle.stat();
+    const afterReadHandle = await handle.stat();
+    const afterReadPath = await lstat(path);
     if (
-      !after.isFile() ||
-      after.size > MAX_LOCK_BYTES ||
-      before.dev !== after.dev ||
-      before.ino !== after.ino ||
-      before.size !== after.size ||
-      before.mtimeMs !== after.mtimeMs
+      !afterReadHandle.isFile() ||
+      afterReadHandle.size > MAX_LOCK_BYTES ||
+      !afterReadPath.isFile() ||
+      afterReadPath.isSymbolicLink() ||
+      afterReadPath.size > MAX_LOCK_BYTES ||
+      !sameFileWithinStatSurface(openedHandle, afterReadHandle) ||
+      !sameFileWithinStatSurface(afterOpenPath, afterReadPath) ||
+      !sameFileAcrossStatSurfaces(afterReadPath, afterReadHandle)
     ) {
       throw new SkillResolutionError(
         "invalid_skill_lock",

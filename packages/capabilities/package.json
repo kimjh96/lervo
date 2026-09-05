@@ -15,6 +15,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
+    "@lervo/runtime-security": "workspace:*",
     "@lervo/schemas": "workspace:*"
   }
 }

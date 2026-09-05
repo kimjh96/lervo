@@ -1,11 +1,11 @@
-import { constants } from "node:fs";
-import { lstat, open, realpath } from "node:fs/promises";
+import { lstat, realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import type { VerificationSuite } from "@lervo/schemas";
 import { parse } from "yaml";
 
 import { VerificationError } from "./types.js";
+import { readVerificationSuiteFile } from "./suite-file-reader.js";
 import { validateVerificationSuite } from "./validation.js";
 
 const MAXIMUM_SUITE_BYTES = 64 * 1024;
@@ -41,30 +41,8 @@ export async function loadVerificationSuite(
     );
   }
   const path = resolve(directory, `${suiteId}.yaml`);
-  let handle;
   try {
-    const before = await lstat(path, { bigint: true });
-    if (!before.isFile() || before.isSymbolicLink() || before.size > MAXIMUM_SUITE_BYTES) {
-      throw new VerificationError(
-        "verification_layout_invalid",
-        "The verification suite file is not a safe regular file or exceeds the size limit.",
-      );
-    }
-    handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-    const bytes = await handle.readFile();
-    const after = await handle.stat({ bigint: true });
-    if (
-      before.dev !== after.dev ||
-      before.ino !== after.ino ||
-      before.size !== after.size ||
-      before.mtimeNs !== after.mtimeNs ||
-      before.ctimeNs !== after.ctimeNs
-    ) {
-      throw new VerificationError(
-        "verification_layout_invalid",
-        "The verification suite changed while it was being read.",
-      );
-    }
+    const bytes = await readVerificationSuiteFile(path, MAXIMUM_SUITE_BYTES);
     let value: unknown;
     try {
       value = parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
@@ -97,7 +75,5 @@ export async function loadVerificationSuite(
       "The verification suite file could not be read safely.",
       { cause: error },
     );
-  } finally {
-    await handle?.close();
   }
 }

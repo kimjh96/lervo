@@ -13,6 +13,10 @@ import {
   type SkillAuthorizationPlan,
 } from "./authorization.js";
 import { discoverSkillRoot, hashSkillPackage } from "./package-reader.js";
+import {
+  sameFileAcrossStatSurfaces,
+  sameFileWithinStatSurface,
+} from "./stable-file-observation.js";
 
 const MAXIMUM_MANIFEST_BYTES = 1024 * 1024;
 
@@ -21,9 +25,9 @@ async function readManifest(
   missingCode:
     "skill_authorization_invalid" | "skill_authorization_stale" = "skill_authorization_invalid",
 ): Promise<{ content: string; manifest: SkillManifest; mode: number }> {
-  let before;
+  let beforePath;
   try {
-    before = await lstat(path);
+    beforePath = await lstat(path);
   } catch (error) {
     throw new SkillAuthorizationError(
       (error as NodeJS.ErrnoException).code === "ENOENT"
@@ -33,7 +37,11 @@ async function readManifest(
       { cause: error },
     );
   }
-  if (!before.isFile() || before.isSymbolicLink() || before.size > MAXIMUM_MANIFEST_BYTES)
+  if (
+    !beforePath.isFile() ||
+    beforePath.isSymbolicLink() ||
+    beforePath.size > MAXIMUM_MANIFEST_BYTES
+  )
     throw new SkillAuthorizationError(
       "skill_authorization_invalid",
       "The project skill manifest is unsafe or oversized.",
@@ -41,19 +49,33 @@ async function readManifest(
   let handle;
   try {
     handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
-    const opened = await handle.stat();
-    if (before.dev !== opened.dev || before.ino !== opened.ino)
+    const openedHandle = await handle.stat();
+    const afterOpenPath = await lstat(path);
+    if (
+      !openedHandle.isFile() ||
+      openedHandle.size > MAXIMUM_MANIFEST_BYTES ||
+      !afterOpenPath.isFile() ||
+      afterOpenPath.isSymbolicLink() ||
+      afterOpenPath.size > MAXIMUM_MANIFEST_BYTES ||
+      !sameFileWithinStatSurface(beforePath, afterOpenPath) ||
+      !sameFileAcrossStatSurfaces(afterOpenPath, openedHandle)
+    )
       throw new SkillAuthorizationError(
         "skill_authorization_stale",
         "The project skill manifest changed before authorization planning.",
       );
     const bytes = await handle.readFile();
-    const after = await handle.stat();
+    const afterReadHandle = await handle.stat();
+    const afterReadPath = await lstat(path);
     if (
-      before.dev !== after.dev ||
-      before.ino !== after.ino ||
-      before.size !== after.size ||
-      before.mtimeMs !== after.mtimeMs
+      !afterReadHandle.isFile() ||
+      afterReadHandle.size > MAXIMUM_MANIFEST_BYTES ||
+      !afterReadPath.isFile() ||
+      afterReadPath.isSymbolicLink() ||
+      afterReadPath.size > MAXIMUM_MANIFEST_BYTES ||
+      !sameFileWithinStatSurface(openedHandle, afterReadHandle) ||
+      !sameFileWithinStatSurface(afterOpenPath, afterReadPath) ||
+      !sameFileAcrossStatSurfaces(afterReadPath, afterReadHandle)
     )
       throw new SkillAuthorizationError(
         "skill_authorization_stale",
@@ -66,7 +88,7 @@ async function readManifest(
         "skill_authorization_invalid",
         "The project skill manifest does not satisfy the skill contract.",
       );
-    return { content, manifest: manifest as SkillManifest, mode: before.mode & 0o777 };
+    return { content, manifest: manifest as SkillManifest, mode: beforePath.mode & 0o777 };
   } catch (error) {
     if (error instanceof SkillAuthorizationError) throw error;
     throw new SkillAuthorizationError(

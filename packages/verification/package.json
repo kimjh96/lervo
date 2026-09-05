@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@lervo/event-contract": "workspace:*",
+    "@lervo/runtime-security": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/storage-contract": "workspace:*",
     "@lervo/verification-contract": "workspace:*",
