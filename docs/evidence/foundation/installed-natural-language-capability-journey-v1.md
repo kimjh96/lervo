@@ -6,23 +6,29 @@ Observed: 2026-09-05
 
 ## Conclusion
 
-The packed `@lervo/cli` 0.11.4 artifact completed an installed journey for an existing reviewed skill. An ordinary natural-language task produced a deterministic recommendation from verified discovery metadata; the caller's exact `--capability` coordinate remained the authoritative explicit selection. The skill's MCP dependency was resolved and provider-confirmed before its exact instructions entered the task turn. The result passed publication and repository verification, with `skill.completed` and `run.completed` bound to the same result digest.
+The packed `@lervo/cli` 0.11.4 artifact completed an installed journey for a generated portable-skill candidate. Two independent managed runs produced distinct passed verification evidence. The installed CLI proposed and reviewed the candidate, promoted its exact instructions, resource, skill manifest, and capability manifest, separately authorized only its trust and current-project scope, and migrated its exact dependency graph.
 
-Passing witness: `run_fac71592697047acac6aad69c41731bf`. Each regression creates a fresh temporary consumer and run; this identifier records the observation, not a stable fixture coordinate.
+An ordinary natural-language task produced a deterministic recommendation while the caller's exact `--capability` coordinate remained authoritative. The skill's MCP dependency was provider-confirmed before its instructions entered the task turn. The result passed publication and repository verification; `skill.completed` and `run.completed` referenced the same result digest.
+
+Passing witness: `run_820d6b8f68f24c16a2e6b1db68eccf31`. Each regression creates a fresh temporary consumer and run; this identifier records the observation, not a stable fixture coordinate.
 
 ## Installed protocol
 
 1. Pack the production CLI tarball and install it into an empty consumer without workspace-private runtime packages.
 2. Initialize a separate local repository and activate event schema v2 through the installed CLI's evidence-bound plan/apply flow.
-3. Install an MCP package and a project-scoped, pinned, `reviewed` skill package through separate content-bound `capability install` plan/apply operations. The skill declares the MCP dependency by exact ID, version, and content hash.
-4. Submit `Use the packaged repository testing workflow` to `lervo run` with the exact reviewed-skill package coordinate. Deterministic discovery records the matching recommendation; explicit selection bypasses semantic capability grounding.
-5. Use the production Codex adapter with a deterministic app-server protocol fixture. The fixture confirms the configured MCP server, records the task prompt outside the managed repository snapshot, completes the single authorized file change, and returns a bounded result. A second isolated adapter session returns the exact writing-policy evaluation shape.
-6. Inspect the installed run outcome, target bytes, recorded task prompt, and full trace before deleting the temporary consumer.
+3. Install an MCP dependency by content-bound plan/apply. Run two independent managed repository verifications and retain their distinct event, run, suite, repository-revision, and result-content hashes.
+4. Propose a portable-skill pattern from both source and verification groups. Accept its exact candidate hash; promote `SKILL.md`, one resource, `lervo-skill.json`, and `lervo-capability.json` as one plan. Separately authorize the skill's trust and current-project scope.
+5. Migrate the promoted package, preserving the MCP dependency's exact ID, version, and content hash. Submit `Use the packaged repository testing workflow` with the exact generated capability coordinate. Deterministic discovery records the matching recommendation; explicit selection remains authoritative.
+6. Use the production Codex adapter with a deterministic app-server protocol fixture. The fixture confirms the configured MCP server, records the task prompt outside the managed repository snapshot, completes the authorized file change, and returns a bounded result. A second isolated adapter session returns the exact writing-policy evaluation shape.
+7. Inspect the installed run outcome, target bytes, recorded task prompt, and full trace before deleting the temporary consumer.
 
 ## Observed evidence
 
 | Boundary | Exact observation |
 | --- | --- |
+| Candidacy | Two independent `verification.completed` events and runs were bound to current source units before candidate acceptance. |
+| Promotion and authorization | Exact-hash review promoted four package files. A separate saved plan changed only `untrusted -> reviewed` and `disabled -> current project`; the content hash remained unchanged. |
+| Migration | `capability migrate` preserved the generated capability ID, discovery metadata, permissions, and exact MCP dependency coordinates. |
 | Recommendation | `capability.recommended` named the reviewed skill content hash and recorded `identity_token`, `intent_phrase`, and `keyword` reasons against the request digest. |
 | Selection | `capability.selected` recorded `explicit` for the skill and `dependency` for the MCP package. The matching recommendation did not overwrite explicit authority. |
 | Loading | `capability.loaded` recorded independent validation digests for both immutable installed packages. |
@@ -34,11 +40,9 @@ Passing witness: `run_fac71592697047acac6aad69c41731bf`. Each regression creates
 
 ## Claim boundary
 
-The deterministic provider fixture proves packed installation, local capability installation, recommendation and authority precedence, provider-adapter configuration and receipt validation, exact instruction construction, managed-write enforcement, result storage, verification, and event ordering.
+The deterministic provider fixture proves packed installation, verification-bound candidacy, exact review, atomic multi-file promotion, project authorization, dependency-preserving migration, recommendation and authority precedence, provider-adapter configuration and receipt validation, exact instruction construction, managed-write enforcement, result storage, verification, and event ordering.
 
-It does not prove live Codex model quality, provider service availability, model attention, understanding, semantic reliance, tool usefulness, or automatic skill generation. `skill.invoked` and `skill.completed` remain orchestration evidence only.
-
-The existing reviewed skill was authored as fixture input. Repository retrieval did not create, modify, or authorize it.
+It does not prove live Codex model quality, provider service availability, model attention, understanding, semantic reliance, tool usefulness, stale-source recovery, supersession, rollback, or post-promotion effect attribution. `skill.invoked` and `skill.completed` remain orchestration evidence only. Repository retrieval did not create or authorize the candidate.
 
 ## Regression
 
@@ -46,6 +50,7 @@ The existing reviewed skill was authored as fixture input. Repository retrieval 
 - `pnpm smoke:packed-cli`
 - `apps/cli/test/managed-run.test.ts`
 - `scripts/distribution/lib/installed-capability-journey.mjs`
+- `scripts/distribution/lib/installed-portable-skill-candidate.mjs`
 - `scripts/distribution/fixtures/installed-capability-codex.mjs`
 
 ## References

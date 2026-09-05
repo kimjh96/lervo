@@ -4,9 +4,13 @@ import { chmod, copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { delimiter, resolve } from "node:path";
 import { promisify } from "node:util";
 
+import {
+  installedPortableSkillInstructions,
+  installedPortableSkillRequest,
+  prepareInstalledPortableSkillCandidate,
+} from "./installed-portable-skill-candidate.mjs";
+
 const execute = promisify(execFile);
-const request = "Use the packaged repository testing workflow";
-const skillInstructions = "# Capability skill\nUse the exact managed skill route.\n";
 
 function bytes(value) {
   return new TextEncoder().encode(value);
@@ -129,84 +133,6 @@ async function createMcpPackage(root, hashCapabilityFiles) {
   return manifest;
 }
 
-async function createSkillPackage(root, projectId, dependency, hashCapabilityFiles) {
-  await mkdir(root, { recursive: true });
-  const contentHash = hashCapabilityFiles([{ path: "SKILL.md", bytes: bytes(skillInstructions) }]);
-  const skill = {
-    schemaVersion: 1,
-    skillId: "repository/installed-testing",
-    version: "1.0.0",
-    contentHash,
-    source: {
-      kind: "project",
-      uri: "fixture:installed-testing",
-      publisher: { id: "lervo.acceptance", name: "Lervo acceptance" },
-    },
-    supportedRoles: ["developer"],
-    compatibility: {
-      providers: { mode: "allowlist", providers: ["codex"] },
-      minimumRuntimeVersion: "0.1.0",
-      platforms: [process.platform],
-      requiredTools: ["shell"],
-      unknownIsCompatible: false,
-    },
-    requiredCapabilities: ["filesystem.read", "shell.execute"],
-    contracts: {
-      inputSchemaRef: "lervo-schema://skill/input/v1",
-      outputSchemaRef: "lervo-schema://skill/output/v1",
-    },
-    trust: {
-      level: "reviewed",
-      signatureStatus: "unsigned",
-      reviewedBy: "lervo.acceptance",
-      reviewedAt: "2026-09-05T00:00:00.000Z",
-    },
-    enabledScope: { kind: "projects", projectIds: [projectId] },
-    pinned: true,
-  };
-  const manifest = {
-    schemaVersion: 1,
-    capabilityId: "repository/installed-testing",
-    kind: "skill",
-    version: "1.0.0",
-    contentHash,
-    source: skill.source,
-    compatibility: {
-      providers: { mode: "allowlist", providers: ["codex"] },
-      minimumRuntimeVersion: "0.1.0",
-      platforms: [process.platform],
-    },
-    requiredPermissions: ["filesystem.read", "shell.execute"],
-    dependencies: [
-      {
-        capabilityId: dependency.capabilityId,
-        version: dependency.version,
-        contentHash: dependency.contentHash,
-      },
-    ],
-    discovery: {
-      displayName: "Installed repository test skill",
-      summary: request,
-      keywords: ["repository", "testing"],
-      intents: [request],
-      autoSelect: true,
-    },
-    entrypoint: {
-      kind: "skill",
-      skillId: skill.skillId,
-      manifestPath: "lervo-skill.json",
-    },
-    activation: "explicit",
-    publication: { defaultVisibility: "local", secretMaterial: "excluded" },
-  };
-  await Promise.all([
-    writeFile(resolve(root, "SKILL.md"), skillInstructions, "utf8"),
-    writeFile(resolve(root, "lervo-skill.json"), `${JSON.stringify(skill, null, 2)}\n`),
-    writeFile(resolve(root, "lervo-capability.json"), `${JSON.stringify(manifest, null, 2)}\n`),
-  ]);
-  return { manifest, skill };
-}
-
 function event(trace, type, capabilityId) {
   return trace.events.find(
     (item) =>
@@ -220,7 +146,6 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
   const root = resolve(consumerRoot, "installed-capability-journey");
   const sources = resolve(root, "capability-sources");
   const mcpSource = resolve(sources, "mcp");
-  const skillSource = resolve(sources, "skill");
   const fakeBin = resolve(root, "fake-bin");
   const fakeCodex = resolve(fakeBin, process.platform === "win32" ? "codex.cmd" : "codex");
   const fixture = resolve(import.meta.dirname, "../fixtures/installed-capability-codex.mjs");
@@ -237,14 +162,13 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
     await copyFile(fixture, fakeCodex);
     await chmod(fakeCodex, 0o755);
   }
-  const initialized = await runCli(cli, root, [
+  await runCli(cli, root, [
     "init",
     "--minimal",
     "--name",
     "installed-capability-journey",
     "--json",
   ]);
-  const projectId = JSON.parse(initialized.stdout).result.projectManifest.projectId;
   await activateEventWriter(cli, root);
   await mkdir(resolve(root, ".lervo/verifications"), { recursive: true });
   await writeFile(resolve(root, "AGENTS.md"), "Change only the declared file.\n", "utf8");
@@ -271,16 +195,22 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
     "utf8",
   );
   const mcp = await createMcpPackage(mcpSource, hashCapabilityFiles);
-  const skill = await createSkillPackage(skillSource, projectId, mcp, hashCapabilityFiles);
   await installCapability(cli, root, mcpSource);
-  await installCapability(cli, root, skillSource);
   const env = {
     ...process.env,
     PATH: `${fakeBin}${delimiter}${process.env.PATH ?? ""}`,
     LERVO_INSTALLED_CAPABILITY_TARGET: target,
+    LERVO_INSTALLED_CAPABILITY_CHANGE_KIND: "update",
     LERVO_INSTALLED_CAPABILITY_PROMPT_LOG: promptLog,
     LERVO_INSTALLED_CAPABILITY_DEBUG_LOG: debugLog,
   };
+  const skill = await prepareInstalledPortableSkillCandidate({
+    cli,
+    root,
+    dependency: mcp,
+    runCli,
+    env,
+  });
   let execution;
   try {
     execution = await runCli(
@@ -297,7 +227,7 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
         "--verification",
         "project.default",
         "--json",
-        request,
+        installedPortableSkillRequest,
       ],
       env,
     );
@@ -317,7 +247,7 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
   assert.equal(outcome.activatedCapabilities[0].evidence, "mcp_connected");
   assert.equal(await readFile(target, "utf8"), "export const installedCapabilityJourney = true;\n");
   const deliveredPrompt = await readFile(promptLog, "utf8");
-  assert.ok(deliveredPrompt.includes(skillInstructions));
+  assert.ok(deliveredPrompt.includes(installedPortableSkillInstructions));
   assert.ok(deliveredPrompt.includes(skill.skill.contentHash));
   const traced = await runCli(cli, root, ["trace", outcome.runId, "--json"]);
   const trace = JSON.parse(traced.stdout);

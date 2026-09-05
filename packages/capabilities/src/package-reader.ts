@@ -123,6 +123,19 @@ export function hashCapabilityFiles(files: readonly CapabilityPackageFile[]): st
   return `sha256:${hash.digest("hex")}`;
 }
 
+export function hashCapabilityPackageFiles(files: readonly CapabilityPackageFile[]): string {
+  const hash = createHash("sha256");
+  let total = 0;
+  for (const file of [...files].sort((a, b) => compare(a.path, b.path))) {
+    total += file.bytes.byteLength;
+    if (total > MAX_TOTAL_BYTES * 2 + MAX_MANIFEST_BYTES)
+      fail("capability_unsafe_package", "The capability package identity size limit was exceeded.");
+    hash.update(`${Buffer.byteLength(file.path)}:${file.path}:${file.bytes.byteLength}:`);
+    hash.update(file.bytes);
+  }
+  return `sha256:${hash.digest("hex")}`;
+}
+
 export async function readCapabilityContentFiles(
   directoryPath: string,
 ): Promise<CapabilityPackageFile[]> {

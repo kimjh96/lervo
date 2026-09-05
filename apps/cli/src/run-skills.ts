@@ -16,6 +16,7 @@ import {
 import { capabilityRoot } from "@lervo/capabilities";
 
 import type { RunProvider } from "./managed-run.js";
+import { readCliPackageVersion } from "./version-command.js";
 
 const availableTools: Record<RunProvider, readonly string[]> = {
   codex: ["filesystem.read", "filesystem.write", "shell"],
@@ -102,7 +103,7 @@ export async function resolveRunSkills(input: {
       projectId: input.projectId,
       provider: input.provider,
       roleId: input.role.roleId,
-      runtimeVersion: "0.1.0",
+      runtimeVersion: readCliPackageVersion(),
       platform: runtimePlatform(),
       availableTools: availableTools[input.provider],
       allowedCapabilities: Object.entries(input.role.capabilities)

@@ -19,9 +19,12 @@ import {
 } from "@lervo/capabilities";
 import { loadProjectManifest } from "@lervo/project";
 
+import { runSkillAuthorizationCommand } from "./skill-authorization-command.js";
 import type { CliIo } from "./types.js";
 
 export const capabilityUsage = `  lervo capability list [--scope <project|user|all>] [--root <path>] [--json]
+  lervo capability authorize-skill --skill <skill-id> --reviewer <id> [--root <path>] [--json]
+  lervo capability authorize-skill --from <plan-json> --apply --approval <plan-id> [--root <path>] [--json]
   lervo capability migrate [--apply --approval <plan-id>] [--root <path>] [--json]
   lervo capability validate --from <package-directory> [--json]
   lervo capability install --from <package-directory> --scope <project|user> [--apply --approval <plan-hash>] [--root <path>] [--json]
@@ -48,6 +51,7 @@ function tokenFromEnvironment(name = "LERVO_HUB_TOKEN"): string {
 
 export async function runCapabilityCommand(args: string[], io: CliIo): Promise<number> {
   try {
+    if (args[0] === "authorize-skill") return await runSkillAuthorizationCommand(args.slice(1), io);
     const parsed = parseArgs({
       args,
       strict: true,

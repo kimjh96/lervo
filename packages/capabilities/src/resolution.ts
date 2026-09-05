@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 
 import { validateSchema, type CapabilityLock } from "@lervo/schemas";
 
-import { readCapabilityPackage } from "./package-reader.js";
+import { hashCapabilityPackageFiles, readCapabilityPackage } from "./package-reader.js";
 import {
   CapabilityPackageError,
   type CapabilityResolution,
@@ -303,7 +303,10 @@ export async function installCapabilityPackage(input: {
   );
   try {
     const existing = await readCapabilityPackage(target);
-    if (existing.manifest.contentHash === input.package.manifest.contentHash) return target;
+    if (
+      hashCapabilityPackageFiles(existing.files) === hashCapabilityPackageFiles(input.package.files)
+    )
+      return target;
     fail("capability_conflict", "A different package already occupies this capability coordinate.");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;

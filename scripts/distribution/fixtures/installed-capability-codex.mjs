@@ -39,6 +39,15 @@ function semanticEvaluation(instructions) {
   });
 }
 
+function fixtureChange() {
+  const type = process.env.LERVO_INSTALLED_CAPABILITY_CHANGE_KIND ?? "add";
+  return {
+    path: "src/result.ts",
+    kind: type === "update" ? { type, move_path: null } : { type },
+    diff: "fixture diff",
+  };
+}
+
 async function handle(line) {
   const message = JSON.parse(line);
   if (message.method === "initialize") {
@@ -102,7 +111,7 @@ async function handle(line) {
           type: "fileChange",
           id: "change-installed-capability",
           status: "inProgress",
-          changes: [{ path: "src/result.ts", kind: { type: "add" }, diff: "fixture diff" }],
+          changes: [fixtureChange()],
         },
       },
     });
@@ -137,7 +146,7 @@ async function handle(line) {
           type: "fileChange",
           id: "change-installed-capability",
           status: "completed",
-          changes: [{ path: "src/result.ts", kind: { type: "add" }, diff: "fixture diff" }],
+          changes: [fixtureChange()],
         },
       },
     });

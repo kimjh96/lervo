@@ -79,6 +79,11 @@ function desiredTargets(candidate: DevelopmentPatternCandidate): Array<{
       content: candidate.portableSkillPackage.manifestContent,
       reason: "promoted_pattern_portable_skill_contract",
     },
+    {
+      path: `${directory}/lervo-capability.json`,
+      content: candidate.portableSkillPackage.capabilityManifestContent,
+      reason: "promoted_pattern_portable_skill_capability_contract",
+    },
   ];
 }
 

@@ -1861,6 +1861,7 @@ describe("terminal integration CLI", () => {
       workflowVerification: verification,
       portableSkillContract: {
         skillId: "bounded-workflow-check",
+        capabilityId: "repository/bounded_workflow_check",
         version: "1.0.0",
         supportedRoles: ["developer"],
         providerCompatibility: { mode: "any" },
@@ -1868,6 +1869,7 @@ describe("terminal integration CLI", () => {
         platforms: ["darwin", "linux", "win32"],
         requiredTools: ["pnpm"],
         requiredCapabilities: ["filesystem.read", "shell.execute"],
+        dependencies: [],
         inputSchemaRef: "lervo-schema://skill/input/v1",
         outputSchemaRef: "lervo-schema://skill/output/v1",
         resources: [
@@ -1965,6 +1967,7 @@ describe("terminal integration CLI", () => {
       ".agents/skills/bounded-workflow-check/SKILL.md",
       ".agents/skills/bounded-workflow-check/references/checklist.md",
       ".agents/skills/bounded-workflow-check/lervo-skill.json",
+      ".agents/skills/bounded-workflow-check/lervo-capability.json",
     ]);
     expect(JSON.stringify(promotion)).not.toContain("Run the exact configured verification");
     expect(
@@ -2002,6 +2005,55 @@ describe("terminal integration CLI", () => {
         inputSchemaRef: "lervo-schema://skill/input/v1",
         outputSchemaRef: "lervo-schema://skill/output/v1",
       },
+    });
+
+    const authorizationOutput: string[] = [];
+    expect(
+      await runCli(
+        [
+          "capability",
+          "authorize-skill",
+          "--skill",
+          "bounded-workflow-check",
+          "--reviewer",
+          "repository-maintainer",
+          "--json",
+        ],
+        {
+          cwd: root,
+          stdout: (message) => authorizationOutput.push(message),
+          stderr: (message) => declarationErrors.push(message),
+        },
+      ),
+      declarationErrors.join(""),
+    ).toBe(0);
+    const authorization = JSON.parse(authorizationOutput.join("")) as { planId: string };
+    const authorizationPath = resolve(root, ".lervo/state/test-skill-authorization.json");
+    await writeFile(authorizationPath, authorizationOutput.join(""));
+    expect(
+      await runCli(
+        [
+          "capability",
+          "authorize-skill",
+          "--from",
+          authorizationPath,
+          "--apply",
+          "--approval",
+          authorization.planId,
+        ],
+        { cwd: root, stdout: () => undefined, stderr: () => undefined },
+      ),
+    ).toBe(0);
+    expect(
+      JSON.parse(
+        await readFile(
+          resolve(root, ".agents/skills/bounded-workflow-check/lervo-skill.json"),
+          "utf8",
+        ),
+      ),
+    ).toMatchObject({
+      trust: { level: "reviewed", reviewedBy: "repository-maintainer" },
+      enabledScope: { kind: "projects", projectIds: [projectId] },
     });
 
     const migrationOutput: string[] = [];

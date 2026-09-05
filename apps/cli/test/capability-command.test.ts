@@ -1,11 +1,13 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { afterEach, expect, it } from "vitest";
 
 import { hashCapabilityFiles } from "@lervo/capabilities";
+import { createDefaultManifest, serializeYaml } from "@lervo/project";
 import type { CapabilityPackageManifest } from "@lervo/schemas";
+import { hashSkillPackage } from "@lervo/skills";
 
 import { runCapabilityCommand } from "../src/capability-command.js";
 
@@ -90,6 +92,15 @@ function io(cwd: string) {
   };
 }
 
+it("shows skill authorization help without requiring a project", async () => {
+  const output = io("/");
+
+  expect(await runCapabilityCommand(["authorize-skill", "--help"], output.io)).toBe(0);
+  expect(output.out.join("")).toContain(
+    "lervo capability authorize-skill --skill <skill-id> --reviewer <id>",
+  );
+});
+
 it("plans before applying an immutable project capability installation", async () => {
   const value = await fixture();
   const first = io(value.repositoryRoot);
@@ -145,4 +156,104 @@ it("rejects apply when approval does not match the current package", async () =>
     ),
   ).toBe(1);
   expect(output.err.join("")).toContain("current install plan hash");
+});
+
+it("authorizes an exact promoted skill through a saved CLI plan", async () => {
+  const repositoryRoot = await mkdtemp(resolve(tmpdir(), "lervo-skill-authorization-cli-"));
+  roots.push(repositoryRoot);
+  await mkdir(resolve(repositoryRoot, ".lervo"), { recursive: true });
+  const project = createDefaultManifest(
+    {
+      root: repositoryRoot,
+      name: "authorization-cli",
+      projectId: "prj_authorize01",
+      now: new Date("2026-09-05T00:00:00.000Z"),
+    },
+    repositoryRoot,
+  );
+  await writeFile(resolve(repositoryRoot, ".lervo/project.yaml"), serializeYaml(project));
+  const skillRoot = resolve(repositoryRoot, ".agents/skills/release-check");
+  await mkdir(skillRoot, { recursive: true });
+  await writeFile(
+    resolve(skillRoot, "SKILL.md"),
+    "---\nname: release-check\ndescription: Run reviewed release checks.\n---\n# Checks\n",
+  );
+  const contentHash = await hashSkillPackage(skillRoot);
+  await writeFile(
+    resolve(skillRoot, "lervo-skill.json"),
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        skillId: "release-check",
+        version: "1.0.0",
+        contentHash,
+        source: {
+          kind: "project",
+          uri: ".agents/skills/release-check",
+          publisher: {
+            id: "lervo.development-pattern",
+            name: "Lervo development-pattern review",
+          },
+        },
+        supportedRoles: ["developer"],
+        compatibility: {
+          providers: { mode: "any" },
+          minimumRuntimeVersion: "0.11.4",
+          platforms: ["darwin", "linux", "win32"],
+          requiredTools: [],
+          unknownIsCompatible: false,
+        },
+        requiredCapabilities: [],
+        contracts: {
+          inputSchemaRef: "lervo-schema://skill/input/v1",
+          outputSchemaRef: "lervo-schema://skill/output/v1",
+        },
+        trust: { level: "untrusted", signatureStatus: "unsigned" },
+        enabledScope: { kind: "disabled" },
+        pinned: false,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+
+  const planned = io(repositoryRoot);
+  expect(
+    await runCapabilityCommand(
+      [
+        "authorize-skill",
+        "--skill",
+        "release-check",
+        "--reviewer",
+        "repository-maintainer",
+        "--json",
+      ],
+      planned.io,
+    ),
+  ).toBe(0);
+  const plan = JSON.parse(planned.out.join("")) as { planId: string };
+  await writeFile(resolve(repositoryRoot, "authorization-plan.json"), planned.out.join(""));
+  const applied = io(repositoryRoot);
+  expect(
+    await runCapabilityCommand(
+      [
+        "authorize-skill",
+        "--from",
+        "authorization-plan.json",
+        "--apply",
+        "--approval",
+        plan.planId,
+        "--json",
+      ],
+      applied.io,
+    ),
+  ).toBe(0);
+  expect(JSON.parse(applied.out.join(""))).toMatchObject({
+    operation: "project_skill_authorized",
+    status: "applied",
+  });
+  expect(JSON.parse(await readFile(resolve(skillRoot, "lervo-skill.json"), "utf8"))).toMatchObject({
+    trust: { level: "reviewed", reviewedBy: "repository-maintainer" },
+    enabledScope: { kind: "projects", projectIds: ["prj_authorize01"] },
+  });
 });

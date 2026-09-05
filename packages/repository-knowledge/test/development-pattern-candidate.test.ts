@@ -96,6 +96,7 @@ function proposal(evidence: PassedWorkflowVerificationEvidence[]): DevelopmentPa
     })),
     portableSkillContract: {
       skillId: "release-check",
+      capabilityId: "repository/release_check",
       version: "1.0.0",
       supportedRoles: ["developer"],
       providerCompatibility: { mode: "any" },
@@ -103,6 +104,7 @@ function proposal(evidence: PassedWorkflowVerificationEvidence[]): DevelopmentPa
       platforms: ["darwin", "linux", "win32"],
       requiredTools: ["pnpm"],
       requiredCapabilities: ["filesystem.read", "shell.execute"],
+      dependencies: [],
       inputSchemaRef: "lervo-schema://skill/input/v1",
       outputSchemaRef: "lervo-schema://skill/output/v1",
       resources: [
@@ -137,6 +139,9 @@ describe("portable-skill development-pattern candidates", () => {
     });
     expect(result.candidate.portableSkillPackage?.manifestContent).toContain(
       '"enabledScope": {\n    "kind": "disabled"',
+    );
+    expect(result.candidate.portableSkillPackage?.capabilityManifestContent).toContain(
+      '"capabilityId": "repository/release_check"',
     );
   });
 
@@ -213,6 +218,7 @@ describe("portable-skill development-pattern candidates", () => {
       ".agents/skills/release-check/SKILL.md",
       ".agents/skills/release-check/references/checklist.md",
       ".agents/skills/release-check/lervo-skill.json",
+      ".agents/skills/release-check/lervo-capability.json",
     ]);
     expect(JSON.stringify(publicDevelopmentPatternPromotionPlan(plan))).not.toContain(
       "Run the reviewed checks",

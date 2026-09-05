@@ -1098,6 +1098,7 @@ describe("lervo run vertical slice", () => {
     const lock: unknown = JSON.parse(await readFile(resolve(root, ".lervo/skills.lock"), "utf8"));
     expect(validateSchema("skillLock", lock).valid).toBe(true);
     expect(lock).toMatchObject({
+      runtime: { runtimeVersion: "0.11.4" },
       entries: [
         {
           skillId: "repository/testing",

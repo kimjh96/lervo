@@ -39,12 +39,12 @@ Detailed acceptance records:
 - The completed governed-loop roadmap covers manual v1 and a read-only workstream-goal projection. It excludes Prime-Agent-style unattended continuation, native provider-session resume, root-process heartbeat, independent goal mutation, and dynamic topology.
 - The completed product-host protocol is a CLI compatibility boundary, not a Paperclip or Buzz product interface.
 - Retrieval selection proves only that a source was chosen for context. It neither proves a repeatable workflow, defines a capability envelope, nor authorizes generated skill bytes. Skill candidacy begins with independently grouped workflow evidence, not source selection.
-- The installed natural-language capability journey proves deterministic recommendation plus explicit selection for an existing reviewed skill, exact instruction construction, provider-confirmed activation of its MCP dependency, result validation, and completion evidence. It does not prove model reliance or authorize skill generation from retrieved context.
+- The installed natural-language capability journey proves two independently verified workflows can become a generated portable-skill package through exact review, four-file promotion, project authorization, dependency-preserving migration, deterministic recommendation plus explicit selection, provider-confirmed MCP activation, result validation, and completion evidence. It does not prove model reliance or authorize generation from retrieval selection alone.
 - A successful full repository check proves encoded contracts, not user outcomes absent from them.
 
 ## Remaining delivery order
 
-1. Complete the installed journey from the new independently verified portable-skill candidate through exact review, migration, selection, activation, invocation, stale-source handling, effect observation, supersession, and rollback. Retrieval selection alone never enters this path; instruction and profile candidate routes require separately evidenced need.
+1. Complete installed stale-source handling, effect observation, supersession, and rollback for the independently verified portable-skill lifecycle. The review-through-invocation happy path is current. Retrieval selection alone never enters this path; instruction and profile candidate routes require separately evidenced need.
 2. Extend root-agent and managed-process liveness, direct-message acknowledgment, and reviewed trigger adapters as separate observable outcomes.
 3. Add unattended scheduling or dynamic graph topology only after authority, budget, cancellation, uncertain-effect, migration, recovery, and kill-switch contracts pass installed acceptance.
 4. Version further product-host routes only with packed external-consumer proof; keep Paperclip-like and Buzz-like interfaces in separate hosts.

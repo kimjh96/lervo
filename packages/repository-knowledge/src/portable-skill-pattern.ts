@@ -1,4 +1,4 @@
-import { validateSchema, type SkillManifest } from "@lervo/schemas";
+import { validateSchema, type CapabilityPackageManifest, type SkillManifest } from "@lervo/schemas";
 import { hashSkillContentFiles } from "@lervo/skills";
 
 import { sha256 } from "./integrity.js";
@@ -22,6 +22,7 @@ export interface PortableSkillResourceProposal {
 
 export interface PortableSkillContractProposal {
   skillId: string;
+  capabilityId: string;
   version: string;
   supportedRoles: string[];
   providerCompatibility:
@@ -30,6 +31,8 @@ export interface PortableSkillContractProposal {
   platforms: Array<"darwin" | "linux" | "win32">;
   requiredTools: string[];
   requiredCapabilities: string[];
+  dependencies: CapabilityPackageManifest["dependencies"];
+  discovery?: NonNullable<CapabilityPackageManifest["discovery"]>;
   inputSchemaRef: string;
   outputSchemaRef: string;
   resources: PortableSkillResourceProposal[];
@@ -43,6 +46,8 @@ export interface PortableSkillPackageCandidate {
   packageContentHash: string;
   manifestContent: string;
   manifestContentHash: string;
+  capabilityManifestContent: string;
+  capabilityManifestContentHash: string;
   resources: PortableSkillResourceProposal[];
 }
 
@@ -181,10 +186,46 @@ function createPackage(input: {
   if (!validateSchema("skill", manifest).valid)
     throw new Error("The proposed portable-skill contract is invalid.");
   const manifestContent = `${JSON.stringify(manifest, null, 2)}\n`;
+  const capabilityManifest: CapabilityPackageManifest = {
+    schemaVersion: 1,
+    capabilityId: input.contract.capabilityId,
+    kind: "skill",
+    version: input.contract.version,
+    contentHash: packageContentHash,
+    source: {
+      kind: "project",
+      uri: directory,
+      publisher: structuredClone(manifest.source.publisher),
+    },
+    compatibility: {
+      providers: structuredClone(input.contract.providerCompatibility),
+      minimumRuntimeVersion: input.contract.minimumRuntimeVersion,
+      platforms: [...input.contract.platforms],
+    },
+    requiredPermissions: [
+      ...input.contract.requiredCapabilities,
+    ] as CapabilityPackageManifest["requiredPermissions"],
+    dependencies: structuredClone(input.contract.dependencies),
+    ...(input.contract.discovery === undefined
+      ? {}
+      : { discovery: structuredClone(input.contract.discovery) }),
+    entrypoint: {
+      kind: "skill",
+      skillId: input.contract.skillId,
+      manifestPath: "lervo-skill.json",
+    },
+    activation: "explicit",
+    publication: { defaultVisibility: "local", secretMaterial: "excluded" },
+  };
+  if (!validateSchema("capabilityPackageManifest", capabilityManifest).valid)
+    throw new Error("The proposed portable-skill capability package is invalid.");
+  const capabilityManifestContent = `${JSON.stringify(capabilityManifest, null, 2)}\n`;
   return {
     packageContentHash,
     manifestContent,
     manifestContentHash: sha256(manifestContent),
+    capabilityManifestContent,
+    capabilityManifestContentHash: sha256(capabilityManifestContent),
     resources: structuredClone(input.contract.resources),
   };
 }

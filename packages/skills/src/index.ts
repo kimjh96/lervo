@@ -1,3 +1,5 @@
+export * from "./authorization-filesystem.js";
+export * from "./authorization.js";
 export * from "./compatibility.js";
 export * from "./content-hash.js";
 export * from "./lock.js";
