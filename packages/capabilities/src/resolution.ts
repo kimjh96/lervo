@@ -1,4 +1,5 @@
 import { lstat, readdir, writeFile, mkdir, rename, open } from "node:fs/promises";
+import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 
 import { validateSchema, type CapabilityLock } from "@lervo/schemas";
@@ -63,7 +64,7 @@ export function capabilityRoot(
     : resolve(
         userRoot ??
           process.env.LERVO_USER_CAPABILITY_ROOT ??
-          resolve(process.env.HOME ?? "", ".lervo/capabilities"),
+          resolve(homedir(), ".lervo/capabilities"),
         "packages",
       );
 }

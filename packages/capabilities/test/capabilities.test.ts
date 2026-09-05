@@ -1,5 +1,5 @@
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { afterEach, expect, it } from "vitest";
@@ -93,6 +93,23 @@ async function packageAt(
   await writeFile(resolve(base, "lervo-capability.json"), `${JSON.stringify(manifest, null, 2)}\n`);
   return base;
 }
+
+it("resolves the default user capability root from the operating-system home", () => {
+  const originalHome = process.env.HOME;
+  const originalCapabilityRoot = process.env.LERVO_USER_CAPABILITY_ROOT;
+  try {
+    delete process.env.HOME;
+    delete process.env.LERVO_USER_CAPABILITY_ROOT;
+    expect(capabilityRoot("repository", "user")).toBe(
+      resolve(homedir(), ".lervo/capabilities/packages"),
+    );
+  } finally {
+    if (originalHome === undefined) delete process.env.HOME;
+    else process.env.HOME = originalHome;
+    if (originalCapabilityRoot === undefined) delete process.env.LERVO_USER_CAPABILITY_ROOT;
+    else process.env.LERVO_USER_CAPABILITY_ROOT = originalCapabilityRoot;
+  }
+});
 
 it("verifies, envelopes, installs, and resolves an immutable local capability", async () => {
   const repositoryRoot = await root();
