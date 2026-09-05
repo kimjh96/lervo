@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5ab1ea7b059fbbaaf2278ba6"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Expose provider-neutral operating liveness through product-host protocol v3."

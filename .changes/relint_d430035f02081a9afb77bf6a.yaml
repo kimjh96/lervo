@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d430035f02081a9afb77bf6a"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Bind portable skill supersession and fail closed on stale promotion sources."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_261214c60649633f88dac88f"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Make capability package race checks portable across Windows filesystem stat surfaces."

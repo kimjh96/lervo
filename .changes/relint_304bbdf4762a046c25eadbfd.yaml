@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_304bbdf4762a046c25eadbfd"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Enforce exact managed token-dimension and per-run duration budgets before governed assignment acceptance."

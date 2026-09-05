@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4a2e47099937121269e25d17"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add privacy-bounded managed provider-process observations through adapter-owned evidence."

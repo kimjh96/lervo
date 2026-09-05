@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a94b33027f544bf1a5e5d028"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Create reviewed portable-skill candidates from independently verified completed workflows."
