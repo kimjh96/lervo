@@ -2,7 +2,6 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import {
-  changeAgentStatus,
   claimAssignment,
   completeAssignment,
   createAssignment,
@@ -11,25 +10,21 @@ import {
   planGroundedWorkforceRequest,
   recordAssignmentHandoff,
   renewAssignmentLease,
-  registerAgent,
   type WorkforceArtifactReference,
-  type WorkforceEvent,
 } from "@lervo/agent-workforce";
-import { openProjectStorage } from "@lervo/project-storage";
 import { listRoleContracts, resolveRoleContract } from "@lervo/roles";
 
 import type { CliIo, CliServices } from "./types.js";
+import { agentUsage, runAgentCommand } from "./agent-command.js";
 import {
   assignmentCancellationUsage,
   runAssignmentCancellationCommand,
 } from "./assignment-cancellation-command.js";
-import { recordWorkforceEvent } from "./workforce-events.js";
+import { mutateWorkforceState } from "./workforce-mutation.js";
 
 export const workforceUsage = [
   "  lervo workforce plan --request <natural-language-request> --provider <codex|claude> [--root <path>] [--json]",
-  "  lervo agent list [--root <path>] [--json]",
-  "  lervo agent hire --role <role> [--provider <codex|claude|any>] [--scope <path>] [--capability <package-id>] [--parent <agent-id>] --write [--root <path>] [--json]",
-  "  lervo agent status --agent <agent-id> --status <active|suspended|retired> --revision <n> --write [--root <path>] [--json]",
+  agentUsage,
   "  lervo assignment list [--root <path>] [--json]",
   "  lervo assignment create --type <type> --role <role> --criteria <text> --suite <id> --path <path> [--dependency <id>] [--approval <requirement>] [--workstream <id>] [--priority <0-100>] --write [--root <path>] [--json]",
   "  lervo assignment claim --assignment <id> --agent <id> --session <id> [--lease-ms <ms>] --write [--root <path>] [--json]",
@@ -51,12 +46,7 @@ function parse(args: string[]) {
       help: { type: "boolean", short: "h" },
       role: { type: "string" },
       provider: { type: "string" },
-      scope: { type: "string", multiple: true },
-      parent: { type: "string" },
-      capability: { type: "string", multiple: true },
       agent: { type: "string" },
-      status: { type: "string" },
-      revision: { type: "string" },
       type: { type: "string" },
       criteria: { type: "string", multiple: true },
       suite: { type: "string", multiple: true },
@@ -106,18 +96,6 @@ function artifacts(values: string[] | undefined): WorkforceArtifactReference[] {
   });
 }
 
-async function mutate<T>(
-  root: string,
-  operation: (recordEvent: (event: WorkforceEvent) => void) => Promise<T>,
-): Promise<T> {
-  const storage = await openProjectStorage(root);
-  try {
-    return await operation((event) => recordWorkforceEvent(storage, event));
-  } finally {
-    await storage.close();
-  }
-}
-
 function output(io: CliIo, value: unknown, json: boolean | undefined, message: string): void {
   io.stdout(json ? `${JSON.stringify(value, null, 2)}\n` : `${message}\n`);
 }
@@ -132,6 +110,7 @@ export async function runWorkforceCommand(
     return runAssignmentCancellationCommand(args, io);
   }
   try {
+    if (namespace === "agent") return await runAgentCommand(args, io);
     const parsed = parse(args);
     if (parsed.values.help) {
       io.stdout(`${workforceUsage}\n`);
@@ -218,75 +197,6 @@ export async function runWorkforceCommand(
       );
       return plan.status === "unrecognized" ? 1 : 0;
     }
-    if (namespace === "agent" && action === "list") {
-      if (parsed.values.write) throw new Error("Agent list is read-only.");
-      const agents = await listAgents(root);
-      output(
-        io,
-        { schemaVersion: 1, agents },
-        parsed.values.json,
-        agents.length === 0
-          ? "No repository agents."
-          : agents
-              .map(
-                (agent) =>
-                  `${agent.agentId} · ${agent.roleId} · ${agent.status}${agent.parentAgentId === null ? "" : ` · parent ${agent.parentAgentId}`}`,
-              )
-              .join("\n"),
-      );
-      return 0;
-    }
-    if (namespace === "agent" && action === "hire") {
-      if (!parsed.values.write) throw new Error("Agent hiring requires --write.");
-      const provider = parsed.values.provider ?? "any";
-      if (!["codex", "claude", "any"].includes(provider))
-        throw new Error("The agent provider is invalid.");
-      await resolveRoleContract(root, role(parsed.values.role));
-      const agent = await mutate(root, (recordEvent) =>
-        registerAgent({
-          repositoryRoot: root,
-          roleId: role(parsed.values.role),
-          provider: provider as "codex" | "claude" | "any",
-          responsibilityPaths: parsed.values.scope ?? ["*"],
-          ...(parsed.values.capability === undefined
-            ? {}
-            : { capabilityPackageIds: parsed.values.capability }),
-          ...(parsed.values.parent === undefined ? {} : { parentAgentId: parsed.values.parent }),
-          recordEvent,
-        }),
-      );
-      output(
-        io,
-        agent,
-        parsed.values.json,
-        `Agent ${agent.agentId} hired as ${agent.roleId}${agent.parentAgentId === null ? "" : ` under ${agent.parentAgentId}`}.`,
-      );
-      return 0;
-    }
-    if (namespace === "agent" && action === "status") {
-      if (
-        !parsed.values.write ||
-        parsed.values.agent === undefined ||
-        !["active", "suspended", "retired"].includes(parsed.values.status ?? "")
-      )
-        throw new Error("Agent status requires exact transition coordinates and --write.");
-      const agent = await mutate(root, (recordEvent) =>
-        changeAgentStatus({
-          repositoryRoot: root,
-          agentId: parsed.values.agent!,
-          expectedRevision: integer(parsed.values.revision),
-          status: parsed.values.status as "active" | "suspended" | "retired",
-          recordEvent,
-        }),
-      );
-      output(
-        io,
-        agent,
-        parsed.values.json,
-        `Agent ${agent.agentId} is ${agent.status} at revision ${agent.revision}.`,
-      );
-      return 0;
-    }
     if (namespace === "assignment" && action === "list") {
       if (parsed.values.write) throw new Error("Assignment list is read-only.");
       const assignments = await listAssignments(root);
@@ -317,7 +227,7 @@ export async function runWorkforceCommand(
           "Assignment creation requires type, role, criteria, suite, path, and --write.",
         );
       await resolveRoleContract(root, role(parsed.values.role));
-      const assignment = await mutate(root, (recordEvent) =>
+      const assignment = await mutateWorkforceState(root, (recordEvent) =>
         createAssignment({
           repositoryRoot: root,
           taskType: parsed.values.type!,
@@ -350,7 +260,7 @@ export async function runWorkforceCommand(
         parsed.values.session === undefined
       )
         throw new Error("Assignment claim requires assignment, agent, session, and --write.");
-      const assignment = await mutate(root, (recordEvent) =>
+      const assignment = await mutateWorkforceState(root, (recordEvent) =>
         claimAssignment({
           repositoryRoot: root,
           assignmentId: parsed.values.assignment!,
@@ -378,7 +288,7 @@ export async function runWorkforceCommand(
         parsed.values.lease === undefined
       )
         throw new Error("Assignment renewal requires assignment, agent, lease, and --write.");
-      const assignment = await mutate(root, (recordEvent) =>
+      const assignment = await mutateWorkforceState(root, (recordEvent) =>
         renewAssignmentLease({
           repositoryRoot: root,
           assignmentId: parsed.values.assignment!,
@@ -410,7 +320,7 @@ export async function runWorkforceCommand(
         throw new Error(
           "Assignment handoff requires exact source, recipient, lease, and request coordinates.",
         );
-      const assignment = await mutate(root, (recordEvent) =>
+      const assignment = await mutateWorkforceState(root, (recordEvent) =>
         recordAssignmentHandoff({
           repositoryRoot: root,
           assignmentId: parsed.values.assignment!,
@@ -440,7 +350,7 @@ export async function runWorkforceCommand(
         !["passed", "failed"].includes(parsed.values.verification ?? "")
       )
         throw new Error("Assignment completion requires exact lease and verification coordinates.");
-      const assignment = await mutate(root, (recordEvent) =>
+      const assignment = await mutateWorkforceState(root, (recordEvent) =>
         completeAssignment({
           repositoryRoot: root,
           assignmentId: parsed.values.assignment!,

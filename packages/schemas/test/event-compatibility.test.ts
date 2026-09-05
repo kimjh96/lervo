@@ -56,6 +56,35 @@ describe("reader-first event envelope compatibility", () => {
     ).toBe(false);
   });
 
+  it("keeps root-agent liveness events unavailable to v1 envelopes", () => {
+    const payload = {
+      agentId: `agt_${"b".repeat(24)}`,
+      agentRevision: 3,
+      reportingProvider: "codex",
+      providerSessionDigest: hash,
+      observedAt: "2026-09-05T00:00:00.000Z",
+    };
+    expect(validateSchema("agentLivenessObservedEventPayload", payload).valid).toBe(true);
+    expect(
+      validateSchema("agentLivenessObservedEventPayload", {
+        ...payload,
+        reportingProvider: "unmanaged-provider",
+      }).valid,
+    ).toBe(false);
+    expect(
+      validateSchema("event", {
+        ...envelope({ schemaVersion: 2, type: "agent.liveness.observed" }),
+        payload,
+      }).valid,
+    ).toBe(true);
+    expect(
+      validateSchema("event", {
+        ...envelope({ schemaVersion: 1, type: "agent.liveness.observed" }),
+        payload,
+      }).valid,
+    ).toBe(false);
+  });
+
   it("validates the new payload status and execution-mode discriminators", () => {
     const usage = {
       workId: `wrk_${"b".repeat(24)}`,

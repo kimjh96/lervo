@@ -1,6 +1,7 @@
 import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.js";
 
 import { adapterContractMessageSchema } from "./adapter.js";
+import { agentLivenessObservedEventPayloadSchema } from "./agent-liveness-event.js";
 import {
   assignmentCompletionPreparedEventPayloadSchema,
   assignmentCompletionReconciledEventPayloadSchema,
@@ -250,6 +251,7 @@ ajv.addSchema(organizationNodeRollbackDeliveryReceiptSchema);
 ajv.addSchema(organizationNodeRollbackRecoveryReceiptSchema);
 
 const validators = {
+  agentLivenessObservedEventPayload: ajv.compile(agentLivenessObservedEventPayloadSchema),
   capabilityPackageManifest: ajv.compile(capabilityPackageManifestSchema),
   capabilityLock: ajv.compile(capabilityLockSchema),
   mcpRuntimeDescriptor: ajv.compile(mcpRuntimeDescriptorSchema),

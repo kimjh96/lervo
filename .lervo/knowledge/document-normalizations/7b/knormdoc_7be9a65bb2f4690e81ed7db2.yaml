@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d9ec21d288be16b8b4db496a
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9930f01caa3405a1bf0a9da3
+outputLanguage: en
+outputs:
+  - byteCount: 3152
+    contentHash: sha256:fd38abf2bc6880ed56249cceb30f17e7c11b9cb052788623f126a271c5734764
+    path: docs/decisions/execution/orchestration/0371-observe-root-agent-liveness-without-process-authority.md
+    userRegionHash: sha256:fd38abf2bc6880ed56249cceb30f17e7c11b9cb052788623f126a271c5734764
+profile: decision_record
+recordId: knormdoc_7be9a65bb2f4690e81ed7db2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bd432394cc403b9e71bc99b6c59c54d905c287ac28673838f366edd11248c1eb
+sourcePath: docs/decisions/execution/orchestration/0371-observe-root-agent-liveness-without-process-authority.md
+sourceUnitVersionIds:
+  - uv_1b075c669a9fdaa01d22a9a8
+  - uv_28d0b8276d21d53ce66bd527
+  - uv_5aaa9f0d28760c5e8ffa10ba
+  - uv_99c98e16b60774850bab1b31
+  - uv_ebf834cdc91a2b74ec13ecfb

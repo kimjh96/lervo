@@ -1,4 +1,5 @@
 export * from "./assignment-graph.js";
+export * from "./agent-liveness.js";
 export * from "./assignment-mention-routing.js";
 export * from "./assignment-completion-reconciliation.js";
 export * from "./store.js";

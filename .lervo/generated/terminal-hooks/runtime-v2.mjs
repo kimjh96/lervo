@@ -36949,6 +36949,28 @@ var adapterContractMessageSchema = {
   ]
 };
 
+// packages/schemas/dist/agent-liveness-event.js
+var agentLivenessObservedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/agent-liveness-observed-event-payload.schema.json",
+  type: "object",
+  properties: {
+    agentId: { type: "string", pattern: "^agt_[a-f0-9]{24}$" },
+    agentRevision: { type: "integer", minimum: 1 },
+    reportingProvider: { type: "string", enum: ["codex", "claude"] },
+    providerSessionDigest: sha256Schema,
+    observedAt: timestampSchema
+  },
+  required: [
+    "agentId",
+    "agentRevision",
+    "reportingProvider",
+    "providerSessionDigest",
+    "observedAt"
+  ],
+  additionalProperties: false
+};
+
 // packages/schemas/dist/assignment-completion-event.js
 var assignmentIdSchema = { type: "string", pattern: "^asn_[a-f0-9]{24}$" };
 var agentIdSchema = { type: "string", pattern: "^agt_[a-f0-9]{24}$" };
@@ -39932,6 +39954,7 @@ var eventTypesV1 = [
 ];
 var eventTypesV2 = [
   ...eventTypesV1,
+  "agent.liveness.observed",
   "work.causality.recorded",
   "resource.usage.recorded",
   "execution.stages.observed"
@@ -46708,6 +46731,7 @@ ajv.addSchema(signedOrganizationNodeRollbackDeliverySchema);
 ajv.addSchema(organizationNodeRollbackDeliveryReceiptSchema);
 ajv.addSchema(organizationNodeRollbackRecoveryReceiptSchema);
 var validators = {
+  agentLivenessObservedEventPayload: ajv.compile(agentLivenessObservedEventPayloadSchema),
   capabilityPackageManifest: ajv.compile(capabilityPackageManifestSchema),
   capabilityLock: ajv.compile(capabilityLockSchema),
   mcpRuntimeDescriptor: ajv.compile(mcpRuntimeDescriptorSchema),
@@ -47099,6 +47123,13 @@ var eventPayloadAllowlists = {
     "delegationDepth"
   ],
   "agent.status.changed": ["agentId", "previousStatus", "status", "revision"],
+  "agent.liveness.observed": [
+    "agentId",
+    "agentRevision",
+    "reportingProvider",
+    "providerSessionDigest",
+    "observedAt"
+  ],
   "assignment.created": [
     "assignmentId",
     "taskType",
@@ -47787,6 +47818,7 @@ function sanitizeEventPayload(type, payload) {
   return { payload: sanitized, redactions };
 }
 var eventPayloadSchemas = {
+  "agent.liveness.observed": "agentLivenessObservedEventPayload",
   "capability.activated": "capabilityActivatedEventPayload",
   "context.recommended": "contextRecommendationEventPayload",
   "context.injected": "managedContextInjectedEventPayload",

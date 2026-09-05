@@ -141,6 +141,31 @@ describe("event payload privacy boundary", () => {
     expect(JSON.stringify(result.payload)).not.toContain(".lervo/roles");
   });
 
+  it("keeps root-agent liveness coordinates while excluding raw runtime details", () => {
+    const payload = {
+      agentId: `agt_${"a".repeat(24)}`,
+      agentRevision: 3,
+      reportingProvider: "codex",
+      providerSessionDigest: `sha256:${"b".repeat(64)}`,
+      observedAt: "2026-09-05T00:00:00.000Z",
+    };
+    const result = sanitizeEventPayload("agent.liveness.observed", {
+      ...payload,
+      providerSessionId: "ses_private_runtime_01",
+      processId: 123,
+      command: "private command",
+    });
+    expect(result.payload).toEqual(payload);
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+    expect(result.redactions).toEqual(
+      expect.arrayContaining([
+        { path: "$.providerSessionId", reason: "not_allowlisted" },
+        { path: "$.processId", reason: "not_allowlisted" },
+        { path: "$.command", reason: "not_allowlisted" },
+      ]),
+    );
+  });
+
   it("keeps bounded routine provenance while excluding template and trigger bodies", () => {
     const payload = {
       assignmentId: `asn_${"a".repeat(24)}`,

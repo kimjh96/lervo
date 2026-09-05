@@ -127,6 +127,13 @@ export const eventPayloadAllowlists = {
     "delegationDepth",
   ],
   "agent.status.changed": ["agentId", "previousStatus", "status", "revision"],
+  "agent.liveness.observed": [
+    "agentId",
+    "agentRevision",
+    "reportingProvider",
+    "providerSessionDigest",
+    "observedAt",
+  ],
   "assignment.created": [
     "assignmentId",
     "taskType",
@@ -920,6 +927,7 @@ export function sanitizeEventPayload(
 }
 
 const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
+  "agent.liveness.observed": "agentLivenessObservedEventPayload",
   "capability.activated": "capabilityActivatedEventPayload",
   "context.recommended": "contextRecommendationEventPayload",
   "context.injected": "managedContextInjectedEventPayload",

@@ -1,0 +1,44 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d9ec21d288be16b8b4db496a
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b5ce8a5669036907667c745f
+outputLanguage: en
+outputs:
+  - byteCount: 890
+    contentHash: sha256:8186f7452164e435d20ee1d3fb2f77a7f75414588916f62339eedcd3cbe7bc5b
+    path: docs/specifications/execution/events-and-privacy/agent-workspace-events.md
+    userRegionHash: sha256:8186f7452164e435d20ee1d3fb2f77a7f75414588916f62339eedcd3cbe7bc5b
+  - byteCount: 1225
+    contentHash: sha256:d89c9f199d812aa57de5a75ffcc738d9407825af395465da49ec23399e549353
+    path: docs/specifications/execution/events-and-privacy/agent-workspace-events/capability-and-skill-observations.md
+    userRegionHash: sha256:d89c9f199d812aa57de5a75ffcc738d9407825af395465da49ec23399e549353
+  - byteCount: 1229
+    contentHash: sha256:e7ec589b6ad9163836a45481c6e41fdde85a15186dafb1290bd02aaed2cb3bdc
+    path: docs/specifications/execution/events-and-privacy/agent-workspace-events/hub-audit-transitions.md
+    userRegionHash: sha256:e7ec589b6ad9163836a45481c6e41fdde85a15186dafb1290bd02aaed2cb3bdc
+  - byteCount: 3120
+    contentHash: sha256:da9f33dcbb58df94c6be761591ae565451679b00c2ff1da85681f94eb28d77d4
+    path: docs/specifications/execution/events-and-privacy/agent-workspace-events/workspace-lifecycle.md
+    userRegionHash: sha256:da9f33dcbb58df94c6be761591ae565451679b00c2ff1da85681f94eb28d77d4
+profile: specification_document
+recordId: knormdoc_4cbd153cc01f9e7d82bff773
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6753195231b14c56f81702acc4672bee94cac30fcddbbf73004c2849c150e201
+sourcePath: docs/specifications/execution/events-and-privacy/agent-workspace-events.md
+sourceUnitVersionIds:
+  - uv_02a11b8bc0a110f30f6a758e
+  - uv_459a734acc5c208016f44e59
+  - uv_68ac06a3663d747e27efbae5
+  - uv_c83c1ddb4e96f2d75131cb65
+  - uv_c965db882504b9dcf6c34d60
+  - uv_e114b40b0b6a9abad9f4aea4
+  - uv_f09f734808e3fbe3570b9f51

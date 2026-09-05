@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d9ec21d288be16b8b4db496a
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_57f8db46a7010c30ac4a6483
+outputLanguage: en
+outputs:
+  - byteCount: 799
+    contentHash: sha256:f29974ddd87e594624d11ffb92de8b1025c1d9cc2405ba591589e518a429d4c7
+    path: docs/specifications/execution/events-and-privacy/event-envelope-compatibility.md
+    userRegionHash: sha256:f29974ddd87e594624d11ffb92de8b1025c1d9cc2405ba591589e518a429d4c7
+  - byteCount: 2717
+    contentHash: sha256:564555a57121478d7c1fff92bec2a77225554f0b92b5ae9e00c083b607e94f1c
+    path: docs/specifications/execution/events-and-privacy/event-envelope-compatibility/payload-contracts.md
+    userRegionHash: sha256:564555a57121478d7c1fff92bec2a77225554f0b92b5ae9e00c083b607e94f1c
+  - byteCount: 1034
+    contentHash: sha256:09e3ef969ebfa89f2a227c786b2903400b3c398def610161d802e6c04684d53c
+    path: docs/specifications/execution/events-and-privacy/event-envelope-compatibility/validation-and-evidence.md
+    userRegionHash: sha256:09e3ef969ebfa89f2a227c786b2903400b3c398def610161d802e6c04684d53c
+profile: specification_document
+recordId: knormdoc_a0c6c40c02e79ce321ae77c7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:54d5a5be1434591357dc5affc8061fe7a874d13eb92a6ada561d6d1c867b2a28
+sourcePath: docs/specifications/execution/events-and-privacy/event-envelope-compatibility.md
+sourceUnitVersionIds:
+  - uv_0cb99bc7d26df3cf2ef550c5
+  - uv_2346511d08823ab3fc920ca8
+  - uv_40ecd5bb62ddbd78d17b4c67
+  - uv_77730eacbce7835cfab4518a
+  - uv_9cf4d32827856d83421d7b52
+  - uv_f919dad10bec7f7a5071c020
+  - uv_fb0258df0f0bba3b15f15884

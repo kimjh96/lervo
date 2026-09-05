@@ -1,4 +1,5 @@
 export * from "./adapter.js";
+export * from "./agent-liveness-event.js";
 export * from "./assignment-completion-event.js";
 export * from "./capability-package.js";
 export * from "./capability-activation.js";

@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d9ec21d288be16b8b4db496a
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_55b0008a5b7cecd44629fd03
+outputLanguage: en
+outputs:
+  - byteCount: 548
+    contentHash: sha256:9f05fa63e15427b5119ba6609402bf33fcd3b3ed93e48e0bb94efff81d4b62aa
+    path: docs/specifications/execution/events-and-privacy/workstreams-and-coverage.md
+    userRegionHash: sha256:9f05fa63e15427b5119ba6609402bf33fcd3b3ed93e48e0bb94efff81d4b62aa
+  - byteCount: 670
+    contentHash: sha256:2eaffceca41c21deb835d9f011490f1192afe39114209fd13d5951258f78242b
+    path: docs/specifications/execution/events-and-privacy/workstreams-and-coverage/managed-context-evidence.md
+    userRegionHash: sha256:2eaffceca41c21deb835d9f011490f1192afe39114209fd13d5951258f78242b
+  - byteCount: 439
+    contentHash: sha256:7389b8d9b42e7ce2351dc6eeb1e6f25ae55ff851e7db8cae194bbe3e315377f0
+    path: docs/specifications/execution/events-and-privacy/workstreams-and-coverage/managed-resource-reporting.md
+    userRegionHash: sha256:7389b8d9b42e7ce2351dc6eeb1e6f25ae55ff851e7db8cae194bbe3e315377f0
+  - byteCount: 742
+    contentHash: sha256:a83ffffe1342152cbd43ace25c2cf126bf6242de649d62512daaf0e935d5801d
+    path: docs/specifications/execution/events-and-privacy/workstreams-and-coverage/terminal-coverage.md
+    userRegionHash: sha256:a83ffffe1342152cbd43ace25c2cf126bf6242de649d62512daaf0e935d5801d
+  - byteCount: 582
+    contentHash: sha256:f1a6a25660a4c7e653229deb89eb82e37008e021d36ae8efb87ae04a8f88d7da
+    path: docs/specifications/execution/events-and-privacy/workstreams-and-coverage/workstream-snapshots.md
+    userRegionHash: sha256:f1a6a25660a4c7e653229deb89eb82e37008e021d36ae8efb87ae04a8f88d7da
+profile: specification_document
+recordId: knormdoc_8b9a2385c1aa563b11038b46
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:01b71f02906bf950720966fdd62e9ff8dff445096be936ca2ea5301f32c6930f
+sourcePath: docs/specifications/execution/events-and-privacy/workstreams-and-coverage.md
+sourceUnitVersionIds:
+  - uv_63febb4205142cfea23d65cc
+  - uv_7334acbabeffe8927991bab7
+  - uv_91b271ee53848cee2fd1dfca
+  - uv_a416e4bf14914dbbb8afe25c
+  - uv_ebc2761f93ce581e3f8fe3ee

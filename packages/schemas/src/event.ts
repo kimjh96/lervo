@@ -83,6 +83,7 @@ export const eventTypesV1 = [
 
 export const eventTypesV2 = [
   ...eventTypesV1,
+  "agent.liveness.observed",
   "work.causality.recorded",
   "resource.usage.recorded",
   "execution.stages.observed",

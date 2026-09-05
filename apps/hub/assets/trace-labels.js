@@ -52,6 +52,7 @@ const eventLabels = {
   "workstream.snapshot.recorded": "Workstream snapshot recorded",
   "agent.registered": "Agent registered",
   "agent.status.changed": "Agent status changed",
+  "agent.liveness.observed": "Agent liveness observed",
   "assignment.created": "Assignment created",
   "assignment.claimed": "Assignment claimed",
   "assignment.lease.renewed": "Assignment lease renewed",

@@ -1,0 +1,66 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d9ec21d288be16b8b4db496a
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_99949dc66f5cca2f4f760f55
+outputLanguage: en
+outputs:
+  - byteCount: 1175
+    contentHash: sha256:35d44f3bd350173cdb990bec7cb57feb8745338fdee775bb23c5cd9cfcf227b4
+    path: docs/specifications/execution/events-and-privacy/workforce-events.md
+    userRegionHash: sha256:35d44f3bd350173cdb990bec7cb57feb8745338fdee775bb23c5cd9cfcf227b4
+  - byteCount: 632
+    contentHash: sha256:2c1f0809511ddebe7f25095f98b9964ba9319386bc06325e83c0d77dace8c802
+    path: docs/specifications/execution/events-and-privacy/workforce-events/cancellation.md
+    userRegionHash: sha256:2c1f0809511ddebe7f25095f98b9964ba9319386bc06325e83c0d77dace8c802
+  - byteCount: 1366
+    contentHash: sha256:5d49b31f15c0b86f3c3cbd5630e393e8a3e8027c4ce77a062eac74a3726ff5b2
+    path: docs/specifications/execution/events-and-privacy/workforce-events/capability-registration-and-activation.md
+    userRegionHash: sha256:5d49b31f15c0b86f3c3cbd5630e393e8a3e8027c4ce77a062eac74a3726ff5b2
+  - byteCount: 797
+    contentHash: sha256:e4399645b809adcb32f3e60f3d7f4b485ce806e3608fcd2384a9f27cdd1c638b
+    path: docs/specifications/execution/events-and-privacy/workforce-events/completion-preparation.md
+    userRegionHash: sha256:e4399645b809adcb32f3e60f3d7f4b485ce806e3608fcd2384a9f27cdd1c638b
+  - byteCount: 899
+    contentHash: sha256:1e3bfd4c237288b0677ef2988f073c7ab99217462ea5da78bea732b0dd973541
+    path: docs/specifications/execution/events-and-privacy/workforce-events/completion-reconciliation.md
+    userRegionHash: sha256:1e3bfd4c237288b0677ef2988f073c7ab99217462ea5da78bea732b0dd973541
+  - byteCount: 602
+    contentHash: sha256:2cb153eb26f51c868f96fde639daf7e797fa741bfa551dc86c4a2f91b9a41190
+    path: docs/specifications/execution/events-and-privacy/workforce-events/governed-loop-projection.md
+    userRegionHash: sha256:2cb153eb26f51c868f96fde639daf7e797fa741bfa551dc86c4a2f91b9a41190
+  - byteCount: 1258
+    contentHash: sha256:02e9ae100380cf973cd88c55e816588c3f2cc297f55fb9cf03690f5dbaa1b2c4
+    path: docs/specifications/execution/events-and-privacy/workforce-events/handoff-and-connector-delivery.md
+    userRegionHash: sha256:02e9ae100380cf973cd88c55e816588c3f2cc297f55fb9cf03690f5dbaa1b2c4
+  - byteCount: 1121
+    contentHash: sha256:23e7e1721f016c7d87cfb96fcf8f7540e3aee4186b2f56b536db5181c2f0e8dc
+    path: docs/specifications/execution/events-and-privacy/workforce-events/root-agent-liveness.md
+    userRegionHash: sha256:23e7e1721f016c7d87cfb96fcf8f7540e3aee4186b2f56b536db5181c2f0e8dc
+  - byteCount: 671
+    contentHash: sha256:d68b52111fc5bf40f3fcf268dee9a3efd730ae9d1bcdc5e86f7e1df6e5391e3f
+    path: docs/specifications/execution/events-and-privacy/workforce-events/routine-assignment-provenance.md
+    userRegionHash: sha256:d68b52111fc5bf40f3fcf268dee9a3efd730ae9d1bcdc5e86f7e1df6e5391e3f
+profile: specification_document
+recordId: knormdoc_af96f07cca4dddaee0fa8d24
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c5853775c2ab662f54584ce9f7173613955bf9e0325a1895eac8fd551de5ca5b
+sourcePath: docs/specifications/execution/events-and-privacy/workforce-events.md
+sourceUnitVersionIds:
+  - uv_10700c6fd12d3bfbad77ae9d
+  - uv_250cd158df5e5d32ae907738
+  - uv_550c62a1f2084d17b0632f72
+  - uv_70403b64a0e0548060193cb0
+  - uv_7b895f8f730b0074582407c0
+  - uv_84fb11236959aa8968d37014
+  - uv_afb89dba5a293322e4a02d79
+  - uv_d1c0f98c323f74da1f04ebdf
+  - uv_ea94a5e199774823aaa8c5c0

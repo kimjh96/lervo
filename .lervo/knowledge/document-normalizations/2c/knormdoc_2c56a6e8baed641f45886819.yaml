@@ -1,0 +1,51 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d9ec21d288be16b8b4db496a
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bc52ed64e7ac290a4c982d0f
+outputLanguage: en
+outputs:
+  - byteCount: 499
+    contentHash: sha256:000a0f790b96e338be3d7b654523b89e4fd541d0a5b01764b12ddd15fd8e5b72
+    path: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration.md
+    userRegionHash: sha256:000a0f790b96e338be3d7b654523b89e4fd541d0a5b01764b12ddd15fd8e5b72
+  - byteCount: 2046
+    contentHash: sha256:aa9b04cf304b4aae818b431662aaf7af59cee375d52da6aa05233bb5312ac68a
+    path: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/development-patterns.md
+    userRegionHash: sha256:aa9b04cf304b4aae818b431662aaf7af59cee375d52da6aa05233bb5312ac68a
+  - byteCount: 625
+    contentHash: sha256:36dd6c615a745cc1eab33b41b1e2655c16c696dd7586cfe445e7339e31c75d4d
+    path: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/knowledge-materialization.md
+    userRegionHash: sha256:36dd6c615a745cc1eab33b41b1e2655c16c696dd7586cfe445e7339e31c75d4d
+  - byteCount: 645
+    contentHash: sha256:16c88b92f33da91a5d8cc7e0133317e4329aeb339f7f902c56c5cabb5cdc3da2
+    path: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/search-qualification.md
+    userRegionHash: sha256:16c88b92f33da91a5d8cc7e0133317e4329aeb339f7f902c56c5cabb5cdc3da2
+  - byteCount: 609
+    contentHash: sha256:c5bb09c4f7b2af65091958759653f31bee2617a840c7e3e53fdae7e6c1f5a2ed
+    path: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/state-pruning.md
+    userRegionHash: sha256:c5bb09c4f7b2af65091958759653f31bee2617a840c7e3e53fdae7e6c1f5a2ed
+  - byteCount: 988
+    contentHash: sha256:025457baad83fea962c075fea36db9b422f03eb996bca8308dab9230388c51c8
+    path: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/terminal-integration.md
+    userRegionHash: sha256:025457baad83fea962c075fea36db9b422f03eb996bca8308dab9230388c51c8
+profile: specification_document
+recordId: knormdoc_2c56a6e8baed641f45886819
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:33ff3c462a4fcdbcb0c05ae6898db5439ec33243c32dd29b293c4fe6a0bae805
+sourcePath: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration.md
+sourceUnitVersionIds:
+  - uv_0aefde8b6455eea596916495
+  - uv_75a0bf183af8df7503e23a0b
+  - uv_7a6702c201ef11d9039fc6f1
+  - uv_bb4e93bca06f60da6cd679ef
+  - uv_c54263753f2a6cda03b20692
+  - uv_d394f5fe1c3c3ffc67a92ccb

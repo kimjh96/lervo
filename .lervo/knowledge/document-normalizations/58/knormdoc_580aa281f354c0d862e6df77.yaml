@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d9ec21d288be16b8b4db496a
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1568ab0233dd7058276e09c4
+outputLanguage: en
+outputs:
+  - byteCount: 391
+    contentHash: sha256:5ec5ac1ad845b4d26f2e19579e98059ab3af0adddd21a373ccdd3c9a71233896
+    path: docs/specifications/execution/events-and-privacy/terminal-observations.md
+    userRegionHash: sha256:5ec5ac1ad845b4d26f2e19579e98059ab3af0adddd21a373ccdd3c9a71233896
+  - byteCount: 641
+    contentHash: sha256:6205ff02ffa9f690f144b4513f8ca75563ec8163e46722c4156e8c2d106e3bfb
+    path: docs/specifications/execution/events-and-privacy/terminal-observations/additive-evolution.md
+    userRegionHash: sha256:6205ff02ffa9f690f144b4513f8ca75563ec8163e46722c4156e8c2d106e3bfb
+  - byteCount: 533
+    contentHash: sha256:14911acca2c648ee2d32c58869ddb6916e3727bee6c62b0cef5c8c649bceef77
+    path: docs/specifications/execution/events-and-privacy/terminal-observations/commit-ordering-and-hook-failures.md
+    userRegionHash: sha256:14911acca2c648ee2d32c58869ddb6916e3727bee6c62b0cef5c8c649bceef77
+  - byteCount: 1750
+    contentHash: sha256:1b484c6a2dcb9eedfad8e03d0c1d9759d451bb8280b84ab3b2bc88450ca09463
+    path: docs/specifications/execution/events-and-privacy/terminal-observations/context-reference-and-turn-evidence.md
+    userRegionHash: sha256:1b484c6a2dcb9eedfad8e03d0c1d9759d451bb8280b84ab3b2bc88450ca09463
+  - byteCount: 721
+    contentHash: sha256:c7075d53dacf7dbeb6a44b2989b73f9bed8021db61e88463f758072c0ffa0eb9
+    path: docs/specifications/execution/events-and-privacy/terminal-observations/deliberation-publication-failure.md
+    userRegionHash: sha256:c7075d53dacf7dbeb6a44b2989b73f9bed8021db61e88463f758072c0ffa0eb9
+profile: specification_document
+recordId: knormdoc_580aa281f354c0d862e6df77
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e0316d969a186717a75ac382218c5851ea26072ad4e9b4e6c61e791498c8e80e
+sourcePath: docs/specifications/execution/events-and-privacy/terminal-observations.md
+sourceUnitVersionIds:
+  - uv_29fe67ed5d470dc7adb32744
+  - uv_8dae28fe533e2a3bd663e14a
+  - uv_908740a4766e13560a5ac7e5
+  - uv_f4eaa7e5ed4ae8e870852db6
+  - uv_f4f833aa1ba8053b48130d75
