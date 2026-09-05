@@ -2,7 +2,7 @@
 
 Outcome: execution graphs support bounded dynamic branches, joins, and reviewed topology changes.
 
-State: `partial`.
+State: `delivery required`.
 
 Assignment dependencies form an acyclic, rebuildable DAG; routines materialize fixed reviewed templates. Dynamic mutation and arbitrary cycles are unsupported.
 

@@ -1,9 +1,4 @@
 # Safe repeatable triggers
 
-Outcome: repeatable work is triggered safely.
-
-State: `partial`.
-
-Exact assignment routines materialize from one manual trigger. A separate reviewed-input direct-message adapter routes one content-addressed message into an existing handoff through exact plan/apply and source-event idempotency. Cron, webhook, API, approval-resolution, and assignment wakeups are not installed.
-
-Completion requires each additional trigger to use a versioned adapter and shared idempotency, authority, budget, uncertain-effect, and recovery contracts. The reviewed direct-message adapter proves the local handoff pattern, not unattended scheduling or live platform receipt.
+- [Reviewed local triggers](triggers/reviewed-local.md): `implemented`; reviewed local input safely triggers repeatable assignment and handoff work.
+- [Authenticated live trigger adapters](triggers/authenticated-live.md): `delivery required`; authenticated sources trigger governed work through installed adapters. No live adapter for these sources is installed.

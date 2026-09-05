@@ -6,7 +6,7 @@ Part of [Product outcome convergence](../product-outcome-convergence.md); its ba
 
 State: `implemented`
 
-Outcome: bounded work is a graph; verification, retry, resource, approval, and completion policy govern each attempt.
+Outcome: bounded work forms a graph; verification, retry, resource, approval, and completion policy govern each attempt.
 
 Evidence: assignment DAG projection, pure controller decisions, manual `loop run`, managed attempts, verification, leases, completion reconciliation, and exact managed token-dimension and per-run duration budgets exist.
 
@@ -22,21 +22,31 @@ Evidence: workforce and isolated-workspace contracts cover parent identity, dele
 
 Keep root and subagent contract tests common.
 
-## Attach, detach, and resume
+## Portable attach, detach, and resume
 
-State: `partial`
+State: `implemented`
 
-Outcome: a long-running agent can attach, detach, and resume.
+Outcome: long-running assignments attach, detach, and resume through repository-owned state without provider conversation memory.
 
-Evidence: Worker Stop records an exact scoped checkpoint, pauses and releases its writer, and permits a fresh verified terminal session to resume the same assignment. Codex and Claude report native `sessionResume: unsupported`; conversation memory is not restored.
+Evidence: Worker Stop records an exact scoped checkpoint, pauses and releases its writer, and permits a fresh verified terminal session to resume the same assignment. Installed cross-provider continuation proves this portable boundary without claiming restored conversation memory.
 
-Add adapter-specific native resume only with independent evidence; retain repository-level continuation as the portable fallback.
+Preserve repository-level continuation as the portable contract.
+
+## Provider-native session resume
+
+State: `external dependency`
+
+Outcome: an adapter restores provider-native conversation memory for the same session.
+
+Dependency: Codex and Claude report native `sessionResume: unsupported`. Acceptance requires a provider transport exposing native resume and independent evidence of restored state.
+
+Add adapter-specific native resume only when that external capability exists. Keep it optional; it must not replace portable repository checkpoints.
 
 ## Durable repository goal lifecycle
 
 State: `implemented`
 
-Outcome: a repository goal has a durable lifecycle instead of disconnected prose.
+Outcome: repository goals have a durable lifecycle instead of disconnected prose.
 
 Evidence: the verified workstream remains root-goal authority; its assignment DAG remains execution authority. `loop goal` and protocol-v2 `operating_goal.inspect` compose explicit status, hierarchy, progress, blocking, completion readiness, and inconsistency without a second store or provider start.
 
@@ -50,17 +60,17 @@ Evidence: direct worker writers record bounded last-seen observations. Root agen
 
 `application liveness` and protocol-v3 `operating_liveness.inspect` expose both evidence families as separate installed, read-only collections. Codex app-server directly reports owned child-process state; Codex Responses and Claude SDK preserve explicit unobservable gaps.
 
-Preserve point-in-time and false-authority meanings. Add native process-state support only where a provider transport exposes direct evidence. Never infer continued health or termination from root reports, session registration, recent events, silence, or unobservable results.
+Preserve point-in-time and false-authority meanings. Add native process-state support only where provider transport exposes direct evidence. Never infer continued health or termination from root reports, session registration, recent events, silence, or unobservable results.
 
 ## Bounded autonomous continuation
 
-State: `missing`
+State: `delivery required`
 
 Outcome: bounded autonomous continuation runs without repeated manual triggers.
 
 Evidence: the governed loop is deliberately manual; the product-host protocol declares unattended scheduling unsupported.
 
-Before accepting an unattended journey, a reviewed scheduler must bind current checkpoints, budgets, leases, retry limits, cancellation, uncertain effects, escalation, and a kill switch.
+Acceptance requires a reviewed scheduler binding current checkpoints, budgets, leases, retry limits, cancellation, uncertain effects, escalation, and a kill switch.
 
 ## Direct agent communication
 
@@ -68,16 +78,36 @@ State: `implemented`
 
 Outcome: agents communicate directly while preserving authority.
 
-Evidence: an installed reviewed direct-message adapter binds one content-addressed message to the current mention and handoff authority through exact plan/apply. Source-event replay is idempotent. The exact active recipient-agent coordinate can record acknowledgment without claiming human authentication; delivery and action remain separate and unobserved.
+Evidence: an installed reviewed direct-message adapter binds one content-addressed message to current mention and handoff authority through exact plan/apply. Source-event replay is idempotent. The exact active recipient-agent coordinate can record acknowledgment without claiming human authentication; delivery and action remain separate and unobserved.
 
 Preserve the packed trigger-to-handoff-to-acknowledgment journey and its reviewed-input, no-live-platform, no-provider-start claim boundary.
 
-## Runtime lesson candidates
+## Runtime portable-skill candidates
 
-State: `partial`
+State: `implemented`
 
-Outcome: runtime lessons become reviewable instruction, skill, or profile candidates.
+Outcome: independently verified repeated workflows become reviewable portable-skill candidates.
 
-Evidence: durable-instruction and development-pattern domain code exists; direct terminal intake is intentionally disabled, and no agent-profile candidate path exists.
+Evidence: terminal finalization creates a CAS-bound development-pattern candidate only from independently grouped current sources and distinct passed verification events. The installed journey covers exact review, supersession, promotion, authorization, migration, activation, invocation, completion, and post-promotion observation.
 
-Route outcome evidence to the correct candidate type; require exact review, activation, effect observation, supersession, and rollback.
+Preserve exact source, verification, skill, resource, input, output, tool, permission, provider, platform, and role contracts. Retrieval selection alone never establishes candidacy.
+
+## Explicit durable-instruction intake
+
+State: `delivery required`
+
+Outcome: an explicit eligible runtime instruction becomes a reviewable durable repository-instruction candidate through an installed intake route.
+
+Evidence: durable-instruction planning and materialization domain code exists, but direct terminal intake is intentionally disabled and no installed explicit consumer invokes the materializer.
+
+Install an authority-bearing intake route without weakening speech-act, duration, risk, scope, conflict, confidence, review, or rollback gates.
+
+## Agent-profile candidates
+
+State: `delivery required`
+
+Outcome: eligible runtime evidence becomes a reviewable agent-profile candidate.
+
+Evidence: no agent-profile candidate lifecycle or installed intake route exists.
+
+Define profile ownership, candidate evidence, exact review, activation, supersession, effect observation, and rollback before installing the route.

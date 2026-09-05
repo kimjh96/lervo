@@ -2,7 +2,7 @@
 
 Status: `active`
 
-As of: 2026-09-05
+As of: 2026-09-06
 
 ## Outcome
 
@@ -10,12 +10,14 @@ Close the gap between Lervo's Paperclip-, Buzz-, Prime Agent-, and Hermes-derive
 
 A capability is complete only when its named user scenario runs through the installed boundary, preserves authority and evidence meanings, and has a regression test at that boundary.
 
-Acceptance states:
+Each outcome has exactly one acceptance owner and one state:
 
 - `implemented`: the exact scenario is evidenced.
-- `partial`: useful primitives exist, but the stated outcome does not complete.
-- `missing`: no installed route owns the outcome.
-- `external product`: Lervo supplies primitives; a separate host owns the interface.
+- `delivery required`: Lervo owns the accepted outcome, but the exact installed scenario is incomplete. Lower-level primitives are evidence, not fractional acceptance.
+- `external dependency`: the outcome requires provider or platform support and evidence Lervo cannot supply. It becomes an actionable Lervo delivery item only when that dependency exists.
+- `external product`: Lervo supplies primitives, but a separate host owns the outcome, outside Lervo's core delivery scope.
+
+Do not use intermediate states to imply that narrower slices satisfy incomplete outcomes. Split mixed outcomes into installed Lervo behavior, Lervo-owned remaining delivery, external dependencies, and external products.
 
 ## Acceptance baseline
 
@@ -38,19 +40,24 @@ Detailed acceptance records:
 - Completed branch-safe lifecycle verifies typed candidate creation and exact review. ADR-0327 superseded its older direct durable-rule materialization statement; no installed direct or explicit consumer currently calls the materializer.
 - The completed governed-loop roadmap covers manual v1 and a read-only workstream-goal projection. It excludes Prime-Agent-style unattended continuation, native provider-session resume, root-process heartbeat, independent goal mutation, and dynamic topology.
 - The completed product-host protocol is a CLI compatibility boundary, not a Paperclip or Buzz product interface.
-- Retrieval selection proves only source selection for context. It neither proves a repeatable workflow, defines a capability envelope, nor authorizes generated skill bytes. Skill candidacy starts with independently grouped workflow evidence, not source selection.
-- The installed natural-language capability journey proves two independently verified workflows can become a generated portable-skill package through exact review, stale-source supersession, four-file promotion, project authorization, dependency-preserving migration, deterministic recommendation plus explicit selection, provider-confirmed MCP activation, result validation, completion evidence, and an explicit post-promotion effect comparison. That comparison retains unestablished attribution and authorizes no rollback. The journey does not prove model reliance or authorize generation from retrieval selection alone.
+- Retrieval selection proves only source selection for context. It does not prove a repeatable workflow, define a capability envelope, or authorize generated skill bytes. Skill candidacy starts with independently grouped workflow evidence.
+- The installed natural-language capability journey proves two independently verified workflows can become a generated portable-skill package through exact review, stale-source supersession, four-file promotion, project authorization, dependency-preserving migration, deterministic recommendation plus explicit selection, provider-confirmed MCP activation, result validation, completion evidence, and explicit post-promotion effect comparison. The comparison retains unestablished attribution and authorizes no rollback. The journey does not prove model reliance or authorize generation from retrieval selection alone.
 - A successful full repository check proves encoded contracts, not user outcomes absent from them.
 
 ## Remaining delivery order
 
 Managed provider execution enforces exact total, input, cached-input, output, reasoning-output, and per-run stage-duration budgets without estimating unmanaged whole-request usage. See [managed execution resource budgets v1](../evidence/foundation/managed-execution-resource-budgets-v1.md).
 
-Reviewed direct-message triggering and explicit handoff acknowledgment are installed through product-host protocol v4. They keep reviewed input, routing, delivery, acknowledgment, action, and provider execution separate and do not claim a live external message receiver.
+Reviewed direct-message triggering and explicit handoff acknowledgment are installed through product-host protocol v4. They separate reviewed input, routing, delivery, acknowledgment, action, and provider execution and do not claim a live external message receiver.
 
-1. Add another trigger adapter only for a current product source, with source authentication, shared idempotency, authority, budget, uncertain-effect, and recovery contracts.
-2. Add unattended scheduling or dynamic graph topology only after authority, budget, cancellation, uncertain-effect, migration, recovery, and kill-switch contracts pass installed acceptance.
-3. Version further product-host routes only with packed external-consumer proof; keep Paperclip-like and Buzz-like interfaces in separate hosts.
+Lervo-owned outcomes in `delivery required` state form the remaining implementation backlog:
+
+1. Complete explicit durable-instruction intake and agent-profile candidate paths with exact review, activation, effect observation, supersession, and rollback; preserve the implemented portable-skill candidate journey.
+2. Add authenticated live trigger adapters for current product sources, with shared idempotency, authority, budget, uncertain-effect, and recovery contracts.
+3. Add unattended scheduling with current checkpoints, budgets, leases, retry limits, cancellation, uncertain-effect handling, escalation, and a kill switch.
+4. Add bounded dynamic graph branches, joins, and reviewed topology changes with migration, recovery, and historical replay.
+
+Provider-native session memory and direct unmanaged whole-task token accounting remain `external dependency`; they do not block implemented portable checkpoint-resume and managed-resource outcomes. Unified interactive interfaces remain `external product`. Future product-host routes require packed external-consumer proof.
 
 The earlier sequence through attention, durable terminal outcomes, checkpointed workspace continuation, product-host protocols v2 through v4, release-impact repair, CLI README normalization, and the final `v0.11.4` release gate is complete. Later operating and collaboration projections do not reopen those acceptance results.
 
