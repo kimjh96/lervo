@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { projectAssignmentCommunications } from "../src/index.js";
+import {
+  projectAssignmentCommunications,
+  projectAssignmentCommunicationsV2,
+} from "../src/index.js";
 
 const projectId = "prj_fixture001";
 const workstreamId = "wks_111111111111111111111111";
@@ -38,6 +41,8 @@ function assignment(toAgentId = recipientAgentId) {
         ],
         contextEvidenceEventIds: ["evt_interaction01"],
         createdAt: "2026-09-02T00:01:00.000Z",
+        acknowledgedAt: null,
+        trigger: null,
       },
     ],
   };
@@ -64,6 +69,8 @@ describe("assignment communication projection", () => {
       acknowledgementState: "unobserved",
       artifactReferences: [{ artifactId: "art_interaction01" }],
     });
+    expect(report.threads[0]!.routes[0]).not.toHaveProperty("acknowledgedAt");
+    expect(report.threads[0]!.routes[0]).not.toHaveProperty("trigger");
     expect(report.inbox[0]).toMatchObject({
       recipientAgentId,
       recipientAgentStatus: "suspended",
@@ -88,6 +95,49 @@ describe("assignment communication projection", () => {
     });
     expect(empty.threads).toEqual([]);
     expect(empty.inbox).toEqual([]);
+  });
+
+  it("projects explicit acknowledgement and reviewed trigger provenance without upgrading delivery", () => {
+    const source = assignment();
+    const handoff = source.handoffs[0]!;
+    const report = projectAssignmentCommunicationsV2({
+      query: { ...query(), schemaVersion: 2 },
+      assignments: [
+        {
+          ...source,
+          revision: 4,
+          handoffs: [
+            {
+              ...handoff,
+              acknowledgedAt: "2026-09-02T00:01:30.000Z",
+              trigger: {
+                kind: "reviewed_direct_message" as const,
+                adapterId: "lervo/reviewed-message-file",
+                adapterVersion: "1.0.0",
+                descriptorHash: `sha256:${"2".repeat(64)}`,
+                sourceEventId: `cve_${"3".repeat(64)}`,
+                sourceEventKeyHash: `sha256:${"4".repeat(64)}`,
+              },
+            },
+          ],
+        },
+      ],
+      agents,
+    });
+
+    expect(report.threads[0]!.routes[0]).toMatchObject({
+      deliveryState: "unobserved",
+      acknowledgementState: "recorded",
+      acknowledgedAt: "2026-09-02T00:01:30.000Z",
+      trigger: {
+        kind: "reviewed_direct_message",
+        sourceEventId: `cve_${"3".repeat(64)}`,
+      },
+    });
+    expect(report.inbox[0]).toMatchObject({
+      acknowledgementState: "recorded",
+      triggerKind: "reviewed_direct_message",
+    });
   });
 
   it("keeps missing workforce identity explicit instead of routing by inference", () => {

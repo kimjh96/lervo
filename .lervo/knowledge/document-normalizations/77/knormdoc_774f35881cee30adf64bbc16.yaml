@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4433fc0a3f614e9050ceaa6f
+outputLanguage: en
+outputs:
+  - byteCount: 429
+    contentHash: sha256:d64ee64b1555a880ba2dbba5718918fa60d4c3e47d38473a505007ab2faa56c7
+    path: docs/roadmap/governed-loop-assignment-graph/execution.md
+    userRegionHash: sha256:d64ee64b1555a880ba2dbba5718918fa60d4c3e47d38473a505007ab2faa56c7
+  - byteCount: 1857
+    contentHash: sha256:cd75e68e965cf7ba05bb9442348d396395441f4d0ccefd0f94ba29a3045a214c
+    path: docs/roadmap/governed-loop-assignment-graph/execution/gla1.md
+    userRegionHash: sha256:cd75e68e965cf7ba05bb9442348d396395441f4d0ccefd0f94ba29a3045a214c
+  - byteCount: 1262
+    contentHash: sha256:7d8601f8a4dda2696f2e344b674b213eff7a8c4abeeed6754b2d8d7ce3815a87
+    path: docs/roadmap/governed-loop-assignment-graph/execution/gla17.md
+    userRegionHash: sha256:7d8601f8a4dda2696f2e344b674b213eff7a8c4abeeed6754b2d8d7ce3815a87
+  - byteCount: 1265
+    contentHash: sha256:bac9b35ffda7e249d33ca8cf2b9c4ee54971a80a069948fdbdffe6d0a7e0d534
+    path: docs/roadmap/governed-loop-assignment-graph/execution/gla2.md
+    userRegionHash: sha256:bac9b35ffda7e249d33ca8cf2b9c4ee54971a80a069948fdbdffe6d0a7e0d534
+  - byteCount: 927
+    contentHash: sha256:ebb47f11ef95b2be04a8d9f555bfbeffc682b7a27b5cc6de6009b242b4a6672f
+    path: docs/roadmap/governed-loop-assignment-graph/execution/gla3.md
+    userRegionHash: sha256:ebb47f11ef95b2be04a8d9f555bfbeffc682b7a27b5cc6de6009b242b4a6672f
+profile: roadmap_document
+recordId: knormdoc_774f35881cee30adf64bbc16
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:880666205077049b23ca580fc615c380fac2708c390a885b1531e2dc1b87c0b0
+sourcePath: docs/roadmap/governed-loop-assignment-graph/execution.md
+sourceUnitVersionIds:
+  - uv_7a48fba417f796e3a185575e
+  - uv_adc8e039ad37427dfece06a4
+  - uv_b3dde36dcbdc7c007dcd49b6
+  - uv_d21987c497cab33afcff04f0
+  - uv_f4c72c226cc00ad0e275eb8e

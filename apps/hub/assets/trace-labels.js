@@ -58,6 +58,7 @@ const eventLabels = {
   "assignment.claimed": "Assignment claimed",
   "assignment.lease.renewed": "Assignment lease renewed",
   "assignment.handoff.recorded": "Assignment handoff recorded",
+  "assignment.handoff.acknowledged": "Assignment handoff acknowledged",
   "assignment.cancelled": "Assignment cancelled",
   "assignment.completion.prepared": "Assignment completion prepared",
   "assignment.completion.reconciled": "Assignment completion reconciled",

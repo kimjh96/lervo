@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d3e219a528506eebf65c8121"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add reviewed direct-message triggers and explicit handoff acknowledgements."

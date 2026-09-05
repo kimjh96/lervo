@@ -231,6 +231,49 @@ describe("event payload privacy boundary", () => {
     expect(JSON.stringify(result.payload)).not.toContain("private");
   });
 
+  it("separates reviewed-message route provenance from explicit acknowledgement evidence", () => {
+    const route = sanitizeEventPayload("assignment.handoff.recorded", {
+      assignmentId: `asn_${"a".repeat(24)}`,
+      handoffId: `hnd_${"b".repeat(24)}`,
+      fromAgentId: `agt_${"c".repeat(24)}`,
+      toAgentId: `agt_${"d".repeat(24)}`,
+      requestDigest: `sha256:${"e".repeat(64)}`,
+      artifactIds: ["art_direct_message_01"],
+      artifactHashes: [`sha256:${"f".repeat(64)}`],
+      contextEvidenceEventIds: [],
+      triggerKind: "reviewed_direct_message",
+      triggerAdapterId: "lervo/reviewed-message-file",
+      triggerAdapterVersion: "1.0.0",
+      triggerDescriptorHash: `sha256:${"1".repeat(64)}`,
+      triggerSourceEventId: `cve_${"2".repeat(64)}`,
+      triggerSourceEventKeyHash: `sha256:${"3".repeat(64)}`,
+      messageBody: "private message",
+      nativeConversationId: "private native ID",
+    });
+    expect(route.payload).toMatchObject({
+      triggerKind: "reviewed_direct_message",
+      triggerSourceEventId: `cve_${"2".repeat(64)}`,
+    });
+    expect(JSON.stringify(route.payload)).not.toContain("private");
+
+    const acknowledgement = sanitizeEventPayload("assignment.handoff.acknowledged", {
+      assignmentId: `asn_${"a".repeat(24)}`,
+      handoffId: `hnd_${"b".repeat(24)}`,
+      recipientAgentId: `agt_${"d".repeat(24)}`,
+      acknowledgedAt: "2026-09-05T00:03:00.000Z",
+      assignmentRevision: 4,
+      deliveryReceipt: "not acknowledgement evidence",
+      actionResult: "not acknowledgement evidence",
+    });
+    expect(acknowledgement.payload).toEqual({
+      assignmentId: `asn_${"a".repeat(24)}`,
+      handoffId: `hnd_${"b".repeat(24)}`,
+      recipientAgentId: `agt_${"d".repeat(24)}`,
+      acknowledgedAt: "2026-09-05T00:03:00.000Z",
+      assignmentRevision: 4,
+    });
+  });
+
   it("keeps immutable terminal observations valid across additive coordinate revisions", () => {
     const prepared = {
       observationId: "tobs_context_01234567",

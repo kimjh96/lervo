@@ -5,6 +5,15 @@ export interface AssignmentInteractionArtifactV1 {
   contentHash: string;
 }
 
+export interface AssignmentInteractionTriggerV1 {
+  kind: "reviewed_direct_message";
+  adapterId: string;
+  adapterVersion: string;
+  descriptorHash: string;
+  sourceEventId: string;
+  sourceEventKeyHash: string;
+}
+
 export interface AssignmentInteractionRouteV1 {
   schemaVersion: 1;
   threadId: string;
@@ -69,3 +78,50 @@ export interface AssignmentCommunicationQueryV1 {
   assignmentId: string | null;
   recipientAgentId: string | null;
 }
+
+export interface AssignmentInteractionRouteV2 extends Omit<
+  AssignmentInteractionRouteV1,
+  "schemaVersion" | "acknowledgementState"
+> {
+  schemaVersion: 2;
+  acknowledgementState: "unobserved" | "recorded";
+  acknowledgedAt: string | null;
+  trigger: AssignmentInteractionTriggerV1 | null;
+}
+
+export interface AssignmentInteractionThreadV2 extends Omit<
+  AssignmentInteractionThreadV1,
+  "schemaVersion" | "routes"
+> {
+  schemaVersion: 2;
+  routes: AssignmentInteractionRouteV2[];
+}
+
+export interface AssignmentInboxRouteV2 extends Omit<
+  AssignmentInboxRouteV1,
+  "schemaVersion" | "acknowledgementState"
+> {
+  schemaVersion: 2;
+  acknowledgementState: "unobserved" | "recorded";
+  acknowledgedAt: string | null;
+  triggerKind: AssignmentInteractionTriggerV1["kind"] | null;
+}
+
+export interface AssignmentCommunicationReportV2 extends Omit<
+  AssignmentCommunicationReportV1,
+  "schemaVersion" | "threads" | "inbox"
+> {
+  schemaVersion: 2;
+  threads: AssignmentInteractionThreadV2[];
+  inbox: AssignmentInboxRouteV2[];
+}
+
+export interface AssignmentCommunicationQueryV2 extends Omit<
+  AssignmentCommunicationQueryV1,
+  "schemaVersion"
+> {
+  schemaVersion: 2;
+}
+
+export type AssignmentCommunicationReport =
+  AssignmentCommunicationReportV1 | AssignmentCommunicationReportV2;

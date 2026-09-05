@@ -162,5 +162,52 @@ export interface ProductHostCapabilityReportV3 {
   unsupported: ProductHostCapabilityReportV1["unsupported"];
 }
 
+export type ProductHostRouteIdV4 =
+  ProductHostRouteIdV3 | "assignment_message_trigger.route" | "assignment_handoff.acknowledge";
+
+export type ProductHostResultContractV4 =
+  | ProductHostResultContractV3
+  | "assignment_communication_report_v2"
+  | "assignment_message_trigger_result"
+  | "assignment_handoff_acknowledgement_result";
+
+export interface ProductHostRouteV4 extends Omit<
+  ProductHostRouteV1,
+  "routeId" | "resultContract" | "contractVersion"
+> {
+  routeId: ProductHostRouteIdV4;
+  contractVersion: 1 | 2;
+  resultContract: ProductHostResultContractV4;
+}
+
+export interface ProductHostCapabilityReportV4 {
+  schemaVersion: 4;
+  kind: "product_host.capabilities";
+  protocol: {
+    transport: "local_cli";
+    version: 4;
+    discoveryCommand: ["application", "capabilities", "--protocol", "4", "--json"];
+    requiresHub: false;
+  };
+  canonicalAuthorities: ProductHostCapabilityReportV1["canonicalAuthorities"];
+  projections: [
+    "assignment_graph",
+    "governed_decision",
+    "operating_board",
+    "assignment_threads",
+    "assignment_inboxes",
+    "observed_budgets",
+    "operating_attention",
+    "operating_goal",
+    "operating_liveness",
+    "assignment_acknowledgements",
+  ];
+  routes: ProductHostRouteV4[];
+  unsupported: ProductHostCapabilityReportV1["unsupported"];
+}
+
 export type ProductHostCapabilityReport =
-  ProductHostCapabilityReportV1 | ProductHostCapabilityReportV2 | ProductHostCapabilityReportV3;
+  | ProductHostCapabilityReportV1
+  | ProductHostCapabilityReportV2
+  | ProductHostCapabilityReportV3
+  | ProductHostCapabilityReportV4;

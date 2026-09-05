@@ -50,12 +50,16 @@ export async function runLoopCommand(
       return goal.completion.status === "inconsistent" ? 1 : 0;
     }
     if (options.action === "thread" || options.action === "inbox") {
-      const communications = await services.inspectAssignmentCommunications({
+      const inspection = {
         repositoryRoot: options.repositoryRoot,
         ...(options.action === "thread"
           ? { assignmentId: options.assignmentId }
           : { recipientAgentId: options.recipientAgentId }),
-      });
+      };
+      const communications =
+        options.communicationContract === 2
+          ? await services.inspectAssignmentCommunications({ ...inspection, contractVersion: 2 })
+          : await services.inspectAssignmentCommunications(inspection);
       io.stdout(
         options.json
           ? `${JSON.stringify(communications, null, 2)}\n`

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_03711c781df7b64eb900337f
+outputLanguage: en
+outputs:
+  - byteCount: 900
+    contentHash: sha256:e3b836b75a46bafc6eee5331bf71b6b79c8e7d48fb4d9f30e1d36c1951924601
+    path: docs/specifications/execution/events-and-privacy/workforce-events/completion-reconciliation.md
+    userRegionHash: sha256:e3b836b75a46bafc6eee5331bf71b6b79c8e7d48fb4d9f30e1d36c1951924601
+profile: specification_document
+recordId: knormdoc_e6f01d193622cf4bc84b9b00
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1e3bfd4c237288b0677ef2988f073c7ab99217462ea5da78bea732b0dd973541
+sourcePath: docs/specifications/execution/events-and-privacy/workforce-events/completion-reconciliation.md
+sourceUnitVersionIds:
+  - uv_275626365983125a3e4850bc

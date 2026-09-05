@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4c42324c783bb2e31e4bd583
+outputLanguage: en
+outputs:
+  - byteCount: 424
+    contentHash: sha256:7bcbb0539b66e53a750eb8aeaa4d0b1c41e87bacccb40ecd328a790701226433
+    path: docs/roadmap/product-outcome-convergence/host-products/slack.md
+    userRegionHash: sha256:7bcbb0539b66e53a750eb8aeaa4d0b1c41e87bacccb40ecd328a790701226433
+profile: roadmap_document
+recordId: knormdoc_10d3ddbbf2380a3583a7c32f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7bcbb0539b66e53a750eb8aeaa4d0b1c41e87bacccb40ecd328a790701226433
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/slack.md
+sourceUnitVersionIds:
+  - uv_232b2b676c5814dc609c0e7a

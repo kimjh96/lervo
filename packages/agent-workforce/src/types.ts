@@ -46,6 +46,15 @@ export interface WorkforceArtifactReference {
   contentHash: string;
 }
 
+export interface WorkforceHandoffTriggerProvenance {
+  kind: "reviewed_direct_message";
+  adapterId: string;
+  adapterVersion: string;
+  descriptorHash: string;
+  sourceEventId: string;
+  sourceEventKeyHash: string;
+}
+
 export interface WorkforceHandoff {
   handoffId: string;
   fromAgentId: string;
@@ -55,6 +64,7 @@ export interface WorkforceHandoff {
   contextEvidenceEventIds: string[];
   createdAt: string;
   acknowledgedAt: string | null;
+  trigger?: WorkforceHandoffTriggerProvenance | null;
 }
 
 export interface WorkforceAssignmentRoutineProvenance {
@@ -103,6 +113,7 @@ export interface WorkforceEvent {
     | "assignment.claimed"
     | "assignment.lease.renewed"
     | "assignment.handoff.recorded"
+    | "assignment.handoff.acknowledged"
     | "assignment.cancelled"
     | "assignment.completion.reconciled"
     | "assignment.completed";

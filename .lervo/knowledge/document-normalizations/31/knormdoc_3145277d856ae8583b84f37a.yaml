@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_efd29655c964ffd45c44ee69
+outputLanguage: en
+outputs:
+  - byteCount: 5078
+    contentHash: sha256:7f91dba4329696f69bb039a66333ebbb7b260b24b5a1b80de1b1631448ee8c13
+    path: docs/specifications/execution/assignment-interactions.md
+    userRegionHash: sha256:7f91dba4329696f69bb039a66333ebbb7b260b24b5a1b80de1b1631448ee8c13
+profile: specification_document
+recordId: knormdoc_3145277d856ae8583b84f37a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:31687d74b3103851d2332ed84a0a3cb9afe068e82cd6b0110f300e0e93de607e
+sourcePath: docs/specifications/execution/assignment-interactions.md
+sourceUnitVersionIds:
+  - uv_2a9373f5256c90f548b8cb09
+  - uv_7662641fb2e718fde62f4793
+  - uv_798cfb578819ada14d7529cd
+  - uv_84eaf6c1e5a9ecae4d6b6578
+  - uv_a09f216cf6cd129b36453e16
+  - uv_be7e54d31949ecb586e2816c
+  - uv_ddde5d2d19b3b814dacea115

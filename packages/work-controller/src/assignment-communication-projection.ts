@@ -1,6 +1,8 @@
 import type {
   AssignmentCommunicationQueryV1,
+  AssignmentCommunicationQueryV2,
   AssignmentCommunicationReportV1,
+  AssignmentCommunicationReportV2,
   AssignmentInboxRouteV1,
   AssignmentInteractionRouteV1,
   AssignmentInteractionThreadV1,
@@ -27,6 +29,15 @@ export interface AssignmentCommunicationSourceV1 {
     artifactReferences: Array<{ artifactId: string; contentHash: string }>;
     contextEvidenceEventIds: string[];
     createdAt: string;
+    acknowledgedAt: string | null;
+    trigger?: {
+      kind: "reviewed_direct_message";
+      adapterId: string;
+      adapterVersion: string;
+      descriptorHash: string;
+      sourceEventId: string;
+      sourceEventKeyHash: string;
+    } | null;
   }>;
 }
 
@@ -34,6 +45,10 @@ const limitations = [
   "Interaction bodies remain content-addressed artifacts and are not present in this report.",
   "A recorded route proves neither delivery, provider receipt, understanding, nor action.",
   "Mention resolution and handoff recording do not grant task, lease, approval, or provider authority.",
+];
+
+const versionTwoLimitations = [
+  "Route, delivery, explicit acknowledgment, and subsequent action remain separate evidence.",
 ];
 
 function threadId(input: {
@@ -193,5 +208,51 @@ export function projectAssignmentCommunications(input: {
     threads,
     inbox,
     limitations: [...limitations],
+  };
+}
+
+export function projectAssignmentCommunicationsV2(input: {
+  query: AssignmentCommunicationQueryV2;
+  assignments: readonly AssignmentCommunicationSourceV1[];
+  agents: readonly AssignmentCommunicationAgentSourceV1[];
+}): AssignmentCommunicationReportV2 {
+  const legacy = projectAssignmentCommunications({
+    query: { ...input.query, schemaVersion: 1 },
+    assignments: input.assignments,
+    agents: input.agents,
+  });
+  const handoffs = new Map(
+    input.assignments.flatMap((assignment) =>
+      assignment.handoffs.map((handoff) => [handoff.handoffId, handoff] as const),
+    ),
+  );
+  return {
+    ...legacy,
+    schemaVersion: 2,
+    threads: legacy.threads.map((thread) => ({
+      ...thread,
+      schemaVersion: 2,
+      routes: thread.routes.map((item) => {
+        const source = handoffs.get(item.handoffId)!;
+        return {
+          ...item,
+          schemaVersion: 2,
+          acknowledgementState: source.acknowledgedAt === null ? "unobserved" : "recorded",
+          acknowledgedAt: source.acknowledgedAt,
+          trigger: source.trigger === undefined ? null : structuredClone(source.trigger),
+        };
+      }),
+    })),
+    inbox: legacy.inbox.map((item) => {
+      const source = handoffs.get(item.handoffId)!;
+      return {
+        ...item,
+        schemaVersion: 2,
+        acknowledgementState: source.acknowledgedAt === null ? "unobserved" : "recorded",
+        acknowledgedAt: source.acknowledgedAt,
+        triggerKind: source.trigger?.kind ?? null,
+      };
+    }),
+    limitations: [...legacy.limitations, ...versionTwoLimitations],
   };
 }

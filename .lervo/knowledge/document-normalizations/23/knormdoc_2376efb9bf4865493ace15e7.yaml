@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_14e04615ebc8723ca9c6bb8a
+outputLanguage: en
+outputs:
+  - byteCount: 1384
+    contentHash: sha256:c5953d05256766d2b6e6283cbf40ce5760f841b2bbb7d586ffb5a710fcbb5288
+    path: docs/specifications/execution/events-and-privacy/workforce-events/capability-registration-and-activation.md
+    userRegionHash: sha256:c5953d05256766d2b6e6283cbf40ce5760f841b2bbb7d586ffb5a710fcbb5288
+profile: specification_document
+recordId: knormdoc_2376efb9bf4865493ace15e7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5d49b31f15c0b86f3c3cbd5630e393e8a3e8027c4ce77a062eac74a3726ff5b2
+sourcePath: docs/specifications/execution/events-and-privacy/workforce-events/capability-registration-and-activation.md
+sourceUnitVersionIds:
+  - uv_7db2e22527761c43ad687584

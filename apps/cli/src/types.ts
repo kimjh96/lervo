@@ -1,6 +1,7 @@
 import type { DoctorInspection, DoctorScope } from "@lervo/diagnostics";
 import type { EnvironmentObservation, EnvironmentSourceManifest } from "@lervo/environment";
 import type { ProjectStorage } from "@lervo/project-storage";
+import type { AssignmentMessageTriggerAdapterV1 } from "@lervo/agent-workforce";
 import type {
   AssignmentConnectorPortV1,
   ImprovementObservationPortV1,
@@ -57,6 +58,7 @@ export interface CliServices {
   reconcileGovernedAssignment: ReconcileGovernedAssignment;
   prepareSearchQueries?: PrepareProductionSearchQueries | undefined;
   assignmentConnectorPort?: AssignmentConnectorPortV1 | undefined;
+  assignmentMessageTriggerAdapter?: AssignmentMessageTriggerAdapterV1 | undefined;
   improvementObservationPort?: ImprovementObservationPortV1 | undefined;
   createLocalImprovementObservationHost?: CreateLocalImprovementObservationHost | undefined;
 }

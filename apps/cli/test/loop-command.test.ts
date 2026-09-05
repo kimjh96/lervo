@@ -329,6 +329,13 @@ describe("loop command", () => {
     expect(await runLoopCommand(["inbox", "--agent", agentId], inboxOutput.value, services)).toBe(
       0,
     );
+    expect(
+      await runLoopCommand(
+        ["thread", "--contract", "2", "--assignment", assignmentId],
+        threadOutput.value,
+        services,
+      ),
+    ).toBe(0);
     expect(threadOutput.stdout.join("")).toContain("Assignment threads");
     expect(inboxOutput.stdout.join("")).toContain("Assignment inbox");
     expect(inspectGovernedWork).not.toHaveBeenCalled();
@@ -339,6 +346,11 @@ describe("loop command", () => {
     expect(inspectAssignmentCommunications).toHaveBeenNthCalledWith(2, {
       repositoryRoot: "/repository",
       recipientAgentId: agentId,
+    });
+    expect(inspectAssignmentCommunications).toHaveBeenNthCalledWith(3, {
+      repositoryRoot: "/repository",
+      assignmentId,
+      contractVersion: 2,
     });
   });
 

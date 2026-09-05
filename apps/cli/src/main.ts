@@ -18,6 +18,10 @@ import {
   runAssignmentCommunicationCommand,
 } from "./assignment-communication-command.js";
 import {
+  assignmentMessageTriggerUsage,
+  runAssignmentMessageTriggerCommand,
+} from "./assignment-message-trigger-command.js";
+import {
   assignmentRoutineUsage,
   runAssignmentRoutineCommand,
 } from "./assignment-routine-command.js";
@@ -78,6 +82,7 @@ ${workstreamUsage}
 ${workspaceUsage}
 ${workforceUsage}
 ${assignmentCommunicationUsage}
+${assignmentMessageTriggerUsage}
 ${assignmentConnectorUsage}
 ${assignmentRoutineUsage}
 ${roleUsage}
@@ -144,6 +149,13 @@ export async function runCli(
   if (command === "workspace") return runWorkspaceCommand(args.slice(1), io);
   if (command === "assignment" && args[1] === "mention") {
     return runAssignmentCommunicationCommand(args.slice(1), io);
+  }
+  if (command === "assignment" && args[1] === "trigger") {
+    return runAssignmentMessageTriggerCommand(
+      args.slice(1),
+      io,
+      services.assignmentMessageTriggerAdapter,
+    );
   }
   if (command === "assignment" && args[1] === "connector") {
     return runAssignmentConnectorCommand(args.slice(1), io, services);

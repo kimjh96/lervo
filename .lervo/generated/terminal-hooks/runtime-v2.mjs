@@ -40028,6 +40028,7 @@ var eventTypesV1 = [
   "assignment.claimed",
   "assignment.lease.renewed",
   "assignment.handoff.recorded",
+  "assignment.handoff.acknowledged",
   "assignment.cancelled",
   "assignment.completion.prepared",
   "assignment.completion.reconciled",
@@ -47270,7 +47271,20 @@ var eventPayloadAllowlists = {
     "requestDigest",
     "artifactIds",
     "artifactHashes",
-    "contextEvidenceEventIds"
+    "contextEvidenceEventIds",
+    "triggerKind",
+    "triggerAdapterId",
+    "triggerAdapterVersion",
+    "triggerDescriptorHash",
+    "triggerSourceEventId",
+    "triggerSourceEventKeyHash"
+  ],
+  "assignment.handoff.acknowledged": [
+    "assignmentId",
+    "handoffId",
+    "recipientAgentId",
+    "acknowledgedAt",
+    "assignmentRevision"
   ],
   "assignment.cancelled": [
     "assignmentId",
@@ -68017,6 +68031,9 @@ var workforceLimits = {
   maximumConcurrentLeases: 256
 };
 
+// packages/agent-workforce/dist/agent-liveness.js
+var DEFAULT_ROOT_AGENT_LIVENESS_STALE_AFTER_MS = 2 * 60 * 1e3;
+
 // packages/agent-workforce/dist/store.js
 import { createHash as createHash14, randomUUID as randomUUID3 } from "node:crypto";
 
@@ -69445,6 +69462,8 @@ var SESSION_ID = /^ses_[A-Za-z0-9_-]{8,128}$/u;
 var EVENT_ID = /^evt_[A-Za-z0-9_-]{8,128}$/u;
 var ARTIFACT_ID2 = /^art_[A-Za-z0-9_-]{8,128}$/u;
 var WORKSTREAM_ID = /^wks_[a-f0-9]{24}$/u;
+var CONVERSATION_EVENT_ID = /^cve_[a-f0-9]{64}$/u;
+var ADAPTER_ID = /^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u;
 var MAXIMUM_STATE_BYTES = 2 * 1024 * 1024;
 var MAXIMUM_LEASE_MS = 30 * 6e4;
 function fail13(code, message, cause) {
@@ -69478,11 +69497,17 @@ function validAgent(agent, projectId) {
 function validArtifact(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value) && ARTIFACT_ID2.test(value.artifactId) && HASH7.test(value.contentHash);
 }
+function validHandoffTrigger(value) {
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    return false;
+  const item = value;
+  return item.kind === "reviewed_direct_message" && ADAPTER_ID.test(item.adapterId) && item.adapterId.length <= 128 && ROLE_VERSION.test(item.adapterVersion) && HASH7.test(item.descriptorHash) && CONVERSATION_EVENT_ID.test(item.sourceEventId) && HASH7.test(item.sourceEventKeyHash);
+}
 function validHandoff(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return false;
   const item = value;
-  return HANDOFF_ID.test(item.handoffId) && AGENT_ID.test(item.fromAgentId) && AGENT_ID.test(item.toAgentId) && HASH7.test(item.requestDigest) && Array.isArray(item.artifactReferences) && item.artifactReferences.length <= 32 && item.artifactReferences.every(validArtifact) && boundedStrings3(item.contextEvidenceEventIds, 64, EVENT_ID) && validTime(item.createdAt) && (item.acknowledgedAt === null || validTime(item.acknowledgedAt));
+  return HANDOFF_ID.test(item.handoffId) && AGENT_ID.test(item.fromAgentId) && AGENT_ID.test(item.toAgentId) && HASH7.test(item.requestDigest) && Array.isArray(item.artifactReferences) && item.artifactReferences.length <= 32 && item.artifactReferences.every(validArtifact) && boundedStrings3(item.contextEvidenceEventIds, 64, EVENT_ID) && validTime(item.createdAt) && (item.acknowledgedAt === null || validTime(item.acknowledgedAt)) && (item.trigger === void 0 || item.trigger === null || validHandoffTrigger(item.trigger));
 }
 function validAssignment(value, projectId) {
   if (value === null || typeof value !== "object" || Array.isArray(value))

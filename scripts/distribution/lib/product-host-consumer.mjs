@@ -4,6 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { verifyPackedProductHostCapabilities } from "./product-host-capability-consumer.mjs";
+import { verifyPackedProductHostMessageJourney } from "./product-host-message-consumer.mjs";
 
 function sha256(value) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -36,6 +37,21 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   );
   assert.equal(agent.status, "active");
   const agentId = agent.agentId;
+  const recipient = parsed(
+    await runCli([
+      "agent",
+      "hire",
+      "--role",
+      "writer",
+      "--provider",
+      "any",
+      "--scope",
+      "product-host-fixture.txt",
+      "--write",
+      "--json",
+    ]),
+  );
+  assert.equal(recipient.status, "active");
 
   const draft = {
     schemaVersion: 1,
@@ -110,10 +126,14 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   assert.equal(heartbeat.status, "recorded");
   const liveness = parsed(await runCli(["application", "liveness", "--json"]));
   assert.equal(liveness.kind, "operating_liveness.report");
-  assert.equal(liveness.rootAgents.items.length, 1);
-  assert.equal(liveness.rootAgents.items[0].agentId, agentId);
-  assert.equal(liveness.rootAgents.items[0].status, "recently_observed");
-  assert.equal(liveness.rootAgents.items[0].provesManagedProcessHealth, false);
+  assert.equal(liveness.rootAgents.items.length, 2);
+  const observedAgent = liveness.rootAgents.items.find((item) => item.agentId === agentId);
+  const unobservedRecipient = liveness.rootAgents.items.find(
+    (item) => item.agentId === recipient.agentId,
+  );
+  assert.equal(observedAgent.status, "recently_observed");
+  assert.equal(observedAgent.provesManagedProcessHealth, false);
+  assert.equal(unobservedRecipient.status, "unobserved");
   assert.deepEqual(liveness.managedProviderProcesses.items, []);
   assert.equal(liveness.authority.startsOrStopsProvider, false);
 
@@ -342,6 +362,16 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   assert.match(board.stdout, /^<!doctype html>/u);
   assert.equal(board.stdout.includes("Projection, not authority"), true);
   assert.equal(board.stdout.includes(assignment.assignmentId), true);
+
+  await verifyPackedProductHostMessageJourney({
+    consumerRoot,
+    runCli,
+    projectId: workstream.projectId,
+    workstreamId: workstream.workstreamId,
+    assignmentId: assignment.assignmentId,
+    sourceAgentId: agentId,
+    recipientAgentId: recipient.agentId,
+  });
 
   return {
     protocolVersion: capabilities.protocol.version,

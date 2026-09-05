@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_32bc9e7d31c764a5f1b0acc5
+outputLanguage: en
+outputs:
+  - byteCount: 2254
+    contentHash: sha256:9e72890529493684015641d3850827ad5febb2c6994d2b49a89019b12c5db03f
+    path: docs/specifications/execution/events-and-privacy/workforce-events/handoff-and-connector-delivery.md
+    userRegionHash: sha256:9e72890529493684015641d3850827ad5febb2c6994d2b49a89019b12c5db03f
+profile: specification_document
+recordId: knormdoc_707f66cdb0d4ce9e9186883c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4459d40eef1c0f241b4df4104108a268349b2af01b93cd92def60c086d191776
+sourcePath: docs/specifications/execution/events-and-privacy/workforce-events/handoff-and-connector-delivery.md
+sourceUnitVersionIds:
+  - uv_09ce01b32503df65f36f6586

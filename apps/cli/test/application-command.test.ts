@@ -128,6 +128,53 @@ describe("application command", () => {
     expect(report.projections).toContain("operating_liveness");
   });
 
+  it("discovers reviewed message triggering and explicit acknowledgement through protocol 4", async () => {
+    const output = io();
+
+    expect(
+      await runApplicationCommand(["capabilities", "--protocol", "4", "--json"], output.value),
+    ).toBe(0);
+    const report = JSON.parse(output.stdout.join(""));
+    expect(report.schemaVersion).toBe(4);
+    expect(
+      report.routes.find(
+        (route: { routeId: string }) => route.routeId === "assignment_thread.inspect",
+      ),
+    ).toMatchObject({
+      contractVersion: 2,
+      resultContract: "assignment_communication_report_v2",
+      command: ["loop", "thread", "--contract", "2", "--assignment", "<assignment-id>", "--json"],
+    });
+    expect(report.routes.slice(-2)).toEqual([
+      {
+        routeId: "assignment_message_trigger.route",
+        area: "collaboration",
+        operation: "command",
+        contractVersion: 1,
+        resultContract: "assignment_message_trigger_result",
+        command: ["assignment", "trigger"],
+        output: "json",
+        effect: "repository_write",
+        authority: "exact_plan_apply",
+        availability: "available",
+      },
+      {
+        routeId: "assignment_handoff.acknowledge",
+        area: "collaboration",
+        operation: "command",
+        contractVersion: 1,
+        resultContract: "assignment_handoff_acknowledgement_result",
+        command: ["assignment", "acknowledge"],
+        output: "json",
+        effect: "repository_write",
+        authority: "explicit_write",
+        availability: "available",
+      },
+    ]);
+    expect(report.projections).toContain("assignment_acknowledgements");
+    expect(report.unsupported).toContain("unattended_scheduling");
+  });
+
   it("renders the injected read-only attention report", async () => {
     const output = io();
     const report = {

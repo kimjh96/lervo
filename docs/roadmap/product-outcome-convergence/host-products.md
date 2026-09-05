@@ -1,6 +1,6 @@
 # Paperclip-, Buzz-, loop-, graph-, and host-product outcomes
 
-Part of [Product outcome convergence](../product-outcome-convergence.md); its baseline, acceptance-state definitions, and claim boundaries apply to these outcomes.
+Part of [Product outcome convergence](../product-outcome-convergence.md); its baseline, acceptance-state definitions, and claim boundaries apply.
 
 - [Unified operating view](host-products/operating-view.md): `partial`.
 - [Safe repeatable triggers](host-products/triggers.md): `partial`.

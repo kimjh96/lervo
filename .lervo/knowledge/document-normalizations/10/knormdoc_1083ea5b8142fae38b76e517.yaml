@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7d0350e2a01929e4c26daff6
+outputLanguage: en
+outputs:
+  - byteCount: 4028
+    contentHash: sha256:f3c099b747a56deae929f7cbab745354e107f6b622934d679744517aa6e565ef
+    path: docs/decisions/execution/orchestration/governed-work/0375-route-reviewed-direct-messages-and-record-explicit-handoff-acknowledgment.md
+    userRegionHash: sha256:f3c099b747a56deae929f7cbab745354e107f6b622934d679744517aa6e565ef
+profile: decision_record
+recordId: knormdoc_1083ea5b8142fae38b76e517
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:133eb20a2da6bb140970a62fa0924082797cdcbfbad9fa4b1b2cd31584ead785
+sourcePath: docs/decisions/execution/orchestration/governed-work/0375-route-reviewed-direct-messages-and-record-explicit-handoff-acknowledgment.md
+sourceUnitVersionIds:
+  - uv_164fcdcd2aa6c54c449db0d9
+  - uv_1eb83b539e7627231e3ddb33
+  - uv_55f9b10c701c7746c1c8bcd3
+  - uv_70ee6e5a5bc6497476f24b3b
+  - uv_bcc29518ed4be0135c1d5b37
+  - uv_c444bda349cebe5e4caca9f9

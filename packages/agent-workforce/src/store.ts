@@ -19,6 +19,7 @@ import {
   type WorkforceEvent,
   type WorkforceEventRecorder,
   type WorkforceHandoff,
+  type WorkforceHandoffTriggerProvenance,
   type WorkforceProvider,
 } from "./types.js";
 import { workforceLimits } from "./limits.js";
@@ -49,6 +50,8 @@ const SESSION_ID = /^ses_[A-Za-z0-9_-]{8,128}$/u;
 const EVENT_ID = /^evt_[A-Za-z0-9_-]{8,128}$/u;
 const ARTIFACT_ID = /^art_[A-Za-z0-9_-]{8,128}$/u;
 const WORKSTREAM_ID = /^wks_[a-f0-9]{24}$/u;
+const CONVERSATION_EVENT_ID = /^cve_[a-f0-9]{64}$/u;
+const ADAPTER_ID = /^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u;
 const MAXIMUM_STATE_BYTES = 2 * 1024 * 1024;
 const MINIMUM_LEASE_MS = 5_000;
 const MAXIMUM_LEASE_MS = 30 * 60_000;
@@ -170,6 +173,20 @@ function validArtifact(value: unknown): value is WorkforceArtifactReference {
   );
 }
 
+function validHandoffTrigger(value: unknown): value is WorkforceHandoffTriggerProvenance {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const item = value as WorkforceHandoffTriggerProvenance;
+  return (
+    item.kind === "reviewed_direct_message" &&
+    ADAPTER_ID.test(item.adapterId) &&
+    item.adapterId.length <= 128 &&
+    ROLE_VERSION.test(item.adapterVersion) &&
+    HASH.test(item.descriptorHash) &&
+    CONVERSATION_EVENT_ID.test(item.sourceEventId) &&
+    HASH.test(item.sourceEventKeyHash)
+  );
+}
+
 function validHandoff(value: unknown): value is WorkforceHandoff {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
   const item = value as WorkforceHandoff;
@@ -183,7 +200,8 @@ function validHandoff(value: unknown): value is WorkforceHandoff {
     item.artifactReferences.every(validArtifact) &&
     boundedStrings(item.contextEvidenceEventIds, 64, EVENT_ID) &&
     validTime(item.createdAt) &&
-    (item.acknowledgedAt === null || validTime(item.acknowledgedAt))
+    (item.acknowledgedAt === null || validTime(item.acknowledgedAt)) &&
+    (item.trigger === undefined || item.trigger === null || validHandoffTrigger(item.trigger))
   );
 }
 
@@ -1332,6 +1350,7 @@ async function recordAssignmentHandoffOnce(input: {
   requestDigest: string;
   artifactReferences: WorkforceArtifactReference[];
   contextEvidenceEventIds: string[];
+  trigger?: WorkforceHandoffTriggerProvenance;
   now?: Date;
   recordEvent?: WorkforceEventRecorder;
 }): Promise<WorkforceAssignment> {
@@ -1343,7 +1362,8 @@ async function recordAssignmentHandoffOnce(input: {
     !HASH.test(input.requestDigest) ||
     !Array.isArray(input.artifactReferences) ||
     !input.artifactReferences.every(validArtifact) ||
-    !boundedStrings(input.contextEvidenceEventIds, 64, EVENT_ID)
+    !boundedStrings(input.contextEvidenceEventIds, 64, EVENT_ID) ||
+    (input.trigger !== undefined && !validHandoffTrigger(input.trigger))
   )
     fail("assignment_invalid", "The handoff coordinates are invalid.");
   const agents = await listAgents(input.repositoryRoot);
@@ -1364,6 +1384,26 @@ async function recordAssignmentHandoffOnce(input: {
   const assignmentState = await readAssignmentState(input.repositoryRoot, input.assignmentId);
   const assignment = assignmentState.value;
   exactLease(assignment, input.fromAgentId, input.leaseId, now);
+  if (input.trigger !== undefined) {
+    const sameSource = assignment.handoffs.filter(
+      (item) =>
+        item.trigger?.adapterId === input.trigger!.adapterId &&
+        item.trigger.sourceEventKeyHash === input.trigger!.sourceEventKeyHash,
+    );
+    const exact = sameSource.find(
+      (item) =>
+        item.fromAgentId === input.fromAgentId &&
+        item.toAgentId === input.toAgentId &&
+        item.requestDigest === input.requestDigest &&
+        stableJson(item.artifactReferences) === stableJson(input.artifactReferences) &&
+        stableJson(item.contextEvidenceEventIds) === stableJson(input.contextEvidenceEventIds) &&
+        stableJson(item.trigger) === stableJson(input.trigger),
+    );
+    if (sameSource.length > 1 || (sameSource.length === 1 && exact === undefined)) {
+      fail("assignment_invalid", "The message trigger source event conflicts with a handoff.");
+    }
+    if (exact !== undefined) return structuredClone(assignment);
+  }
   const createdAt = now.toISOString();
   const handoff: WorkforceHandoff = {
     handoffId: id("hnd", { assignmentId: assignment.assignmentId, nonce: randomUUID() }),
@@ -1374,6 +1414,7 @@ async function recordAssignmentHandoffOnce(input: {
     contextEvidenceEventIds: [...input.contextEvidenceEventIds],
     createdAt,
     acknowledgedAt: null,
+    trigger: input.trigger ?? null,
   };
   const next = {
     ...assignment,
@@ -1403,6 +1444,16 @@ async function recordAssignmentHandoffOnce(input: {
         artifactIds: handoff.artifactReferences.map((item) => item.artifactId),
         artifactHashes: handoff.artifactReferences.map((item) => item.contentHash),
         contextEvidenceEventIds: handoff.contextEvidenceEventIds,
+        ...(handoff.trigger == null
+          ? {}
+          : {
+              triggerKind: handoff.trigger.kind,
+              triggerAdapterId: handoff.trigger.adapterId,
+              triggerAdapterVersion: handoff.trigger.adapterVersion,
+              triggerDescriptorHash: handoff.trigger.descriptorHash,
+              triggerSourceEventId: handoff.trigger.sourceEventId,
+              triggerSourceEventKeyHash: handoff.trigger.sourceEventKeyHash,
+            }),
       },
     },
   });
@@ -1417,10 +1468,98 @@ export function recordAssignmentHandoff(input: {
   requestDigest: string;
   artifactReferences: WorkforceArtifactReference[];
   contextEvidenceEventIds: string[];
+  trigger?: WorkforceHandoffTriggerProvenance;
   now?: Date;
   recordEvent?: WorkforceEventRecorder;
 }): Promise<WorkforceAssignment> {
   return retryConcurrent(() => recordAssignmentHandoffOnce(input));
+}
+
+async function acknowledgeAssignmentHandoffOnce(input: {
+  repositoryRoot: string;
+  assignmentId: string;
+  handoffId: string;
+  recipientAgentId: string;
+  now?: Date;
+  recordEvent?: WorkforceEventRecorder;
+}): Promise<WorkforceAssignment> {
+  const now = input.now ?? new Date();
+  if (
+    !ASSIGNMENT_ID.test(input.assignmentId) ||
+    !HANDOFF_ID.test(input.handoffId) ||
+    !AGENT_ID.test(input.recipientAgentId) ||
+    !Number.isFinite(now.getTime())
+  ) {
+    fail("assignment_invalid", "The handoff acknowledgement coordinates are invalid.");
+  }
+  const agents = await listAgents(input.repositoryRoot);
+  const recipient = agents.find((agent) => agent.agentId === input.recipientAgentId);
+  if (recipient === undefined || recipient.status !== "active") {
+    fail("agent_state_conflict", "A handoff acknowledgement requires its active recipient.");
+  }
+  try {
+    assertRoleContractBinding(
+      await resolveRoleContract(input.repositoryRoot, recipient.roleId),
+      recipient,
+    );
+  } catch (error) {
+    fail("agent_state_conflict", "The handoff recipient role contract is stale.", error);
+  }
+  const assignmentState = await readAssignmentState(input.repositoryRoot, input.assignmentId);
+  const assignment = assignmentState.value;
+  const index = assignment.handoffs.findIndex((item) => item.handoffId === input.handoffId);
+  if (index < 0) fail("assignment_invalid", "The handoff acknowledgement target is missing.");
+  const handoff = assignment.handoffs[index]!;
+  if (handoff.toAgentId !== input.recipientAgentId) {
+    fail("agent_state_conflict", "Only the exact handoff recipient can acknowledge it.");
+  }
+  if (handoff.acknowledgedAt !== null) return structuredClone(assignment);
+  if (now.getTime() < Date.parse(handoff.createdAt)) {
+    fail("assignment_invalid", "The handoff acknowledgement predates the route.");
+  }
+  const acknowledgedAt = now.toISOString();
+  const handoffs = assignment.handoffs.map((item, itemIndex) =>
+    itemIndex === index ? { ...item, acknowledgedAt } : item,
+  );
+  const next = {
+    ...assignment,
+    handoffs,
+    revision: assignment.revision + 1,
+    updatedAt: acknowledgedAt,
+  };
+  const target = await assignmentPath(input.repositoryRoot, assignment.assignmentId);
+  return transition({
+    path: target.path,
+    lockPath: target.lockPath,
+    now,
+    content: `${JSON.stringify(next, null, 2)}\n`,
+    result: structuredClone(next),
+    expectedBefore: assignmentState.source,
+    ...(input.recordEvent === undefined ? {} : { recordEvent: input.recordEvent }),
+    event: {
+      type: "assignment.handoff.acknowledged",
+      occurredAt: acknowledgedAt,
+      actorAgentId: recipient.agentId,
+      payload: {
+        assignmentId: assignment.assignmentId,
+        handoffId: handoff.handoffId,
+        recipientAgentId: recipient.agentId,
+        acknowledgedAt,
+        assignmentRevision: next.revision,
+      },
+    },
+  });
+}
+
+export function acknowledgeAssignmentHandoff(input: {
+  repositoryRoot: string;
+  assignmentId: string;
+  handoffId: string;
+  recipientAgentId: string;
+  now?: Date;
+  recordEvent?: WorkforceEventRecorder;
+}): Promise<WorkforceAssignment> {
+  return retryConcurrent(() => acknowledgeAssignmentHandoffOnce(input));
 }
 
 async function completeAssignmentOnce(input: {

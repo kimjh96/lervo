@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_84dbfd0f3c16a5d8643f1331
+outputLanguage: en
+outputs:
+  - byteCount: 601
+    contentHash: sha256:87b067a087d3d5b838dce5859adaf9c077d079ab8d479dd3622c01ca021b9b1b
+    path: docs/specifications/execution/events-and-privacy/workforce-events/governed-loop-projection.md
+    userRegionHash: sha256:87b067a087d3d5b838dce5859adaf9c077d079ab8d479dd3622c01ca021b9b1b
+profile: specification_document
+recordId: knormdoc_d9e95f872cfd5104c4cf1606
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2cb153eb26f51c868f96fde639daf7e797fa741bfa551dc86c4a2f91b9a41190
+sourcePath: docs/specifications/execution/events-and-privacy/workforce-events/governed-loop-projection.md
+sourceUnitVersionIds:
+  - uv_1757e741de12230bd17f17a2

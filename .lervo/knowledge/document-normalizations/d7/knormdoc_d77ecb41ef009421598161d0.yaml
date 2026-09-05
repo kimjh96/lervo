@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a6d4cae421c6ccf89e426aff
+outputLanguage: en
+outputs:
+  - byteCount: 1205
+    contentHash: sha256:a37252a295fe06c3a5d48d975e80f6fd4683591fd37ea9593a2768f6abc5c0f4
+    path: docs/specifications/execution/events-and-privacy/workforce-events.md
+    userRegionHash: sha256:a37252a295fe06c3a5d48d975e80f6fd4683591fd37ea9593a2768f6abc5c0f4
+profile: specification_document
+recordId: knormdoc_d77ecb41ef009421598161d0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a37252a295fe06c3a5d48d975e80f6fd4683591fd37ea9593a2768f6abc5c0f4
+sourcePath: docs/specifications/execution/events-and-privacy/workforce-events.md
+sourceUnitVersionIds:
+  - uv_11925944ebb1698c6cde0aed

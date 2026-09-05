@@ -1,0 +1,51 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a6c39b3a2e8cdc476be0484b
+outputLanguage: en
+outputs:
+  - byteCount: 489
+    contentHash: sha256:f527689bcc15df83c0417adc65e9214df7964d940619de34d6d2f945f41dd8a5
+    path: docs/roadmap/governed-loop-assignment-graph/operating.md
+    userRegionHash: sha256:f527689bcc15df83c0417adc65e9214df7964d940619de34d6d2f945f41dd8a5
+  - byteCount: 1373
+    contentHash: sha256:6295ead888e2fe9a3ff5e6b0a433cef97217ca2e5889aabf9d68aa261bc18ad4
+    path: docs/roadmap/governed-loop-assignment-graph/operating/gla14.md
+    userRegionHash: sha256:6295ead888e2fe9a3ff5e6b0a433cef97217ca2e5889aabf9d68aa261bc18ad4
+  - byteCount: 1191
+    contentHash: sha256:28f8279677a02d328500c2cc31eb7120ff217adc83f1c0cff669c6cdcec11750
+    path: docs/roadmap/governed-loop-assignment-graph/operating/gla15.md
+    userRegionHash: sha256:28f8279677a02d328500c2cc31eb7120ff217adc83f1c0cff669c6cdcec11750
+  - byteCount: 909
+    contentHash: sha256:73e749114d994456088d190d744faa1baff059d1488b5bff865955ccbe3a012d
+    path: docs/roadmap/governed-loop-assignment-graph/operating/gla16.md
+    userRegionHash: sha256:73e749114d994456088d190d744faa1baff059d1488b5bff865955ccbe3a012d
+  - byteCount: 910
+    contentHash: sha256:b63d12db75286859a294756c5a461479a596d0a7f5adbc4ae5da82bc5ab84b14
+    path: docs/roadmap/governed-loop-assignment-graph/operating/gla4.md
+    userRegionHash: sha256:b63d12db75286859a294756c5a461479a596d0a7f5adbc4ae5da82bc5ab84b14
+  - byteCount: 1458
+    contentHash: sha256:4168ed9d1aa4e336d6ec6b8457e80d261361470825922a16f7819d0259f85df3
+    path: docs/roadmap/governed-loop-assignment-graph/operating/gla5.md
+    userRegionHash: sha256:4168ed9d1aa4e336d6ec6b8457e80d261361470825922a16f7819d0259f85df3
+profile: roadmap_document
+recordId: knormdoc_1d77154032a879c855e1949f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5933702bc00cf35cf2e8eb919ff60147689926c965798afc5291140efe4fcdf3
+sourcePath: docs/roadmap/governed-loop-assignment-graph/operating.md
+sourceUnitVersionIds:
+  - uv_36a57a01ea44f5795641e792
+  - uv_769b4d05ee9650b4c2887f67
+  - uv_b8142e1af2a3e3192428df75
+  - uv_bea36f4a12f5e423b0a54472
+  - uv_d02f171f6956289298f4685d
+  - uv_da80ba3f3a4fc54f95167d63

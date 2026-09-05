@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8d06449450ed2febb64a2e9f
+outputLanguage: en
+outputs:
+  - byteCount: 671
+    contentHash: sha256:d68b52111fc5bf40f3fcf268dee9a3efd730ae9d1bcdc5e86f7e1df6e5391e3f
+    path: docs/specifications/execution/events-and-privacy/workforce-events/routine-assignment-provenance.md
+    userRegionHash: sha256:d68b52111fc5bf40f3fcf268dee9a3efd730ae9d1bcdc5e86f7e1df6e5391e3f
+profile: specification_document
+recordId: knormdoc_4e0298f45e465f14c5f3759e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d68b52111fc5bf40f3fcf268dee9a3efd730ae9d1bcdc5e86f7e1df6e5391e3f
+sourcePath: docs/specifications/execution/events-and-privacy/workforce-events/routine-assignment-provenance.md
+sourceUnitVersionIds:
+  - uv_d35638661a5b6ecfb7b4423a

@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c3ea4f485d4836ebabb33cb3
+outputLanguage: en
+outputs:
+  - byteCount: 5347
+    contentHash: sha256:008000397f41edde3b144060d9fb97a64c36936bff0b6dd96fd93c5d8c778e2a
+    path: docs/specifications/execution/assignment-message-triggers.md
+    userRegionHash: sha256:008000397f41edde3b144060d9fb97a64c36936bff0b6dd96fd93c5d8c778e2a
+profile: specification_document
+recordId: knormdoc_42fc09ed6879284dae90b534
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:867d99c0a94ef40928ef2df8cbcf737f2b69466013443440f63b5db14775d772
+sourcePath: docs/specifications/execution/assignment-message-triggers.md
+sourceUnitVersionIds:
+  - uv_372a863a0c0360ee7fb64070
+  - uv_77660fe196f56226f446b100
+  - uv_7e328b119565947fdcceb951
+  - uv_9b1b59278e2c4954739f92bd
+  - uv_b03cada70effc64103e86d77
+  - uv_bec7ab9f301d0654e88e5a0f
+  - uv_df0f282260144707cdd53929

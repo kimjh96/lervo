@@ -32,6 +32,12 @@ const versionTwoRouteIds = [
 
 const versionThreeRouteIds = [...versionTwoRouteIds, "operating_liveness.inspect"];
 
+const versionFourRouteIds = [
+  ...versionThreeRouteIds,
+  "assignment_message_trigger.route",
+  "assignment_handoff.acknowledge",
+];
+
 function parsed(result) {
   assert.equal(result.stderr, "");
   return JSON.parse(result.stdout);
@@ -159,5 +165,61 @@ export async function verifyPackedProductHostCapabilities(runCli) {
     },
   );
   assert.equal(versionThree.projections.includes("operating_liveness"), true);
-  return versionThree;
+  const versionFour = parsed(
+    await runCli(["application", "capabilities", "--protocol", "4", "--json"]),
+  );
+  assert.equal(versionFour.schemaVersion, 4);
+  assert.deepEqual(versionFour.protocol, {
+    transport: "local_cli",
+    version: 4,
+    discoveryCommand: ["application", "capabilities", "--protocol", "4", "--json"],
+    requiresHub: false,
+  });
+  assert.deepEqual(
+    versionFour.routes.map((route) => route.routeId),
+    versionFourRouteIds,
+  );
+  assert.deepEqual(
+    versionFour.routes.find((route) => route.routeId === "assignment_thread.inspect"),
+    {
+      routeId: "assignment_thread.inspect",
+      area: "collaboration",
+      operation: "query",
+      contractVersion: 2,
+      resultContract: "assignment_communication_report_v2",
+      command: ["loop", "thread", "--contract", "2", "--assignment", "<assignment-id>", "--json"],
+      output: "json",
+      effect: "none",
+      authority: "read_only",
+      availability: "available",
+    },
+  );
+  assert.deepEqual(versionFour.routes.slice(-2), [
+    {
+      routeId: "assignment_message_trigger.route",
+      area: "collaboration",
+      operation: "command",
+      contractVersion: 1,
+      resultContract: "assignment_message_trigger_result",
+      command: ["assignment", "trigger"],
+      output: "json",
+      effect: "repository_write",
+      authority: "exact_plan_apply",
+      availability: "available",
+    },
+    {
+      routeId: "assignment_handoff.acknowledge",
+      area: "collaboration",
+      operation: "command",
+      contractVersion: 1,
+      resultContract: "assignment_handoff_acknowledgement_result",
+      command: ["assignment", "acknowledge"],
+      output: "json",
+      effect: "repository_write",
+      authority: "explicit_write",
+      availability: "available",
+    },
+  ]);
+  assert.equal(versionFour.projections.includes("assignment_acknowledgements"), true);
+  return versionFour;
 }

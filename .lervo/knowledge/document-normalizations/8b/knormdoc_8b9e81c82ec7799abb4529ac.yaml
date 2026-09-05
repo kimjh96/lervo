@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_74a8fccb26a7cd2aeb55c749
+outputLanguage: en
+outputs:
+  - byteCount: 1120
+    contentHash: sha256:941ef3eadbebf5a49bd51cd788323d25fcf57cf0784dcb6c21647880448b67a9
+    path: docs/specifications/execution/events-and-privacy/workforce-events/root-agent-liveness.md
+    userRegionHash: sha256:941ef3eadbebf5a49bd51cd788323d25fcf57cf0784dcb6c21647880448b67a9
+profile: specification_document
+recordId: knormdoc_8b9e81c82ec7799abb4529ac
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:23e7e1721f016c7d87cfb96fcf8f7540e3aee4186b2f56b536db5181c2f0e8dc
+sourcePath: docs/specifications/execution/events-and-privacy/workforce-events/root-agent-liveness.md
+sourceUnitVersionIds:
+  - uv_ffaec25b67f2f2f937608c5a

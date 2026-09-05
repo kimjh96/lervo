@@ -5,6 +5,8 @@ import type {
   ProductHostCapabilityReportV3,
 } from "@lervo/application-contract";
 
+import { upgradeProductHostCapabilityReportV4 } from "./product-host-capabilities-v4.js";
+
 function createProductHostCapabilityReportV1(): ProductHostCapabilityReportV1 {
   return {
     schemaVersion: 1,
@@ -374,9 +376,10 @@ function createProductHostCapabilityReportV3(): ProductHostCapabilityReportV3 {
 }
 
 export function createProductHostCapabilityReport(
-  protocolVersion: 1 | 2 | 3 = 1,
+  protocolVersion: 1 | 2 | 3 | 4 = 1,
 ): ProductHostCapabilityReport {
   if (protocolVersion === 1) return createProductHostCapabilityReportV1();
   if (protocolVersion === 2) return createProductHostCapabilityReportV2();
-  return createProductHostCapabilityReportV3();
+  if (protocolVersion === 3) return createProductHostCapabilityReportV3();
+  return upgradeProductHostCapabilityReportV4(createProductHostCapabilityReportV3());
 }

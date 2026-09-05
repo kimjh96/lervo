@@ -2,9 +2,9 @@
 
 Status: `complete`
 
-As of: 2026-09-03
+As of: 2026-09-05
 
-Completion covers only the bounded manual v1 slices below. Native provider session resume, general runtime heartbeat, goal lifecycle, dynamic topology, and unattended Prime-Agent-style continuation remain in the [product outcome convergence roadmap](product-outcome-convergence.md).
+Completion covers only the bounded manual slices below. Root-agent and managed-provider liveness and the read-only repository-goal lifecycle are installed. Native provider session resume, independent goal mutation, dynamic topology, and unattended Prime-Agent-style continuation remain in the [product outcome convergence roadmap](product-outcome-convergence.md).
 
 ## Goal
 
@@ -19,7 +19,7 @@ manual trigger -> verified checkpoint -> assignment decision -> managed attempt
 
 - [Execution and authority](governed-loop-assignment-graph/execution.md): GLA1–3 and GLA17; graph decisions, approval, cancellation, prepared completion, and resource budgets.
 - [Operating reports and product host](governed-loop-assignment-graph/operating.md): GLA4–5 and GLA14–16; local board, objective, observed budgets, capabilities, attention, and goal projection.
-- [Collaboration and connectors](governed-loop-assignment-graph/collaboration.md): GLA6–8 and GLA11; interactions, routines, authenticated delivery, and Slack.
+- [Collaboration and connectors](governed-loop-assignment-graph/collaboration.md): GLA6–8, GLA11, and GLA18; interactions, routines, authenticated delivery, Slack, reviewed message triggering, and explicit acknowledgment.
 - [Improvement observation](governed-loop-assignment-graph/improvement.md): GLA9–10 and GLA12–13; reviewed effects, bounded local metrics, and explicit CLI authority.
 
 ## Responsibility boundaries
@@ -71,9 +71,11 @@ Events, CAS artifacts, assignment state, verification, and repository state rema
 - [ADR-0361](../decisions/execution/applications/0361-project-operating-attention-without-new-authority.md)
 - [ADR-0365](../decisions/execution/orchestration/governed-work/0365-project-workstream-goals-over-the-assignment-dag.md)
 - [ADR-0373](../decisions/execution/orchestration/governed-work/0373-enforce-managed-execution-dimension-and-duration-budgets.md)
+- [ADR-0375](../decisions/execution/orchestration/governed-work/0375-route-reviewed-direct-messages-and-record-explicit-handoff-acknowledgment.md)
 - [Assignment interaction specification](../specifications/execution/assignment-interactions.md)
 - [Assignment connector specification](../specifications/execution/assignment-connectors.md)
 - [Assignment routine specification](../specifications/execution/assignment-routines.md)
+- [Reviewed direct-message trigger specification](../specifications/execution/assignment-message-triggers.md)
 - [Verified improvement effects](../specifications/execution/verified-improvement-effects.md)
 - [Verified improvement-effect dogfood](../evidence/pilots/verified-improvement-effect-dogfood.md)
 - [Execution specification](../specifications/execution.md)

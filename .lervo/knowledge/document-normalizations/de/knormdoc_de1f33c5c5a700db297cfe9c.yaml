@@ -1,0 +1,51 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_36e4c86b08881d5c43d6954d
+outputLanguage: en
+outputs:
+  - byteCount: 587
+    contentHash: sha256:2fcdb88f9b30f11b6382be2dcd5566e5597536dad35f9ce2d220ae75e2e5eb07
+    path: docs/roadmap/governed-loop-assignment-graph/collaboration.md
+    userRegionHash: sha256:2fcdb88f9b30f11b6382be2dcd5566e5597536dad35f9ce2d220ae75e2e5eb07
+  - byteCount: 1705
+    contentHash: sha256:dbe1d884dd8aaba40c8859217a40258ab0889d009d14c73549a56260c07e64f5
+    path: docs/roadmap/governed-loop-assignment-graph/collaboration/gla11.md
+    userRegionHash: sha256:dbe1d884dd8aaba40c8859217a40258ab0889d009d14c73549a56260c07e64f5
+  - byteCount: 1365
+    contentHash: sha256:f0c10f246b280e59e6d3ae56e7b8e120d0e87d69e93314ce63655205dbd4113b
+    path: docs/roadmap/governed-loop-assignment-graph/collaboration/gla18.md
+    userRegionHash: sha256:f0c10f246b280e59e6d3ae56e7b8e120d0e87d69e93314ce63655205dbd4113b
+  - byteCount: 1512
+    contentHash: sha256:555dfceadcc2d33d9986de692bf7999217e9e40d0c20a987d5ab82946554e375
+    path: docs/roadmap/governed-loop-assignment-graph/collaboration/gla6.md
+    userRegionHash: sha256:555dfceadcc2d33d9986de692bf7999217e9e40d0c20a987d5ab82946554e375
+  - byteCount: 1429
+    contentHash: sha256:e478778427cad7069d187b21717490385975f0fee38df491f8c4ebd8e8474196
+    path: docs/roadmap/governed-loop-assignment-graph/collaboration/gla7.md
+    userRegionHash: sha256:e478778427cad7069d187b21717490385975f0fee38df491f8c4ebd8e8474196
+  - byteCount: 1403
+    contentHash: sha256:725ea08468b7234dd063d53ce5af627105a9b03cb88c7a50ef5f4b25ea449ec1
+    path: docs/roadmap/governed-loop-assignment-graph/collaboration/gla8.md
+    userRegionHash: sha256:725ea08468b7234dd063d53ce5af627105a9b03cb88c7a50ef5f4b25ea449ec1
+profile: roadmap_document
+recordId: knormdoc_de1f33c5c5a700db297cfe9c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d8dac8c20452115396fb10956b04fa19fcc3cd02f482d9638d8c558193ff3a59
+sourcePath: docs/roadmap/governed-loop-assignment-graph/collaboration.md
+sourceUnitVersionIds:
+  - uv_3501e31dbb20e2ea884fadca
+  - uv_453f53231314b10cc4166c29
+  - uv_6ddd69d2aeff821d3a8c5c52
+  - uv_97522c4f6d2dc3f2e9dd2848
+  - uv_9c3f4814ba6724538afd482b
+  - uv_a2c57ffb7f851be846d3c3dd

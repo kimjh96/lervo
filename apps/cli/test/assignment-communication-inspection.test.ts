@@ -162,10 +162,32 @@ describe("assignment communication inspection", () => {
       ),
     ).toBe(0);
     const applied = JSON.parse(applyOutput.stdout.join("")) as { appliedHandoffId: string };
+    const acknowledgementOutput = outputIo(root);
+    expect(
+      await runCli(
+        [
+          "assignment",
+          "acknowledge",
+          "--assignment",
+          assignment.assignmentId,
+          "--handoff",
+          applied.appliedHandoffId,
+          "--agent",
+          researcher.agentId,
+          "--write",
+          "--json",
+        ],
+        acknowledgementOutput.io,
+      ),
+    ).toBe(0);
+    const acknowledgement = JSON.parse(acknowledgementOutput.stdout.join("")) as {
+      handoff: { acknowledgedAt: string };
+    };
     const report = await inspectAssignmentCommunications({
       repositoryRoot: root,
       assignmentId: assignment.assignmentId,
       recipientAgentId: researcher.agentId,
+      contractVersion: 2,
     });
 
     expect(report.validity).toEqual({ status: "valid", reasonCodes: [] });
@@ -175,10 +197,14 @@ describe("assignment communication inspection", () => {
       toAgentId: researcher.agentId,
       routeState: "recorded",
       deliveryState: "unobserved",
+      acknowledgementState: "recorded",
+      acknowledgedAt: acknowledgement.handoff.acknowledgedAt,
     });
     expect(report.inbox[0]).toMatchObject({
       recipientAgentId: researcher.agentId,
       recipientAgentStatus: "active",
+      deliveryState: "unobserved",
+      acknowledgementState: "recorded",
     });
   });
 });

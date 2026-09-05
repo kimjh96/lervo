@@ -118,6 +118,24 @@ describe("reader-first event envelope compatibility", () => {
     ).toBe(false);
   });
 
+  it("accepts explicit handoff acknowledgement without treating it as provider telemetry", () => {
+    expect(
+      validateSchema(
+        "event",
+        envelope({
+          type: "assignment.handoff.acknowledged",
+          payload: {
+            assignmentId: `asn_${"b".repeat(24)}`,
+            handoffId: `hnd_${"c".repeat(24)}`,
+            recipientAgentId: `agt_${"d".repeat(24)}`,
+            acknowledgedAt: "2026-09-05T00:03:00.000Z",
+            assignmentRevision: 4,
+          },
+        }),
+      ).valid,
+    ).toBe(true);
+  });
+
   it("validates the new payload status and execution-mode discriminators", () => {
     const usage = {
       workId: `wrk_${"b".repeat(24)}`,

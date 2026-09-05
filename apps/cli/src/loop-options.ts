@@ -16,8 +16,8 @@ export const loopUsage = [
   "  lervo loop objective [--root <path>] [--json]",
   "  lervo loop goal [--root <path>] [--json]",
   "  lervo loop budget [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--token-metric-limit <provider>[:<scope>]:<descriptor-hash>:<metric>:<tokens>] [--duration-limit <provider>:<scope>:<stage>:<milliseconds>] [--root <path>] [--json]",
-  "  lervo loop thread --assignment <id> [--root <path>] [--json]",
-  "  lervo loop inbox --agent <id> [--root <path>] [--json]",
+  "  lervo loop thread --assignment <id> [--contract <1|2>] [--root <path>] [--json]",
+  "  lervo loop inbox --agent <id> [--contract <1|2>] [--root <path>] [--json]",
   "  lervo loop run --provider <codex|claude> --assignment <id> --agent <id> --lease <id> --path <relative-path> --verification <suite-id> [--verification <suite-id> ...] [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--token-metric-limit <provider>[:<scope>]:<descriptor-hash>:<metric>:<tokens>] [--duration-limit <provider>:<scope>:<stage>:<milliseconds>] [--root <path>] [--risk <level>] [--json] <request>",
   "  lervo loop reconcile --assignment <id> [--apply <command-id> --write] [--root <path>] [--json]",
 ].join("\n");
@@ -34,8 +34,16 @@ export type ParsedLoopOptions =
   | (LoopOptionsBase & { action: "budget" })
   | (LoopOptionsBase & { action: "objective" })
   | (LoopOptionsBase & { action: "goal" })
-  | (LoopOptionsBase & { action: "thread"; assignmentId: string })
-  | (LoopOptionsBase & { action: "inbox"; recipientAgentId: string })
+  | (LoopOptionsBase & {
+      action: "thread";
+      assignmentId: string;
+      communicationContract: 1 | 2;
+    })
+  | (LoopOptionsBase & {
+      action: "inbox";
+      recipientAgentId: string;
+      communicationContract: 1 | 2;
+    })
   | (LoopOptionsBase & { action: "status" })
   | (LoopOptionsBase & {
       action: "reconcile";
@@ -66,6 +74,12 @@ function positiveInteger(value: string | undefined, fallback: number, maximum: n
     throw new Error("A governed-loop integer exceeds its bound.");
   }
   return parsed;
+}
+
+function communicationContract(value: string | undefined): 1 | 2 {
+  if (value === undefined || value === "1") return 1;
+  if (value === "2") return 2;
+  throw new Error("--contract must be 1 or 2 for assignment communication inspection.");
 }
 
 function tokenLimits(values: string[] | undefined): GovernedTokenLimitV1[] {
@@ -158,6 +172,7 @@ export function parseLoopOptions(args: string[], cwd: string): ParsedLoopOptions
       "terminal-failure": { type: "string" },
       apply: { type: "string" },
       write: { type: "boolean" },
+      contract: { type: "string" },
     },
   });
   const dispositions = [
@@ -208,13 +223,23 @@ export function parseLoopOptions(args: string[], cwd: string): ParsedLoopOptions
     ) {
       throw new Error("Loop thread requires one assignment and is read-only.");
     }
-    return { ...base, action, assignmentId: parsed.values.assignment };
+    return {
+      ...base,
+      action,
+      assignmentId: parsed.values.assignment,
+      communicationContract: communicationContract(parsed.values.contract),
+    };
   }
   if (action === "inbox") {
     if (parsed.positionals.length > 0 || parsed.values.agent === undefined || parsed.values.write) {
       throw new Error("Loop inbox requires one recipient agent and is read-only.");
     }
-    return { ...base, action, recipientAgentId: parsed.values.agent };
+    return {
+      ...base,
+      action,
+      recipientAgentId: parsed.values.agent,
+      communicationContract: communicationContract(parsed.values.contract),
+    };
   }
   if (action === "reconcile") {
     if (

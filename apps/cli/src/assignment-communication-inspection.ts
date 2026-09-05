@@ -1,10 +1,15 @@
 import type {
   AssignmentCommunicationQueryV1,
+  AssignmentCommunicationQueryV2,
   AssignmentCommunicationReportV1,
+  AssignmentCommunicationReportV2,
 } from "@lervo/application-contract";
 import { listAgents, listAssignments } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
-import { projectAssignmentCommunications } from "@lervo/work-controller";
+import {
+  projectAssignmentCommunications,
+  projectAssignmentCommunicationsV2,
+} from "@lervo/work-controller";
 
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 
@@ -15,11 +20,15 @@ export interface InspectAssignmentCommunicationsInput {
   observedAt?: Date;
 }
 
-export type InspectAssignmentCommunications = (
-  input: InspectAssignmentCommunicationsInput,
-) => Promise<AssignmentCommunicationReportV1>;
-
-export const inspectAssignmentCommunications: InspectAssignmentCommunications = async (input) => {
+export function inspectAssignmentCommunications(
+  input: InspectAssignmentCommunicationsInput & { contractVersion: 2 },
+): Promise<AssignmentCommunicationReportV2>;
+export function inspectAssignmentCommunications(
+  input: InspectAssignmentCommunicationsInput & { contractVersion?: 1 },
+): Promise<AssignmentCommunicationReportV1>;
+export async function inspectAssignmentCommunications(
+  input: InspectAssignmentCommunicationsInput & { contractVersion?: 1 | 2 },
+): Promise<AssignmentCommunicationReportV1 | AssignmentCommunicationReportV2> {
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
     const workstream = await verifiedCurrentWorkstream(storage);
@@ -30,8 +39,8 @@ export const inspectAssignmentCommunications: InspectAssignmentCommunications = 
       listAssignments(storage.paths.repositoryRoot),
       listAgents(storage.paths.repositoryRoot),
     ]);
-    const query: AssignmentCommunicationQueryV1 = {
-      schemaVersion: 1,
+    const query = {
+      schemaVersion: input.contractVersion ?? 1,
       kind: "assignment_communication.inspect",
       projectId: storage.manifest.projectId,
       workstreamId: workstream.workstreamId,
@@ -39,8 +48,20 @@ export const inspectAssignmentCommunications: InspectAssignmentCommunications = 
       assignmentId: input.assignmentId ?? null,
       recipientAgentId: input.recipientAgentId ?? null,
     };
-    return projectAssignmentCommunications({ query, assignments, agents });
+    return query.schemaVersion === 2
+      ? projectAssignmentCommunicationsV2({
+          query: query as AssignmentCommunicationQueryV2,
+          assignments,
+          agents,
+        })
+      : projectAssignmentCommunications({
+          query: query as AssignmentCommunicationQueryV1,
+          assignments,
+          agents,
+        });
   } finally {
     await storage.close();
   }
-};
+}
+
+export type InspectAssignmentCommunications = typeof inspectAssignmentCommunications;

@@ -69,6 +69,7 @@ export const eventTypesV1 = [
   "assignment.claimed",
   "assignment.lease.renewed",
   "assignment.handoff.recorded",
+  "assignment.handoff.acknowledged",
   "assignment.cancelled",
   "assignment.completion.prepared",
   "assignment.completion.reconciled",

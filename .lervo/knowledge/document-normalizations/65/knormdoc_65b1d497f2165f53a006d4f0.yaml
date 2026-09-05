@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e8b8620efc09a3b871d3ceac
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_68ed80a2e65035d9e54a6e33
+outputLanguage: en
+outputs:
+  - byteCount: 798
+    contentHash: sha256:ad9cb019ec26d15544d11bc8acb004ac2be6556bb0f38bd9b3152fbb771a0a8a
+    path: docs/specifications/execution/events-and-privacy/workforce-events/completion-preparation.md
+    userRegionHash: sha256:ad9cb019ec26d15544d11bc8acb004ac2be6556bb0f38bd9b3152fbb771a0a8a
+profile: specification_document
+recordId: knormdoc_65b1d497f2165f53a006d4f0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e4399645b809adcb32f3e60f3d7f4b485ce806e3608fcd2384a9f27cdd1c638b
+sourcePath: docs/specifications/execution/events-and-privacy/workforce-events/completion-preparation.md
+sourceUnitVersionIds:
+  - uv_440452a7e26e97e3af9cde1e

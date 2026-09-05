@@ -1,6 +1,6 @@
-import type { AssignmentCommunicationReportV1 } from "@lervo/application-contract";
+import type { AssignmentCommunicationReport } from "@lervo/application-contract";
 
-export function formatAssignmentThreads(report: AssignmentCommunicationReportV1): string {
+export function formatAssignmentThreads(report: AssignmentCommunicationReport): string {
   const lines = [
     `Assignment threads · ${report.validity.status} · ${report.threads.length} threads`,
   ];
@@ -18,7 +18,7 @@ export function formatAssignmentThreads(report: AssignmentCommunicationReportV1)
   return `${lines.join("\n")}\n`;
 }
 
-export function formatAssignmentInbox(report: AssignmentCommunicationReportV1): string {
+export function formatAssignmentInbox(report: AssignmentCommunicationReport): string {
   const lines = [`Assignment inbox · ${report.validity.status} · ${report.inbox.length} routes`];
   for (const item of report.inbox) {
     lines.push(

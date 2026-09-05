@@ -20,6 +20,10 @@ import {
   assignmentCancellationUsage,
   runAssignmentCancellationCommand,
 } from "./assignment-cancellation-command.js";
+import {
+  assignmentHandoffAcknowledgementUsage,
+  runAssignmentHandoffAcknowledgementCommand,
+} from "./assignment-handoff-acknowledgement-command.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 
 export const workforceUsage = [
@@ -30,6 +34,7 @@ export const workforceUsage = [
   "  lervo assignment claim --assignment <id> --agent <id> --session <id> [--lease-ms <ms>] --write [--root <path>] [--json]",
   "  lervo assignment renew --assignment <id> --agent <id> --lease <id> [--lease-ms <ms>] --write [--root <path>] [--json]",
   "  lervo assignment handoff --assignment <id> --from-agent <id> --to-agent <id> --lease <id> --request-digest <sha256> --artifact <id>=<sha256> --evidence-event <id> --write [--root <path>] [--json]",
+  assignmentHandoffAcknowledgementUsage,
   assignmentCancellationUsage,
   "  lervo assignment complete --assignment <id> --agent <id> --lease <id> --verification <passed|failed> [--artifact <id>=<sha256>] [--failure-code <code>] --write [--root <path>] [--json]",
 ].join("\n");
@@ -108,6 +113,9 @@ export async function runWorkforceCommand(
 ): Promise<number> {
   if (namespace === "assignment" && args[0] === "cancel") {
     return runAssignmentCancellationCommand(args, io);
+  }
+  if (namespace === "assignment" && args[0] === "acknowledge") {
+    return runAssignmentHandoffAcknowledgementCommand(args, io);
   }
   try {
     if (namespace === "agent") return await runAgentCommand(args, io);

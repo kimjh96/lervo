@@ -7,6 +7,8 @@ import {
   type AssignmentMentionRoutePlan,
   type AssignmentMentionTarget,
   type WorkforceArtifactReference,
+  type WorkforceAssignment,
+  type WorkforceHandoffTriggerProvenance,
 } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 
@@ -22,6 +24,7 @@ export interface RouteAssignmentMentionInput {
   requestDigest: string;
   artifactReferences: WorkforceArtifactReference[];
   contextEvidenceEventIds: string[];
+  trigger?: WorkforceHandoffTriggerProvenance;
   applyPlanId?: string;
   observedAt?: Date;
 }
@@ -31,9 +34,14 @@ export interface RouteAssignmentMentionResult {
   appliedHandoffId: string | null;
 }
 
-export async function routeAssignmentMention(
+export interface InspectAssignmentMentionRouteResult {
+  plan: AssignmentMentionRoutePlan;
+  assignment: WorkforceAssignment;
+}
+
+export async function inspectAssignmentMentionRoute(
   input: RouteAssignmentMentionInput,
-): Promise<RouteAssignmentMentionResult> {
+): Promise<InspectAssignmentMentionRouteResult> {
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
     const now = input.observedAt ?? new Date();
@@ -51,21 +59,37 @@ export async function routeAssignmentMention(
     if (source === undefined) throw new Error("The mention names an unknown source agent.");
     const sourceContract = await resolveRoleContract(storage.paths.repositoryRoot, source.roleId);
     assertRoleContractBinding(sourceContract, source);
-    const plan = createAssignmentMentionRoutePlan({
-      projectId: storage.manifest.projectId,
-      workstreamId: workstream.workstreamId,
+    return {
       assignment,
-      agents,
-      sourceAllowedRoleIds: [...sourceContract.definition.profile.handoff.allowedRoleIds].sort(),
-      fromAgentId: input.fromAgentId,
-      leaseId: input.leaseId,
-      target: input.target,
-      requestDigest: input.requestDigest,
-      artifactReferences: input.artifactReferences,
-      contextEvidenceEventIds: input.contextEvidenceEventIds,
-      observedAt: now.toISOString(),
-    });
-    if (input.applyPlanId === undefined) return { plan, appliedHandoffId: null };
+      plan: createAssignmentMentionRoutePlan({
+        projectId: storage.manifest.projectId,
+        workstreamId: workstream.workstreamId,
+        assignment,
+        agents,
+        sourceAllowedRoleIds: [...sourceContract.definition.profile.handoff.allowedRoleIds].sort(),
+        fromAgentId: input.fromAgentId,
+        leaseId: input.leaseId,
+        target: input.target,
+        requestDigest: input.requestDigest,
+        artifactReferences: input.artifactReferences,
+        contextEvidenceEventIds: input.contextEvidenceEventIds,
+        observedAt: now.toISOString(),
+      }),
+    };
+  } finally {
+    await storage.close();
+  }
+}
+
+export async function routeAssignmentMention(
+  input: RouteAssignmentMentionInput,
+): Promise<RouteAssignmentMentionResult> {
+  const inspected = await inspectAssignmentMentionRoute(input);
+  const { plan } = inspected;
+  if (input.applyPlanId === undefined) return { plan, appliedHandoffId: null };
+  const storage = await openProjectStorage(input.repositoryRoot);
+  try {
+    const now = input.observedAt ?? new Date();
     if (plan.planId !== input.applyPlanId) {
       throw new Error("The assignment mention route plan is stale.");
     }
@@ -81,6 +105,7 @@ export async function routeAssignmentMention(
       requestDigest: plan.requestDigest,
       artifactReferences: plan.artifactReferences,
       contextEvidenceEventIds: plan.contextEvidenceEventIds,
+      ...(input.trigger === undefined ? {} : { trigger: input.trigger }),
       now,
       recordEvent: (event) => recordWorkforceEvent(storage, event),
     });
