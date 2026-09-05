@@ -55,6 +55,7 @@ export const developmentPatternTransitionedEventPayloadSchema = {
     candidateContentHash: { anyOf: [sha256Schema, { type: "null" }] },
     reviewArtifactId: { anyOf: [artifactIdSchema, { type: "null" }] },
     reviewContentHash: { anyOf: [sha256Schema, { type: "null" }] },
+    supersededByPatternId: { anyOf: [patternIdSchema, { type: "null" }] },
     targetKind: {
       type: "string",
       enum: [

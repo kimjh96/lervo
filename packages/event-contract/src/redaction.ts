@@ -370,6 +370,7 @@ export const eventPayloadAllowlists = {
     "candidateContentHash",
     "reviewArtifactId",
     "reviewContentHash",
+    "supersededByPatternId",
     "targetKind",
     "approvalHash",
     "occurredAt",

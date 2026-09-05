@@ -16,6 +16,7 @@ export interface PatternProjection {
   candidateContentHash: string | null;
   reviewArtifactId: string | null;
   reviewContentHash: string | null;
+  supersededByPatternId: string | null;
   targetKind: string;
   occurrenceCount: number;
   updatedAt: string;
@@ -52,6 +53,7 @@ export function projectPatterns(events: readonly EventEnvelope[]): PatternProjec
       candidateContentHash: null,
       reviewArtifactId: null,
       reviewContentHash: null,
+      supersededByPatternId: null,
       targetKind: "unknown",
       occurrenceCount: 0,
       updatedAt: event.occurredAt,
@@ -74,6 +76,9 @@ export function projectPatterns(events: readonly EventEnvelope[]): PatternProjec
         const value = event.payload[field];
         if (typeof value === "string") current[field] = value;
       }
+      const supersededByPatternId = event.payload.supersededByPatternId;
+      if (typeof supersededByPatternId === "string" || supersededByPatternId === null)
+        current.supersededByPatternId = supersededByPatternId;
     }
     current.updatedAt = event.occurredAt;
     current.providers.sort();

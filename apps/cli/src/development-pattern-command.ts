@@ -7,7 +7,6 @@ import {
   applyDevelopmentPatternPromotion,
   createDevelopmentPatternCandidate,
   createDevelopmentPatternPromotionPlan,
-  createDevelopmentPatternReview,
   publicDevelopmentPatternPromotionPlan,
   scanConfiguredRepositoryKnowledge,
   sha256,
@@ -20,12 +19,12 @@ import {
 import {
   allPatternEvents,
   appendPatternEvent,
-  patternArtifactId,
   patternArtifactJson,
   projectPatterns,
   writePatternProjection,
 } from "./development-pattern-storage.js";
 import { recordDevelopmentPatternObservation } from "./development-pattern-observation.js";
+import { runDevelopmentPatternReviewCommand } from "./development-pattern-review-command.js";
 import { passedWorkflowVerificationEvidence } from "./development-pattern-verification.js";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import type { CliIo } from "./types.js";
@@ -107,100 +106,6 @@ async function status(args: string[], io: CliIo): Promise<number> {
       parsed.values.json
         ? `${JSON.stringify({ schemaVersion: 1, patterns }, null, 2)}\n`
         : `${patterns.map((item) => `${item.patternId}: ${item.state}; providers ${item.providers.join(", ") || "none"}`).join("\n")}${patterns.length === 0 ? "No development patterns.\n" : "\n"}`,
-    );
-    return 0;
-  } finally {
-    await storage.close();
-  }
-}
-
-async function review(args: string[], io: CliIo): Promise<number> {
-  const parsed = parseArgs({
-    args,
-    strict: true,
-    allowPositionals: true,
-    options: {
-      decision: { type: "string" },
-      reviewer: { type: "string" },
-      approval: { type: "string" },
-      "superseded-by": { type: "string" },
-      root: { type: "string" },
-      json: { type: "boolean" },
-    },
-  });
-  if (parsed.positionals.length !== 1) throw new Error("Pattern review requires one pattern ID.");
-  if (!(["accept", "reject", "defer", "supersede"] as unknown[]).includes(parsed.values.decision))
-    throw new Error("Pattern review decision is invalid.");
-  const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
-  const storage = await openProjectStorage(repositoryRoot);
-  try {
-    const pattern = projectPatterns(allPatternEvents(storage)).find(
-      (item) => item.patternId === parsed.positionals[0],
-    );
-    if (pattern?.candidateContentHash === null || pattern?.candidateContentHash === undefined)
-      throw new Error("Pattern candidate was not found.");
-    if (parsed.values.approval !== pattern.candidateContentHash)
-      throw new Error("Review approval must equal the exact candidate content hash.");
-    if (!["candidate", "deferred"].includes(pattern.state))
-      throw new Error("The pattern is not reviewable from its current state.");
-    const now = new Date().toISOString();
-    const result = createDevelopmentPatternReview({
-      patternId: pattern.patternId,
-      candidateContentHash: pattern.candidateContentHash,
-      decision: parsed.values.decision as DevelopmentPatternReview["decision"],
-      reviewer: parsed.values.reviewer ?? "",
-      ...(parsed.values["superseded-by"] === undefined
-        ? {}
-        : { supersededByPatternId: parsed.values["superseded-by"] }),
-      reviewedAt: now,
-    });
-    const stored = await storage.artifacts.put(result.content);
-    if (stored.contentHash !== result.contentHash) throw new Error("Pattern review CAS mismatch.");
-    const common = {
-      patternId: pattern.patternId,
-      candidateArtifactId: pattern.candidateArtifactId,
-      candidateContentHash: pattern.candidateContentHash,
-      reviewArtifactId: patternArtifactId(result.contentHash),
-      reviewContentHash: result.contentHash,
-      targetKind: pattern.targetKind,
-      approvalHash: sha256(pattern.candidateContentHash),
-      occurredAt: now,
-    };
-    appendPatternEvent(storage, {
-      type: "development.pattern.transitioned",
-      occurredAt: now,
-      payload: {
-        ...common,
-        transitionId: stableId("dptr", { patternId: pattern.patternId, state: "reviewed", now }),
-        fromState: pattern.state,
-        toState: "reviewed",
-      },
-    });
-    if (result.review.decision !== "accept")
-      appendPatternEvent(storage, {
-        type: "development.pattern.transitioned",
-        occurredAt: now,
-        payload: {
-          ...common,
-          transitionId: stableId("dptr", {
-            patternId: pattern.patternId,
-            state: result.review.decision,
-            now,
-          }),
-          fromState: "reviewed",
-          toState:
-            result.review.decision === "reject"
-              ? "rejected"
-              : result.review.decision === "defer"
-                ? "deferred"
-                : "superseded",
-        },
-      });
-    const patterns = projectPatterns(allPatternEvents(storage));
-    await writePatternProjection(repositoryRoot, patterns);
-    const output = patterns.find((item) => item.patternId === pattern.patternId)!;
-    io.stdout(
-      `${parsed.values.json ? JSON.stringify(output, null, 2) : `Development pattern ${output.patternId}: ${output.state}.`}\n`,
     );
     return 0;
   } finally {
@@ -316,7 +221,7 @@ export async function runDevelopmentPatternCommand(args: string[], io: CliIo): P
     const action = args[0];
     if (action === "propose") return await propose(args.slice(1), io);
     if (action === "status") return await status(args.slice(1), io);
-    if (action === "review") return await review(args.slice(1), io);
+    if (action === "review") return await runDevelopmentPatternReviewCommand(args.slice(1), io);
     if (action === "promote") return await promote(args.slice(1), io);
     throw new Error("Specify pattern propose, status, review, or promote.");
   } catch (error) {

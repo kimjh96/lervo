@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1b93faddabc97d78784563c9
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_04ef45fb5a7477c52da20951
+outputLanguage: en
+outputs:
+  - byteCount: 297
+    contentHash: sha256:7f21f7d0d16dba50f57977713ecb49ae869b48f8107b6f9b277706ea364b65a5
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/canonical-knowledge-and-authority.md
+    userRegionHash: sha256:7f21f7d0d16dba50f57977713ecb49ae869b48f8107b6f9b277706ea364b65a5
+  - byteCount: 594
+    contentHash: sha256:976fcde8eab03f52a8b8dc9cfe2527e4967e1116777425c3d638088183309210
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/canonical-knowledge-and-authority/durable-knowledge.md
+    userRegionHash: sha256:976fcde8eab03f52a8b8dc9cfe2527e4967e1116777425c3d638088183309210
+  - byteCount: 451
+    contentHash: sha256:1c2553038a971582823636917687d55997fd412f9772a3ddff2085198a951681
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/canonical-knowledge-and-authority/human-authority.md
+    userRegionHash: sha256:1c2553038a971582823636917687d55997fd412f9772a3ddff2085198a951681
+profile: roadmap_document
+recordId: knormdoc_837ff399dff9400cac4dce17
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e8f21224c627f0403a4452c48776816e08da310cad83ac88e37bb57430090fe4
+sourcePath: docs/roadmap/product-outcome-convergence/repository-knowledge/canonical-knowledge-and-authority.md
+sourceUnitVersionIds:
+  - uv_33edd5febea9e89b90e429a7
+  - uv_6ba7fb2d3c603bde5f9c8dc0
+  - uv_f1da2263c6569232531368c1

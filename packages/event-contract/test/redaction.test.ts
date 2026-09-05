@@ -3,6 +3,28 @@ import { describe, expect, it } from "vitest";
 import { RedactionError, sanitizeEventPayload } from "../src/index.js";
 
 describe("event payload privacy boundary", () => {
+  it("retains the bounded replacement coordinate for pattern supersession", () => {
+    const payload = {
+      transitionId: `dptr_${"a".repeat(24)}`,
+      patternId: `pattern_${"b".repeat(24)}`,
+      fromState: "reviewed",
+      toState: "superseded",
+      candidateArtifactId: `art_${"c".repeat(64)}`,
+      candidateContentHash: `sha256:${"c".repeat(64)}`,
+      reviewArtifactId: `art_${"d".repeat(64)}`,
+      reviewContentHash: `sha256:${"d".repeat(64)}`,
+      supersededByPatternId: `pattern_${"e".repeat(24)}`,
+      targetKind: "portable_skill",
+      approvalHash: `sha256:${"f".repeat(64)}`,
+      occurredAt: "2026-09-05T00:00:00.000Z",
+    };
+
+    expect(sanitizeEventPayload("development.pattern.transitioned", payload)).toEqual({
+      payload,
+      redactions: [],
+    });
+  });
+
   it("keeps bounded effect coordinates while excluding adapter-private evidence", () => {
     const payload = {
       comparisonId: `iecomparison_${"a".repeat(24)}`,

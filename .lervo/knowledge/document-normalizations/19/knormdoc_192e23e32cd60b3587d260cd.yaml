@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1b93faddabc97d78784563c9
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fe653cbd53a535a6ad3f9d5d
+outputLanguage: en
+outputs:
+  - byteCount: 3598
+    contentHash: sha256:25e5a4dcc1706c1eb80ca0406df90457058bfc0ea6d76584e9c9bdbddea3178a
+    path: docs/decisions/knowledge/repository/canonicalization/0370-bind-portable-skill-supersession-and-promotion-rollback.md
+    userRegionHash: sha256:25e5a4dcc1706c1eb80ca0406df90457058bfc0ea6d76584e9c9bdbddea3178a
+profile: decision_record
+recordId: knormdoc_192e23e32cd60b3587d260cd
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a12ec2f8cfb5a46cf8b13a49d67d32341d34ba2213ae901c58371ec1a5882203
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0370-bind-portable-skill-supersession-and-promotion-rollback.md
+sourceUnitVersionIds:
+  - uv_040b6d007f1cd0e3abe2cb21
+  - uv_04ce64c7b52c04cca1409b0d
+  - uv_20ea1c42d71952c319dc3d55
+  - uv_976cc31af7ba54b4de844c74
+  - uv_ceb195e5955ab8b2e46883fc
+  - uv_e44c5509bca052bbe0349ab5

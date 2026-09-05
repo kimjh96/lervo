@@ -229,6 +229,12 @@ export function createDevelopmentPatternReview(input: {
     input.decision === "supersede" ? supersededByPatternId === null : supersededByPatternId !== null
   )
     throw new Error("Only a supersede review may name the replacement pattern.");
+  if (
+    supersededByPatternId !== null &&
+    (!/^pattern_[a-f0-9]{24}$/u.test(supersededByPatternId) ||
+      supersededByPatternId === input.patternId)
+  )
+    throw new Error("A superseding pattern coordinate must name a distinct pattern.");
   const review: DevelopmentPatternReview = {
     schemaVersion: 1,
     patternId: input.patternId,

@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1b93faddabc97d78784563c9
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0d5a7352371e84837f30ec3b
+outputLanguage: en
+outputs:
+  - byteCount: 819
+    contentHash: sha256:4721e5d2aab68bba8c380713e444da7c59db16e2e46a36f1601c4e57431fb654
+    path: docs/specifications/execution/capabilities/resolution-and-activation.md
+    userRegionHash: sha256:4721e5d2aab68bba8c380713e444da7c59db16e2e46a36f1601c4e57431fb654
+  - byteCount: 933
+    contentHash: sha256:80fe2cef1a29a2d3bef1b94c8429c80e376edaaa1d93464def42e99ffd511af1
+    path: docs/specifications/execution/capabilities/resolution-and-activation/managed-execution-evidence.md
+    userRegionHash: sha256:80fe2cef1a29a2d3bef1b94c8429c80e376edaaa1d93464def42e99ffd511af1
+  - byteCount: 975
+    contentHash: sha256:1f90898a78a43ed81d08c0ee2a78d90a0fa9700bca859acbbcd39a33212e257b
+    path: docs/specifications/execution/capabilities/resolution-and-activation/runtime-and-activation-contracts.md
+    userRegionHash: sha256:1f90898a78a43ed81d08c0ee2a78d90a0fa9700bca859acbbcd39a33212e257b
+  - byteCount: 336
+    contentHash: sha256:1ced3ba87ae5b31911e612f522ad23046068932cbb2345ce196ef26620a4a839
+    path: docs/specifications/execution/capabilities/resolution-and-activation/workforce-authority.md
+    userRegionHash: sha256:1ced3ba87ae5b31911e612f522ad23046068932cbb2345ce196ef26620a4a839
+profile: specification_document
+recordId: knormdoc_fe80e39a1d65393fd3d253b2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:243b3c8f1bcb3f3e68db30206a51bf3143296b5374eb8ea9840fac42da04352d
+sourcePath: docs/specifications/execution/capabilities/resolution-and-activation.md
+sourceUnitVersionIds:
+  - uv_986f6a6db4903efb59062d53
+  - uv_b5d14eb6ff6a396dd331852f
+  - uv_ce6a14581a40a703d99c2804
+  - uv_d74d408ab22301eac2a82fd0

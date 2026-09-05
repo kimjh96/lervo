@@ -50,9 +50,8 @@ async function passedVerification(runCli, cli, root, env, suffix) {
   };
 }
 
-async function promoteCandidate(input) {
-  const proposalPath = resolve(input.root, ".lervo/state/installed-portable-skill-proposal.json");
-  const proposal = {
+function portableSkillProposal(input) {
+  return {
     schemaVersion: 1,
     title: "Installed repository testing workflow",
     summary: "Reuse two independently verified installed repository workflows.",
@@ -115,6 +114,13 @@ async function promoteCandidate(input) {
       ],
     },
   };
+}
+
+async function observeCandidate(input, proposal, name) {
+  const proposalPath = resolve(
+    input.root,
+    `.lervo/state/installed-portable-skill-proposal-${name}.json`,
+  );
   await writeFile(proposalPath, `${JSON.stringify(proposal, null, 2)}\n`);
   const observed = JSON.parse(
     (
@@ -131,35 +137,74 @@ async function promoteCandidate(input) {
     ).stdout,
   );
   assert.equal(observed.state, "candidate");
+  return observed;
+}
+
+async function reviewCandidate(input, candidate, decision, supersededBy) {
   const reviewed = JSON.parse(
     (
       await input.runCli(input.cli, input.root, [
         "knowledge",
         "pattern",
         "review",
-        observed.patternId,
+        candidate.patternId,
         "--decision",
-        "accept",
+        decision,
         "--reviewer",
         "lervo.acceptance",
         "--approval",
-        observed.candidateContentHash,
+        candidate.candidateContentHash,
+        ...(supersededBy === undefined ? [] : ["--superseded-by", supersededBy]),
         "--json",
       ])
     ).stdout,
   );
-  assert.equal(reviewed.state, "reviewed");
-  const promotion = JSON.parse(
+  return reviewed;
+}
+
+async function planPromotion(input, patternId) {
+  return JSON.parse(
     (
       await input.runCli(input.cli, input.root, [
         "knowledge",
         "pattern",
         "promote",
-        observed.patternId,
+        patternId,
         "--json",
       ])
     ).stdout,
   );
+}
+
+async function stalePromotionPlan(input, patternId) {
+  try {
+    await planPromotion(input, patternId);
+  } catch (error) {
+    assert.equal(error.code, 1);
+    return JSON.parse(error.stdout);
+  }
+  assert.fail("A stale portable-skill promotion unexpectedly succeeded.");
+}
+
+async function promoteCandidate(input) {
+  const proposal = portableSkillProposal(input);
+  const staleCandidate = await observeCandidate(input, proposal, "stale");
+  assert.equal((await reviewCandidate(input, staleCandidate, "accept")).state, "reviewed");
+  await writeFile(
+    resolve(input.root, "workflows/a.md"),
+    "# Workflow A\n\nRun the project check and retain exact evidence.\n",
+  );
+  const stale = await stalePromotionPlan(input, staleCandidate.patternId);
+  assert.equal(stale.status, "blocked");
+  assert.deepEqual(stale.blockers, ["source_snapshot_changed"]);
+
+  const observed = await observeCandidate(input, proposal, "replacement");
+  const superseded = await reviewCandidate(input, staleCandidate, "supersede", observed.patternId);
+  assert.equal(superseded.state, "superseded");
+  assert.equal(superseded.supersededByPatternId, observed.patternId);
+  assert.equal((await reviewCandidate(input, observed, "accept")).state, "reviewed");
+
+  const promotion = await planPromotion(input, observed.patternId);
   assert.equal(promotion.status, "ready");
   const receipt = JSON.parse(
     (

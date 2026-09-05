@@ -95,7 +95,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:8a03c7d094fdfa577bf115117907a85d6dc3c7cdad0f92feeb3484c06e138dff",
+      "contentHash": "sha256:a9f378e30d3d7e95ea6e43fa06a5c803855ecd508ecd44949e6ab952c0fee6db",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
       "disposition": "cohesive"

@@ -1,13 +1,16 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { applyInitPlan, createInitPlan } from "@lervo/project";
+
 import {
   createDevelopmentPatternCandidate,
   createDevelopmentPatternPromotionPlan,
   createDevelopmentPatternReview,
+  applyDevelopmentPatternPromotion,
   publicDevelopmentPatternPromotionPlan,
   sha256,
   type DevelopmentPatternProposal,
@@ -223,5 +226,74 @@ describe("portable-skill development-pattern candidates", () => {
     expect(JSON.stringify(publicDevelopmentPatternPromotionPlan(plan))).not.toContain(
       "Run the reviewed checks",
     );
+  });
+
+  it("rolls back all package files on finalization failure and preserves conflicting bytes", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-portable-skill-rollback-"));
+    roots.push(root);
+    await applyInitPlan(await createInitPlan({ root, projectId: "prj_candidate01" }));
+    const evidence = [verification("a"), verification("b")];
+    const candidate = createDevelopmentPatternCandidate({
+      proposal: proposal(evidence),
+      scan: scan(),
+      passedVerificationEvidence: evidence,
+    });
+    const review = createDevelopmentPatternReview({
+      patternId: candidate.candidate.patternId,
+      candidateContentHash: candidate.contentHash,
+      decision: "accept",
+      reviewer: "repository-maintainer",
+      reviewedAt: "2026-09-05T01:00:00.000Z",
+    });
+    const plan = await createDevelopmentPatternPromotionPlan({
+      repositoryRoot: root,
+      projectId: "prj_candidate01",
+      candidate: candidate.candidate,
+      candidateContentHash: candidate.contentHash,
+      review: review.review,
+      reviewContentHash: review.contentHash,
+      currentScan: scan(),
+      passedVerificationEvidence: evidence,
+    });
+    expect(plan.status).toBe("ready");
+
+    await expect(
+      applyDevelopmentPatternPromotion({
+        plan,
+        approval: plan.planId,
+        receipt: { status: "not-recorded" },
+        recordApplied: () => {
+          throw new Error("simulated event failure");
+        },
+      }),
+    ).rejects.toThrow(/rolled back/u);
+    for (const operation of plan.operations)
+      await expect(readFile(resolve(root, operation.path))).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+
+    const target = resolve(root, candidate.candidate.target.path);
+    await mkdir(resolve(target, ".."), { recursive: true });
+    await writeFile(target, "# Maintainer-owned skill\n");
+    const conflict = await createDevelopmentPatternPromotionPlan({
+      repositoryRoot: root,
+      projectId: "prj_candidate01",
+      candidate: candidate.candidate,
+      candidateContentHash: candidate.contentHash,
+      review: review.review,
+      reviewContentHash: review.contentHash,
+      currentScan: scan(),
+      passedVerificationEvidence: evidence,
+    });
+    expect(conflict).toMatchObject({ status: "blocked", blockers: ["target_conflict"] });
+    await expect(
+      applyDevelopmentPatternPromotion({
+        plan: conflict,
+        approval: conflict.planId,
+        receipt: {},
+        recordApplied: () => undefined,
+      }),
+    ).rejects.toThrow(/promotion is blocked/u);
+    expect(await readFile(target, "utf8")).toBe("# Maintainer-owned skill\n");
   });
 });

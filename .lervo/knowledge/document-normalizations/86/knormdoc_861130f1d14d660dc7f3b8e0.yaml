@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1b93faddabc97d78784563c9
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b0ee915a59440be3d6cc24e4
+outputLanguage: en
+outputs:
+  - byteCount: 632
+    contentHash: sha256:984b921a5e72f5ee25cd143629640d24e09c18f0db3e144b5888fa0581b1694a
+    path: docs/specifications/execution/capabilities/local-package-contract.md
+    userRegionHash: sha256:984b921a5e72f5ee25cd143629640d24e09c18f0db3e144b5888fa0581b1694a
+  - byteCount: 696
+    contentHash: sha256:6ff253c92781763d25951a0c2823f3e0fb135e9f14bfa4dce486a7c7e76f92b5
+    path: docs/specifications/execution/capabilities/local-package-contract/discovery-and-selection.md
+    userRegionHash: sha256:6ff253c92781763d25951a0c2823f3e0fb135e9f14bfa4dce486a7c7e76f92b5
+  - byteCount: 425
+    contentHash: sha256:3764ed81454ca57e3d1a3e8a4529571b301ad1cde4e2bb63ddee7c10d578dde0
+    path: docs/specifications/execution/capabilities/local-package-contract/reader-and-secret-constraints.md
+    userRegionHash: sha256:3764ed81454ca57e3d1a3e8a4529571b301ad1cde4e2bb63ddee7c10d578dde0
+  - byteCount: 393
+    contentHash: sha256:32882147c893161fd639fb33661d2a607fc6ed03a0f9a924d4e96fd73c7d067c
+    path: docs/specifications/execution/capabilities/local-package-contract/storage-and-installation.md
+    userRegionHash: sha256:32882147c893161fd639fb33661d2a607fc6ed03a0f9a924d4e96fd73c7d067c
+profile: specification_document
+recordId: knormdoc_861130f1d14d660dc7f3b8e0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e6e246302f05dfa25e4002d4923fc11427f5ef4e18585ac3161f9dac2f8b7f91
+sourcePath: docs/specifications/execution/capabilities/local-package-contract.md
+sourceUnitVersionIds:
+  - uv_09f6328d9e11b1b72c32b839
+  - uv_25cadf73c50927035a876a6b
+  - uv_7a77e3b5ab328cf6a00c3ba0
+  - uv_bf0cbab79d68699e5ebfa7c6

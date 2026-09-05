@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1b93faddabc97d78784563c9
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e1cd5b91479de3f57e4cb408
+outputLanguage: en
+outputs:
+  - byteCount: 563
+    contentHash: sha256:67f1cb2cb98e5106a6c2c37c16f56e18ed7c2a9c84dd7462805567bcca153f4a
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/retrieval-and-capabilities.md
+    userRegionHash: sha256:67f1cb2cb98e5106a6c2c37c16f56e18ed7c2a9c84dd7462805567bcca153f4a
+  - byteCount: 693
+    contentHash: sha256:efb568d7907c37cec13f74ef597c653b63d2b3e05740fb9bb37e17a562bf54f0
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/retrieval-and-capabilities/capability-discovery.md
+    userRegionHash: sha256:efb568d7907c37cec13f74ef597c653b63d2b3e05740fb9bb37e17a562bf54f0
+  - byteCount: 337
+    contentHash: sha256:dfe68b70b3834e5baf626daea13eb8308b48d0fd6735bf299301d6f6a857b432
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/retrieval-and-capabilities/current-document-retrieval.md
+    userRegionHash: sha256:dfe68b70b3834e5baf626daea13eb8308b48d0fd6735bf299301d6f6a857b432
+  - byteCount: 249
+    contentHash: sha256:7d03b6a5b6116983fd3ecd18f083c130583c6a2a29041af95f5b7eb3a87c52ec
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/retrieval-and-capabilities/evidence-states.md
+    userRegionHash: sha256:7d03b6a5b6116983fd3ecd18f083c130583c6a2a29041af95f5b7eb3a87c52ec
+profile: roadmap_document
+recordId: knormdoc_2d445ac20f33d8d40606956b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b8ed50a6000b41ebb689ec0525cbd285da0c44a5df7ffb83bd1006cbc9dee0ba
+sourcePath: docs/roadmap/product-outcome-convergence/repository-knowledge/retrieval-and-capabilities.md
+sourceUnitVersionIds:
+  - uv_1d94e650792d788cef452295
+  - uv_73a61b0271f308931e950511
+  - uv_c5d568ff05216f0fcc4f5458
+  - uv_e000be4f38967077fef1f890

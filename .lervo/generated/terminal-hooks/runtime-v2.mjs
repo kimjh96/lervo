@@ -38650,6 +38650,7 @@ var developmentPatternTransitionedEventPayloadSchema = {
     candidateContentHash: { anyOf: [sha256Schema, { type: "null" }] },
     reviewArtifactId: { anyOf: [artifactIdSchema, { type: "null" }] },
     reviewContentHash: { anyOf: [sha256Schema, { type: "null" }] },
+    supersededByPatternId: { anyOf: [patternIdSchema, { type: "null" }] },
     targetKind: {
       type: "string",
       enum: [
@@ -47341,6 +47342,7 @@ var eventPayloadAllowlists = {
     "candidateContentHash",
     "reviewArtifactId",
     "reviewContentHash",
+    "supersededByPatternId",
     "targetKind",
     "approvalHash",
     "occurredAt"
@@ -53564,6 +53566,11 @@ function extractYamlKeySpans(source) {
 // packages/repository-knowledge/dist/skill-contract-source-units.js
 import { dirname as dirname5, resolve as resolve18 } from "node:path";
 
+// packages/skills/dist/package-reader.js
+import { constants as constants6 } from "node:fs";
+import { lstat as lstat11, open as open6, readdir as readdir6 } from "node:fs/promises";
+import { basename as basename4, relative as relative2, resolve as resolve17, sep as sep2 } from "node:path";
+
 // packages/skills/dist/content-hash.js
 import { createHash as createHash10 } from "node:crypto";
 var MAXIMUM_FILES = 256;
@@ -53599,13 +53606,7 @@ var SkillResolutionError = class extends Error {
   }
 };
 
-// packages/skills/dist/lock.js
-var MAX_LOCK_BYTES = 4 * 1024 * 1024;
-
 // packages/skills/dist/package-reader.js
-import { constants as constants6 } from "node:fs";
-import { lstat as lstat11, open as open6, readdir as readdir6 } from "node:fs/promises";
-import { basename as basename4, relative as relative2, resolve as resolve17, sep as sep2 } from "node:path";
 var MANIFEST_NAME = "lervo-skill.json";
 var MAX_PACKAGE_FILES = 256;
 var MAX_PACKAGE_BYTES = 16 * 1024 * 1024;
@@ -53677,6 +53678,12 @@ async function hashSkillPackage(directoryPath) {
     bytes: await regularFile(path)
   }))));
 }
+
+// packages/skills/dist/authorization-filesystem.js
+var MAXIMUM_MANIFEST_BYTES = 1024 * 1024;
+
+// packages/skills/dist/lock.js
+var MAX_LOCK_BYTES = 4 * 1024 * 1024;
 
 // packages/repository-knowledge/dist/skill-contract-source-units.js
 var SKILL_CONTRACT_SOURCE_UNIT_ADAPTER = "lervo-skill-contract-v1+skill-schema-v1";
@@ -64053,10 +64060,45 @@ function createPackage(input) {
     throw new Error("The proposed portable-skill contract is invalid.");
   const manifestContent = `${JSON.stringify(manifest, null, 2)}
 `;
+  const capabilityManifest = {
+    schemaVersion: 1,
+    capabilityId: input.contract.capabilityId,
+    kind: "skill",
+    version: input.contract.version,
+    contentHash: packageContentHash,
+    source: {
+      kind: "project",
+      uri: directory,
+      publisher: structuredClone(manifest.source.publisher)
+    },
+    compatibility: {
+      providers: structuredClone(input.contract.providerCompatibility),
+      minimumRuntimeVersion: input.contract.minimumRuntimeVersion,
+      platforms: [...input.contract.platforms]
+    },
+    requiredPermissions: [
+      ...input.contract.requiredCapabilities
+    ],
+    dependencies: structuredClone(input.contract.dependencies),
+    ...input.contract.discovery === void 0 ? {} : { discovery: structuredClone(input.contract.discovery) },
+    entrypoint: {
+      kind: "skill",
+      skillId: input.contract.skillId,
+      manifestPath: "lervo-skill.json"
+    },
+    activation: "explicit",
+    publication: { defaultVisibility: "local", secretMaterial: "excluded" }
+  };
+  if (!validateSchema("capabilityPackageManifest", capabilityManifest).valid)
+    throw new Error("The proposed portable-skill capability package is invalid.");
+  const capabilityManifestContent = `${JSON.stringify(capabilityManifest, null, 2)}
+`;
   return {
     packageContentHash,
     manifestContent,
     manifestContentHash: sha2562(manifestContent),
+    capabilityManifestContent,
+    capabilityManifestContentHash: sha2562(capabilityManifestContent),
     resources: structuredClone(input.contract.resources)
   };
 }
@@ -70727,6 +70769,7 @@ function projectPatterns(events) {
       candidateContentHash: null,
       reviewArtifactId: null,
       reviewContentHash: null,
+      supersededByPatternId: null,
       targetKind: "unknown",
       occurrenceCount: 0,
       updatedAt: event.occurredAt
@@ -70749,6 +70792,9 @@ function projectPatterns(events) {
         const value = event.payload[field2];
         if (typeof value === "string") current[field2] = value;
       }
+      const supersededByPatternId = event.payload.supersededByPatternId;
+      if (typeof supersededByPatternId === "string" || supersededByPatternId === null)
+        current.supersededByPatternId = supersededByPatternId;
     }
     current.updatedAt = event.occurredAt;
     current.providers.sort();

@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1b93faddabc97d78784563c9
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ed88d3a850f005c568fc12c2
+outputLanguage: en
+outputs:
+  - byteCount: 456
+    contentHash: sha256:0eed8023ca037f2e78e1eba1a346a4e1fd42b2124d45268a3531bf5abf08902a
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/reusable-patterns.md
+    userRegionHash: sha256:0eed8023ca037f2e78e1eba1a346a4e1fd42b2124d45268a3531bf5abf08902a
+  - byteCount: 493
+    contentHash: sha256:8fa69371421048949223d4406a6211f4d6f6a0ad5c513e3221bc65de62e241ff
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/reusable-patterns/later-effects.md
+    userRegionHash: sha256:8fa69371421048949223d4406a6211f4d6f6a0ad5c513e3221bc65de62e241ff
+  - byteCount: 1224
+    contentHash: sha256:ce1fb8f6c6f75dfb72c4a67e754e8ac574897f5d3409a2847c04a362fbc4136a
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/reusable-patterns/portable-skill-candidates.md
+    userRegionHash: sha256:ce1fb8f6c6f75dfb72c4a67e754e8ac574897f5d3409a2847c04a362fbc4136a
+profile: roadmap_document
+recordId: knormdoc_f8808b47c6cd97af007b4fc5
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:686063c9b6668985af303e17bc996a1833d4fa3f1282a82d820a57026c03d6e7
+sourcePath: docs/roadmap/product-outcome-convergence/repository-knowledge/reusable-patterns.md
+sourceUnitVersionIds:
+  - uv_2af02e3e5f1c4d0588763e0e
+  - uv_3ba7cd69d441c0dd6275c2b5
+  - uv_3c1bd4f617d4f5cf0b017449

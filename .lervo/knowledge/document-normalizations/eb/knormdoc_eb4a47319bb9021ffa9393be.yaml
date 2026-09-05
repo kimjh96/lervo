@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1b93faddabc97d78784563c9
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e199d4bc72040d5fe823a998
+outputLanguage: en
+outputs:
+  - byteCount: 502
+    contentHash: sha256:afb81b2bf878917b84520a9549f10701a36e936497f05fc838eb1e7d2d294381
+    path: docs/specifications/execution/capabilities/evidence-and-privacy.md
+    userRegionHash: sha256:afb81b2bf878917b84520a9549f10701a36e936497f05fc838eb1e7d2d294381
+profile: specification_document
+recordId: knormdoc_eb4a47319bb9021ffa9393be
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:afb81b2bf878917b84520a9549f10701a36e936497f05fc838eb1e7d2d294381
+sourcePath: docs/specifications/execution/capabilities/evidence-and-privacy.md
+sourceUnitVersionIds:
+  - uv_1785bd440ac79ae1038c46d7
