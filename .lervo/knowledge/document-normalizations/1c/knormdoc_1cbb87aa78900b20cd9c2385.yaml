@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_08b9faa8b095362f834ac506
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_28ad6e1ba899b44248b483ca
+outputLanguage: en
+outputs:
+  - byteCount: 3664
+    contentHash: sha256:659701b332aa525c244d2892fbd3739f75018c1e7aed8fc104ec09b53233097b
+    path: docs/decisions/execution/orchestration/0372-observe-managed-provider-process-state-through-adapters.md
+    userRegionHash: sha256:659701b332aa525c244d2892fbd3739f75018c1e7aed8fc104ec09b53233097b
+profile: decision_record
+recordId: knormdoc_1cbb87aa78900b20cd9c2385
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0ba742e20407acf4534caab3317610e58c87ae213263cbf769849ce5460aaae2
+sourcePath: docs/decisions/execution/orchestration/0372-observe-managed-provider-process-state-through-adapters.md
+sourceUnitVersionIds:
+  - uv_010dfcea4f7572527aa43ea9
+  - uv_1fe23ffb618ac68cd1655df3
+  - uv_7871565cdda7b7a8131fc976
+  - uv_b59128886edff1cfaaec4317
+  - uv_d795d07137a09025e97744f9

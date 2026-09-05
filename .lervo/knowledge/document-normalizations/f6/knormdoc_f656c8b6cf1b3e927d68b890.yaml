@@ -1,7 +1,7 @@
 byteOwnership:
   owner: reviewer
   rewritePolicy: reviewed_exact
-candidateId: knorm_d9ec21d288be16b8b4db496a
+candidateId: knorm_08b9faa8b095362f834ac506
 compiler:
   compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
   compilerId: lervo.codex.document-normalizer
@@ -9,20 +9,20 @@ compiler:
   isolation: external_no_capabilities
   provider: codex
 formatVersion: lervo.document.v1
-operationId: knormop_08a19571f9d352ac8d8f13bb
+operationId: knormop_d07cab0b2a3bf54ddf3ab89a
 outputLanguage: en
 outputs:
-  - byteCount: 1538
-    contentHash: sha256:a62dbbbcfa67d5aeb02807aa70e1ce5a326bf40ba5ef8db2d530c6cea5500679
+  - byteCount: 1633
+    contentHash: sha256:81c82992b7ad79af52e23f44b205c70a139944fc08aa624e209729f0b50d7f9f
     path: docs/specifications/execution/events-and-privacy.md
-    userRegionHash: sha256:a62dbbbcfa67d5aeb02807aa70e1ce5a326bf40ba5ef8db2d530c6cea5500679
+    userRegionHash: sha256:81c82992b7ad79af52e23f44b205c70a139944fc08aa624e209729f0b50d7f9f
 profile: specification_document
-recordId: knormdoc_31fdfd4a81e2cf5e2a8ba6c9
+recordId: knormdoc_f656c8b6cf1b3e927d68b890
 resourceBindings: []
 schemaVersion: 2
-sourceContentHash: sha256:a62dbbbcfa67d5aeb02807aa70e1ce5a326bf40ba5ef8db2d530c6cea5500679
+sourceContentHash: sha256:81c82992b7ad79af52e23f44b205c70a139944fc08aa624e209729f0b50d7f9f
 sourcePath: docs/specifications/execution/events-and-privacy.md
 sourceUnitVersionIds:
-  - uv_65f73198b3cea8a2efec7065
-  - uv_a2c58e0cdac1e3d4227dea8f
-  - uv_cdc2c0aace8cc62b7b9d763f
+  - uv_418b9265f6cb3d798c2380d2
+  - uv_60bf415e72de73a56bb2e2b0
+  - uv_f04cfd958d6db95eebc446a0

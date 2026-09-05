@@ -36949,6 +36949,93 @@ var adapterContractMessageSchema = {
   ]
 };
 
+// packages/schemas/dist/adapter-process-observation.js
+var adapterProcessObservationStatusSchema = {
+  type: "string",
+  enum: ["running", "exited", "unobservable"]
+};
+var adapterProcessObservationEvidenceSchema = {
+  type: "string",
+  enum: ["owned_process_state", "transport_state_unavailable", "no_managed_process"]
+};
+var processObservationProperties = {
+  status: adapterProcessObservationStatusSchema,
+  evidence: adapterProcessObservationEvidenceSchema,
+  observedAt: timestampSchema
+};
+var processObservationDiscriminator = {
+  oneOf: [
+    {
+      properties: {
+        status: { enum: ["running", "exited"] },
+        evidence: { const: "owned_process_state" }
+      },
+      required: ["status", "evidence"]
+    },
+    {
+      properties: {
+        status: { const: "unobservable" },
+        evidence: { enum: ["transport_state_unavailable", "no_managed_process"] }
+      },
+      required: ["status", "evidence"]
+    }
+  ]
+};
+var adapterProcessObservationSchema = {
+  type: "object",
+  properties: {
+    kind: { const: "process_observation" },
+    schemaVersion: { const: 1 },
+    adapterId: adapterIdSchema,
+    projectId: projectIdSchema,
+    runId: runIdSchema,
+    sessionId: sessionIdSchema,
+    providerSessionId: { type: "string", minLength: 1 },
+    ...processObservationProperties
+  },
+  required: [
+    "kind",
+    "schemaVersion",
+    "adapterId",
+    "projectId",
+    "runId",
+    "sessionId",
+    "providerSessionId",
+    "status",
+    "evidence",
+    "observedAt"
+  ],
+  allOf: [processObservationDiscriminator],
+  additionalProperties: false
+};
+var providerProcessObservedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/provider-process-observed-event-payload.schema.json",
+  type: "object",
+  properties: {
+    adapterId: adapterIdSchema,
+    providerSessionDigest: sha256Schema,
+    phase: { type: "string", enum: ["session_started", "turn_terminal", "before_stop"] },
+    ...processObservationProperties,
+    releasesAgentAuthority: { const: false },
+    releasesAssignmentAuthority: { const: false },
+    provesWorkProgress: { const: false }
+  },
+  required: [
+    "adapterId",
+    "providerSessionDigest",
+    "phase",
+    "status",
+    "evidence",
+    "observedAt",
+    "releasesAgentAuthority",
+    "releasesAssignmentAuthority",
+    "provesWorkProgress"
+  ],
+  allOf: [processObservationDiscriminator],
+  additionalProperties: false
+};
+
 // packages/schemas/dist/agent-liveness-event.js
 var agentLivenessObservedEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -39955,6 +40042,7 @@ var eventTypesV1 = [
 var eventTypesV2 = [
   ...eventTypesV1,
   "agent.liveness.observed",
+  "provider.process.observed",
   "work.causality.recorded",
   "resource.usage.recorded",
   "execution.stages.observed"
@@ -46732,6 +46820,8 @@ ajv.addSchema(organizationNodeRollbackDeliveryReceiptSchema);
 ajv.addSchema(organizationNodeRollbackRecoveryReceiptSchema);
 var validators = {
   agentLivenessObservedEventPayload: ajv.compile(agentLivenessObservedEventPayloadSchema),
+  adapterProcessObservation: ajv.compile(adapterProcessObservationSchema),
+  providerProcessObservedEventPayload: ajv.compile(providerProcessObservedEventPayloadSchema),
   capabilityPackageManifest: ajv.compile(capabilityPackageManifestSchema),
   capabilityLock: ajv.compile(capabilityLockSchema),
   mcpRuntimeDescriptor: ajv.compile(mcpRuntimeDescriptorSchema),
@@ -47129,6 +47219,17 @@ var eventPayloadAllowlists = {
     "reportingProvider",
     "providerSessionDigest",
     "observedAt"
+  ],
+  "provider.process.observed": [
+    "adapterId",
+    "providerSessionDigest",
+    "phase",
+    "status",
+    "evidence",
+    "observedAt",
+    "releasesAgentAuthority",
+    "releasesAssignmentAuthority",
+    "provesWorkProgress"
   ],
   "assignment.created": [
     "assignmentId",
@@ -47819,6 +47920,7 @@ function sanitizeEventPayload(type, payload) {
 }
 var eventPayloadSchemas = {
   "agent.liveness.observed": "agentLivenessObservedEventPayload",
+  "provider.process.observed": "providerProcessObservedEventPayload",
   "capability.activated": "capabilityActivatedEventPayload",
   "context.recommended": "contextRecommendationEventPayload",
   "context.injected": "managedContextInjectedEventPayload",
@@ -74493,6 +74595,7 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
   nextRequestId = 1;
   closed = false;
   exited = false;
+  processStateUnavailable = false;
   constructor(process2, requestTimeoutMs) {
     this.process = process2;
     this.requestTimeoutMs = requestTimeoutMs;
@@ -74519,6 +74622,18 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
       await client.close();
       throw error;
     }
+  }
+  inspectProcess() {
+    if (this.exited || this.process.exitCode !== null || this.process.signalCode !== null) {
+      return { status: "exited", evidence: "owned_process_state" };
+    }
+    if (this.processStateUnavailable) {
+      return {
+        status: "unobservable",
+        evidence: "transport_state_unavailable"
+      };
+    }
+    return { status: "running", evidence: "owned_process_state" };
   }
   async startThread(options) {
     const result = requiredRecord(await this.request("thread/start", {
@@ -74669,6 +74784,7 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
     if (this.exited)
       return;
     this.exited = didExit;
+    this.processStateUnavailable ||= !didExit;
     const error = new CodexAdapterError("provider_process_failed", "The Codex app-server process has exited.");
     this.rejectPending(error);
     if (this.closed)

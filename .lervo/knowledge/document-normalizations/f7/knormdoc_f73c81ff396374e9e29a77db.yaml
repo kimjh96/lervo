@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_08b9faa8b095362f834ac506
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3aaf8029a9b76312ba4485f7
+outputLanguage: en
+outputs:
+  - byteCount: 1689
+    contentHash: sha256:a9589b628fdcc85dd1b8f0383a387734a224e1663bbda49f1b9755505daa831d
+    path: docs/specifications/execution/events-and-privacy/provider-process-observations.md
+    userRegionHash: sha256:a9589b628fdcc85dd1b8f0383a387734a224e1663bbda49f1b9755505daa831d
+profile: specification_document
+recordId: knormdoc_f73c81ff396374e9e29a77db
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e16e5465b4c007ef1d6e20fdeb8f7a9137ecc27b40c5476308695378cfc42a66
+sourcePath: docs/specifications/execution/events-and-privacy/provider-process-observations.md
+sourceUnitVersionIds:
+  - uv_14ba66f0e7daa970e674aa36
+  - uv_3df09568516b652759e8b41b
+  - uv_b30d55e9d3f9e9986a03f0d4

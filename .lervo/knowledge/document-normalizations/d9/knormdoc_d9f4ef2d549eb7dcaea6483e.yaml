@@ -1,0 +1,42 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_08b9faa8b095362f834ac506
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_090a44ffac71700caa5ecc4b
+outputLanguage: en
+outputs:
+  - byteCount: 897
+    contentHash: sha256:8577e408fcf28a9ea16cd91e49601e39963ea24eecbd55ac3aecfd127ebcc524
+    path: docs/specifications/execution/provider-adapters.md
+    userRegionHash: sha256:8577e408fcf28a9ea16cd91e49601e39963ea24eecbd55ac3aecfd127ebcc524
+  - byteCount: 2313
+    contentHash: sha256:7c087332b5108f9403a1de494c87186dc45792532e2b729a6d04fdde9f4fd0ae
+    path: docs/specifications/execution/provider-adapters/publication.md
+    userRegionHash: sha256:7c087332b5108f9403a1de494c87186dc45792532e2b729a6d04fdde9f4fd0ae
+  - byteCount: 5195
+    contentHash: sha256:ac47072399f5a0a9ca66d50cec5804757d0cd6cc4f874a439c7ecfff29356c88
+    path: docs/specifications/execution/provider-adapters/telemetry.md
+    userRegionHash: sha256:ac47072399f5a0a9ca66d50cec5804757d0cd6cc4f874a439c7ecfff29356c88
+  - byteCount: 1342
+    contentHash: sha256:e1be1a2b27e1956302b56ee00a89ef6c3ce1388b4d9d8148a108b55a8643e640
+    path: docs/specifications/execution/provider-adapters/terminal-integration.md
+    userRegionHash: sha256:e1be1a2b27e1956302b56ee00a89ef6c3ce1388b4d9d8148a108b55a8643e640
+profile: specification_document
+recordId: knormdoc_d9f4ef2d549eb7dcaea6483e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ccb6bdc732e3e52507b06a6a8877afaf55e06e5199fd7a33ee9c431cbeb1624c
+sourcePath: docs/specifications/execution/provider-adapters.md
+sourceUnitVersionIds:
+  - uv_03330233515185a1a4605d41
+  - uv_03410dc3d8db29a0b397bf3d
+  - uv_186683db53e895b53adb7972
+  - uv_933e7964423e476e4d9ff179
+  - uv_9728d5ba1176265c696fa07b
