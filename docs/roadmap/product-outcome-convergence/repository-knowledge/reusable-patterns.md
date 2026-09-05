@@ -1,4 +1,4 @@
 # Reusable patterns and portable-skill candidates
 
-- [Reusable patterns and later effects](reusable-patterns/later-effects.md): partial; proposal, review, promotion, and bounded local metrics exist, but later-effect attribution remains open.
-- [Portable-skill candidates](reusable-patterns/portable-skill-candidates.md): partial; the installed review-through-completion journey is current, but installed post-promotion-effect observation remains required.
+- [Reusable patterns and later effects](reusable-patterns/later-effects.md): implemented; reviewed promotion and exact later observations retain unestablished attribution.
+- [Portable-skill candidates](reusable-patterns/portable-skill-candidates.md): implemented through installed candidacy, supersession, promotion, execution, and explicit post-promotion observation.

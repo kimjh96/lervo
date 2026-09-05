@@ -2,53 +2,12 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { registerInstalledPortableSkillBaseline } from "./installed-portable-skill-effect.mjs";
+import { runInstalledVerificationBatch } from "./installed-portable-skill-verification.mjs";
+
 export const installedPortableSkillRequest = "Use the packaged repository testing workflow";
 export const installedPortableSkillInstructions =
   "---\nname: installed-testing\ndescription: Use the packaged repository testing workflow.\n---\n\n# Capability skill\n\nUse the exact managed skill route.\n";
-
-function event(trace, type) {
-  return trace.events.find((item) => item.type === type);
-}
-
-async function passedVerification(runCli, cli, root, env, suffix) {
-  const execution = await runCli(
-    cli,
-    root,
-    [
-      "run",
-      "--provider",
-      "codex",
-      "--path",
-      "src/result.ts",
-      "--verification",
-      "project.default",
-      "--json",
-      `Verify independent installed workflow ${suffix}`,
-    ],
-    {
-      ...env,
-      LERVO_INSTALLED_CAPABILITY_CHANGE_KIND: suffix === "a" ? "add" : "update",
-      LERVO_INSTALLED_CAPABILITY_CONTENT: `export const verifiedWorkflow = ${JSON.stringify(suffix)};\n`,
-      LERVO_INSTALLED_CAPABILITY_RESULT: `Independent workflow ${suffix} verified.`,
-    },
-  );
-  const outcome = JSON.parse(execution.stdout);
-  assert.equal(outcome.verificationStatus, "passed");
-  const trace = JSON.parse((await runCli(cli, root, ["trace", outcome.runId, "--json"])).stdout);
-  const completed = event(trace, "verification.completed");
-  assert.ok(completed, `Verification evidence for workflow ${suffix} is missing.`);
-  assert.equal(completed.payload.status, "passed");
-  return {
-    independentGroup: `installed-workflow-${suffix}`,
-    eventId: completed.eventId,
-    eventHash: completed.eventHash,
-    runId: completed.runId,
-    verificationId: completed.payload.verificationId,
-    suiteHash: completed.payload.suiteHash,
-    repositoryRevision: completed.payload.repositoryRevision,
-    resultContentHash: completed.payload.resultContentHash,
-  };
-}
 
 function portableSkillProposal(input) {
   return {
@@ -202,7 +161,15 @@ async function promoteCandidate(input) {
   const superseded = await reviewCandidate(input, staleCandidate, "supersede", observed.patternId);
   assert.equal(superseded.state, "superseded");
   assert.equal(superseded.supersededByPatternId, observed.patternId);
-  assert.equal((await reviewCandidate(input, observed, "accept")).state, "reviewed");
+  const reviewed = await reviewCandidate(input, observed, "accept");
+  assert.equal(reviewed.state, "reviewed");
+  const effect = await registerInstalledPortableSkillBaseline({
+    ...input,
+    patternId: observed.patternId,
+    candidateContentHash: observed.candidateContentHash,
+    reviewContentHash: reviewed.reviewContentHash,
+    targetContent: installedPortableSkillInstructions,
+  });
 
   const promotion = await planPromotion(input, observed.patternId);
   assert.equal(promotion.status, "ready");
@@ -221,7 +188,11 @@ async function promoteCandidate(input) {
     ).stdout,
   );
   assert.equal(receipt.changedFiles, 4);
-  return { patternId: observed.patternId, candidateContentHash: observed.candidateContentHash };
+  return {
+    patternId: observed.patternId,
+    candidateContentHash: observed.candidateContentHash,
+    effect,
+  };
 }
 
 async function authorizeAndMigrate(input) {
@@ -282,12 +253,17 @@ export async function prepareInstalledPortableSkillCandidate(input) {
     writeFile(resolve(input.root, "workflows/a.md"), "# Workflow A\n\nRun the project check.\n"),
     writeFile(resolve(input.root, "workflows/b.md"), "# Workflow B\n\nRun the project check.\n"),
   ]);
-  const verification = [];
-  for (const suffix of ["a", "b"])
-    verification.push(
-      await passedVerification(input.runCli, input.cli, input.root, input.env, suffix),
-    );
-  const candidate = await promoteCandidate({ ...input, verification });
+  const baseline = await runInstalledVerificationBatch(input, [
+    "a",
+    "b",
+    ...Array.from({ length: 8 }, (_, index) => `baseline-${index + 3}`),
+  ]);
+  const verification = baseline.evidence.slice(0, 2);
+  const candidate = await promoteCandidate({
+    ...input,
+    verification,
+    baselineWindow: baseline.window,
+  });
   const authorization = await authorizeAndMigrate(input);
   return {
     manifest: { capabilityId: "repository/installed_testing" },

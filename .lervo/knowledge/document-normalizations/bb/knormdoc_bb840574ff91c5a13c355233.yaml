@@ -1,7 +1,7 @@
 byteOwnership:
   owner: reviewer
   rewritePolicy: reviewed_exact
-candidateId: knorm_1b93faddabc97d78784563c9
+candidateId: knorm_a2e53e45be2025b76d6167a4
 compiler:
   compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
   compilerId: lervo.codex.document-normalizer
@@ -9,23 +9,23 @@ compiler:
   isolation: external_no_capabilities
   provider: codex
 formatVersion: lervo.document.v1
-operationId: knormop_255e094d9125017c0ab5e333
+operationId: knormop_3a92b7e4d5cd4417640d66e5
 outputLanguage: en
 outputs:
-  - byteCount: 5133
-    contentHash: sha256:ad3d015f8ba006abda5cb6719d520311d3158d34a8f71dac9b41e51d7819ca6f
+  - byteCount: 5167
+    contentHash: sha256:f6150fa1c4fa2a75dce32171171a57313610f405ccba3191e5d1a6b1991d996a
     path: docs/decisions/execution/orchestration/0369-authorize-promoted-portable-skills-for-project-execution.md
-    userRegionHash: sha256:ad3d015f8ba006abda5cb6719d520311d3158d34a8f71dac9b41e51d7819ca6f
+    userRegionHash: sha256:f6150fa1c4fa2a75dce32171171a57313610f405ccba3191e5d1a6b1991d996a
 profile: decision_record
-recordId: knormdoc_712a51a59420d7f13210874d
+recordId: knormdoc_bb840574ff91c5a13c355233
 resourceBindings: []
 schemaVersion: 2
-sourceContentHash: sha256:1271f53143bce231c3818fd4107f665c6667a934ac5c8c2346629c6918d85605
+sourceContentHash: sha256:6f17e0040549618158f40ec0335784994c4584a2abf7dd8d033c17f43cace221
 sourcePath: docs/decisions/execution/orchestration/0369-authorize-promoted-portable-skills-for-project-execution.md
 sourceUnitVersionIds:
-  - uv_1560cd45645469884b76098c
-  - uv_43591e0f7ad8f25f88bc7e5b
-  - uv_7d8249b333a3d8e260e90570
-  - uv_bc35efd679d174d5f0236fcd
-  - uv_c513ed55976bdb972cbc0cfa
-  - uv_f0bcd6c9bc05dbd2787feefa
+  - uv_39beac6936a7cc3f868f2311
+  - uv_4b30716a6ce9e9eb08d7c9bb
+  - uv_862475eb1df2556270f9cff8
+  - uv_c151b1c77f13a7e98ecd4a6e
+  - uv_e59e48a9e9708a4ae35f9498
+  - uv_e79126db0ec39fdbc96840cb

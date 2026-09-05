@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a2e53e45be2025b76d6167a4
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_54a2954aca1e5c53a3975145
+outputLanguage: en
+outputs:
+  - byteCount: 1526
+    contentHash: sha256:3c1199623b1d04ba9ab97f58b5fcd7d6c3ec2d9f4c230dad8cc98ff3d200a1d6
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/reusable-patterns/portable-skill-candidates.md
+    userRegionHash: sha256:3c1199623b1d04ba9ab97f58b5fcd7d6c3ec2d9f4c230dad8cc98ff3d200a1d6
+profile: roadmap_document
+recordId: knormdoc_fde0dafe18178f6eff98b2d5
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f5949e4395e7d61a4bef3b57e3627d15e1fb262429028aa57a2b1f01f410c886
+sourcePath: docs/roadmap/product-outcome-convergence/repository-knowledge/reusable-patterns/portable-skill-candidates.md
+sourceUnitVersionIds:
+  - uv_c4b8d3bc71bfda6e5fe6a370

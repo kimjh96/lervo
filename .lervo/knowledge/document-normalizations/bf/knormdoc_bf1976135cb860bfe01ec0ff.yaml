@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a2e53e45be2025b76d6167a4
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a633ecdaf7933ae42c969377
+outputLanguage: en
+outputs:
+  - byteCount: 420
+    contentHash: sha256:71aaaba9d5b2d71ac075feba353272c8babdb91e5b37ed4b94b3366ac76ab8ad
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/reusable-patterns.md
+    userRegionHash: sha256:71aaaba9d5b2d71ac075feba353272c8babdb91e5b37ed4b94b3366ac76ab8ad
+profile: roadmap_document
+recordId: knormdoc_bf1976135cb860bfe01ec0ff
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:71aaaba9d5b2d71ac075feba353272c8babdb91e5b37ed4b94b3366ac76ab8ad
+sourcePath: docs/roadmap/product-outcome-convergence/repository-knowledge/reusable-patterns.md
+sourceUnitVersionIds:
+  - uv_df3331ac73420ba409734c57

@@ -1,7 +1,7 @@
 # Reviewed reusable patterns with observable later effects
 
-State: **partial**.
+State: **implemented**.
 
-Pattern proposal, review, promotion, and two bounded local metrics exist. Proposal and promotion are explicit; attribution remains unestablished.
+Pattern proposal, review, promotion, and two bounded local metrics exist. Proposal and promotion are explicit; attribution remains unestablished by contract.
 
-Terminal finalization creates a source-bound portable-skill development-pattern candidate only from two or more independently verified workflow groups. The installed review-through-completion happy path is current; observable later-effect attribution remains open.
+Terminal finalization creates a source-bound portable-skill development-pattern candidate only from two or more independently verified workflow groups. The installed journey registers a reviewed baseline, promotes and executes the package, and records a treatment comparison through the same adapter and metric set. Observed zero deltas authorize neither causal attribution nor rollback.

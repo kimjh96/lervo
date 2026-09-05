@@ -5,7 +5,7 @@ Date: 2026-09-05
 
 ## Context
 
-Portable-skill candidacy and promotion produced reviewed instructions, resources, and an untrusted, disabled skill manifest. Capability migration could package these bytes, but no lifecycle granted the exact trust and project scope needed for selection. Migration also synthesized an empty dependency list, preventing promoted candidates from retaining exact MCP or plugin dependencies and reaching provider-confirmed activation without manually authored package metadata.
+Portable-skill candidacy and promotion produced reviewed instructions, resources, and an untrusted, disabled skill manifest. Capability migration could package these bytes, but no lifecycle granted the exact trust and project scope required for selection. Migration also synthesized an empty dependency list, preventing promoted candidates from retaining exact MCP or plugin dependencies and reaching provider-confirmed activation without manually authored package metadata.
 
 ## Decision
 
@@ -18,7 +18,7 @@ Add `lervo capability authorize-skill` as a separate exact plan/apply boundary:
 - Apply requires the plan ID, revalidates the plan, manifest, and package content, and atomically replaces only `lervo-skill.json`.
 - Apply changes trust to `reviewed` and scope to the current project. It cannot create a verified signature, change executable content, broaden scope, install dependencies, select the skill, or activate a provider.
 
-The existing skill manifest is the canonical authorization record. Plans are caller-retained review inputs; receipts are bounded command output. This change adds no event. Plans and receipts contain repository paths, project and reviewer identifiers, timestamps, hashes, and transition names, but exclude skill bodies, resource bodies, request text, credentials, provider configuration, and user document content.
+The existing skill manifest is the canonical authorization record. Plans are caller-retained review inputs; receipts are bounded command output. This change adds no event. Plans and receipts contain repository paths, project and reviewer identifiers, timestamps, hashes, and transition names. They exclude skill bodies, resource bodies, request text, credentials, provider configuration, and user document content.
 
 Authorization failures are exact:
 
@@ -29,13 +29,13 @@ Authorization failures are exact:
 
 Every failure prevents capability migration from making the candidate executable under the requested project authority. Migration and immutable installation bind a separate whole-package hash so manifest-only changes cannot reuse an approved plan or an occupied version coordinate. The executable content hash retains its manifest-excluding meaning.
 
-Runtime compatibility uses the installed CLI version rather than a historical internal package version. This keeps `minimumRuntimeVersion` meaningful for generated skills without coupling the skill domain to CLI package loading.
+Runtime compatibility uses the installed CLI version rather than a historical internal package version, keeping `minimumRuntimeVersion` meaningful for generated skills without coupling the skill domain to CLI package loading.
 
 ## Consequences
 
 Review, materialization, execution authorization, migration, selection, dependency activation, invocation, and completion remain distinct evidence boundaries. Promoted candidates can retain exact dependency coordinates through installation and reach existing provider-confirmed activation. Loose-skill migration remains compatible, and provider behavior stays behind adapters.
 
-The installed journey also proves stale-source rejection and exact reviewed-candidate supersession before replacement promotion. The durable promotion regression proves four-file rollback on finalization failure and preservation of conflicting existing bytes. Observable post-promotion effects remain separate acceptance work; supersession does not itself rewrite promoted or installed bytes.
+The installed journey also proves stale-source rejection and exact reviewed-candidate supersession before replacement promotion. The durable promotion regression proves four-file rollback on finalization failure and preservation of conflicting existing bytes. Later acceptance registers and observes post-promotion effects through the separate effect protocol; supersession itself does not rewrite promoted or installed bytes.
 
 ## Verification
 

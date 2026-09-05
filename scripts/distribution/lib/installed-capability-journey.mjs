@@ -9,6 +9,7 @@ import {
   installedPortableSkillRequest,
   prepareInstalledPortableSkillCandidate,
 } from "./installed-portable-skill-candidate.mjs";
+import { observeInstalledPortableSkillTreatment } from "./installed-portable-skill-effect.mjs";
 
 const execute = promisify(execFile);
 
@@ -269,6 +270,14 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
   assert.equal(completed.payload.outputDigest, outcome.resultArtifact.contentHash);
   assert.equal(runCompleted.payload.resultDigest, outcome.resultArtifact.contentHash);
   assert.equal(runCompleted.payload.verificationStatus, "passed");
+  const effect = await observeInstalledPortableSkillTreatment({
+    cli,
+    root,
+    runCli,
+    env,
+    patternId: skill.patternId,
+    ...skill.effect,
+  });
   return {
     status: "passed",
     runId: outcome.runId,
@@ -276,5 +285,6 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
     skillContentHash: skill.skill.contentHash,
     dependencyId: mcp.capabilityId,
     resultDigest: outcome.resultArtifact.contentHash,
+    effect,
   };
 }

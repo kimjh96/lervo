@@ -1,13 +1,21 @@
 # Reviewed portable-skill candidates from independently verified repeated workflows
 
-State: **partial**.
+State: **implemented**.
 
-Terminal finalization bridges independently grouped current sources and distinct passed verification events into a CAS-bound portable-skill development-pattern candidate. The candidate binds bounded `SKILL.md`, resources, and input, output, tool, permission, provider, platform, and role contracts; its derived manifest is disabled and untrusted.
+Terminal finalization combines independently grouped current sources and distinct passed verification events into a CAS-bound portable-skill development-pattern candidate. The candidate binds bounded `SKILL.md`, resources, and input, output, tool, permission, provider, platform, and role contracts. Its derived manifest is disabled and untrusted.
 
-The packed installed journey performs independent verification, stale-source rejection, exact replacement supersession, development-pattern review and four-file rollback-safe promotion, exact project authorization, dependency-preserving migration, deterministic recommendation plus explicit selection, provider-confirmed dependency activation, invocation, repository verification, and digest-bound completion for the generated package.
+The packed installed journey performs:
 
-Focused failure injection proves all four created files roll back when finalization fails, and conflicting existing bytes remain unchanged. These remain separate evidence boundaries.
+1. Independent verification and stale-source rejection.
+2. Exact replacement supersession.
+3. Development-pattern review and four-file rollback-safe promotion.
+4. Exact project authorization and dependency-preserving migration.
+5. Deterministic recommendation and explicit selection.
+6. Provider-confirmed dependency activation and invocation.
+7. Repository verification and digest-bound completion for the generated package.
 
-Completion requires installed post-promotion-effect observation without inferred attribution.
+Focused failure injection proves two separate evidence boundaries: all four created files roll back when finalization fails, and conflicting existing bytes remain unchanged.
+
+Through explicit `--local-events` authority, the installed journey registers a 10-event baseline before promotion and observes a 10-event treatment window afterward. Both windows report `verification_success=10/10` and `repeated_failure=0/10`. The exact comparison is `no_material_difference`; attribution remains `unestablished`, and rollback remains `not_authorized`.
 
 Never infer candidacy from retrieval selection alone.

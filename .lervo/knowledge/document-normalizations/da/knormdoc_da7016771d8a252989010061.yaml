@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a2e53e45be2025b76d6167a4
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_62c108981f9f4028738556fd
+outputLanguage: en
+outputs:
+  - byteCount: 632
+    contentHash: sha256:896eb4ee34990e80e9123897c3c34d6990f13b284fceda3d840fa8f5e5d3a102
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/reusable-patterns/later-effects.md
+    userRegionHash: sha256:896eb4ee34990e80e9123897c3c34d6990f13b284fceda3d840fa8f5e5d3a102
+profile: roadmap_document
+recordId: knormdoc_da7016771d8a252989010061
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a06c7e379871ce978d56362329449e0932aa8c8efc5e1a00da42b81f569d414b
+sourcePath: docs/roadmap/product-outcome-convergence/repository-knowledge/reusable-patterns/later-effects.md
+sourceUnitVersionIds:
+  - uv_439033d35d6a29367f02d450

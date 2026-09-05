@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_4493a667993d7b84813aaaca
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_307fc4bbf746c0789833cbc0
+outputLanguage: en
+outputs:
+  - byteCount: 8690
+    contentHash: sha256:bdef8e9a50f7ad81911b2ff147d99f8ddd00bfe7c8580ceeb4d275b8bbfcde87
+    path: docs/evidence/foundation/installed-natural-language-capability-journey-v1.md
+    userRegionHash: sha256:bdef8e9a50f7ad81911b2ff147d99f8ddd00bfe7c8580ceeb4d275b8bbfcde87
+profile: repository_document
+recordId: knormdoc_cbaef3724fab2d6d30cdd0f0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b30d8c9ac39dc3260fd80aae67a556dcdb62f092f6ec12f719c3ea0da0eea5cd
+sourcePath: docs/evidence/foundation/installed-natural-language-capability-journey-v1.md
+sourceUnitVersionIds:
+  - uv_0ec59d6fb5650ddaf72ff785
+  - uv_185e63f0fcfcae5247478208
+  - uv_2859ce6b3e201e45ada75b8d
+  - uv_33a8ceeb414562ec018ef9d2
+  - uv_82c65647492663d42f926163
+  - uv_830b008589057305bb8264d0
+  - uv_c1dcaa6c58be34fe0da8dd6b
