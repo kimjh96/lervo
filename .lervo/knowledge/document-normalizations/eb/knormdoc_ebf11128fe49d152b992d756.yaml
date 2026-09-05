@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2c9d0abbc4a7a8175721f09f
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f8ceb9bff9fe9f56318e9ca2
+outputLanguage: en
+outputs:
+  - byteCount: 4449
+    contentHash: sha256:1b778643336b6f7deb6a9165afb54eaa976d33800f665a2c1e29f94b915f46ed
+    path: docs/specifications/execution/operating-liveness.md
+    userRegionHash: sha256:1b778643336b6f7deb6a9165afb54eaa976d33800f665a2c1e29f94b915f46ed
+profile: specification_document
+recordId: knormdoc_ebf11128fe49d152b992d756
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4e07807618e57897c8e805a57f29c2a5b1d43042e260c2f2d84e7d84191833f2
+sourcePath: docs/specifications/execution/operating-liveness.md
+sourceUnitVersionIds:
+  - uv_04e918a25aeeb8d87dd5a053
+  - uv_3879b49fe1289d8942a6d963
+  - uv_72a33b78912b3fb810a8453d
+  - uv_869f2cb965cf03dcfc611483
+  - uv_9458a5bfbf94fa3476b934b8
+  - uv_e167d0e54c93460b168f3b2d
+  - uv_f84b51dbc3cbd4c8a47c94c8

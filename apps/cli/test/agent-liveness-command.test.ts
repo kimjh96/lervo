@@ -132,6 +132,29 @@ describe("root-agent liveness CLI", () => {
         payload: heartbeat.observation,
       });
       expect(JSON.stringify(event)).not.toContain("ses_private_runtime_01");
+      const observedAt = new Date().toISOString();
+      storage.events.append({
+        eventId: "evt_process_observation_01",
+        projectId: storage.manifest.projectId,
+        runId: "run_process_observation_01",
+        sessionId: "ses_process_observation_01",
+        type: "provider.process.observed",
+        occurredAt: observedAt,
+        actor: { kind: "provider", provider: "claude" },
+        schemaVersion: 2,
+        policyVersion: `sha256:${"a".repeat(64)}`,
+        payload: {
+          adapterId: "claude-agent-sdk",
+          providerSessionDigest: `sha256:${"b".repeat(64)}`,
+          phase: "turn_terminal",
+          status: "unobservable",
+          evidence: "transport_state_unavailable",
+          observedAt,
+          releasesAgentAuthority: false,
+          releasesAssignmentAuthority: false,
+          provesWorkProgress: false,
+        },
+      });
     } finally {
       await storage.close();
     }
@@ -148,6 +171,33 @@ describe("root-agent liveness CLI", () => {
       releasesAgentAuthority: false,
       provesManagedProcessHealth: false,
     });
+
+    const operatingOutput: string[] = [];
+    expect(
+      await runCli(
+        ["application", "liveness", "--root", root, "--json"],
+        io(root, operatingOutput),
+      ),
+    ).toBe(0);
+    const operating = JSON.parse(operatingOutput.join(""));
+    expect(operating.rootAgents.items).toEqual([
+      expect.objectContaining({
+        agentId: agent.agentId,
+        status: "recently_observed",
+        provesManagedProcessHealth: false,
+      }),
+    ]);
+    expect(operating.managedProviderProcesses.items).toEqual([
+      expect.objectContaining({
+        adapterId: "claude-agent-sdk",
+        status: "unobservable",
+        evidence: "transport_state_unavailable",
+        continuity: "point_in_time_only",
+        releasesAgentAuthority: false,
+        releasesAssignmentAuthority: false,
+      }),
+    ]);
+    expect(operating.authority.startsOrStopsProvider).toBe(false);
   });
 
   it("rejects a stale root revision without appending a liveness event", async () => {

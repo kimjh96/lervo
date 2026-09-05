@@ -128,5 +128,39 @@ export interface ProductHostCapabilityReportV2 {
   unsupported: ProductHostCapabilityReportV1["unsupported"];
 }
 
+export type ProductHostRouteIdV3 = ProductHostRouteIdV2 | "operating_liveness.inspect";
+
+export type ProductHostResultContractV3 = ProductHostResultContractV2 | "operating_liveness_report";
+
+export interface ProductHostRouteV3 extends Omit<ProductHostRouteV1, "routeId" | "resultContract"> {
+  routeId: ProductHostRouteIdV3;
+  resultContract: ProductHostResultContractV3;
+}
+
+export interface ProductHostCapabilityReportV3 {
+  schemaVersion: 3;
+  kind: "product_host.capabilities";
+  protocol: {
+    transport: "local_cli";
+    version: 3;
+    discoveryCommand: ["application", "capabilities", "--protocol", "3", "--json"];
+    requiresHub: false;
+  };
+  canonicalAuthorities: ProductHostCapabilityReportV1["canonicalAuthorities"];
+  projections: [
+    "assignment_graph",
+    "governed_decision",
+    "operating_board",
+    "assignment_threads",
+    "assignment_inboxes",
+    "observed_budgets",
+    "operating_attention",
+    "operating_goal",
+    "operating_liveness",
+  ];
+  routes: ProductHostRouteV3[];
+  unsupported: ProductHostCapabilityReportV1["unsupported"];
+}
+
 export type ProductHostCapabilityReport =
-  ProductHostCapabilityReportV1 | ProductHostCapabilityReportV2;
+  ProductHostCapabilityReportV1 | ProductHostCapabilityReportV2 | ProductHostCapabilityReportV3;

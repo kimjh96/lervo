@@ -4,16 +4,14 @@ import { parseArgs } from "node:util";
 
 import {
   createRootAgentLivenessObservation,
-  isRootAgentLivenessObservation,
   listAgents,
   observeRootAgentLiveness,
-  type RootAgentLivenessObservation,
   type RootAgentReportingProvider,
 } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 import { sha256 } from "@lervo/repository-knowledge";
-import { validateSchema } from "@lervo/schemas";
 
+import { readLatestRootAgentLivenessObservations } from "./operating-liveness-event-source.js";
 import type { CliIo } from "./types.js";
 
 export const agentLivenessUsage = [
@@ -49,35 +47,6 @@ function parse(args: string[]) {
 
 function output(io: CliIo, value: unknown, json: boolean | undefined, message: string): void {
   io.stdout(json ? `${JSON.stringify(value, null, 2)}\n` : `${message}\n`);
-}
-
-function latestLivenessObservation(
-  storage: Awaited<ReturnType<typeof openProjectStorage>>,
-  agentId: string,
-): RootAgentLivenessObservation[] {
-  let latest: RootAgentLivenessObservation | null = null;
-  let afterSeq = 0;
-  while (true) {
-    const page = storage.events.list({ afterSeq, limit: 1_000 });
-    for (const event of page) {
-      afterSeq = event.seq;
-      if (event.type !== "agent.liveness.observed") continue;
-      if (
-        !validateSchema("agentLivenessObservedEventPayload", event.payload).valid ||
-        !isRootAgentLivenessObservation(event.payload)
-      )
-        throw new Error("A stored root-agent liveness event is invalid.");
-      if (
-        event.payload.agentId === agentId &&
-        (latest === null ||
-          Date.parse(event.payload.observedAt) > Date.parse(latest.observedAt) ||
-          (event.payload.observedAt === latest.observedAt &&
-            event.payload.agentRevision > latest.agentRevision))
-      )
-        latest = event.payload;
-    }
-    if (page.length < 1_000) return latest === null ? [] : [latest];
-  }
 }
 
 export async function runAgentLivenessCommand(args: string[], io: CliIo): Promise<number> {
@@ -156,7 +125,7 @@ export async function runAgentLivenessCommand(args: string[], io: CliIo): Promis
       throw new Error("Agent liveness inspection is read-only and rejects heartbeat options.");
     const storage = await openProjectStorage(root);
     try {
-      const observations = latestLivenessObservation(storage, agent.agentId);
+      const observations = readLatestRootAgentLivenessObservations(storage.events, agent.agentId);
       const liveness = observeRootAgentLiveness({
         agent,
         observations,

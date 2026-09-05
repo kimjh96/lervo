@@ -6,7 +6,7 @@ As of: 2026-09-05
 
 ## Outcome
 
-Close the gap between Lervo's Paperclip-, Buzz-, Prime Agent-, and Hermes-derived direction and installed-product scenarios. Source files, unit tests, green CI, and narrowly completed roadmap slices do not establish broader product claims.
+Close the gap between Lervo's Paperclip-, Buzz-, Prime Agent-, and Hermes-derived direction and installed-product scenarios. Source files, unit tests, green CI, and completed narrow roadmap slices do not establish broader product claims.
 
 A capability is complete only when its named user scenario runs through the installed boundary, preserves authority and evidence meanings, and has a regression test at that boundary.
 
@@ -23,7 +23,7 @@ Baseline revision: `7404d7d985d52014b12326571cf9743092103f54`
 
 Reviewed release: `v0.11.4` at `6a004be19d831d3616e75ea109c95eb8360a5da5`.
 
-Post-release reconciliation confirmed current reviewed-document state in arca-next and Shiflo, retired seven stale metadata-only canonicalization candidates whose responsibilities current canonical sources cover, and restored a clean Lervo operating-attention projection. See [v0.11.4 post-release state reconciliation](../evidence/quality/v0.11.4-post-release-state-reconciliation.md).
+Post-release reconciliation confirmed reviewed-document state in arca-next and Shiflo, retired seven stale metadata-only canonicalization candidates whose responsibilities current canonical sources cover, and restored a clean Lervo operating-attention projection. See [v0.11.4 post-release state reconciliation](../evidence/quality/v0.11.4-post-release-state-reconciliation.md).
 
 Detailed acceptance records:
 
@@ -46,11 +46,11 @@ Detailed acceptance records:
 
 Managed provider execution now enforces exact total, input, cached-input, output, reasoning-output, and per-run stage-duration budgets without estimating unmanaged whole-request usage. See [managed execution resource budgets v1](../evidence/foundation/managed-execution-resource-budgets-v1.md).
 
-1. Extend root-agent and managed-process liveness, direct-message acknowledgment, and reviewed trigger adapters as separate observable outcomes.
+1. Complete direct-message acknowledgment and reviewed trigger adapters as separate observable outcomes. Root-agent and managed-process liveness is now installed through the separate, read-only protocol-v3 operating projection.
 2. Add unattended scheduling or dynamic graph topology only after authority, budget, cancellation, uncertain-effect, migration, recovery, and kill-switch contracts pass installed acceptance.
 3. Version further product-host routes only with packed external-consumer proof; keep Paperclip-like and Buzz-like interfaces in separate hosts.
 
-The earlier sequence through attention, durable terminal outcomes, checkpointed workspace continuation, product-host protocol v2, release-impact repair, CLI README normalization, and the final `v0.11.4` release gate is complete. Post-release maintenance does not reopen those acceptance results.
+The earlier sequence through attention, durable terminal outcomes, checkpointed workspace continuation, product-host protocol v2, release-impact repair, CLI README normalization, and the final `v0.11.4` release gate is complete. Neither protocol v3's operating liveness nor post-release maintenance reopens those acceptance results.
 
 ## References
 

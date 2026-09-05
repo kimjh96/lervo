@@ -30,6 +30,8 @@ const versionTwoRouteIds = [
   "operating_goal.inspect",
 ];
 
+const versionThreeRouteIds = [...versionTwoRouteIds, "operating_liveness.inspect"];
+
 function parsed(result) {
   assert.equal(result.stderr, "");
   return JSON.parse(result.stdout);
@@ -127,5 +129,35 @@ export async function verifyPackedProductHostCapabilities(runCli) {
   );
   assert.equal(versionTwo.projections.includes("operating_attention"), true);
   assert.equal(versionTwo.projections.includes("operating_goal"), true);
-  return versionTwo;
+  const versionThree = parsed(
+    await runCli(["application", "capabilities", "--protocol", "3", "--json"]),
+  );
+  assert.equal(versionThree.schemaVersion, 3);
+  assert.deepEqual(versionThree.protocol, {
+    transport: "local_cli",
+    version: 3,
+    discoveryCommand: ["application", "capabilities", "--protocol", "3", "--json"],
+    requiresHub: false,
+  });
+  assert.deepEqual(
+    versionThree.routes.map((route) => route.routeId),
+    versionThreeRouteIds,
+  );
+  assert.deepEqual(
+    versionThree.routes.find((route) => route.routeId === "operating_liveness.inspect"),
+    {
+      routeId: "operating_liveness.inspect",
+      area: "operating",
+      operation: "query",
+      contractVersion: 1,
+      resultContract: "operating_liveness_report",
+      command: ["application", "liveness", "--json"],
+      output: "json",
+      effect: "none",
+      authority: "read_only",
+      availability: "available",
+    },
+  );
+  assert.equal(versionThree.projections.includes("operating_liveness"), true);
+  return versionThree;
 }

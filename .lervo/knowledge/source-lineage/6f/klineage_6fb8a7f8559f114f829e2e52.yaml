@@ -1,0 +1,11 @@
+fromPath: apps/cli/README/knowledge.md
+identityPath: apps/cli/README/knowledge.md
+kind: document_move
+lineageId: klineage_6fb8a7f8559f114f829e2e52
+operationId: kdocop_cab874426d12332de62902ff
+schemaVersion: 1
+sourceContentHash: sha256:887c63564c03bd8fc5089f8f70aeb879bdf5e77239fb4b752dd2cda7879f548f
+sourceId: src_5c0a2179ac93a25944c73fad
+sourceUnitBindingDigest: sha256:0efd1c704f331c0537eae2821cb75564e71bbf56cf530442a42524a0055d38f9
+sourceUnitCount: 5
+toPath: docs/knowledge/repository/knowledge.md

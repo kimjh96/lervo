@@ -2,6 +2,7 @@ import type {
   ProductHostCapabilityReport,
   ProductHostCapabilityReportV1,
   ProductHostCapabilityReportV2,
+  ProductHostCapabilityReportV3,
 } from "@lervo/application-contract";
 
 function createProductHostCapabilityReportV1(): ProductHostCapabilityReportV1 {
@@ -340,10 +341,42 @@ function createProductHostCapabilityReportV2(): ProductHostCapabilityReportV2 {
   };
 }
 
+function createProductHostCapabilityReportV3(): ProductHostCapabilityReportV3 {
+  const versionTwo = createProductHostCapabilityReportV2();
+  return {
+    schemaVersion: 3,
+    kind: "product_host.capabilities",
+    protocol: {
+      transport: "local_cli",
+      version: 3,
+      discoveryCommand: ["application", "capabilities", "--protocol", "3", "--json"],
+      requiresHub: false,
+    },
+    canonicalAuthorities: versionTwo.canonicalAuthorities,
+    projections: [...versionTwo.projections, "operating_liveness"],
+    routes: [
+      ...versionTwo.routes,
+      {
+        routeId: "operating_liveness.inspect",
+        area: "operating",
+        operation: "query",
+        contractVersion: 1,
+        resultContract: "operating_liveness_report",
+        command: ["application", "liveness", "--json"],
+        output: "json",
+        effect: "none",
+        authority: "read_only",
+        availability: "available",
+      },
+    ],
+    unsupported: versionTwo.unsupported,
+  };
+}
+
 export function createProductHostCapabilityReport(
-  protocolVersion: 1 | 2 = 1,
+  protocolVersion: 1 | 2 | 3 = 1,
 ): ProductHostCapabilityReport {
-  return protocolVersion === 1
-    ? createProductHostCapabilityReportV1()
-    : createProductHostCapabilityReportV2();
+  if (protocolVersion === 1) return createProductHostCapabilityReportV1();
+  if (protocolVersion === 2) return createProductHostCapabilityReportV2();
+  return createProductHostCapabilityReportV3();
 }

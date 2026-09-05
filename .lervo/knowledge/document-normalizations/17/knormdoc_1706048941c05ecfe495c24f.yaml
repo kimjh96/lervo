@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_006ff2315ac11b12bd93f737
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_24a6d8128202ba92b8d2c65a
+outputLanguage: en
+outputs:
+  - byteCount: 773
+    contentHash: sha256:64f9f8d05ac7482d00eccc10093c427e6befedd47af7036aa07ecadc4cee83a9
+    path: docs/execution/orchestration/execution.md
+    userRegionHash: sha256:64f9f8d05ac7482d00eccc10093c427e6befedd47af7036aa07ecadc4cee83a9
+  - byteCount: 413
+    contentHash: sha256:1db659cff3b8b4a069c4c898f767a8bfadad58e7af728763b9fe5d59027cfc30
+    path: docs/execution/orchestration/execution/capabilities.md
+    userRegionHash: sha256:1db659cff3b8b4a069c4c898f767a8bfadad58e7af728763b9fe5d59027cfc30
+  - byteCount: 685
+    contentHash: sha256:c0a8e8cc701b6c0e740fba6929afdd97950dbc08cbd77842effc1783b3f482a2
+    path: docs/execution/orchestration/execution/run-and-verify.md
+    userRegionHash: sha256:c0a8e8cc701b6c0e740fba6929afdd97950dbc08cbd77842effc1783b3f482a2
+  - byteCount: 469
+    contentHash: sha256:2d7b9c1024fa47b25fe21047df5f353ba5f31557929220603dc93215d759cb6c
+    path: docs/execution/orchestration/execution/state-and-repository-nodes.md
+    userRegionHash: sha256:2d7b9c1024fa47b25fe21047df5f353ba5f31557929220603dc93215d759cb6c
+profile: repository_document
+recordId: knormdoc_1706048941c05ecfe495c24f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:01585fb4a9f6d442030acc49de2570b15006d930af2b5946d521e41b467e936c
+sourcePath: docs/execution/orchestration/execution.md
+sourceUnitVersionIds:
+  - uv_71a7fffa0e336c4d0a361229
+  - uv_a131f6d79d8380240b1dab75
+  - uv_ab2c0fbd74a25bffa0ab6356
+  - uv_b75028b3c9fbed147a4345cf

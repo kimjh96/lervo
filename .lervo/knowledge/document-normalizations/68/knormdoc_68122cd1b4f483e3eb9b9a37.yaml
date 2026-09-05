@@ -1,0 +1,53 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1ffbe75da17ee6b42c8ee02e
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_616eb7d28699097b2c255ff1
+outputLanguage: en
+outputs:
+  - byteCount: 2003
+    contentHash: sha256:b521763c4254de38049053e7502be5921cc2914a603b3b54e4b3c6bc888aa3e9
+    path: docs/architecture/system.md
+    userRegionHash: sha256:b521763c4254de38049053e7502be5921cc2914a603b3b54e4b3c6bc888aa3e9
+  - byteCount: 5720
+    contentHash: sha256:0bc88f7f3700fe48e3ead329ee4efa08ceec09f970c1f79e4115e646ac17447e
+    path: docs/architecture/system/hub-and-nodes.md
+    userRegionHash: sha256:0bc88f7f3700fe48e3ead329ee4efa08ceec09f970c1f79e4115e646ac17447e
+  - byteCount: 1933
+    contentHash: sha256:42ab196344702b61a4119cb98ce87a205d6e1c95d554f4c78b02a1a7166e2fa6
+    path: docs/architecture/system/knowledge-and-context.md
+    userRegionHash: sha256:42ab196344702b61a4119cb98ce87a205d6e1c95d554f4c78b02a1a7166e2fa6
+  - byteCount: 4990
+    contentHash: sha256:d50234dab54a26bf2d21f158aaa72e013df94660c67e7ec2b0a4fcbf1390f851
+    path: docs/architecture/system/managed-execution.md
+    userRegionHash: sha256:d50234dab54a26bf2d21f158aaa72e013df94660c67e7ec2b0a4fcbf1390f851
+  - byteCount: 2735
+    contentHash: sha256:d31cb6fab5aa0bfe503651680160ed4557de6987f4d668debc5ff98501315163
+    path: docs/architecture/system/project-and-storage.md
+    userRegionHash: sha256:d31cb6fab5aa0bfe503651680160ed4557de6987f4d668debc5ff98501315163
+profile: architecture_document
+recordId: knormdoc_68122cd1b4f483e3eb9b9a37
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3b5c049dfbd5b12a4300bfd0c7f33f8b6e8af153a365cbd578ac75558262dc43
+sourcePath: docs/architecture/system.md
+sourceUnitVersionIds:
+  - uv_15469c857f98d8ec81189687
+  - uv_34638723fdb5e54787d6411e
+  - uv_34bc2ded2593f65d8603d0ed
+  - uv_3beb78db5bc7452c86643d2e
+  - uv_5b56d483f2aa8bf2b4b1be8f
+  - uv_84581fa641f86a787817f122
+  - uv_8f90b1d861c9d2c14932ddbc
+  - uv_96a8d2e3fcb47d57f7e0175b
+  - uv_af90b9182fb7d78e8dd35103
+  - uv_b388b441eb2a40a0411ac392
+  - uv_bacc200d7e9faa82fba7d9dc
+  - uv_d810108b3bbda8dbe1e0a644

@@ -1,12 +1,11 @@
 # Product-host protocol
 
 Status: `active`
-
-As of: 2026-09-04
+As of: 2026-09-05
 
 ## Purpose
 
-The product-host protocol lets separately installed operating or collaboration products discover and compose Lervo through the installed `@lervo/cli` process, locally without a Hub, workspace-private imports, or access to storage internals.
+The product-host protocol lets separately installed operating or collaboration products discover and compose Lervo through the installed `@lervo/cli` process, locally without a Hub, workspace-private imports, or storage-internal access.
 
 Default discovery returns the 21-route `ProductHostCapabilityReportV1`:
 
@@ -14,13 +13,19 @@ Default discovery returns the 21-route `ProductHostCapabilityReportV1`:
 lervo application capabilities --json
 ```
 
-Additive version 2 requires an explicit request:
+Additive version 2 requires an explicit request and appends read-only operating-attention and operating-goal routes and projections without changing version-1 discovery:
 
 ```bash
 lervo application capabilities --protocol 2 --json
 ```
 
-Version 2 appends read-only operating-attention and operating-goal routes and projections without changing version-1 discovery. Both reports are compatibility and discovery contracts, not authority grants, repository snapshots, or assertions that route prerequisites are satisfied.
+Additive version 3 requires an explicit request and appends the read-only operating-liveness route and projection without changing version 1 or 2 discovery:
+
+```bash
+lervo application capabilities --protocol 3 --json
+```
+
+All versions are compatibility and discovery contracts, not authority grants, repository snapshots, or assertions that route prerequisites are satisfied.
 
 ## Report contract
 
@@ -33,7 +38,7 @@ Each report contains:
 - ordered route descriptors with area, operation, stable result-contract identifier, command prefix, output, effect, authority, and availability; and
 - explicit unsupported product capabilities.
 
-Command arrays omit the executable name and repository-specific arguments. Products invoke the installed `lervo` executable, add the route's required arguments, and request its declared output. Help text is human guidance, not the machine discovery contract.
+Command arrays omit the executable name and repository-specific arguments. Products invoke the installed `lervo` executable, add required route arguments, and request its declared output. Help text is human guidance, not the machine discovery contract.
 
 ## Route inventory
 
@@ -73,6 +78,14 @@ Protocol v2 adds:
 | `operating_attention.inspect` | `application attention --json` | read-only |
 | `operating_goal.inspect` | `loop goal --json` | read-only |
 
+Protocol v3 adds:
+
+| Route | CLI prefix | Authority |
+| --- | --- | --- |
+| `operating_liveness.inspect` | `application liveness --json` | read-only |
+
+The liveness report keeps root-agent heartbeat and managed-provider process observations in separate collections. Provider-process items are latest point-in-time observations per opaque session digest, not current-health claims. `unobservable`, stale, revision-changed, and exited results grant no release or recovery authority.
+
 ### Collaboration
 
 | Route | CLI prefix | Authority |
@@ -86,7 +99,7 @@ Each route remains owned by its existing domain or adapter; the capability comma
 
 ## Authority and state
 
-Repository state, workstreams, assignments, leases, events, verification, and artifacts remain canonical. Assignment graphs, operating goals, governed decisions, operating boards, threads, inboxes, and observed budgets are rebuildable projections. Products may cache presentation state but must not turn it into assignment, approval, completion, delivery, or verification authority.
+Repository state, workstreams, assignments, leases, events, verification, and artifacts remain canonical. Assignment graphs, operating goals, governed decisions, operating boards, threads, inboxes, observed budgets, and operating liveness are rebuildable projections. Products may cache presentation state but must not turn it into assignment, approval, completion, delivery, liveness, or verification authority.
 
 An `available` route can still reject missing roles, workstreams, assignments, leases, approvals, verification, resources, or repository state. Products must preserve its exit status and typed result rather than convert an unavailable or invalid result into an empty success.
 
@@ -94,19 +107,28 @@ External connector effects remain unavailable in the stock CLI. Hosts injecting 
 
 ## Unsupported capabilities
 
-Versions 1 and 2 provide no product UI, product-owned task or chat database, unattended scheduler, dynamic graph mutation, implicit approval, or managed semantics for direct provider terminals. Consumers must not infer authority from a successful query or render. Protocol v2 attention and goal reports project existing sources and add no inbox, goal store, acknowledgment, resolution, or scheduling authority.
+Versions 1, 2, and 3 provide no product UI, product-owned task or chat database, unattended scheduler, dynamic graph mutation, implicit approval, or managed semantics for direct provider terminals. Consumers must not infer authority from a successful query or render.
+
+Protocol v2 attention and goal reports add no inbox, goal store, acknowledgment, resolution, or scheduling authority. Protocol v3 liveness adds no process controller, polling, recovery, reassignment, or lease-release authority.
 
 ## External-consumer acceptance
 
-`pnpm smoke:packed-cli` builds the real tarball, installs it into an empty temporary consumer, and runs the protocol without workspace imports. The fixture verifies the default 21-route v1 report, explicit 23-route v2 report, exact connector limitation, unsupported capabilities, absence of workspace coordinates, and absence of private Lervo package installation. Using only CLI commands, it then:
+`pnpm smoke:packed-cli` builds the real tarball, installs it into an empty temporary consumer, and runs the protocol without workspace imports. The fixture verifies:
 
-1. initializes a local repository and hires one agent;
-2. plans and applies one current workstream;
-3. creates and lists one assignment;
-4. inspects the objective, composed goal lifecycle, governed graph, and observed budgets;
-5. inspects an empty valid assignment thread and recipient inbox;
-6. renders a deterministic static operating board; and
-7. inspects current operating attention through protocol v2.
+- the default 21-route v1 report, explicit 23-route v2 report, and explicit 24-route v3 report;
+- the exact connector limitation and unsupported capabilities; and
+- absence of workspace coordinates and private Lervo package installation.
+
+Using only CLI commands, it then:
+
+1. Initializes a local repository and hires one agent.
+2. Plans and applies one current workstream.
+3. Creates and lists one assignment.
+4. Inspects the objective, composed goal lifecycle, governed graph, and observed budgets.
+5. Inspects an empty valid assignment thread and recipient inbox.
+6. Renders a deterministic static operating board.
+7. Inspects current operating attention through protocol v2.
+8. Activates the v2 event writer, records a privacy-bounded root heartbeat, and inspects operating liveness through protocol v3.
 
 Acceptance uses no Hub, provider, network route, or connector effect. Cross-platform release matrices remain responsible for broader installation evidence.
 
@@ -114,7 +136,9 @@ Acceptance uses no Hub, provider, network route, or connector effect. Cross-plat
 
 - [ADR-0355](../../decisions/execution/applications/0355-expose-versioned-packed-product-host-protocol.md)
 - [ADR-0361](../../decisions/execution/applications/0361-project-operating-attention-without-new-authority.md)
+- [ADR-0374](../../decisions/execution/applications/0374-project-operating-liveness-without-health-inference.md)
 - [Operating attention](operating-attention.md)
+- [Operating liveness](operating-liveness.md)
 - [Operating goals](operating-goals.md)
 - [Governed loop roadmap](../../roadmap/governed-loop-assignment-graph.md)
 - [Assignment interactions](assignment-interactions.md)

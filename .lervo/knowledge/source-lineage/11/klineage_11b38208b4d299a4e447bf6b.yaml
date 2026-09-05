@@ -1,0 +1,11 @@
+fromPath: apps/cli/README/execution.md
+identityPath: apps/cli/README/execution.md
+kind: document_move
+lineageId: klineage_11b38208b4d299a4e447bf6b
+operationId: kdocop_74686753aa9c1e5a57017a6e
+schemaVersion: 1
+sourceContentHash: sha256:01585fb4a9f6d442030acc49de2570b15006d930af2b5946d521e41b467e936c
+sourceId: src_549abaa4b15ebd7d62b3f653
+sourceUnitBindingDigest: sha256:e989f2bc8b2b702f2198353263615eb498d70d3b0f206878fe4c4c2b7d6699f3
+sourceUnitCount: 5
+toPath: docs/execution/orchestration/execution.md

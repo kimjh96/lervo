@@ -15,7 +15,7 @@ function parsed(result) {
 }
 
 export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
-  const capabilitiesV2 = await verifyPackedProductHostCapabilities(runCli);
+  const capabilities = await verifyPackedProductHostCapabilities(runCli);
 
   const initialAgents = parsed(await runCli(["agent", "list", "--json"]));
   assert.equal(initialAgents.schemaVersion, 1);
@@ -90,6 +90,32 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
     ]),
   );
   assert.equal(eventActivation.selectedEventSchemaVersion, 2);
+
+  const heartbeat = parsed(
+    await runCli([
+      "agent",
+      "heartbeat",
+      "--agent",
+      agentId,
+      "--revision",
+      String(agent.revision),
+      "--provider",
+      "codex",
+      "--session",
+      "ses_packed_product_host_01",
+      "--write",
+      "--json",
+    ]),
+  );
+  assert.equal(heartbeat.status, "recorded");
+  const liveness = parsed(await runCli(["application", "liveness", "--json"]));
+  assert.equal(liveness.kind, "operating_liveness.report");
+  assert.equal(liveness.rootAgents.items.length, 1);
+  assert.equal(liveness.rootAgents.items[0].agentId, agentId);
+  assert.equal(liveness.rootAgents.items[0].status, "recently_observed");
+  assert.equal(liveness.rootAgents.items[0].provesManagedProcessHealth, false);
+  assert.deepEqual(liveness.managedProviderProcesses.items, []);
+  assert.equal(liveness.authority.startsOrStopsProvider, false);
 
   const providerSessionId = "packed-canonicalization-session";
   const prepared = parsed(
@@ -318,11 +344,11 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   assert.equal(board.stdout.includes(assignment.assignmentId), true);
 
   return {
-    protocolVersion: capabilitiesV2.protocol.version,
-    routeCount: capabilitiesV2.routes.length,
-    workforceRouteCount: capabilitiesV2.routes.filter((route) => route.area === "workforce").length,
-    operatingRouteCount: capabilitiesV2.routes.filter((route) => route.area === "operating").length,
-    collaborationRouteCount: capabilitiesV2.routes.filter((route) => route.area === "collaboration")
+    protocolVersion: capabilities.protocol.version,
+    routeCount: capabilities.routes.length,
+    workforceRouteCount: capabilities.routes.filter((route) => route.area === "workforce").length,
+    operatingRouteCount: capabilities.routes.filter((route) => route.area === "operating").length,
+    collaborationRouteCount: capabilities.routes.filter((route) => route.area === "collaboration")
       .length,
   };
 }

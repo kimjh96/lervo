@@ -6,6 +6,8 @@ const AGENT_ID = /^agt_[a-f0-9]{24}$/u;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const SESSION_ID = /^ses_[A-Za-z0-9_-]{8,128}$/u;
 
+export const DEFAULT_ROOT_AGENT_LIVENESS_STALE_AFTER_MS = 2 * 60 * 1_000;
+
 export type RootAgentReportingProvider = "codex" | "claude";
 
 export interface RootAgentLivenessObservation {
@@ -59,6 +61,18 @@ function assertRootAgent(agent: WorkforceAgent): void {
     throw new Error("Root-agent liveness cannot be reported for a child agent.");
 }
 
+export function resolveRootAgentLivenessStaleAfterMs(value?: number): number {
+  const staleAfterMs = value ?? DEFAULT_ROOT_AGENT_LIVENESS_STALE_AFTER_MS;
+  if (
+    !Number.isSafeInteger(staleAfterMs) ||
+    staleAfterMs < 1_000 ||
+    staleAfterMs > 24 * 60 * 60 * 1_000
+  ) {
+    throw new Error("The root-agent liveness threshold is invalid.");
+  }
+  return staleAfterMs;
+}
+
 export function createRootAgentLivenessObservation(input: {
   agent: WorkforceAgent;
   expectedRevision: number;
@@ -97,13 +111,7 @@ export function observeRootAgentLiveness(input: {
   staleAfterMs?: number;
 }): RootAgentLiveness {
   assertRootAgent(input.agent);
-  const staleAfterMs = input.staleAfterMs ?? 2 * 60 * 1_000;
-  if (
-    !Number.isSafeInteger(staleAfterMs) ||
-    staleAfterMs < 1_000 ||
-    staleAfterMs > 24 * 60 * 60 * 1_000
-  )
-    throw new Error("The root-agent liveness threshold is invalid.");
+  const staleAfterMs = resolveRootAgentLivenessStaleAfterMs(input.staleAfterMs);
   if (!Number.isFinite(input.observedAt.getTime()))
     throw new Error("The root-agent liveness inspection time is invalid.");
 

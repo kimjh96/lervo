@@ -11,6 +11,7 @@ import { inspectGovernedWork } from "./governed-work-inspection.js";
 import { inspectOperatingObjective } from "./operating-objective-inspection.js";
 import { inspectOperatingGoal } from "./operating-goal-inspection.js";
 import { inspectOperatingAttention } from "./operating-attention-inspection.js";
+import { inspectOperatingLiveness } from "./operating-liveness-inspection.js";
 import { inspectAssignmentCommunications } from "./assignment-communication-inspection.js";
 import {
   assignmentCommunicationUsage,
@@ -96,6 +97,7 @@ const defaultServices: CliServices = {
   inspectOperatingObjective,
   inspectOperatingGoal,
   inspectOperatingAttention,
+  inspectOperatingLiveness,
   inspectAssignmentCommunications,
   finalizeGovernedAssignment,
   reconcileGovernedAssignment,

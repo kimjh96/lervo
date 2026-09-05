@@ -98,6 +98,36 @@ describe("application command", () => {
     expect(report.projections).toContain("operating_goal");
   });
 
+  it("discovers operating liveness additively through protocol version 3", async () => {
+    const output = io();
+
+    expect(
+      await runApplicationCommand(["capabilities", "--protocol", "3", "--json"], output.value),
+    ).toBe(0);
+    const report = JSON.parse(output.stdout.join(""));
+    expect(report.schemaVersion).toBe(3);
+    expect(report.protocol.discoveryCommand).toEqual([
+      "application",
+      "capabilities",
+      "--protocol",
+      "3",
+      "--json",
+    ]);
+    expect(report.routes.at(-1)).toEqual({
+      routeId: "operating_liveness.inspect",
+      area: "operating",
+      operation: "query",
+      contractVersion: 1,
+      resultContract: "operating_liveness_report",
+      command: ["application", "liveness", "--json"],
+      output: "json",
+      effect: "none",
+      authority: "read_only",
+      availability: "available",
+    });
+    expect(report.projections).toContain("operating_liveness");
+  });
+
   it("renders the injected read-only attention report", async () => {
     const output = io();
     const report = {
@@ -127,7 +157,71 @@ describe("application command", () => {
     expect(
       await runApplicationCommand(["attention", "--json"], output.value, {
         inspectOperatingAttention: async () => report,
+        inspectOperatingLiveness: async () => {
+          throw new Error("not called");
+        },
       }),
+    ).toBe(0);
+    expect(JSON.parse(output.stdout.join(""))).toEqual(report);
+    expect(output.stderr).toEqual([]);
+  });
+
+  it("renders the injected read-only liveness report", async () => {
+    const output = io();
+    const report = {
+      schemaVersion: 1 as const,
+      kind: "operating_liveness.report" as const,
+      projectId: "prj_0123456789abcdef",
+      observedAt: "2026-09-05T00:00:00.000Z",
+      reportDigest: `sha256:${"a".repeat(64)}`,
+      rootAgents: {
+        source: "agent.liveness.observed" as const,
+        staleAfterMs: 1_000,
+        items: [],
+      },
+      managedProviderProcesses: {
+        source: "provider.process.observed" as const,
+        semantics: "latest_point_in_time_observation_per_provider_session" as const,
+        maximumItems: 256,
+        totalCount: 0,
+        truncatedCount: 0,
+        items: [],
+      },
+      summary: {
+        rootAgentCount: 0,
+        rootAgentStatusCounts: {
+          inactive: 0,
+          unobserved: 0,
+          agent_revision_changed: 0,
+          recently_observed: 0,
+          stale_observation: 0,
+        },
+        managedProviderSessionCount: 0,
+        managedProviderStatusCounts: { running: 0, exited: 0, unobservable: 0 },
+      },
+      authority: {
+        releasesAgentAuthority: false as const,
+        releasesAssignmentAuthority: false as const,
+        startsOrStopsProvider: false as const,
+        provesWorkProgress: false as const,
+      },
+      limitations: ["Projection only."],
+    };
+
+    expect(
+      await runApplicationCommand(
+        ["liveness", "--stale-after-ms", "1000", "--json"],
+        output.value,
+        {
+          inspectOperatingAttention: async () => {
+            throw new Error("not called");
+          },
+          inspectOperatingLiveness: async (input) => {
+            expect(input.staleAfterMs).toBe(1_000);
+            return report;
+          },
+        },
+      ),
     ).toBe(0);
     expect(JSON.parse(output.stdout.join(""))).toEqual(report);
     expect(output.stderr).toEqual([]);

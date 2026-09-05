@@ -5,6 +5,7 @@ export * from "./improvement-effect.js";
 export * from "./managed-execution-budget.js";
 export * from "./operating-attention.js";
 export * from "./operating-goal.js";
+export * from "./operating-liveness.js";
 export * from "./policy.js";
 export * from "./product-host.js";
 export * from "./types.js";
