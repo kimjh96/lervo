@@ -25,6 +25,7 @@ import { createManagedRunExecutor, type RunProvider } from "../src/managed-run.j
 import { resolveDefaultManagedLinkedEvidenceSelection } from "../src/managed-linked-evidence-default-selection.js";
 import { collectLocalKnowledgeSources } from "../src/knowledge-sources.js";
 import { runCli } from "../src/main.js";
+import { readCliPackageVersion } from "../src/version-command.js";
 import { registerLinkedSearchContextDocuments } from "./search-context-fixture.js";
 import { activateFixtureEventWriterV2 } from "../../../packages/project/test/fixture-event-writer.js";
 
@@ -1098,7 +1099,7 @@ describe("lervo run vertical slice", () => {
     const lock: unknown = JSON.parse(await readFile(resolve(root, ".lervo/skills.lock"), "utf8"));
     expect(validateSchema("skillLock", lock).valid).toBe(true);
     expect(lock).toMatchObject({
-      runtime: { runtimeVersion: "0.11.4" },
+      runtime: { runtimeVersion: readCliPackageVersion() },
       entries: [
         {
           skillId: "repository/testing",
