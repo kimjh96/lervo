@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e53fc41252ed75bbe5c046e4
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8f5fd921e3c5e76fd825b025
+outputLanguage: en
+outputs:
+  - byteCount: 5937
+    contentHash: sha256:a68db1ae222de72485ef3754269797ebf2839a7c33c608c71dca32078f2fc861
+    path: docs/decisions/execution/orchestration/0210-local-first-capability-package-supply-chain.md
+    userRegionHash: sha256:a68db1ae222de72485ef3754269797ebf2839a7c33c608c71dca32078f2fc861
+profile: decision_record
+recordId: knormdoc_57d970123f4c53d7f7dac325
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1dbff3cb3c8d5ab8fdd05970a4b218e20180b57d8f62bccafbb7c73aca8ba2cd
+sourcePath: docs/decisions/execution/orchestration/0210-local-first-capability-package-supply-chain.md
+sourceUnitVersionIds:
+  - uv_4f6959c4044e6c082a34f3fd
+  - uv_96df307c6f71f15987ca72fe
+  - uv_9772eba04d034631c5134834
+  - uv_9bcf16d4e710eccfbb934b80
+  - uv_9fe1093885bc2738a584cfeb
+  - uv_b4e862ae43598eafd1fa343f
+  - uv_b7af7c43d5e07f47caee9e0b
+  - uv_c48a096e8d7fd97a85af1066

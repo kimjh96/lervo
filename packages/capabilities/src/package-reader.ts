@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
-import { constants } from "node:fs";
-import { lstat, open, readdir } from "node:fs/promises";
+import { lstat, readdir } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 
 import { validateSchema, type CapabilityPackageManifest } from "@lervo/schemas";
@@ -11,6 +10,7 @@ import {
   type VerifiedCapabilityPackage,
 } from "./types.js";
 import { createCapabilityActivationRequests } from "./activation.js";
+import { readBoundedRegularFile } from "./safe-file-reader.js";
 
 export const CAPABILITY_MANIFEST = "lervo-capability.json";
 const MAX_FILES = 256;
@@ -50,42 +50,6 @@ function within(root: string, path: string): void {
   const child = relative(root, path);
   if (child === "" || child === ".." || child.startsWith(`..${sep}`))
     fail("capability_unsafe_package", "A capability path escaped its package root.");
-}
-
-async function regularFile(path: string, maximumBytes = MAX_TOTAL_BYTES): Promise<Uint8Array> {
-  const before = await lstat(path);
-  if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes)
-    fail(
-      "capability_unsafe_package",
-      "Capability packages may contain only bounded regular files.",
-    );
-  let handle;
-  try {
-    handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
-    const opened = await handle.stat();
-    if (before.dev !== opened.dev || before.ino !== opened.ino)
-      fail("capability_unsafe_package", "A capability file changed before it was read.");
-    const bytes = await handle.readFile();
-    const after = await handle.stat();
-    if (
-      !after.isFile() ||
-      before.dev !== after.dev ||
-      before.ino !== after.ino ||
-      before.size !== after.size ||
-      before.mtimeMs !== after.mtimeMs
-    )
-      fail("capability_unsafe_package", "A capability file changed while it was read.");
-    return bytes;
-  } catch (error) {
-    if (error instanceof CapabilityPackageError) throw error;
-    return fail(
-      "capability_unsafe_package",
-      "A capability file could not be opened safely.",
-      error,
-    );
-  } finally {
-    await handle?.close();
-  }
 }
 
 async function collect(root: string, current = root): Promise<string[]> {
@@ -151,7 +115,7 @@ export async function readCapabilityContentFiles(
         "capability_unsafe_package",
         `Capability package file '${relativePath}' is not publishable or installable.`,
       );
-    files.push({ path: relativePath, bytes: await regularFile(path) });
+    files.push({ path: relativePath, bytes: await readBoundedRegularFile(path, MAX_TOTAL_BYTES) });
   }
   return files;
 }
@@ -176,7 +140,7 @@ export async function readCapabilityPackage(
       );
     files.push({
       path: relativePath,
-      bytes: await regularFile(
+      bytes: await readBoundedRegularFile(
         path,
         relativePath === CAPABILITY_MANIFEST ? MAX_MANIFEST_BYTES : MAX_TOTAL_BYTES,
       ),

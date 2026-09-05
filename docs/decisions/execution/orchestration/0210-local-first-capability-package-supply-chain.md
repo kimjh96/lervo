@@ -11,9 +11,11 @@ Lervo resolves project and user skills but previously only inventoried MCP serve
 
 ### Package boundary
 
-`lervo-capability.json` is the versioned package contract for `skill`, `mcp_server`, `provider_plugin`, and `bundle`. It binds an immutable ID, semantic version, content hash, provenance, provider and platform compatibility, required role permissions, exact dependency coordinates, a kind-specific entrypoint, explicit activation, and publication privacy. Package and entrypoint kinds must agree.
+`lervo-capability.json` is the versioned contract for `skill`, `mcp_server`, `provider_plugin`, and `bundle` packages. It binds an immutable ID, semantic version, content hash, provenance, provider and platform compatibility, required role permissions, exact dependency coordinates, a kind-specific entrypoint, explicit activation, and publication privacy. Package and entrypoint kinds must agree.
 
-A package contains at most 256 regular files and 16 MiB. Discovery follows no symlinks and rejects path escape, mutation during reads, hidden content except native plugin manifests, and conventional credential, private-key, or secret filenames. Manifests never contain credential values. MCP packages name required environment credentials and reference configuration and hashed provider-neutral runtime descriptors. `publication.secretMaterial` is always `excluded`.
+Packages contain at most 256 regular files and 16 MiB. Discovery follows no symlinks and rejects path escape, mutation during reads, hidden content except native plugin manifests, and conventional credential, private-key, or secret filenames. Safe reads compare identity and metadata across repeated path observations and independently across repeated open-handle observations. Path-to-handle identity fields are compared only where the platform defines them compatibly. On Windows, cross-surface association uses bounded size and modification time; repeated observations and the immutable package content hash remain fail-closed.
+
+Manifests never contain credential values. MCP packages name required environment credentials and reference configuration and hashed provider-neutral runtime descriptors. `publication.secretMaterial` is always `excluded`.
 
 Project packages live lazily under `.lervo/capabilities/packages/`; user packages live under `~/.lervo/capabilities/packages/`. Installation is content-bound, plan-first, and atomic. An occupied immutable coordinate is idempotent only when its content hash matches; otherwise it conflicts. Local installation and execution require no Hub.
 
@@ -21,17 +23,17 @@ Project packages live lazily under `.lervo/capabilities/packages/`; user package
 
 `lervo capability resolve` applies project-before-user precedence, provider and platform compatibility, role permission checks during managed execution, exact transitive dependencies, cycle and depth limits, and an immutable `.lervo/capabilities.lock`. Bundles resolve their exact members. The lock is rebuildable resolution state.
 
-`resolved` does not mean `loaded`, `injected`, `activated`, or `used`. MCP and plugin activation remains behind provider adapters. Codex and Claude implement the provider-confirmed, fail-closed boundary defined by [ADR-0211](../providers/0211-provider-confirmed-capability-activation.md). A skill capability may request its declared skill ID through the existing skill resolver. The independently valid skill package must be present, and its existing lock and evidence rules remain authoritative.
+`resolved` does not mean `loaded`, `injected`, `activated`, or `used`. MCP and plugin activation remains behind provider adapters. Codex and Claude implement the provider-confirmed, fail-closed boundary in [ADR-0211](../providers/0211-provider-confirmed-capability-activation.md). A skill capability may request its declared skill ID through the existing skill resolver. The independently valid skill package must be present; its existing lock and evidence rules remain authoritative.
 
-Roles may declare `defaultCapabilityPackages`. Hired agents bind exact resolved package versions and hashes into their capability hash. Subagents inherit their parent's package set by default and may narrow, but never expand, it. Managed workforce execution re-resolves packages and rejects a missing, changed, or newly added coordinate before provider creation. Root agents and subagents otherwise share the same execution, lease, handoff, and verification contracts.
+Roles may declare `defaultCapabilityPackages`. Hired agents bind exact resolved package versions and hashes into their capability hash. Subagents inherit their parent's package set by default and may narrow, never expand, it. Managed workforce execution re-resolves packages and rejects any missing, changed, or newly added coordinate before provider creation. Root agents and subagents otherwise share execution, lease, handoff, and verification contracts.
 
 ### Optional Hub sharing
 
-Hub sharing is opt-in. `publish` and `pull` each produce a content-bound plan and require explicit `--apply --approval <plan-hash>`; Lervo never uploads automatically. Bearer values come from a named environment variable and never appear in plans, receipts, errors, manifests, locks, or package records.
+Hub sharing is opt-in. `publish` and `pull` each produce a content-bound plan and require explicit `--apply --approval <plan-hash>`. Lervo never uploads automatically. Bearer values come from a named environment variable and never appear in plans, receipts, errors, manifests, locks, or package records.
 
 Hub scopes are `project`, bound to an authorized destination and project, or `public`. Separate `capability.publish` and `capability.read` permissions apply. The Hub stores immutable package envelopes in an atomic filesystem registry. Same-content retries are idempotent; different content at one coordinate conflicts. Hub unavailability never blocks local packages or execution.
 
-Organization catalog policy and trust signatures require later contracts. Public availability and publisher identity do not imply either.
+Organization catalog policy and trust signatures require later contracts. Public availability and publisher identity imply neither.
 
 ### State, privacy, and failures
 
