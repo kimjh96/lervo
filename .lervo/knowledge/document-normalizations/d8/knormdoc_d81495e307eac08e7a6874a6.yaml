@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_469d017f406126cc80ce754c
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8dae0749668d4b7e22602b7b
+outputLanguage: en
+outputs:
+  - byteCount: 3817
+    contentHash: sha256:a8e0d84b9d758bf5ed81de39ce58488816fe34caefb09343514cb269d9798a28
+    path: docs/decisions/knowledge/repository/canonicalization/0368-create-portable-skill-candidates-from-verified-workflows.md
+    userRegionHash: sha256:a8e0d84b9d758bf5ed81de39ce58488816fe34caefb09343514cb269d9798a28
+profile: decision_record
+recordId: knormdoc_d81495e307eac08e7a6874a6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:79ccd10d4c01a0375e91a3bc4404c343938a7bcecbcea66453ee65ec9af2eb03
+sourcePath: docs/decisions/knowledge/repository/canonicalization/0368-create-portable-skill-candidates-from-verified-workflows.md
+sourceUnitVersionIds:
+  - uv_95b01e40e7b0e9e843ac5aa5
+  - uv_a47b187c26787af06e89fc76
+  - uv_af02c77e5ef6c0f09bf98ff9
+  - uv_afe0faa632e9142d09ab552f
+  - uv_d77842fb7aa5a826dd6c72d5
+  - uv_fc0bb47fec71715bed65fe22

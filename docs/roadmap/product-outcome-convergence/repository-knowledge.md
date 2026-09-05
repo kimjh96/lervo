@@ -2,73 +2,7 @@
 
 Part of [Product outcome convergence](../product-outcome-convergence.md); its baseline, acceptance-state definitions, and claim boundaries apply.
 
-## Relevant current documents for natural-language repository requests
-
-State: **implemented**.
-
-Direct hooks project bounded queries, select registered sources, and load exact hashes. Managed delivery uses the same evidence distinctions.
-
-Maintain current cross-provider retrieval and exact-load regression evidence as completion proof.
-
-## Distinct retrieval evidence states
-
-State: **implemented**.
-
-Event and context contracts distinguish recommendation, selection, loading, injection, reference, and semantic use. They mark direct-provider use unknown. No broader claim is permitted.
-
-## Progressive capability and tool-schema discovery and activation
-
-State: **implemented**.
-
-The packed CLI journey installs a reviewed skill and its exact MCP dependency, records deterministic recommendation separately from explicit selection, loads both package hashes, confirms MCP activation before the exact skill invocation, validates the result, and binds completion to its digest. Direct terminal retrieval neither selects tools nor grants authority.
-
-Preserve distinctions among recommendation, explicit or automatic selection, dependency, loading, activation, invocation, completion, and semantic use. The deterministic provider fixture is not live-model or service-quality evidence.
-
-## Continuation across agents, providers, sessions, devices, and clean clones
-
-State: **implemented**.
-
-Workstreams, canonical sources, Hub replication, handoffs, and workspace checkpoints preserve bounded continuation. Provider sessions are replaceable and not generally resumed.
-
-The packed installed continuation journey completes one bounded workstream through Codex, advances its verified revision, rejects a tampered current projection before Claude starts, and resumes through a fresh Claude run and provider session. Both completed runs retain the same workstream identity, exact revision-specific E2/E3 evidence, distinct session coordinates, passing repository verification, and result-digest-bound completion.
-
-This proves repository-evidence continuation across replaceable provider sessions, not native provider-session resume, conversation-memory transfer, live-model quality, or semantic reliance. See [installed fresh-session cross-provider continuation v1](../../evidence/foundation/installed-fresh-session-cross-provider-continuation-v1.md).
-
-## Durable knowledge in responsible canonical sources
-
-State: **implemented**.
-
-Final declaration binds every changed noncanonical source to exact changed canonical targets, a reviewable no-durable-change rationale, or a local proposed Markdown draft. The packed installed journey prepares a turn, records and surfaces a draft, writes its authorized target, promotes against exact candidate and target hashes, and removes the resolved attention item.
-
-Distinguish agent proposal, user authority, exact promotion, and canonical truth. Infer neither semantic correctness nor model understanding.
-
-## Human-authority items surface when users can act
-
-State: **implemented**.
-
-Protocol-v2 `operating_attention.inspect` aggregates current authority and maintenance. Direct prompt preparation includes its bounded current/cache-backed form without another model call or full lifecycle rescan. Focused and packed installed-consumer acceptance pass.
-
-Preserve source-coverage degradation, action-owner distinctions, and preparation-not-receipt semantics.
-
-## Reviewed reusable patterns with observable later effects
-
-State: **partial**.
-
-Pattern proposal, review, promotion, and two bounded local metrics exist. Proposal and promotion are explicit; attribution remains unestablished.
-
-Completion requires a completed result to create a source-bound candidate through finalization, followed by an installed review-to-effect journey.
-
-## Reviewed portable-skill candidates from independently verified repeated workflows
-
-State: **partial**.
-
-Development-pattern proposal, exact review, promotion, and effect observation exist, alongside loose-skill migration, capability packaging, deterministic selection, and managed invocation. No bridge turns independently grouped workflow evidence into a skill candidate.
-
-Completion requires:
-
-- At least two independent evidence groups, with source and verification hashes bound.
-- Proposed bounded `SKILL.md` and resource bytes.
-- Review of input, output, tool, permission, and resource contracts.
-- Passing exact approval, migration, selection, activation, invocation, stale-source, supersession, rollback, and post-promotion effect paths.
-
-Never infer candidacy from retrieval selection alone.
+- [Repository retrieval and capability discovery](repository-knowledge/retrieval-and-capabilities.md): implemented.
+- [Continuation across agents, providers, sessions, devices, and clean clones](repository-knowledge/continuation.md): implemented. Evidence: [installed fresh-session cross-provider continuation v1](../../evidence/foundation/installed-fresh-session-cross-provider-continuation-v1.md).
+- [Canonical knowledge and human authority](repository-knowledge/canonical-knowledge-and-authority.md): implemented.
+- [Reusable patterns and portable-skill candidates](repository-knowledge/reusable-patterns.md): partial.

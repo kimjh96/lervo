@@ -1,0 +1,50 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_469d017f406126cc80ce754c
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_46c69095b31c6a85a69b43d1
+outputLanguage: en
+outputs:
+  - byteCount: 821
+    contentHash: sha256:e62f15020f0daf4d06c1082dcb1f790395ecae8ad1a7c695a8b450e9081c1769
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge.md
+    userRegionHash: sha256:e62f15020f0daf4d06c1082dcb1f790395ecae8ad1a7c695a8b450e9081c1769
+  - byteCount: 1090
+    contentHash: sha256:e8f21224c627f0403a4452c48776816e08da310cad83ac88e37bb57430090fe4
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/canonical-knowledge-and-authority.md
+    userRegionHash: sha256:e8f21224c627f0403a4452c48776816e08da310cad83ac88e37bb57430090fe4
+  - byteCount: 1053
+    contentHash: sha256:c31e809a7e1b9321800353e2c8c349534635b626584b0d055c456e03026cf7c3
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/continuation.md
+    userRegionHash: sha256:c31e809a7e1b9321800353e2c8c349534635b626584b0d055c456e03026cf7c3
+  - byteCount: 1333
+    contentHash: sha256:b8ed50a6000b41ebb689ec0525cbd285da0c44a5df7ffb83bd1006cbc9dee0ba
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/retrieval-and-capabilities.md
+    userRegionHash: sha256:b8ed50a6000b41ebb689ec0525cbd285da0c44a5df7ffb83bd1006cbc9dee0ba
+  - byteCount: 1461
+    contentHash: sha256:b88928d62d8776b4e09add42842bb1a7ef8004c3e0bb698f0eecc71744806757
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/reusable-patterns.md
+    userRegionHash: sha256:b88928d62d8776b4e09add42842bb1a7ef8004c3e0bb698f0eecc71744806757
+profile: roadmap_document
+recordId: knormdoc_65ca28a9d8d3918de801a1e1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0e4c0c21ffcdf10eb2fb60ffe3eb61143059f4d723f5ed16c622e4214f863901
+sourcePath: docs/roadmap/product-outcome-convergence/repository-knowledge.md
+sourceUnitVersionIds:
+  - uv_01355e30773122d9a36bbdec
+  - uv_1800759dcb0d026043f06048
+  - uv_3bef11a5d869f067b73bfe4f
+  - uv_4f9290e9936776a3f82009c4
+  - uv_690aec93d58a21d3962dcc6f
+  - uv_b3b8a40685070049cba69a2a
+  - uv_c0bbec1e6ba5c4f6288d1848
+  - uv_cf8940a6b65d00d956204c12
+  - uv_dfe60b27c4eecb7efde7749b

@@ -2,7 +2,11 @@ import {
   canonicalResponsibilityForPath,
   sourceResponsibilityForPath,
 } from "./canonicalization-responsibility.js";
-import { sha256 } from "./integrity.js";
+import {
+  parseDevelopmentPatternProposal,
+  type DevelopmentPatternProposal,
+} from "./development-pattern-candidate.js";
+import { canonicalJson, sha256 } from "./integrity.js";
 import { RepositoryKnowledgeError } from "./types.js";
 
 interface CanonicalizationOutcomeBase {
@@ -31,8 +35,17 @@ export interface CanonicalReviewDraftOutcome extends CanonicalizationOutcomeBase
   }>;
 }
 
+export interface PortableSkillCandidateOutcome extends CanonicalizationOutcomeBase {
+  kind: "portable_skill_candidate";
+  sourcePaths: string[];
+  proposal: DevelopmentPatternProposal;
+}
+
 export type CanonicalizationOutcome =
-  NoDurableChangeOutcome | CanonicalUpdateOutcome | CanonicalReviewDraftOutcome;
+  | NoDurableChangeOutcome
+  | CanonicalUpdateOutcome
+  | CanonicalReviewDraftOutcome
+  | PortableSkillCandidateOutcome;
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const MAXIMUM_OUTCOME_TARGETS = 8;
@@ -115,7 +128,27 @@ export function parseCanonicalizationOutcome(value: unknown): CanonicalizationOu
         sha256(draft.proposedMarkdown) === draft.proposedContentHash,
     ) &&
     new Set(outcome.drafts.map((draft) => draft.targetPath)).size === outcome.drafts.length;
-  if (!noDurableValid && !canonicalUpdateValid && !reviewDraftValid)
+  let portableSkillValid = false;
+  if (
+    baseValid &&
+    outcome.kind === "portable_skill_candidate" &&
+    validSourcePaths(outcome.sourcePaths)
+  ) {
+    try {
+      const proposal = parseDevelopmentPatternProposal(outcome.proposal);
+      portableSkillValid =
+        proposal.target.kind === "portable_skill" &&
+        proposal.workflowVerification !== undefined &&
+        proposal.portableSkillContract !== undefined &&
+        Buffer.byteLength(canonicalJson(proposal)) <= MAXIMUM_PROPOSED_BYTES &&
+        outcome.sourcePaths.every((path) =>
+          proposal.occurrences.some((occurrence) => occurrence.path === path),
+        );
+    } catch {
+      portableSkillValid = false;
+    }
+  }
+  if (!noDurableValid && !canonicalUpdateValid && !reviewDraftValid && !portableSkillValid)
     throw new RepositoryKnowledgeError(
       "knowledge_source_unsafe",
       "The canonicalization outcome is invalid or exceeds its bounded contract.",
@@ -141,12 +174,16 @@ export function validateCanonicalizationOutcomeForChange(input: {
     input.disposition === "canonical_sources_updated"
       ? "canonical_update"
       : input.disposition === "pending_user_approval"
-        ? "review_draft"
+        ? ["review_draft", "portable_skill_candidate"]
         : "no_durable_change";
-  if (outcome.kind !== expectedKind)
+  if (
+    Array.isArray(expectedKind)
+      ? !expectedKind.includes(outcome.kind)
+      : outcome.kind !== expectedKind
+  )
     throw new RepositoryKnowledgeError(
       "knowledge_approval_required",
-      `The ${input.disposition} disposition requires a ${expectedKind} outcome.`,
+      `The ${input.disposition} disposition requires a ${Array.isArray(expectedKind) ? expectedKind.join(" or ") : expectedKind} outcome.`,
     );
   const changedPaths = [
     ...new Set([...Object.keys(input.beforeFiles), ...Object.keys(input.afterFiles)]),
@@ -162,7 +199,9 @@ export function validateCanonicalizationOutcomeForChange(input: {
       ? outcome.sourcePaths
       : outcome.kind === "canonical_update"
         ? outcome.targets.flatMap((target) => target.sourcePaths)
-        : outcome.drafts.flatMap((draft) => draft.sourcePaths);
+        : outcome.kind === "review_draft"
+          ? outcome.drafts.flatMap((draft) => draft.sourcePaths)
+          : outcome.sourcePaths;
   if (
     new Set(boundSources).size !== boundSources.length ||
     !sameMembers(boundSources, expectedSources)

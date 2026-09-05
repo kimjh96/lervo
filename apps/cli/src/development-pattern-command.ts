@@ -5,7 +5,6 @@ import { parseArgs } from "node:util";
 import { openProjectStorage } from "@lervo/project-storage";
 import {
   applyDevelopmentPatternPromotion,
-  canonicalJson,
   createDevelopmentPatternCandidate,
   createDevelopmentPatternPromotionPlan,
   createDevelopmentPatternReview,
@@ -26,6 +25,8 @@ import {
   projectPatterns,
   writePatternProjection,
 } from "./development-pattern-storage.js";
+import { recordDevelopmentPatternObservation } from "./development-pattern-observation.js";
+import { passedWorkflowVerificationEvidence } from "./development-pattern-verification.js";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import type { CliIo } from "./types.js";
 
@@ -61,66 +62,21 @@ async function propose(args: string[], io: CliIo): Promise<number> {
   const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
   const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
   const { scan } = await scanConfiguredRepositoryKnowledge(repositoryRoot, { supplementalSources });
-  const result = createDevelopmentPatternCandidate({
-    proposal: (await readInput(parsed, io)) as DevelopmentPatternProposal,
-    scan,
-  });
   const storage = await openProjectStorage(repositoryRoot);
   try {
-    const stored = await storage.artifacts.put(result.content);
-    if (stored.contentHash !== result.contentHash)
-      throw new Error("Pattern candidate CAS mismatch.");
-    const now = new Date().toISOString();
-    const current = projectPatterns(allPatternEvents(storage)).find(
-      (item) => item.patternId === result.candidate.patternId,
-    );
-    appendPatternEvent(storage, {
-      type: "development.pattern.observed",
-      occurredAt: now,
-      payload: {
-        patternId: result.candidate.patternId,
-        observationId: stableId("dpobs", {
-          patternId: result.candidate.patternId,
-          provider: parsed.values.provider,
-          observedAt: now,
-        }),
-        provider: parsed.values.provider,
-        sourceSnapshotId: result.candidate.sourceSnapshotId,
-        sourceSnapshotHash: result.candidate.sourceSnapshotHash,
-        evidenceDigest: sha256(
-          canonicalJson(result.candidate.occurrences.map((item) => item.evidenceDigest)),
-        ),
-        occurrenceCount: result.candidate.occurrences.length,
-        observedAt: now,
-      },
+    const result = createDevelopmentPatternCandidate({
+      proposal: (await readInput(parsed, io)) as DevelopmentPatternProposal,
+      scan,
+      passedVerificationEvidence: passedWorkflowVerificationEvidence(storage),
     });
-    if (current === undefined) {
-      appendPatternEvent(storage, {
-        type: "development.pattern.transitioned",
-        occurredAt: now,
-        payload: {
-          transitionId: stableId("dptr", {
-            patternId: result.candidate.patternId,
-            to: "candidate",
-          }),
-          patternId: result.candidate.patternId,
-          fromState: "observed",
-          toState: "candidate",
-          candidateArtifactId: patternArtifactId(result.contentHash),
-          candidateContentHash: result.contentHash,
-          reviewArtifactId: null,
-          reviewContentHash: null,
-          targetKind: result.candidate.target.kind,
-          approvalHash: null,
-          occurredAt: now,
-        },
-      });
-    } else if (current.candidateContentHash !== result.contentHash) {
-      throw new Error("Pattern identity collision with different candidate bytes.");
-    }
-    const patterns = projectPatterns(allPatternEvents(storage));
-    await writePatternProjection(repositoryRoot, patterns);
-    const output = patterns.find((item) => item.patternId === result.candidate.patternId)!;
+    const now = new Date().toISOString();
+    const output = await recordDevelopmentPatternObservation({
+      repositoryRoot,
+      storage,
+      provider: parsed.values.provider as "codex" | "claude",
+      ...result,
+      observedAt: now,
+    });
     io.stdout(
       parsed.values.json
         ? `${JSON.stringify(output, null, 2)}\n`
@@ -298,6 +254,7 @@ async function promote(args: string[], io: CliIo): Promise<number> {
       review: reviewRecord,
       reviewContentHash: pattern.reviewContentHash,
       currentScan: scan,
+      passedVerificationEvidence: passedWorkflowVerificationEvidence(storage),
     });
     if (!parsed.values.apply) {
       const output = publicDevelopmentPatternPromotionPlan(plan);

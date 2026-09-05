@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 import type { ProjectStorage } from "@lervo/project-storage";
 import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
+import type { EventDraft } from "@lervo/event-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 import { visitEventSnapshot } from "@lervo/storage-contract";
 
@@ -104,16 +105,22 @@ export function patternArtifactId(contentHash: string): string {
 
 export function appendPatternEvent(
   storage: ProjectStorage,
-  input: {
-    type: "development.pattern.observed" | "development.pattern.transitioned";
-    payload: Record<string, unknown>;
-    occurredAt: string;
-  },
+  input: PatternEventInput,
 ): EventEnvelope {
+  return storage.events.append(patternEventDraft(input, storage.manifest.projectId)).event;
+}
+
+export interface PatternEventInput {
+  type: "development.pattern.observed" | "development.pattern.transitioned";
+  payload: Record<string, unknown>;
+  occurredAt: string;
+}
+
+export function patternEventDraft(input: PatternEventInput, projectId: string): EventDraft {
   const identity = randomUUID().replaceAll("-", "");
-  return storage.events.append({
+  return {
     eventId: `evt_${identity}`,
-    projectId: storage.manifest.projectId,
+    projectId,
     runId: `run_${identity}`,
     sessionId: `ses_${identity}`,
     type: input.type,
@@ -122,7 +129,7 @@ export function appendPatternEvent(
     schemaVersion: 1,
     policyVersion: sha256(canonicalJson(input.payload)),
     payload: input.payload,
-  }).event;
+  };
 }
 
 export async function patternArtifactJson<T>(

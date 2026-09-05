@@ -1,0 +1,56 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_3ef13e2e3c4f839bd92a19f4
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2fbf748f2d9e60be7818fde0
+outputLanguage: en
+outputs:
+  - byteCount: 4067
+    contentHash: sha256:75781ddb92542a08002f5293f153949c1d449b5f49dc64add4c9f20b37f0c640
+    path: docs/specs/repository-knowledge-compilation.md
+    userRegionHash: sha256:75781ddb92542a08002f5293f153949c1d449b5f49dc64add4c9f20b37f0c640
+  - byteCount: 2946
+    contentHash: sha256:5bdde4257bb4b78eb45cb4777433278d959c048f89ef2f902b7a8965a78fa800
+    path: docs/specs/repository-knowledge-compilation/semantic-review.md
+    userRegionHash: sha256:5bdde4257bb4b78eb45cb4777433278d959c048f89ef2f902b7a8965a78fa800
+  - byteCount: 4968
+    contentHash: sha256:15be6d06769c7546df285cc12c0553016bd68837ca55376a6b947f53b4bfbb13
+    path: docs/specs/repository-knowledge-compilation/structural-publication.md
+    userRegionHash: sha256:15be6d06769c7546df285cc12c0553016bd68837ca55376a6b947f53b4bfbb13
+  - byteCount: 3156
+    contentHash: sha256:e68268bff8f972648201c70e2b57c354753f379a2cc8587fa13bcde1aea2eaa2
+    path: docs/specs/repository-knowledge-compilation/validation-and-exchange.md
+    userRegionHash: sha256:e68268bff8f972648201c70e2b57c354753f379a2cc8587fa13bcde1aea2eaa2
+profile: specification_document
+recordId: knormdoc_832440d87d639ca88cfa30c0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:20c8b3d558e3eb41269bfb940807e88e15efb3d6e97772f13661ef4b8cc3cfeb
+sourcePath: docs/specs/repository-knowledge-compilation.md
+sourceUnitVersionIds:
+  - uv_008b2023584ed28f581eb94b
+  - uv_01eae24b9f1690f1e1a83487
+  - uv_04e7ebc8afd060ebae2b14f3
+  - uv_0607be64af47ecec006496d6
+  - uv_262829de15b87e705d84eec9
+  - uv_2dceb565ce8597b50fc059f3
+  - uv_31b462deb323b9fb4e79705a
+  - uv_3500d5a5396317bafa94e917
+  - uv_424479d5e10e9237c4dabf41
+  - uv_424a9b71e9facebd495fd90e
+  - uv_6ee99a32cb3ef49a332dfef3
+  - uv_95e435bdec93c41d5b2e2624
+  - uv_96948ed2e11ccfb750db8f70
+  - uv_b45184669baa144783bf3f80
+  - uv_bfc65de22b9951fe1ea073d8
+  - uv_c2141b87461c1b8dd17ece2a
+  - uv_dd46d9d1c9608f841a1ef09d
+  - uv_e6aff91582f1eedd30f93894
+  - uv_f74515c6db3752d6f54e6e08

@@ -38,13 +38,13 @@ Detailed acceptance records:
 - Completed branch-safe lifecycle verifies typed candidate creation and exact review. ADR-0327 superseded its older direct durable-rule materialization statement; no installed direct or explicit consumer currently calls the materializer.
 - The completed governed-loop roadmap covers manual v1 and a read-only workstream-goal projection. It excludes Prime-Agent-style unattended continuation, native provider-session resume, root-process heartbeat, independent goal mutation, and dynamic topology.
 - The completed product-host protocol is a CLI compatibility boundary, not a Paperclip or Buzz product interface.
-- Retrieval selection proves only that a source was chosen for context. It does not prove a repeatable workflow, define a capability envelope, or authorize generated skill bytes. Skill candidacy begins with independently grouped workflow evidence, not source selection.
+- Retrieval selection proves only that a source was chosen for context. It neither proves a repeatable workflow, defines a capability envelope, nor authorizes generated skill bytes. Skill candidacy begins with independently grouped workflow evidence, not source selection.
 - The installed natural-language capability journey proves deterministic recommendation plus explicit selection for an existing reviewed skill, exact instruction construction, provider-confirmed activation of its MCP dependency, result validation, and completion evidence. It does not prove model reliance or authorize skill generation from retrieved context.
 - A successful full repository check proves encoded contracts, not user outcomes absent from them.
 
 ## Remaining delivery order
 
-1. Connect independently verified repeated workflows to reviewable skill, instruction, or profile candidates with exact review, stale-source handling, activation, effect observation, supersession, and rollback. Retrieval selection alone never enters this path.
+1. Complete the installed journey from the new independently verified portable-skill candidate through exact review, migration, selection, activation, invocation, stale-source handling, effect observation, supersession, and rollback. Retrieval selection alone never enters this path; instruction and profile candidate routes require separately evidenced need.
 2. Extend root-agent and managed-process liveness, direct-message acknowledgment, and reviewed trigger adapters as separate observable outcomes.
 3. Add unattended scheduling or dynamic graph topology only after authority, budget, cancellation, uncertain-effect, migration, recovery, and kill-switch contracts pass installed acceptance.
 4. Version further product-host routes only with packed external-consumer proof; keep Paperclip-like and Buzz-like interfaces in separate hosts.

@@ -1,10 +1,10 @@
-import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, open, readdir } from "node:fs/promises";
 import { basename, relative, resolve, sep } from "node:path";
 
 import { validateSchema, type SkillManifest } from "@lervo/schemas";
 
+import { hashSkillContentFiles } from "./content-hash.js";
 import { SkillResolutionError, type DiscoveredSkill, type LocalSkillSourceKind } from "./types.js";
 
 const MANIFEST_NAME = "lervo-skill.json";
@@ -112,22 +112,14 @@ async function listContentFiles(root: string, current = root): Promise<string[]>
 
 export async function hashSkillPackage(directoryPath: string): Promise<string> {
   const files = await listContentFiles(directoryPath);
-  const packageHash = createHash("sha256");
-  let totalBytes = 0;
-  for (const path of files.sort()) {
-    const bytes = await regularFile(path);
-    totalBytes += bytes.byteLength;
-    if (totalBytes > MAX_PACKAGE_BYTES) {
-      throw new SkillResolutionError(
-        "unsafe_skill_package",
-        "The skill package size limit has been exceeded.",
-      );
-    }
-    const name = portablePath(relative(directoryPath, path));
-    packageHash.update(`${Buffer.byteLength(name)}:${name}:${bytes.byteLength}:`);
-    packageHash.update(bytes);
-  }
-  return `sha256:${packageHash.digest("hex")}`;
+  return hashSkillContentFiles(
+    await Promise.all(
+      files.map(async (path) => ({
+        path: portablePath(relative(directoryPath, path)),
+        bytes: await regularFile(path),
+      })),
+    ),
+  );
 }
 
 async function readCandidate(input: {
