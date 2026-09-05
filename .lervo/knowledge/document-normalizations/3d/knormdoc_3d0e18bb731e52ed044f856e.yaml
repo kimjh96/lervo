@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5b131a01241f78dde22ba261
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_63a42a59d8ddf8b6eaee49d8
+outputLanguage: en
+outputs:
+  - byteCount: 5908
+    contentHash: sha256:edba8109fec0b2b3424cf8c1b4e80d1e803845cccd48b96746f5443e51a9d812
+    path: docs/decisions/knowledge/semantics/0376-install-reviewed-durable-instruction-intake.md
+    userRegionHash: sha256:edba8109fec0b2b3424cf8c1b4e80d1e803845cccd48b96746f5443e51a9d812
+profile: decision_record
+recordId: knormdoc_3d0e18bb731e52ed044f856e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1232fe9055ae5d49b21379affac8d6cf32a55c529e05804b8f3d62b1fa5525ca
+sourcePath: docs/decisions/knowledge/semantics/0376-install-reviewed-durable-instruction-intake.md
+sourceUnitVersionIds:
+  - uv_34ac945a7a7bb4aad5560b88
+  - uv_59201114ba29c62b58b3c5bf
+  - uv_5f19723561ffbfb0c25aa37c
+  - uv_79ef4b10b6882ac5fe65670b
+  - uv_7bf890d5dee2d4a9b9b058ee
+  - uv_b4f555894535c960d39b2c23

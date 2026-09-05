@@ -1,0 +1,49 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f2cd67c2e6aefd58ceb6078f
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_83897e01742a6afa9bbb0324
+outputLanguage: en
+outputs:
+  - byteCount: 1455
+    contentHash: sha256:832d6ac570f8200725991570fde3546bfc25a463ff697ae7039ebc18136bd09e
+    path: docs/specs/repository-knowledge-lifecycle-convergence.md
+    userRegionHash: sha256:832d6ac570f8200725991570fde3546bfc25a463ff697ae7039ebc18136bd09e
+  - byteCount: 3127
+    contentHash: sha256:9f31430d7b50dba9ec8413baafd72c86db394c8da027b47b25597009da30be7c
+    path: docs/specs/repository-knowledge-lifecycle-convergence/branch-and-stage-convergence.md
+    userRegionHash: sha256:9f31430d7b50dba9ec8413baafd72c86db394c8da027b47b25597009da30be7c
+  - byteCount: 3683
+    contentHash: sha256:6f5f62fe0a4ab4e79413efd0ca5ea064548df070f7f1c79570d4a58b6b95203e
+    path: docs/specs/repository-knowledge-lifecycle-convergence/canonicalization-assessment.md
+    userRegionHash: sha256:6f5f62fe0a4ab4e79413efd0ca5ea064548df070f7f1c79570d4a58b6b95203e
+  - byteCount: 1014
+    contentHash: sha256:9b39870072113794bb4fd4aa26143e1280784820a2c26573e7c531b61636f743
+    path: docs/specs/repository-knowledge-lifecycle-convergence/rewrite-ownership.md
+    userRegionHash: sha256:9b39870072113794bb4fd4aa26143e1280784820a2c26573e7c531b61636f743
+  - byteCount: 1762
+    contentHash: sha256:6e6f578e3482f7a44a8e88bf308de4400a505bbd7c3ae08687b8fc588ba4e742
+    path: docs/specs/repository-knowledge-lifecycle-convergence/semantic-durable-rule-intake.md
+    userRegionHash: sha256:6e6f578e3482f7a44a8e88bf308de4400a505bbd7c3ae08687b8fc588ba4e742
+profile: specification_document
+recordId: knormdoc_fa0fbb69ecd800a972ba0cd4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:cd2ea6eb7e12c275c61b3443f1839139b4c9662ccc2033431016a83d0d8be579
+sourcePath: docs/specs/repository-knowledge-lifecycle-convergence.md
+sourceUnitVersionIds:
+  - uv_30d97b3584134f66a3531c83
+  - uv_509eb3d2c79fc86ba432d535
+  - uv_60cb19a152acac08c27f9489
+  - uv_b950bebb36a9709e55f690a9
+  - uv_c3a27f4012735584fad814ad
+  - uv_c7fef44b6da47f079b0e0325
+  - uv_cd9bd90292575a5329c0910e
+  - uv_ed0be2730bbacbbcb82f15b3

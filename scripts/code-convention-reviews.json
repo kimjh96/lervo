@@ -179,7 +179,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/durable-apply.ts",
-      "contentHash": "sha256:9d5bde8e2af0b667b0e61350bf5cd8628372176d34982715d5c9ffc9c4f6e475",
+      "contentHash": "sha256:6e7f7aa4b721132fbc6fbc0579be179f0c922560e995af60226ef317d5b1d1f8",
       "responsibility": "Durable knowledge filesystem transaction",
       "rationale": "Journal creation, binding checks, safe writes, rollback, recovery, and cleanup implement one atomic filesystem transaction protocol.",
       "disposition": "cohesive"

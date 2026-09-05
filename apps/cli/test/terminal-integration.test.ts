@@ -446,6 +446,9 @@ describe("terminal integration CLI", () => {
     expect(response.hookSpecificOutput.additionalContext).toContain(
       "Direct prompt preparation never materializes a repository rule",
     );
+    expect(response.hookSpecificOutput.additionalContext).toContain(
+      "lervo knowledge instruction intake --provider codex --stdin",
+    );
     expect(response.hookSpecificOutput.additionalContext).not.toContain(prompt);
     const storage = await openProjectStorage(root);
     try {

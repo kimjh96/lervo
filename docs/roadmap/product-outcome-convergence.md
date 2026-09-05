@@ -14,10 +14,10 @@ Each outcome has exactly one acceptance owner and one state:
 
 - `implemented`: the exact scenario is evidenced.
 - `delivery required`: Lervo owns the accepted outcome, but the exact installed scenario is incomplete. Lower-level primitives are evidence, not fractional acceptance.
-- `external dependency`: the outcome requires provider or platform support and evidence Lervo cannot supply. It becomes an actionable Lervo delivery item only when that dependency exists.
-- `external product`: Lervo supplies primitives, but a separate host owns the outcome, outside Lervo's core delivery scope.
+- `external dependency`: the outcome requires provider or platform support and evidence Lervo cannot supply. It becomes actionable Lervo delivery only when that dependency exists.
+- `external product`: Lervo supplies primitives, but a separate host owns the outcome outside Lervo's core delivery scope.
 
-Do not use intermediate states to imply that narrower slices satisfy incomplete outcomes. Split mixed outcomes into installed Lervo behavior, Lervo-owned remaining delivery, external dependencies, and external products.
+Do not use intermediate states to imply narrower slices satisfy incomplete outcomes. Split mixed outcomes into installed Lervo behavior, Lervo-owned remaining delivery, external dependencies, and external products.
 
 ## Acceptance baseline
 
@@ -37,7 +37,7 @@ Detailed acceptance records:
 ## Corrected claim boundaries
 
 - Completed natural-language terminal v1 verifies retrieval, workstream checkpoints, declarations, and lifecycle inspection. It provides neither automatic semantic outcome drafting nor proactive user attention.
-- Completed branch-safe lifecycle verifies typed candidate creation and exact review. ADR-0327 superseded its older direct durable-rule materialization statement; no installed direct or explicit consumer currently calls the materializer.
+- Completed branch-safe lifecycle verifies typed candidate creation and exact review. ADR-0327 still forbids direct-hook effect grounding and mutation; the installed explicit durable-instruction command owns candidate creation and exact reviewed materialization outside the hook.
 - The completed governed-loop roadmap covers manual v1 and a read-only workstream-goal projection. It excludes Prime-Agent-style unattended continuation, native provider-session resume, root-process heartbeat, independent goal mutation, and dynamic topology.
 - The completed product-host protocol is a CLI compatibility boundary, not a Paperclip or Buzz product interface.
 - Retrieval selection proves only source selection for context. It does not prove a repeatable workflow, define a capability envelope, or authorize generated skill bytes. Skill candidacy starts with independently grouped workflow evidence.
@@ -52,7 +52,7 @@ Reviewed direct-message triggering and explicit handoff acknowledgment are insta
 
 Lervo-owned outcomes in `delivery required` state form the remaining implementation backlog:
 
-1. Complete explicit durable-instruction intake and agent-profile candidate paths with exact review, activation, effect observation, supersession, and rollback; preserve the implemented portable-skill candidate journey.
+1. Complete agent-profile candidate paths with exact review, activation, effect observation, supersession, and rollback; preserve the implemented portable-skill and durable-instruction candidate journeys.
 2. Add authenticated live trigger adapters for current product sources, with shared idempotency, authority, budget, uncertain-effect, and recovery contracts.
 3. Add unattended scheduling with current checkpoints, budgets, leases, retry limits, cancellation, uncertain-effect handling, escalation, and a kill switch.
 4. Add bounded dynamic graph branches, joins, and reviewed topology changes with migration, recovery, and historical replay.

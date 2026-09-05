@@ -1,7 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { applyDurableKnowledgeOperations } from "./durable-apply.js";
+import {
+  applyDurableKnowledgeOperations,
+  type KnowledgeMaterializationCheckpoint,
+} from "./durable-apply.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import type { KnowledgeFileOperation } from "./types.js";
@@ -235,6 +238,9 @@ export async function applyDurableInstructionPlan<T>(input: {
   plan: DurableInstructionPlan;
   receipt: T;
   recordApplied: (receipt: T) => void | Promise<void>;
+  failureInjector?: (
+    checkpoint: KnowledgeMaterializationCheckpoint,
+  ) => "interrupt" | void | Promise<"interrupt" | void>;
 }): Promise<T> {
   if (input.plan.status !== "ready")
     throw new Error("The durable instruction plan is not applicable.");
@@ -249,6 +255,7 @@ export async function applyDurableInstructionPlan<T>(input: {
     }),
     receipt: input.receipt,
     recordApplied: input.recordApplied,
+    ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),
   });
 }
 

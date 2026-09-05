@@ -94,13 +94,13 @@ Preserve exact source, verification, skill, resource, input, output, tool, permi
 
 ## Explicit durable-instruction intake
 
-State: `delivery required`
+State: `implemented`
 
 Outcome: an explicit eligible runtime instruction becomes a reviewable durable repository-instruction candidate through an installed intake route.
 
-Evidence: durable-instruction planning and materialization domain code exists, but direct terminal intake is intentionally disabled and no installed explicit consumer invokes the materializer.
+Evidence: `knowledge instruction intake` invokes current-provider no-capability grounding only at the explicit command boundary, persists a bounded local candidate without raw request text, and exposes exact Markdown and candidate hash. `knowledge instruction review` requires the exact hash and reviewer identity to apply or reject. Apply rechecks the unchanged complete catalog and deterministic plan, writes only the generated instruction, emits the existing privacy-bounded materialization event, removes the active candidate, and becomes retrievable after the standard knowledge migration. Installed tests cover wrong-hash rejection, apply, reject, pending classification, event evidence, and fresh query retrieval while direct hooks retain zero automatic materialization.
 
-Install an authority-bearing intake route without weakening speech-act, duration, risk, scope, conflict, confidence, review, or rollback gates.
+Preserve the explicit candidate-review boundary, bounded active-state retention, recoverable post-event cleanup, and ADR-0327 retrieval-only direct hook.
 
 ## Agent-profile candidates
 

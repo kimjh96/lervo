@@ -9,6 +9,7 @@ import {
   applyDurableInstructionPlan,
   createDurableInstructionPlan,
   durableInstructionCatalogEntry,
+  recoverKnowledgeMaterialization,
   repositoryInstructionRouteBlock,
 } from "../src/index.js";
 
@@ -117,6 +118,35 @@ describe("semantic durable instruction intake", () => {
       },
     });
     expect(example.status).toBe("pending");
+  });
+
+  it("recovers an interrupted durable-instruction transaction without publishing the rule", async () => {
+    const root = await repository();
+    const plan = await createDurableInstructionPlan({
+      repositoryRoot: root,
+      projectId: "prj_durable_instruction",
+      requestDigest: `sha256:${"1".repeat(64)}`,
+      resolverResultDigest: `sha256:${"2".repeat(64)}`,
+      groundingStatus: "ready",
+      catalogComplete: true,
+      ambiguityReasons: [],
+      instruction: canonicalInstruction,
+    });
+    await expect(
+      applyDurableInstructionPlan({
+        plan,
+        receipt: { status: "applied" },
+        recordApplied: () => undefined,
+        failureInjector: (checkpoint) => (checkpoint === "published:0" ? "interrupt" : undefined),
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_recovery_required" });
+    expect(
+      await recoverKnowledgeMaterialization({
+        repositoryRoot: root,
+        eventRecorded: () => false,
+      }),
+    ).toMatchObject({ planId: plan.planId, disposition: "rolled_back" });
+    await expect(access(resolve(root, plan.targetPath!))).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("keeps the AGENTS bootstrap constant as registry entries grow", () => {

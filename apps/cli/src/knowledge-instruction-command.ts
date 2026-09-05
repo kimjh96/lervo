@@ -10,15 +10,22 @@ import {
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
-import type { CliIo } from "./types.js";
+import type { CliIo, CliServices } from "./types.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
 import {
   instructionBridgeKnowledgeLintCodes,
   validateKnowledgeStage,
 } from "./knowledge-stage-lint.js";
+import { runKnowledgeDurableInstruction } from "./knowledge-durable-instruction-command.js";
 
-export async function runKnowledgeInstruction(args: string[], io: CliIo): Promise<number> {
+export async function runKnowledgeInstruction(
+  args: string[],
+  io: CliIo,
+  services?: Pick<CliServices, "groundProductionRequest">,
+): Promise<number> {
   try {
+    if (["intake", "status", "review"].includes(args[0] ?? ""))
+      return await runKnowledgeDurableInstruction(args, io, services);
     if (args[0] !== "bridge") throw new Error("The instruction command currently supports bridge.");
     const parsed = parseArgs({
       args: args.slice(1),

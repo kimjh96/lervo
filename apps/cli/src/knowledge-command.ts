@@ -29,9 +29,13 @@ export { knowledgeUsage } from "./knowledge-usage.js";
 export async function runKnowledgeCommand(
   args: string[],
   io: CliIo,
-  services: Pick<
-    CliServices,
-    "createLocalImprovementObservationHost" | "improvementObservationPort"
+  services: Partial<
+    Pick<
+      CliServices,
+      | "createLocalImprovementObservationHost"
+      | "improvementObservationPort"
+      | "groundProductionRequest"
+    >
   > = {},
 ): Promise<number> {
   const subcommand = args[0];
@@ -121,7 +125,15 @@ export async function runKnowledgeCommand(
   if (subcommand === "review") return runKnowledgeReview(args.slice(1), io);
   if (subcommand === "materialize") return runKnowledgeSemanticMaterialize(args.slice(1), io);
   if (subcommand === "structure") return runKnowledgeStructure(args.slice(1), io);
-  if (subcommand === "instruction") return runKnowledgeInstruction(args.slice(1), io);
+  if (subcommand === "instruction") {
+    return runKnowledgeInstruction(
+      args.slice(1),
+      io,
+      services.groundProductionRequest === undefined
+        ? undefined
+        : { groundProductionRequest: services.groundProductionRequest },
+    );
+  }
   if (subcommand === "reconcile") {
     try {
       const parsed = parseArgs({

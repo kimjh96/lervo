@@ -12,6 +12,17 @@ export * from "./cross-provider-merge.js";
 export * from "./cross-provider-fuzzy-merge.js";
 export * from "./durable-apply.js";
 export * from "./durable-instruction.js";
+export {
+  createDurableInstructionCandidate,
+  type DurableInstructionCandidate,
+  type DurableInstructionCandidateInspection,
+} from "./durable-instruction-candidate.js";
+export {
+  listDurableInstructionCandidates,
+  loadDurableInstructionCandidate,
+  removeDurableInstructionCandidate,
+  storeDurableInstructionCandidate,
+} from "./durable-instruction-candidate-store.js";
 export * from "./document-structure-delete.js";
 export * from "./document-structure-move.js";
 export * from "./document-structure-merge.js";

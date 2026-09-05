@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5b131a01241f78dde22ba261
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f14998b3bb28277c48cb5e9d
+outputLanguage: en
+outputs:
+  - byteCount: 1092
+    contentHash: sha256:07166530e21ead58270b6a6b58579c9ff548ec2eafceab8571e9a41abc258d4e
+    path: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/knowledge-materialization.md
+    userRegionHash: sha256:07166530e21ead58270b6a6b58579c9ff548ec2eafceab8571e9a41abc258d4e
+profile: specification_document
+recordId: knormdoc_d1e494e36ee9714b34220ee4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0fe322cac2f24e6dd532bb80307a5b2d756a76be0b5e23a582e029d3e802feb6
+sourcePath: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/knowledge-materialization.md
+sourceUnitVersionIds:
+  - uv_fc94273816cdf66b625e32b0

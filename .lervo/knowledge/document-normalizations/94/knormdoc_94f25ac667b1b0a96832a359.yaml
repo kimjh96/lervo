@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5b131a01241f78dde22ba261
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_8cf9ce270dc78d6143251425
+outputLanguage: en
+outputs:
+  - byteCount: 609
+    contentHash: sha256:c1b8f21f0d03a5f1db28f12fbb26f10f987eee7f4f34fdce31821436e52f5bd4
+    path: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/state-pruning.md
+    userRegionHash: sha256:c1b8f21f0d03a5f1db28f12fbb26f10f987eee7f4f34fdce31821436e52f5bd4
+profile: specification_document
+recordId: knormdoc_94f25ac667b1b0a96832a359
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c5bb09c4f7b2af65091958759653f31bee2617a840c7e3e53fdae7e6c1f5a2ed
+sourcePath: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/state-pruning.md
+sourceUnitVersionIds:
+  - uv_0477e5c9dd162d86bf18d38e

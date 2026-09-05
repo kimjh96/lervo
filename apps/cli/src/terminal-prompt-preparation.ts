@@ -12,7 +12,7 @@ import {
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { createCurrentWorkstreamSearchProjectionContext } from "./search-projection-context.js";
-import { inspectTerminalInstructionCatalog } from "./terminal-durable-instruction.js";
+import { inspectInstructionCatalog } from "./instruction-catalog.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import type { CliServices } from "./types.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
@@ -23,7 +23,7 @@ type Canonicalization = Awaited<ReturnType<typeof listCanonicalizationCandidates
 
 interface TerminalPromptCorpusPreparation {
   supplementalSources: Awaited<ReturnType<typeof collectLocalKnowledgeSources>>;
-  instructionCatalog: Awaited<ReturnType<typeof inspectTerminalInstructionCatalog>>;
+  instructionCatalog: Awaited<ReturnType<typeof inspectInstructionCatalog>>;
   canonicalization: { coverage: "complete" | "unavailable"; candidates: Canonicalization };
   preparedKnowledge: PreparedKnowledge;
 }
@@ -81,7 +81,7 @@ export async function prepareTerminalPromptInputs(input: {
             () => ({ coverage: "unavailable" as const, candidates: [] }),
           ),
         ]);
-        const instructionCatalog = await inspectTerminalInstructionCatalog({
+        const instructionCatalog = await inspectInstructionCatalog({
           repositoryRoot: input.root,
           supplementalSources,
           preparedKnowledge,
