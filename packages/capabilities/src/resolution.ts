@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 import { validateSchema, type CapabilityLock } from "@lervo/schemas";
 
 import { hashCapabilityPackageFiles, readCapabilityPackage } from "./package-reader.js";
+import { isPathInsideDirectory } from "./path-boundary.js";
 import {
   CapabilityPackageError,
   type CapabilityResolution,
@@ -264,7 +265,7 @@ async function writeVerifiedPackage(
     await mkdir(temporary, { mode: 0o700 });
     for (const file of packageValue.files) {
       const path = resolve(temporary, file.path);
-      if (!path.startsWith(`${temporary}/`))
+      if (!isPathInsideDirectory(temporary, path))
         fail("capability_unsafe_package", "A package output path escaped the installation root.");
       await mkdir(dirname(path), { recursive: true, mode: 0o700 });
       const handle = await open(path, "wx", 0o600);

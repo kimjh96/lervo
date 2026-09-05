@@ -10,6 +10,7 @@ import {
   type VerifiedCapabilityPackage,
 } from "./types.js";
 import { createCapabilityActivationRequests } from "./activation.js";
+import { isPathInsideDirectory } from "./path-boundary.js";
 import { readBoundedRegularFile } from "./safe-file-reader.js";
 
 export const CAPABILITY_MANIFEST = "lervo-capability.json";
@@ -47,8 +48,7 @@ function fail(code: CapabilityPackageError["code"], message: string, cause?: unk
 }
 
 function within(root: string, path: string): void {
-  const child = relative(root, path);
-  if (child === "" || child === ".." || child.startsWith(`..${sep}`))
+  if (!isPathInsideDirectory(root, path))
     fail("capability_unsafe_package", "A capability path escaped its package root.");
 }
 

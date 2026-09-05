@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_32bcf69a7954383212b22633"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Use platform-native path containment for capability package installation."
