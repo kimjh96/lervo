@@ -76,5 +76,5 @@ export async function verifyInstalledClaudeNativeRuntime(consumerRoot) {
     .map((line) => line.trim())
     .find(Boolean);
   assert.match(version ?? "", /^\d+\.\d+\.\d+ \(Claude Code\)$/u);
-  return { packageName, version };
+  return { packageName, version, executable };
 }

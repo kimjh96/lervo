@@ -53,6 +53,10 @@ async function handle(line) {
     return;
   }
   if (message.method === "thread/inject_items") {
+    const contextLog = process.env.LERVO_INSTALLED_CAPABILITY_CONTEXT_LOG;
+    if (contextLog !== undefined) {
+      await appendFile(contextLog, `${JSON.stringify(message.params?.items ?? [])}\n`, "utf8");
+    }
     send({ id: message.id, result: {} });
     return;
   }
@@ -117,7 +121,12 @@ async function handle(line) {
   if (message.id === "approval-installed-capability" && pendingMainTurn) {
     if (message.result?.decision !== "accept") throw new Error("The managed write was declined.");
     const targetPath = process.env.LERVO_INSTALLED_CAPABILITY_TARGET;
-    await writeFile(targetPath, "export const installedCapabilityJourney = true;\n", "utf8");
+    await writeFile(
+      targetPath,
+      process.env.LERVO_INSTALLED_CAPABILITY_CONTENT ??
+        "export const installedCapabilityJourney = true;\n",
+      "utf8",
+    );
     pendingMainTurn = false;
     send({
       method: "item/completed",
@@ -132,7 +141,9 @@ async function handle(line) {
         },
       },
     });
-    completeTurn("Installed capability journey complete.");
+    completeTurn(
+      process.env.LERVO_INSTALLED_CAPABILITY_RESULT ?? "Installed capability journey complete.",
+    );
     return;
   }
   if (message.method === "thread/unsubscribe" || message.method === "turn/interrupt") {

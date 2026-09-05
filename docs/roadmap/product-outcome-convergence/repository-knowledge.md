@@ -8,7 +8,7 @@ State: **implemented**.
 
 Direct hooks project bounded queries, select registered sources, and load exact hashes. Managed delivery uses the same evidence distinctions.
 
-Completion proof to maintain: current cross-provider retrieval and exact-load regression evidence.
+Maintain current cross-provider retrieval and exact-load regression evidence as completion proof.
 
 ## Distinct retrieval evidence states
 
@@ -26,11 +26,13 @@ Preserve distinctions among recommendation, explicit or automatic selection, dep
 
 ## Continuation across agents, providers, sessions, devices, and clean clones
 
-State: **partial**.
+State: **implemented**.
 
 Workstreams, canonical sources, Hub replication, handoffs, and workspace checkpoints preserve bounded continuation. Provider sessions are replaceable and not generally resumed.
 
-Completion requires fresh-session and cross-provider acceptance that resumes the same bounded work without claiming native provider-session resume.
+The packed installed continuation journey completes one bounded workstream through Codex, advances its verified revision, rejects a tampered current projection before Claude starts, and resumes through a fresh Claude run and provider session. Both completed runs retain the same workstream identity, exact revision-specific E2/E3 evidence, distinct session coordinates, passing repository verification, and result-digest-bound completion.
+
+This proves repository-evidence continuation across replaceable provider sessions, not native provider-session resume, conversation-memory transfer, live-model quality, or semantic reliance. See [installed fresh-session cross-provider continuation v1](../../evidence/foundation/installed-fresh-session-cross-provider-continuation-v1.md).
 
 ## Durable knowledge in responsible canonical sources
 

@@ -61,12 +61,14 @@ class MessageQueue {
 class ManagedCodexClient implements CodexAppServerClient {
   readonly queue = new MessageQueue();
   readonly startOptions: CodexThreadStartOptions[] = [];
+  readonly injectedItems: unknown[][] = [];
   readonly turnInstructions: string[] = [];
   closed = false;
 
   constructor(
     private readonly root: string,
     private readonly failStart = false,
+    private readonly targetContent = "export const cli = true;\n",
   ) {
     this.queue.push({
       method: "thread/started",
@@ -80,7 +82,9 @@ class ManagedCodexClient implements CodexAppServerClient {
     return { threadId: "codex-cli-session" };
   }
 
-  async injectItems() {}
+  async injectItems(_threadId: string, items: readonly unknown[]) {
+    this.injectedItems.push(structuredClone([...items]));
+  }
 
   async listConnectedMcpServers() {
     const config = this.startOptions.at(-1)?.config as
@@ -131,7 +135,7 @@ class ManagedCodexClient implements CodexAppServerClient {
 
   async respondFileChangeApproval(_requestId: string | number, decision: "accept" | "decline") {
     if (decision !== "accept") return;
-    await writeFile(resolve(this.root, "src/result.ts"), "export const cli = true;\n");
+    await writeFile(resolve(this.root, "src/result.ts"), this.targetContent);
     this.queue.push(
       {
         method: "item/completed",
@@ -182,16 +186,21 @@ class ManagedCodexClient implements CodexAppServerClient {
 
 class ManagedClaudeClient implements ClaudeAgentClient {
   readonly queue = new MessageQueue();
+  readonly injectedContexts: string[] = [];
   closed = false;
   private handler: ClaudeToolUseHandler | undefined;
 
-  constructor(private readonly root: string) {}
+  constructor(
+    private readonly root: string,
+    private readonly targetContent = "export const cli = true;\n",
+  ) {}
 
   attachToolUseHandler(handler: ClaudeToolUseHandler): void {
     this.handler = handler;
   }
 
-  async appendContext() {
+  async appendContext(content: string) {
+    this.injectedContexts.push(content);
     this.queue.push({
       type: "system",
       subtype: "init",
@@ -203,7 +212,7 @@ class ManagedClaudeClient implements ClaudeAgentClient {
   async startTurn(turnId: string, instructions: string) {
     const toolInput = {
       file_path: resolve(this.root, "src/result.ts"),
-      content: "export const cli = true;\n",
+      content: this.targetContent,
     };
     const allowed = await this.handler?.authorize("Write", toolInput, "claude-cli-write");
     if (allowed !== true) throw new Error("fixture write denied");
@@ -286,6 +295,66 @@ async function writeVerificationSuite(
       "",
     ].join("\n"),
   );
+}
+
+async function applyWorkstreamSnapshot(
+  root: string,
+  action: "start" | "update",
+  snapshot: Record<string, unknown>,
+  provider: RunProvider,
+): Promise<void> {
+  const input = JSON.stringify(snapshot);
+  const planned: string[] = [];
+  const quiet = { cwd: root, stdin: async () => input, stderr: () => undefined };
+  expect(
+    await runCli(
+      ["workstream", action, "--stdin", "--actor", "agent", "--provider", provider, "--json"],
+      { ...quiet, stdout: (message) => planned.push(message) },
+    ),
+  ).toBe(0);
+  const plan = JSON.parse(planned.join("")) as { planId: string };
+  expect(
+    await runCli(
+      [
+        "workstream",
+        action,
+        "--stdin",
+        "--actor",
+        "agent",
+        "--provider",
+        provider,
+        "--apply",
+        plan.planId,
+      ],
+      { ...quiet, stdout: () => undefined },
+    ),
+  ).toBe(0);
+}
+
+interface ObservedManagedDocument {
+  documentId: string;
+  path: string;
+  contentHash: string;
+  content: string;
+}
+
+function codexManagedDocument(client: ManagedCodexClient, path: string): ObservedManagedDocument {
+  for (const item of client.injectedItems.flat()) {
+    const text = (item as { content?: Array<{ text?: unknown }> }).content?.[0]?.text;
+    if (typeof text !== "string") continue;
+    const document = (JSON.parse(text) as { document?: ObservedManagedDocument }).document;
+    if (document?.path === path) return document;
+  }
+  throw new Error(`Codex did not receive ${path}.`);
+}
+
+function claudeManagedDocument(client: ManagedClaudeClient, path: string): ObservedManagedDocument {
+  for (const content of client.injectedContexts) {
+    const documents = (JSON.parse(content) as { documents?: ObservedManagedDocument[] }).documents;
+    const document = documents?.find((candidate) => candidate.path === path);
+    if (document !== undefined) return document;
+  }
+  throw new Error(`Claude did not receive ${path}.`);
 }
 
 async function createProjectSkill(root: string): Promise<{
@@ -711,6 +780,169 @@ describe("lervo run vertical slice", () => {
       ).rejects.toThrow();
     },
   );
+
+  it("resumes one verified workstream in a fresh session on another provider", async () => {
+    const root = await createRepository();
+    const workstreamPath = resolve(root, ".lervo/state/workstreams/current.json");
+    await applyWorkstreamSnapshot(
+      root,
+      "start",
+      {
+        schemaVersion: 1,
+        status: "active",
+        title: "Cross-provider continuation fixture",
+        objective: "Create an initial result and refine it in a fresh provider session.",
+        nextActions: ["Codex creates the initial result.", "Claude resumes and refines it."],
+        blockers: [],
+        notes: [],
+        references: [],
+        updatedAt: "2026-08-19T00:01:00.000Z",
+      },
+      "codex",
+    );
+    const firstWorkstreamBytes = await readFile(workstreamPath, "utf8");
+    const firstWorkstream = JSON.parse(firstWorkstreamBytes) as Record<string, unknown>;
+    const codex = new ManagedCodexClient(root, false, 'export const continuedBy = "codex";\n');
+    const claude = new ManagedClaudeClient(root, 'export const continuedBy = "claude";\n');
+    const adapterCreations: RunProvider[] = [];
+    const executeManagedRun = createManagedRunExecutor({
+      openStorage: openProjectStorage,
+      createId: identifierFactory(),
+      semanticEvaluator: passingSemanticEvaluator,
+      createAdapter: ({ provider, repositoryRoot, resolveArtifact }) => {
+        adapterCreations.push(provider);
+        return provider === "codex"
+          ? new CodexAdapter({
+              repositoryRoot,
+              resolveArtifact,
+              clientFactory: async () => codex,
+            })
+          : new ClaudeAdapter({
+              repositoryRoot,
+              resolveArtifact,
+              clientFactory: async () => claude,
+              createProviderSessionId: () => CLAUDE_SESSION_ID,
+              createProviderMessageId: () => CLAUDE_TURN_ID,
+            });
+      },
+    });
+
+    const initial = await executeManagedRun({
+      repositoryRoot: root,
+      provider: "codex",
+      expectedPath: "src/result.ts",
+      instructions: "Create the initial result for the current workstream",
+      risk: "medium",
+      verificationSuiteIds: ["project.default"],
+    });
+    const codexWorkstream = codexManagedDocument(codex, ".lervo/state/workstreams/current.json");
+    expect(codexWorkstream.content).toBe(firstWorkstreamBytes);
+    expect(JSON.parse(codexWorkstream.content)).toMatchObject({
+      workstreamId: firstWorkstream.workstreamId,
+      revision: 1,
+    });
+    expect(await readFile(resolve(root, "src/result.ts"), "utf8")).toBe(
+      'export const continuedBy = "codex";\n',
+    );
+
+    await applyWorkstreamSnapshot(
+      root,
+      "update",
+      {
+        ...firstWorkstream,
+        revision: 2,
+        nextActions: ["Claude resumes and refines the verified initial result."],
+        notes: [`Codex completed ${initial.resultArtifact.contentHash}.`],
+        updatedAt: "2026-08-19T00:02:00.000Z",
+      },
+      "codex",
+    );
+    const continuationBytes = await readFile(workstreamPath, "utf8");
+    const tampered = JSON.parse(continuationBytes) as Record<string, unknown>;
+    tampered.notes = ["This projection no longer matches its recorded snapshot."];
+    await writeFile(workstreamPath, `${JSON.stringify(tampered)}\n`);
+    await expect(
+      executeManagedRun({
+        repositoryRoot: root,
+        provider: "claude",
+        expectedPath: "src/result.ts",
+        instructions: "Resume the current workstream",
+        risk: "medium",
+        verificationSuiteIds: ["project.default"],
+      }),
+    ).rejects.toThrow(/workstream|snapshot/iu);
+    expect(adapterCreations).toEqual(["codex"]);
+    await writeFile(workstreamPath, continuationBytes);
+
+    const resumed = await executeManagedRun({
+      repositoryRoot: root,
+      provider: "claude",
+      expectedPath: "src/result.ts",
+      instructions: "Resume the current workstream in this fresh provider session",
+      risk: "medium",
+      verificationSuiteIds: ["project.default"],
+    });
+    const claudeWorkstream = claudeManagedDocument(claude, ".lervo/state/workstreams/current.json");
+    expect(claudeWorkstream.content).toBe(continuationBytes);
+    expect(JSON.parse(claudeWorkstream.content)).toMatchObject({
+      workstreamId: firstWorkstream.workstreamId,
+      revision: 2,
+      nextActions: ["Claude resumes and refines the verified initial result."],
+    });
+    expect(claudeWorkstream.contentHash).not.toBe(codexWorkstream.contentHash);
+    expect(initial.runId).not.toBe(resumed.runId);
+    expect(initial.sessionId).not.toBe(resumed.sessionId);
+    expect(adapterCreations).toEqual(["codex", "claude"]);
+    expect(codex.closed).toBe(true);
+    expect(claude.closed).toBe(true);
+    expect(await readFile(resolve(root, "src/result.ts"), "utf8")).toBe(
+      'export const continuedBy = "claude";\n',
+    );
+
+    const storage = await openProjectStorage(root);
+    const events = storage.events.list();
+    await storage.close();
+    for (const [outcome, workstreamDocument] of [
+      [initial, codexWorkstream],
+      [resumed, claudeWorkstream],
+    ] as const) {
+      expect(
+        events.find(
+          (event) => event.runId === outcome.runId && event.type === "work.causality.recorded",
+        )?.payload,
+      ).toMatchObject({
+        relationship: "root",
+        workstreamId: firstWorkstream.workstreamId,
+      });
+      expect(
+        events.find(
+          (event) =>
+            event.runId === outcome.runId &&
+            event.type === "document.loaded" &&
+            event.payload.documentId === workstreamDocument.documentId,
+        )?.payload,
+      ).toMatchObject({ contentHash: workstreamDocument.contentHash });
+      expect(
+        events.find((event) => event.runId === outcome.runId && event.type === "context.injected")
+          ?.payload.documentIds,
+      ).toContain(workstreamDocument.documentId);
+      expect(
+        events.find((event) => event.runId === outcome.runId && event.type === "run.completed")
+          ?.payload,
+      ).toMatchObject({
+        resultDigest: outcome.resultArtifact.contentHash,
+        verificationStatus: "passed",
+      });
+    }
+    const providerSessions = events
+      .filter(
+        (event) =>
+          (event.runId === initial.runId || event.runId === resumed.runId) &&
+          event.type === "adapter.started",
+      )
+      .map((event) => event.payload.providerSessionId);
+    expect(providerSessions).toEqual(["codex-cli-session", CLAUDE_SESSION_ID]);
+  });
 
   it("keeps the retired linked treatment available only through an explicit evaluation seam", async () => {
     const root = await createRepository();

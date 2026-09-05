@@ -44,11 +44,10 @@ Detailed acceptance records:
 
 ## Remaining delivery order
 
-1. Prove fresh-session and cross-provider continuation of one bounded workstream without claiming native provider-session resume or conversation-memory transfer.
-2. Connect independently verified repeated workflows to reviewable skill, instruction, or profile candidates with exact review, stale-source handling, activation, effect observation, supersession, and rollback. Retrieval selection alone never enters this path.
-3. Extend root-agent and managed-process liveness, direct-message acknowledgment, and reviewed trigger adapters as separate observable outcomes.
-4. Add unattended scheduling or dynamic graph topology only after authority, budget, cancellation, uncertain-effect, migration, recovery, and kill-switch contracts pass installed acceptance.
-5. Version further product-host routes only with packed external-consumer proof; keep Paperclip-like and Buzz-like interfaces in separate hosts.
+1. Connect independently verified repeated workflows to reviewable skill, instruction, or profile candidates with exact review, stale-source handling, activation, effect observation, supersession, and rollback. Retrieval selection alone never enters this path.
+2. Extend root-agent and managed-process liveness, direct-message acknowledgment, and reviewed trigger adapters as separate observable outcomes.
+3. Add unattended scheduling or dynamic graph topology only after authority, budget, cancellation, uncertain-effect, migration, recovery, and kill-switch contracts pass installed acceptance.
+4. Version further product-host routes only with packed external-consumer proof; keep Paperclip-like and Buzz-like interfaces in separate hosts.
 
 The earlier sequence through attention, durable terminal outcomes, checkpointed workspace continuation, product-host protocol v2, release-impact repair, CLI README normalization, and the final `v0.11.4` release gate is complete. Post-release maintenance does not reopen those acceptance results.
 
@@ -63,3 +62,4 @@ The earlier sequence through attention, durable terminal outcomes, checkpointed 
 - [Availability-safe unmanaged terminal hooks](../decisions/execution/providers/hooks/0327-availability-safe-unmanaged-terminal-hooks.md)
 - [Terminal observation strengthening v1](../evidence/foundation/terminal-observation-strengthening-v1.md)
 - [Installed natural-language capability journey v1](../evidence/foundation/installed-natural-language-capability-journey-v1.md)
+- [Installed fresh-session cross-provider continuation v1](../evidence/foundation/installed-fresh-session-cross-provider-continuation-v1.md)
