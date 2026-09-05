@@ -71072,7 +71072,7 @@ var TERMINAL_OBSERVATION_POLICY_VERSION = sha2562(
   "lervo.terminal.unmanaged-observation.v1"
 );
 var TERMINAL_HOOK_BUILD_DIGEST = sha2562(
-  "lervo.terminal.hook-runtime.lifecycle-cache-and-shared-scan.v2"
+  "lervo.terminal.hook-runtime.concurrent-corpus-and-query.v3"
 );
 function allTerminalEvents2(events) {
   const result = [];
@@ -73123,26 +73123,6 @@ async function inspectTerminalLifecycle(root2, expected) {
     activationReadiness: terminalActivationReadiness(runtimeActivation),
     repositoryChange,
     workspace
-  };
-}
-
-// apps/cli/src/search-projection-context.ts
-function createCurrentWorkstreamSearchProjectionContext(workstream) {
-  const contextAnchors = [
-    ...new Set(workstream.references.map((reference) => reference.path))
-  ].slice(0, SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES);
-  return {
-    context: {
-      currentWorkstream: {
-        workstreamId: workstream.workstreamId,
-        revision: workstream.revision,
-        objective: workstream.objective,
-        nextActions: workstream.nextActions,
-        references: contextAnchors
-      },
-      contextAnchors
-    },
-    contextAnchors
   };
 }
 
@@ -75529,31 +75509,6 @@ async function selectTerminalContextCandidates(input) {
   };
 }
 
-// apps/cli/src/terminal-durable-instruction.ts
-async function inspectTerminalInstructionCatalog(input) {
-  const { policy, scan } = input.preparedKnowledge ?? await scanConfiguredRepositoryKnowledge(input.repositoryRoot, {
-    supplementalSources: input.supplementalSources
-  });
-  const sources = scan.sources.filter(
-    (source) => source.status === "included" && source.content !== void 0 && (source.path === "AGENTS.md" || source.path.startsWith("docs/instructions/"))
-  ).sort((left, right) => left.path.localeCompare(right.path));
-  const complete = sources.length <= 32;
-  return {
-    complete,
-    sourceSnapshotId: scan.snapshotId,
-    semanticCatalog: {
-      schemaVersion: 1,
-      retrievalLanguage: policy.publication.language,
-      canonicalInstructions: {
-        complete,
-        entries: sources.slice(0, 32).map(
-          (source) => durableInstructionCatalogEntry({ path: source.path, content: source.content })
-        )
-      }
-    }
-  };
-}
-
 // apps/cli/src/operating-attention-format.ts
 function describe(item) {
   if (item.kind === "workstream_decision") return item.question;
@@ -75732,6 +75687,115 @@ function createOperatingAttentionReport(input) {
   };
 }
 
+// apps/cli/src/search-projection-context.ts
+function createCurrentWorkstreamSearchProjectionContext(workstream) {
+  const contextAnchors = [
+    ...new Set(workstream.references.map((reference) => reference.path))
+  ].slice(0, SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES);
+  return {
+    context: {
+      currentWorkstream: {
+        workstreamId: workstream.workstreamId,
+        revision: workstream.revision,
+        objective: workstream.objective,
+        nextActions: workstream.nextActions,
+        references: contextAnchors
+      },
+      contextAnchors
+    },
+    contextAnchors
+  };
+}
+
+// apps/cli/src/terminal-durable-instruction.ts
+async function inspectTerminalInstructionCatalog(input) {
+  const { policy, scan } = input.preparedKnowledge ?? await scanConfiguredRepositoryKnowledge(input.repositoryRoot, {
+    supplementalSources: input.supplementalSources
+  });
+  const sources = scan.sources.filter(
+    (source) => source.status === "included" && source.content !== void 0 && (source.path === "AGENTS.md" || source.path.startsWith("docs/instructions/"))
+  ).sort((left, right) => left.path.localeCompare(right.path));
+  const complete = sources.length <= 32;
+  return {
+    complete,
+    sourceSnapshotId: scan.snapshotId,
+    semanticCatalog: {
+      schemaVersion: 1,
+      retrievalLanguage: policy.publication.language,
+      canonicalInstructions: {
+        complete,
+        entries: sources.slice(0, 32).map(
+          (source) => durableInstructionCatalogEntry({ path: source.path, content: source.content })
+        )
+      }
+    }
+  };
+}
+
+// apps/cli/src/terminal-prompt-preparation.ts
+async function coordinateTerminalPromptPreparation(input) {
+  const [corpus, query, repositorySnapshot] = await Promise.all([
+    input.prepareCorpus(),
+    input.prepareQuery(),
+    input.captureSnapshot()
+  ]);
+  if (corpus.preparedKnowledge.manifest.projectId !== query.projectId || corpus.preparedKnowledge.policy.publication.language !== query.requestedLanguage) {
+    throw new Error("Terminal prompt preparation inputs changed during concurrent inspection.");
+  }
+  return { ...corpus, ...query, repositorySnapshot, requestDigest: input.requestDigest };
+}
+async function prepareTerminalPromptInputs(input) {
+  const requestDigest = sha2562(input.prompt);
+  return coordinateTerminalPromptPreparation({
+    requestDigest,
+    prepareCorpus: () => input.timing.measure("corpus_preparation", async () => {
+      const supplementalSources = await collectLocalKnowledgeSources(input.root);
+      const [preparedKnowledge, canonicalization] = await Promise.all([
+        scanConfiguredRepositoryKnowledge(input.root, { supplementalSources }),
+        listCanonicalizationCandidates(input.root).then(
+          (candidates) => ({ coverage: "complete", candidates }),
+          () => ({ coverage: "unavailable", candidates: [] })
+        )
+      ]);
+      const instructionCatalog = await inspectTerminalInstructionCatalog({
+        repositoryRoot: input.root,
+        supplementalSources,
+        preparedKnowledge
+      });
+      return { supplementalSources, instructionCatalog, canonicalization, preparedKnowledge };
+    }),
+    prepareQuery: () => input.timing.measure("query_projection", async () => {
+      const workstreamStorage = await openProjectStorage(input.root);
+      try {
+        const [policy, currentWorkstream] = await Promise.all([
+          loadRepositoryKnowledgePolicy(input.root),
+          verifiedCurrentWorkstream(workstreamStorage)
+        ]);
+        const searchProjectionContext = currentWorkstream === null ? { context: { contextRequirement: "none" }, contextAnchors: [] } : createCurrentWorkstreamSearchProjectionContext(currentWorkstream);
+        const requestedLanguage = policy.publication.language;
+        const queryProjection = await input.services.projectSearchQueries({
+          request: input.prompt,
+          requestDigest,
+          context: searchProjectionContext.context,
+          contextDigest: sha2562(canonicalJson3(searchProjectionContext.context)),
+          contextAnchors: searchProjectionContext.contextAnchors,
+          requestedLanguage,
+          provider: input.provider
+        });
+        return {
+          queryProjection,
+          currentWorkstream,
+          projectId: workstreamStorage.manifest.projectId,
+          requestedLanguage
+        };
+      } finally {
+        await workstreamStorage.close();
+      }
+    }),
+    captureSnapshot: () => input.timing.measure("repository_snapshot", () => captureRepositorySnapshot(input.root))
+  });
+}
+
 // apps/cli/src/terminal-prompt-context.ts
 var MAXIMUM_CONTEXT_BYTES = 28 * 1024;
 var MAXIMUM_DOCUMENT_CONTEXT_BYTES = 12 * 1024;
@@ -75760,53 +75824,11 @@ async function prepareTerminalPromptContext(input) {
     currentWorkstream,
     canonicalization,
     projectId,
-    preparedKnowledge
-  } = await input.timing.measure("corpus_preparation", async () => {
-    const supplementalSources2 = await collectLocalKnowledgeSources(input.root);
-    const workstreamStorage = await openProjectStorage(input.root);
-    try {
-      const [preparedKnowledge2, currentWorkstream2, canonicalization2] = await Promise.all([
-        scanConfiguredRepositoryKnowledge(input.root, { supplementalSources: supplementalSources2 }),
-        verifiedCurrentWorkstream(workstreamStorage),
-        listCanonicalizationCandidates(input.root).then(
-          (candidates) => ({ coverage: "complete", candidates }),
-          () => ({ coverage: "unavailable", candidates: [] })
-        )
-      ]);
-      const instructionCatalog2 = await inspectTerminalInstructionCatalog({
-        repositoryRoot: input.root,
-        supplementalSources: supplementalSources2,
-        preparedKnowledge: preparedKnowledge2
-      });
-      return {
-        supplementalSources: supplementalSources2,
-        instructionCatalog: instructionCatalog2,
-        currentWorkstream: currentWorkstream2,
-        canonicalization: canonicalization2,
-        projectId: workstreamStorage.manifest.projectId,
-        preparedKnowledge: preparedKnowledge2
-      };
-    } finally {
-      await workstreamStorage.close();
-    }
-  });
-  const searchProjectionContext = currentWorkstream === null ? { context: { contextRequirement: "none" }, contextAnchors: [] } : createCurrentWorkstreamSearchProjectionContext(currentWorkstream);
-  const requestDigest = sha2562(input.prompt);
-  const [queryProjection, repositorySnapshot] = await Promise.all([
-    input.timing.measure(
-      "query_projection",
-      () => input.services.projectSearchQueries({
-        request: input.prompt,
-        requestDigest,
-        context: searchProjectionContext.context,
-        contextDigest: sha2562(canonicalJson3(searchProjectionContext.context)),
-        contextAnchors: searchProjectionContext.contextAnchors,
-        requestedLanguage: instructionCatalog.semanticCatalog.retrievalLanguage,
-        provider: input.provider
-      })
-    ),
-    input.timing.measure("repository_snapshot", () => captureRepositorySnapshot(input.root))
-  ]);
+    preparedKnowledge,
+    requestDigest,
+    queryProjection,
+    repositorySnapshot
+  } = await prepareTerminalPromptInputs(input);
   const grounding = {
     status: "abstain",
     workflowId: null,

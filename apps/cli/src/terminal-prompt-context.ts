@@ -1,30 +1,24 @@
 import type { OperatingAttentionReportV1 } from "@lervo/application-contract";
-import { captureRepositorySnapshot, type RepositorySnapshot } from "@lervo/orchestrator";
-import { openProjectStorage } from "@lervo/project-storage";
+import type { RepositorySnapshot } from "@lervo/orchestrator";
 import type { SearchQueryProjectionReceipt } from "@lervo/search";
 import {
   canonicalJson,
   formatWorkstreamContext,
-  listCanonicalizationCandidates,
-  scanConfiguredRepositoryKnowledge,
   sha256,
   type KnowledgeQueryHit,
   type TerminalIntegrationProvider,
 } from "@lervo/repository-knowledge";
 
-import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
-import { createCurrentWorkstreamSearchProjectionContext } from "./search-projection-context.js";
 import { assembleTerminalHookContext } from "./terminal-context-assembly.js";
 import { loadSelectedTerminalDocument } from "./terminal-context-loading.js";
 import { selectTerminalContextCandidates } from "./terminal-context-selection.js";
-import { inspectTerminalInstructionCatalog } from "./terminal-durable-instruction.js";
 import { formatTerminalAttentionContext } from "./operating-attention-format.js";
 import { createOperatingAttentionReport } from "./operating-attention-projection.js";
 import { readTerminalKnowledgeLifecycleCache } from "./terminal-knowledge-lifecycle-cache.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
+import { prepareTerminalPromptInputs } from "./terminal-prompt-preparation.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
 import type { CliServices } from "./types.js";
-import { verifiedCurrentWorkstream } from "./workstream-services.js";
 
 const MAXIMUM_CONTEXT_BYTES = 28 * 1024;
 const MAXIMUM_DOCUMENT_CONTEXT_BYTES = 12 * 1024;
@@ -117,54 +111,10 @@ export async function prepareTerminalPromptContext(input: {
     canonicalization,
     projectId,
     preparedKnowledge,
-  } = await input.timing.measure("corpus_preparation", async () => {
-    const supplementalSources = await collectLocalKnowledgeSources(input.root);
-    const workstreamStorage = await openProjectStorage(input.root);
-    try {
-      const [preparedKnowledge, currentWorkstream, canonicalization] = await Promise.all([
-        scanConfiguredRepositoryKnowledge(input.root, { supplementalSources }),
-        verifiedCurrentWorkstream(workstreamStorage),
-        listCanonicalizationCandidates(input.root).then(
-          (candidates) => ({ coverage: "complete" as const, candidates }),
-          () => ({ coverage: "unavailable" as const, candidates: [] }),
-        ),
-      ]);
-      const instructionCatalog = await inspectTerminalInstructionCatalog({
-        repositoryRoot: input.root,
-        supplementalSources,
-        preparedKnowledge,
-      });
-      return {
-        supplementalSources,
-        instructionCatalog,
-        currentWorkstream,
-        canonicalization,
-        projectId: workstreamStorage.manifest.projectId,
-        preparedKnowledge,
-      };
-    } finally {
-      await workstreamStorage.close();
-    }
-  });
-  const searchProjectionContext =
-    currentWorkstream === null
-      ? { context: { contextRequirement: "none" }, contextAnchors: [] }
-      : createCurrentWorkstreamSearchProjectionContext(currentWorkstream);
-  const requestDigest = sha256(input.prompt);
-  const [queryProjection, repositorySnapshot] = await Promise.all([
-    input.timing.measure("query_projection", () =>
-      input.services.projectSearchQueries({
-        request: input.prompt,
-        requestDigest,
-        context: searchProjectionContext.context,
-        contextDigest: sha256(canonicalJson(searchProjectionContext.context)),
-        contextAnchors: searchProjectionContext.contextAnchors,
-        requestedLanguage: instructionCatalog.semanticCatalog.retrievalLanguage,
-        provider: input.provider,
-      }),
-    ),
-    input.timing.measure("repository_snapshot", () => captureRepositorySnapshot(input.root)),
-  ]);
+    requestDigest,
+    queryProjection,
+    repositorySnapshot,
+  } = await prepareTerminalPromptInputs(input);
   const grounding = {
     status: "abstain" as const,
     workflowId: null,

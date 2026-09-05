@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d7389649e928c14bce4bb006
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6b7273204e042f6f4c406103
+outputLanguage: en
+outputs:
+  - byteCount: 1001
+    contentHash: sha256:dc7b0d7c073eeca92cc077159cfa4099a762100af2ee372d9e2525c40a90d55a
+    path: docs/roadmap/product-outcome-convergence/foundation/terminal-hook-latency.md
+    userRegionHash: sha256:dc7b0d7c073eeca92cc077159cfa4099a762100af2ee372d9e2525c40a90d55a
+profile: roadmap_document
+recordId: knormdoc_e9998febf06fff1df2dc88e0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3f8e4ce61d1585c8be8127df2df38c63a4c28129b7e227b1a07fbf658df2af33
+sourcePath: docs/roadmap/product-outcome-convergence/foundation/terminal-hook-latency.md
+sourceUnitVersionIds:
+  - uv_9ab903f91a9f85f39a9a71d4

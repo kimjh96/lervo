@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d7389649e928c14bce4bb006
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_dff657ac915fe6b06844361a
+outputLanguage: en
+outputs:
+  - byteCount: 7234
+    contentHash: sha256:c72772549ead1a3beb97341c6fc09decc1a3fae6ed96d0bc37969992704a54db
+    path: docs/evidence/foundation/terminal-hook-latency-requalification-v2.md
+    userRegionHash: sha256:c72772549ead1a3beb97341c6fc09decc1a3fae6ed96d0bc37969992704a54db
+profile: repository_document
+recordId: knormdoc_7313a21a010dd4dd3d9c1df2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:55404bc977eb6fb32a1c12c16dace080af9941aa4fc2d926bb3a17905911545d
+sourcePath: docs/evidence/foundation/terminal-hook-latency-requalification-v2.md
+sourceUnitVersionIds:
+  - uv_015eb6d46ecf9a2786fc4a6e
+  - uv_05c7314144162a7aa8c07126
+  - uv_19b9e3007a012b4873c18be4
+  - uv_6672259ec5cfcd909ac0871b
+  - uv_767f617ee7117ee4af0bc714
+  - uv_86a765c7f6eb681bb655df37
+  - uv_e9066b8ecaf6499e3858a3a5
+  - uv_e9d56955af2eb2ca412517a5
+  - uv_ea1fc7e61d2a440f304d0c98
+  - uv_f1881f4beb848106ac1e6ab5

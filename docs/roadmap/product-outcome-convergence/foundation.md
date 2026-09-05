@@ -1,6 +1,6 @@
 # Foundation outcomes
 
-Part of [Product outcome convergence](../product-outcome-convergence.md); its baseline, acceptance-state definitions, and claim boundaries apply to these outcomes.
+Part of [Product outcome convergence](../product-outcome-convergence.md); its baseline, acceptance-state definitions, and claim boundaries apply.
 
 - [Task token usage](foundation/task-token-usage.md): `partial`.
 - [Terminal hook latency](foundation/terminal-hook-latency.md): `implemented`, with ongoing evidence requirements.
