@@ -155,6 +155,13 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
     this.toolUseHandler = handler;
   }
 
+  inspectProcess() {
+    return {
+      status: "unobservable" as const,
+      evidence: "transport_state_unavailable" as const,
+    };
+  }
+
   private failManagedWrite(error: unknown): never {
     const failure =
       error instanceof Error

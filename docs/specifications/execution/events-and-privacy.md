@@ -12,6 +12,7 @@ This specification defines event evidence and privacy guarantees for the [execut
 - [Agent workspace and capability events](events-and-privacy/agent-workspace-events.md)
 - [Knowledge and terminal integration](events-and-privacy/knowledge-and-terminal-integration.md)
 - [Terminal observations](events-and-privacy/terminal-observations.md)
+- [Managed provider process observations](events-and-privacy/provider-process-observations.md)
 - [Workstreams and coverage](events-and-privacy/workstreams-and-coverage.md)
 
 ## References

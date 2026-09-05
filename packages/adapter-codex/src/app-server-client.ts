@@ -55,6 +55,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
   private nextRequestId = 1;
   private closed = false;
   private exited = false;
+  private processStateUnavailable = false;
 
   private constructor(
     private readonly process: ChildProcessWithoutNullStreams,
@@ -84,6 +85,19 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
       await client.close();
       throw error;
     }
+  }
+
+  inspectProcess() {
+    if (this.exited || this.process.exitCode !== null || this.process.signalCode !== null) {
+      return { status: "exited" as const, evidence: "owned_process_state" as const };
+    }
+    if (this.processStateUnavailable) {
+      return {
+        status: "unobservable" as const,
+        evidence: "transport_state_unavailable" as const,
+      };
+    }
+    return { status: "running" as const, evidence: "owned_process_state" as const };
   }
 
   async startThread(options: CodexThreadStartOptions): Promise<CodexThread> {
@@ -289,6 +303,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
   private failProcess(didExit: boolean): void {
     if (this.exited) return;
     this.exited = didExit;
+    this.processStateUnavailable ||= !didExit;
     const error = new CodexAdapterError(
       "provider_process_failed",
       "The Codex app-server process has exited.",

@@ -4,6 +4,7 @@ import type {
   AdapterSession,
   AdapterTurn,
 } from "@lervo/schemas";
+import type { AdapterNativeProcessState } from "@lervo/adapter-contract";
 
 export type CodexApprovalPolicy = "untrusted" | "on-request" | "never";
 export type CodexSandboxMode = "read-only" | "workspace-write" | "danger-full-access";
@@ -46,6 +47,7 @@ export interface CodexTurnStartOptions {
 
 export interface CodexAppServerClient {
   readonly toolBoundary?: "no_tools";
+  inspectProcess?(): AdapterNativeProcessState;
   startThread(options: CodexThreadStartOptions): Promise<CodexThread>;
   injectItems(threadId: string, items: readonly unknown[]): Promise<void>;
   listConnectedMcpServers?(threadId: string): Promise<string[]>;

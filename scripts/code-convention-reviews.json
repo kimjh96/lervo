@@ -53,14 +53,14 @@
     },
     {
       "path": "packages/adapter-claude/src/claude-adapter.ts",
-      "contentHash": "sha256:80e5827859fd1abd80a4a46bb992a62cde9428c7dd2c5747298f433cfb379cdc",
+      "contentHash": "sha256:267c2cfcbdc8452e89465e9f4e129d71d89ce70f161faae6de51b6dceec30fe2",
       "responsibility": "Claude managed-provider adapter",
       "rationale": "The class owns one external Claude protocol boundary and translates native session, tool, telemetry, stop, and result behavior into common adapter contracts; the accounting declaration remains in a linked descriptor module.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/adapter-codex/src/codex-adapter.ts",
-      "contentHash": "sha256:2cf0569b3e92d75dadf132931d7236ce5213ddab1fb38d03b32def256a86603a",
+      "contentHash": "sha256:386cb9b5cce83f796a62fa3f1e851f943f37c89ae50bbad32ab4b4b4c41670dc",
       "responsibility": "Codex managed-provider adapter",
       "rationale": "The class owns the Codex provider boundary, selects one injected native transport, and translates thread, turn, telemetry, stop, and result behavior into common adapter contracts; transport parsing and the accounting declaration remain linked modules.",
       "disposition": "cohesive"
@@ -88,7 +88,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:0a6afff10b6704df26b64098409563c8d379e32198d1d5b078ff902172c33606",
+      "contentHash": "sha256:bd11d6a527bae8f9b73a80ce317635b8014c8c21ab40c27c180e98d2e5dc7490",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
       "disposition": "cohesive"
@@ -116,7 +116,7 @@
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:0b571df483cb2b278824038a3ac035f8ec97bd72da4f68d51042c02adab0c2f5",
+      "contentHash": "sha256:cad0adc9949cf17487929521a56fd5a313085688ce7afa1287bcba7796045d01",
       "responsibility": "Managed provider-run coordinator",
       "rationale": "Snapshotting, abort handling, context delivery, turn execution, validation, resource and stage observation composition, and stop are phases of one provider-neutral managed-run state machine; accounting and timing invariants remain in linked modules.",
       "disposition": "cohesive"
@@ -305,7 +305,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:60a8a9b2404b7b5dead4a387d2b399b8f9710ff7c9ce064304ddd8b881005be1",
+      "contentHash": "sha256:afac37cdf64fe91a28b774e25f8407f38f5b300c7ef56dff112b41f70ef152f1",
       "responsibility": "Repository schema validator registry",
       "rationale": "The module declaratively registers and exposes validators for the versioned schema catalog; its length follows schema inventory and it owns no domain workflow or external effect.",
       "disposition": "cohesive"

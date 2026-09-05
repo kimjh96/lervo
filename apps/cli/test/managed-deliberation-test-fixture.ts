@@ -103,6 +103,21 @@ export class FixtureDeliberationAdapter implements ProviderAdapter {
     };
   }
 
+  inspectProcess(session: AdapterSession) {
+    return {
+      kind: "process_observation" as const,
+      schemaVersion: 1 as const,
+      adapterId: session.adapterId,
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      status: "unobservable" as const,
+      evidence: "no_managed_process" as const,
+      observedAt: session.startedAt,
+    };
+  }
+
   async injectContext(
     session: AdapterSession,
     envelope: AdapterContextEnvelope,

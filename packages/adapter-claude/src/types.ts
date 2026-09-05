@@ -1,4 +1,5 @@
 import type { OutputFormat, startup } from "@anthropic-ai/claude-agent-sdk";
+import type { AdapterNativeProcessState } from "@lervo/adapter-contract";
 import type {
   AdapterCapabilityActivationRequest,
   AdapterSession,
@@ -38,6 +39,7 @@ export interface ClaudeAgentClientStartOptions {
 }
 
 export interface ClaudeAgentClient {
+  inspectProcess?(): AdapterNativeProcessState;
   attachToolUseHandler(handler: ClaudeToolUseHandler): void;
   appendContext(content: string): Promise<void>;
   confirmCapabilities?(): Promise<void>;

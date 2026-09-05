@@ -340,6 +340,30 @@ async function started(adapterInstance: CodexAdapter): Promise<AdapterSession> {
 }
 
 describe("Codex managed adapter", () => {
+  it("keeps unavailable client process state explicit and session-bound", async () => {
+    const instance = adapter(new FakeCodexClient());
+    const session = await started(instance);
+
+    expect(instance.inspectProcess(session)).toMatchObject({
+      adapterId: session.adapterId,
+      runId: session.runId,
+      providerSessionId: session.providerSessionId,
+      status: "unobservable",
+      evidence: "transport_state_unavailable",
+    });
+    await instance.stop(session, {
+      kind: "stop_request",
+      schemaVersion: 1,
+      adapterId: session.adapterId,
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      reason: "completed",
+      requestedAt: session.startedAt,
+    });
+  });
+
   it("rejects a write-capable sandbox before starting Codex", async () => {
     const client = new FakeCodexClient();
     await expect(

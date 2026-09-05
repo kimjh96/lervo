@@ -118,6 +118,21 @@ class FixtureAdapter implements ProviderAdapter {
     };
   }
 
+  inspectProcess(session: AdapterSession) {
+    return {
+      kind: "process_observation" as const,
+      schemaVersion: 1 as const,
+      adapterId: session.adapterId,
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      status: "unobservable" as const,
+      evidence: "no_managed_process" as const,
+      observedAt: session.startedAt,
+    };
+  }
+
   async injectContext(
     session: AdapterSession,
     envelope: AdapterContextEnvelope,
@@ -343,6 +358,21 @@ describe.each(["codex", "claude"])("%s common adapter contract", (provider) => {
 });
 
 describe("adapter contract evidence integrity", () => {
+  it("rejects a process observation outside the exact managed session", async () => {
+    class InvalidProcessObservationAdapter extends FixtureAdapter {
+      override inspectProcess(session: AdapterSession) {
+        return { ...super.inspectProcess(session), sessionId: "ses_wrong_0001" };
+      }
+    }
+    const report = await evaluateAdapterContract(
+      new InvalidProcessObservationAdapter("codex"),
+      fixture("codex"),
+    );
+    expect(report.violations).toContainEqual(
+      expect.objectContaining({ code: "process_observation_mismatch" }),
+    );
+  });
+
   it("rejects a turn result whose declared bytes do not match its content", async () => {
     class InvalidResultAdapter extends FixtureAdapter {
       override async getTurnResult(session: AdapterSession, turn: AdapterTurn) {

@@ -7,3 +7,4 @@ export * from "./managed-write-contract.js";
 export * from "./provider-adapter.js";
 export * from "./result-binding.js";
 export * from "./runtime-inspection.js";
+export * from "./process-observation.js";

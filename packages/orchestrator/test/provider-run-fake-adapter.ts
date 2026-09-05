@@ -131,6 +131,22 @@ export class FakeManagedAdapter implements ProviderAdapter {
     return structuredClone(this.session!);
   }
 
+  inspectProcess(session: AdapterSession) {
+    this.calls.push("inspectProcess");
+    return {
+      kind: "process_observation" as const,
+      schemaVersion: 1 as const,
+      adapterId: session.adapterId,
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      status: "running" as const,
+      evidence: "owned_process_state" as const,
+      observedAt: this.turn === undefined ? session.startedAt : "2026-08-18T01:10:00Z",
+    };
+  }
+
   async confirmCapabilityActivation(
     session: AdapterSession,
   ): Promise<AdapterCapabilityActivationReceipt[]> {

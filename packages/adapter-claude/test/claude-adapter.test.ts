@@ -303,6 +303,30 @@ async function start(instance: ClaudeAdapter): Promise<AdapterSession> {
 }
 
 describe("Claude managed adapter", () => {
+  it("keeps unavailable SDK process state explicit and session-bound", async () => {
+    const instance = adapter(new FakeClaudeClient());
+    const session = await start(instance);
+
+    expect(instance.inspectProcess(session)).toMatchObject({
+      adapterId: session.adapterId,
+      runId: session.runId,
+      providerSessionId: session.providerSessionId,
+      status: "unobservable",
+      evidence: "transport_state_unavailable",
+    });
+    await instance.stop(session, {
+      kind: "stop_request",
+      schemaVersion: 1,
+      adapterId: session.adapterId,
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      reason: "completed",
+      requestedAt: session.startedAt,
+    });
+  });
+
   it("rejects a non-plan permission mode before starting Claude", async () => {
     const client = new FakeClaudeClient();
     await expect(

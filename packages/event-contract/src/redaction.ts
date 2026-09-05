@@ -134,6 +134,17 @@ export const eventPayloadAllowlists = {
     "providerSessionDigest",
     "observedAt",
   ],
+  "provider.process.observed": [
+    "adapterId",
+    "providerSessionDigest",
+    "phase",
+    "status",
+    "evidence",
+    "observedAt",
+    "releasesAgentAuthority",
+    "releasesAssignmentAuthority",
+    "provesWorkProgress",
+  ],
   "assignment.created": [
     "assignmentId",
     "taskType",
@@ -928,6 +939,7 @@ export function sanitizeEventPayload(
 
 const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "agent.liveness.observed": "agentLivenessObservedEventPayload",
+  "provider.process.observed": "providerProcessObservedEventPayload",
   "capability.activated": "capabilityActivatedEventPayload",
   "context.recommended": "contextRecommendationEventPayload",
   "context.injected": "managedContextInjectedEventPayload",

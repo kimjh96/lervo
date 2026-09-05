@@ -14,6 +14,7 @@ import {
 } from "./repository-snapshot.js";
 import type { ManagedEventSpec } from "./telemetry.js";
 import { ManagedProviderRunError } from "./provider-run-types.js";
+import { observeManagedProviderProcess } from "./provider-process-observation.js";
 import type { ManagedFileChangeEvidence } from "./types.js";
 
 export interface FinalizeProviderRunInput {
@@ -49,6 +50,17 @@ async function drainProviderStream(input: FinalizeProviderRunInput): Promise<voi
 
 async function stopAdapter(input: FinalizeProviderRunInput): Promise<void> {
   if (input.session === undefined) return;
+  try {
+    input.append([
+      observeManagedProviderProcess({
+        adapter: input.adapter,
+        session: input.session,
+        phase: "before_stop",
+      }),
+    ]);
+  } catch (error) {
+    input.failures.add(error, "adapter_stop");
+  }
   try {
     const stopRequest: AdapterStopRequest = {
       kind: "stop_request",

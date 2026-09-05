@@ -4,6 +4,7 @@ import { inspectContextEnvelopeBinding, inspectContextReceiptBinding } from "./c
 import { createManagedWriteDecision } from "./managed-write-binding.js";
 import { type AdapterContractFixture, type ProviderAdapter } from "./provider-adapter.js";
 import { inspectTurnResultBinding } from "./result-binding.js";
+import { inspectAdapterProcessObservationBinding } from "./process-observation.js";
 
 export type AdapterContractViolationCode =
   | "descriptor_invalid"
@@ -13,6 +14,7 @@ export type AdapterContractViolationCode =
   | "start_request_mismatch"
   | "session_invalid"
   | "session_mismatch"
+  | "process_observation_mismatch"
   | "context_envelope_invalid"
   | "context_envelope_mismatch"
   | "context_receipt_invalid"
@@ -154,6 +156,13 @@ export async function evaluateAdapterContract(
       detail: "adapter session changed the managed coordinates or provider identity",
     });
   }
+  const processObservation = adapter.inspectProcess(session);
+  violations.push(
+    ...inspectAdapterProcessObservationBinding({
+      session,
+      observation: processObservation,
+    }).violations.map((detail) => ({ code: "process_observation_mismatch" as const, detail })),
+  );
   addValidationViolation(violations, "context_envelope_invalid", fixture.contextEnvelope);
   const envelopeBinding = inspectContextEnvelopeBinding({
     session,

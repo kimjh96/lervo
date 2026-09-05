@@ -12,6 +12,10 @@ describe("Codex stdio app-server client", () => {
       cwd: process.cwd(),
       requestTimeoutMs: 1_000,
     });
+    expect(client.inspectProcess()).toEqual({
+      status: "running",
+      evidence: "owned_process_state",
+    });
     const thread = await client.startThread({
       cwd: process.cwd(),
       approvalPolicy: "never",
@@ -61,5 +65,9 @@ describe("Codex stdio app-server client", () => {
     expect(turn).toEqual({ turnId: "turn-stdio-1" });
     await client.unsubscribe(thread.threadId);
     await client.close();
+    expect(client.inspectProcess()).toEqual({
+      status: "exited",
+      evidence: "owned_process_state",
+    });
   });
 });

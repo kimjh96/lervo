@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 import {
   createAdapterTurnResult,
+  createAdapterProcessObservation,
   type AdapterTurnAccepted,
   type ProviderAdapter,
   type ProviderManagedWriteBridge,
@@ -14,6 +15,7 @@ import {
   type AdapterCapabilityActivationRequest,
   type AdapterDescriptor,
   type AdapterNormalizedEvent,
+  type AdapterProcessObservation,
   type ResourceAccountingDescriptor,
   type AdapterSession,
   type AdapterStartRequest,
@@ -207,6 +209,18 @@ export class CodexAdapter implements ProviderAdapter {
       await client.close().catch(() => undefined);
       throw error;
     }
+  }
+
+  inspectProcess(session: AdapterSession): AdapterProcessObservation {
+    const state = this.sessions.get(session);
+    return createAdapterProcessObservation({
+      session: state.session,
+      state: state.client.inspectProcess?.() ?? {
+        status: "unobservable",
+        evidence: "transport_state_unavailable",
+      },
+      observedAt: timestamp(this.now, "Codex process observation time", session.startedAt),
+    });
   }
 
   async confirmCapabilityActivation(

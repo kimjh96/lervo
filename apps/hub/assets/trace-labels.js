@@ -53,6 +53,7 @@ const eventLabels = {
   "agent.registered": "Agent registered",
   "agent.status.changed": "Agent status changed",
   "agent.liveness.observed": "Agent liveness observed",
+  "provider.process.observed": "Provider process observed",
   "assignment.created": "Assignment created",
   "assignment.claimed": "Assignment claimed",
   "assignment.lease.renewed": "Assignment lease renewed",

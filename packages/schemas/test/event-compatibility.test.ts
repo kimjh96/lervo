@@ -85,6 +85,39 @@ describe("reader-first event envelope compatibility", () => {
     ).toBe(false);
   });
 
+  it("keeps managed provider-process observations bounded and unavailable to v1", () => {
+    const payload = {
+      adapterId: "lervo/codex",
+      providerSessionDigest: hash,
+      phase: "session_started",
+      status: "running",
+      evidence: "owned_process_state",
+      observedAt: "2026-09-05T00:00:00.000Z",
+      releasesAgentAuthority: false,
+      releasesAssignmentAuthority: false,
+      provesWorkProgress: false,
+    };
+    expect(validateSchema("providerProcessObservedEventPayload", payload).valid).toBe(true);
+    expect(
+      validateSchema("providerProcessObservedEventPayload", {
+        ...payload,
+        status: "unobservable",
+      }).valid,
+    ).toBe(false);
+    expect(
+      validateSchema("event", {
+        ...envelope({ schemaVersion: 2, type: "provider.process.observed" }),
+        payload,
+      }).valid,
+    ).toBe(true);
+    expect(
+      validateSchema("event", {
+        ...envelope({ schemaVersion: 1, type: "provider.process.observed" }),
+        payload,
+      }).valid,
+    ).toBe(false);
+  });
+
   it("validates the new payload status and execution-mode discriminators", () => {
     const usage = {
       workId: `wrk_${"b".repeat(24)}`,

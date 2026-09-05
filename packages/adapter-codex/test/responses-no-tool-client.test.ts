@@ -37,6 +37,10 @@ describe("Codex Responses no-tool client", () => {
         );
       },
     });
+    expect(client.inspectProcess()).toEqual({
+      status: "unobservable",
+      evidence: "no_managed_process",
+    });
     const thread = await client.startThread({
       cwd: "/repo",
       approvalPolicy: "never",

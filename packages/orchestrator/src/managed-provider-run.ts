@@ -10,6 +10,7 @@ import {
 import type { InjectedContext } from "@lervo/context-delivery";
 
 import { ManagedContextRun } from "./managed-context-run.js";
+import { observeManagedProviderProcess } from "./provider-process-observation.js";
 import { managedResultReferenceSpecs } from "./managed-context-reference.js";
 import { createManagedWritePlan } from "./managed-write-plan.js";
 import {
@@ -297,7 +298,14 @@ export class ManagedProviderRunCoordinator {
         provider: this.options.adapter.descriptor.provider,
         descriptorCapabilities: this.options.adapter.descriptor.capabilities,
       });
-      this.append([adapterStartedSpec(this.options.adapter.descriptor, state.session)]);
+      this.append([
+        adapterStartedSpec(this.options.adapter.descriptor, state.session),
+        observeManagedProviderProcess({
+          adapter: this.options.adapter,
+          session: state.session,
+          phase: "session_started",
+        }),
+      ]);
       monitor = startProviderSignalMonitor({
         adapter: this.options.adapter,
         session: state.session,
@@ -489,6 +497,13 @@ export class ManagedProviderRunCoordinator {
           cancelled.dispose();
         }
         assertTerminalTurn(managedTurn, terminal);
+        this.append([
+          observeManagedProviderProcess({
+            adapter: this.options.adapter,
+            session: state.session,
+            phase: "turn_terminal",
+          }),
+        ]);
         if (terminal.type === "provider.turn.failed") {
           throw new ManagedProviderRunError("provider_turn_failed", "The provider turn failed.");
         }

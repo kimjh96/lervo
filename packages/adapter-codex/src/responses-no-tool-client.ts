@@ -117,6 +117,10 @@ export class CodexResponsesNoToolClient implements CodexAppServerClient {
     this.createId = options.createId ?? (() => randomUUID().replaceAll("-", ""));
   }
 
+  inspectProcess() {
+    return { status: "unobservable" as const, evidence: "no_managed_process" as const };
+  }
+
   async startThread(options: CodexThreadStartOptions): Promise<CodexThread> {
     this.assertAvailable();
     if (

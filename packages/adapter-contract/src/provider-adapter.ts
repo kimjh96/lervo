@@ -7,6 +7,7 @@ import {
   type AdapterManagedWriteRequest,
   type AdapterDescriptor,
   type AdapterNormalizedEvent,
+  type AdapterProcessObservation,
   type AdapterSession,
   type AdapterStartRequest,
   type AdapterStopRequest,
@@ -29,6 +30,7 @@ export interface ProviderAdapter {
   readonly resourceAccounting: ResourceAccountingDescriptor;
 
   start(request: AdapterStartRequest): Promise<AdapterSession>;
+  inspectProcess(session: AdapterSession): AdapterProcessObservation;
   injectContext(
     session: AdapterSession,
     envelope: AdapterContextEnvelope,

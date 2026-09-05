@@ -17,6 +17,15 @@ Document normalization uses the same provider-owned native usage parsing but exp
 
 Both adapters offer an opt-in JSON Schema result constraint through native boundaries: Claude uses the SDK output format; Codex uses app-server `turn/start.outputSchema`. Unconfigured turns omit it. Consumers must still normalize and validate constrained results because provider-native schema acceptance proves neither correctness nor semantic use.
 
+Every adapter exposes a synchronous, read-only process observation bound to its exact managed session.
+Only a transport that directly owns and inspects a native process may report `running` or `exited`.
+Codex app-server reports its owned child-process state; Codex Responses reports `no_managed_process`;
+Claude Agent SDK reports `transport_state_unavailable` because the SDK does not expose a native process
+inspection contract. Session registration, recent events, and successful turns never substitute for
+process evidence. Managed orchestration records the bounded result after session start, after each terminal
+turn, and before shutdown without granting agent, assignment, or completion authority. See
+[ADR-0372](../../decisions/execution/orchestration/0372-observe-managed-provider-process-state-through-adapters.md).
+
 The default-off managed linked-evidence canary uses this boundary for at most one isolated selection turn. Core code owns eligibility, the relational v17 protocol, exact token validation, source reload, E1–E4 separation, and bounded storage. Each adapter owns only its native schema carrier, context delivery, events, usage normalization, result binding, and stop behavior. Disabled and coordinate-ineligible runs create no selection adapter.
 
 The active ordinary managed-run path does not use the selection-turn boundary. Core code deterministically selects the bounded current linked projection before creating the ordinary Codex or Claude task adapter. It creates no selection adapter and requires no provider-specific branch, API key, or user setting.

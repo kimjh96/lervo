@@ -166,6 +166,37 @@ describe("event payload privacy boundary", () => {
     );
   });
 
+  it("keeps provider-process state while excluding native and raw session details", () => {
+    const payload = {
+      adapterId: "lervo/codex",
+      providerSessionDigest: `sha256:${"b".repeat(64)}`,
+      phase: "session_started",
+      status: "running",
+      evidence: "owned_process_state",
+      observedAt: "2026-09-05T00:00:00.000Z",
+      releasesAgentAuthority: false,
+      releasesAssignmentAuthority: false,
+      provesWorkProgress: false,
+    };
+    const result = sanitizeEventPayload("provider.process.observed", {
+      ...payload,
+      providerSessionId: "private-provider-session",
+      processId: 123,
+      command: "private command",
+      error: "private error",
+    });
+    expect(result.payload).toEqual(payload);
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+    expect(result.redactions).toEqual(
+      expect.arrayContaining([
+        { path: "$.providerSessionId", reason: "not_allowlisted" },
+        { path: "$.processId", reason: "not_allowlisted" },
+        { path: "$.command", reason: "not_allowlisted" },
+        { path: "$.error", reason: "not_allowlisted" },
+      ]),
+    );
+  });
+
   it("keeps bounded routine provenance while excluding template and trigger bodies", () => {
     const payload = {
       assignmentId: `asn_${"a".repeat(24)}`,

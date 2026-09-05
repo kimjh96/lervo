@@ -132,6 +132,10 @@ describe("Claude Agent SDK client", () => {
   it("closes a pre-warmed process without starting a model query", async () => {
     const fake = fakeSdk();
     const client = await ClaudeSdkAgentClient.connect(clientOptions(), fake.sdkStartup);
+    expect(client.inspectProcess()).toEqual({
+      status: "unobservable",
+      evidence: "transport_state_unavailable",
+    });
     await client.close();
     expect(fake.state.warmClosed).toBe(true);
   });

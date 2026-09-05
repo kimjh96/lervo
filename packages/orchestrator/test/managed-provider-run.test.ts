@@ -207,10 +207,13 @@ describe("managed provider run lifecycle", () => {
       );
       expect(adapter.calls).toEqual([
         "start",
+        "inspectProcess",
         "injectContext",
         "attachManagedWriteBridge",
         "startTurn",
+        "inspectProcess",
         "getTurnResult",
+        "inspectProcess",
         "stop",
       ]);
       expect(adapter.stopReason).toBe("completed");
@@ -219,13 +222,16 @@ describe("managed provider run lifecycle", () => {
         "run.requested",
         "run.resolved",
         "adapter.started",
+        "provider.process.observed",
         "context.selected",
         "context.selected",
         "document.loaded",
         "context.injected",
         "tool.called",
         "command.executed",
+        "provider.process.observed",
         "adapter.result.captured",
+        "provider.process.observed",
         "adapter.stopped",
         "resource.usage.recorded",
         "execution.stages.observed",
@@ -234,6 +240,22 @@ describe("managed provider run lifecycle", () => {
       const serialized = JSON.stringify(data.store.list({ runId }));
       expect(serialized).not.toContain("Read the repository and explain the result");
       expect(serialized).not.toContain("fixture provider result");
+      const processEvents = data.store
+        .list({ runId })
+        .filter((event) => event.type === "provider.process.observed");
+      expect(JSON.stringify(processEvents)).not.toContain(`${provider}-session-1`);
+      expect(processEvents.map((event) => event.payload)).toEqual([
+        expect.objectContaining({
+          phase: "session_started",
+          status: "running",
+          evidence: "owned_process_state",
+          releasesAgentAuthority: false,
+          releasesAssignmentAuthority: false,
+          provesWorkProgress: false,
+        }),
+        expect.objectContaining({ phase: "turn_terminal", status: "running" }),
+        expect.objectContaining({ phase: "before_stop", status: "running" }),
+      ]);
       expect(data.store.list({ runId }).at(-1)?.payload).toMatchObject({
         resultDigest: result.resultArtifact.contentHash,
         artifactIds: [result.resultArtifact.artifactId],
@@ -242,6 +264,33 @@ describe("managed provider run lifecycle", () => {
       data.store.close();
     },
   );
+
+  it("fails closed and stops the adapter when process evidence changes session coordinates", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("codex");
+    adapter.inspectProcess = (session) => ({
+      kind: "process_observation",
+      schemaVersion: 1,
+      adapterId: session.adapterId,
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: "ses_wrong_process_observation",
+      providerSessionId: session.providerSessionId,
+      status: "running",
+      evidence: "owned_process_state",
+      observedAt: session.startedAt,
+    });
+
+    await expect(
+      coordinator(adapter, data.root, data.store).run({
+        ...providerRunInput(),
+        repositoryRoot: data.root,
+      }),
+    ).rejects.toMatchObject({ code: "contract_validation_failed" });
+    expect(adapter.calls).toContain("stop");
+    expect(adapter.calls).not.toContain("startTurn");
+    data.store.close();
+  });
 
   it("records provider-confirmed activation before starting the managed turn", async () => {
     const data = await createManagedFixture();
