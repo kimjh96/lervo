@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c396232aac8e977e396fa88c"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add explicit privacy-bounded root-agent heartbeat reporting and liveness inspection."

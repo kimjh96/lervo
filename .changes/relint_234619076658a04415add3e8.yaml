@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_234619076658a04415add3e8"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep stable file checks portable across Windows stat APIs."

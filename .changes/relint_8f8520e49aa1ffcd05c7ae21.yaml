@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8f8520e49aa1ffcd05c7ae21"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Authorize promoted portable skills and preserve exact dependency activation through installed execution."

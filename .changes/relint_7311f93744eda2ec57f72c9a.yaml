@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7311f93744eda2ec57f72c9a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reduce direct terminal Prompt latency by overlapping query projection with corpus preparation."
