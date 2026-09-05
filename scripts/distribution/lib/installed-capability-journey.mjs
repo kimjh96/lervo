@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { chmod, copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { delimiter, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 
 import {
@@ -134,6 +135,23 @@ async function createMcpPackage(root, hashCapabilityFiles) {
   return manifest;
 }
 
+async function installCodexFixtureExecutable(root, fakeBin, fixture) {
+  const executable = resolve(fakeBin, process.platform === "win32" ? "codex.exe" : "codex");
+  if (process.platform === "win32") {
+    await Promise.all([
+      copyFile(process.execPath, executable),
+      writeFile(
+        resolve(root, "app-server"),
+        `import(${JSON.stringify(pathToFileURL(fixture).href)}).catch((error) => { console.error(error); process.exitCode = 1; });\n`,
+        "utf8",
+      ),
+    ]);
+  } else {
+    await copyFile(fixture, executable);
+    await chmod(executable, 0o755);
+  }
+}
+
 function event(trace, type, capabilityId) {
   return trace.events.find(
     (item) =>
@@ -148,7 +166,6 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
   const sources = resolve(root, "capability-sources");
   const mcpSource = resolve(sources, "mcp");
   const fakeBin = resolve(root, "fake-bin");
-  const fakeCodex = resolve(fakeBin, process.platform === "win32" ? "codex.cmd" : "codex");
   const fixture = resolve(import.meta.dirname, "../fixtures/installed-capability-codex.mjs");
   const target = resolve(root, "src/result.ts");
   const promptLog = resolve(consumerRoot, "installed-capability-prompt.txt");
@@ -157,12 +174,7 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
     mkdir(resolve(root, "src"), { recursive: true }),
     mkdir(fakeBin, { recursive: true }),
   ]);
-  if (process.platform === "win32") {
-    await writeFile(fakeCodex, `@echo off\r\n"${process.execPath}" "${fixture}" %*\r\n`, "utf8");
-  } else {
-    await copyFile(fixture, fakeCodex);
-    await chmod(fakeCodex, 0o755);
-  }
+  await installCodexFixtureExecutable(root, fakeBin, fixture);
   await runCli(cli, root, [
     "init",
     "--minimal",
