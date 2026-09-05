@@ -318,13 +318,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "scripts/distribution/lib/hub-runtime-distribution.mjs",
-      "contentHash": "sha256:b9441d14a861c29e697707201cdd283eb1faf0d5838b31f80a162443c2e4dd90",
-      "responsibility": "Hub runtime distribution builder",
-      "rationale": "Manifest, SBOM, archive, validation, installation safety, and smoke verification are phases of one Hub distribution artifact contract.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "scripts/distribution/lib/node-runtime-distribution.mjs",
       "contentHash": "sha256:27b667e854b17684b30f30b1ffffb832af1ca007138e8f5ad057b822d236203e",
       "responsibility": "Node runtime distribution builder",

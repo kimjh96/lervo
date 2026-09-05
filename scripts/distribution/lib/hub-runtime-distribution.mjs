@@ -1,8 +1,6 @@
 import { execFile } from "node:child_process";
-import { generateKeyPairSync, randomBytes } from "node:crypto";
-import { access, lstat, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, lstat, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { constants } from "node:fs";
-import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { basename, isAbsolute, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -14,6 +12,7 @@ import {
   maximumArchiveBytes,
   sha256File,
 } from "./node-runtime-distribution.mjs";
+import { smokeHubDistribution } from "./hub-runtime-distribution-smoke.mjs";
 import { canonicalDigest, sha256 } from "../../shared/release-artifact-manifest.mjs";
 
 const execFileAsync = promisify(execFile);
@@ -217,108 +216,6 @@ export function validateHubDistributionManifest(value) {
   return value;
 }
 
-async function availableLoopbackPort() {
-  const server = createServer();
-  await new Promise((resolvePromise, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolvePromise);
-  });
-  const address = server.address();
-  await new Promise((resolvePromise, reject) =>
-    server.close((error) => (error === undefined ? resolvePromise() : reject(error))),
-  );
-  if (typeof address !== "object" || address === null)
-    fail("hub_distribution_smoke_failed", "The isolated Hub port could not be determined.");
-  return address.port;
-}
-
-async function ownerFile(path, bytes) {
-  await writeFile(path, bytes, { mode: 0o600, flag: "wx" });
-}
-
-async function smokeConfiguredHub(payloadRoot, entrypoint, temporaryRoot) {
-  const fixture = resolve(temporaryRoot, "configured-smoke");
-  const secrets = resolve(fixture, "secrets");
-  const state = resolve(fixture, "state");
-  await mkdir(secrets, { recursive: true, mode: 0o700 });
-  await mkdir(resolve(state, "command-cas"), { recursive: true, mode: 0o700 });
-  const command = generateKeyPairSync("ed25519");
-  const policy = generateKeyPairSync("ed25519");
-  await ownerFile(
-    resolve(secrets, "command.pem"),
-    command.privateKey.export({ type: "pkcs8", format: "pem" }),
-  );
-  await ownerFile(
-    resolve(secrets, "policy.pem"),
-    policy.privateKey.export({ type: "pkcs8", format: "pem" }),
-  );
-  await ownerFile(resolve(secrets, "review.secret"), randomBytes(32));
-  await ownerFile(
-    resolve(secrets, "credentials.json"),
-    `${JSON.stringify({
-      schemaVersion: 1,
-      credentials: [
-        {
-          token: randomBytes(48).toString("base64url"),
-          principalId: "node_distribution_smoke",
-          permissions: ["sync.write"],
-          projects: [],
-        },
-      ],
-    })}\n`,
-  );
-  await ownerFile(
-    resolve(secrets, "signing.json"),
-    `${JSON.stringify({
-      schemaVersion: 1,
-      policy: { keyId: "key_distribution_policy_01", privateKeyPath: "policy.pem" },
-      command: { keyId: "key_distribution_command_01", privateKeyPath: "command.pem" },
-    })}\n`,
-  );
-  const port = await availableLoopbackPort();
-  const config = resolve(fixture, "config.json");
-  await ownerFile(
-    config,
-    `${JSON.stringify({
-      schemaVersion: 1,
-      listen: { host: "127.0.0.1", port },
-      storage: {
-        databasePath: resolve(state, "hub.sqlite"),
-        commandCasPath: resolve(state, "command-cas"),
-      },
-      identity: { hubIdentityHash: `sha256:${"8".repeat(64)}` },
-      credentialsFile: resolve(secrets, "credentials.json"),
-      signingFile: resolve(secrets, "signing.json"),
-      control: {
-        reviewGrantSecretPath: resolve(secrets, "review.secret"),
-        reviewGrantTtlSeconds: 60,
-      },
-      cleanup: {
-        workerId: "hub:distribution:smoke",
-        cycleIntervalMs: 60_000,
-        maximumScannedObjects: 100,
-      },
-    })}\n`,
-  );
-  const result = await execFileAsync(
-    process.execPath,
-    [resolve(payloadRoot, entrypoint), "--config", config],
-    {
-      cwd: payloadRoot,
-      encoding: "utf8",
-      maxBuffer: 64 * 1024,
-      timeout: 1_500,
-      killSignal: "SIGTERM",
-    },
-  ).catch((error) => ({ stdout: error.stdout ?? "", stderr: error.stderr ?? "" }));
-  if (result.stdout !== `Lervo Hub started on 127.0.0.1:${port}.\n` || result.stderr !== "") {
-    fail(
-      "hub_distribution_smoke_failed",
-      "The isolated Hub distribution did not start with the real configuration.",
-    );
-  }
-}
-
 export function createHubDistributionArtifact(input) {
   return {
     schemaVersion: 1,
@@ -485,27 +382,8 @@ export async function verifyHubDistributionArchive(input) {
       );
     }
     if (input.smoke) {
-      const result = await execFileAsync(
-        process.execPath,
-        [resolve(payloadRoot, manifest.entrypoint)],
-        {
-          cwd: payloadRoot,
-          encoding: "utf8",
-          maxBuffer: 64 * 1024,
-          timeout: 10_000,
-        },
-      ).catch((error) => ({ stdout: error.stdout ?? "", stderr: error.stderr ?? "" }));
-      if (
-        result.stdout !== "" ||
-        result.stderr !==
-          "Lervo Hub error (invalid_arguments): Usage: lervo-hub --config <config.json>\n"
-      ) {
-        fail(
-          "hub_distribution_smoke_failed",
-          "The isolated Hub distribution entrypoint did not start as expected.",
-        );
-      }
-      await smokeConfiguredHub(payloadRoot, manifest.entrypoint, temporaryRoot);
+      if (!(await smokeHubDistribution(payloadRoot, manifest.entrypoint, temporaryRoot)))
+        fail("hub_distribution_smoke_failed", "The isolated Hub distribution did not start.");
     }
     return { artifact, manifest, payloadRoot, temporaryRoot };
   } catch (error) {
