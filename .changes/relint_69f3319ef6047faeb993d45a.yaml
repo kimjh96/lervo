@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_69f3319ef6047faeb993d45a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Preserve explicit capability authority while recording deterministic recommendations."

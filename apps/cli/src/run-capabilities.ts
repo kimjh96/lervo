@@ -28,16 +28,13 @@ export async function resolveRunCapabilities(input: {
   activations: AdapterCapabilityActivationRequest[];
   recommendations: CapabilityRecommendation[];
 }> {
-  const recommendations =
-    input.capabilityIds.length === 0
-      ? await recommendCapabilities({
-          repositoryRoot: input.repositoryRoot,
-          query: input.query,
-          provider: input.provider,
-          platform: process.platform,
-          ...(input.userRoot === undefined ? {} : { userRoot: input.userRoot }),
-        })
-      : [];
+  const recommendations = await recommendCapabilities({
+    repositoryRoot: input.repositoryRoot,
+    query: input.query,
+    provider: input.provider,
+    platform: process.platform,
+    ...(input.userRoot === undefined ? {} : { userRoot: input.userRoot }),
+  });
   const groundedCapabilityIds =
     input.capabilityIds.length === 0 && recommendations.length > 0
       ? await input.selectGroundedCapabilityIds?.(recommendations)

@@ -17,6 +17,7 @@ import {
 } from "../../distribution/lib/mixed-event-reader-fixture.mjs";
 import { packCliArtifact } from "../../distribution/lib/packed-cli-artifact.mjs";
 import { verifyPackedProductHostConsumer } from "../../distribution/lib/product-host-consumer.mjs";
+import { verifyInstalledCapabilityJourney } from "../../distribution/lib/installed-capability-journey.mjs";
 
 const cliManifestPath = resolve(repositoryRoot, "apps/cli/package.json");
 
@@ -252,12 +253,18 @@ async function main() {
     await verifyPackageGuide(consumerRoot);
     const nativeRuntime = await verifyInstalledClaudeNativeRuntime(consumerRoot);
     const eventContract = await importBuiltWorkspacePackage("event-contract");
+    const capabilities = await importBuiltWorkspacePackage("capabilities");
     const productHost = await verifyConsumerCommands(
       consumerRoot,
       cliManifest.version,
       eventContract,
     );
+    const capabilityJourney = await verifyInstalledCapabilityJourney(
+      consumerRoot,
+      capabilities.hashCapabilityFiles,
+    );
     console.log(`Claude native runtime verified: ${nativeRuntime.packageName}`);
+    console.log(`Installed capability journey verified: ${capabilityJourney.runId}`);
     console.log(
       `Packed product-host protocol verified: v${productHost.protocolVersion} (${productHost.routeCount} routes; ${productHost.workforceRouteCount} workforce, ${productHost.operatingRouteCount} operating, ${productHost.collaborationRouteCount} collaboration)`,
     );

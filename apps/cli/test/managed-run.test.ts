@@ -61,6 +61,7 @@ class MessageQueue {
 class ManagedCodexClient implements CodexAppServerClient {
   readonly queue = new MessageQueue();
   readonly startOptions: CodexThreadStartOptions[] = [];
+  readonly turnInstructions: string[] = [];
   closed = false;
 
   constructor(
@@ -87,7 +88,8 @@ class ManagedCodexClient implements CodexAppServerClient {
     return Object.keys(config?.mcp_servers ?? {});
   }
 
-  async startTurn(threadId: string) {
+  async startTurn(threadId: string, instructions: string) {
+    this.turnInstructions.push(instructions);
     setImmediate(() => {
       this.queue.push(
         {
@@ -328,7 +330,15 @@ async function createProjectSkill(root: string): Promise<{
 
 async function createProjectSkillCapability(
   root: string,
-): Promise<{ capability: CapabilityPackageManifest; skill: SkillManifest }> {
+  options: {
+    reviewed?: boolean;
+    dependencies?: CapabilityPackageManifest["dependencies"];
+  } = {},
+): Promise<{
+  capability: CapabilityPackageManifest;
+  skill: SkillManifest;
+  instructions: string;
+}> {
   const path = resolve(root, ".lervo/capabilities/packages/repository%2Ftesting-cap@1.0.0");
   await mkdir(path, { recursive: true });
   const content = "# Capability skill\nUse the exact managed skill route.\n";
@@ -359,7 +369,14 @@ async function createProjectSkillCapability(
       inputSchemaRef: "lervo-schema://skill/input/v1",
       outputSchemaRef: "lervo-schema://skill/output/v1",
     },
-    trust: { level: "untrusted", signatureStatus: "unsigned" },
+    trust: options.reviewed
+      ? {
+          level: "reviewed",
+          signatureStatus: "unsigned",
+          reviewedBy: "repository-maintainer",
+          reviewedAt: "2026-08-18T00:00:00.000Z",
+        }
+      : { level: "untrusted", signatureStatus: "unsigned" },
     enabledScope: { kind: "user" },
     pinned: false,
   };
@@ -380,7 +397,7 @@ async function createProjectSkillCapability(
       platforms: [process.platform as "darwin" | "linux" | "win32"],
     },
     requiredPermissions: ["filesystem.read", "shell.execute"],
-    dependencies: [],
+    dependencies: options.dependencies ?? [],
     discovery: {
       displayName: "Repository test skill",
       summary: "Use the packaged repository testing workflow",
@@ -394,7 +411,7 @@ async function createProjectSkillCapability(
   };
   await writeFile(resolve(path, "lervo-skill.json"), `${JSON.stringify(skill)}\n`);
   await writeFile(resolve(path, "lervo-capability.json"), `${JSON.stringify(capability)}\n`);
-  return { capability, skill };
+  return { capability, skill, instructions: content };
 }
 
 async function createProjectMcpCapability(root: string): Promise<CapabilityPackageManifest> {
@@ -747,59 +764,9 @@ describe("lervo run vertical slice", () => {
       openStorage: openProjectStorage,
       createId: identifierFactory(),
       now: () => new Date("2026-08-19T00:00:00Z"),
-      groundProductionRequest: async ({ provider, availableCapabilityIds = [] }) => ({
-        proposal: {
-          schemaVersion: 1,
-          requestDigest: `sha256:${"a".repeat(64)}`,
-          resolver: {
-            kind: "provider_adapter",
-            providerId: provider,
-            resultDigest: `sha256:${"b".repeat(64)}`,
-          },
-          intent: "change",
-          subjectIds: ["managed.run"],
-          references: [],
-          protocolCoordinates: [],
-          requestedEffectIds: ["managed.run"],
-          prohibitedEffectIds: [],
-          sourceClasses: ["repository_state"],
-          retrievalQueries: [],
-          workflowCandidateIds: ["managed.run"],
-          capabilityCandidateIds: [...availableCapabilityIds],
-          authorityRequirement: "repository_write",
-          providerRoute: { mode: "current_provider_only", providerIds: [] },
-          disposition: "execute",
-          ambiguityReasons: [],
-          durableInstruction: {
-            disposition: "none",
-            speechAct: "other",
-            authority: "inferred",
-            durability: "unspecified",
-            operation: "none",
-            scope: { kind: "unspecified", paths: [] },
-            title: null,
-            statement: null,
-            exceptions: [],
-            risk: "unknown",
-            conflict: "unknown",
-            confidence: "low",
-            reasonIds: [],
-          },
-        },
-        decision: {
-          schemaVersion: 1,
-          status: "ready",
-          workflowId: "managed.run",
-          effectIds: ["managed.run"],
-          capabilityIds: [...availableCapabilityIds],
-          providerIds: [provider],
-          authority: "repository_write",
-          sourceClasses: ["repository_state"],
-          subjectIds: ["managed.run"],
-          retrievalQueries: [],
-          reasons: [],
-        },
-      }),
+      groundProductionRequest: async () => {
+        throw new Error("An explicit capability selection must not call semantic grounding.");
+      },
       createAdapter: ({ repositoryRoot, resolveArtifact }) =>
         new CodexAdapter({
           repositoryRoot,
@@ -982,9 +949,19 @@ describe("lervo run vertical slice", () => {
     ).toBe(true);
   });
 
-  it("selects a verified skill capability from natural-language intent and records every observable stage", async () => {
+  it("completes an installed reviewed-skill journey recommended from natural language and explicitly selected", async () => {
     const root = await createRepository();
-    const value = await createProjectSkillCapability(root);
+    const mcp = await createProjectMcpCapability(root);
+    const value = await createProjectSkillCapability(root, {
+      reviewed: true,
+      dependencies: [
+        {
+          capabilityId: mcp.capabilityId,
+          version: mcp.version,
+          contentHash: mcp.contentHash,
+        },
+      ],
+    });
     const userCapabilityRoot = await mkdtemp(resolve(tmpdir(), "lervo-user-capabilities-"));
     temporaryRoots.push(userCapabilityRoot);
     const client = new ManagedCodexClient(root);
@@ -1056,24 +1033,90 @@ describe("lervo run vertical slice", () => {
       expectedPath: "src/result.ts",
       instructions: "Use the packaged repository testing workflow",
       risk: "medium",
+      capabilityIds: [value.capability.capabilityId],
       verificationSuiteIds: ["project.default"],
     });
-    expect(outcome.resolvedCapabilities).toEqual([
-      expect.objectContaining({ capabilityId: value.capability.capabilityId }),
+    expect(outcome.resolvedCapabilities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ capabilityId: value.capability.capabilityId }),
+        expect.objectContaining({ capabilityId: mcp.capabilityId }),
+      ]),
+    );
+    expect(outcome.resolvedSkills).toEqual([
+      expect.objectContaining({
+        skillId: value.skill.skillId,
+        contentHash: value.skill.contentHash,
+        trustStatus: "reviewed",
+      }),
     ]);
+    expect(outcome.activatedCapabilities).toEqual([
+      expect.objectContaining({
+        capabilityId: mcp.capabilityId,
+        contentHash: mcp.contentHash,
+        evidence: "mcp_connected",
+      }),
+    ]);
+    expect(client.turnInstructions).toHaveLength(1);
+    expect(client.turnInstructions[0]).toContain(
+      `Lervo verified skill invocation: ${value.skill.skillId}@${value.skill.version} (${value.skill.contentHash})`,
+    );
+    expect(client.turnInstructions[0]).toContain(value.instructions);
+    expect(outcome.verificationStatus).toBe("passed");
+    expect(outcome.writingPublication).toMatchObject({
+      status: "allowed",
+      content: "CLI task complete",
+    });
     const storage = await openProjectStorage(root);
     const events = storage.events.list();
+    expect(
+      Buffer.from(await storage.artifacts.get(outcome.resultArtifact.uri)).toString("utf8"),
+    ).toBe("CLI task complete");
     await storage.close();
     expect(events.find((event) => event.type === "capability.recommended")?.payload).toMatchObject({
       capabilityId: value.capability.capabilityId,
       reasonCodes: expect.arrayContaining(["intent_phrase"]),
     });
-    expect(events.find((event) => event.type === "capability.selected")?.payload).toMatchObject({
-      reason: "natural_language",
-    });
-    expect(events.map((event) => event.type)).toEqual(
-      expect.arrayContaining(["capability.loaded", "skill.invoked", "skill.completed"]),
+    expect(
+      events.find(
+        (event) =>
+          event.type === "capability.selected" &&
+          event.payload.capabilityId === value.capability.capabilityId,
+      )?.payload,
+    ).toMatchObject({ reason: "explicit" });
+    expect(
+      events.find(
+        (event) =>
+          event.type === "capability.selected" && event.payload.capabilityId === mcp.capabilityId,
+      )?.payload,
+    ).toMatchObject({ reason: "dependency" });
+    const eventTypes = events.map((event) => event.type);
+    const activatedIndex = eventTypes.indexOf("capability.activated");
+    const invokedIndex = eventTypes.indexOf("skill.invoked");
+    const completedIndex = eventTypes.indexOf("skill.completed");
+    const runCompletedIndex = eventTypes.indexOf("run.completed");
+    expect(eventTypes).toEqual(
+      expect.arrayContaining([
+        "capability.loaded",
+        "capability.activated",
+        "skill.invoked",
+        "skill.completed",
+        "verification.completed",
+        "run.completed",
+      ]),
     );
+    expect(activatedIndex).toBeGreaterThan(eventTypes.indexOf("context.injected"));
+    expect(invokedIndex).toBeGreaterThan(activatedIndex);
+    expect(completedIndex).toBeGreaterThan(invokedIndex);
+    expect(runCompletedIndex).toBeGreaterThan(completedIndex);
+    expect(events.find((event) => event.type === "skill.completed")?.payload).toMatchObject({
+      status: "completed",
+      artifactIds: [outcome.resultArtifact.artifactId],
+      outputDigest: outcome.resultArtifact.contentHash,
+    });
+    expect(events.find((event) => event.type === "run.completed")?.payload).toMatchObject({
+      resultDigest: outcome.resultArtifact.contentHash,
+      verificationStatus: "passed",
+    });
   });
 
   it("activates a resolved MCP capability before the Codex managed turn", async () => {

@@ -138,6 +138,24 @@ function digest(value: string): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
+function capabilitySelectionReason(input: {
+  capabilityId: string;
+  authoritativeCapabilityIds: readonly string[];
+  explicitlyRequestedCapabilityIds: readonly string[];
+  recommendedCapabilityIds: ReadonlySet<string>;
+}): "explicit" | "role_default" | "natural_language" | "dependency" {
+  if (input.authoritativeCapabilityIds.includes(input.capabilityId)) {
+    return input.explicitlyRequestedCapabilityIds.length > 0 ? "explicit" : "role_default";
+  }
+  if (
+    input.authoritativeCapabilityIds.length === 0 &&
+    input.recommendedCapabilityIds.has(input.capabilityId)
+  ) {
+    return "natural_language";
+  }
+  return "dependency";
+}
+
 const defaultDependencies: ManagedRunDependencies = {
   openStorage: openProjectStorage,
   createAdapter: ({
@@ -446,6 +464,9 @@ export function createManagedRunExecutor(
         createEventId: () => dependencies.createId("evt"),
         projectVerifier: verification.verifier,
       });
+      const recommendedCapabilityIds = new Set(
+        runCapabilities.recommendations.map((recommendation) => recommendation.capabilityId),
+      );
       const result = await coordinator.run({
         repositoryRoot: storage.paths.repositoryRoot,
         workCausality,
@@ -493,15 +514,12 @@ export function createManagedRunExecutor(
           version: item.version,
           contentHash: item.contentHash,
           sourceKind: item.sourceKind,
-          selectionReason: runCapabilities.recommendations.some(
-            (recommendation) => recommendation.capabilityId === item.capabilityId,
-          )
-            ? ("natural_language" as const)
-            : capabilityIds.includes(item.capabilityId)
-              ? requestedCapabilityIds.length > 0
-                ? ("explicit" as const)
-                : ("role_default" as const)
-              : ("dependency" as const),
+          selectionReason: capabilitySelectionReason({
+            capabilityId: item.capabilityId,
+            authoritativeCapabilityIds: capabilityIds,
+            explicitlyRequestedCapabilityIds: requestedCapabilityIds,
+            recommendedCapabilityIds,
+          }),
         })),
         capabilityRecommendations: runCapabilities.recommendations.map((item) => ({
           capabilityId: item.capabilityId,

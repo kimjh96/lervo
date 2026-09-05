@@ -39,16 +39,16 @@ Detailed acceptance records:
 - The completed governed-loop roadmap covers manual v1 and a read-only workstream-goal projection. It excludes Prime-Agent-style unattended continuation, native provider-session resume, root-process heartbeat, independent goal mutation, and dynamic topology.
 - The completed product-host protocol is a CLI compatibility boundary, not a Paperclip or Buzz product interface.
 - Retrieval selection proves only that a source was chosen for context. It does not prove a repeatable workflow, define a capability envelope, or authorize generated skill bytes. Skill candidacy begins with independently grouped workflow evidence, not source selection.
+- The installed natural-language capability journey proves deterministic recommendation plus explicit selection for an existing reviewed skill, exact instruction construction, provider-confirmed activation of its MCP dependency, result validation, and completion evidence. It does not prove model reliance or authorize skill generation from retrieved context.
 - A successful full repository check proves encoded contracts, not user outcomes absent from them.
 
 ## Remaining delivery order
 
-1. Prove one installed natural-language capability journey for an existing reviewed skill: deterministic recommendation, explicit selection, exact instruction loading, adapter activation, invocation, output validation, and completion evidence without generating a skill from retrieved context.
-2. Prove fresh-session and cross-provider continuation of one bounded workstream without claiming native provider-session resume or conversation-memory transfer.
-3. Connect independently verified repeated workflows to reviewable skill, instruction, or profile candidates with exact review, stale-source handling, activation, effect observation, supersession, and rollback. Retrieval selection alone never enters this path.
-4. Extend root-agent and managed-process liveness, direct-message acknowledgment, and reviewed trigger adapters as separate observable outcomes.
-5. Add unattended scheduling or dynamic graph topology only after authority, budget, cancellation, uncertain-effect, migration, recovery, and kill-switch contracts pass installed acceptance.
-6. Version further product-host routes only with packed external-consumer proof; keep Paperclip-like and Buzz-like interfaces in separate hosts.
+1. Prove fresh-session and cross-provider continuation of one bounded workstream without claiming native provider-session resume or conversation-memory transfer.
+2. Connect independently verified repeated workflows to reviewable skill, instruction, or profile candidates with exact review, stale-source handling, activation, effect observation, supersession, and rollback. Retrieval selection alone never enters this path.
+3. Extend root-agent and managed-process liveness, direct-message acknowledgment, and reviewed trigger adapters as separate observable outcomes.
+4. Add unattended scheduling or dynamic graph topology only after authority, budget, cancellation, uncertain-effect, migration, recovery, and kill-switch contracts pass installed acceptance.
+5. Version further product-host routes only with packed external-consumer proof; keep Paperclip-like and Buzz-like interfaces in separate hosts.
 
 The earlier sequence through attention, durable terminal outcomes, checkpointed workspace continuation, product-host protocol v2, release-impact repair, CLI README normalization, and the final `v0.11.4` release gate is complete. Post-release maintenance does not reopen those acceptance results.
 
@@ -62,3 +62,4 @@ The earlier sequence through attention, durable terminal outcomes, checkpointed 
 - [Repository knowledge lifecycle convergence](../specs/repository-knowledge-lifecycle-convergence.md)
 - [Availability-safe unmanaged terminal hooks](../decisions/execution/providers/hooks/0327-availability-safe-unmanaged-terminal-hooks.md)
 - [Terminal observation strengthening v1](../evidence/foundation/terminal-observation-strengthening-v1.md)
+- [Installed natural-language capability journey v1](../evidence/foundation/installed-natural-language-capability-journey-v1.md)

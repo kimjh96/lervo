@@ -1,0 +1,51 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_74db07b14d18196ed5630170
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a842beb23c946d46c17ee234
+outputLanguage: en
+outputs:
+  - byteCount: 1068
+    contentHash: sha256:db34e6aef50d47390769c7fa92b67cfaa5d677bdc4faaabd1bcdf944e7ae7da3
+    path: docs/specifications/execution/capabilities.md
+    userRegionHash: sha256:db34e6aef50d47390769c7fa92b67cfaa5d677bdc4faaabd1bcdf944e7ae7da3
+  - byteCount: 502
+    contentHash: sha256:afb81b2bf878917b84520a9549f10701a36e936497f05fc838eb1e7d2d294381
+    path: docs/specifications/execution/capabilities/evidence-and-privacy.md
+    userRegionHash: sha256:afb81b2bf878917b84520a9549f10701a36e936497f05fc838eb1e7d2d294381
+  - byteCount: 976
+    contentHash: sha256:41908074674d060dd09edaf73bd65620df92d73bc99e334109798dbb284b7a84
+    path: docs/specifications/execution/capabilities/hub-distribution.md
+    userRegionHash: sha256:41908074674d060dd09edaf73bd65620df92d73bc99e334109798dbb284b7a84
+  - byteCount: 1900
+    contentHash: sha256:e6e246302f05dfa25e4002d4923fc11427f5ef4e18585ac3161f9dac2f8b7f91
+    path: docs/specifications/execution/capabilities/local-package-contract.md
+    userRegionHash: sha256:e6e246302f05dfa25e4002d4923fc11427f5ef4e18585ac3161f9dac2f8b7f91
+  - byteCount: 831
+    contentHash: sha256:b925e3fdcb863fc129ddcc3f3eb188bfbd4cb9519c4ba6a886e729a2f4e55ffc
+    path: docs/specifications/execution/capabilities/repository-migration.md
+    userRegionHash: sha256:b925e3fdcb863fc129ddcc3f3eb188bfbd4cb9519c4ba6a886e729a2f4e55ffc
+  - byteCount: 2786
+    contentHash: sha256:243b3c8f1bcb3f3e68db30206a51bf3143296b5374eb8ea9840fac42da04352d
+    path: docs/specifications/execution/capabilities/resolution-and-activation.md
+    userRegionHash: sha256:243b3c8f1bcb3f3e68db30206a51bf3143296b5374eb8ea9840fac42da04352d
+profile: specification_document
+recordId: knormdoc_363795ad72a914e393ff951a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:dd0a0042a29c631b504f996d39ce500e06d5bec718c2341ae99e93a298674428
+sourcePath: docs/specifications/execution/capabilities.md
+sourceUnitVersionIds:
+  - uv_0c3c8b674211a4132fc20e7f
+  - uv_469126c32b65e80135ae0df9
+  - uv_9d9edc0452bbcf9eb4039053
+  - uv_aeab40c0b90e59693a6ad5ff
+  - uv_edd50826d919c3b5e20b11be
+  - uv_fe713ec46e746c82004aa86d
