@@ -96,6 +96,13 @@ describe("managed attempt projection", () => {
         provider: "codex",
         scope: "primary_provider",
         completeness: "complete",
+        tokenUsage: {
+          inputTokens: 16,
+          cachedInputTokens: 3,
+          outputTokens: 6,
+          reasoningOutputTokens: 1,
+          totalTokens: 22,
+        },
         totalTokens: 22,
         runCount: 2,
       },

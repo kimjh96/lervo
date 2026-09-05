@@ -94,7 +94,10 @@ export async function runLoopCommand(
       io.stdout(
         options.json ? `${JSON.stringify(budgets, null, 2)}\n` : formatObservedBudgets(budgets),
       );
-      return report.decision.status === "invalid" ? 1 : 0;
+      return report.decision.status === "invalid" ||
+        budgets.some((budget) => budget.thresholdState !== "below")
+        ? 1
+        : 0;
     }
     if (options.action === "reconcile") {
       const result = await executeCompletionReconciliation(options, report, services);

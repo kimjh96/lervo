@@ -20,7 +20,7 @@ export function formatGovernedWorkReport(report: GovernedWorkReportV1): string {
         : report.resources
             .map(
               (resource) =>
-                `${resource.provider}/${resource.scope}/${resource.accountingDescriptorHash.slice(0, 15)}=${resource.totalTokens ?? "unavailable"} (${resource.completeness})`,
+                `${resource.provider}/${resource.scope}/${resource.accountingDescriptorHash.slice(0, 15)}=${resource.totalTokens ?? "unavailable"} total, ${resource.tokenUsage?.inputTokens ?? "unknown"} input, ${resource.tokenUsage?.cachedInputTokens ?? "unknown"} cached input, ${resource.tokenUsage?.outputTokens ?? "unknown"} output (${resource.completeness})`,
             )
             .join(", ")
     }`,
@@ -59,6 +59,15 @@ export function renderGovernedAttemptResult(
       output: json
         ? `${JSON.stringify(result, null, 2)}\n`
         : `Governed attempt failed (${result.code}); retry=${result.retryAvailable}.\n`,
+      exitCode: 1,
+    };
+  }
+  if (result.status === "budget_rejected") {
+    return {
+      channel: "stderr",
+      output: json
+        ? `${JSON.stringify(result, null, 2)}\n`
+        : `Governed attempt was rejected after observed budget assessment (${result.reasonCode}).\n`,
       exitCode: 1,
     };
   }

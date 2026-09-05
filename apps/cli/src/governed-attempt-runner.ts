@@ -6,6 +6,12 @@ import type { ManagedRunOutcome } from "./managed-run.js";
 import type { CliServices } from "./types.js";
 
 type RunOptions = Extract<ParsedLoopOptions, { action: "run" }>;
+const budgetFailureReasons = [
+  "token_budget_exhausted",
+  "duration_budget_exhausted",
+  "budget_observation_unavailable",
+] as const;
+type BudgetFailureReason = (typeof budgetFailureReasons)[number];
 
 export type GovernedAttemptRunResult =
   | { status: "completed"; assignmentId: string; outcome: ManagedRunOutcome }
@@ -21,6 +27,12 @@ export type GovernedAttemptRunResult =
       outcome: ManagedRunOutcome;
       retryAvailable: boolean;
       report: GovernedWorkReportV1;
+    }
+  | {
+      status: "budget_rejected";
+      reasonCode: BudgetFailureReason;
+      outcome: ManagedRunOutcome;
+      report: GovernedWorkReportV1;
     };
 
 function errorCode(error: unknown): string {
@@ -32,6 +44,24 @@ function errorCode(error: unknown): string {
 
 function runSucceeded(outcome: ManagedRunOutcome): boolean {
   return outcome.verificationStatus === "passed" && outcome.writingPublication.status === "allowed";
+}
+
+function isBudgetFailureReason(value: string): value is BudgetFailureReason {
+  return budgetFailureReasons.some((reason) => reason === value);
+}
+
+function managedBudgetFailure(
+  report: GovernedWorkReportV1,
+): { reasonCode: BudgetFailureReason } | undefined {
+  for (const action of report.decision.actions) {
+    if (
+      (action.kind === "block" || action.kind === "escalate") &&
+      isBudgetFailureReason(action.reasonCode)
+    ) {
+      return { reasonCode: action.reasonCode };
+    }
+  }
+  return undefined;
 }
 
 export async function executeGovernedAttempt(
@@ -118,6 +148,40 @@ export async function executeGovernedAttempt(
   }
 
   if (runSucceeded(outcome)) {
+    if (
+      (options.policy.tokenLimits?.length ?? 0) +
+        (options.policy.tokenMetricLimits?.length ?? 0) +
+        (options.policy.durationLimits?.length ?? 0) >
+      0
+    ) {
+      const refreshed = await services.inspectGovernedWork({
+        repositoryRoot: options.repositoryRoot,
+        policy: options.policy,
+      });
+      const budgetFailure = managedBudgetFailure(refreshed);
+      if (budgetFailure !== undefined) {
+        await services.finalizeGovernedAssignment({
+          repositoryRoot: options.repositoryRoot,
+          assignmentId: options.assignmentId,
+          agentId: options.agentId,
+          leaseId: options.leaseId,
+          verificationStatus: "failed",
+          resultArtifacts: [
+            {
+              artifactId: outcome.resultArtifact.artifactId,
+              contentHash: outcome.resultArtifact.contentHash,
+            },
+          ],
+          failureCode: budgetFailure.reasonCode,
+        });
+        return {
+          status: "budget_rejected",
+          reasonCode: budgetFailure.reasonCode,
+          outcome,
+          report: refreshed,
+        };
+      }
+    }
     await services.finalizeGovernedAssignment({
       repositoryRoot: options.repositoryRoot,
       assignmentId: options.assignmentId,

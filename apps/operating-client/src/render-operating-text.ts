@@ -21,12 +21,13 @@ export function formatOperatingObjective(report: OperatingObjectiveReportV1): st
 }
 
 export function formatObservedBudgets(groups: OperatingBudgetGroupV1[]): string {
-  if (groups.length === 0) return "No exact token admission limit is configured.\n";
+  if (groups.length === 0) return "No exact managed execution budget is configured.\n";
   const lines = [
-    "Observed token admission limits:",
-    ...groups.map(
-      (group) =>
-        `  ${group.provider}/${group.accountingDescriptorHash}: observed=${group.observedTokens ?? "unknown"} limit=${group.limitTokens} remaining=${group.remainingObservedTokens ?? "unknown"} evidence=${group.completeness} threshold=${group.thresholdState}`,
+    "Managed execution budgets:",
+    ...groups.map((group) =>
+      group.kind === "token"
+        ? `  token ${group.provider}/${group.scope ?? "unscoped"}/${group.metric}/${group.accountingDescriptorHash}: observed=${group.observedTokens ?? "unknown"} limit=${group.limitTokens} remaining=${group.remainingObservedTokens ?? "unknown"} evidence=${group.completeness} threshold=${group.thresholdState}`
+        : `  duration ${group.provider}/${group.scope}/${group.stageId}: maximum=${group.maximumObservedDurationMs ?? "unknown"}ms limit=${group.limitDurationMs}ms remaining=${group.remainingObservedDurationMs ?? "unknown"}ms observations=${group.observationCount} evidence=${group.completeness} threshold=${group.thresholdState}`,
     ),
   ];
   return `${lines.join("\n")}\n`;

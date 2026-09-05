@@ -8,6 +8,7 @@ import type { EventEnvelope } from "@lervo/schemas";
 import { projectManagedAttempts } from "./attempt-projection.js";
 import { projectCompletionEvidence } from "./completion-evidence-projection.js";
 import { decideGovernedLoop } from "./governed-loop-decision.js";
+import { assessManagedExecutionBudgets } from "./managed-execution-budget.js";
 import { projectWorkGraph } from "./graph-projection.js";
 import type { AssignmentGraphSourceV1 } from "./graph-projection.js";
 
@@ -34,6 +35,11 @@ export function projectGovernedWorkReport(input: {
     workstreamId: input.query.workstreamId,
   });
   const approvals = [...(input.approvals ?? [])];
+  const budgets = assessManagedExecutionBudgets({
+    resources: projection.resources,
+    stages: projection.stages,
+    policy: input.query.policy,
+  });
   return {
     schemaVersion: 1,
     projectId: input.query.projectId,
@@ -42,6 +48,8 @@ export function projectGovernedWorkReport(input: {
     attempts: projection.attempts,
     completionEvidence,
     resources: projection.resources,
+    stages: projection.stages,
+    budgets,
     approvals,
     policy: input.query.policy,
     decision: decideGovernedLoop({
@@ -49,6 +57,8 @@ export function projectGovernedWorkReport(input: {
       attempts: projection.attempts,
       completionEvidence,
       resources: projection.resources,
+      stages: projection.stages,
+      budgets,
       policy: input.query.policy,
       approvals,
     }),

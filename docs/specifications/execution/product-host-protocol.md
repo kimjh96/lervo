@@ -6,15 +6,15 @@ As of: 2026-09-04
 
 ## Purpose
 
-The product-host protocol lets a separately installed operating or collaboration product discover and compose Lervo without importing workspace-private packages or accessing storage internals. Its transport is the installed `@lervo/cli` process, and it works locally without a Hub.
+The product-host protocol lets separately installed operating or collaboration products discover and compose Lervo through the installed `@lervo/cli` process, locally without a Hub, workspace-private imports, or access to storage internals.
 
-Run:
+Default discovery returns the 21-route `ProductHostCapabilityReportV1`:
 
 ```bash
 lervo application capabilities --json
 ```
 
-The default remains the 21-route `ProductHostCapabilityReportV1`. Additive version 2 is explicit:
+Additive version 2 requires an explicit request:
 
 ```bash
 lervo application capabilities --protocol 2 --json
@@ -24,7 +24,7 @@ Version 2 appends read-only operating-attention and operating-goal routes and pr
 
 ## Report contract
 
-The report contains:
+Each report contains:
 
 - a protocol-matching `schemaVersion` and `kind: product_host.capabilities`;
 - protocol transport, version, discovery command, and `requiresHub: false`;
@@ -33,7 +33,7 @@ The report contains:
 - ordered route descriptors with area, operation, stable result-contract identifier, command prefix, output, effect, authority, and availability; and
 - explicit unsupported product capabilities.
 
-Command arrays omit the executable name and repository-specific arguments. A product invokes the installed `lervo` executable, adds the route's required arguments, and requests the declared output. Help text is human guidance, not the machine discovery contract.
+Command arrays omit the executable name and repository-specific arguments. Products invoke the installed `lervo` executable, add the route's required arguments, and request its declared output. Help text is human guidance, not the machine discovery contract.
 
 ## Route inventory
 
@@ -64,6 +64,8 @@ Command arrays omit the executable name and repository-specific arguments. A pro
 | `governed_completion.reconcile` | `loop reconcile` | exact plan/apply |
 | `assignment_routine.materialize` | `routine materialize` | exact plan/apply |
 
+The version 1 budget result preserves its total-token fields and adds discriminated token-dimension and duration assessments. These additions remain read-only and derive from the same governed-work policy. Hosts must treat `unknown` and `reached` as unsuccessful budget status.
+
 Protocol v2 adds:
 
 | Route | CLI prefix | Authority |
@@ -84,15 +86,15 @@ Each route remains owned by its existing domain or adapter; the capability comma
 
 ## Authority and state
 
-Repository state, workstreams, assignments, leases, events, verification, and artifacts remain canonical. Assignment graphs, operating goals, governed decisions, operating boards, threads, inboxes, and observed budgets are rebuildable projections. Product code may cache presentation state but must not turn it into assignment, approval, completion, delivery, or verification authority.
+Repository state, workstreams, assignments, leases, events, verification, and artifacts remain canonical. Assignment graphs, operating goals, governed decisions, operating boards, threads, inboxes, and observed budgets are rebuildable projections. Products may cache presentation state but must not turn it into assignment, approval, completion, delivery, or verification authority.
 
 An `available` route can still reject missing roles, workstreams, assignments, leases, approvals, verification, resources, or repository state. Products must preserve its exit status and typed result rather than convert an unavailable or invalid result into an empty success.
 
-External connector effects remain unavailable in the stock CLI. A host that injects a connector must meet the separate descriptor, credential, destination, artifact, writing-permit, durable-reservation, unknown-effect, and common-conformance contracts.
+External connector effects remain unavailable in the stock CLI. Hosts injecting a connector must meet the separate descriptor, credential, destination, artifact, writing-permit, durable-reservation, unknown-effect, and common-conformance contracts.
 
 ## Unsupported capabilities
 
-Versions 1 and 2 do not provide a product UI, product-owned task or chat database, unattended scheduler, dynamic graph mutation, implicit approval, or managed semantics for direct provider terminals. These absences prevent consumers from inferring authority from a successful query or render. Protocol v2 attention and goal reports project existing sources and add no inbox, goal store, acknowledgment, resolution, or scheduling authority.
+Versions 1 and 2 provide no product UI, product-owned task or chat database, unattended scheduler, dynamic graph mutation, implicit approval, or managed semantics for direct provider terminals. Consumers must not infer authority from a successful query or render. Protocol v2 attention and goal reports project existing sources and add no inbox, goal store, acknowledgment, resolution, or scheduling authority.
 
 ## External-consumer acceptance
 
@@ -106,7 +108,7 @@ Versions 1 and 2 do not provide a product UI, product-owned task or chat databas
 6. renders a deterministic static operating board; and
 7. inspects current operating attention through protocol v2.
 
-The acceptance uses no Hub, provider, network route, or connector effect. Cross-platform release matrices remain responsible for broader installation evidence.
+Acceptance uses no Hub, provider, network route, or connector effect. Cross-platform release matrices remain responsible for broader installation evidence.
 
 ## References
 

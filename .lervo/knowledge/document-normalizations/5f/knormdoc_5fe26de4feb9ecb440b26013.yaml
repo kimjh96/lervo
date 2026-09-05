@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_92c49906fb01ca8711dc1bd8
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c6c8c9fa62500cff7139572f
+outputLanguage: en
+outputs:
+  - byteCount: 5362
+    contentHash: sha256:8306f704259c4ebfdbf560f759a5714e6c0f0d64bd8313c3a3e04ffeca47274e
+    path: docs/decisions/execution/orchestration/governed-work/0373-enforce-managed-execution-dimension-and-duration-budgets.md
+    userRegionHash: sha256:8306f704259c4ebfdbf560f759a5714e6c0f0d64bd8313c3a3e04ffeca47274e
+profile: decision_record
+recordId: knormdoc_5fe26de4feb9ecb440b26013
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:69493af21a2dfd85bec23e1e751c02889e7c0346039b7b2a19b4f9059d18904f
+sourcePath: docs/decisions/execution/orchestration/governed-work/0373-enforce-managed-execution-dimension-and-duration-budgets.md
+sourceUnitVersionIds:
+  - uv_2f5da7f371e79aac13e2dc53
+  - uv_53ea83e4620fb90d8fa9308d
+  - uv_5c022bab7a62bf607906551e
+  - uv_c76541136941fb4cbb41b7a8
+  - uv_dda99b759767597885e23a5d
+  - uv_f7bd071a70f305805473384c

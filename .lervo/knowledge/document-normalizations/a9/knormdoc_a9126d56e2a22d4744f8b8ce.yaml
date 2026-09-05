@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_92c49906fb01ca8711dc1bd8
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d01d686ab037efd017f46e4d
+outputLanguage: en
+outputs:
+  - byteCount: 2050
+    contentHash: sha256:d594988e16fa1905c2ec0d02d0d177a68b420e11e365053fa4f912740457feeb
+    path: docs/evidence/foundation/managed-execution-resource-budgets-v1.md
+    userRegionHash: sha256:d594988e16fa1905c2ec0d02d0d177a68b420e11e365053fa4f912740457feeb
+profile: repository_document
+recordId: knormdoc_a9126d56e2a22d4744f8b8ce
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5b9a1b4fdc2b39d5a25cec1f529bad4c851b46bdc5c6ce6d618b7b64880ae77e
+sourcePath: docs/evidence/foundation/managed-execution-resource-budgets-v1.md
+sourceUnitVersionIds:
+  - uv_2bdecaa7fad0dc83a831cc2a
+  - uv_4e4eea79116435496d1b0e65
+  - uv_63a81ba2cb1ae9edbc54dff8
+  - uv_90df3e5bff792acfd49b1a95
+  - uv_f9e9307fbae635eee7ade11f

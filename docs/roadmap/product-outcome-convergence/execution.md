@@ -1,10 +1,10 @@
 # Prime-Agent-derived execution outcomes
 
-Part of [Product outcome convergence](../product-outcome-convergence.md); its baseline, acceptance-state definitions, and claim boundaries apply.
+Part of [Product outcome convergence](../product-outcome-convergence.md); its baseline, acceptance states, and claim boundaries apply.
 
 | User outcome | Current evidence | State | Required proof or preservation |
 | --- | --- | --- | --- |
-| Bounded work is a graph; verification, retry, resource, approval, and completion policy govern each attempt. | Assignment DAG projection, pure controller decisions, manual `loop run`, managed attempts, verification, leases, and completion reconciliation exist. | implemented | Preserve the installed manual journey and its non-autonomy claim. |
+| Bounded work is a graph; verification, retry, resource, approval, and completion policy govern each attempt. | Assignment DAG projection, pure controller decisions, manual `loop run`, managed attempts, verification, leases, completion reconciliation, and exact managed token-dimension and per-run duration budgets exist. | implemented | Preserve the installed manual journey, fail-closed observation boundary, and non-autonomy claim. |
 | Root agents and recursive workers retain identity, ancestry, authority, path-conflict protection, and evidence. | Workforce and isolated-workspace contracts cover parent identity, delegation depth, leases, path scope, sealing, integration, and handoff. | implemented | Keep root and subagent contract tests common. |
 | A long-running agent can attach, detach, and resume. | Worker Stop records an exact scoped checkpoint, pauses and releases its writer, and permits a fresh verified terminal session to resume the same assignment. Codex and Claude report native `sessionResume: unsupported`; conversation memory is not restored. | partial | Add adapter-specific native resume only with independent evidence; retain repository-level continuation as the portable fallback. |
 | A repository goal has a durable lifecycle instead of disconnected prose. | The verified workstream remains root-goal authority; its assignment DAG remains execution authority. `loop goal` and protocol-v2 `operating_goal.inspect` compose explicit status, hierarchy, progress, blocking, completion readiness, and inconsistency without a second store or provider start. | implemented | Preserve explicit workstream completion and false authority flags. Independent nested goals, dynamic topology, and unattended scheduling remain separate unsupported capabilities. |

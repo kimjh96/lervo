@@ -1,19 +1,24 @@
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import type { GovernedLoopPolicyV1, GovernedTokenLimitV1 } from "@lervo/application-contract";
+import type {
+  GovernedDurationLimitV1,
+  GovernedLoopPolicyV1,
+  GovernedTokenLimitV1,
+  GovernedTokenMetricLimitV1,
+} from "@lervo/application-contract";
 
 import type { RunProvider } from "./managed-run.js";
 
 export const loopUsage = [
-  "  lervo loop status [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--root <path>] [--json]",
-  "  lervo loop board [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--root <path>]",
+  "  lervo loop status [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--token-metric-limit <provider>[:<scope>]:<descriptor-hash>:<metric>:<tokens>] [--duration-limit <provider>:<scope>:<stage>:<milliseconds>] [--root <path>] [--json]",
+  "  lervo loop board [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--token-metric-limit <provider>[:<scope>]:<descriptor-hash>:<metric>:<tokens>] [--duration-limit <provider>:<scope>:<stage>:<milliseconds>] [--root <path>]",
   "  lervo loop objective [--root <path>] [--json]",
   "  lervo loop goal [--root <path>] [--json]",
-  "  lervo loop budget [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--root <path>] [--json]",
+  "  lervo loop budget [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--token-metric-limit <provider>[:<scope>]:<descriptor-hash>:<metric>:<tokens>] [--duration-limit <provider>:<scope>:<stage>:<milliseconds>] [--root <path>] [--json]",
   "  lervo loop thread --assignment <id> [--root <path>] [--json]",
   "  lervo loop inbox --agent <id> [--root <path>] [--json]",
-  "  lervo loop run --provider <codex|claude> --assignment <id> --agent <id> --lease <id> --path <relative-path> --verification <suite-id> [--verification <suite-id> ...] [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--root <path>] [--risk <level>] [--json] <request>",
+  "  lervo loop run --provider <codex|claude> --assignment <id> --agent <id> --lease <id> --path <relative-path> --verification <suite-id> [--verification <suite-id> ...] [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--token-metric-limit <provider>[:<scope>]:<descriptor-hash>:<metric>:<tokens>] [--duration-limit <provider>:<scope>:<stage>:<milliseconds>] [--root <path>] [--risk <level>] [--json] <request>",
   "  lervo loop reconcile --assignment <id> [--apply <command-id> --write] [--root <path>] [--json]",
 ].join("\n");
 
@@ -83,6 +88,47 @@ function tokenLimits(values: string[] | undefined): GovernedTokenLimitV1[] {
   });
 }
 
+function tokenMetricLimits(values: string[] | undefined): GovernedTokenMetricLimitV1[] {
+  return (values ?? []).map((value) => {
+    const match =
+      /^(codex|claude|lervo):(?:(primary_provider|subagent_provider|query_projection|publication_evaluation|deliberation|improvement_evaluation):)?(sha256:[a-f0-9]{64}):(input_tokens|cached_input_tokens|output_tokens|reasoning_output_tokens):([1-9]\d*)$/u.exec(
+        value,
+      );
+    if (match === null) {
+      throw new Error(
+        "--token-metric-limit requires <provider>[:<scope>]:<descriptor-hash>:<metric>:<tokens>.",
+      );
+    }
+    return {
+      provider: match[1] as GovernedTokenMetricLimitV1["provider"],
+      ...(match[2] === undefined
+        ? {}
+        : { scope: match[2] as NonNullable<GovernedTokenMetricLimitV1["scope"]> }),
+      accountingDescriptorHash: match[3]!,
+      metric: match[4] as GovernedTokenMetricLimitV1["metric"],
+      stopAfterObservedTokens: Number(match[5]),
+    };
+  });
+}
+
+function durationLimits(values: string[] | undefined): GovernedDurationLimitV1[] {
+  return (values ?? []).map((value) => {
+    const match =
+      /^(codex|claude):(primary_provider|subagent_provider|query_projection|publication_evaluation|deliberation|improvement_evaluation):(repository_snapshot|provider_start|corpus_preparation|context_injection|provider_turn|provider_stop|verification|total):([1-9]\d*)$/u.exec(
+        value,
+      );
+    if (match === null) {
+      throw new Error("--duration-limit requires <provider>:<scope>:<stage>:<milliseconds>.");
+    }
+    return {
+      provider: match[1] as GovernedDurationLimitV1["provider"],
+      scope: match[2] as GovernedDurationLimitV1["scope"],
+      stageId: match[3] as GovernedDurationLimitV1["stageId"],
+      stopAfterObservedDurationMs: Number(match[4]),
+    };
+  });
+}
+
 export function parseLoopOptions(args: string[], cwd: string): ParsedLoopOptions {
   const parsed = parseArgs({
     args,
@@ -105,6 +151,8 @@ export function parseLoopOptions(args: string[], cwd: string): ParsedLoopOptions
       "max-attempts": { type: "string" },
       "max-parallel": { type: "string" },
       "token-limit": { type: "string", multiple: true },
+      "token-metric-limit": { type: "string", multiple: true },
+      "duration-limit": { type: "string", multiple: true },
       "unobserved-resource": { type: "string" },
       "exhausted-resource": { type: "string" },
       "terminal-failure": { type: "string" },
@@ -127,6 +175,8 @@ export function parseLoopOptions(args: string[], cwd: string): ParsedLoopOptions
       maxAttemptsPerAssignment: positiveInteger(parsed.values["max-attempts"], 2, 16),
       maxParallelAssignments: positiveInteger(parsed.values["max-parallel"], 2, 32),
       tokenLimits: tokenLimits(parsed.values["token-limit"]),
+      tokenMetricLimits: tokenMetricLimits(parsed.values["token-metric-limit"]),
+      durationLimits: durationLimits(parsed.values["duration-limit"]),
       unobservedResourceAction: dispositions[0] as "block" | "escalate",
       exhaustedResourceAction: dispositions[1] as "block" | "escalate",
       terminalFailureAction: dispositions[2] as "block" | "escalate",

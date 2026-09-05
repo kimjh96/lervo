@@ -11,5 +11,8 @@ export * from "./governed-attempt-command.js";
 export * from "./governed-completion-reconciliation-command.js";
 export * from "./graph-projection.js";
 export * from "./improvement-effect-plan.js";
+export * from "./managed-execution-budget.js";
+export * from "./managed-resource-projection.js";
+export * from "./managed-stage-projection.js";
 export * from "./operating-goal-projection.js";
 export * from "./report.js";

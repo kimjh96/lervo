@@ -4,7 +4,9 @@ import type {
   GovernedLoopActionV1,
   GovernedLoopDecisionV1,
   GovernedLoopPolicyV1,
+  ManagedExecutionBudgetAssessmentV1,
   ManagedAttemptObservationV1,
+  ManagedStageGroupObservationV1,
   ResourceGroupObservationV1,
   WorkGraphNodeV1,
   WorkGraphV1,
@@ -16,7 +18,10 @@ import {
 } from "./assignment-attempt-decision.js";
 import { shortId } from "./hash.js";
 import { approvalCoordinate, indexApprovalObservations } from "./approval-observations.js";
-import { evaluateResourceAdmission } from "./resource-admission.js";
+import {
+  assessManagedExecutionBudgets,
+  managedExecutionBudgetAction,
+} from "./managed-execution-budget.js";
 
 function dispositionAction(
   disposition: "block" | "escalate",
@@ -105,6 +110,8 @@ export function decideGovernedLoop(input: {
   graph: WorkGraphV1;
   attempts: readonly ManagedAttemptObservationV1[];
   resources: readonly ResourceGroupObservationV1[];
+  stages?: readonly ManagedStageGroupObservationV1[];
+  budgets?: readonly ManagedExecutionBudgetAssessmentV1[];
   approvals?: readonly ApprovalObservationV1[];
   completionEvidence?: readonly AssignmentCompletionEvidenceV1[];
   policy: GovernedLoopPolicyV1;
@@ -127,7 +134,16 @@ export function decideGovernedLoop(input: {
       { kind: "complete_work", assignmentId: null, reasonCode: "all_assignments_completed" },
     ];
   } else {
-    const resourceAction = evaluateResourceAdmission(input);
+    const resourceAction = managedExecutionBudgetAction({
+      assessments:
+        input.budgets ??
+        assessManagedExecutionBudgets({
+          resources: input.resources,
+          stages: input.stages ?? [],
+          policy: input.policy,
+        }),
+      policy: input.policy,
+    });
     if (resourceAction !== null) {
       actions = [resourceAction];
     } else {

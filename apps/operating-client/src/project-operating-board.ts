@@ -24,36 +24,7 @@ const evidenceLimitations = [
 ];
 
 export function projectObservedBudgets(report: GovernedWorkReportV1): OperatingBudgetGroupV1[] {
-  return report.policy.tokenLimits.map((limit) => {
-    const matches = report.resources.filter(
-      (resource) =>
-        resource.provider === limit.provider &&
-        (limit.scope === undefined || resource.scope === limit.scope) &&
-        resource.accountingDescriptorHash === limit.accountingDescriptorHash,
-    );
-    const observation = matches.length === 1 ? matches[0] : undefined;
-    const observedTokens =
-      observation?.completeness === "complete" ? observation.totalTokens : null;
-    const thresholdState =
-      observedTokens === null
-        ? ("unknown" as const)
-        : observedTokens >= limit.stopAfterObservedTotalTokens
-          ? ("reached" as const)
-          : ("below" as const);
-    return {
-      provider: limit.provider,
-      scope: limit.scope ?? null,
-      accountingDescriptorHash: limit.accountingDescriptorHash,
-      limitTokens: limit.stopAfterObservedTotalTokens,
-      observedTokens,
-      remainingObservedTokens:
-        observedTokens === null
-          ? null
-          : Math.max(0, limit.stopAfterObservedTotalTokens - observedTokens),
-      completeness: observation?.completeness ?? "unobserved",
-      thresholdState,
-    };
-  });
+  return structuredClone(report.budgets);
 }
 
 export function projectOperatingBoard(

@@ -1,3 +1,10 @@
+import type {
+  GovernedLoopPolicyV1,
+  ManagedExecutionBudgetAssessmentV1,
+  ManagedStageGroupObservationV1,
+  ResourceGroupObservationV1,
+} from "./managed-execution-budget.js";
+
 export type ApplicationAssignmentStatus =
   "queued" | "leased" | "blocked" | "completed" | "failed" | "cancelled";
 
@@ -45,14 +52,6 @@ export interface ManagedAttemptObservationV1 {
   verificationStatus: "passed" | "failed" | "not_run" | "unavailable";
 }
 
-export type GovernedResourceScopeV1 =
-  | "primary_provider"
-  | "subagent_provider"
-  | "query_projection"
-  | "publication_evaluation"
-  | "deliberation"
-  | "improvement_evaluation";
-
 export interface AssignmentCompletionEvidenceV1 {
   schemaVersion: 1;
   completionEvidenceId: string;
@@ -66,19 +65,6 @@ export interface AssignmentCompletionEvidenceV1 {
   resultArtifactId: string;
   resultContentHash: string;
   preparedAt: string;
-}
-
-export interface ResourceGroupObservationV1 {
-  schemaVersion: 1;
-  provider: "codex" | "claude" | "lervo";
-  scope: GovernedResourceScopeV1;
-  source: "provider_reported" | "lervo_measured";
-  accountingMode: "turn_cumulative" | "session_cumulative" | "operation_delta";
-  accountingDescriptorHash: string;
-  completeness: "complete" | "partial" | "unavailable" | "invalid";
-  totalTokens: number | null;
-  runCount: number;
-  reasonCodes: string[];
 }
 
 interface ApprovalObservationBaseV1 {
@@ -118,23 +104,6 @@ export interface ApprovalAuthorityQueryV1 {
 
 export interface ApprovalAuthorityPort {
   observe(query: ApprovalAuthorityQueryV1): Promise<ApprovalObservationV1[]>;
-}
-
-export interface GovernedTokenLimitV1 {
-  provider: "codex" | "claude" | "lervo";
-  scope?: GovernedResourceScopeV1;
-  accountingDescriptorHash: string;
-  stopAfterObservedTotalTokens: number;
-}
-
-export interface GovernedLoopPolicyV1 {
-  schemaVersion: 1;
-  maxAttemptsPerAssignment: number;
-  maxParallelAssignments: number;
-  tokenLimits: GovernedTokenLimitV1[];
-  unobservedResourceAction: "block" | "escalate";
-  exhaustedResourceAction: "block" | "escalate";
-  terminalFailureAction: "block" | "escalate";
 }
 
 export type ManagedAttemptCausalityV1 =
@@ -200,6 +169,9 @@ export type GovernedLoopActionV1 =
         | "attempts_exhausted"
         | "resource_exhausted"
         | "resource_unobservable"
+        | "token_budget_exhausted"
+        | "duration_budget_exhausted"
+        | "budget_observation_unavailable"
         | "work_cancelled"
         | "approval_observation_invalid"
         | "completion_reconciliation_required";
@@ -226,6 +198,8 @@ export interface GovernedWorkReportV1 {
   attempts: ManagedAttemptObservationV1[];
   completionEvidence: AssignmentCompletionEvidenceV1[];
   resources: ResourceGroupObservationV1[];
+  stages: ManagedStageGroupObservationV1[];
+  budgets: ManagedExecutionBudgetAssessmentV1[];
   approvals: ApprovalObservationV1[];
   policy: GovernedLoopPolicyV1;
   decision: GovernedLoopDecisionV1;

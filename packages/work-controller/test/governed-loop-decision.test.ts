@@ -268,6 +268,13 @@ describe("governed loop decision", () => {
           accountingMode: "turn_cumulative",
           accountingDescriptorHash: descriptor,
           completeness: "partial",
+          tokenUsage: {
+            inputTokens: 40,
+            cachedInputTokens: 10,
+            outputTokens: 10,
+            reasoningOutputTokens: 0,
+            totalTokens: 50,
+          },
           totalTokens: 50,
           runCount: 1,
           reasonCodes: ["counter_incomplete"],
@@ -285,7 +292,7 @@ describe("governed loop decision", () => {
     });
     expect(resourceDecision).toMatchObject({
       status: "escalation_required",
-      actions: [{ kind: "escalate", reasonCode: "resource_unobservable" }],
+      actions: [{ kind: "escalate", reasonCode: "budget_observation_unavailable" }],
     });
   });
 
@@ -336,6 +343,13 @@ describe("governed loop decision", () => {
           accountingMode: "turn_cumulative",
           accountingDescriptorHash: descriptor,
           completeness: "complete",
+          tokenUsage: {
+            inputTokens: 80,
+            cachedInputTokens: 20,
+            outputTokens: 20,
+            reasoningOutputTokens: 0,
+            totalTokens: 100,
+          },
           totalTokens: 100,
           runCount: 1,
           reasonCodes: [],
@@ -348,6 +362,13 @@ describe("governed loop decision", () => {
           accountingMode: "turn_cumulative",
           accountingDescriptorHash: descriptor,
           completeness: "complete",
+          tokenUsage: {
+            inputTokens: 40,
+            cachedInputTokens: 10,
+            outputTokens: 10,
+            reasoningOutputTokens: 0,
+            totalTokens: 50,
+          },
           totalTokens: 50,
           runCount: 1,
           reasonCodes: [],
@@ -366,7 +387,7 @@ describe("governed loop decision", () => {
     });
     expect(decision).toMatchObject({
       status: "blocked",
-      actions: [{ kind: "block", reasonCode: "resource_exhausted" }],
+      actions: [{ kind: "block", reasonCode: "token_budget_exhausted" }],
     });
   });
 });

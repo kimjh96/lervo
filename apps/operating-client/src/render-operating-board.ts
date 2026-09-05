@@ -119,7 +119,8 @@ function renderResources(view: OperatingBoardViewV1): string {
   const items = view.resources.map(
     (resource) => `<li>
       <div>${badge(resource.provider)} ${badge(resource.completeness)}</div>
-      <strong>${escapeHtml(resource.totalTokens ?? "unavailable")} tokens</strong>
+      <strong>${escapeHtml(resource.totalTokens ?? "unavailable")} total tokens</strong>
+      <span>input ${escapeHtml(resource.tokenUsage?.inputTokens ?? "unknown")} · cached input ${escapeHtml(resource.tokenUsage?.cachedInputTokens ?? "unknown")} · output ${escapeHtml(resource.tokenUsage?.outputTokens ?? "unknown")}</span>
       <span>${escapeHtml(resource.scope)} · ${escapeHtml(resource.source)} · ${escapeHtml(resource.accountingMode)} · ${resource.runCount} runs</span>
       <code>${escapeHtml(resource.accountingDescriptorHash)}</code>
       ${resource.reasonCodes.length === 0 ? "" : `<small>${escapeHtml(resource.reasonCodes.join(", "))}</small>`}
@@ -129,15 +130,21 @@ function renderResources(view: OperatingBoardViewV1): string {
 }
 
 function renderBudgets(view: OperatingBoardViewV1): string {
-  const items = view.budgets.map(
-    (budget) => `<li>
+  const items = view.budgets.map((budget) =>
+    budget.kind === "token"
+      ? `<li>
       <div>${badge(budget.provider)} ${badge(budget.thresholdState)} ${badge(budget.completeness)}</div>
-      <strong>${escapeHtml(budget.observedTokens ?? "unknown")} / ${budget.limitTokens} tokens</strong>
+      <strong>${escapeHtml(budget.observedTokens ?? "unknown")} / ${budget.limitTokens} ${escapeHtml(budget.metric)}</strong>
       <span>${escapeHtml(budget.scope ?? "unscoped legacy")} · remaining observed: ${escapeHtml(budget.remainingObservedTokens ?? "unknown")}</span>
       <code>${escapeHtml(budget.accountingDescriptorHash)}</code>
+    </li>`
+      : `<li>
+      <div>${badge(budget.provider)} ${badge(budget.thresholdState)} ${badge(budget.completeness)}</div>
+      <strong>${escapeHtml(budget.maximumObservedDurationMs ?? "unknown")}ms / ${budget.limitDurationMs}ms</strong>
+      <span>${escapeHtml(budget.scope)} · ${escapeHtml(budget.stageId)} · ${budget.observationCount} observations · remaining observed: ${escapeHtml(budget.remainingObservedDurationMs ?? "unknown")}ms</span>
     </li>`,
   );
-  return emptyOrList(items, "No exact token admission limit is configured.");
+  return emptyOrList(items, "No exact managed execution budget is configured.");
 }
 
 function renderInbox(view: OperatingBoardViewV1): string {
@@ -215,7 +222,7 @@ export function renderOperatingBoardHtml(view: OperatingBoardViewV1): string {
     <aside class="sidebar">
       <section class="side-panel"><h2>Next actions</h2>${emptyOrList(globalActions, "No governed action")}</section>
       <section class="side-panel"><h2>Resource evidence</h2>${renderResources(view)}</section>
-      <section class="side-panel"><h2>Token admission limits</h2>${renderBudgets(view)}</section>
+      <section class="side-panel"><h2>Managed execution budgets</h2>${renderBudgets(view)}</section>
       <section class="side-panel"><h2>Assignment inbox</h2>${renderInbox(view)}</section>
       <section class="side-panel notice"><p class="eyebrow">Evidence boundary</p><h2>Projection, not authority</h2><p><strong>No control in this document mutates repository state.</strong></p>${emptyOrList(limitations, "No declared limitation")}</section>
     </aside>

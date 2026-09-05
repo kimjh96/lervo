@@ -1,0 +1,42 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_92c49906fb01ca8711dc1bd8
+compiler:
+  compilerBuildId: sha256:ba3c953652e956a6d11a5c162c47a8183362b85896aacc3aac74cdde9f38ea7f
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.2
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6dcb8da59f66a9ceee994339
+outputLanguage: en
+outputs:
+  - byteCount: 887
+    contentHash: sha256:c2248e9501635534777bb1523d372e99ef40a7e036fd8cdb105443eb9ea95fef
+    path: docs/specifications/execution/resource-and-performance-budgets.md
+    userRegionHash: sha256:c2248e9501635534777bb1523d372e99ef40a7e036fd8cdb105443eb9ea95fef
+  - byteCount: 2124
+    contentHash: sha256:926aee0a9d48633060089d111829cc6f07a181791320a88ccc5d67f93bbd0e47
+    path: docs/specifications/execution/resource-and-performance-budgets/direct-terminal-performance.md
+    userRegionHash: sha256:926aee0a9d48633060089d111829cc6f07a181791320a88ccc5d67f93bbd0e47
+  - byteCount: 2608
+    contentHash: sha256:0a1d173c36fcda1afa3146c3cc7ecda043a069a0882ff2a583913af3cf60ba40
+    path: docs/specifications/execution/resource-and-performance-budgets/managed-resource-accounting.md
+    userRegionHash: sha256:0a1d173c36fcda1afa3146c3cc7ecda043a069a0882ff2a583913af3cf60ba40
+  - byteCount: 716
+    contentHash: sha256:07348ffbb7242de584231fb7a656a144fc6233003dc8a01ab4299977a47dbbf6
+    path: docs/specifications/execution/resource-and-performance-budgets/privacy-and-evidence.md
+    userRegionHash: sha256:07348ffbb7242de584231fb7a656a144fc6233003dc8a01ab4299977a47dbbf6
+profile: specification_document
+recordId: knormdoc_7f51295bcae4d2d37573ce95
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b6ead64f010395a418f653180da81a65ba98afa1da606a6d02284a2d0ad88b66
+sourcePath: docs/specifications/execution/resource-and-performance-budgets.md
+sourceUnitVersionIds:
+  - uv_048568569fff7e8ecdfe1a2a
+  - uv_4172f30b072d5bb87f0710dd
+  - uv_91f3dbd3d948362320a07222
+  - uv_93665116bc6edbf05853615f
+  - uv_dd58b1960ed7f9d5f37553a1

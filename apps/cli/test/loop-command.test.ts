@@ -21,6 +21,8 @@ function report(): GovernedWorkReportV1 {
     maxAttemptsPerAssignment: 2,
     maxParallelAssignments: 2,
     tokenLimits: [],
+    tokenMetricLimits: [],
+    durationLimits: [],
     unobservedResourceAction: "escalate" as const,
     exhaustedResourceAction: "block" as const,
     terminalFailureAction: "escalate" as const,
@@ -59,6 +61,8 @@ function report(): GovernedWorkReportV1 {
     attempts: [],
     completionEvidence: [],
     resources: [],
+    stages: [],
+    budgets: [],
     approvals: [],
     policy,
     decision: {
@@ -358,9 +362,31 @@ describe("loop command", () => {
         accountingMode: "turn_cumulative",
         accountingDescriptorHash: `sha256:${"d".repeat(64)}`,
         completeness: "complete",
+        tokenUsage: {
+          inputTokens: 1000,
+          cachedInputTokens: 200,
+          outputTokens: 200,
+          reasoningOutputTokens: 0,
+          totalTokens: 1200,
+        },
         totalTokens: 1200,
         runCount: 1,
         reasonCodes: [],
+      },
+    ];
+    value.budgets = [
+      {
+        schemaVersion: 1,
+        kind: "token",
+        provider: "codex",
+        scope: "primary_provider",
+        accountingDescriptorHash: `sha256:${"d".repeat(64)}`,
+        metric: "total_tokens",
+        limitTokens: 1500,
+        observedTokens: 1200,
+        remainingObservedTokens: 300,
+        completeness: "complete",
+        thresholdState: "below",
       },
     ];
     const services = {
@@ -389,6 +415,49 @@ describe("loop command", () => {
     expect(JSON.parse(output.stdout.join(""))).toEqual([
       expect.objectContaining({ observedTokens: 1200, remainingObservedTokens: 300 }),
     ]);
+  });
+
+  it("returns failure for a reached managed duration budget", async () => {
+    const output = io();
+    const value = report();
+    value.budgets = [
+      {
+        schemaVersion: 1,
+        kind: "duration",
+        provider: "codex",
+        scope: "primary_provider",
+        stageId: "provider_turn",
+        limitDurationMs: 1000,
+        maximumObservedDurationMs: 1000,
+        remainingObservedDurationMs: 0,
+        observationCount: 1,
+        completeness: "complete",
+        thresholdState: "reached",
+      },
+    ];
+    const services = {
+      inspectGovernedWork: vi.fn(async () => value),
+    } as unknown as CliServices;
+
+    expect(
+      await runLoopCommand(
+        ["budget", "--duration-limit", "codex:primary_provider:provider_turn:1000", "--json"],
+        output.value,
+        services,
+      ),
+    ).toBe(1);
+    expect(services.inspectGovernedWork).toHaveBeenCalledWith(
+      expect.objectContaining({
+        policy: expect.objectContaining({
+          durationLimits: [
+            expect.objectContaining({
+              stageId: "provider_turn",
+              stopAfterObservedDurationMs: 1000,
+            }),
+          ],
+        }),
+      }),
+    );
   });
 
   it("executes through the managed-run port and finalizes only after accepted output", async () => {
@@ -439,6 +508,72 @@ describe("loop command", () => {
     expect(finalizeGovernedAssignment).toHaveBeenCalledWith(
       expect.objectContaining({ assignmentId, verificationStatus: "passed" }),
     );
+  });
+
+  it("fails assignment finalization when a successful run reaches an observed token budget", async () => {
+    const output = io();
+    const before = report();
+    const after = report();
+    after.decision = {
+      schemaVersion: 1,
+      decisionId: "gld_333333333333333333333333",
+      graphHash: after.graph.graphHash,
+      status: "blocked",
+      actions: [{ kind: "block", assignmentId: null, reasonCode: "token_budget_exhausted" }],
+    };
+    const executeManagedRun = vi.fn(async () => ({
+      runId: "run_111111111111111111111111",
+      sessionId: "ses_111111111111111111111111",
+      verificationStatus: "passed",
+      writingPublication: { status: "allowed" },
+      resultArtifact: {
+        artifactId: "art_111111111111111111111111",
+        contentHash: `sha256:${"b".repeat(64)}`,
+      },
+    }));
+    const finalizeGovernedAssignment = vi.fn(async () => undefined);
+    const services = {
+      inspectGovernedWork: vi
+        .fn()
+        .mockResolvedValueOnce(before)
+        .mockResolvedValueOnce(before)
+        .mockResolvedValueOnce(after),
+      executeManagedRun,
+      finalizeGovernedAssignment,
+    } as unknown as CliServices;
+
+    expect(
+      await runLoopCommand(
+        [
+          "run",
+          "--provider",
+          "codex",
+          "--assignment",
+          assignmentId,
+          "--agent",
+          agentId,
+          "--lease",
+          leaseId,
+          "--path",
+          "src/example.ts",
+          "--verification",
+          "project.quick",
+          "--token-metric-limit",
+          `codex:primary_provider:sha256:${"d".repeat(64)}:cached_input_tokens:100`,
+          "Implement the bounded task.",
+        ],
+        output.value,
+        services,
+      ),
+    ).toBe(1);
+    expect(finalizeGovernedAssignment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assignmentId,
+        verificationStatus: "failed",
+        failureCode: "token_budget_exhausted",
+      }),
+    );
+    expect(output.stderr.join("")).toContain("token_budget_exhausted");
   });
 
   it("does not fail an assignment when provider admission recorded no new attempt", async () => {

@@ -100,9 +100,45 @@ function report(): GovernedWorkReportV1 {
         accountingMode: "turn_cumulative",
         accountingDescriptorHash: `sha256:${"d".repeat(64)}`,
         completeness: "complete",
+        tokenUsage: {
+          inputTokens: 1000,
+          cachedInputTokens: 100,
+          outputTokens: 234,
+          reasoningOutputTokens: 0,
+          totalTokens: 1234,
+        },
         totalTokens: 1234,
         runCount: 1,
         reasonCodes: [],
+      },
+    ],
+    stages: [],
+    budgets: [
+      {
+        schemaVersion: 1,
+        kind: "token",
+        provider: "codex",
+        scope: "primary_provider",
+        accountingDescriptorHash: `sha256:${"d".repeat(64)}`,
+        metric: "total_tokens",
+        limitTokens: 1500,
+        observedTokens: 1234,
+        remainingObservedTokens: 266,
+        completeness: "complete",
+        thresholdState: "below",
+      },
+      {
+        schemaVersion: 1,
+        kind: "token",
+        provider: "claude",
+        scope: null,
+        accountingDescriptorHash: `sha256:${"e".repeat(64)}`,
+        metric: "total_tokens",
+        limitTokens: 2000,
+        observedTokens: null,
+        remainingObservedTokens: null,
+        completeness: "unobserved",
+        thresholdState: "unknown",
       },
     ],
     approvals: [
@@ -132,6 +168,8 @@ function report(): GovernedWorkReportV1 {
           stopAfterObservedTotalTokens: 2000,
         },
       ],
+      tokenMetricLimits: [],
+      durationLimits: [],
       unobservedResourceAction: "escalate",
       exhaustedResourceAction: "block",
       terminalFailureAction: "escalate",
@@ -267,14 +305,18 @@ describe("local operating board", () => {
     expect(view.limitations.join(" ")).toContain("Selected, loaded, injected, and used");
   });
 
-  it("keeps a legacy unscoped budget unknown when multiple resource scopes match", () => {
+  it("preserves an authoritative unknown budget assessment without recalculation", () => {
     const value = report();
-    delete value.policy.tokenLimits[0]!.scope;
-    value.resources.push({
-      ...value.resources[0]!,
-      scope: "subagent_provider",
-      totalTokens: 50,
-    });
+    const firstBudget = value.budgets[0]!;
+    if (firstBudget.kind !== "token") throw new Error("Expected a token budget fixture.");
+    value.budgets[0] = {
+      ...firstBudget,
+      scope: null,
+      observedTokens: null,
+      remainingObservedTokens: null,
+      completeness: "unobserved",
+      thresholdState: "unknown",
+    };
 
     expect(projectOperatingBoard(value).budgets[0]).toMatchObject({
       scope: null,
@@ -295,9 +337,9 @@ describe("local operating board", () => {
     expect(first).toContain("Content-Security-Policy");
     expect(first).toContain(`href="#assignment-1"`);
     expect(first).toContain("Projection, not authority");
-    expect(first).toContain("1234 tokens");
+    expect(first).toContain("1234 total tokens");
     expect(first).toContain("Protect &lt;current&gt; objective");
-    expect(first).toContain("1234 / 1500 tokens");
+    expect(first).toContain("1234 / 1500 total_tokens");
     expect(first).toContain("&lt;script&gt;alert(&quot;unsafe&quot;)&lt;/script&gt;");
     expect(first).not.toContain('<script>alert("unsafe")</script>');
     expect(first).not.toContain("<button");
