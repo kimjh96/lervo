@@ -118,6 +118,33 @@ describe("reader-first event envelope compatibility", () => {
     ).toBe(false);
   });
 
+  it("keeps exact role-profile activation evidence unavailable to v1 envelopes", () => {
+    const payload = {
+      activationId: `rpact_${"b".repeat(24)}`,
+      provider: "claude",
+      roleId: "evidence-developer",
+      roleVersion: "1.0.0",
+      roleContractHash: hash,
+      roleProfileHash: hash,
+      runtimeProfileHash: hash,
+      sourceKind: "repository",
+      activatedAt: "2026-09-06T00:00:00.000Z",
+    };
+    expect(validateSchema("roleProfileActivatedEventPayload", payload).valid).toBe(true);
+    expect(
+      validateSchema("event", {
+        ...envelope({ schemaVersion: 2, type: "role.profile.activated" }),
+        payload,
+      }).valid,
+    ).toBe(true);
+    expect(
+      validateSchema("event", {
+        ...envelope({ schemaVersion: 1, type: "role.profile.activated" }),
+        payload,
+      }).valid,
+    ).toBe(false);
+  });
+
   it("accepts explicit handoff acknowledgement without treating it as provider telemetry", () => {
     expect(
       validateSchema(

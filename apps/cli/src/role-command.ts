@@ -3,14 +3,28 @@ import { parseArgs } from "node:util";
 
 import { listRoleContracts, resolveRoleContract } from "@lervo/roles";
 
+import { runDevelopmentPatternCommand } from "./development-pattern-command.js";
 import type { CliIo } from "./types.js";
 
 export const roleUsage = `  lervo role list [--root <path>] [--json]
   lervo role show --role <role-id> [--root <path>] [--json]
-  lervo role validate [--role <role-id>] [--root <path>] [--json]`;
+  lervo role validate [--role <role-id>] [--root <path>] [--json]
+  lervo role candidate propose --provider <codex|claude> (--from <json-path>|--stdin) [--root <path>] [--json]
+  lervo role candidate status [<pattern-id>] [--root <path>] [--json]
+  lervo role candidate review <pattern-id> --decision <accept|reject|defer|supersede> --reviewer <id> --approval <candidate-hash> [--superseded-by <pattern-id>] [--root <path>] [--json]
+  lervo role candidate activate <pattern-id> [--apply --approval <plan-id>] [--root <path>] [--json]
+  lervo role candidate rollback <pattern-id> [--apply --approval <plan-id>] [--root <path>] [--json]`;
 
 export async function runRoleCommand(args: string[], io: CliIo): Promise<number> {
   try {
+    if (args[0] === "candidate") {
+      const action = args[1] === "activate" ? "promote" : args[1];
+      return await runDevelopmentPatternCommand(
+        [action ?? "", ...args.slice(2)],
+        io,
+        "agent_profile",
+      );
+    }
     const parsed = parseArgs({
       args,
       strict: true,

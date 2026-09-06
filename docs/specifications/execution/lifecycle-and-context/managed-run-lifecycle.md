@@ -11,6 +11,8 @@ causal work admitted -> requested -> resolved -> documents/capabilities recommen
 
 Completion requires agreement among contracts, capability decisions, context evidence, provider results, repository snapshots, and verification. Other provider work is `unmanaged`.
 
+After a managed provider turn and its verification phase return, a schema-v2 writer records `role.profile.activated` with provider, exact resolved role ID and version, role-contract and effective-profile hashes, actual runtime-profile hash, source kind, and time. A repository still selecting writer v1 continues without profile-activation evidence, so that run is ineligible for an agent-profile candidate. Event append failure under v2 fails the command. The event excludes role text, prompts, paths, output, credentials, native session IDs, and user identity. It proves only that the managed provider/verification phase used those resolved coordinates; it does not prove attention, semantic reliance, quality, publication, or whole-run completion.
+
 ## Direct hooks
 
 Direct Codex/Claude hooks use a self-verifying repository-local contract-v2 runtime with exact-hash loads up to 28 KiB. Preparation applies provider-neutral projection and qualified Lexical v2 only to registered repository knowledge. It records `unmanaged_terminal_retrieval_only` without semantic-action coordinates, effect, workflow, authority, external route, or durable rule. Empty or failed retrieval proves nothing else; internal failure returns empty success without evidence. Managed execution stays typed and fail-closed.

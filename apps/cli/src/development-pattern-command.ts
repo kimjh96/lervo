@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { openProjectStorage } from "@lervo/project-storage";
+import { resolveRoleContract, roleProfileHash } from "@lervo/roles";
 import {
   applyDevelopmentPatternPromotion,
   createDevelopmentPatternCandidate,
@@ -19,20 +20,24 @@ import {
 import {
   allPatternEvents,
   appendPatternEvent,
+  patternArtifactId,
   patternArtifactJson,
   projectPatterns,
   writePatternProjection,
 } from "./development-pattern-storage.js";
 import { recordDevelopmentPatternObservation } from "./development-pattern-observation.js";
 import { runDevelopmentPatternReviewCommand } from "./development-pattern-review-command.js";
+import { runDevelopmentPatternRollbackCommand } from "./development-pattern-rollback-command.js";
 import { passedWorkflowVerificationEvidence } from "./development-pattern-verification.js";
+import { roleProfileActivationEvidence } from "./agent-profile-evidence.js";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import type { CliIo } from "./types.js";
 
 export const developmentPatternUsage = `  lervo knowledge pattern propose --provider <codex|claude> (--from <json-path>|--stdin) [--root <path>] [--json]
   lervo knowledge pattern status [<pattern-id>] [--root <path>] [--json]
   lervo knowledge pattern review <pattern-id> --decision <accept|reject|defer|supersede> --reviewer <id> --approval <candidate-hash> [--superseded-by <pattern-id>] [--root <path>] [--json]
-  lervo knowledge pattern promote <pattern-id> [--apply --approval <plan-id>] [--root <path>] [--json]`;
+  lervo knowledge pattern promote <pattern-id> [--apply --approval <plan-id>] [--root <path>] [--json]
+  lervo knowledge pattern rollback <pattern-id> [--apply --approval <plan-id>] [--root <path>] [--json]`;
 
 async function readInput(parsed: ReturnType<typeof parseArgs>, io: CliIo): Promise<unknown> {
   if (parsed.values.from !== undefined && parsed.values.stdin)
@@ -43,7 +48,7 @@ async function readInput(parsed: ReturnType<typeof parseArgs>, io: CliIo): Promi
   throw new Error("A proposal requires --from or --stdin.");
 }
 
-async function propose(args: string[], io: CliIo): Promise<number> {
+async function propose(args: string[], io: CliIo, requiredTargetKind?: string): Promise<number> {
   const parsed = parseArgs({
     args,
     strict: true,
@@ -63,10 +68,14 @@ async function propose(args: string[], io: CliIo): Promise<number> {
   const { scan } = await scanConfiguredRepositoryKnowledge(repositoryRoot, { supplementalSources });
   const storage = await openProjectStorage(repositoryRoot);
   try {
+    const proposal = (await readInput(parsed, io)) as DevelopmentPatternProposal;
+    if (requiredTargetKind !== undefined && proposal.target?.kind !== requiredTargetKind)
+      throw new Error(`The pattern target must be ${requiredTargetKind}.`);
     const result = createDevelopmentPatternCandidate({
-      proposal: (await readInput(parsed, io)) as DevelopmentPatternProposal,
+      proposal,
       scan,
       passedVerificationEvidence: passedWorkflowVerificationEvidence(storage),
+      roleProfileActivationEvidence: roleProfileActivationEvidence(storage),
     });
     const now = new Date().toISOString();
     const output = await recordDevelopmentPatternObservation({
@@ -87,7 +96,7 @@ async function propose(args: string[], io: CliIo): Promise<number> {
   }
 }
 
-async function status(args: string[], io: CliIo): Promise<number> {
+async function status(args: string[], io: CliIo, requiredTargetKind?: string): Promise<number> {
   const parsed = parseArgs({
     args,
     strict: true,
@@ -99,7 +108,9 @@ async function status(args: string[], io: CliIo): Promise<number> {
   const storage = await openProjectStorage(repositoryRoot);
   try {
     const patterns = projectPatterns(allPatternEvents(storage)).filter(
-      (item) => parsed.positionals[0] === undefined || item.patternId === parsed.positionals[0],
+      (item) =>
+        (requiredTargetKind === undefined || item.targetKind === requiredTargetKind) &&
+        (parsed.positionals[0] === undefined || item.patternId === parsed.positionals[0]),
     );
     await writePatternProjection(repositoryRoot, patterns);
     io.stdout(
@@ -113,7 +124,7 @@ async function status(args: string[], io: CliIo): Promise<number> {
   }
 }
 
-async function promote(args: string[], io: CliIo): Promise<number> {
+async function promote(args: string[], io: CliIo, requiredTargetKind?: string): Promise<number> {
   const parsed = parseArgs({
     args,
     strict: true,
@@ -141,6 +152,8 @@ async function promote(args: string[], io: CliIo): Promise<number> {
       pattern.reviewContentHash === null
     )
       throw new Error("Accepted pattern review was not found.");
+    if (requiredTargetKind !== undefined && pattern.targetKind !== requiredTargetKind)
+      throw new Error(`The pattern target must be ${requiredTargetKind}.`);
     if (!["reviewed", "promoted"].includes(pattern.state))
       throw new Error("The pattern is not promotable from its current state.");
     const candidate = await patternArtifactJson<DevelopmentPatternCandidate>(
@@ -160,6 +173,7 @@ async function promote(args: string[], io: CliIo): Promise<number> {
       reviewContentHash: pattern.reviewContentHash,
       currentScan: scan,
       passedVerificationEvidence: passedWorkflowVerificationEvidence(storage),
+      roleProfileActivationEvidence: roleProfileActivationEvidence(storage),
     });
     if (!parsed.values.apply) {
       const output = publicDevelopmentPatternPromotionPlan(plan);
@@ -181,8 +195,35 @@ async function promote(args: string[], io: CliIo): Promise<number> {
       plan,
       approval: parsed.values.approval ?? "",
       receipt,
-      recordApplied: () => {
+      recordApplied: async () => {
         if (pattern.state === "promoted") return;
+        let activatedRole:
+          | {
+              roleId: string;
+              version: string;
+              contractHash: string;
+              profileHash: string;
+            }
+          | undefined;
+        let previousTargetArtifactId: string | null = null;
+        if (candidate.target.kind === "agent_profile") {
+          const targetRoleId = (JSON.parse(candidate.target.content) as { roleId: string }).roleId;
+          const contract = await resolveRoleContract(repositoryRoot, targetRoleId);
+          if (contract.sourcePath !== candidate.target.path)
+            throw new Error("The promoted agent profile did not resolve from its exact target.");
+          activatedRole = {
+            roleId: contract.roleId,
+            version: contract.version,
+            contractHash: contract.contractHash,
+            profileHash: roleProfileHash(contract.definition.profile),
+          };
+          if (plan.rollbackTarget?.previousContent !== null && plan.rollbackTarget !== null) {
+            const storedPrevious = await storage.artifacts.put(plan.rollbackTarget.previousContent);
+            if (storedPrevious.contentHash !== plan.rollbackTarget.previousContentHash)
+              throw new Error("The previous agent-profile target CAS binding changed.");
+            previousTargetArtifactId = patternArtifactId(storedPrevious.contentHash);
+          }
+        }
         appendPatternEvent(storage, {
           type: "development.pattern.transitioned",
           occurredAt: now,
@@ -200,6 +241,16 @@ async function promote(args: string[], io: CliIo): Promise<number> {
             reviewArtifactId: pattern.reviewArtifactId,
             reviewContentHash: pattern.reviewContentHash,
             targetKind: pattern.targetKind,
+            ...(candidate.target.kind === "agent_profile"
+              ? {
+                  previousTargetArtifactId,
+                  previousTargetContentHash: plan.rollbackTarget?.previousContentHash ?? null,
+                  activatedRoleId: activatedRole!.roleId,
+                  activatedRoleVersion: activatedRole!.version,
+                  activatedRoleContractHash: activatedRole!.contractHash,
+                  activatedRoleProfileHash: activatedRole!.profileHash,
+                }
+              : {}),
             approvalHash: sha256(plan.planId),
             occurredAt: now,
           },
@@ -216,14 +267,20 @@ async function promote(args: string[], io: CliIo): Promise<number> {
   }
 }
 
-export async function runDevelopmentPatternCommand(args: string[], io: CliIo): Promise<number> {
+export async function runDevelopmentPatternCommand(
+  args: string[],
+  io: CliIo,
+  requiredTargetKind?: string,
+): Promise<number> {
   try {
     const action = args[0];
-    if (action === "propose") return await propose(args.slice(1), io);
-    if (action === "status") return await status(args.slice(1), io);
-    if (action === "review") return await runDevelopmentPatternReviewCommand(args.slice(1), io);
-    if (action === "promote") return await promote(args.slice(1), io);
-    throw new Error("Specify pattern propose, status, review, or promote.");
+    if (action === "propose") return await propose(args.slice(1), io, requiredTargetKind);
+    if (action === "status") return await status(args.slice(1), io, requiredTargetKind);
+    if (action === "review")
+      return await runDevelopmentPatternReviewCommand(args.slice(1), io, requiredTargetKind);
+    if (action === "promote") return await promote(args.slice(1), io, requiredTargetKind);
+    if (action === "rollback") return await runDevelopmentPatternRollbackCommand(args.slice(1), io);
+    throw new Error("Specify pattern propose, status, review, promote, or rollback.");
   } catch (error) {
     io.stderr(
       `${error instanceof Error ? error.message : String(error)}\n${developmentPatternUsage}\n`,

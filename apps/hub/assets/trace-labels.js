@@ -44,6 +44,7 @@ const eventLabels = {
   "development.pattern.transitioned": "Development pattern transitioned",
   "development.pattern.evaluation.registered": "Development pattern evaluation registered",
   "development.pattern.effect.observed": "Development pattern effect observed",
+  "role.profile.activated": "Role profile activated",
   "terminal.integration.applied": "Terminal integration applied",
   "terminal.context.prepared": "Terminal context prepared",
   "terminal.turn.declared": "Terminal turn declared",

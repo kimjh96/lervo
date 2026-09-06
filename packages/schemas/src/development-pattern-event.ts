@@ -1,6 +1,6 @@
 import type { FromSchema } from "json-schema-to-ts";
 
-import { artifactIdSchema, sha256Schema, timestampSchema } from "./common.js";
+import { artifactIdSchema, roleIdSchema, sha256Schema, timestampSchema } from "./common.js";
 
 const patternIdSchema = { type: "string", pattern: "^pattern_[a-f0-9]{24}$" } as const;
 
@@ -42,14 +42,30 @@ export const developmentPatternTransitionedEventPayloadSchema = {
       anyOf: [
         {
           type: "string",
-          enum: ["observed", "candidate", "reviewed", "promoted", "rejected", "deferred"],
+          enum: [
+            "observed",
+            "candidate",
+            "reviewed",
+            "promoted",
+            "rejected",
+            "deferred",
+            "rolled_back",
+          ],
         },
         { type: "null" },
       ],
     },
     toState: {
       type: "string",
-      enum: ["candidate", "reviewed", "promoted", "rejected", "deferred", "superseded"],
+      enum: [
+        "candidate",
+        "reviewed",
+        "promoted",
+        "rejected",
+        "deferred",
+        "superseded",
+        "rolled_back",
+      ],
     },
     candidateArtifactId: { anyOf: [artifactIdSchema, { type: "null" }] },
     candidateContentHash: { anyOf: [sha256Schema, { type: "null" }] },
@@ -64,8 +80,24 @@ export const developmentPatternTransitionedEventPayloadSchema = {
         "portable_skill",
         "decision",
         "automated_check",
+        "agent_profile",
       ],
     },
+    previousTargetArtifactId: { anyOf: [artifactIdSchema, { type: "null" }] },
+    previousTargetContentHash: { anyOf: [sha256Schema, { type: "null" }] },
+    activatedRoleId: { anyOf: [roleIdSchema, { type: "null" }] },
+    activatedRoleVersion: {
+      anyOf: [
+        {
+          type: "string",
+          pattern:
+            "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$",
+        },
+        { type: "null" },
+      ],
+    },
+    activatedRoleContractHash: { anyOf: [sha256Schema, { type: "null" }] },
+    activatedRoleProfileHash: { anyOf: [sha256Schema, { type: "null" }] },
     approvalHash: { anyOf: [sha256Schema, { type: "null" }] },
     occurredAt: timestampSchema,
   },

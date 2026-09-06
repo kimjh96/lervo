@@ -174,6 +174,7 @@ import {
 } from "./remote-command.js";
 import { roleProfileSchema } from "./role.js";
 import { roleEvaluationBundleSchema, roleEvaluationResultSchema } from "./role-evaluation.js";
+import { roleProfileActivatedEventPayloadSchema } from "./role-profile-event.js";
 import { highRiskRoleWorkflowSchema } from "./high-risk-role-workflow.js";
 import { runCompletedEventPayloadSchema } from "./run-event.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
@@ -337,6 +338,7 @@ const validators = {
   role: ajv.compile(roleProfileSchema),
   roleEvaluationBundle: ajv.compile(roleEvaluationBundleSchema),
   roleEvaluationResult: ajv.compile(roleEvaluationResultSchema),
+  roleProfileActivatedEventPayload: ajv.compile(roleProfileActivatedEventPayloadSchema),
   highRiskRoleWorkflow: ajv.compile(highRiskRoleWorkflowSchema),
   runCompletedEventPayload: ajv.compile(runCompletedEventPayloadSchema),
   assignmentCompletionPreparedEventPayload: ajv.compile(

@@ -1433,6 +1433,9 @@ importers:
       '@lervo/project':
         specifier: workspace:*
         version: link:../project
+      '@lervo/roles':
+        specifier: workspace:*
+        version: link:../roles
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas

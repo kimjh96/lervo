@@ -17,6 +17,12 @@ export interface PatternProjection {
   reviewArtifactId: string | null;
   reviewContentHash: string | null;
   supersededByPatternId: string | null;
+  previousTargetArtifactId: string | null;
+  previousTargetContentHash: string | null;
+  activatedRoleId: string | null;
+  activatedRoleVersion: string | null;
+  activatedRoleContractHash: string | null;
+  activatedRoleProfileHash: string | null;
   targetKind: string;
   occurrenceCount: number;
   updatedAt: string;
@@ -54,6 +60,12 @@ export function projectPatterns(events: readonly EventEnvelope[]): PatternProjec
       reviewArtifactId: null,
       reviewContentHash: null,
       supersededByPatternId: null,
+      previousTargetArtifactId: null,
+      previousTargetContentHash: null,
+      activatedRoleId: null,
+      activatedRoleVersion: null,
+      activatedRoleContractHash: null,
+      activatedRoleProfileHash: null,
       targetKind: "unknown",
       occurrenceCount: 0,
       updatedAt: event.occurredAt,
@@ -75,6 +87,17 @@ export function projectPatterns(events: readonly EventEnvelope[]): PatternProjec
       ] as const) {
         const value = event.payload[field];
         if (typeof value === "string") current[field] = value;
+      }
+      for (const field of [
+        "previousTargetArtifactId",
+        "previousTargetContentHash",
+        "activatedRoleId",
+        "activatedRoleVersion",
+        "activatedRoleContractHash",
+        "activatedRoleProfileHash",
+      ] as const) {
+        const value = event.payload[field];
+        if (typeof value === "string" || value === null) current[field] = value;
       }
       const supersededByPatternId = event.payload.supersededByPatternId;
       if (typeof supersededByPatternId === "string" || supersededByPatternId === null)
@@ -146,4 +169,15 @@ export async function patternArtifactJson<T>(
   );
   if (sha256(bytes) !== contentHash) throw new Error("Development-pattern CAS binding changed.");
   return JSON.parse(Buffer.from(bytes).toString("utf8")) as T;
+}
+
+export async function patternArtifactText(
+  storage: ProjectStorage,
+  contentHash: string,
+): Promise<string> {
+  const bytes = await storage.artifacts.get(
+    `lervo-cas://sha256/${contentHash.slice("sha256:".length)}`,
+  );
+  if (sha256(bytes) !== contentHash) throw new Error("Development-pattern CAS binding changed.");
+  return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
 }

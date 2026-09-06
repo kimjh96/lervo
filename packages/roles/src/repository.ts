@@ -69,6 +69,23 @@ export interface RepositoryRoleSource {
   checks: RoleEvaluationCheck[];
 }
 
+export function renderRepositoryRoleSource(source: RepositoryRoleSource): string {
+  const parsed = parseRepositoryRoleSource(source, source.roleId);
+  return `${JSON.stringify(
+    {
+      schemaVersion: parsed.schemaVersion,
+      kind: parsed.kind,
+      roleId: parsed.roleId,
+      version: parsed.version,
+      extends: parsed.extends,
+      profile: parsed.profile,
+      checks: parsed.checks,
+    },
+    null,
+    2,
+  )}\n`;
+}
+
 function fail(
   code: "role_profile_invalid" | "role_not_found" | "role_contract_stale",
   message: string,
@@ -144,7 +161,10 @@ function validProfilePatch(value: Record<string, unknown>): boolean {
   return true;
 }
 
-function validateSource(value: unknown, expectedRoleId?: string): RepositoryRoleSource {
+export function parseRepositoryRoleSource(
+  value: unknown,
+  expectedRoleId?: string,
+): RepositoryRoleSource {
   if (
     !record(value) ||
     !exactKeys(value, SOURCE_KEYS) ||
@@ -498,7 +518,7 @@ async function repositorySources(
     } catch (error) {
       fail("role_profile_invalid", `Repository role source ${name} is not valid JSON.`, error);
     }
-    const source = validateSource(parsed, expectedRoleId);
+    const source = parseRepositoryRoleSource(parsed, expectedRoleId);
     if (
       listBuiltInRoleDefinitions().some(
         (definition) => definition.profile.roleId === source.roleId,

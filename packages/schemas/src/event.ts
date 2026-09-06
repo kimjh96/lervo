@@ -89,6 +89,7 @@ export const eventTypesV2 = [
   "work.causality.recorded",
   "resource.usage.recorded",
   "execution.stages.observed",
+  "role.profile.activated",
 ] as const;
 
 export const eventTypes = eventTypesV2;

@@ -731,6 +731,19 @@ describe("lervo run vertical slice", () => {
       expect(events.map((event) => event.type)).toContain("verification.started");
       expect(events.map((event) => event.type)).toContain("verification.completed");
       expect(events.map((event) => event.type)).toContain("run.completed");
+      const profileActivation = events.find((event) => event.type === "role.profile.activated");
+      expect(profileActivation?.payload).toMatchObject({
+        provider,
+        roleId: "developer",
+        roleVersion: "1.0.0",
+        roleContractHash: expect.stringMatching(/^sha256:/u),
+        roleProfileHash: expect.stringMatching(/^sha256:/u),
+        runtimeProfileHash: expect.stringMatching(/^sha256:/u),
+        sourceKind: "built_in",
+      });
+      expect(
+        validateSchema("roleProfileActivatedEventPayload", profileActivation?.payload).valid,
+      ).toBe(true);
       const recommendation = events.find((event) => event.type === "context.recommended");
       expect(recommendation?.payload).toMatchObject({
         documentId: "doc_cli_search_context",

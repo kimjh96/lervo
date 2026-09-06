@@ -42,6 +42,7 @@ Detailed acceptance records:
 - The completed product-host protocol is a CLI compatibility boundary, not a Paperclip or Buzz product interface.
 - Retrieval selection proves only source selection for context. It does not prove a repeatable workflow, define a capability envelope, or authorize generated skill bytes. Skill candidacy starts with independently grouped workflow evidence.
 - The installed natural-language capability journey proves two independently verified workflows can become a generated portable-skill package through exact review, stale-source supersession, four-file promotion, project authorization, dependency-preserving migration, deterministic recommendation plus explicit selection, provider-confirmed MCP activation, result validation, completion evidence, and explicit post-promotion effect comparison. The comparison retains unestablished attribution and authorizes no rollback. The journey does not prove model reliance or authorize generation from retrieval selection alone.
+- The installed agent-profile journey uses exact role activation and passed-verification pairs from independent managed runs, exact review, user-owned role activation and resolution, and explicit rollback. The separate effect protocol retains unestablished attribution and never authorizes rollback.
 - A successful full repository check proves encoded contracts, not user outcomes absent from them.
 
 ## Remaining delivery order
@@ -52,10 +53,9 @@ Reviewed direct-message triggering and explicit handoff acknowledgment are insta
 
 Lervo-owned outcomes in `delivery required` state form the remaining implementation backlog:
 
-1. Complete agent-profile candidate paths with exact review, activation, effect observation, supersession, and rollback; preserve the implemented portable-skill and durable-instruction candidate journeys.
-2. Add authenticated live trigger adapters for current product sources, with shared idempotency, authority, budget, uncertain-effect, and recovery contracts.
-3. Add unattended scheduling with current checkpoints, budgets, leases, retry limits, cancellation, uncertain-effect handling, escalation, and a kill switch.
-4. Add bounded dynamic graph branches, joins, and reviewed topology changes with migration, recovery, and historical replay.
+1. Add authenticated live trigger adapters for current product sources, with shared idempotency, authority, budget, uncertain-effect, and recovery contracts.
+2. Add unattended scheduling with current checkpoints, budgets, leases, retry limits, cancellation, uncertain-effect handling, escalation, and a kill switch.
+3. Add bounded dynamic graph branches, joins, and reviewed topology changes with migration, recovery, and historical replay.
 
 Provider-native session memory and direct unmanaged whole-task token accounting remain `external dependency`; they do not block implemented portable checkpoint-resume and managed-resource outcomes. Unified interactive interfaces remain `external product`. Future product-host routes require packed external-consumer proof.
 
@@ -73,3 +73,4 @@ The earlier sequence through attention, durable terminal outcomes, checkpointed 
 - [Terminal observation strengthening v1](../evidence/foundation/terminal-observation-strengthening-v1.md)
 - [Installed natural-language capability journey v1](../evidence/foundation/installed-natural-language-capability-journey-v1.md)
 - [Installed fresh-session cross-provider continuation v1](../evidence/foundation/installed-fresh-session-cross-provider-continuation-v1.md)
+- [Evidence-bound agent-profile candidates v1](../evidence/foundation/evidence-bound-agent-profile-candidates-v1.md)

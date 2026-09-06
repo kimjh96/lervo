@@ -141,6 +141,29 @@ describe("event payload privacy boundary", () => {
     expect(JSON.stringify(result.payload)).not.toContain(".lervo/roles");
   });
 
+  it("keeps managed profile activation coordinates without role or provider bodies", () => {
+    const payload = {
+      activationId: `rpact_${"a".repeat(24)}`,
+      provider: "codex",
+      roleId: "evidence-developer",
+      roleVersion: "1.0.0",
+      roleContractHash: `sha256:${"b".repeat(64)}`,
+      roleProfileHash: `sha256:${"c".repeat(64)}`,
+      runtimeProfileHash: `sha256:${"d".repeat(64)}`,
+      sourceKind: "repository",
+      activatedAt: "2026-09-06T00:00:00.000Z",
+    };
+    const result = sanitizeEventPayload("role.profile.activated", {
+      ...payload,
+      profile: { description: "private role prose" },
+      providerOutput: "private provider output",
+      sourcePath: ".lervo/roles/evidence-developer.json",
+    });
+    expect(result.payload).toEqual(payload);
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+    expect(JSON.stringify(result.payload)).not.toContain(".lervo/roles");
+  });
+
   it("keeps root-agent liveness coordinates while excluding raw runtime details", () => {
     const payload = {
       agentId: `agt_${"a".repeat(24)}`,

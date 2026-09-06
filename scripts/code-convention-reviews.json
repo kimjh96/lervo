@@ -32,7 +32,7 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:b9968c9e9b25f337989b2a87b4b26735bd0cefc410e8b5949055606acb001cff",
+      "contentHash": "sha256:bd6bebef72cafa0d142de2b43e9fda78f71ff9c93ad4fec202042f09d9edf05c",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The module composes one managed provider-run boundary; provider differences remain injected dependencies, while causal validation and assignment finalization are extracted and no unrelated CLI subcommand or persistence policy is owned here.",
       "disposition": "cohesive"
@@ -88,7 +88,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:77d6509ac76b22cd4a42bf5962a5f6a8ec1d890fa2bd75249a3e790ff0880de9",
+      "contentHash": "sha256:ce84fb1b539ee9e757861acf1db8b4da4c023b68d677f46615ba2b333484eb54",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
       "disposition": "cohesive"
@@ -263,7 +263,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:0b6a662c5921d3e2bc886fddc7c1169983cfa1331a4560327acbc8d3b7948fe0",
+      "contentHash": "sha256:d639edb24aef6b387ad4b7072d6aa72dd7c4be41f6df08f105217f5618de8be0",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, and typed domain failures without owning their implementations.",
       "disposition": "cohesive"
@@ -284,7 +284,7 @@
     },
     {
       "path": "packages/roles/src/repository.ts",
-      "contentHash": "sha256:3195855ecab301838717199ceb7199aa326ac32df9c35cd748f5be9ff8269a43",
+      "contentHash": "sha256:df8040e28d58a8fee8c0f8c293b865376c7ffdd56409a2ed9132154601900858",
       "responsibility": "Versioned repository role resolution",
       "rationale": "Source validation, built-in and custom contract construction, conservative composition, listing, resolution, and binding all own one role-contract aggregate.",
       "disposition": "cohesive"
@@ -305,7 +305,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:afac37cdf64fe91a28b774e25f8407f38f5b300c7ef56dff112b41f70ef152f1",
+      "contentHash": "sha256:978e0b2f57043170b15f09b63fc4963517f854be45458563804d88bc0b6c53c4",
       "responsibility": "Repository schema validator registry",
       "rationale": "The module declaratively registers and exposes validators for the versioned schema catalog; its length follows schema inventory and it owns no domain workflow or external effect.",
       "disposition": "cohesive"

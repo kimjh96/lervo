@@ -19,17 +19,21 @@ Portable-skill candidates derived from completed workflows must meet these requi
 - The derived skill manifest is content-bound, untrusted, and disabled. Neither candidacy nor pattern review can select or activate it.
 - Retrieval selection and provider agreement are not workflow evidence.
 
+Agent-profile candidates require two or more independent managed runs that each bind one exact `role.profile.activated` event and one exact passed verification event from the same run. All runs use one exact source role contract. A new profile extends that exact role version; a replacement keeps the role ID, advances its version, and binds the exact current user-owned target hash. See the [agent-profile candidate specification](../specifications/execution/authority-and-repository/agent-profile-candidates.md).
+
 ## Review and promotion
 
 ### State and target contracts
 
-Candidates progress through `observed -> candidate -> reviewed -> promoted|rejected|deferred -> superseded`. Candidate and deferred states retain ordinary review decisions. Reviewed and promoted states permit only supersession by a distinct current pattern with the same exact target responsibility. Supersession retains the replacement pattern ID without mutating canonical or installed bytes.
+Candidates progress from `observed` to `candidate`, then to `reviewed`, `rejected`, or `deferred`. Reviewed candidates may be promoted; reviewed or promoted candidates may be superseded by a distinct current pattern with the same exact target responsibility. Promoted agent profiles may also become `rolled_back`. Supersession retains the replacement pattern ID without mutating canonical or installed bytes.
 
 Exact-hash review and separate promotion bind target hashes, verification, and both agent routes. Promotion creates a missing target or accepts identical bytes; different existing bytes block promotion. Non-check targets extend only the managed AGENTS route consumed by Claude's import.
 
 Candidate and review bodies are immutable CAS artifacts; bounded events rebuild current state. Changed source makes unpromoted work stale and blocks apply, but never rewrites a promoted canonical target. Request keywords grant no authority. User-owned content is never auto-promoted.
 
 Promotion creates only the responsibility-owned target. AGENTS and CLAUDE remain fixed and resolve that target through repository knowledge query.
+
+Agent-profile promotion is the exception to generated-target ownership: it creates or replaces one exact user-owned `.lervo/roles/<role-id>.json` file only after explicit review and plan approval. Replacement preserves predecessor bytes in CAS. Explicit rollback accepts only unchanged promoted bytes and either deletes the created role or restores the exact predecessor before recording success.
 
 ### Portable-skill apply and authorization
 

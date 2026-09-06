@@ -55,6 +55,7 @@ export * from "./remote-command.js";
 export * from "./resource-accounting.js";
 export * from "./role.js";
 export * from "./role-evaluation.js";
+export * from "./role-profile-event.js";
 export * from "./run-event.js";
 export * from "./shared-context.js";
 export * from "./state-pruned-event.js";

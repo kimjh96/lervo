@@ -1,7 +1,14 @@
 import type { DevelopmentPatternReview } from "./development-pattern-candidate.js";
 
 export type DevelopmentPatternState =
-  "observed" | "candidate" | "reviewed" | "promoted" | "rejected" | "deferred" | "superseded";
+  | "observed"
+  | "candidate"
+  | "reviewed"
+  | "promoted"
+  | "rejected"
+  | "deferred"
+  | "superseded"
+  | "rolled_back";
 
 export interface DevelopmentPatternTransition {
   fromState: DevelopmentPatternState;

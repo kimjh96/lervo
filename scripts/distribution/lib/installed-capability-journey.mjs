@@ -11,6 +11,10 @@ import {
   prepareInstalledPortableSkillCandidate,
 } from "./installed-portable-skill-candidate.mjs";
 import { observeInstalledPortableSkillTreatment } from "./installed-portable-skill-effect.mjs";
+import {
+  activateInstalledAgentProfileCandidate,
+  rollbackInstalledAgentProfileCandidate,
+} from "./installed-agent-profile-candidate.mjs";
 
 const execute = promisify(execFile);
 
@@ -247,6 +251,12 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
     runCli,
     env,
   });
+  const agentProfile = await activateInstalledAgentProfileCandidate({
+    cli,
+    root,
+    runCli,
+    roleProfileEvidence: skill.roleProfileEvidence,
+  });
   let execution;
   try {
     execution = await runCli(
@@ -313,6 +323,12 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
     patternId: skill.patternId,
     ...skill.effect,
   });
+  await rollbackInstalledAgentProfileCandidate({
+    cli,
+    root,
+    runCli,
+    patternId: agentProfile.patternId,
+  });
   return {
     status: "passed",
     runId: outcome.runId,
@@ -321,5 +337,6 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
     dependencyId: mcp.capabilityId,
     resultDigest: outcome.resultArtifact.contentHash,
     effect,
+    agentProfilePatternId: agentProfile.patternId,
   };
 }

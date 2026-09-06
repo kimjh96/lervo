@@ -29,10 +29,13 @@ async function passedVerification(input, suffix) {
   const outcome = JSON.parse(execution.stdout);
   assert.equal(outcome.verificationStatus, "passed");
   const trace = JSON.parse(
-    (await input.runCli(input.cli, input.root, ["trace", outcome.runId, "--json"])).stdout,
+    (await input.runCli(input.cli, input.root, ["trace", outcome.runId, "--full", "--json"]))
+      .stdout,
   );
   const completed = event(trace, "verification.completed");
+  const activation = event(trace, "role.profile.activated");
   assert.ok(completed, `Verification evidence for workflow ${suffix} is missing.`);
+  assert.ok(activation, `Role-profile activation for workflow ${suffix} is missing.`);
   assert.equal(completed.payload.status, "passed");
   return {
     evidence: {
@@ -45,6 +48,17 @@ async function passedVerification(input, suffix) {
       repositoryRevision: completed.payload.repositoryRevision,
       resultContentHash: completed.payload.resultContentHash,
     },
+    activation: {
+      eventId: activation.eventId,
+      eventHash: activation.eventHash,
+      runId: activation.runId,
+      provider: activation.payload.provider,
+      roleId: activation.payload.roleId,
+      roleVersion: activation.payload.roleVersion,
+      roleContractHash: activation.payload.roleContractHash,
+      roleProfileHash: activation.payload.roleProfileHash,
+      runtimeProfileHash: activation.payload.runtimeProfileHash,
+    },
     occurredAt: completed.occurredAt,
   };
 }
@@ -54,6 +68,11 @@ export async function runInstalledVerificationBatch(input, suffixes) {
   for (const suffix of suffixes) completed.push(await passedVerification(input, suffix));
   return {
     evidence: completed.map((item) => item.evidence),
+    roleProfileEvidence: completed.map((item) => ({
+      independentGroup: item.evidence.independentGroup,
+      activation: item.activation,
+      verification: item.evidence,
+    })),
     window: {
       startedAt: completed[0].occurredAt,
       endedAt: completed.at(-1).occurredAt,

@@ -35,6 +35,7 @@ import {
   type LocalProviderWritingEvaluatorInput,
 } from "./managed-writing-evaluator.js";
 import { finalizeImmediateManagedAssignment } from "./managed-run-assignment-finalization.js";
+import { recordManagedRoleProfileActivation } from "./managed-role-profile-activation.js";
 import {
   executeManagedLinkedEvidenceCanary,
   recordManagedLinkedEvidenceCanaryCompletion,
@@ -533,6 +534,16 @@ export function createManagedRunExecutor(
         verificationSuites: verification.suites,
         createEnvelopeId: () => dependencies.createId("envelope"),
         createEvidenceReceiptId: () => dependencies.createId("ctx"),
+      });
+      recordManagedRoleProfileActivation({
+        storage,
+        runId,
+        sessionId,
+        provider: request.provider,
+        roleContract,
+        runtimeProfileHash: policyVersion,
+        activatedAt: (dependencies.now?.() ?? new Date()).toISOString(),
+        createEventId: () => dependencies.createId("evt"),
       });
       if (linkedEvidenceCanary !== undefined) {
         linkedEvidenceCanaryFinalizationStarted = true;

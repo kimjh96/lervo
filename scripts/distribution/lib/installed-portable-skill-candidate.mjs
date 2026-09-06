@@ -269,6 +269,7 @@ export async function prepareInstalledPortableSkillCandidate(input) {
     manifest: { capabilityId: "repository/installed_testing" },
     skill: { skillId: "installed-testing", contentHash: authorization.contentHash },
     verification,
+    roleProfileEvidence: baseline.roleProfileEvidence,
     ...candidate,
     ...authorization,
   };

@@ -1,6 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { resolveRoleContract, roleProfileHash } from "@lervo/roles";
+
+import {
+  assertAgentProfilePattern,
+  type RoleProfileActivationEvidence,
+} from "./agent-profile-pattern.js";
 import { applyDurableKnowledgeOperations } from "./durable-apply.js";
 import {
   type DevelopmentPatternCandidate,
@@ -29,6 +35,11 @@ export interface DevelopmentPatternPromotionPlan {
   blockers: string[];
   agentRoutes: Array<{ provider: "codex" | "claude"; path: string; disposition: string }>;
   verificationCommands: string[];
+  rollbackTarget: {
+    disposition: "delete_created" | "restore_previous";
+    previousContentHash: string | null;
+    previousContent: string | null;
+  } | null;
   operations: KnowledgeFileOperation[];
 }
 
@@ -91,11 +102,49 @@ async function targetOperations(input: {
   repositoryRoot: string;
   candidate: DevelopmentPatternCandidate;
   blockers: string[];
-}): Promise<KnowledgeFileOperation[]> {
+}): Promise<{
+  operations: KnowledgeFileOperation[];
+  rollbackTarget: DevelopmentPatternPromotionPlan["rollbackTarget"];
+}> {
   const operations: KnowledgeFileOperation[] = [];
+  let rollbackTarget: DevelopmentPatternPromotionPlan["rollbackTarget"] = null;
   for (const target of desiredTargets(input.candidate)) {
     const current = await readBoundedText(input.repositoryRoot, target.path, 128 * 1024);
     const desiredHash = sha256(target.content);
+    if (
+      input.candidate.target.kind === "agent_profile" &&
+      target.path === input.candidate.target.path
+    ) {
+      const expectedCurrentHash = input.candidate.target.expectedCurrentHash;
+      if ((current?.contentHash ?? null) !== expectedCurrentHash)
+        input.blockers.push("target_changed");
+      rollbackTarget = {
+        disposition: current === null ? "delete_created" : "restore_previous",
+        previousContentHash: current?.contentHash ?? null,
+        previousContent: current?.content ?? null,
+      };
+      operations.push({
+        path: target.path,
+        action:
+          (current?.contentHash ?? null) !== expectedCurrentHash
+            ? "conflict"
+            : current?.contentHash === desiredHash
+              ? "unchanged"
+              : current === null
+                ? "create"
+                : "update",
+        ownership: "user",
+        mediaType: "application/json",
+        ...((current?.contentHash ?? null) === expectedCurrentHash &&
+        current?.contentHash !== desiredHash
+          ? { content: target.content }
+          : {}),
+        ...(current === null ? {} : { expectedCurrentHash: current.contentHash }),
+        desiredHash,
+        reason: "promoted_pattern_agent_profile",
+      });
+      continue;
+    }
     if (current !== null && current.contentHash !== desiredHash)
       input.blockers.push("target_conflict");
     operations.push({
@@ -109,7 +158,7 @@ async function targetOperations(input: {
       reason: target.reason,
     });
   }
-  return operations;
+  return { operations, rollbackTarget };
 }
 
 export async function createDevelopmentPatternPromotionPlan(input: {
@@ -121,6 +170,7 @@ export async function createDevelopmentPatternPromotionPlan(input: {
   reviewContentHash: string;
   currentScan: RepositoryKnowledgeScan;
   passedVerificationEvidence?: readonly PassedWorkflowVerificationEvidence[];
+  roleProfileActivationEvidence?: readonly RoleProfileActivationEvidence[];
 }): Promise<DevelopmentPatternPromotionPlan> {
   const blockers: string[] = [];
   if (input.review.decision !== "accept") blockers.push("pattern_not_accepted");
@@ -136,9 +186,41 @@ export async function createDevelopmentPatternPromotionPlan(input: {
       blockers.push("verification_evidence_changed");
     }
   }
+  if (input.candidate.target.kind === "agent_profile") {
+    try {
+      assertAgentProfilePattern({
+        target: input.candidate.target,
+        independentGroups: new Set(
+          input.candidate.occurrences.map((item) => item.independentGroup),
+        ),
+        evidence: input.candidate.agentProfileEvidence,
+        passedVerificationEvidence: input.passedVerificationEvidence ?? [],
+        activationEvidence: input.roleProfileActivationEvidence ?? [],
+      });
+    } catch {
+      blockers.push("profile_evidence_changed");
+    }
+    const sourceActivation = input.candidate.agentProfileEvidence?.[0]?.activation;
+    if (sourceActivation !== undefined) {
+      try {
+        const currentRole = await resolveRoleContract(
+          input.repositoryRoot,
+          sourceActivation.roleId,
+        );
+        if (
+          currentRole.version !== sourceActivation.roleVersion ||
+          currentRole.contractHash !== sourceActivation.roleContractHash ||
+          roleProfileHash(currentRole.definition.profile) !== sourceActivation.roleProfileHash
+        )
+          blockers.push("source_role_changed");
+      } catch {
+        blockers.push("source_role_changed");
+      }
+    }
+  }
   const sourceFreshness =
     input.currentScan.contentSnapshotId === input.candidate.sourceSnapshotId ? "current" : "stale";
-  const operations = await targetOperations({
+  const { operations, rollbackTarget } = await targetOperations({
     repositoryRoot: input.repositoryRoot,
     candidate: input.candidate,
     blockers,
@@ -175,19 +257,33 @@ export async function createDevelopmentPatternPromotionPlan(input: {
     agentRoutes:
       input.candidate.target.kind === "automated_check"
         ? []
-        : [
-            {
-              provider: "codex",
-              path: input.candidate.target.path,
-              disposition: "knowledge_registry_route",
-            },
-            {
-              provider: "claude",
-              path: input.candidate.target.path,
-              disposition: "knowledge_registry_route",
-            },
-          ],
+        : input.candidate.target.kind === "agent_profile"
+          ? [
+              {
+                provider: "codex",
+                path: input.candidate.target.path,
+                disposition: "role_registry",
+              },
+              {
+                provider: "claude",
+                path: input.candidate.target.path,
+                disposition: "role_registry",
+              },
+            ]
+          : [
+              {
+                provider: "codex",
+                path: input.candidate.target.path,
+                disposition: "knowledge_registry_route",
+              },
+              {
+                provider: "claude",
+                path: input.candidate.target.path,
+                disposition: "knowledge_registry_route",
+              },
+            ],
     verificationCommands: input.candidate.verificationCommands,
+    rollbackTarget,
     operations,
   };
 }
@@ -195,6 +291,8 @@ export async function createDevelopmentPatternPromotionPlan(input: {
 export function publicDevelopmentPatternPromotionPlan(plan: DevelopmentPatternPromotionPlan) {
   return {
     ...plan,
+    rollbackTarget:
+      plan.rollbackTarget === null ? null : { ...plan.rollbackTarget, previousContent: undefined },
     operations: plan.operations.map(({ content: _content, ...operation }) => operation),
   };
 }

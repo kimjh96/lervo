@@ -1,5 +1,11 @@
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import {
+  assertAgentProfilePattern,
+  type AgentProfileEvidenceReference,
+  type AgentProfileTarget,
+  type RoleProfileActivationEvidence,
+} from "./agent-profile-pattern.js";
+import {
   createPortableSkillPackageCandidate,
   type PassedWorkflowVerificationEvidence,
   type PortableSkillContractProposal,
@@ -22,9 +28,19 @@ export const developmentPatternTargetKinds = [
   "portable_skill",
   "decision",
   "automated_check",
+  "agent_profile",
 ] as const;
 
 export type DevelopmentPatternTargetKind = (typeof developmentPatternTargetKinds)[number];
+
+export type DevelopmentPatternTarget =
+  | {
+      kind: Exclude<DevelopmentPatternTargetKind, "agent_profile">;
+      path: string;
+      content: string;
+      expectedCurrentHash?: never;
+    }
+  | AgentProfileTarget;
 
 export interface DevelopmentPatternProposal {
   schemaVersion: 1;
@@ -36,9 +52,10 @@ export interface DevelopmentPatternProposal {
   affectedInvariants: string[];
   reasonsToChange: string[];
   verificationCommands: string[];
-  target: { kind: DevelopmentPatternTargetKind; path: string; content: string };
+  target: DevelopmentPatternTarget;
   workflowVerification?: WorkflowVerificationReference[];
   portableSkillContract?: PortableSkillContractProposal;
+  agentProfileEvidence?: AgentProfileEvidenceReference[];
 }
 
 export interface DevelopmentPatternCandidate extends DevelopmentPatternProposal {
@@ -99,13 +116,16 @@ function validateTarget(target: DevelopmentPatternProposal["target"]): void {
           ? /^\.agents\/skills\/[a-z][a-z0-9-]*\/SKILL\.md$/u.test(target.path)
           : target.kind === "decision"
             ? /^docs\/decisions\/[a-z0-9][a-z0-9/-]*\.md$/u.test(target.path)
-            : /^scripts\/check-[a-z0-9-]+\.mjs$/u.test(target.path);
+            : target.kind === "automated_check"
+              ? /^scripts\/check-[a-z0-9-]+\.mjs$/u.test(target.path)
+              : /^\.lervo\/roles\/[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*\.json$/u.test(target.path);
   if (!accepted) throw new Error("Development-pattern target path does not match its owner.");
 }
 
 function validateProposal(input: {
   proposal: DevelopmentPatternProposal;
   passedVerificationEvidence: readonly PassedWorkflowVerificationEvidence[];
+  roleProfileActivationEvidence: readonly RoleProfileActivationEvidence[];
 }): PortableSkillPackageCandidate | undefined {
   const proposal = input.proposal;
   if (
@@ -144,6 +164,20 @@ function validateProposal(input: {
     throw new Error("A pattern requires affected invariants and reasons to change.");
   validateTarget(proposal.target);
 
+  if (proposal.target.kind === "agent_profile") {
+    if (proposal.portableSkillContract !== undefined)
+      throw new Error("An agent-profile candidate cannot include a portable-skill contract.");
+    assertAgentProfilePattern({
+      target: proposal.target,
+      independentGroups: independent,
+      evidence: proposal.agentProfileEvidence,
+      passedVerificationEvidence: input.passedVerificationEvidence,
+      activationEvidence: input.roleProfileActivationEvidence,
+    });
+  } else if (proposal.agentProfileEvidence !== undefined) {
+    throw new Error("Agent-profile evidence is valid only for an agent-profile target.");
+  }
+
   return createPortableSkillPackageCandidate({
     target: proposal.target,
     independentGroups: independent,
@@ -157,7 +191,12 @@ export function parseDevelopmentPatternProposal(value: unknown): DevelopmentPatt
   const proposal = value as DevelopmentPatternProposal;
   validateProposal({
     proposal,
-    passedVerificationEvidence: proposal?.workflowVerification ?? [],
+    passedVerificationEvidence: [
+      ...(proposal?.workflowVerification ?? []),
+      ...(proposal?.agentProfileEvidence?.map((item) => item.verification) ?? []),
+    ],
+    roleProfileActivationEvidence:
+      proposal?.agentProfileEvidence?.map((item) => item.activation) ?? [],
   });
   return structuredClone(proposal);
 }
@@ -166,10 +205,12 @@ export function createDevelopmentPatternCandidate(input: {
   proposal: DevelopmentPatternProposal;
   scan: RepositoryKnowledgeScan;
   passedVerificationEvidence?: readonly PassedWorkflowVerificationEvidence[];
+  roleProfileActivationEvidence?: readonly RoleProfileActivationEvidence[];
 }): { candidate: DevelopmentPatternCandidate; content: string; contentHash: string } {
   const portableSkillPackage = validateProposal({
     proposal: input.proposal,
     passedVerificationEvidence: input.passedVerificationEvidence ?? [],
+    roleProfileActivationEvidence: input.roleProfileActivationEvidence ?? [],
   });
   const occurrences = input.proposal.occurrences.map((occurrence) => {
     const units = input.scan.units.filter(

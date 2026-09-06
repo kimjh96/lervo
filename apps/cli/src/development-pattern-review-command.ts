@@ -25,6 +25,7 @@ import type { CliIo } from "./types.js";
 export async function runDevelopmentPatternReviewCommand(
   args: string[],
   io: CliIo,
+  requiredTargetKind?: string,
 ): Promise<number> {
   const parsed = parseArgs({
     args,
@@ -49,6 +50,8 @@ export async function runDevelopmentPatternReviewCommand(
     const pattern = currentPatterns.find((item) => item.patternId === parsed.positionals[0]);
     if (pattern?.candidateContentHash === null || pattern?.candidateContentHash === undefined)
       throw new Error("Pattern candidate was not found.");
+    if (requiredTargetKind !== undefined && pattern.targetKind !== requiredTargetKind)
+      throw new Error(`The pattern target must be ${requiredTargetKind}.`);
     if (parsed.values.approval !== pattern.candidateContentHash)
       throw new Error("Review approval must equal the exact candidate content hash.");
     const now = new Date().toISOString();

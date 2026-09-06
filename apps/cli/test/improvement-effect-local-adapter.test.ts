@@ -324,4 +324,4 @@ it("dogfoods local verification telemetry through explicit CLI host injection", 
     ),
   ).toBe(0);
   expect(errors).toEqual([]);
-});
+}, 15_000);

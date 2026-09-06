@@ -165,7 +165,7 @@ export type KnowledgeOperationAction = "create" | "update" | "delete" | "unchang
 export interface KnowledgeFileOperation {
   path: string;
   action: KnowledgeOperationAction;
-  ownership: "lervo_generated" | "managed_blocks";
+  ownership: "lervo_generated" | "managed_blocks" | "user";
   mediaType: "text/markdown" | "application/yaml" | "application/json" | "text/javascript";
   content?: string;
   expectedCurrentHash?: string;
