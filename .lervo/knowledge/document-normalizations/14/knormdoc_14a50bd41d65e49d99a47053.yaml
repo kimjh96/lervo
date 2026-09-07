@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6d981c40501fbf186e574224
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d89cb2fdd6ae97b41bda58c6
+outputLanguage: en
+outputs:
+  - byteCount: 838
+    contentHash: sha256:2a843a665a4c0854f67462ef8773650fbe46a010477e5fe1ada6a973014f3e9b
+    path: docs/architecture/system/hub-and-nodes/replication.md
+    userRegionHash: sha256:2a843a665a4c0854f67462ef8773650fbe46a010477e5fe1ada6a973014f3e9b
+profile: architecture_document
+recordId: knormdoc_14a50bd41d65e49d99a47053
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2a843a665a4c0854f67462ef8773650fbe46a010477e5fe1ada6a973014f3e9b
+sourcePath: docs/architecture/system/hub-and-nodes/replication.md
+sourceUnitVersionIds:
+  - uv_b787e25dc903823e3ca72330

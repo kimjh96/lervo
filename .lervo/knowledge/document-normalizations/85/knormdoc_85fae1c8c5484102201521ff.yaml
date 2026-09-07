@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6d981c40501fbf186e574224
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2624340f85e4e5ad6bd38154
+outputLanguage: en
+outputs:
+  - byteCount: 294
+    contentHash: sha256:06291a86dab6ce393518f00904de250a3a74e0bed9ad803a81ab305621f0b1b7
+    path: docs/architecture/system/hub-and-nodes/optional-coordination.md
+    userRegionHash: sha256:06291a86dab6ce393518f00904de250a3a74e0bed9ad803a81ab305621f0b1b7
+  - byteCount: 350
+    contentHash: sha256:ee31b7503237f4028e73a5fde27ac95f7a9f5a1627fd30d6af7ced7e55b9a8b8
+    path: docs/architecture/system/hub-and-nodes/optional-coordination/capability-registry.md
+    userRegionHash: sha256:ee31b7503237f4028e73a5fde27ac95f7a9f5a1627fd30d6af7ced7e55b9a8b8
+  - byteCount: 179
+    contentHash: sha256:0da8fb158d1bd7529108bb50dac071cca7c6b2484b52cac36ccaa9e1aefec034
+    path: docs/architecture/system/hub-and-nodes/optional-coordination/coordination.md
+    userRegionHash: sha256:0da8fb158d1bd7529108bb50dac071cca7c6b2484b52cac36ccaa9e1aefec034
+profile: architecture_document
+recordId: knormdoc_85fae1c8c5484102201521ff
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:eea6781b80a3e175e63e3c89a81a9088b72159927cc46058b58360d344eafdb5
+sourcePath: docs/architecture/system/hub-and-nodes/optional-coordination.md
+sourceUnitVersionIds:
+  - uv_802b7847865d6938a04c9f02
