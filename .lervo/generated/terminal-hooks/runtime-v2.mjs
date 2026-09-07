@@ -37677,7 +37677,7 @@ var writingContractSchema = {
             required: ["checkId", "requirement", "required"],
             additionalProperties: false
           },
-          minItems: 1,
+          minItems: 0,
           uniqueItems: true
         },
         semanticEvaluationMode: { const: "separate_pass" },
@@ -40885,6 +40885,22 @@ var eventSyncAcknowledgementSchema = {
 };
 
 // packages/schemas/dist/remote-command.js
+var remoteContinuationCoordinateSchema = {
+  type: "object",
+  properties: {
+    workstreamId: { type: "string", pattern: "^wks_[a-f0-9]{24}$" },
+    revision: { type: "integer", minimum: 1 },
+    snapshotContentHash: sha256Schema,
+    assignmentId: {
+      oneOf: [{ type: "string", pattern: "^asn_[a-f0-9]{24}$" }, { type: "null" }]
+    },
+    agentId: {
+      oneOf: [{ type: "string", pattern: "^agt_[a-f0-9]{24}$" }, { type: "null" }]
+    }
+  },
+  required: ["workstreamId", "revision", "snapshotContentHash", "assignmentId", "agentId"],
+  additionalProperties: false
+};
 var remoteCommandTargetSchema = {
   type: "object",
   properties: {
@@ -40919,7 +40935,8 @@ var managedRunRemoteCommandActionSchema = {
       uniqueItems: true,
       items: verificationSuiteIdSchema
     },
-    request: remoteCommandPayloadReferenceSchema
+    request: remoteCommandPayloadReferenceSchema,
+    continuation: remoteContinuationCoordinateSchema
   },
   required: ["kind", "roleId", "provider", "risk", "verificationSuiteIds", "request"],
   additionalProperties: false
@@ -47313,6 +47330,17 @@ var eventPayloadAllowlists = {
     "routineTriggerKind",
     "routineTriggerDigest",
     "routineNodeKey",
+    "topologyContractVersion",
+    "topologyChangeId",
+    "topologyChangeKey",
+    "topologyRequestHash",
+    "topologyPlanId",
+    "topologyApprovalHash",
+    "topologyReviewerIdDigest",
+    "topologyExpectedNodeCount",
+    "topologyNodeSetHash",
+    "topologyNodeKey",
+    "initialStatus",
     "priority",
     "dependencyIds",
     "expectedPathDigest",
@@ -69161,6 +69189,18 @@ var workforceLimits = {
 // packages/agent-workforce/dist/agent-liveness.js
 var DEFAULT_ROOT_AGENT_LIVENESS_STALE_AFTER_MS = 2 * 60 * 1e3;
 
+// packages/agent-workforce/dist/assignment-topology-state.js
+var HASH7 = /^sha256:[a-f0-9]{64}$/u;
+var CHANGE_ID = /^gtc_[a-f0-9]{24}$/u;
+var PLAN_ID = /^gtp_[a-f0-9]{24}$/u;
+var KEY = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
+function validWorkforceTopologyProvenance(value) {
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    return false;
+  const item = value;
+  return item.contractVersion === 2 && CHANGE_ID.test(item.changeId) && KEY.test(item.changeKey) && item.changeKey.length <= 100 && HASH7.test(item.requestHash) && PLAN_ID.test(item.planId) && HASH7.test(item.approvalHash) && HASH7.test(item.reviewerIdDigest) && Number.isSafeInteger(item.expectedNodeCount) && item.expectedNodeCount >= 1 && item.expectedNodeCount <= 32 && HASH7.test(item.nodeSetHash) && KEY.test(item.nodeKey) && item.nodeKey.length <= 100;
+}
+
 // packages/agent-workforce/dist/store.js
 import { createHash as createHash14, randomUUID as randomUUID3 } from "node:crypto";
 
@@ -69664,7 +69704,7 @@ var AgentWorkforceError = class extends Error {
 };
 
 // packages/agent-workforce/dist/assignment-routine-state.js
-var HASH7 = /^sha256:[a-f0-9]{64}$/u;
+var HASH8 = /^sha256:[a-f0-9]{64}$/u;
 var ROUTINE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
 var VERSION3 = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
 var INVOCATION_ID = /^rin_[a-f0-9]{24}$/u;
@@ -69672,11 +69712,11 @@ function validWorkforceRoutineProvenance(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return false;
   const item = value;
-  return ROUTINE_ID.test(item.routineId) && item.routineId.length <= 100 && VERSION3.test(item.templateVersion) && HASH7.test(item.templateHash) && INVOCATION_ID.test(item.invocationId) && ["manual", "authenticated_live"].includes(item.triggerKind) && HASH7.test(item.triggerDigest) && ROUTINE_ID.test(item.nodeKey) && item.nodeKey.length <= 100;
+  return ROUTINE_ID.test(item.routineId) && item.routineId.length <= 100 && VERSION3.test(item.templateVersion) && HASH8.test(item.templateHash) && INVOCATION_ID.test(item.invocationId) && ["manual", "authenticated_live"].includes(item.triggerKind) && HASH8.test(item.triggerDigest) && ROUTINE_ID.test(item.nodeKey) && item.nodeKey.length <= 100;
 }
 
 // packages/agent-workforce/dist/store.js
-var HASH8 = /^sha256:[a-f0-9]{64}$/u;
+var HASH9 = /^sha256:[a-f0-9]{64}$/u;
 var ROLE_ID2 = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
 var ROLE_VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
 var AGENT_ID = /^agt_[a-f0-9]{24}$/u;
@@ -69716,29 +69756,29 @@ function validAgent(agent, projectId) {
   if (agent === null || typeof agent !== "object" || Array.isArray(agent))
     return false;
   const value = agent;
-  return value.schemaVersion === 1 && AGENT_ID.test(value.agentId) && value.projectId === projectId && ROLE_ID2.test(value.roleId) && value.roleId.length <= 100 && (value.roleVersion === void 0 || ROLE_VERSION.test(value.roleVersion)) && (value.roleContractHash === void 0 || HASH8.test(value.roleContractHash)) && HASH8.test(value.roleProfileHash) && HASH8.test(value.capabilityHash) && ["codex", "claude", "any"].includes(value.provider) && boundedStrings3(value.skillIds, 32) && (value.capabilityPackages === void 0 || Array.isArray(value.capabilityPackages) && value.capabilityPackages.length <= 64 && value.capabilityPackages.every((item) => item !== null && typeof item === "object" && /^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u.test(item.capabilityId) && ["skill", "mcp_server", "provider_plugin", "bundle"].includes(item.kind) && ROLE_VERSION.test(item.version) && HASH8.test(item.contentHash) && ["project", "user"].includes(item.sourceKind))) && boundedStrings3(value.responsibilityPaths, 64) && value.responsibilityPaths.every(safePath3) && (value.parentAgentId === null || AGENT_ID.test(value.parentAgentId)) && Number.isSafeInteger(value.delegationDepth) && value.delegationDepth >= 0 && value.delegationDepth <= workforceLimits.maximumDelegationDepth && ["active", "suspended", "retired"].includes(value.status) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime(value.createdAt) && validTime(value.updatedAt);
+  return value.schemaVersion === 1 && AGENT_ID.test(value.agentId) && value.projectId === projectId && ROLE_ID2.test(value.roleId) && value.roleId.length <= 100 && (value.roleVersion === void 0 || ROLE_VERSION.test(value.roleVersion)) && (value.roleContractHash === void 0 || HASH9.test(value.roleContractHash)) && HASH9.test(value.roleProfileHash) && HASH9.test(value.capabilityHash) && ["codex", "claude", "any"].includes(value.provider) && boundedStrings3(value.skillIds, 32) && (value.capabilityPackages === void 0 || Array.isArray(value.capabilityPackages) && value.capabilityPackages.length <= 64 && value.capabilityPackages.every((item) => item !== null && typeof item === "object" && /^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u.test(item.capabilityId) && ["skill", "mcp_server", "provider_plugin", "bundle"].includes(item.kind) && ROLE_VERSION.test(item.version) && HASH9.test(item.contentHash) && ["project", "user"].includes(item.sourceKind))) && boundedStrings3(value.responsibilityPaths, 64) && value.responsibilityPaths.every(safePath3) && (value.parentAgentId === null || AGENT_ID.test(value.parentAgentId)) && Number.isSafeInteger(value.delegationDepth) && value.delegationDepth >= 0 && value.delegationDepth <= workforceLimits.maximumDelegationDepth && ["active", "suspended", "retired"].includes(value.status) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime(value.createdAt) && validTime(value.updatedAt);
 }
 function validArtifact(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) && ARTIFACT_ID2.test(value.artifactId) && HASH8.test(value.contentHash);
+  return value !== null && typeof value === "object" && !Array.isArray(value) && ARTIFACT_ID2.test(value.artifactId) && HASH9.test(value.contentHash);
 }
 function validHandoffTrigger(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return false;
   const item = value;
-  return item.kind === "reviewed_direct_message" && ADAPTER_ID.test(item.adapterId) && item.adapterId.length <= 128 && ROLE_VERSION.test(item.adapterVersion) && HASH8.test(item.descriptorHash) && CONVERSATION_EVENT_ID.test(item.sourceEventId) && HASH8.test(item.sourceEventKeyHash);
+  return item.kind === "reviewed_direct_message" && ADAPTER_ID.test(item.adapterId) && item.adapterId.length <= 128 && ROLE_VERSION.test(item.adapterVersion) && HASH9.test(item.descriptorHash) && CONVERSATION_EVENT_ID.test(item.sourceEventId) && HASH9.test(item.sourceEventKeyHash);
 }
 function validHandoff(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return false;
   const item = value;
-  return HANDOFF_ID.test(item.handoffId) && AGENT_ID.test(item.fromAgentId) && AGENT_ID.test(item.toAgentId) && HASH8.test(item.requestDigest) && Array.isArray(item.artifactReferences) && item.artifactReferences.length <= 32 && item.artifactReferences.every(validArtifact) && boundedStrings3(item.contextEvidenceEventIds, 64, EVENT_ID2) && validTime(item.createdAt) && (item.acknowledgedAt === null || validTime(item.acknowledgedAt)) && (item.trigger === void 0 || item.trigger === null || validHandoffTrigger(item.trigger));
+  return HANDOFF_ID.test(item.handoffId) && AGENT_ID.test(item.fromAgentId) && AGENT_ID.test(item.toAgentId) && HASH9.test(item.requestDigest) && Array.isArray(item.artifactReferences) && item.artifactReferences.length <= 32 && item.artifactReferences.every(validArtifact) && boundedStrings3(item.contextEvidenceEventIds, 64, EVENT_ID2) && validTime(item.createdAt) && (item.acknowledgedAt === null || validTime(item.acknowledgedAt)) && (item.trigger === void 0 || item.trigger === null || validHandoffTrigger(item.trigger));
 }
 function validAssignment(value, projectId) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return false;
   const item = value;
   const lease = item.lease;
-  return item.schemaVersion === 1 && ASSIGNMENT_ID.test(item.assignmentId) && item.projectId === projectId && /^[a-z][a-z0-9._-]{1,99}$/u.test(item.taskType) && ROLE_ID2.test(item.roleId) && item.roleId.length <= 100 && (item.roleVersion === void 0 || ROLE_VERSION.test(item.roleVersion)) && (item.roleContractHash === void 0 || HASH8.test(item.roleContractHash)) && (item.requiredCapabilityHash === void 0 || item.requiredCapabilityHash === null || HASH8.test(item.requiredCapabilityHash)) && (item.routine === void 0 || item.routine === null || validWorkforceRoutineProvenance(item.routine)) && ["queued", "leased", "blocked", "completed", "failed", "cancelled"].includes(item.status) && Number.isSafeInteger(item.priority) && item.priority >= 0 && item.priority <= 100 && boundedStrings3(item.dependencyIds, 64, ASSIGNMENT_ID) && !item.dependencyIds.includes(item.assignmentId) && boundedStrings3(item.acceptanceCriteria, 32) && boundedStrings3(item.verificationSuiteIds, 32) && boundedStrings3(item.approvalRequirements, 32) && boundedStrings3(item.expectedPaths, 128) && item.expectedPaths.every(safePath3) && (item.workstreamId === null || WORKSTREAM_ID.test(item.workstreamId)) && (item.assigneeAgentId === null || AGENT_ID.test(item.assigneeAgentId)) && (lease === null || /^lse_[a-f0-9]{24}$/u.test(lease.leaseId) && AGENT_ID.test(lease.agentId) && SESSION_ID.test(lease.sessionId) && Number.isSafeInteger(lease.generation) && lease.generation >= 1 && validTime(lease.acquiredAt) && validTime(lease.expiresAt)) && Array.isArray(item.handoffs) && item.handoffs.length <= 256 && item.handoffs.every(validHandoff) && Array.isArray(item.resultArtifacts) && item.resultArtifacts.length <= 64 && item.resultArtifacts.every(validArtifact) && (item.failureCode === null || /^[a-z][a-z0-9_]{1,99}$/u.test(item.failureCode)) && Number.isSafeInteger(item.revision) && item.revision >= 1 && validTime(item.createdAt) && validTime(item.updatedAt);
+  return item.schemaVersion === 1 && ASSIGNMENT_ID.test(item.assignmentId) && item.projectId === projectId && /^[a-z][a-z0-9._-]{1,99}$/u.test(item.taskType) && ROLE_ID2.test(item.roleId) && item.roleId.length <= 100 && (item.roleVersion === void 0 || ROLE_VERSION.test(item.roleVersion)) && (item.roleContractHash === void 0 || HASH9.test(item.roleContractHash)) && (item.requiredCapabilityHash === void 0 || item.requiredCapabilityHash === null || HASH9.test(item.requiredCapabilityHash)) && (item.routine === void 0 || item.routine === null || validWorkforceRoutineProvenance(item.routine)) && (item.topology === void 0 || item.topology === null || validWorkforceTopologyProvenance(item.topology)) && ["queued", "leased", "blocked", "completed", "failed", "cancelled"].includes(item.status) && Number.isSafeInteger(item.priority) && item.priority >= 0 && item.priority <= 100 && boundedStrings3(item.dependencyIds, 64, ASSIGNMENT_ID) && !item.dependencyIds.includes(item.assignmentId) && boundedStrings3(item.acceptanceCriteria, 32) && boundedStrings3(item.verificationSuiteIds, 32) && boundedStrings3(item.approvalRequirements, 32) && boundedStrings3(item.expectedPaths, 128) && item.expectedPaths.every(safePath3) && (item.workstreamId === null || WORKSTREAM_ID.test(item.workstreamId)) && (item.assigneeAgentId === null || AGENT_ID.test(item.assigneeAgentId)) && (lease === null || /^lse_[a-f0-9]{24}$/u.test(lease.leaseId) && AGENT_ID.test(lease.agentId) && SESSION_ID.test(lease.sessionId) && Number.isSafeInteger(lease.generation) && lease.generation >= 1 && validTime(lease.acquiredAt) && validTime(lease.expiresAt)) && Array.isArray(item.handoffs) && item.handoffs.length <= 256 && item.handoffs.every(validHandoff) && Array.isArray(item.resultArtifacts) && item.resultArtifacts.length <= 64 && item.resultArtifacts.every(validArtifact) && (item.failureCode === null || /^[a-z][a-z0-9_]{1,99}$/u.test(item.failureCode)) && Number.isSafeInteger(item.revision) && item.revision >= 1 && validTime(item.createdAt) && validTime(item.updatedAt);
 }
 async function state(root2) {
   const manifest = await loadProjectManifest(root2);
@@ -69898,7 +69938,7 @@ async function assertAssignmentExecutionAuthority(input) {
 
 // packages/agent-workforce/dist/workspace-lifecycle.js
 import { isAbsolute as isAbsolute3 } from "node:path";
-var HASH9 = /^sha256:[a-f0-9]{64}$/u;
+var HASH10 = /^sha256:[a-f0-9]{64}$/u;
 var COMMIT = /^[a-f0-9]{40,64}$/u;
 var WORKSPACE_ID = /^wsp_[a-f0-9]{24}$/u;
 var REPOSITORY_INSTANCE_ID2 = /^rpi_[a-f0-9]{24}$/u;
@@ -69930,10 +69970,10 @@ function validSession(value) {
   return value === null || /^ses_[A-Za-z0-9_-]{8,128}$/u.test(value.sessionId) && validTime2(value.startedAt) && (value.lastSeenAt === void 0 || validTime2(value.lastSeenAt) && Date.parse(value.lastSeenAt) >= Date.parse(value.startedAt));
 }
 function validSeal(value) {
-  return value !== null && COMMIT.test(value.baseCommit) && COMMIT.test(value.headCommit) && COMMIT.test(value.treeHash) && HASH9.test(value.changedPathSetDigest) && Number.isSafeInteger(value.changedPathCount) && value.changedPathCount >= 0 && value.changedPaths.length === value.changedPathCount && value.changedPaths.length <= 1e4 && value.changedPaths.every((path) => SAFE_PATH.test(path)) && new Set(value.changedPaths).size === value.changedPaths.length && value.commitIds.length <= 1e4 && value.commitIds.every((commitId) => COMMIT.test(commitId)) && ARTIFACT_ID3.test(value.resultArtifactId) && HASH9.test(value.resultArtifactHash) && value.verificationResults.length <= 64 && value.verificationResults.every((result) => /^[a-z][a-z0-9._-]{1,99}$/u.test(result.suiteId) && HASH9.test(result.policyHash) && ARTIFACT_ID3.test(result.resultArtifactId) && HASH9.test(result.resultArtifactHash) && validTime2(result.completedAt) && result.passed) && !value.approvalPending && !value.recoveryPending && (value.sourceWorkstream === null || /^wks_[a-f0-9]{24}$/u.test(value.sourceWorkstream.workstreamId) && Number.isSafeInteger(value.sourceWorkstream.revision) && value.sourceWorkstream.revision >= 1 && HASH9.test(value.sourceWorkstream.snapshotHash)) && validTime2(value.sealedAt) && (value.noChange ? value.changedPathCount === 0 && value.commitIds.length === 0 && value.headCommit === value.baseCommit : value.changedPathCount > 0 && value.commitIds.length > 0);
+  return value !== null && COMMIT.test(value.baseCommit) && COMMIT.test(value.headCommit) && COMMIT.test(value.treeHash) && HASH10.test(value.changedPathSetDigest) && Number.isSafeInteger(value.changedPathCount) && value.changedPathCount >= 0 && value.changedPaths.length === value.changedPathCount && value.changedPaths.length <= 1e4 && value.changedPaths.every((path) => SAFE_PATH.test(path)) && new Set(value.changedPaths).size === value.changedPaths.length && value.commitIds.length <= 1e4 && value.commitIds.every((commitId) => COMMIT.test(commitId)) && ARTIFACT_ID3.test(value.resultArtifactId) && HASH10.test(value.resultArtifactHash) && value.verificationResults.length <= 64 && value.verificationResults.every((result) => /^[a-z][a-z0-9._-]{1,99}$/u.test(result.suiteId) && HASH10.test(result.policyHash) && ARTIFACT_ID3.test(result.resultArtifactId) && HASH10.test(result.resultArtifactHash) && validTime2(result.completedAt) && result.passed) && !value.approvalPending && !value.recoveryPending && (value.sourceWorkstream === null || /^wks_[a-f0-9]{24}$/u.test(value.sourceWorkstream.workstreamId) && Number.isSafeInteger(value.sourceWorkstream.revision) && value.sourceWorkstream.revision >= 1 && HASH10.test(value.sourceWorkstream.snapshotHash)) && validTime2(value.sealedAt) && (value.noChange ? value.changedPathCount === 0 && value.commitIds.length === 0 && value.headCommit === value.baseCommit : value.changedPathCount > 0 && value.commitIds.length > 0);
 }
 function isAgentWorkspace(value) {
-  return value.schemaVersion === 1 && WORKSPACE_ID.test(value.workspaceId) && REPOSITORY_INSTANCE_ID2.test(value.repositoryInstanceId) && Number.isSafeInteger(value.generation) && value.generation >= 1 && Number.isSafeInteger(value.leaseGeneration) && value.leaseGeneration >= 1 && ["worker", "integrator"].includes(value.executionKind) && ["git", "orca"].includes(value.host.kind) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(value.host.version) && (value.host.nativeInstanceDigest === null || HASH9.test(value.host.nativeInstanceDigest)) && COMMIT.test(value.baseCommit) && HASH9.test(value.integrationTargetDigest) && /^wpl_[a-f0-9]{24}$/u.test(value.creationPlanId) && HASH9.test(value.markerHash) && HASH9.test(value.pathDigest) && (value.ownerWorkspacePath === void 0 || value.ownerWorkspacePath.length <= 4096 && !value.ownerWorkspacePath.includes("\0") && isAbsolute3(value.ownerWorkspacePath)) && validSession(value.writerSession) && Object.hasOwn(transitions, value.state) && (value.sealedResult === null || validSeal(value.sealedResult)) && (value.integrationQueueEntryId === null || /^inq_[a-f0-9]{24}$/u.test(value.integrationQueueEntryId)) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime2(value.createdAt) && validTime2(value.updatedAt);
+  return value.schemaVersion === 1 && WORKSPACE_ID.test(value.workspaceId) && REPOSITORY_INSTANCE_ID2.test(value.repositoryInstanceId) && Number.isSafeInteger(value.generation) && value.generation >= 1 && Number.isSafeInteger(value.leaseGeneration) && value.leaseGeneration >= 1 && ["worker", "integrator"].includes(value.executionKind) && ["git", "orca"].includes(value.host.kind) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(value.host.version) && (value.host.nativeInstanceDigest === null || HASH10.test(value.host.nativeInstanceDigest)) && COMMIT.test(value.baseCommit) && HASH10.test(value.integrationTargetDigest) && /^wpl_[a-f0-9]{24}$/u.test(value.creationPlanId) && HASH10.test(value.markerHash) && HASH10.test(value.pathDigest) && (value.ownerWorkspacePath === void 0 || value.ownerWorkspacePath.length <= 4096 && !value.ownerWorkspacePath.includes("\0") && isAbsolute3(value.ownerWorkspacePath)) && validSession(value.writerSession) && Object.hasOwn(transitions, value.state) && (value.sealedResult === null || validSeal(value.sealedResult)) && (value.integrationQueueEntryId === null || /^inq_[a-f0-9]{24}$/u.test(value.integrationQueueEntryId)) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime2(value.createdAt) && validTime2(value.updatedAt);
 }
 function requireEvidence(evidence, fields) {
   const missing = fields.filter((field2) => evidence[field2] !== true);
@@ -70286,6 +70326,88 @@ async function readRepositoryFile(root2, path, maximumBytes2 = Number.MAX_SAFE_I
     await handle?.close();
   }
 }
+
+// packages/core/dist/writing-contract.js
+var defaultEnglishWritingContract = {
+  schemaVersion: 1,
+  writingPolicyId: "writing_en-human",
+  locale: "en",
+  surfaces: [
+    "readme",
+    "pull_request",
+    "issue",
+    "review_comment",
+    "status",
+    "chat",
+    "documentation"
+  ],
+  audience: "mixed",
+  informationOrder: {
+    lead: "purpose_or_conclusion",
+    then: ["reason", "change_or_result", "scope_and_impact", "next_action", "evidence"]
+  },
+  prose: {
+    register: "plain_spec",
+    completeSentences: true,
+    cohesiveParagraphs: true,
+    oneMainFactPerSentence: true,
+    avoidTranslationeseAndFragments: true
+  },
+  terminology: {
+    preserveMachineIdentifiers: true,
+    explainInternalTermsAtFirstUse: true,
+    preferConcreteVerbs: true,
+    forbiddenVagueTerms: ["quick win", "magic", "simply", "obviously"]
+  },
+  actions: {
+    abstractActors: "forbid",
+    stateObjectAndActionDirectly: true,
+    stateWhenNoActionIsNeeded: true
+  },
+  evidence: {
+    majorClaimsRequireEvidence: true,
+    distinguishRunFromNotRun: true,
+    keepRawLogsOutOfPrimaryProse: true
+  },
+  verification: {
+    deterministicChecks: [
+      "forbid_em_dash",
+      "forbid_abstract_action_subject",
+      "no_empty_sections",
+      "forbid_vague_terms"
+    ],
+    semanticChecks: [
+      {
+        checkId: "natural_en_prose",
+        requirement: "Write natural English prose in complete sentences, with each paragraph forming a coherent line of thought instead of a list of fragments.",
+        required: true
+      },
+      {
+        checkId: "plain_audience_language",
+        requirement: "Judge clarity for the supplied audience and prose register. A technical specification may use standard software terms, but it must explain repository-specific terms, uncommon abbreviations, and machine identifiers at first use or in a Terms section.",
+        required: true
+      },
+      {
+        checkId: "direct_result_and_action",
+        requirement: "State the result, impact, and next action concretely without assigning responsibility to an unspecified user, person, or owner.",
+        required: true
+      }
+    ],
+    semanticEvaluationMode: "separate_pass",
+    requiresPassedEvaluation: true,
+    failureDisposition: "block_publication"
+  }
+};
+var fixedEnglishStatusWritingContract = {
+  ...defaultEnglishWritingContract,
+  writingPolicyId: "writing_en-fixed-status",
+  surfaces: ["status", "chat"],
+  verification: {
+    ...defaultEnglishWritingContract.verification,
+    semanticChecks: [],
+    semanticEvaluationMode: "separate_pass"
+  }
+};
 
 // packages/search/dist/integrity.js
 import { createHash as createHash15 } from "node:crypto";
@@ -71415,7 +71537,7 @@ var KNOWLEDGE_PROJECTION_COORDINATE_PATHS = [
   ".lervo/state/knowledge/current/source-units.json",
   ".lervo/state/knowledge/current/structural/manifests/current.json"
 ];
-var HASH10 = /^sha256:[a-f0-9]{64}$/u;
+var HASH11 = /^sha256:[a-f0-9]{64}$/u;
 function supplementalSourcesDigest(sources) {
   return sha2562(
     canonicalJson3(
@@ -71463,7 +71585,7 @@ function validIssue(value) {
 }
 function validateCache(value) {
   const cache = value;
-  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 2 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH10.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH10.test(cache.supplementalSourcesDigest) || typeof cache.knowledgeProjectionDigest !== "string" || !HASH10.test(cache.knowledgeProjectionDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue)) {
+  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 2 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH11.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH11.test(cache.supplementalSourcesDigest) || typeof cache.knowledgeProjectionDigest !== "string" || !HASH11.test(cache.knowledgeProjectionDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue)) {
     return null;
   }
   return cache;
@@ -71486,7 +71608,7 @@ async function readTerminalKnowledgeLifecycleCache(input) {
   }
 }
 async function writeTerminalKnowledgeLifecycleCache(input) {
-  if (!HASH10.test(input.repositoryRevision) || input.issues.length > 128 || !input.issues.every(validIssue)) {
+  if (!HASH11.test(input.repositoryRevision) || input.issues.length > 128 || !input.issues.every(validIssue)) {
     throw new Error("The terminal knowledge lifecycle cache input is invalid.");
   }
   const coordinates = await cacheCoordinates(input);
@@ -72605,7 +72727,7 @@ import { dirname as dirname13, isAbsolute as isAbsolute5, resolve as resolve54 }
 import { promisify as promisify3 } from "node:util";
 var execute2 = promisify3(execFile3);
 var COMMIT2 = /^[a-f0-9]{40,64}$/u;
-var HASH11 = /^sha256:[a-f0-9]{64}$/u;
+var HASH12 = /^sha256:[a-f0-9]{64}$/u;
 var MARKER_NAME = "lervo-workspace-owner.json";
 function fail16(code, message, cause) {
   throw new WorkspaceHostError(code, message, cause === void 0 ? void 0 : { cause });
@@ -72688,7 +72810,7 @@ var GitWorkspaceEvidence = class {
     this.binding = binding;
   }
   validMarker(marker) {
-    return marker.schemaVersion === 1 && /^wsp_[a-f0-9]{24}$/u.test(marker.workspaceId) && Number.isSafeInteger(marker.generation) && marker.generation >= 1 && /^rpi_[a-f0-9]{24}$/u.test(marker.repositoryInstanceId) && marker.adapterKind === this.binding.kind && marker.adapterVersion === this.binding.version && /^wpl_[a-f0-9]{24}$/u.test(marker.creationPlanId) && HASH11.test(marker.pathDigest);
+    return marker.schemaVersion === 1 && /^wsp_[a-f0-9]{24}$/u.test(marker.workspaceId) && Number.isSafeInteger(marker.generation) && marker.generation >= 1 && /^rpi_[a-f0-9]{24}$/u.test(marker.repositoryInstanceId) && marker.adapterKind === this.binding.kind && marker.adapterVersion === this.binding.version && /^wpl_[a-f0-9]{24}$/u.test(marker.creationPlanId) && HASH12.test(marker.pathDigest);
   }
   validateRequest(repositoryRoot, workspacePath, marker, allowSamePath = false) {
     if (!isAbsolute5(repositoryRoot) || !isAbsolute5(workspacePath) || resolve54(repositoryRoot) !== repositoryRoot || resolve54(workspacePath) !== workspacePath || !allowSamePath && repositoryRoot === workspacePath || !this.validMarker(marker))
