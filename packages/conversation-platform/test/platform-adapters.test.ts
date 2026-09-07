@@ -323,6 +323,8 @@ describe("authenticated platform conversation adapters", () => {
       messageId: "423456789012345678",
       deliveredAt: "2026-08-20T00:00:03.000Z",
     }));
+    const stopTyping = vi.fn();
+    const startTyping = vi.fn(() => ({ stop: stopTyping }));
     const adapter = new DiscordConversationAdapter({
       integrationId: "itg_discord01",
       applicationId: "999999999999999999",
@@ -332,6 +334,7 @@ describe("authenticated platform conversation adapters", () => {
       identity: identity.port,
       artifactStore,
       delivery: { send },
+      typing: { start: startTyping },
       now: () => now,
     });
     const rawText = "Tell me the next step for this change.";
@@ -366,6 +369,11 @@ describe("authenticated platform conversation adapters", () => {
     });
     expect(accepted.status).toBe("accepted");
     if (accepted.status !== "accepted") throw new Error("Discord fixture must be accepted");
+    const typingLease = accepted.responseActivity?.start();
+    expect(startTyping).toHaveBeenCalledWith({ channelId: "223456789012345678" });
+    typingLease?.stop();
+    expect(stopTyping).toHaveBeenCalledOnce();
+    expect(adapter.descriptor.capabilities).toContain("typing");
     const replay = await adapter.receiveGatewayDispatch({
       sessionHandle: "authenticated-session",
       body,

@@ -129,6 +129,18 @@ describe("authenticated Discord Gateway driver", () => {
     await expect(
       setup.driver.verifyDispatch({
         sessionHandle: setup.dispatches[0]!.sessionHandle,
+        applicationId: "999999999999999999",
+        sequence: 2,
+        eventName: "MESSAGE_CREATE",
+        verifiedAt: "2026-09-07T09:00:00.000Z",
+      }),
+    ).resolves.toEqual({
+      authenticated: false,
+      reasonCode: "gateway_dispatch_unverified",
+    });
+    await expect(
+      setup.driver.verifyDispatch({
+        sessionHandle: setup.dispatches[0]!.sessionHandle,
         applicationId: "000000000000000000",
         sequence: 2,
         eventName: "MESSAGE_CREATE",
@@ -238,6 +250,73 @@ describe("authenticated Discord Gateway driver", () => {
       op: 6,
       d: { token: `discord.${"t".repeat(40)}`, session_id: "gateway-session", seq: 12 },
     });
+  });
+
+  it("keeps heartbeat control responsive while ordered application dispatch is still running", async () => {
+    const transport = new FixtureTransport();
+    const schedule = new FixtureSchedule();
+    let releaseFirst!: () => void;
+    const firstPending = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const dispatches: Array<{ sessionHandle: string; body: Uint8Array }> = [];
+    const verified: Array<{ authenticated: boolean }> = [];
+    const driver = new AuthenticatedDiscordGatewayDriver({
+      applicationId: "999999999999999999",
+      botToken: `discord.${"t".repeat(40)}`,
+      intents: 37_377,
+      transport,
+      schedule,
+      reconnectDelayMs: 100,
+      heartbeatJitter: () => 0.25,
+      createSessionHandle: () => `discord_session_${transport.connections.length + 1}`,
+      async onDispatch(dispatch) {
+        dispatches.push(dispatch);
+        if (dispatches.length === 1) await firstPending;
+        const payload = JSON.parse(Buffer.from(dispatch.body).toString("utf8")) as {
+          s: number;
+          t: string;
+        };
+        verified.push(
+          await driver.verifyDispatch({
+            sessionHandle: dispatch.sessionHandle,
+            applicationId: "999999999999999999",
+            sequence: payload.s,
+            eventName: payload.t,
+            verifiedAt: "2026-09-07T09:00:00.000Z",
+          }),
+        );
+      },
+    });
+    driver.start();
+    const connection = transport.connections[0]!;
+    emit(connection.observer, { op: 10, d: { heartbeat_interval: 45_000 } });
+    emit(connection.observer, {
+      op: 0,
+      s: 1,
+      t: "READY",
+      d: { session_id: "gateway-session", resume_gateway_url: "wss://gateway.discord.gg" },
+    });
+    emit(connection.observer, { op: 0, s: 2, t: "MESSAGE_CREATE", d: { id: "message-1" } });
+    await settled();
+    expect(dispatches).toHaveLength(1);
+
+    schedule.runNext();
+    expect(JSON.parse(connection.sent.at(-1)!)).toEqual({ op: 1, d: 2 });
+    emit(connection.observer, { op: 11, d: null });
+    emit(connection.observer, { op: 0, s: 3, t: "MESSAGE_CREATE", d: { id: "message-2" } });
+    await settled();
+    schedule.runNext();
+
+    expect(connection.close).not.toHaveBeenCalled();
+    expect(JSON.parse(connection.sent.at(-1)!)).toEqual({ op: 1, d: 3 });
+    expect(dispatches).toHaveLength(1);
+    releaseFirst();
+    await settled();
+    await settled();
+    expect(dispatches).toHaveLength(2);
+    expect(verified).toEqual([{ authenticated: true }, { authenticated: true }]);
+    driver.stop();
   });
 
   it("stops reconnecting after a terminal authentication close", () => {

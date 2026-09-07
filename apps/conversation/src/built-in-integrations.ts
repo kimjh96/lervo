@@ -1,4 +1,8 @@
-import { DiscordConversationAdapter, DiscordRestDelivery } from "@lervo/adapter-discord";
+import {
+  DiscordConversationAdapter,
+  DiscordRestDelivery,
+  DiscordRestTyping,
+} from "@lervo/adapter-discord";
 import { SlackConversationAdapter, SlackWebApiDelivery } from "@lervo/adapter-slack";
 
 import type {
@@ -74,6 +78,13 @@ function discordIntegration(
               maxResponseBytes: deployment.maxResponseBytes,
             }),
       });
+      const typing = new DiscordRestTyping({
+        botToken: deployment.botToken,
+        ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
+        ...(deployment.requestTimeoutMs === undefined
+          ? {}
+          : { requestTimeoutMs: deployment.requestTimeoutMs }),
+      });
       return new DiscordConversationAdapter({
         integrationId: deployment.integrationId,
         applicationId: deployment.applicationId,
@@ -83,6 +94,7 @@ function discordIntegration(
         identity: context.identity,
         artifactStore: context.artifactStore,
         delivery,
+        typing,
         ...(context.now === undefined ? {} : { now: context.now }),
       });
     },

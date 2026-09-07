@@ -6,6 +6,7 @@ import {
   type ConversationDeliveryCycleResult,
   type HandleConversationEventResult,
 } from "@lervo/interaction";
+import type { ConversationResponseActivity } from "@lervo/interaction";
 import { SQLiteConversationInteractionStore } from "@lervo/interaction-sqlite";
 import type { ConversationInboundEvent } from "@lervo/schemas";
 
@@ -53,7 +54,10 @@ export class ConversationInteractionRuntime {
     return new ConversationInteractionRuntime(input.deployment, store);
   }
 
-  async handle(event: ConversationInboundEvent): Promise<ConversationInteractionResult[]> {
+  async handle(
+    event: ConversationInboundEvent,
+    responseActivity?: ConversationResponseActivity,
+  ): Promise<ConversationInteractionResult[]> {
     const bindings = this.deployment.bindings.filter(
       (binding) =>
         binding.policy.projectId === event.target.projectId &&
@@ -79,6 +83,7 @@ export class ConversationInteractionRuntime {
         ...(this.deployment.retryDelayMs === undefined
           ? {}
           : { retryDelayMs: this.deployment.retryDelayMs }),
+        ...(responseActivity === undefined ? {} : { responseActivity }),
       });
       results.push({
         policyId: binding.policy.policyId,

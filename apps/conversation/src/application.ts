@@ -71,7 +71,10 @@ export async function openConversationApplication(
       }
       const ingress = await adapter.receiveGatewayDispatch(dispatch);
       if (ingress.status === "ignored") return;
-      await interactions.handle(ingress.event);
+      await interactions.handle(
+        ingress.event,
+        ingress.responseActivity === null ? undefined : ingress.responseActivity,
+      );
       await interactions.runDeliveryCycle(adapter);
     },
   );

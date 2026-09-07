@@ -126,6 +126,7 @@ export class ConversationPlatformError extends Error {
       | "invalid_platform_configuration"
       | "invalid_platform_payload"
       | "platform_authentication_failed"
+      | "platform_activity_failed"
       | "platform_delivery_failed"
       | "unsupported_platform_event",
     message: string,

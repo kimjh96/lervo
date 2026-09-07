@@ -21,6 +21,8 @@ The read-only execution role allows repository reads and denies filesystem write
 
 Participant bindings distinguish mapped humans from mapped agents. Agent participation is disabled by default and requires `agent` in `policy.respondTo`. A hired agent instance becomes the actor and binds its exact role; the role template never becomes an actor. This keeps identity, responsibility, replacement, and retirement valid when several agents share one role. Future `@agent`, `@role`, and deliberation-group routing can resolve eligible participants without changing the normalized event or natural-language intent port. Deliberation identity, turn ownership, automation depth, hourly limits, self-message suppression, and explicit effect authority must prevent uncontrolled agent loops. Write-capable remote continuation remains human-only.
 
+The platform begins a transient typing activity only after participation chooses `respond`; it does not run for observed, duplicate, busy, or throttled input. Typing refresh and failure remain outside semantic intent, provider execution, publication evidence, and durable delivery. Gateway heartbeat and resume processing likewise remain outside the ordered provider-work queue so a slow answer cannot make the next message disappear.
+
 Raw message text remains in the existing bounded CAS path. Intent input and bounded prior turns are not copied into health, policy, result-correlation, or repository documentation. Conversation context is reconstructed from the existing durable interaction records and content hashes, so a Node restart does not erase the local conversation. Multi-host history replication remains a separate evidence-bound projection.
 
 ## Consequences

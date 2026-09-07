@@ -147,6 +147,8 @@ describe("durable native chat interaction", () => {
     const verify = vi.fn(async ({ candidate }) => {
       expect(candidate.publicationPermit.surface).toBe("chat");
     });
+    const stopActivity = vi.fn();
+    const startActivity = vi.fn(() => ({ stop: stopActivity }));
 
     const first = await SQLiteConversationInteractionStore.open({ path });
     await expect(
@@ -159,6 +161,7 @@ describe("durable native chat interaction", () => {
         responder: { respond: responder },
         publicationVerifier: { verify },
         relevanceEvaluator: { evaluate: relevance },
+        responseActivity: { start: startActivity },
         clock: () => new Date("2026-08-20T00:00:02.000Z"),
       }),
     ).resolves.toMatchObject({
@@ -191,6 +194,8 @@ describe("durable native chat interaction", () => {
     expect(relevance).toHaveBeenCalledTimes(1);
     expect(responder).toHaveBeenCalledTimes(1);
     expect(verify).toHaveBeenCalledTimes(1);
+    expect(startActivity).toHaveBeenCalledTimes(1);
+    expect(stopActivity).toHaveBeenCalledTimes(1);
 
     await expect(
       runConversationDeliveryCycle({

@@ -109,12 +109,16 @@ describe("installed Node Discord conversation runtime", () => {
       agentId: null,
       queuedAt: "2026-09-07T08:00:00.000Z",
     }));
-    const delivery = vi.fn(
-      async () =>
+    const messageDelivery = vi.fn(
+      async (_url: string | URL | Request, _init?: RequestInit) =>
         new Response(JSON.stringify({ id: "423456789012345678", channel_id: channelId }), {
           status: 200,
           headers: { "content-type": "application/json" },
         }),
+    );
+    const typingDelivery = vi.fn(async () => new Response(null, { status: 204 }));
+    const delivery = vi.fn(async (url: string | URL | Request, init?: RequestInit) =>
+      String(url).endsWith("/typing") ? typingDelivery() : messageDelivery(url, init),
     );
     const gateway = new GatewayTransport();
     const gatewayErrors: Error[] = [];
@@ -185,7 +189,9 @@ describe("installed Node Discord conversation runtime", () => {
       },
     });
     try {
-      await settled(() => request.mock.calls.length === 1 && delivery.mock.calls.length === 1);
+      await settled(
+        () => request.mock.calls.length === 1 && messageDelivery.mock.calls.length === 1,
+      );
     } catch {
       throw new Error(
         `Discord first intent=${intentResolver.mock.calls.length} response=${readOnlyResponse.mock.calls.length} request=${request.mock.calls.length} delivery=${delivery.mock.calls.length} errors=${gatewayErrors
@@ -215,7 +221,7 @@ describe("installed Node Discord conversation runtime", () => {
         () =>
           request.mock.calls.length === 1 &&
           readOnlyResponse.mock.calls.length === 1 &&
-          delivery.mock.calls.length === 2,
+          messageDelivery.mock.calls.length === 2,
       );
     } catch {
       const health = await readFile(
@@ -233,7 +239,8 @@ describe("installed Node Discord conversation runtime", () => {
     }
     expect(request).toHaveBeenCalledOnce();
     expect(readOnlyResponse).toHaveBeenCalledOnce();
-    expect(delivery).toHaveBeenCalledTimes(2);
+    expect(messageDelivery).toHaveBeenCalledTimes(2);
+    expect(typingDelivery).toHaveBeenCalledTimes(2);
     expect(intentResolver.mock.calls[0]![0]).toMatchObject({ mentioned: false, priorTurns: [] });
     expect(intentResolver.mock.calls[1]![0].priorTurns).toHaveLength(2);
     expect(JSON.parse(gateway.sent[0]!)).toMatchObject({ op: 2, d: { intents: 37_377 } });

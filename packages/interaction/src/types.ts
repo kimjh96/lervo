@@ -120,6 +120,10 @@ export interface ConversationResponder {
   }): Promise<ConversationReplyCandidate>;
 }
 
+export interface ConversationResponseActivity {
+  start(): { stop(): void };
+}
+
 export interface ConversationPublicationVerifier {
   verify(input: {
     candidate: ConversationReplyCandidate;

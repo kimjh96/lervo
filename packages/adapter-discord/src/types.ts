@@ -50,6 +50,18 @@ export interface DiscordDeliveryPort {
   send(input: DiscordDeliveryRequest): Promise<DiscordDeliveryResult>;
 }
 
+export interface DiscordTypingLease {
+  stop(): void;
+}
+
+export interface DiscordTypingPort {
+  start(input: { channelId: string }): DiscordTypingLease;
+}
+
+export interface DiscordResponseActivity {
+  start(): DiscordTypingLease;
+}
+
 export interface DiscordConversationAdapterOptions {
   integrationId: string;
   applicationId: string;
@@ -59,13 +71,19 @@ export interface DiscordConversationAdapterOptions {
   identity: ConversationPlatformIdentityPort;
   artifactStore: ArtifactStore;
   delivery: DiscordDeliveryPort;
+  typing?: DiscordTypingPort;
   capabilities?: readonly ConversationAdapterCapability[];
   now?: () => Date;
   maximumGatewayPayloadBytes?: number;
 }
 
 export type DiscordIngressResult =
-  { status: "accepted"; event: ConversationInboundEvent } | { status: "ignored"; reason: string };
+  | {
+      status: "accepted";
+      event: ConversationInboundEvent;
+      responseActivity: DiscordResponseActivity | null;
+    }
+  | { status: "ignored"; reason: string };
 
 export interface DiscordConversationAdapterPort {
   receiveGatewayDispatch(input: DiscordGatewayDispatch): Promise<DiscordIngressResult>;

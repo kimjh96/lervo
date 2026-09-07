@@ -10,6 +10,7 @@ import {
 import type {
   ConversationInteractionStore,
   ConversationPublicationVerifier,
+  ConversationResponseActivity,
   ConversationRelevanceEvaluator,
   ConversationResponder,
   HandleConversationEventResult,
@@ -39,6 +40,7 @@ export async function handleConversationEvent(input: {
   clock?: () => Date;
   leaseDurationMs?: number;
   retryDelayMs?: number;
+  responseActivity?: ConversationResponseActivity;
 }): Promise<HandleConversationEventResult> {
   const clock = input.clock ?? (() => new Date());
   const claimedAt = timestamp(clock);
@@ -130,60 +132,74 @@ export async function handleConversationEvent(input: {
   });
   let outbound = null;
   if (decision.action === "respond") {
-    let candidate;
+    let activity: ReturnType<ConversationResponseActivity["start"]> | null = null;
     try {
-      candidate = await input.responder.respond({
-        event: input.event,
-        policy: input.policy,
-        decision,
-      });
-    } catch {
-      const nextAttemptAt = later(claimedAt, retryDelayMs);
-      await input.store.rescheduleInbound({
-        eventId: input.event.eventId,
-        policyId: input.policy.policyId,
-        roleId: input.policy.roleId,
-        leaseId: claim.leaseId,
-        failedAt: claimedAt,
-        availableAt: nextAttemptAt,
-        failureCode: "response_generation_failed",
-      });
-      return {
-        status: "retry_scheduled",
-        failureCode: "response_generation_failed",
-        nextAttemptAt,
-      };
-    }
-    try {
-      await input.publicationVerifier.verify({
-        candidate,
-        event: input.event,
-        policy: input.policy,
-      });
-      outbound = createConversationOutboundMessage({
-        event: input.event,
-        policy: input.policy,
-        participantId: input.agentParticipantId,
-        content: candidate.content,
-        publicationPermit: candidate.publicationPermit,
-        createdAt: timestamp(clock),
-      });
-    } catch {
-      const nextAttemptAt = later(claimedAt, retryDelayMs);
-      await input.store.rescheduleInbound({
-        eventId: input.event.eventId,
-        policyId: input.policy.policyId,
-        roleId: input.policy.roleId,
-        leaseId: claim.leaseId,
-        failedAt: claimedAt,
-        availableAt: nextAttemptAt,
-        failureCode: "publication_verification_failed",
-      });
-      return {
-        status: "retry_scheduled",
-        failureCode: "publication_verification_failed",
-        nextAttemptAt,
-      };
+      try {
+        activity = input.responseActivity?.start() ?? null;
+      } catch {
+        activity = null;
+      }
+      let candidate;
+      try {
+        candidate = await input.responder.respond({
+          event: input.event,
+          policy: input.policy,
+          decision,
+        });
+      } catch {
+        const nextAttemptAt = later(claimedAt, retryDelayMs);
+        await input.store.rescheduleInbound({
+          eventId: input.event.eventId,
+          policyId: input.policy.policyId,
+          roleId: input.policy.roleId,
+          leaseId: claim.leaseId,
+          failedAt: claimedAt,
+          availableAt: nextAttemptAt,
+          failureCode: "response_generation_failed",
+        });
+        return {
+          status: "retry_scheduled",
+          failureCode: "response_generation_failed",
+          nextAttemptAt,
+        };
+      }
+      try {
+        await input.publicationVerifier.verify({
+          candidate,
+          event: input.event,
+          policy: input.policy,
+        });
+        outbound = createConversationOutboundMessage({
+          event: input.event,
+          policy: input.policy,
+          participantId: input.agentParticipantId,
+          content: candidate.content,
+          publicationPermit: candidate.publicationPermit,
+          createdAt: timestamp(clock),
+        });
+      } catch {
+        const nextAttemptAt = later(claimedAt, retryDelayMs);
+        await input.store.rescheduleInbound({
+          eventId: input.event.eventId,
+          policyId: input.policy.policyId,
+          roleId: input.policy.roleId,
+          leaseId: claim.leaseId,
+          failedAt: claimedAt,
+          availableAt: nextAttemptAt,
+          failureCode: "publication_verification_failed",
+        });
+        return {
+          status: "retry_scheduled",
+          failureCode: "publication_verification_failed",
+          nextAttemptAt,
+        };
+      }
+    } finally {
+      try {
+        activity?.stop();
+      } catch {
+        // Transient activity is best-effort and cannot change the response outcome.
+      }
     }
   }
   try {

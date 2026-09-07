@@ -1,4 +1,4 @@
-import { DiscordRestDelivery } from "@lervo/adapter-discord";
+import { DiscordRestDelivery, DiscordRestTyping } from "@lervo/adapter-discord";
 import { SlackWebApiDelivery } from "@lervo/adapter-slack";
 import type {
   ConversationPlatformDeliveryReplayPort,
@@ -155,6 +155,36 @@ describe("credential-backed platform delivery", () => {
     });
     await delivery.send(input);
     expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("refreshes Discord typing activity and stops without affecting message delivery", async () => {
+    vi.useFakeTimers();
+    try {
+      const request = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+        expect(String(_url)).toBe("https://discord.com/api/v10/channels/223456789012345678/typing");
+        expect(init).toMatchObject({
+          method: "POST",
+          headers: { authorization: `Bot ${"d".repeat(40)}` },
+        });
+        expect(init?.body).toBeUndefined();
+        return new Response(null, { status: 204 });
+      });
+      const typing = new DiscordRestTyping({
+        botToken: "d".repeat(40),
+        fetch: request as typeof fetch,
+        refreshIntervalMs: 1_000,
+      });
+      const lease = typing.start({ channelId: "223456789012345678" });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(request).toHaveBeenCalledOnce();
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(request).toHaveBeenCalledTimes(2);
+      lease.stop();
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(request).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("does not resend when the first API result is ambiguous", async () => {

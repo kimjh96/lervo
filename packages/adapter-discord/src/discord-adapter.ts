@@ -52,7 +52,12 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
       integrationId: options.integrationId,
       platform: "discord",
       instanceIdentity: `${options.applicationId}:${[...options.allowedGuildIds].sort().join(",")}:${options.allowDirectMessages}`,
-      supportedCapabilities: ["messages.receive", "messages.send", "threads"],
+      supportedCapabilities: [
+        "messages.receive",
+        "messages.send",
+        "threads",
+        ...(options.typing === undefined ? [] : (["typing"] as const)),
+      ],
       ...(options.capabilities === undefined ? {} : { capabilities: options.capabilities }),
     });
   }
@@ -167,6 +172,10 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
     return {
       status: "accepted",
       event,
+      responseActivity:
+        this.options.typing === undefined
+          ? null
+          : { start: () => this.options.typing!.start({ channelId: parsed.channelId }) },
     };
   }
 

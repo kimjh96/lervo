@@ -53,6 +53,7 @@ export class AuthenticatedDiscordGatewayDriver
   private sessionHandle = "";
   private readonly authenticatedDispatches = new Set<string>();
   private dispatchChain = Promise.resolve();
+  private applicationDispatchChain = Promise.resolve();
 
   constructor(private readonly options: DiscordGatewayDriverOptions) {
     if (
@@ -119,13 +120,13 @@ export class AuthenticatedDiscordGatewayDriver
     const key = `${input.sessionHandle}\0${input.sequence}\0${input.eventName}`;
     if (
       this.stopped ||
-      !this.identified ||
       input.applicationId !== this.options.applicationId ||
       !this.authenticatedDispatches.has(key) ||
       !Number.isFinite(Date.parse(input.verifiedAt))
     ) {
       return { authenticated: false, reasonCode: "gateway_dispatch_unverified" };
     }
+    this.authenticatedDispatches.delete(key);
     return { authenticated: true };
   }
 
@@ -134,7 +135,6 @@ export class AuthenticatedDiscordGatewayDriver
     const generation = ++this.connectionGeneration;
     this.sessionHandle = this.createSessionHandle();
     this.identified = false;
-    this.authenticatedDispatches.clear();
     try {
       this.connection = this.transport.connect(url.href, {
         open: () => undefined,
@@ -227,14 +227,15 @@ export class AuthenticatedDiscordGatewayDriver
     while (this.authenticatedDispatches.size > this.maximumDispatchRecords) {
       this.authenticatedDispatches.delete(this.authenticatedDispatches.values().next().value!);
     }
-    try {
-      await this.options.onDispatch({
-        sessionHandle: this.sessionHandle,
-        body: Buffer.from(JSON.stringify(payload)),
+    const dispatch = {
+      sessionHandle: this.sessionHandle,
+      body: Buffer.from(JSON.stringify(payload)),
+    };
+    this.applicationDispatchChain = this.applicationDispatchChain
+      .then(() => this.options.onDispatch(dispatch))
+      .catch((error: unknown) => {
+        this.report("dispatch_failed", "Authenticated Discord dispatch handling failed.", error);
       });
-    } catch (error) {
-      this.report("dispatch_failed", "Authenticated Discord dispatch handling failed.", error);
-    }
   }
 
   private hello(value: unknown): void {
