@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d2ebb91a390581b851fbe6f7"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add natural-language Discord conversations with read-only and write-capable routing."

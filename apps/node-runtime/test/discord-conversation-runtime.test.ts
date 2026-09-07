@@ -1,7 +1,11 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { FileSystemCas } from "@lervo/cas";
 import type { ConversationRemoteContinuationPort } from "@lervo/conversation-control";
+import { createVerifiedConversationControlReply } from "@lervo/conversation-control";
+import { adaptiveConversationWritingContract } from "@lervo/core";
 import type {
   DiscordGatewayConnectionObserver,
   DiscordGatewayTransport,
@@ -78,6 +82,11 @@ describe("installed Node Discord conversation runtime", () => {
         { tenantKey: guildId, conversationKey: channelId, conversationId: "cnv_operator01" },
       ],
       participants: [{ tenantKey: guildId, userId: humanId, participantId: "ptc_operator01" }],
+      routing: {
+        readOnlyRoleId: "conversation-reader",
+        intent: { provider: "codex" },
+        response: { provider: "codex" },
+      },
       command: {
         roleId: "developer",
         provider: "codex",
@@ -109,6 +118,34 @@ describe("installed Node Discord conversation runtime", () => {
     );
     const gateway = new GatewayTransport();
     const gatewayErrors: Error[] = [];
+    const intentResolver = vi.fn(async ({ message, priorTurns }) => ({
+      intent: message.startsWith("What") ? ("answer" as const) : ("continue_work" as const),
+      confidence: "high" as const,
+      provider: { providerId: "codex", model: null, adapterVersion: "1" as const },
+      resultDigest: `sha256:${createHash("sha256")
+        .update(JSON.stringify({ message, priorTurns }))
+        .digest("hex")}`,
+    }));
+    const readOnlyResponse = vi.fn(async () => {
+      const artifacts = await FileSystemCas.open(
+        resolve(fixture.repositoryRoot, ".lervo/data/conversation/itg_discord01/artifacts"),
+      );
+      return createVerifiedConversationControlReply({
+        artifactStore: artifacts,
+        writingContract: adaptiveConversationWritingContract,
+        semanticEvaluator: {
+          evaluate: async (evaluation) => ({
+            evaluator: { kind: "model", evaluatorId: "fixture.discord-read" },
+            checks: evaluation.checks.map((check) => ({
+              checkId: check.checkId,
+              status: "passed" as const,
+              violationCount: 0,
+            })),
+          }),
+        },
+        content: "The current workstream is active and the repository was not changed.",
+      });
+    });
     const deployment = await openNodeRuntime(await loadNodeRuntimeConfig(fixture.configPath), {
       createTransport: () => ({
         registerProject: async () => ({}),
@@ -116,6 +153,10 @@ describe("installed Node Discord conversation runtime", () => {
       }),
       discordConversation: {
         continuation: { request },
+        readOnlyResponder: { respond: readOnlyResponse },
+        intentResolver: {
+          resolve: intentResolver,
+        },
         gatewayTransport: gateway,
         fetch: delivery as typeof globalThis.fetch,
         onError: (error) => gatewayErrors.push(error),
@@ -139,12 +180,43 @@ describe("installed Node Discord conversation runtime", () => {
         guild_id: guildId,
         author: { id: humanId, bot: false },
         content: "Continue the current workstream.",
-        mentions: [{ id: applicationId }],
+        mentions: [],
         timestamp: "2026-09-07T08:00:00.000Z",
       },
     });
     try {
       await settled(() => request.mock.calls.length === 1 && delivery.mock.calls.length === 1);
+    } catch {
+      throw new Error(
+        `Discord first intent=${intentResolver.mock.calls.length} response=${readOnlyResponse.mock.calls.length} request=${request.mock.calls.length} delivery=${delivery.mock.calls.length} errors=${gatewayErrors
+          .map(
+            (error) =>
+              `${error.message}:${error.cause instanceof Error ? error.cause.message : "no cause"}`,
+          )
+          .join("|")}`,
+      );
+    }
+    gateway.emit({
+      op: 0,
+      s: 3,
+      t: "MESSAGE_CREATE",
+      d: {
+        id: "623456789012345678",
+        channel_id: channelId,
+        guild_id: guildId,
+        author: { id: humanId, bot: false },
+        content: `<@${applicationId}> What is the current workstream?`,
+        mentions: [{ id: applicationId }],
+        timestamp: "2026-09-07T08:00:01.000Z",
+      },
+    });
+    try {
+      await settled(
+        () =>
+          request.mock.calls.length === 1 &&
+          readOnlyResponse.mock.calls.length === 1 &&
+          delivery.mock.calls.length === 2,
+      );
     } catch {
       const health = await readFile(
         resolve(fixture.repositoryRoot, ".lervo/state/node-runtime-health.json"),
@@ -160,7 +232,10 @@ describe("installed Node Discord conversation runtime", () => {
       );
     }
     expect(request).toHaveBeenCalledOnce();
-    expect(delivery).toHaveBeenCalledOnce();
+    expect(readOnlyResponse).toHaveBeenCalledOnce();
+    expect(delivery).toHaveBeenCalledTimes(2);
+    expect(intentResolver.mock.calls[0]![0]).toMatchObject({ mentioned: false, priorTurns: [] });
+    expect(intentResolver.mock.calls[1]![0].priorTurns).toHaveLength(2);
     expect(JSON.parse(gateway.sent[0]!)).toMatchObject({ op: 2, d: { intents: 37_377 } });
     expect(
       await readFile(

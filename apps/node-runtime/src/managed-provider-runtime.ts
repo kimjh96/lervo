@@ -22,17 +22,20 @@ export function createNodeProviderAdapter(input: {
   repositoryRoot: string;
   resolveArtifact: (uri: string) => Promise<Uint8Array>;
   executable?: string;
+  model?: string;
 }): ProviderAdapter {
   return input.provider === "codex"
     ? new CodexAdapter({
         repositoryRoot: input.repositoryRoot,
         resolveArtifact: input.resolveArtifact,
         ...(input.executable === undefined ? {} : { executable: input.executable }),
+        ...(input.model === undefined ? {} : { model: input.model }),
       })
     : new ClaudeAdapter({
         repositoryRoot: input.repositoryRoot,
         resolveArtifact: input.resolveArtifact,
         ...(input.executable === undefined ? {} : { executable: input.executable }),
+        ...(input.model === undefined ? {} : { model: input.model }),
       });
 }
 

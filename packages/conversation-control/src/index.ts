@@ -9,6 +9,9 @@ export * from "./deliberation-reconciliation.js";
 export * from "./deliberation-worker.js";
 export * from "./principal-control.js";
 export * from "./remote-continuation.js";
-export { createVerifiedConversationControlReply } from "./response-artifacts.js";
+export {
+  createVerifiedConversationControlReply,
+  readConversationControlMessage,
+} from "./response-artifacts.js";
 export * from "./responder.js";
 export * from "./types.js";

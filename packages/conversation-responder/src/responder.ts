@@ -52,7 +52,12 @@ export class ManagedConversationResponder implements ManagedConversationResponde
       repositoryRoot: this.options.repositoryRoot,
       requestDigest,
       risk: "low",
-      instructions: conversationResponseInstructions(input, message),
+      instructions: conversationResponseInstructions(
+        input,
+        message,
+        plan.role.roleId,
+        plan.maximumResponseCharacters,
+      ),
       targetTurnId: plan.targetTurnId,
       context: {
         registry: plan.registry,
@@ -97,6 +102,9 @@ export class ManagedConversationResponder implements ManagedConversationResponde
       writingContract: plan.writingContract,
       artifactStore: this.options.artifactStore,
       semanticEvaluator: this.options.semanticEvaluator,
+      ...(plan.maximumResponseCharacters === undefined
+        ? {}
+        : { maximumResponseCharacters: plan.maximumResponseCharacters }),
       ...(this.options.now === undefined ? {} : { now: this.options.now }),
     });
   }

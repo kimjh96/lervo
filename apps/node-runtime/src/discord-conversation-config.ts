@@ -2,6 +2,11 @@ import { resolve } from "node:path";
 
 import type { NodeDiscordConversationConfig } from "./config-types.js";
 import {
+  parseDiscordConversationBindings,
+  parseDiscordParticipantBindings,
+} from "./discord-conversation-bindings-config.js";
+import { parseDiscordConversationBehavior } from "./discord-conversation-behavior-config.js";
+import {
   configRecord,
   configText,
   exactConfigKeys,
@@ -12,7 +17,6 @@ import { NodeRuntimeError } from "./errors.js";
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
 const INTEGRATION_ID = /^itg_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 const SNOWFLAKE = /^[0-9]{1,32}$/u;
-const CONVERSATION_ID = /^cnv_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 const PARTICIPANT_ID = /^ptc_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 
 function boundedUniqueText(
@@ -34,75 +38,6 @@ function boundedUniqueText(
   return [...value] as string[];
 }
 
-function nullableIdentifier(value: unknown, label: string, pattern: RegExp): string | null {
-  if (value === undefined || value === null) return null;
-  const result = configText(value, label);
-  if (!pattern.test(result)) throw new NodeRuntimeError("invalid_config", `${label} is invalid.`);
-  return result;
-}
-
-function parseConversations(value: unknown): NodeDiscordConversationConfig["conversations"] {
-  if (!Array.isArray(value) || value.length < 1 || value.length > 64) {
-    throw new NodeRuntimeError("invalid_config", "discordConversation.conversations is invalid.");
-  }
-  const parsed = value.map((item, index) => {
-    const source = configRecord(item, `discordConversation.conversations[${index}]`);
-    exactConfigKeys(
-      source,
-      ["tenantKey", "conversationKey", "conversationId"],
-      `discordConversation.conversations[${index}]`,
-    );
-    const tenantKey = configText(source.tenantKey, "conversation tenantKey");
-    const conversationKey = configText(source.conversationKey, "conversation conversationKey");
-    const conversationId = configText(source.conversationId, "conversation conversationId");
-    if (
-      !(tenantKey === "dm" || SNOWFLAKE.test(tenantKey)) ||
-      !SNOWFLAKE.test(conversationKey) ||
-      !CONVERSATION_ID.test(conversationId)
-    ) {
-      throw new NodeRuntimeError("invalid_config", "A Discord conversation binding is invalid.");
-    }
-    return { tenantKey, conversationKey, conversationId };
-  });
-  if (
-    new Set(parsed.map((item) => `${item.tenantKey}\0${item.conversationKey}`)).size !==
-      parsed.length ||
-    new Set(parsed.map((item) => item.conversationId)).size !== parsed.length
-  ) {
-    throw new NodeRuntimeError("invalid_config", "Discord conversation bindings must be unique.");
-  }
-  return parsed;
-}
-
-function parseParticipants(value: unknown): NodeDiscordConversationConfig["participants"] {
-  if (!Array.isArray(value) || value.length < 1 || value.length > 64) {
-    throw new NodeRuntimeError("invalid_config", "discordConversation.participants is invalid.");
-  }
-  const parsed = value.map((item, index) => {
-    const source = configRecord(item, `discordConversation.participants[${index}]`);
-    exactConfigKeys(
-      source,
-      ["tenantKey", "userId", "participantId"],
-      `discordConversation.participants[${index}]`,
-    );
-    const tenantKey = configText(source.tenantKey, "participant tenantKey");
-    const userId = configText(source.userId, "participant userId");
-    const participantId = configText(source.participantId, "participant participantId");
-    if (
-      !(tenantKey === "dm" || SNOWFLAKE.test(tenantKey)) ||
-      !SNOWFLAKE.test(userId) ||
-      !PARTICIPANT_ID.test(participantId)
-    ) {
-      throw new NodeRuntimeError("invalid_config", "A Discord participant binding is invalid.");
-    }
-    return { tenantKey, userId, participantId };
-  });
-  if (new Set(parsed.map((item) => `${item.tenantKey}\0${item.userId}`)).size !== parsed.length) {
-    throw new NodeRuntimeError("invalid_config", "Discord participant bindings must be unique.");
-  }
-  return parsed;
-}
-
 export function parseDiscordConversationConfig(
   value: unknown,
   baseDirectory: string,
@@ -121,6 +56,7 @@ export function parseDiscordConversationConfig(
       "agentParticipantId",
       "conversations",
       "participants",
+      "routing",
       "command",
       "gateway",
       "http",
@@ -153,8 +89,13 @@ export function parseDiscordConversationConfig(
     SNOWFLAKE,
     source.allowDirectMessages ? 0 : 1,
   );
-  const conversations = parseConversations(source.conversations);
-  const participants = parseParticipants(source.participants);
+  const conversations = parseDiscordConversationBindings(source.conversations);
+  const participants = parseDiscordParticipantBindings(source.participants);
+  const behavior = parseDiscordConversationBehavior({
+    routing: source.routing,
+    command: source.command,
+    policy: source.policy,
+  });
   const conversationTenants = new Set(conversations.map((item) => item.tenantKey));
   if (
     conversations.some((item) =>
@@ -175,40 +116,6 @@ export function parseDiscordConversationConfig(
   ) {
     throw new NodeRuntimeError("invalid_config", "Discord bindings exceed the allowed scope.");
   }
-  const command = configRecord(source.command, "discordConversation.command");
-  exactConfigKeys(
-    command,
-    ["roleId", "provider", "risk", "verificationSuiteIds", "lifetimeMs", "assignmentId", "agentId"],
-    "discordConversation.command",
-  );
-  const roleId = configText(command.roleId, "discordConversation.command.roleId");
-  if (
-    !IDENTIFIER.test(roleId) ||
-    !["codex", "claude"].includes(command.provider as string) ||
-    !["low", "medium", "high"].includes(command.risk as string) ||
-    !Number.isSafeInteger(command.lifetimeMs) ||
-    (command.lifetimeMs as number) < 1_000 ||
-    (command.lifetimeMs as number) > 300_000
-  ) {
-    throw new NodeRuntimeError("invalid_config", "The Discord command policy is invalid.");
-  }
-  const verificationSuiteIds = boundedUniqueText(
-    command.verificationSuiteIds,
-    "discordConversation.command.verificationSuiteIds",
-    IDENTIFIER,
-    1,
-    16,
-  );
-  const assignmentId = nullableIdentifier(
-    command.assignmentId,
-    "discordConversation.command.assignmentId",
-    /^asn_[a-f0-9]{24}$/u,
-  );
-  const agentId = nullableIdentifier(
-    command.agentId,
-    "discordConversation.command.agentId",
-    /^agt_[a-f0-9]{24}$/u,
-  );
   const gateway =
     source.gateway === undefined ? undefined : configRecord(source.gateway, "gateway");
   if (gateway !== undefined)
@@ -238,13 +145,6 @@ export function parseDiscordConversationConfig(
   const http = source.http === undefined ? undefined : configRecord(source.http, "http");
   if (http !== undefined)
     exactConfigKeys(http, ["requestTimeoutMs", "maxResponseBytes"], "discordConversation.http");
-  const policy = source.policy === undefined ? undefined : configRecord(source.policy, "policy");
-  if (policy !== undefined)
-    exactConfigKeys(
-      policy,
-      ["cooldownSeconds", "maxResponsesPerHour", "maxAutomationDepth"],
-      "discordConversation.policy",
-    );
   const optional = (
     target: Record<string, unknown> | undefined,
     key: string,
@@ -258,9 +158,6 @@ export function parseDiscordConversationConfig(
   const maximumDispatchRecords = optional(gateway, "maximumDispatchRecords", 1, 100_000, "gateway");
   const requestTimeoutMs = optional(http, "requestTimeoutMs", 10, 300_000, "http");
   const maxResponseBytes = optional(http, "maxResponseBytes", 1_024, 16_777_216, "http");
-  const cooldownSeconds = optional(policy, "cooldownSeconds", 0, 86_400, "policy");
-  const maxResponsesPerHour = optional(policy, "maxResponsesPerHour", 1, 10_000, "policy");
-  const maxAutomationDepth = optional(policy, "maxAutomationDepth", 0, 32, "policy");
   return {
     integrationId,
     applicationId,
@@ -275,15 +172,7 @@ export function parseDiscordConversationConfig(
     agentParticipantId,
     conversations,
     participants,
-    command: {
-      roleId,
-      provider: command.provider as "codex" | "claude",
-      risk: command.risk as "low" | "medium" | "high",
-      verificationSuiteIds,
-      lifetimeMs: command.lifetimeMs as number,
-      assignmentId,
-      agentId,
-    },
+    ...behavior,
     ...(gateway === undefined
       ? {}
       : {
@@ -300,15 +189,6 @@ export function parseDiscordConversationConfig(
           http: {
             ...(requestTimeoutMs === undefined ? {} : { requestTimeoutMs }),
             ...(maxResponseBytes === undefined ? {} : { maxResponseBytes }),
-          },
-        }),
-    ...(policy === undefined
-      ? {}
-      : {
-          policy: {
-            ...(cooldownSeconds === undefined ? {} : { cooldownSeconds }),
-            ...(maxResponsesPerHour === undefined ? {} : { maxResponsesPerHour }),
-            ...(maxAutomationDepth === undefined ? {} : { maxAutomationDepth }),
           },
         }),
   };

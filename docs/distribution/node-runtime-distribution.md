@@ -27,7 +27,7 @@ node dist/bin.js --check-config <config.json>
 
 An optional `discordConversation` object enables Discord-first remote continuation in the same Node service. Keep `hub.bearerTokenFile`, `discordConversation.botTokenFile`, and the configuration itself as separate mode-0600 regular files.
 
-The object binds one integration and worker, the bot application and allowed guild or DM scope, explicit channel and human mappings, one agent participant, and the bounded managed-command policy. The [Discord service decision](../decisions/coordination/conversations/0382-node-hosted-discord-conversation-service.md) defines the fields and failure behavior.
+The object binds one integration and worker, the bot application and allowed guild or DM scope, explicit channel and participant mappings, one agent participant, and the bounded managed-command policy. Optional `routing` adds no-capability natural-language intent resolution with a distinct read-only execution role. The [Discord service decision](../decisions/coordination/conversations/0382-node-hosted-discord-conversation-service.md) and [routing decision](../decisions/coordination/conversations/0384-explicit-discord-read-and-continuation-modes.md) define the fields and failure behavior.
 
 The required Discord shape follows. Replace every identifier and path with reviewed deployment coordinates; the token file contains the secret, not this JSON:
 
@@ -53,19 +53,40 @@ The required Discord shape follows. Replace every identifier and path with revie
       {
         "tenantKey": "123456789012345678",
         "userId": "323456789012345678",
-        "participantId": "ptc_operator01"
+        "participantId": "ptc_operator01",
+        "actorKind": "human",
+        "roleId": null
       }
     ],
+    "routing": {
+      "readOnlyRoleId": "conversation-reader",
+      "intent": {
+        "provider": "codex",
+        "model": "gpt-5.3-codex",
+        "timeoutMs": 120000
+      },
+      "response": {
+        "provider": "claude",
+        "model": "claude-sonnet-4-6"
+      }
+    },
     "command": {
       "roleId": "developer",
       "provider": "codex",
       "risk": "medium",
       "verificationSuiteIds": ["repo.check"],
       "lifetimeMs": 120000
+    },
+    "policy": {
+      "respondTo": ["human"]
     }
   }
 }
 ```
+
+With this example, every ordinary message by the mapped human in the mapped channel enters the conversation. A bot mention is accepted but not required. A no-capability Codex adapter resolves the natural-language turn against bounded recent conversation context and the current workstream. Informational intent runs the read-only managed responder through Claude, clear change or continuation intent queues the command's Codex exact-workstream path, and ambiguity remains read-only so the responder can ask for clarification without changing repository or external state. Each selected provider and model is recorded at its own execution or intent-resolution boundary.
+
+Participant bindings default to `actorKind: human` and `roleId: null` when those fields are omitted. A mapped Discord bot can instead use `actorKind: agent` with an explicit role. Add `agent` to `policy.respondTo` only for a bounded agent conversation or deliberation deployment; automation depth and hourly response limits remain mandatory loop controls.
 
 ## Service activation and readiness
 

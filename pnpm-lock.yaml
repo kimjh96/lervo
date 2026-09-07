@@ -479,6 +479,9 @@ importers:
       '@lervo/repository-knowledge':
         specifier: workspace:*
         version: link:../../packages/repository-knowledge
+      '@lervo/repository-knowledge-compiler':
+        specifier: workspace:*
+        version: link:../../packages/repository-knowledge-compiler
       '@lervo/runtime-security':
         specifier: workspace:*
         version: link:../../packages/runtime-security

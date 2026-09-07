@@ -1,5 +1,4 @@
 import { lstat } from "node:fs/promises";
-import { resolve } from "node:path";
 
 import { FileSystemCas } from "@lervo/cas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
@@ -30,10 +29,8 @@ import { NodeRuntimeError } from "./errors.js";
 import { createNodeRuntimeHealthPublisher } from "./health.js";
 import { createNodeRuntimeDeployment, type NodeRuntimeDeployment } from "./lifecycle.js";
 import { createNodeOrganizationCredentialDelivery } from "./organization-credential-delivery.js";
-import {
-  openNodeDiscordConversationRuntime,
-  type NodeDiscordConversationRuntime,
-} from "./discord-conversation-runtime.js";
+import { openDeploymentConversation } from "./deployment-conversation.js";
+import type { NodeDiscordConversationRuntime } from "./discord-conversation-runtime.js";
 import { openNodeRemoteControlRuntime, type NodeRemoteControlRuntime } from "./control-runtime.js";
 import type { NodeRuntimeOpenPorts } from "./open-ports.js";
 import { loadNodeRuntimeTrust, ReloadableNodeRuntimeTrust } from "./trust.js";
@@ -96,12 +93,6 @@ export async function openNodeRuntime(
       projectId: manifest.projectId,
       projectIdentityHash: calculateProjectIdentityHash(manifest),
     };
-    if (validated.discordConversation === undefined && ports.discordConversation !== undefined) {
-      throw new NodeRuntimeError(
-        "invalid_config",
-        "Discord conversation ports require Discord conversation configuration.",
-      );
-    }
     if ((validated.remoteCommands === undefined) !== (ports.remoteCommands === undefined)) {
       throw new NodeRuntimeError(
         "invalid_config",
@@ -229,27 +220,17 @@ export async function openNodeRuntime(
           }),
     };
     await health.initialize();
-    if (validated.discordConversation !== undefined) {
-      conversation = await openNodeDiscordConversationRuntime({
-        config: validated.discordConversation,
-        hub: validated.hub,
-        project: {
-          projectId: manifest.projectId,
-          projectIdentityHash: target.projectIdentityHash,
-          createdAt: manifest.createdAt,
-        },
-        repositoryRoot: paths.repositoryRoot,
-        dataDirectory: resolve(
-          paths.data,
-          "conversation",
-          validated.discordConversation.integrationId,
-        ),
-        bearerToken: () => bearerToken.current(),
-        ...ports.discordConversation,
-        onReady: () => health.observeConversationReady(),
-        onFailure: (code) => health.observeConversationFailure(code),
-      });
-    }
+    conversation = await openDeploymentConversation({
+      config: validated,
+      project: manifest,
+      projectIdentityHash: target.projectIdentityHash,
+      repositoryRoot: paths.repositoryRoot,
+      dataDirectory: paths.data,
+      bearerToken: () => bearerToken.current(),
+      ports: ports.discordConversation,
+      onReady: () => health.observeConversationReady(),
+      onFailure: (code) => health.observeConversationFailure(code),
+    });
     return createNodeRuntimeDeployment(
       store,
       (signal) =>

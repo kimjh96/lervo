@@ -106,6 +106,23 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
     source.discordConversation === undefined
       ? undefined
       : parseDiscordConversationConfig(source.discordConversation, baseDirectory);
+  if (discordConversation?.routing !== undefined) {
+    const hosted = remoteCommands?.providerHost;
+    const conversationProviders = [
+      discordConversation.routing.intent.provider,
+      discordConversation.routing.response.provider,
+      discordConversation.command.provider,
+    ];
+    if (
+      hosted !== undefined &&
+      conversationProviders.some((provider) => !hosted.providers.includes(provider))
+    ) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "Discord conversation providers must be allowlisted by the managed provider host.",
+      );
+    }
+  }
   const organizationCredentials =
     source.organizationCredentials === undefined
       ? undefined

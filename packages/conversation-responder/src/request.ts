@@ -23,13 +23,17 @@ export function validateConversationResponseRequest(
     input.decision.projectId !== options.projectId ||
     input.policy.policyId !== input.decision.policyId ||
     input.policy.roleId !== input.decision.roleId ||
-    plan.role.roleId !== input.policy.roleId ||
+    (plan.participationRoleId ?? plan.role.roleId) !== input.policy.roleId ||
     plan.role.capabilities["filesystem.write"] !== "deny" ||
     plan.role.capabilities["external.message"] !== "deny" ||
     presentation.audience === "machine" ||
     presentation.writingPolicyId !== plan.writingContract.writingPolicyId ||
     plan.writingPolicy.writingPolicyId !== plan.writingContract.writingPolicyId ||
     !plan.writingContract.surfaces.includes("chat") ||
+    (plan.maximumResponseCharacters !== undefined &&
+      (!Number.isSafeInteger(plan.maximumResponseCharacters) ||
+        plan.maximumResponseCharacters < 1 ||
+        plan.maximumResponseCharacters > 65_536)) ||
     !validateSchema("role", plan.role).valid ||
     !validateSchema("writingContract", plan.writingContract).valid
   ) {
@@ -49,6 +53,8 @@ export function conversationResponseRequestDigest(input: {
     policyId: input.request.policy.policyId,
     decisionId: input.request.decision.decisionId,
     roleId: input.plan.role.roleId,
+    participationRoleId: input.plan.participationRoleId ?? input.plan.role.roleId,
+    maximumResponseCharacters: input.plan.maximumResponseCharacters ?? 65_536,
     messageHash: input.request.event.content.contentHash,
   });
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -57,17 +63,22 @@ export function conversationResponseRequestDigest(input: {
 export function conversationResponseInstructions(
   input: ManagedConversationResponseRequest,
   message: string,
+  executionRoleId = input.policy.roleId,
+  maximumResponseCharacters = 65_536,
 ): string {
   return JSON.stringify({
     task: "conversation_response",
-    roleId: input.policy.roleId,
+    participationRoleId: input.policy.roleId,
+    executionRoleId,
     conversationId: input.event.target.conversationId,
     threadId: input.event.target.threadId,
     participationReason: input.decision.reason,
     requirements: [
       "Respond using the injected shared context and the conversation source below.",
+      "Respond in the primary language of the message unless the message requests another language.",
       "Do not claim to have seen documents that were neither loaded nor injected.",
       "Write only the response body; do not send directly to an external platform.",
+      `Keep the response at or below ${maximumResponseCharacters} Unicode characters.`,
     ],
     message,
   });

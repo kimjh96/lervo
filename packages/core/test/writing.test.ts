@@ -3,6 +3,7 @@ import { validateSchema } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import {
+  adaptiveConversationWritingContract,
   defaultEnglishWritingContract,
   defaultWritingContract,
   evaluateWritingGate,
@@ -51,6 +52,17 @@ describe("provider-neutral writing verification", () => {
     expect(validateSchema("writingContract", defaultEnglishWritingContract)).toEqual({
       valid: true,
       errors: [],
+    });
+  });
+
+  it("keeps adaptive conversation publication distinct from English documentation", () => {
+    expect(validateSchema("writingContract", adaptiveConversationWritingContract)).toEqual({
+      valid: true,
+      errors: [],
+    });
+    expect(adaptiveConversationWritingContract).toMatchObject({
+      locale: "mul",
+      surfaces: ["chat"],
     });
   });
 

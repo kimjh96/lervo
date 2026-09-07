@@ -3,7 +3,10 @@ import {
   calculateConversationOutboundId,
 } from "@lervo/conversation-contract";
 import { createVerifiedConversationControlReply } from "@lervo/conversation-control";
-import { defaultEnglishWritingContract, fixedEnglishStatusWritingContract } from "@lervo/core";
+import {
+  adaptiveConversationWritingContract,
+  fixedEnglishStatusWritingContract,
+} from "@lervo/core";
 import type { ConversationReplyCandidate } from "@lervo/interaction";
 import { type ConversationOutboundMessage, type WritingContract } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
@@ -18,13 +21,13 @@ import type {
 const MAXIMUM_DISCORD_CHARACTERS = 2_000;
 
 const resultWritingContract = {
-  ...defaultEnglishWritingContract,
-  writingPolicyId: "writing_en-conversation-execution-result",
+  ...adaptiveConversationWritingContract,
+  writingPolicyId: "writing_mul-conversation-execution-result",
   surfaces: ["chat"],
   verification: {
-    ...defaultEnglishWritingContract.verification,
+    ...adaptiveConversationWritingContract.verification,
     semanticChecks: [
-      ...defaultEnglishWritingContract.verification.semanticChecks,
+      ...adaptiveConversationWritingContract.verification.semanticChecks,
       {
         checkId: "conversation_result_privacy",
         requirement:

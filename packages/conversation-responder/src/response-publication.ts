@@ -15,6 +15,7 @@ export async function publishConversationResponse(input: {
   writingContract: WritingContract;
   artifactStore: ArtifactStore;
   semanticEvaluator: WritingSemanticEvaluator;
+  maximumResponseCharacters?: number;
   now?: () => Date;
 }): Promise<ConversationReplyCandidate> {
   if (input.run.resultArtifact.byteCount > 65_536) {
@@ -39,7 +40,7 @@ export async function publishConversationResponse(input: {
       "A provider result that fails writing verification cannot be published to a conversation.",
     );
   }
-  await readPublishableWritingArtifact({
+  const content = await readPublishableWritingArtifact({
     artifact: input.run.resultArtifact,
     evaluation: publication.evaluation,
     evaluationArtifact: publication.evaluationArtifact,
@@ -48,6 +49,12 @@ export async function publishConversationResponse(input: {
     surface: "chat",
     artifactStore: input.artifactStore,
   });
+  if ([...content].length > (input.maximumResponseCharacters ?? 65_536)) {
+    throw new ManagedConversationResponseError(
+      "writing_publication_blocked",
+      "The conversation response exceeds the channel character limit.",
+    );
+  }
   return {
     content: {
       artifactId: input.run.resultArtifact.artifactId,

@@ -129,6 +129,12 @@ describe("Node runtime configuration", () => {
           participantId: "ptc_operator01",
         },
       ],
+      routing: {
+        readOnlyRoleId: "conversation-reader",
+        intent: { provider: "codex", model: "gpt-5.3-codex", timeoutMs: 45_000 },
+        response: { provider: "codex", model: "gpt-5.3-codex" },
+      },
+      policy: { respondTo: ["human", "agent"] },
       command: {
         roleId: "developer",
         provider: "codex",
@@ -140,12 +146,26 @@ describe("Node runtime configuration", () => {
     expect(parseNodeRuntimeConfig(configured, root)).toMatchObject({
       discordConversation: {
         botTokenFile: `${root}/discord.token`,
+        routing: {
+          readOnlyRoleId: "conversation-reader",
+          intent: { provider: "codex", model: "gpt-5.3-codex", timeoutMs: 45_000 },
+          response: { provider: "codex", model: "gpt-5.3-codex" },
+        },
+        participants: [{ actorKind: "human", roleId: null }],
+        policy: { respondTo: ["agent", "human"] },
         command: { assignmentId: null, agentId: null },
       },
     });
     const unscoped = structuredClone(configured);
     (unscoped.discordConversation as { allowedGuildIds: string[] }).allowedGuildIds = [];
     expect(() => parseNodeRuntimeConfig(unscoped, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
+    const invalidAgent = structuredClone(configured);
+    (
+      invalidAgent.discordConversation as { participants: Array<Record<string, unknown>> }
+    ).participants[0]!.actorKind = "agent";
+    expect(() => parseNodeRuntimeConfig(invalidAgent, root)).toThrow(
       expect.objectContaining({ code: "invalid_config" }),
     );
   });

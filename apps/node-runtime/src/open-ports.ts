@@ -1,5 +1,6 @@
 import type { ConversationRemoteContinuationPort } from "@lervo/conversation-control";
 import type { DiscordGatewayTransport } from "@lervo/discord-gateway";
+import type { ConversationResponder } from "@lervo/interaction";
 import type {
   AuthenticatedHubTransport,
   OutboundSyncPollingWaitPort,
@@ -7,6 +8,7 @@ import type {
   SyncHttpTransportOptions,
 } from "@lervo/sync";
 
+import type { ConversationIntentResolver } from "./conversation-intent-resolver.js";
 import type { NodeRemoteCommandPorts } from "./control-runtime.js";
 
 export interface NodeRuntimeOpenPorts {
@@ -17,6 +19,8 @@ export interface NodeRuntimeOpenPorts {
   remoteCommands?: NodeRemoteCommandPorts;
   discordConversation?: {
     continuation?: ConversationRemoteContinuationPort;
+    readOnlyResponder?: ConversationResponder;
+    intentResolver?: ConversationIntentResolver;
     gatewayTransport?: DiscordGatewayTransport;
     fetch?: typeof globalThis.fetch;
     onError?(error: Error): void;

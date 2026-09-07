@@ -89,6 +89,28 @@ export const fixedEnglishStatusWritingContract = {
   },
 } as const satisfies WritingContract;
 
+export const adaptiveConversationWritingContract = {
+  ...defaultEnglishWritingContract,
+  writingPolicyId: "writing_mul-conversation",
+  locale: "mul",
+  surfaces: ["chat"],
+  prose: {
+    ...defaultEnglishWritingContract.prose,
+    register: "polite",
+  },
+  verification: {
+    ...defaultEnglishWritingContract.verification,
+    semanticChecks: [
+      {
+        checkId: "natural_conversation_prose",
+        requirement:
+          "Write natural, direct conversational prose in the selected response language, preserving machine identifiers and clearly separating observed facts from proposed actions.",
+        required: true,
+      },
+    ],
+  },
+} as const satisfies WritingContract;
+
 const writingContracts = {
   en: defaultEnglishWritingContract,
 } as const satisfies Record<SupportedWritingLanguage, WritingContract>;

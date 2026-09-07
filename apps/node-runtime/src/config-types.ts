@@ -72,7 +72,21 @@ export interface NodeDiscordConversationConfig {
     tenantKey: string;
     userId: string;
     participantId: string;
+    actorKind: "human" | "agent";
+    roleId: string | null;
   }>;
+  routing?: {
+    readOnlyRoleId: string;
+    intent: {
+      provider: "codex" | "claude";
+      model?: string;
+      timeoutMs?: number;
+    };
+    response: {
+      provider: "codex" | "claude";
+      model?: string;
+    };
+  };
   command: {
     roleId: string;
     provider: "codex" | "claude";
@@ -93,6 +107,7 @@ export interface NodeDiscordConversationConfig {
     maxResponseBytes?: number;
   };
   policy?: {
+    respondTo?: Array<"human" | "agent">;
     cooldownSeconds?: number;
     maxResponsesPerHour?: number;
     maxAutomationDepth?: number;

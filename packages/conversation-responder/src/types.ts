@@ -17,6 +17,8 @@ import type { WritingSemanticEvaluator } from "@lervo/writing";
 
 export interface ManagedConversationResponsePlan {
   adapter: ProviderAdapter;
+  participationRoleId?: string;
+  maximumResponseCharacters?: number;
   runId: string;
   sessionId: string;
   targetTurnId: string;
