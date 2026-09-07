@@ -46,6 +46,12 @@ Events, CAS artifacts, assignment state, verification, and repository state rema
 - A mutable Paperclip-like task database or Buzz-like collaboration database.
 - Changing direct provider terminals from `unmanaged` to managed.
 
+## Recorded future candidate
+
+Event-driven scheduler wake-up is a candidate for later evaluation, not accepted delivery. A trusted assignment or topology event could wake one bounded scheduler invocation before its next poll. The signal would be advisory: canonical assignment state, exact-revision claim, the existing scheduler lock, kill switch, execution budgets, and polling reconciliation would retain authority.
+
+Before implementation, a separate reviewed contract must define signal authentication, replay and deduplication, coalescing and backpressure, lost-signal recovery, service lifecycle, privacy, and failure meaning. Polling remains the recovery path; a wake-up must never itself claim or execute an assignment.
+
 ## Conditional future sequence
 
 1. Add a second connector only for a current product need. Reuse shared conformance; keep provider-native credentials, destinations, receipts, and recovery semantics in its adapter.
