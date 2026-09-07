@@ -207,6 +207,7 @@ describe("Node runtime configuration", () => {
       providers: ["codex", "claude"],
       roles: ["developer"],
       developerSkills: [],
+      executables: { codex: "/opt/lervo/bin/codex" },
     };
     expect(parseNodeRuntimeConfig(hosted, root)).toMatchObject({
       remoteCommands: {
@@ -214,6 +215,7 @@ describe("Node runtime configuration", () => {
           providers: ["codex", "claude"],
           roles: ["developer"],
           developerSkills: [],
+          executables: { codex: "/opt/lervo/bin/codex" },
         },
       },
     });
@@ -255,6 +257,26 @@ describe("Node runtime configuration", () => {
       expect.objectContaining({
         code: "invalid_config",
       }),
+    );
+    const detachedExecutable = structuredClone(hosted);
+    (detachedExecutable.remoteCommands as Record<string, unknown>).providerHost = {
+      providers: ["claude"],
+      roles: ["developer"],
+      developerSkills: [],
+      executables: { codex: "/opt/lervo/bin/codex" },
+    };
+    expect(() => parseNodeRuntimeConfig(detachedExecutable, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
+    const relativeExecutable = structuredClone(hosted);
+    (relativeExecutable.remoteCommands as Record<string, unknown>).providerHost = {
+      providers: ["codex"],
+      roles: ["developer"],
+      developerSkills: [],
+      executables: { codex: "bin/codex" },
+    };
+    expect(() => parseNodeRuntimeConfig(relativeExecutable, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
     );
     const invalidRoles = structuredClone(hosted);
     (invalidRoles.remoteCommands as Record<string, unknown>).providerHost = {

@@ -41,6 +41,7 @@ export interface NodeRuntimeConfig {
       providers: Array<"codex" | "claude">;
       roles: string[];
       developerSkills: string[];
+      executables?: Partial<Record<"codex" | "claude", string>>;
     };
     idlePollIntervalMs?: number;
     leaseDurationMs?: number;

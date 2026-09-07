@@ -21,15 +21,18 @@ export function createNodeProviderAdapter(input: {
   provider: "codex" | "claude";
   repositoryRoot: string;
   resolveArtifact: (uri: string) => Promise<Uint8Array>;
+  executable?: string;
 }): ProviderAdapter {
   return input.provider === "codex"
     ? new CodexAdapter({
         repositoryRoot: input.repositoryRoot,
         resolveArtifact: input.resolveArtifact,
+        ...(input.executable === undefined ? {} : { executable: input.executable }),
       })
     : new ClaudeAdapter({
         repositoryRoot: input.repositoryRoot,
         resolveArtifact: input.resolveArtifact,
+        ...(input.executable === undefined ? {} : { executable: input.executable }),
       });
 }
 
@@ -93,6 +96,11 @@ export function createManagedProviderRemoteCommandPorts(
               provider: provider as "codex" | "claude",
               repositoryRoot,
               resolveArtifact,
+              ...(providerHost.executables?.[provider as "codex" | "claude"] === undefined
+                ? {}
+                : {
+                    executable: providerHost.executables[provider as "codex" | "claude"],
+                  }),
             });
           },
         },

@@ -13,7 +13,7 @@ ADR-0152 left `RemoteCommandExecutor` external. Selecting an executor from a pro
 
 One host executes one command at a time and closes storage before returning a receipt candidate. Provider output stays in local CAS; the remote receipt contains only verified run ID and completion time and claims no writing-publication success.
 
-`remoteCommands.providerHost.providers` is an explicit, unique `codex|claude` allowlist containing one or two entries. Only the installed CLI with this field assembles built-in factories. Unsupported providers or roles fail before session creation. The local capability intersection permits filesystem reads and shell, requires approval for writes, and cannot be relaxed by Hub policy.
+`remoteCommands.providerHost.providers` is an explicit, unique `codex|claude` allowlist containing one or two entries. Only the installed CLI with this field assembles built-in factories. An optional `providerHost.executables` map binds an allowlisted provider to a safe absolute executable path so supervised runtimes do not depend on an interactive shell's `PATH`; executable selection remains inside the provider adapter boundary. Unsupported providers, executable keys, or roles fail before session creation. The local capability intersection permits filesystem reads and shell, requires approval for writes, and cannot be relaxed by Hub policy.
 
 The evaluator passes approved `repositoryPaths` in process memory, but the coordinator revalidates the signed source. This version accepts exactly one normalized path; ADR-0154 expands the range to 1–16.
 

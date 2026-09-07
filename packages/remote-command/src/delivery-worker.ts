@@ -18,6 +18,7 @@ import {
   type RemoteCommandDeliveryErrorCode,
 } from "./delivery-transport.js";
 import { RemoteCommandRuntimeError, type RemoteCommandRuntimeErrorCode } from "./errors.js";
+import { resolveRemoteCommandTiming } from "./receiver-validation.js";
 import { type RemoteCommandClock, type RemoteCommandHandler } from "./types.js";
 
 const TERMINAL_REJECTIONS = new Set<RemoteCommandRuntimeErrorCode>([
@@ -47,6 +48,7 @@ export interface RemoteCommandReconnectWorkerOptions {
   clock?: RemoteCommandClock;
   leaseDurationMs?: number;
   retryDelayMs?: number;
+  clockSkewMs?: number;
   limit?: number;
   onAcknowledgementPrepared?(input: {
     lease: RemoteCommandLease;
@@ -118,6 +120,9 @@ function retryAt(clock: RemoteCommandClock, delayMs: number): string {
 function resolveConfiguration(options: RemoteCommandReconnectWorkerOptions) {
   const leaseDurationMs = options.leaseDurationMs ?? 30_000;
   const retryDelayMs = options.retryDelayMs ?? 5_000;
+  const clockSkewMs = resolveRemoteCommandTiming(
+    options.clockSkewMs === undefined ? {} : { clockSkewMs: options.clockSkewMs },
+  ).clockSkewMs;
   const limit = options.limit ?? 1;
   if (
     !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/.test(options.destinationId) ||
@@ -138,7 +143,12 @@ function resolveConfiguration(options: RemoteCommandReconnectWorkerOptions) {
       "The remote command reconnect worker configuration is invalid.",
     );
   }
-  return { leaseDurationMs, retryDelayMs, limit };
+  return { leaseDurationMs, retryDelayMs, clockSkewMs, limit };
+}
+
+function acknowledgementTime(clock: RemoteCommandClock, lease: RemoteCommandLease): string {
+  const observed = timestamp(clock);
+  return observed.milliseconds < Date.parse(lease.leasedAt) ? lease.leasedAt : observed.value;
 }
 
 function parseLeases(input: {
@@ -148,6 +158,7 @@ function parseLeases(input: {
   target: RemoteCommandTarget;
   limit: number;
   nowMs: number;
+  clockSkewMs: number;
 }): RemoteCommandLease[] {
   if (!Array.isArray(input.body) || input.body.length > input.limit) {
     throw new RemoteCommandDeliveryError("invalid_lease_response");
@@ -162,7 +173,7 @@ function parseLeases(input: {
     if (
       lease.leasedTo !== input.nodeId ||
       !sameTarget(lease.envelope.command.target, input.target) ||
-      Date.parse(lease.leasedAt) > input.nowMs ||
+      Date.parse(lease.leasedAt) > input.nowMs + input.clockSkewMs ||
       Date.parse(lease.leaseExpiresAt) <= input.nowMs
     ) {
       throw new RemoteCommandDeliveryError("invalid_lease_response");
@@ -238,6 +249,7 @@ export async function runRemoteCommandReconnectCycle(
       target: options.target,
       limit: configuration.limit,
       nowMs: received.milliseconds,
+      clockSkewMs: configuration.clockSkewMs,
     });
   } catch (error) {
     if (!(error instanceof RemoteCommandDeliveryError)) throw error;
@@ -266,7 +278,7 @@ export async function runRemoteCommandReconnectCycle(
         destinationId: options.destinationId,
         lease,
         receipt: handled.receipt,
-        acknowledgedAt: timestamp(clock).value,
+        acknowledgedAt: acknowledgementTime(clock, lease),
       });
       if (handled.deliveryStatus === "duplicate") duplicateCount += 1;
       else if (handled.receipt.outcome === "executed") executedCount += 1;
@@ -287,7 +299,7 @@ export async function runRemoteCommandReconnectCycle(
         destinationId: options.destinationId,
         lease,
         rejectionCode: error.code as RejectionCode,
-        acknowledgedAt: timestamp(clock).value,
+        acknowledgedAt: acknowledgementTime(clock, lease),
       });
       rejectedCount += 1;
     }

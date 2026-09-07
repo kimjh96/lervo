@@ -48,6 +48,7 @@ class MutableClock {
 class DirectRemoteCommandTransport implements AuthenticatedRemoteCommandHubTransport {
   offline = false;
   loseNextAcknowledgementBeforeCommit = false;
+  hubClockOffsetMs = 0;
   private target: RemoteCommandTarget | null = null;
 
   constructor(
@@ -66,6 +67,10 @@ class DirectRemoteCommandTransport implements AuthenticatedRemoteCommandHubTrans
     };
   }
 
+  private hubTime(value: string): string {
+    return new Date(Date.parse(value) + this.hubClockOffsetMs).toISOString();
+  }
+
   async pullRemoteCommands(
     input: Parameters<AuthenticatedRemoteCommandHubTransport["pullRemoteCommands"]>[0],
   ): Promise<unknown> {
@@ -77,7 +82,7 @@ class DirectRemoteCommandTransport implements AuthenticatedRemoteCommandHubTrans
         destinationId: input.destinationId,
         target: input.target,
         leasedTo: input.nodeId,
-        leasedAt: input.requestedAt,
+        leasedAt: this.hubTime(input.requestedAt),
         leaseDurationMs: input.leaseDurationMs,
         limit: input.limit,
       }),
@@ -99,7 +104,7 @@ class DirectRemoteCommandTransport implements AuthenticatedRemoteCommandHubTrans
         target: this.target,
         leasedTo: nodeId,
         acknowledgement,
-        confirmedAt: this.clock.value,
+        confirmedAt: this.hubTime(this.clock.value),
       }),
     );
   }
@@ -345,6 +350,93 @@ describe("durable remote command offline queue and reconnect", () => {
       attemptCount: 0,
       terminalAt: "2026-08-19T00:02:00.000Z",
     });
+    await hub.close();
+  });
+
+  it("accepts a Hub lease issued slightly ahead of the Node clock within the configured skew", async () => {
+    const project = manifest("prj_remote_clock_skew");
+    const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+    const signer = new Ed25519RemoteCommandSigner("key_hub_fixture", privateKey);
+    const envelope = signedCommand({
+      project,
+      signer,
+      idempotencyKey: "idk_remote_clock_skew_01",
+      nonceByte: 4,
+    });
+    const target = envelope.command.target;
+    const hub = await HubSyncSQLiteStore.open({ path: await databasePath() });
+    await registerStore(hub, project);
+    const queued = await handleRemoteCommandEnqueue({
+      store: hub,
+      destinationId,
+      envelope,
+      queuedAt: "2026-08-19T00:00:10.000Z",
+    });
+    const clock = new MutableClock("2026-08-19T00:01:00.000Z");
+    const transport = new DirectRemoteCommandTransport(hub, clock);
+    transport.hubClockOffsetMs = 250;
+    const replayStore = await SQLiteRemoteCommandReplayStore.open({
+      path: await databasePath(),
+      target,
+    });
+    const executor = vi.fn();
+
+    await expect(
+      runRemoteCommandReconnectCycle({
+        destinationId,
+        expectedPeerIdentityHash: peerIdentityHash,
+        nodeId,
+        target,
+        transport,
+        handler: receiver({ target, publicKey, replayStore, clock, executor }),
+        clock,
+        clockSkewMs: 500,
+      }),
+    ).resolves.toMatchObject({
+      status: "processed",
+      acknowledgedCount: 1,
+      executedCount: 1,
+    });
+    expect(executor).toHaveBeenCalledTimes(1);
+    await expect(hub.getRemoteCommandDelivery(queued.deliveryId)).resolves.toMatchObject({
+      status: "completed",
+      terminalAt: "2026-08-19T00:01:00.250Z",
+    });
+
+    const outsideAllowance = signedCommand({
+      project,
+      signer,
+      idempotencyKey: "idk_remote_clock_skew_02",
+      nonceByte: 5,
+    });
+    const outsideQueued = await handleRemoteCommandEnqueue({
+      store: hub,
+      destinationId,
+      envelope: outsideAllowance,
+      queuedAt: "2026-08-19T00:00:11.000Z",
+    });
+    transport.hubClockOffsetMs = 501;
+    await expect(
+      runRemoteCommandReconnectCycle({
+        destinationId,
+        expectedPeerIdentityHash: peerIdentityHash,
+        nodeId,
+        target,
+        transport,
+        handler: receiver({ target, publicKey, replayStore, clock, executor }),
+        clock,
+        clockSkewMs: 500,
+      }),
+    ).resolves.toMatchObject({
+      status: "offline",
+      failureCode: "invalid_lease_response",
+    });
+    expect(executor).toHaveBeenCalledTimes(1);
+    await expect(hub.getRemoteCommandDelivery(outsideQueued.deliveryId)).resolves.toMatchObject({
+      status: "leased",
+    });
+
+    replayStore.close();
     await hub.close();
   });
 

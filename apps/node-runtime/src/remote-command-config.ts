@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 
 import { type NodeRuntimeConfig } from "./config-types.js";
 import {
@@ -13,6 +13,41 @@ const NODE_PATTERN = /^node_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 const KEY_PATTERN = /^key_[A-Za-z0-9][A-Za-z0-9._-]{7,63}$/u;
 const ROLE_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
 const SKILL_PATTERN = /^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u;
+
+function providerExecutables(
+  value: unknown,
+  providers: readonly ("codex" | "claude")[],
+): Partial<Record<"codex" | "claude", string>> | undefined {
+  if (value === undefined) return undefined;
+  const source = configRecord(value, "remoteCommands.providerHost.executables");
+  const keys = Object.keys(source);
+  if (
+    keys.length < 1 ||
+    keys.length > 2 ||
+    keys.some((provider) => provider !== "codex" && provider !== "claude") ||
+    keys.some((provider) => !providers.includes(provider as "codex" | "claude"))
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "remoteCommands.providerHost.executables must name only allowlisted providers.",
+    );
+  }
+  const executables: Partial<Record<"codex" | "claude", string>> = {};
+  for (const provider of keys as Array<"codex" | "claude">) {
+    const executable = configText(
+      source[provider],
+      `remoteCommands.providerHost.executables.${provider}`,
+    );
+    if (!isAbsolute(executable) || /[\0\r\n]/u.test(executable)) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "A managed provider executable must be a safe absolute path.",
+      );
+    }
+    executables[provider] = executable;
+  }
+  return executables;
+}
 
 function baseTrustKeys(
   value: unknown,
@@ -172,7 +207,11 @@ export function parseRemoteCommandConfig(
   let providerHost: NonNullable<NodeRuntimeConfig["remoteCommands"]>["providerHost"];
   if (source.providerHost !== undefined) {
     const host = configRecord(source.providerHost, "remoteCommands.providerHost");
-    exactConfigKeys(host, ["providers", "roles", "developerSkills"], "remoteCommands.providerHost");
+    exactConfigKeys(
+      host,
+      ["providers", "roles", "developerSkills", "executables"],
+      "remoteCommands.providerHost",
+    );
     if (
       !Array.isArray(host.providers) ||
       host.providers.length < 1 ||
@@ -213,10 +252,13 @@ export function parseRemoteCommandConfig(
         "remoteCommands.providerHost.developerSkills is invalid.",
       );
     }
+    const providers = [...host.providers] as Array<"codex" | "claude">;
+    const executables = providerExecutables(host.executables, providers);
     providerHost = {
-      providers: [...host.providers] as Array<"codex" | "claude">,
+      providers,
       roles: [...host.roles] as string[],
       developerSkills: [...host.developerSkills] as string[],
+      ...(executables === undefined ? {} : { executables }),
     };
   }
   return {

@@ -233,6 +233,7 @@ export async function openNodeRemoteControlRuntime(input: {
               ...(commands.retryDelayMs === undefined
                 ? {}
                 : { retryDelayMs: commands.retryDelayMs }),
+              ...(commands.clockSkewMs === undefined ? {} : { clockSkewMs: commands.clockSkewMs }),
               ...(commands.limit === undefined ? {} : { limit: commands.limit }),
               ...(input.ports.onAcknowledgementPrepared === undefined
                 ? {}
