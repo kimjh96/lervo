@@ -6,13 +6,13 @@ As of: 2026-09-07
 
 ## Scope
 
-`lervo loop schedule` is one bounded foreground scheduler invocation. It periodically rebuilds the current governed-work report, discovers an eligible assignment, claims it through the existing workforce compare-and-swap lease, and starts at most one managed provider run at a time. One invocation can continue across multiple assignments and retries without another manual trigger. It requires neither a Hub nor a second task store.
+`lervo loop schedule` is one bounded foreground scheduler invocation. It periodically rebuilds the current governed-work report, discovers an eligible assignment, claims it through the existing workforce compare-and-swap lease, and starts at most one managed provider run at a time. An invocation can span multiple assignments and retries without another manual trigger, a Hub, or a second task store.
 
-The scheduler is not an operating-system daemon, cron installer, provider session-resume mechanism, approval authority, or dynamic graph editor. A service manager may invoke the CLI, but it must preserve this command's limits, exit status, owner-only lock, and kill switch.
+The scheduler is not an operating-system daemon, cron installer, provider session-resume mechanism, approval authority, or dynamic graph editor. A service manager may invoke the CLI but must preserve its limits, exit status, owner-only lock, and kill switch.
 
 ## Authority and selection
 
-The command requires explicit `--write` and one `--provider`. Optional repeated `--agent` values narrow the eligible hired-agent set; omission means all currently active, compatible repository agents. The pure controller chooses only an action already recommended by the current governed report and then requires:
+The command requires explicit `--write` and one `--provider`. Optional repeated `--agent` values narrow the eligible hired-agent set; omission selects all currently active, compatible repository agents. The pure controller chooses only an action already recommended by the current governed report and requires:
 
 - The exact assignment revision and current workstream.
 - A matching active agent role version and contract hash.
@@ -26,13 +26,13 @@ Claim rechecks the selected assignment revision under the existing scheduler loc
 
 Assignments remain the task authority. The scheduler constructs a bounded instruction from the assignment ID, task type, and acceptance criteria. It passes the exact full expected-path set, verification suites, role, skills, and capability packages through the existing managed-run port. The provider remains behind its adapter. The scheduler neither reads a hidden prompt store nor persists generated instructions.
 
-Managed runs now accept either the compatible single `expectedPath` input or an exact `expectedPaths` set. Supplying both, no path, duplicate paths, more than 128 paths, or an escaping path fails before provider startup.
+Managed runs accept either the compatible single `expectedPath` input or an exact `expectedPaths` set. Supplying both, no path, duplicate paths, more than 128 paths, or an escaping path fails before provider startup.
 
 ## Bounds and stop behavior
 
-Every invocation has positive bounded limits for polling interval, cycles, claims, managed runs, wall-clock admission time, consecutive recoverable failures, and lease duration. Existing governed policy independently enforces per-assignment attempts, parallel capacity, exact provider token dimensions, cache observations when supplied, and managed stage duration. A configured unknown or reached resource assessment still fails closed before another attempt and after a successful provider result.
+Every invocation has positive bounded limits for polling interval, cycles, claims, managed runs, wall-clock admission time, consecutive recoverable failures, and lease duration. Existing governed policy independently enforces per-assignment attempts, parallel capacity, exact provider token dimensions, cache observations when supplied, and managed stage duration. A configured unknown or reached resource assessment fails closed before another attempt and after a successful provider result.
 
-The default kill switch is `.lervo/state/unattended-scheduler.stop`; `--kill-switch` may select another repository-relative path. Any entry at the exact path pauses the scheduler before a poll, claim, or provider start. The scheduler cannot claim that it preempts an already-running provider call. Provider adapter deadlines and managed terminal evidence retain that responsibility.
+The default kill switch is `.lervo/state/unattended-scheduler.stop`; `--kill-switch` may select another repository-relative path. Any entry at the exact path pauses the scheduler before a poll, claim, or provider start. The scheduler cannot claim to preempt an already-running provider call; provider adapter deadlines and managed terminal evidence retain that responsibility.
 
 The scheduler:
 
@@ -44,7 +44,7 @@ The scheduler:
 
 ## Retry and uncertain effects
 
-A provider admission with no recorded attempt is known pre-effect and may be retried. A recorded terminal failed attempt may be retried only when the governed controller recommends `retry_attempt` and the per-assignment and scheduler limits both permit it. Failed verification follows the same controller decision.
+A provider admission with no recorded attempt is known pre-effect and may be retried. A recorded terminal failed attempt may be retried only when the governed controller recommends `retry_attempt` and both per-assignment and scheduler limits permit it. Failed verification follows the same controller decision.
 
 An attempt whose provider effect is not terminally proven is `uncertain`. The runner neither retries it nor finalizes the assignment as failed. A verified `assignment.completion.prepared` gap likewise stops at `completion_reconciliation_required`; the existing exact reconciliation plan/apply route owns recovery. Lease expiry alone never proves provider termination or permits replay of uncertain work.
 

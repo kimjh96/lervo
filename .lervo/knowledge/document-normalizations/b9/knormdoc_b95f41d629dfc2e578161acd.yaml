@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_4cc14856d68556ccab94ab3f
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5dc7a9a7f806a6424f3fc3cf
+outputLanguage: en
+outputs:
+  - byteCount: 5575
+    contentHash: sha256:16fd24269361049f445344f6539b89beacb6ffc5f177fe5e790b1b8ba2298f76
+    path: docs/decisions/execution/orchestration/governed-work/0379-install-bounded-unattended-assignment-scheduling.md
+    userRegionHash: sha256:16fd24269361049f445344f6539b89beacb6ffc5f177fe5e790b1b8ba2298f76
+profile: decision_record
+recordId: knormdoc_b95f41d629dfc2e578161acd
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:086fe9c2b722849f6755ef3c70d73bf67bb239fa401d6c7f0c328add7195083b
+sourcePath: docs/decisions/execution/orchestration/governed-work/0379-install-bounded-unattended-assignment-scheduling.md
+sourceUnitVersionIds:
+  - uv_1fc2f112bf68c0aa9e1eceb9
+  - uv_54a68a35d397425cc9b326e6
+  - uv_5c0fa7e0ef35f411b2ae8a62
+  - uv_951bfbbdceaf76c7e55ed569
+  - uv_c0b93cece99198eee594927d
+  - uv_d8f4175ff578aeb595bf36c7

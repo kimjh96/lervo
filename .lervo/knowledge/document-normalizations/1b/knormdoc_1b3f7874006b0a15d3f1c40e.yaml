@@ -1,0 +1,52 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_4cc14856d68556ccab94ab3f
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_907afb66745b4027356fe4d5
+outputLanguage: en
+outputs:
+  - byteCount: 2415
+    contentHash: sha256:582eebe708d3138050bddcdc4ea6a355b8ce26095baf8dc73f32d1b1c4c741c0
+    path: docs/architecture/system/hub-and-nodes.md
+    userRegionHash: sha256:582eebe708d3138050bddcdc4ea6a355b8ce26095baf8dc73f32d1b1c4c741c0
+  - byteCount: 497
+    contentHash: sha256:87c8be28d5c2eb3b823c7efa1b6dbe3f912c8aa7196fbfe5a49b8f244d706a1c
+    path: docs/architecture/system/hub-and-nodes/authentication.md
+    userRegionHash: sha256:87c8be28d5c2eb3b823c7efa1b6dbe3f912c8aa7196fbfe5a49b8f244d706a1c
+  - byteCount: 606
+    contentHash: sha256:eea6781b80a3e175e63e3c89a81a9088b72159927cc46058b58360d344eafdb5
+    path: docs/architecture/system/hub-and-nodes/optional-coordination.md
+    userRegionHash: sha256:eea6781b80a3e175e63e3c89a81a9088b72159927cc46058b58360d344eafdb5
+  - byteCount: 792
+    contentHash: sha256:08acdb86b18c2fed297b82e7cc38731b9e25aa2b6a06cd537af0218993d27804
+    path: docs/architecture/system/hub-and-nodes/reader-compatibility.md
+    userRegionHash: sha256:08acdb86b18c2fed297b82e7cc38731b9e25aa2b6a06cd537af0218993d27804
+  - byteCount: 838
+    contentHash: sha256:2a843a665a4c0854f67462ef8773650fbe46a010477e5fe1ada6a973014f3e9b
+    path: docs/architecture/system/hub-and-nodes/replication.md
+    userRegionHash: sha256:2a843a665a4c0854f67462ef8773650fbe46a010477e5fe1ada6a973014f3e9b
+  - byteCount: 1015
+    contentHash: sha256:abc59e12975c4b43f52c551e86aeaac3123921bba4c7d263c56db287c92b5c79
+    path: docs/architecture/system/hub-and-nodes/rollout.md
+    userRegionHash: sha256:abc59e12975c4b43f52c551e86aeaac3123921bba4c7d263c56db287c92b5c79
+profile: architecture_document
+recordId: knormdoc_1b3f7874006b0a15d3f1c40e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0bc88f7f3700fe48e3ead329ee4efa08ceec09f970c1f79e4115e646ac17447e
+sourcePath: docs/architecture/system/hub-and-nodes.md
+sourceUnitVersionIds:
+  - uv_02d8994cf9b6b79b97454e63
+  - uv_25a643342af59ba471b61563
+  - uv_56756f0ca5a7b94b89808a6d
+  - uv_8232446546aefdc8c2eb0d80
+  - uv_8c38a02777ccf705ed72dce5
+  - uv_d49eb069d3cb7cb9de655361
+  - uv_ebfe571672431eff8802ee94

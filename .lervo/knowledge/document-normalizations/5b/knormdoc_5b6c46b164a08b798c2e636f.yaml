@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_4cc14856d68556ccab94ab3f
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1c5d4d20df3caf3e715867c6
+outputLanguage: en
+outputs:
+  - byteCount: 4470
+    contentHash: sha256:3e671e1e8789ecef9ceefb7df635c0df7ce5d394f19825ab709dcb870cab8f34
+    path: docs/evidence/foundation/installed-bounded-unattended-scheduler-v1.md
+    userRegionHash: sha256:3e671e1e8789ecef9ceefb7df635c0df7ce5d394f19825ab709dcb870cab8f34
+profile: repository_document
+recordId: knormdoc_5b6c46b164a08b798c2e636f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5c529defcd44d88aa888b00f205484387fd4561a0d831af2a25769f763074665
+sourcePath: docs/evidence/foundation/installed-bounded-unattended-scheduler-v1.md
+sourceUnitVersionIds:
+  - uv_0784c35943d023570029ad71
+  - uv_0b2bc09fcc43282ff68f3de3
+  - uv_320cc0b5bc22c7334977207e
+  - uv_791731e55824355cc7289450
+  - uv_a1c56473934d09755fad3c8e
+  - uv_cfee084e8651154f1e0065ed
+  - uv_fdef21d89301aabd7787bfeb

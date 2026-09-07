@@ -1,0 +1,47 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_4cc14856d68556ccab94ab3f
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6371bb974f88d9656c32ce62
+outputLanguage: en
+outputs:
+  - byteCount: 2677
+    contentHash: sha256:ade462b1a6cc75be424289cc22e4749d50e424e053aa6b63b9445f34046b374f
+    path: docs/architecture/system/managed-execution.md
+    userRegionHash: sha256:ade462b1a6cc75be424289cc22e4749d50e424e053aa6b63b9445f34046b374f
+  - byteCount: 821
+    contentHash: sha256:15813dc6c8fe59c60f8af6ae1db6d638f9a3cacad3a41440ad98e59ff906d0df
+    path: docs/architecture/system/managed-execution/admission-and-activation.md
+    userRegionHash: sha256:15813dc6c8fe59c60f8af6ae1db6d638f9a3cacad3a41440ad98e59ff906d0df
+  - byteCount: 592
+    contentHash: sha256:0790bd4a050a57cbb0103547d327003b9501f0e1cf4a2918d2e919013f1d1b1d
+    path: docs/architecture/system/managed-execution/coverage-and-publication.md
+    userRegionHash: sha256:0790bd4a050a57cbb0103547d327003b9501f0e1cf4a2918d2e919013f1d1b1d
+  - byteCount: 1218
+    contentHash: sha256:3e0822f92ce3c4c296fc1e6bb7f245fba665a06af19730a184381e1f74fe61e2
+    path: docs/architecture/system/managed-execution/direct-provider-terminals.md
+    userRegionHash: sha256:3e0822f92ce3c4c296fc1e6bb7f245fba665a06af19730a184381e1f74fe61e2
+  - byteCount: 841
+    contentHash: sha256:5f29671b7ad6861e782c27ef4d29d0c45f3bdd2207e75f937b35dfbbf8978db6
+    path: docs/architecture/system/managed-execution/headless-application-boundary.md
+    userRegionHash: sha256:5f29671b7ad6861e782c27ef4d29d0c45f3bdd2207e75f937b35dfbbf8978db6
+profile: architecture_document
+recordId: knormdoc_43c8b77f491e094db066d464
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f608c201847a3a90f67998cf479da0ddde1b4abc55298198dcfa81b6a7284ab4
+sourcePath: docs/architecture/system/managed-execution.md
+sourceUnitVersionIds:
+  - uv_199ea93282fd16017328dc23
+  - uv_30bc1cfce1eb5f20a286cbbc
+  - uv_331c0581f864a22f7bbb6d05
+  - uv_af8eddee18f06f6aabe1da0b
+  - uv_cd6717b77f2040a40ab22d11
+  - uv_d6dc3c22eb9544f57ced8847

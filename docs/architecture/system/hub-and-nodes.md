@@ -1,40 +1,12 @@
 # Hub and node runtimes
 
-## Authentication and credentials
+- [Authentication and credentials](hub-and-nodes/authentication.md)
+- [Rollout and rollback](hub-and-nodes/rollout.md)
+- [Workstream and event replication](hub-and-nodes/replication.md)
+- [Reader compatibility](hub-and-nodes/reader-compatibility.md)
+- [Optional coordination and capability registry](hub-and-nodes/optional-coordination.md)
 
-Hub endpoints authenticate before access. Signed organization policies enforce project scopes and separate credential issuance from delivery. Secret-free grants bind their Node, destination, permissions, generation, and lifetime; runtime sources provide bearer bytes.
-
-The owner-only file source performs bounded no-follow reads, clears raw buffers, and activates a candidate only after authenticated project registration. It is not an external secret authority.
-
-## Rollout and rollback
-
-Approved rollout execution and rollback are exact one-Node transactions. Forward delivery authenticates, fences replay, and records a recovery baseline. Recovery classifies without applying. Rollback binds the failed artifact to the enrolled predecessor and commits the registry after readiness; it lacks authenticated process delivery. None is Hub, daemon, or multi-Node transport.
-
-Installed Nodes use deterministic project, repository, and Node identity. An owner-only local registry binds root, destination, runtime, service, and health coordinates without credentials. Exact apply transactionally installs or upgrades, requires three stable complete observations, then registers. Organization enrollment binds that evidence to active credential delivery.
-
-Rollout begins with one canary, grows at most twofold, and separates planning, observation, approval, execution, and rollback. Plans and approvals claim no effect; a Node execution receipt claims only its exact local transaction.
-
-## Workstream and event replication
-
-Bounded workstream revisions replicate separately from event streams, keyed by project and repository identity. Authorized nodes see the same append-only head set. Each event-producing node uses a distinct destination coordinate because each destination owns one canonical hash chain.
-
-A node publishes local ancestry, imports only a newer unique head through CAS, projection, and a system event, and exposes divergence without choosing a winner. Pending approvals transfer only as unresolved state, never authority.
-
-Local event producers do not know Hub endpoints or device credentials. When policy permits and a Node selects a destination, it authenticates registration, checks the Hub cursor against local truth, and durably reconciles the next bounded event prefix into that destination's outbox.
-
-## Reader compatibility
-
-Event-reader compatibility is a provider-neutral, rebuildable capability observation, not writer authority. Local diagnostics and Node health advertise their readable envelope versions. Hub exposes the same secret-free report through an identity-bound health endpoint that sync clients read without sending bearer credentials.
-
-Missing or incapable peers cannot authorize v2 writing. Local execution and v1 writing remain independent of Hub availability.
-
-For a Hub-enabled project, the existing owner-only Node fleet registry is the complete configured membership authority. The service definition and runtime config bind its Node and Hub observation sources. Planning and apply each re-observe exact capability and identity without creating another reader registry.
-
-## Optional coordination and capability registry
-
-Optional Hub coordination reserves path digests before local leases. Summaries are observational; the Hub cannot write, integrate, approve, or clean. See [Hub and Node coordination](../../specifications/coordination/hub-and-node.md).
-
-The optional Hub capability registry accepts only explicit content-bound publication. Project packages require matching project scope; public packages require explicit public selection. Separate read and publish permissions protect immutable envelopes. Local packages and execution do not depend on this registry.
+Coordination contract: [Hub and Node coordination](../../specifications/coordination/hub-and-node.md).
 
 ## Decisions
 

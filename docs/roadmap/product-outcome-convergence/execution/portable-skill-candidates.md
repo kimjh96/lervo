@@ -2,8 +2,10 @@
 
 State: `implemented`
 
-Outcome: independently verified repeated workflows become reviewable portable-skill candidates.
+Independently verified repeated workflows become reviewable portable-skill candidates.
 
-Evidence: terminal finalization creates a CAS-bound development-pattern candidate only from independently grouped current sources and distinct passed verification events. The installed journey covers exact review, supersession, promotion, authorization, migration, activation, invocation, completion, and post-promotion observation.
+Terminal finalization creates a CAS-bound development-pattern candidate only from independently grouped current sources and distinct passed verification events. Retrieval selection alone never establishes candidacy.
 
-Preserve exact source, verification, skill, resource, input, output, tool, permission, provider, platform, and role contracts. Retrieval selection alone never establishes candidacy.
+The installed journey covers exact review, supersession, promotion, authorization, migration, activation, invocation, completion, and post-promotion observation.
+
+Preserve exact source, verification, skill, resource, input, output, tool, permission, provider, platform, and role contracts.
