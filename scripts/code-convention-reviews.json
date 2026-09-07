@@ -32,9 +32,9 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:bd6bebef72cafa0d142de2b43e9fda78f71ff9c93ad4fec202042f09d9edf05c",
+      "contentHash": "sha256:55c5c42b6abfca3a1c967b86107fba4e3453dfe114710010627da23d66f5b747",
       "responsibility": "Managed provider run command orchestration",
-      "rationale": "The module composes one managed provider-run boundary; provider differences remain injected dependencies, while causal validation and assignment finalization are extracted and no unrelated CLI subcommand or persistence policy is owned here.",
+      "rationale": "The module composes one managed provider-run boundary; provider differences remain injected dependencies, causal validation and assignment finalization are extracted, and single-or-multiple expected-path normalization is isolated in a focused module rather than adding parsing policy here.",
       "disposition": "cohesive"
     },
     {
@@ -67,9 +67,9 @@
     },
     {
       "path": "packages/agent-workforce/src/store.ts",
-      "contentHash": "sha256:31b81e228e9fa139491a74340c5ecaade98c4efea93fc434dbd841c9ffb6cafc",
+      "contentHash": "sha256:7a5f53b1926e2f5c5e64b883acd47cea92ebb8b7512547901b7c80ba2f7346bb",
       "responsibility": "Durable repository workforce aggregate",
-      "rationale": "Agent and assignment records, including bounded routine and message-trigger provenance plus recipient acknowledgment, share one project-bound coordination home, validation model, atomic transition and event rollback, and concurrency retry boundary. Pure trigger and admission planning, assignment-DAG cancellation, prepared-completion validation, and workspace lifecycle effects remain in linked modules.",
+      "rationale": "Agent and assignment records, including exact-revision scheduler claims, bounded routine and message-trigger provenance, and recipient acknowledgment, share one project-bound coordination home, validation model, atomic transition and event rollback, and concurrency retry boundary. Pure scheduler selection, trigger and admission planning, assignment-DAG cancellation, prepared-completion validation, and workspace lifecycle effects remain in linked modules.",
       "disposition": "cohesive"
     },
     {

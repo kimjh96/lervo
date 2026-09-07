@@ -58,7 +58,7 @@ export function renderGovernedAttemptResult(
       channel: "stderr",
       output: json
         ? `${JSON.stringify(result, null, 2)}\n`
-        : `Governed attempt failed (${result.code}); retry=${result.retryAvailable}.\n`,
+        : `Governed attempt failed (${result.code}); effect=${result.effectState}; retry=${result.retryAvailable}.\n`,
       exitCode: 1,
     };
   }

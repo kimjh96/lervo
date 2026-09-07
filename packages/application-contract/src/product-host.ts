@@ -206,8 +206,45 @@ export interface ProductHostCapabilityReportV4 {
   unsupported: ProductHostCapabilityReportV1["unsupported"];
 }
 
+export type ProductHostRouteIdV5 = ProductHostRouteIdV4 | "unattended_scheduler.execute";
+
+export type ProductHostResultContractV5 =
+  ProductHostResultContractV4 | "unattended_scheduler_result";
+
+export interface ProductHostRouteV5 extends Omit<
+  ProductHostRouteV1,
+  "routeId" | "resultContract" | "contractVersion" | "authority"
+> {
+  routeId: ProductHostRouteIdV5;
+  contractVersion: 1 | 2;
+  resultContract: ProductHostResultContractV5;
+  authority: ProductHostRouteV1["authority"] | "bounded_unattended_execution";
+}
+
+export interface ProductHostCapabilityReportV5 {
+  schemaVersion: 5;
+  kind: "product_host.capabilities";
+  protocol: {
+    transport: "local_cli";
+    version: 5;
+    discoveryCommand: ["application", "capabilities", "--protocol", "5", "--json"];
+    requiresHub: false;
+  };
+  canonicalAuthorities: ProductHostCapabilityReportV1["canonicalAuthorities"];
+  projections: ProductHostCapabilityReportV4["projections"];
+  routes: ProductHostRouteV5[];
+  unsupported: [
+    "product_ui",
+    "product_database",
+    "dynamic_graph_mutation",
+    "implicit_approval",
+    "unmanaged_terminal_execution",
+  ];
+}
+
 export type ProductHostCapabilityReport =
   | ProductHostCapabilityReportV1
   | ProductHostCapabilityReportV2
   | ProductHostCapabilityReportV3
-  | ProductHostCapabilityReportV4;
+  | ProductHostCapabilityReportV4
+  | ProductHostCapabilityReportV5;

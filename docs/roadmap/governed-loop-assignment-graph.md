@@ -2,17 +2,18 @@
 
 Status: `complete`
 
-As of: 2026-09-05
+As of: 2026-09-07
 
-Completion covers only the bounded manual slices below. Root-agent and managed-provider liveness and the read-only repository-goal lifecycle are installed. Native provider session resume, independent goal mutation, dynamic topology, and unattended Prime-Agent-style continuation remain in the [product outcome convergence roadmap](product-outcome-convergence.md).
+Completion covers the bounded manual slices below. Root-agent and managed-provider liveness, the read-only repository-goal lifecycle, and the later bounded unattended scheduler are installed. Native provider session resume, independent goal mutation, and dynamic topology remain in the [product outcome convergence roadmap](product-outcome-convergence.md).
 
 ## Goal
 
-Add bounded continuation and graph execution without a second task database, weaker managed execution, or unattended authority. One provider-neutral headless application contract replays current workstreams, assignments, managed-run causality, verification, resource observations, and leases.
+Add bounded continuation and graph execution without a second task database or weaker managed execution. One provider-neutral headless application contract replays current workstreams, assignments, managed-run causality, verification, resource observations, and leases.
 
 ```text
-manual trigger -> verified checkpoint -> assignment decision -> managed attempt
-               -> observe -> verify -> complete | retry | block | escalate
+manual or bounded scheduler trigger -> verified checkpoint -> assignment decision
+                                    -> managed attempt -> observe -> verify
+                                    -> complete | retry | block | escalate
 ```
 
 ## Completed slices
@@ -37,7 +38,7 @@ Events, CAS artifacts, assignment state, verification, and repository state rema
 
 ## Non-goals
 
-- Unattended or timer-based scheduling.
+- An unbounded daemon, operating-system scheduler installation, or in-flight provider preemption.
 - Arbitrary graph cycles or agent-authored topology mutation.
 - Third-party code execution inside the controller.
 - Estimated money presented as billed cost.
@@ -72,9 +73,11 @@ Events, CAS artifacts, assignment state, verification, and repository state rema
 - [ADR-0365](../decisions/execution/orchestration/governed-work/0365-project-workstream-goals-over-the-assignment-dag.md)
 - [ADR-0373](../decisions/execution/orchestration/governed-work/0373-enforce-managed-execution-dimension-and-duration-budgets.md)
 - [ADR-0375](../decisions/execution/orchestration/governed-work/0375-route-reviewed-direct-messages-and-record-explicit-handoff-acknowledgment.md)
+- [ADR-0379](../decisions/execution/orchestration/governed-work/0379-install-bounded-unattended-assignment-scheduling.md)
 - [Assignment interaction specification](../specifications/execution/assignment-interactions.md)
 - [Assignment connector specification](../specifications/execution/assignment-connectors.md)
 - [Assignment routine specification](../specifications/execution/assignment-routines.md)
+- [Bounded unattended scheduler specification](../specifications/execution/unattended-scheduling.md)
 - [Reviewed direct-message trigger specification](../specifications/execution/assignment-message-triggers.md)
 - [Verified improvement effects](../specifications/execution/verified-improvement-effects.md)
 - [Verified improvement-effect dogfood](../evidence/pilots/verified-improvement-effect-dogfood.md)

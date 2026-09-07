@@ -1,7 +1,7 @@
 # Product-host protocol
 
 Status: `active`
-As of: 2026-09-05
+As of: 2026-09-07
 
 ## Purpose and discovery
 
@@ -13,16 +13,18 @@ Default discovery returns the 21-route `ProductHostCapabilityReportV1`:
 lervo application capabilities --json
 ```
 
-Explicit version requests add capabilities without changing earlier versions' discovery:
+Explicit versions add capabilities without changing earlier versions' discovery:
 
-- v2 adds read-only operating-attention and operating-goal routes and projections.
-- v3 adds the read-only operating-liveness route and projection.
-- v4 adds reviewed direct-message triggering, explicit handoff acknowledgment, and its acknowledgment projection.
+- v2: read-only operating-attention and operating-goal routes and projections.
+- v3: read-only operating-liveness route and projection.
+- v4: reviewed direct-message triggering, explicit handoff acknowledgment, and its projection.
+- v5: bounded unattended assignment execution, removed from only v5's unsupported list.
 
 ```bash
 lervo application capabilities --protocol 2 --json
 lervo application capabilities --protocol 3 --json
 lervo application capabilities --protocol 4 --json
+lervo application capabilities --protocol 5 --json
 ```
 
 All versions are compatibility and discovery contracts, not authority grants, repository snapshots, or assertions that route prerequisites are satisfied.
@@ -33,12 +35,12 @@ Each report contains:
 
 - Protocol-matching `schemaVersion` and `kind: product_host.capabilities`.
 - Protocol transport, version, discovery command, and `requiresHub: false`.
-- Canonical authority classes that products must not duplicate.
-- Rebuildable projection classes that products may render or transform.
+- Canonical authority classes products must not duplicate.
+- Rebuildable projection classes products may render or transform.
 - Ordered route descriptors with area, operation, stable result-contract identifier, command prefix, output, effect, authority, and availability.
 - Explicit unsupported product capabilities.
 
-Command arrays omit the executable name and repository-specific arguments. Products invoke the installed `lervo` executable, add required route arguments, and request the declared output. Help text is human guidance, not the machine discovery contract.
+Command arrays omit the executable name and repository-specific arguments. Products invoke installed `lervo`, add required route arguments, and request the declared output. Help text is human guidance, not the machine discovery contract.
 
 ## Route inventory
 
@@ -68,6 +70,7 @@ Command arrays omit the executable name and repository-specific arguments. Produ
 | `governed_attempt.execute` | `loop run` | lease-bound managed execution |
 | `governed_completion.reconcile` | `loop reconcile` | exact plan/apply |
 | `assignment_routine.materialize` | `routine materialize` | exact plan/apply |
+| `unattended_scheduler.execute` (v5) | `loop schedule` | bounded unattended execution |
 
 The v1 budget result preserves total-token fields and adds discriminated token-dimension and duration assessments. These read-only additions derive from the same governed-work policy. Hosts must treat `unknown` and `reached` as unsuccessful budget status.
 
@@ -84,7 +87,9 @@ Protocol v3 adds:
 | --- | --- | --- |
 | `operating_liveness.inspect` | `application liveness --json` | read-only |
 
-Liveness reports keep root-agent heartbeat and managed-provider process observations in separate collections. Provider-process items are latest point-in-time observations per opaque session digest, not current-health claims. `unobservable`, stale, revision-changed, and exited results grant no release or recovery authority.
+Liveness reports separate root-agent heartbeats from managed-provider process observations. Provider-process items are latest point-in-time observations per opaque session digest, not current-health claims. `unobservable`, stale, revision-changed, and exited results grant no release or recovery authority.
+
+Protocol v5 adds a bounded foreground scheduler requiring explicit `--write`, finite invocation limits, one provider, current governed checkpoints, exact claim and lease ownership, existing resource and attempt budgets, and a repository-local kill switch. Its result is a bounded process observation, not a task store or authority grant. See [bounded unattended assignment scheduling](unattended-scheduling.md).
 
 ### Collaboration
 
@@ -97,9 +102,9 @@ Liveness reports keep root-agent heartbeat and managed-provider process observat
 | `assignment_message_trigger.route` (v4) | `assignment trigger` | exact plan/apply |
 | `assignment_handoff.acknowledge` (v4) | `assignment acknowledge` | explicit recipient write |
 
-The v4 installed trigger adapter consumes only reviewed, content-addressed direct-message observations. Its exact plan/apply reuses current mention and handoff authority; it does not authenticate an external platform or start work. Acknowledgment validates an exact active recipient-agent coordinate, does not authenticate a human principal, and never upgrades delivery or action.
+The v4 installed trigger adapter consumes only reviewed, content-addressed direct-message observations. Its exact plan/apply reuses current mention and handoff authority; it neither authenticates an external platform nor starts work. Acknowledgment validates an exact active recipient-agent coordinate, does not authenticate a human principal, and never upgrades delivery or action.
 
-Protocol v4 also adds `--contract 2` to its existing `assignment_thread.inspect` and `assignment_inbox.inspect` descriptors, selecting communication contract v2. That report exposes recorded acknowledgment and reviewed-trigger provenance. Default CLI commands and protocol v1–v3 descriptors retain communication contract v1 with unchanged shape and unobserved acknowledgment semantics.
+Protocol v4 adds `--contract 2` to existing `assignment_thread.inspect` and `assignment_inbox.inspect` descriptors, selecting communication contract v2. That report exposes recorded acknowledgment and reviewed-trigger provenance. Default CLI commands and protocol v1–v3 descriptors retain communication contract v1 with unchanged shape and unobserved acknowledgment semantics.
 
 Each route remains owned by its existing domain or adapter; the capability command does not centralize route policy.
 
@@ -113,17 +118,19 @@ External connector effects remain unavailable in the stock CLI. Hosts injecting 
 
 ## Unsupported capabilities
 
-Versions 1–4 provide no product UI, product-owned task or chat database, unattended scheduler, dynamic graph mutation, implicit approval, or managed semantics for direct provider terminals. Consumers must not infer authority from a successful query or render.
+Versions 1–4 provide no product UI, product-owned task or chat database, unattended scheduler, dynamic graph mutation, implicit approval, or managed semantics for direct provider terminals. Protocol v5 adds only bounded unattended scheduling; it still provides no product UI, product database, dynamic graph mutation, implicit approval, or managed semantics for direct provider terminals. Consumers must not infer broader authority from a successful query or render.
 
 Protocol v2 attention and goal reports add no inbox, goal store, acknowledgment, resolution, or scheduling authority. Protocol v3 liveness adds no process controller, polling, recovery, reassignment, or lease-release authority.
 
 Protocol v4's reviewed-input adapter is not a live Slack, Discord, webhook, or Hub receiver. Its acknowledgment route is not delivery, approval, assignment acceptance, provider execution, or completion evidence.
 
+Protocol v5 does not install a daemon, preempt an in-flight provider, apply cancellation, grant approval, reconcile uncertain completion automatically, or mutate graph topology.
+
 ## External-consumer acceptance
 
 `pnpm smoke:packed-cli` builds the real tarball, installs it into an empty temporary consumer, and runs the protocol without workspace imports. The fixture verifies:
 
-- Default 21-route v1, explicit 23-route v2, explicit 24-route v3, and explicit 26-route v4 reports.
+- Default 21-route v1, explicit 23-route v2, explicit 24-route v3, explicit 26-route v4, and explicit 27-route v5 reports.
 - The exact connector limitation and unsupported capabilities.
 - Absence of workspace coordinates and private Lervo package installation.
 
@@ -138,6 +145,7 @@ Using only CLI commands, it then:
 7. Inspects current operating attention through protocol v2.
 8. Activates the v2 event writer, records a privacy-bounded root heartbeat, and inspects operating liveness through protocol v3.
 9. Routes one reviewed direct-message artifact through exact plan/apply, proves source-event replay is current, records acknowledgment for the exact recipient-agent coordinate, and confirms delivery remains unobserved through protocol v4.
+10. Invokes the installed bounded scheduler once, observes it claim one queued assignment at the exact revision and execute it through managed execution, and verifies the assignment completes without a Hub or another manual trigger.
 
 Acceptance uses no Hub, provider, network route, or connector effect. Cross-platform release matrices remain responsible for broader installation evidence.
 
@@ -147,6 +155,7 @@ Acceptance uses no Hub, provider, network route, or connector effect. Cross-plat
 - [ADR-0361](../../decisions/execution/applications/0361-project-operating-attention-without-new-authority.md)
 - [ADR-0374](../../decisions/execution/applications/0374-project-operating-liveness-without-health-inference.md)
 - [ADR-0375](../../decisions/execution/orchestration/governed-work/0375-route-reviewed-direct-messages-and-record-explicit-handoff-acknowledgment.md)
+- [ADR-0379](../../decisions/execution/orchestration/governed-work/0379-install-bounded-unattended-assignment-scheduling.md)
 - [Operating attention](operating-attention.md)
 - [Operating liveness](operating-liveness.md)
 - [Operating goals](operating-goals.md)

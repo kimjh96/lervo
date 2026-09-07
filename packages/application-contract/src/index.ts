@@ -9,3 +9,4 @@ export * from "./operating-liveness.js";
 export * from "./policy.js";
 export * from "./product-host.js";
 export * from "./types.js";
+export * from "./unattended-scheduler.js";

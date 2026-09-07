@@ -24,6 +24,7 @@ Defines provider-neutral managed execution and evidence contracts. ADRs retain r
 - [Events and privacy](execution/events-and-privacy.md) owns event contracts, reader compatibility, writer activation, and failure codes.
 - [Stage observation and performance](execution/stage-observation-and-performance.md) defines timing, environment, projection, and performance gates.
 - [Operating liveness](execution/operating-liveness.md) defines the installed read-only separation of root-agent heartbeat and managed-provider point-in-time process evidence.
+- [Bounded unattended scheduling](execution/unattended-scheduling.md) defines periodic governed selection, exact-revision claim, finite execution limits, kill-switch behavior, and uncertain-effect recovery.
 - [Adverse-condition safety](execution/adverse-condition-safety.md) defines the common effect inventory, exact completion/rollback/recovery projection, cancellation and backpressure bounds, telemetry field registry, threat model, capacity and retention profiles, and compatibility rehearsals.
 - [Hub and Node coordination](coordination/hub-and-node.md) defines remote coordination.
 

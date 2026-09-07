@@ -996,6 +996,7 @@ function overlaps(left: string[], right: string[]): boolean {
 async function claimAssignmentOnce(input: {
   repositoryRoot: string;
   assignmentId: string;
+  expectedRevision?: number;
   agentId: string;
   sessionId: string;
   leaseDurationMs?: number;
@@ -1017,6 +1018,9 @@ async function claimAssignmentOnce(input: {
   try {
     const assignmentState = await readAssignmentState(input.repositoryRoot, input.assignmentId);
     const assignment = assignmentState.value;
+    if (input.expectedRevision !== undefined && assignment.revision !== input.expectedRevision) {
+      fail("agent_state_conflict", "The assignment revision changed before claim.");
+    }
     const all = await listAssignments(input.repositoryRoot);
     if (assignment.roleId !== agent.roleId)
       fail("assignment_lease_conflict", "The agent role does not match the assignment role.");
@@ -1119,6 +1123,7 @@ async function claimAssignmentOnce(input: {
 export function claimAssignment(input: {
   repositoryRoot: string;
   assignmentId: string;
+  expectedRevision?: number;
   agentId: string;
   sessionId: string;
   leaseDurationMs?: number;

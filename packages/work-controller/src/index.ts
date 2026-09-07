@@ -16,3 +16,4 @@ export * from "./managed-resource-projection.js";
 export * from "./managed-stage-projection.js";
 export * from "./operating-goal-projection.js";
 export * from "./report.js";
+export * from "./unattended-scheduler-selection.js";

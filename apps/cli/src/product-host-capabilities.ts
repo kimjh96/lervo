@@ -3,9 +3,11 @@ import type {
   ProductHostCapabilityReportV1,
   ProductHostCapabilityReportV2,
   ProductHostCapabilityReportV3,
+  ProductHostCapabilityReportV4,
 } from "@lervo/application-contract";
 
 import { upgradeProductHostCapabilityReportV4 } from "./product-host-capabilities-v4.js";
+import { upgradeProductHostCapabilityReportV5 } from "./product-host-capabilities-v5.js";
 
 function createProductHostCapabilityReportV1(): ProductHostCapabilityReportV1 {
   return {
@@ -376,10 +378,13 @@ function createProductHostCapabilityReportV3(): ProductHostCapabilityReportV3 {
 }
 
 export function createProductHostCapabilityReport(
-  protocolVersion: 1 | 2 | 3 | 4 = 1,
+  protocolVersion: 1 | 2 | 3 | 4 | 5 = 1,
 ): ProductHostCapabilityReport {
   if (protocolVersion === 1) return createProductHostCapabilityReportV1();
   if (protocolVersion === 2) return createProductHostCapabilityReportV2();
   if (protocolVersion === 3) return createProductHostCapabilityReportV3();
-  return upgradeProductHostCapabilityReportV4(createProductHostCapabilityReportV3());
+  const versionFour: ProductHostCapabilityReportV4 = upgradeProductHostCapabilityReportV4(
+    createProductHostCapabilityReportV3(),
+  );
+  return protocolVersion === 4 ? versionFour : upgradeProductHostCapabilityReportV5(versionFour);
 }

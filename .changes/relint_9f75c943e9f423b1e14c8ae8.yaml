@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_9f75c943e9f423b1e14c8ae8"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add bounded unattended assignment scheduling with exact leases, managed budgets, fail-closed recovery, and an installed CLI route."

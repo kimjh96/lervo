@@ -38,6 +38,8 @@ const versionFourRouteIds = [
   "assignment_handoff.acknowledge",
 ];
 
+const versionFiveRouteIds = [...versionFourRouteIds, "unattended_scheduler.execute"];
+
 function parsed(result) {
   assert.equal(result.stderr, "");
   return JSON.parse(result.stdout);
@@ -221,5 +223,32 @@ export async function verifyPackedProductHostCapabilities(runCli) {
     },
   ]);
   assert.equal(versionFour.projections.includes("assignment_acknowledgements"), true);
-  return versionFour;
+  const versionFive = parsed(
+    await runCli(["application", "capabilities", "--protocol", "5", "--json"]),
+  );
+  assert.equal(versionFive.schemaVersion, 5);
+  assert.deepEqual(versionFive.protocol, {
+    transport: "local_cli",
+    version: 5,
+    discoveryCommand: ["application", "capabilities", "--protocol", "5", "--json"],
+    requiresHub: false,
+  });
+  assert.deepEqual(
+    versionFive.routes.map((route) => route.routeId),
+    versionFiveRouteIds,
+  );
+  assert.deepEqual(versionFive.routes.at(-1), {
+    routeId: "unattended_scheduler.execute",
+    area: "operating",
+    operation: "command",
+    contractVersion: 1,
+    resultContract: "unattended_scheduler_result",
+    command: ["loop", "schedule"],
+    output: "json",
+    effect: "managed_provider",
+    authority: "bounded_unattended_execution",
+    availability: "available",
+  });
+  assert.equal(versionFive.unsupported.includes("unattended_scheduling"), false);
+  return versionFive;
 }

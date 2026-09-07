@@ -1,11 +1,32 @@
 import type { GovernedWorkReportV1 } from "@lervo/application-contract";
 import { planGovernedAttemptCommand } from "@lervo/work-controller";
 
-import type { ParsedLoopOptions } from "./loop-options.js";
 import type { ManagedRunOutcome } from "./managed-run.js";
 import type { CliServices } from "./types.js";
 
-type RunOptions = Extract<ParsedLoopOptions, { action: "run" }>;
+import type { GovernedLoopPolicyV1 } from "@lervo/application-contract";
+import type { RunProvider } from "./managed-run.js";
+
+export interface GovernedAttemptRequest {
+  repositoryRoot: string;
+  policy: Partial<GovernedLoopPolicyV1>;
+  provider: RunProvider;
+  assignmentId: string;
+  agentId: string;
+  leaseId: string;
+  expectedPaths: string[];
+  verificationSuiteIds: string[];
+  instructions: string;
+  risk: string;
+  skillIds: string[];
+  capabilityIds: string[];
+  roleId?: string;
+}
+
+export type GovernedAttemptServices = Pick<
+  CliServices,
+  "executeManagedRun" | "finalizeGovernedAssignment" | "inspectGovernedWork"
+>;
 const budgetFailureReasons = [
   "token_budget_exhausted",
   "duration_budget_exhausted",
@@ -19,6 +40,7 @@ export type GovernedAttemptRunResult =
       status: "execution_failed";
       code: string;
       attemptRecorded: boolean;
+      effectState: "not_started" | "terminal_failed" | "uncertain";
       retryAvailable: boolean;
       report: GovernedWorkReportV1;
     }
@@ -65,9 +87,9 @@ function managedBudgetFailure(
 }
 
 export async function executeGovernedAttempt(
-  options: RunOptions,
+  options: GovernedAttemptRequest,
   report: GovernedWorkReportV1,
-  services: CliServices,
+  services: GovernedAttemptServices,
 ): Promise<GovernedAttemptRunResult> {
   const command = planGovernedAttemptCommand({ report, assignmentId: options.assignmentId });
   const node = report.graph.nodes.find(
@@ -100,7 +122,7 @@ export async function executeGovernedAttempt(
     outcome = await services.executeManagedRun({
       repositoryRoot: options.repositoryRoot,
       provider: options.provider,
-      expectedPath: options.expectedPath,
+      expectedPaths: options.expectedPaths,
       instructions: options.instructions,
       risk: options.risk,
       skillIds: options.skillIds,
@@ -127,7 +149,15 @@ export async function executeGovernedAttempt(
       (candidate) =>
         candidate.kind === "retry_attempt" && candidate.assignmentId === options.assignmentId,
     );
-    if (attemptRecorded && !retryAvailable) {
+    const latestAttempt = refreshed.attempts
+      .filter((candidate) => candidate.assignmentId === options.assignmentId)
+      .sort((left, right) => right.attemptOrdinal - left.attemptOrdinal)[0];
+    const effectState = !attemptRecorded
+      ? "not_started"
+      : latestAttempt?.terminalStatus === "failed"
+        ? "terminal_failed"
+        : "uncertain";
+    if (effectState === "terminal_failed" && !retryAvailable) {
       await services.finalizeGovernedAssignment({
         repositoryRoot: options.repositoryRoot,
         assignmentId: options.assignmentId,
@@ -142,6 +172,7 @@ export async function executeGovernedAttempt(
       status: "execution_failed",
       code: errorCode(error),
       attemptRecorded,
+      effectState,
       retryAvailable,
       report: refreshed,
     };

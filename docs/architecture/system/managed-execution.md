@@ -30,7 +30,9 @@ The headless application boundary rebuilds assignment, attempt, resource, next-a
 
 `@lervo/application-contract` owns public shapes. Pure projectors compose existing authorities without bypassing lease, approval, verification, event, or recovery rules.
 
-See [resource and performance budgets](../../specifications/execution/resource-and-performance-budgets.md), [interactions](../../specifications/execution/assignment-interactions.md), [routines](../../specifications/execution/assignment-routines.md), and [connectors](../../specifications/execution/assignment-connectors.md).
+The bounded unattended scheduler is an application composition over that same report. Pure selection, workforce claim, foreground timer and kill-switch runtime, managed attempt execution, and presentation remain separate modules. It stores no task graph or scheduler history and starts providers only under a lease owned by the current scheduler session.
+
+See [resource and performance budgets](../../specifications/execution/resource-and-performance-budgets.md), [bounded unattended scheduling](../../specifications/execution/unattended-scheduling.md), [interactions](../../specifications/execution/assignment-interactions.md), [routines](../../specifications/execution/assignment-routines.md), and [connectors](../../specifications/execution/assignment-connectors.md).
 
 ## Decisions
 
@@ -47,3 +49,4 @@ See [resource and performance budgets](../../specifications/execution/resource-a
 - [Provider-confirmed capability activation](../../decisions/execution/providers/0211-provider-confirmed-capability-activation.md)
 - [Isolated agent workspaces](../../decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md)
 - [Headless governed loops](../../decisions/execution/orchestration/governed-work/0336-adopt-headless-governed-loop-and-assignment-graph.md)
+- [Bounded unattended scheduling](../../decisions/execution/orchestration/governed-work/0379-install-bounded-unattended-assignment-scheduling.md)

@@ -5,11 +5,7 @@ import { assertAssignmentExecutionAuthority } from "@lervo/agent-workforce";
 import type { WorkforceAgent } from "@lervo/agent-workforce";
 import { ClaudeAdapter } from "@lervo/adapter-claude";
 import { CodexAdapter } from "@lervo/adapter-codex";
-import {
-  documentIdForPath,
-  normalizeRepositoryPath,
-  type ManagedLinkedEvidenceSelection,
-} from "@lervo/context";
+import { documentIdForPath, type ManagedLinkedEvidenceSelection } from "@lervo/context";
 import { writingContractForLanguage } from "@lervo/core";
 import {
   ManagedProviderRunCoordinator,
@@ -57,13 +53,15 @@ import { verifiedCurrentWorkstream } from "./workstream-services.js";
 import { prepareRunVerification, type PreparedRunVerification } from "./run-verification.js";
 import { groundProductionRequest, type GroundProductionRequest } from "./semantic-grounding.js";
 import { resolveManagedRunCausality } from "./managed-run-causality.js";
+import { resolveManagedRunExpectedPaths } from "./managed-run-request.js";
 
 export type RunProvider = "codex" | "claude";
 
 export interface ManagedRunRequest {
   repositoryRoot: string;
   provider: RunProvider;
-  expectedPath: string;
+  expectedPath?: string;
+  expectedPaths?: readonly string[];
   instructions: string;
   risk: string;
   skillIds?: readonly string[];
@@ -205,7 +203,7 @@ export function createManagedRunExecutor(
   dependencies: ManagedRunDependencies = defaultDependencies,
 ): ExecuteManagedRun {
   return async (request) => {
-    const expectedPath = normalizeRepositoryPath(request.expectedPath);
+    const expectedPaths = resolveManagedRunExpectedPaths(request);
     const instructions = request.instructions.trim();
     let skillIds = [...new Set(request.skillIds ?? [])].sort();
     const requestedCapabilityIds = [...new Set(request.capabilityIds ?? [])].sort();
@@ -243,7 +241,7 @@ export function createManagedRunExecutor(
           agentId: request.workforce.agentId,
           leaseId: request.workforce.leaseId,
           provider: request.provider,
-          expectedPaths: [expectedPath],
+          expectedPaths,
           verificationSuiteIds,
           now: dependencies.now?.() ?? new Date(),
         });
@@ -401,8 +399,8 @@ export function createManagedRunExecutor(
         projectId: storage.manifest.projectId,
         observedAt: dependencies.now?.() ?? new Date(),
         query: instructions,
-        fallbackQuery: expectedPath,
-        expectedPaths: [expectedPath],
+        fallbackQuery: expectedPaths[0]!,
+        expectedPaths,
         ...(dependencies.createSearchNonce === undefined
           ? {}
           : { nonce: dependencies.createSearchNonce() }),
@@ -478,7 +476,7 @@ export function createManagedRunExecutor(
         context: {
           registry,
           role,
-          expectedPaths: [expectedPath],
+          expectedPaths,
           publications: [],
           handoffs: [],
           recommendationBatches: searchContext.recommendationBatches,

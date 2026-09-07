@@ -37,6 +37,8 @@ After installing a newer CLI, run `lervo upgrade`, review its exact reconciliati
 
 An owner-authorized signed webhook can materialize a fixed assignment routine with `lervo trigger webhook serve --config <config.json>`. The listener is loopback-only; external payloads never become assignment instructions, and provider execution remains separate.
 
+After assignments are queued and compatible agents are hired, `lervo loop schedule --provider codex --write` can poll, exact-revision claim, and managed-execute them within finite cycle, claim, run, time, retry, budget, lease, and kill-switch bounds. It works locally without a Hub and does not grant approval, cancellation, dynamic graph, or in-flight preemption authority.
+
 ## Workflows
 
 - [Knowledge review, document ownership, and exchange](https://github.com/kimjh96/lervo/blob/main/docs/knowledge/repository/knowledge.md)

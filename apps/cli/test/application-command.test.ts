@@ -175,6 +175,30 @@ describe("application command", () => {
     expect(report.unsupported).toContain("unattended_scheduling");
   });
 
+  it("discovers bounded unattended execution through protocol 5", async () => {
+    const output = io();
+
+    expect(
+      await runApplicationCommand(["capabilities", "--protocol", "5", "--json"], output.value),
+    ).toBe(0);
+    const report = JSON.parse(output.stdout.join(""));
+    expect(report.schemaVersion).toBe(5);
+    expect(report.routes.at(-1)).toEqual({
+      routeId: "unattended_scheduler.execute",
+      area: "operating",
+      operation: "command",
+      contractVersion: 1,
+      resultContract: "unattended_scheduler_result",
+      command: ["loop", "schedule"],
+      output: "json",
+      effect: "managed_provider",
+      authority: "bounded_unattended_execution",
+      availability: "available",
+    });
+    expect(report.unsupported).not.toContain("unattended_scheduling");
+    expect(report.unsupported).toContain("dynamic_graph_mutation");
+  });
+
   it("renders the injected read-only attention report", async () => {
     const output = io();
     const report = {

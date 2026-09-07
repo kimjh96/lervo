@@ -34,6 +34,7 @@ import { runLoopCommand, loopUsage } from "./loop-command.js";
 import { liveTriggerUsage, runLiveTriggerCommand } from "./live-trigger-command.js";
 import { executeManagedRun } from "./managed-run.js";
 import { executeManagedDeliberation } from "./managed-deliberation.js";
+import { executeUnattendedScheduler } from "./unattended-scheduler.js";
 import { environmentUsage, runEnvironmentCommand } from "./environment-command.js";
 import { eventContractUsage, runEventContractCommand } from "./event-contract-command.js";
 import { executeEnvironmentQuery } from "./environment-services.js";
@@ -94,6 +95,7 @@ ${readmeUsage}
 const defaultServices: CliServices = {
   executeManagedRun,
   executeManagedDeliberation,
+  executeUnattendedScheduler,
   openProjectStorage,
   inspectDoctorEnvironment,
   executeEnvironmentQuery,

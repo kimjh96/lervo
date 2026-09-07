@@ -24,6 +24,7 @@ import type {
   ProjectProductionSearchQueries,
 } from "./provider-query-projector.js";
 import type { CreateLocalImprovementObservationHost } from "./local-improvement-observation-host.js";
+import type { ExecuteUnattendedScheduler } from "./unattended-scheduler.js";
 
 export interface CliIo {
   cwd: string;
@@ -35,6 +36,7 @@ export interface CliIo {
 export interface CliServices {
   executeManagedRun: ExecuteManagedRun;
   executeManagedDeliberation: ExecuteManagedDeliberation;
+  executeUnattendedScheduler: ExecuteUnattendedScheduler;
   openProjectStorage(root: string): Promise<ProjectStorage>;
   inspectDoctorEnvironment(input: {
     repositoryRoot: string;

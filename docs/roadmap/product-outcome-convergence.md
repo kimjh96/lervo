@@ -15,7 +15,7 @@ Each outcome has exactly one acceptance owner and one state:
 - `implemented`: the exact scenario is evidenced.
 - `delivery required`: Lervo owns the accepted outcome, but the exact installed scenario is incomplete. Lower-level primitives are evidence, not fractional acceptance.
 - `external dependency`: the outcome requires provider or platform support and evidence Lervo cannot supply. It becomes actionable Lervo delivery only when that dependency exists.
-- `external product`: Lervo supplies primitives, but a separate host owns the outcome outside Lervo's core delivery scope.
+- `external product`: Lervo supplies primitives; a separate host owns the outcome outside Lervo's core delivery scope.
 
 Do not use intermediate states to imply narrower slices satisfy incomplete outcomes. Split mixed outcomes into installed Lervo behavior, Lervo-owned remaining delivery, external dependencies, and external products.
 
@@ -51,14 +51,13 @@ Managed provider execution enforces exact total, input, cached-input, output, re
 
 Reviewed direct-message triggering and explicit handoff acknowledgment are installed through product-host protocol v4. They separate reviewed input, routing, delivery, acknowledgment, action, and provider execution and do not claim a live external message receiver.
 
-Lervo-owned outcomes in `delivery required` state form the remaining implementation backlog:
+Bounded unattended scheduling is installed through product-host protocol v5. One foreground invocation can poll, exact-revision claim, managed-execute, verify, and complete queued assignments while preserving current checkpoints, resource budgets, leases, retry limits, cancellation and approval boundaries, fail-closed uncertain effects, escalation, and a repository-local kill switch.
 
-1. Add unattended scheduling with current checkpoints, budgets, leases, retry limits, cancellation, uncertain-effect handling, escalation, and a kill switch.
-2. Add bounded dynamic graph branches, joins, and reviewed topology changes with migration, recovery, and historical replay.
+The remaining Lervo-owned outcome in `delivery required` state is bounded dynamic graph branches, joins, and reviewed topology changes with migration, recovery, and historical replay.
 
 Provider-native session memory and direct unmanaged whole-task token accounting remain `external dependency`; they do not block implemented portable checkpoint-resume and managed-resource outcomes. Unified interactive interfaces remain `external product`. Future product-host routes require packed external-consumer proof.
 
-The installed authenticated webhook closes the first live-trigger outcome through shared authority, replay, cumulative-budget, uncertain-effect, and recovery contracts. The earlier sequence through attention, durable terminal outcomes, checkpointed workspace continuation, product-host protocols v2 through v4, release-impact repair, CLI README normalization, and the final `v0.11.4` release gate is complete. Later operating and collaboration projections do not reopen those acceptance results.
+The installed authenticated webhook closes the first live-trigger outcome through shared authority, replay, cumulative-budget, uncertain-effect, and recovery contracts. The earlier sequence through attention, durable terminal outcomes, checkpointed workspace continuation, product-host protocols v2 through v4, release-impact repair, CLI README normalization, and the final `v0.11.4` release gate is complete. Product-host protocol v5 adds bounded unattended execution without reopening those acceptance results.
 
 ## References
 
@@ -74,3 +73,4 @@ The installed authenticated webhook closes the first live-trigger outcome throug
 - [Installed fresh-session cross-provider continuation v1](../evidence/foundation/installed-fresh-session-cross-provider-continuation-v1.md)
 - [Evidence-bound agent-profile candidates v1](../evidence/foundation/evidence-bound-agent-profile-candidates-v1.md)
 - [Authenticated live webhook trigger v1](../evidence/foundation/authenticated-live-webhook-trigger-v1.md)
+- [Installed bounded unattended scheduler v1](../evidence/foundation/installed-bounded-unattended-scheduler-v1.md)

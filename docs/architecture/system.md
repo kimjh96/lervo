@@ -18,7 +18,7 @@ user or platform
 
 The local project is the execution authority. The Hub coordinates but cannot weaken project policy or replace repository source truth.
 
-Direct provider terminals use a narrower native-hook path, with separate evidence limits described under [managed execution](system/managed-execution.md).
+Direct provider terminals use a narrower native-hook path with separate evidence limits; see [managed execution](system/managed-execution.md).
 
 ## Major boundaries
 

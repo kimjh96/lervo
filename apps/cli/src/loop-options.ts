@@ -1,14 +1,14 @@
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import type {
-  GovernedDurationLimitV1,
-  GovernedLoopPolicyV1,
-  GovernedTokenLimitV1,
-  GovernedTokenMetricLimitV1,
-} from "@lervo/application-contract";
+import type { GovernedLoopPolicyV1 } from "@lervo/application-contract";
 
+import { parseGovernedLoopPolicy } from "./loop-policy-options.js";
 import type { RunProvider } from "./managed-run.js";
+import {
+  parseUnattendedSchedulerOptions,
+  type ParsedUnattendedSchedulerOptions,
+} from "./unattended-scheduler-options.js";
 
 export const loopUsage = [
   "  lervo loop status [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--token-metric-limit <provider>[:<scope>]:<descriptor-hash>:<metric>:<tokens>] [--duration-limit <provider>:<scope>:<stage>:<milliseconds>] [--root <path>] [--json]",
@@ -19,6 +19,7 @@ export const loopUsage = [
   "  lervo loop thread --assignment <id> [--contract <1|2>] [--root <path>] [--json]",
   "  lervo loop inbox --agent <id> [--contract <1|2>] [--root <path>] [--json]",
   "  lervo loop run --provider <codex|claude> --assignment <id> --agent <id> --lease <id> --path <relative-path> --verification <suite-id> [--verification <suite-id> ...] [--max-attempts <1-16>] [--max-parallel <1-32>] [--token-limit <provider>[:<scope>]:<descriptor-hash>:<tokens>] [--token-metric-limit <provider>[:<scope>]:<descriptor-hash>:<metric>:<tokens>] [--duration-limit <provider>:<scope>:<stage>:<milliseconds>] [--root <path>] [--risk <level>] [--json] <request>",
+  "  lervo loop schedule --provider <codex|claude> --write [--agent <id> ...] [--poll-ms <100-3600000>] [--max-cycles <1-10000>] [--max-claims <1-512>] [--max-runs <1-512>] [--runtime-ms <1000-86400000>] [--failure-limit <1-16>] [--lease-ms <5000-1800000>] [--kill-switch <relative-path>] [--risk <level>] [governed budget options] [--root <path>] [--json]",
   "  lervo loop reconcile --assignment <id> [--apply <command-id> --write] [--root <path>] [--json]",
 ].join("\n");
 
@@ -29,6 +30,7 @@ interface LoopOptionsBase {
 }
 
 export type ParsedLoopOptions =
+  | ParsedUnattendedSchedulerOptions
   | (LoopOptionsBase & { action: "help" })
   | (LoopOptionsBase & { action: "board" })
   | (LoopOptionsBase & { action: "budget" })
@@ -66,84 +68,14 @@ export type ParsedLoopOptions =
       roleId?: string;
     });
 
-function positiveInteger(value: string | undefined, fallback: number, maximum: number): number {
-  if (value === undefined) return fallback;
-  if (!/^[1-9]\d*$/u.test(value)) throw new Error("A governed-loop integer is invalid.");
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed > maximum) {
-    throw new Error("A governed-loop integer exceeds its bound.");
-  }
-  return parsed;
-}
-
 function communicationContract(value: string | undefined): 1 | 2 {
   if (value === undefined || value === "1") return 1;
   if (value === "2") return 2;
   throw new Error("--contract must be 1 or 2 for assignment communication inspection.");
 }
 
-function tokenLimits(values: string[] | undefined): GovernedTokenLimitV1[] {
-  return (values ?? []).map((value) => {
-    const match =
-      /^(codex|claude|lervo):(?:(primary_provider|subagent_provider|query_projection|publication_evaluation|deliberation|improvement_evaluation):)?(sha256:[a-f0-9]{64}):([1-9]\d*)$/u.exec(
-        value,
-      );
-    if (match === null) {
-      throw new Error("--token-limit requires <provider>[:<scope>]:<descriptor-hash>:<tokens>.");
-    }
-    return {
-      provider: match[1] as GovernedTokenLimitV1["provider"],
-      ...(match[2] === undefined
-        ? {}
-        : { scope: match[2] as NonNullable<GovernedTokenLimitV1["scope"]> }),
-      accountingDescriptorHash: match[3]!,
-      stopAfterObservedTotalTokens: Number(match[4]),
-    };
-  });
-}
-
-function tokenMetricLimits(values: string[] | undefined): GovernedTokenMetricLimitV1[] {
-  return (values ?? []).map((value) => {
-    const match =
-      /^(codex|claude|lervo):(?:(primary_provider|subagent_provider|query_projection|publication_evaluation|deliberation|improvement_evaluation):)?(sha256:[a-f0-9]{64}):(input_tokens|cached_input_tokens|output_tokens|reasoning_output_tokens):([1-9]\d*)$/u.exec(
-        value,
-      );
-    if (match === null) {
-      throw new Error(
-        "--token-metric-limit requires <provider>[:<scope>]:<descriptor-hash>:<metric>:<tokens>.",
-      );
-    }
-    return {
-      provider: match[1] as GovernedTokenMetricLimitV1["provider"],
-      ...(match[2] === undefined
-        ? {}
-        : { scope: match[2] as NonNullable<GovernedTokenMetricLimitV1["scope"]> }),
-      accountingDescriptorHash: match[3]!,
-      metric: match[4] as GovernedTokenMetricLimitV1["metric"],
-      stopAfterObservedTokens: Number(match[5]),
-    };
-  });
-}
-
-function durationLimits(values: string[] | undefined): GovernedDurationLimitV1[] {
-  return (values ?? []).map((value) => {
-    const match =
-      /^(codex|claude):(primary_provider|subagent_provider|query_projection|publication_evaluation|deliberation|improvement_evaluation):(repository_snapshot|provider_start|corpus_preparation|context_injection|provider_turn|provider_stop|verification|total):([1-9]\d*)$/u.exec(
-        value,
-      );
-    if (match === null) {
-      throw new Error("--duration-limit requires <provider>:<scope>:<stage>:<milliseconds>.");
-    }
-    return {
-      provider: match[1] as GovernedDurationLimitV1["provider"],
-      scope: match[2] as GovernedDurationLimitV1["scope"],
-      stageId: match[3] as GovernedDurationLimitV1["stageId"],
-      stopAfterObservedDurationMs: Number(match[4]),
-    };
-  });
-}
-
 export function parseLoopOptions(args: string[], cwd: string): ParsedLoopOptions {
+  if (args[0] === "schedule") return parseUnattendedSchedulerOptions(args, cwd);
   const parsed = parseArgs({
     args,
     strict: true,
@@ -175,27 +107,10 @@ export function parseLoopOptions(args: string[], cwd: string): ParsedLoopOptions
       contract: { type: "string" },
     },
   });
-  const dispositions = [
-    parsed.values["unobserved-resource"] ?? "escalate",
-    parsed.values["exhausted-resource"] ?? "block",
-    parsed.values["terminal-failure"] ?? "escalate",
-  ];
-  if (dispositions.some((value) => value !== "block" && value !== "escalate")) {
-    throw new Error("A loop disposition must be block or escalate.");
-  }
   const base: LoopOptionsBase = {
     repositoryRoot: resolve(cwd, parsed.values.root ?? "."),
     json: parsed.values.json ?? false,
-    policy: {
-      maxAttemptsPerAssignment: positiveInteger(parsed.values["max-attempts"], 2, 16),
-      maxParallelAssignments: positiveInteger(parsed.values["max-parallel"], 2, 32),
-      tokenLimits: tokenLimits(parsed.values["token-limit"]),
-      tokenMetricLimits: tokenMetricLimits(parsed.values["token-metric-limit"]),
-      durationLimits: durationLimits(parsed.values["duration-limit"]),
-      unobservedResourceAction: dispositions[0] as "block" | "escalate",
-      exhaustedResourceAction: dispositions[1] as "block" | "escalate",
-      terminalFailureAction: dispositions[2] as "block" | "escalate",
-    },
+    policy: parseGovernedLoopPolicy(parsed.values),
   };
   if (parsed.values.help) return { ...base, action: "help" };
   const action = parsed.positionals.shift();

@@ -17,6 +17,7 @@ import {
   renderGovernedAttemptResult,
 } from "./loop-renderer.js";
 import type { CliIo, CliServices } from "./types.js";
+import { renderUnattendedSchedulerResult } from "./unattended-scheduler-renderer.js";
 
 export { formatGovernedWorkReport, loopUsage };
 
@@ -30,6 +31,12 @@ export async function runLoopCommand(
     if (options.action === "help") {
       io.stdout(`${loopUsage}\n`);
       return 0;
+    }
+    if (options.action === "schedule") {
+      const result = await services.executeUnattendedScheduler(options);
+      const rendered = renderUnattendedSchedulerResult(result, options.json);
+      io[rendered.channel](rendered.output);
+      return rendered.exitCode;
     }
     if (options.action === "objective") {
       const objective = await services.inspectOperatingObjective({
@@ -109,7 +116,11 @@ export async function runLoopCommand(
       return 0;
     }
 
-    const result = await executeGovernedAttempt(options, report, services);
+    const result = await executeGovernedAttempt(
+      { ...options, expectedPaths: [options.expectedPath] },
+      report,
+      services,
+    );
     const rendered = renderGovernedAttemptResult(result, options.json);
     io[rendered.channel](rendered.output);
     return rendered.exitCode;

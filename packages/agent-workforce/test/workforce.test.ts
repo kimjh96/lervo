@@ -370,6 +370,30 @@ describe("repository agent workforce", () => {
     expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
   });
 
+  it("rejects a scheduler claim after the selected assignment revision changes", async () => {
+    const root = await repository();
+    const worker = await registerAgent({ repositoryRoot: root, roleId: "developer" });
+    const assignment = await createAssignment({
+      repositoryRoot: root,
+      taskType: "implementation",
+      roleId: "developer",
+      acceptanceCriteria: ["Pass."],
+      verificationSuiteIds: ["project.quick"],
+      expectedPaths: ["src"],
+    });
+
+    await expect(
+      claimAssignment({
+        repositoryRoot: root,
+        assignmentId: assignment.assignmentId,
+        expectedRevision: assignment.revision + 1,
+        agentId: worker.agentId,
+        sessionId: "ses_stale_scheduler_01",
+      }),
+    ).rejects.toMatchObject({ code: "agent_state_conflict" });
+    expect((await listAssignments(root))[0]).toMatchObject({ status: "queued", revision: 1 });
+  });
+
   it("gives subagents the same claim, handoff, and completion behavior as root agents", async () => {
     const root = await repository();
     const parent = await registerAgent({

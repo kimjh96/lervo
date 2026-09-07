@@ -223,6 +223,68 @@ function io() {
 }
 
 describe("loop command", () => {
+  it("runs the bounded unattended scheduler through its application service", async () => {
+    const output = io();
+    const executeUnattendedScheduler = vi.fn(async () => ({
+      schemaVersion: 1 as const,
+      kind: "unattended_scheduler.result" as const,
+      status: "completed" as const,
+      reasonCode: "work_complete" as const,
+      schedulerSessionId: "ses_scheduler_11111111111111111111111111111111",
+      startedAt: "2026-09-07T00:00:00.000Z",
+      finishedAt: "2026-09-07T00:00:01.000Z",
+      counts: {
+        cycles: 2,
+        claims: 1,
+        managedRuns: 1,
+        completedAssignments: 1,
+        retryRuns: 0,
+        recoverableRaces: 0,
+        consecutiveFailures: 0,
+      },
+      limits: {
+        maximumCycles: 2,
+        maximumClaims: 1,
+        maximumManagedRuns: 1,
+        maximumRuntimeMs: 60_000,
+        maximumConsecutiveFailures: 2,
+      },
+      lastSelection: null,
+    }));
+    const services = { executeUnattendedScheduler } as unknown as CliServices;
+
+    expect(
+      await runLoopCommand(
+        [
+          "schedule",
+          "--provider",
+          "codex",
+          "--write",
+          "--poll-ms",
+          "100",
+          "--max-cycles",
+          "2",
+          "--max-claims",
+          "1",
+          "--max-runs",
+          "1",
+          "--runtime-ms",
+          "60000",
+          "--json",
+        ],
+        output.value,
+        services,
+      ),
+    ).toBe(0);
+    expect(executeUnattendedScheduler).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "schedule", provider: "codex", maximumCycles: 2 }),
+    );
+    expect(JSON.parse(output.stdout.join(""))).toMatchObject({
+      kind: "unattended_scheduler.result",
+      status: "completed",
+    });
+  });
+
   it("renders one headless governed-work report", async () => {
     const output = io();
     const services = {
@@ -621,6 +683,75 @@ describe("loop command", () => {
     expect(status).toBe(1);
     expect(finalizeGovernedAssignment).not.toHaveBeenCalled();
     expect(output.stderr.join("")).toContain("retry=false");
+  });
+
+  it("does not finalize or retry a provider attempt with an uncertain terminal effect", async () => {
+    const output = io();
+    const before = report();
+    const uncertain = report();
+    uncertain.graph.nodes[0]!.attemptCount = 1;
+    uncertain.attempts = [
+      {
+        schemaVersion: 1,
+        assignmentId,
+        workId: "wrk_111111111111111111111111",
+        runId: "run_111111111111111111111111",
+        relationship: "root",
+        attemptOrdinal: 1,
+        terminalStatus: "in_progress",
+        verificationStatus: "not_run",
+      },
+    ];
+    uncertain.decision = {
+      schemaVersion: 1,
+      decisionId: "gld_444444444444444444444444",
+      graphHash: uncertain.graph.graphHash,
+      status: "waiting",
+      actions: [{ kind: "wait", assignmentId, reasonCode: "active_attempt" }],
+    };
+    const finalizeGovernedAssignment = vi.fn(async () => undefined);
+    const services = {
+      inspectGovernedWork: vi
+        .fn()
+        .mockResolvedValueOnce(before)
+        .mockResolvedValueOnce(before)
+        .mockResolvedValueOnce(uncertain),
+      executeManagedRun: vi.fn(async () => {
+        throw new Error("provider transport ended without a terminal event");
+      }),
+      finalizeGovernedAssignment,
+    } as unknown as CliServices;
+
+    expect(
+      await runLoopCommand(
+        [
+          "run",
+          "--provider",
+          "codex",
+          "--assignment",
+          assignmentId,
+          "--agent",
+          agentId,
+          "--lease",
+          leaseId,
+          "--path",
+          "src/example.ts",
+          "--verification",
+          "project.quick",
+          "--json",
+          "Implement the bounded task.",
+        ],
+        output.value,
+        services,
+      ),
+    ).toBe(1);
+    expect(finalizeGovernedAssignment).not.toHaveBeenCalled();
+    expect(JSON.parse(output.stderr.join(""))).toMatchObject({
+      status: "execution_failed",
+      attemptRecorded: true,
+      effectState: "uncertain",
+      retryAvailable: false,
+    });
   });
 
   it("plans and explicitly applies exact completion reconciliation without provider execution", async () => {
