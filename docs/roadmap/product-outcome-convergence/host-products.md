@@ -7,5 +7,5 @@ Part of [Product outcome convergence](../product-outcome-convergence.md); its ba
 - [Authenticated live trigger adapters](host-products/triggers/authenticated-live.md): `implemented`.
 - [Governed Slack delivery](host-products/slack.md): `implemented`.
 - [Product interfaces and host compatibility](host-products/host-boundary.md): `external product` interfaces; `implemented` host boundary.
-- [Dynamic execution graphs](host-products/execution-graphs.md): `delivery required`.
+- [Dynamic execution graphs](host-products/execution-graphs.md): `implemented`.
 - [Replaceable components](host-products/replaceability.md): `implemented`.

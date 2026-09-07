@@ -254,6 +254,43 @@ describe("event payload privacy boundary", () => {
     expect(JSON.stringify(result.payload)).not.toContain("private");
   });
 
+  it("keeps bounded topology coordinates while excluding reviewed node content", () => {
+    const payload = {
+      assignmentId: `asn_${"a".repeat(24)}`,
+      taskType: "review.left",
+      roleId: "developer",
+      roleVersion: "1.0.0",
+      roleContractHash: `sha256:${"b".repeat(64)}`,
+      requiredCapabilityHash: null,
+      topologyContractVersion: 2,
+      topologyChangeId: `gtc_${"c".repeat(24)}`,
+      topologyChangeKey: "parallel_review",
+      topologyRequestHash: `sha256:${"d".repeat(64)}`,
+      topologyPlanId: `gtp_${"e".repeat(24)}`,
+      topologyApprovalHash: `sha256:${"f".repeat(64)}`,
+      topologyReviewerIdDigest: `sha256:${"1".repeat(64)}`,
+      topologyExpectedNodeCount: 3,
+      topologyNodeSetHash: `sha256:${"2".repeat(64)}`,
+      topologyNodeKey: "left",
+      initialStatus: "blocked",
+      priority: 50,
+      dependencyIds: [],
+      expectedPathDigest: `sha256:${"3".repeat(64)}`,
+      acceptanceDigest: `sha256:${"4".repeat(64)}`,
+      verificationDigest: `sha256:${"5".repeat(64)}`,
+      approvalDigest: `sha256:${"6".repeat(64)}`,
+      workstreamId: `wks_${"7".repeat(24)}`,
+    };
+    const result = sanitizeEventPayload("assignment.created", {
+      ...payload,
+      reviewerId: "private reviewer",
+      acceptanceCriteria: ["private acceptance"],
+      expectedPaths: ["private/path.ts"],
+    });
+    expect(result.payload).toEqual(payload);
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+  });
+
   it("separates reviewed-message route provenance from explicit acknowledgement evidence", () => {
     const route = sanitizeEventPayload("assignment.handoff.recorded", {
       assignmentId: `asn_${"a".repeat(24)}`,

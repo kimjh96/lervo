@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_733c67f9b66d46f73698d85f
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_762eb00d636e1b50adbfaf30
+outputLanguage: en
+outputs:
+  - byteCount: 4800
+    contentHash: sha256:9b2216024f49943e1e1b61b73e7cd6ca7852b6ef65d0c8e7f65e876b51bdee08
+    path: docs/evidence/foundation/installed-bounded-dynamic-execution-graph-v2.md
+    userRegionHash: sha256:9b2216024f49943e1e1b61b73e7cd6ca7852b6ef65d0c8e7f65e876b51bdee08
+profile: repository_document
+recordId: knormdoc_569c2fed8a8f0cd511883870
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:fb55ca7d7d128473f95927bcfc5dd24bae9b40cc45dc6f609ae6e9f9e5954ee6
+sourcePath: docs/evidence/foundation/installed-bounded-dynamic-execution-graph-v2.md
+sourceUnitVersionIds:
+  - uv_37bd20fbd09e737403fd58a9
+  - uv_404db281dae68d1610708aca
+  - uv_60c069dd1624080eed608723
+  - uv_773a50d3dcbd0e3c30c7f333
+  - uv_981e6a281b958cbc085c96ec
+  - uv_b5dc13f7ff2e0a184b9c3b4a
+  - uv_f6c178cc4acc64686f64c759

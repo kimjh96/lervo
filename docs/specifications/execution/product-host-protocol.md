@@ -5,7 +5,7 @@ As of: 2026-09-07
 
 ## Purpose and discovery
 
-Separately installed operating or collaboration products discover and compose Lervo locally through the installed `@lervo/cli` process, without a Hub, workspace-private imports, or storage-internal access.
+Separately installed operating or collaboration products discover and compose Lervo locally through installed `@lervo/cli`, without a Hub, workspace-private imports, or storage-internal access.
 
 Default discovery returns the 21-route `ProductHostCapabilityReportV1`:
 
@@ -19,15 +19,17 @@ Explicit versions add capabilities without changing earlier versions' discovery:
 - v3: read-only operating-liveness route and projection.
 - v4: reviewed direct-message triggering, explicit handoff acknowledgment, and its projection.
 - v5: bounded unattended assignment execution, removed from only v5's unsupported list.
+- v6: graph-v2 inspection and reviewed bounded topology changes, removed from only v6's unsupported list.
 
 ```bash
 lervo application capabilities --protocol 2 --json
 lervo application capabilities --protocol 3 --json
 lervo application capabilities --protocol 4 --json
 lervo application capabilities --protocol 5 --json
+lervo application capabilities --protocol 6 --json
 ```
 
-All versions are compatibility and discovery contracts, not authority grants, repository snapshots, or assertions that route prerequisites are satisfied.
+Versions are compatibility and discovery contracts, not authority grants, repository snapshots, or assertions that route prerequisites are satisfied.
 
 ## Report contract
 
@@ -40,7 +42,7 @@ Each report contains:
 - Ordered route descriptors with area, operation, stable result-contract identifier, command prefix, output, effect, authority, and availability.
 - Explicit unsupported product capabilities.
 
-Command arrays omit the executable name and repository-specific arguments. Products invoke installed `lervo`, add required route arguments, and request the declared output. Help text is human guidance, not the machine discovery contract.
+Command arrays omit the executable name and repository-specific arguments. Products invoke installed `lervo`, add required route arguments, and request the declared output. Help text is human guidance, not machine discovery.
 
 ## Route inventory
 
@@ -71,6 +73,8 @@ Command arrays omit the executable name and repository-specific arguments. Produ
 | `governed_completion.reconcile` | `loop reconcile` | exact plan/apply |
 | `assignment_routine.materialize` | `routine materialize` | exact plan/apply |
 | `unattended_scheduler.execute` (v5) | `loop schedule` | bounded unattended execution |
+| `assignment_graph.inspect_v2` (v6) | `assignment topology inspect --json` | read-only |
+| `assignment_topology.change` (v6) | `assignment topology change` | reviewed topology change |
 
 The v1 budget result preserves total-token fields and adds discriminated token-dimension and duration assessments. These read-only additions derive from the same governed-work policy. Hosts must treat `unknown` and `reached` as unsuccessful budget status.
 
@@ -91,6 +95,8 @@ Liveness reports separate root-agent heartbeats from managed-provider process ob
 
 Protocol v5 adds a bounded foreground scheduler requiring explicit `--write`, finite invocation limits, one provider, current governed checkpoints, exact claim and lease ownership, existing resource and attempt budgets, and a repository-local kill switch. Its result is a bounded process observation, not a task store or authority grant. See [bounded unattended assignment scheduling](unattended-scheduling.md).
 
+Protocol v6 adds graph-v2 inspection and additive topology change. Planning binds the exact current graph and role contracts; apply requires the exact plan, approval hash, reviewer, and explicit write flag. The route can create only a bounded acyclic node set and cannot edit or delete an existing assignment. See [bounded dynamic assignment topology](dynamic-assignment-topology.md).
+
 ### Collaboration
 
 | Route | CLI prefix | Authority |
@@ -104,13 +110,13 @@ Protocol v5 adds a bounded foreground scheduler requiring explicit `--write`, fi
 
 The v4 installed trigger adapter consumes only reviewed, content-addressed direct-message observations. Its exact plan/apply reuses current mention and handoff authority; it neither authenticates an external platform nor starts work. Acknowledgment validates an exact active recipient-agent coordinate, does not authenticate a human principal, and never upgrades delivery or action.
 
-Protocol v4 adds `--contract 2` to existing `assignment_thread.inspect` and `assignment_inbox.inspect` descriptors, selecting communication contract v2. That report exposes recorded acknowledgment and reviewed-trigger provenance. Default CLI commands and protocol v1–v3 descriptors retain communication contract v1 with unchanged shape and unobserved acknowledgment semantics.
+Protocol v4 adds `--contract 2` to existing `assignment_thread.inspect` and `assignment_inbox.inspect` descriptors, selecting communication contract v2. The report exposes recorded acknowledgment and reviewed-trigger provenance. Default CLI commands and protocol v1–v3 descriptors retain communication contract v1 with unchanged shape and unobserved acknowledgment semantics.
 
 Each route remains owned by its existing domain or adapter; the capability command does not centralize route policy.
 
 ## Authority and state
 
-Repository state, workstreams, assignments, leases, events, verification, and artifacts remain canonical. Assignment graphs, operating goals, governed decisions, operating boards, threads, inboxes, observed budgets, operating liveness, and acknowledgment views are rebuildable projections. Products may cache presentation state but must not turn it into assignment, approval, completion, delivery, acknowledgment, liveness, or verification authority.
+Repository state, workstreams, assignments, leases, events, verification, and artifacts remain canonical. Assignment graphs, topology history, operating goals, governed decisions, operating boards, threads, inboxes, observed budgets, operating liveness, and acknowledgment views are rebuildable projections. Products may cache presentation state but must not turn it into assignment, topology, approval, completion, delivery, acknowledgment, liveness, or verification authority.
 
 An `available` route can still reject missing roles, workstreams, assignments, leases, approvals, verification, resources, or repository state. Products must preserve its exit status and typed result rather than convert an unavailable or invalid result into an empty success.
 
@@ -118,7 +124,7 @@ External connector effects remain unavailable in the stock CLI. Hosts injecting 
 
 ## Unsupported capabilities
 
-Versions 1–4 provide no product UI, product-owned task or chat database, unattended scheduler, dynamic graph mutation, implicit approval, or managed semantics for direct provider terminals. Protocol v5 adds only bounded unattended scheduling; it still provides no product UI, product database, dynamic graph mutation, implicit approval, or managed semantics for direct provider terminals. Consumers must not infer broader authority from a successful query or render.
+Versions 1–4 provide no product UI, product-owned task or chat database, unattended scheduler, dynamic graph mutation, implicit approval, or managed semantics for direct provider terminals. Protocol v5 adds only bounded unattended scheduling. Protocol v6 additionally permits reviewed additive topology changes; it still provides no product UI, product database, destructive graph rewiring or deletion, implicit approval, or managed semantics for direct provider terminals. Consumers must not infer broader authority from a successful query or render.
 
 Protocol v2 attention and goal reports add no inbox, goal store, acknowledgment, resolution, or scheduling authority. Protocol v3 liveness adds no process controller, polling, recovery, reassignment, or lease-release authority.
 
@@ -126,11 +132,13 @@ Protocol v4's reviewed-input adapter is not a live Slack, Discord, webhook, or H
 
 Protocol v5 does not install a daemon, preempt an in-flight provider, apply cancellation, grant approval, reconcile uncertain completion automatically, or mutate graph topology.
 
+Protocol v6 does not start a provider, modify existing dependencies, delete nodes, permit cycles, create an independent graph store, or make topology review implicit.
+
 ## External-consumer acceptance
 
 `pnpm smoke:packed-cli` builds the real tarball, installs it into an empty temporary consumer, and runs the protocol without workspace imports. The fixture verifies:
 
-- Default 21-route v1, explicit 23-route v2, explicit 24-route v3, explicit 26-route v4, and explicit 27-route v5 reports.
+- Default 21-route v1 and explicit 23-route v2, 24-route v3, 26-route v4, 27-route v5, and 29-route v6 reports.
 - The exact connector limitation and unsupported capabilities.
 - Absence of workspace coordinates and private Lervo package installation.
 
@@ -146,6 +154,7 @@ Using only CLI commands, it then:
 8. Activates the v2 event writer, records a privacy-bounded root heartbeat, and inspects operating liveness through protocol v3.
 9. Routes one reviewed direct-message artifact through exact plan/apply, proves source-event replay is current, records acknowledgment for the exact recipient-agent coordinate, and confirms delivery remains unobserved through protocol v4.
 10. Invokes the installed bounded scheduler once, observes it claim one queued assignment at the exact revision and execute it through managed execution, and verifies the assignment completes without a Hub or another manual trigger.
+11. Applies one reviewed four-node graph-v2 topology, replays one valid branch and join, invokes the installed scheduler, and verifies dependency-ordered completion of all four canonical assignments.
 
 Acceptance uses no Hub, provider, network route, or connector effect. Cross-platform release matrices remain responsible for broader installation evidence.
 
@@ -156,6 +165,7 @@ Acceptance uses no Hub, provider, network route, or connector effect. Cross-plat
 - [ADR-0374](../../decisions/execution/applications/0374-project-operating-liveness-without-health-inference.md)
 - [ADR-0375](../../decisions/execution/orchestration/governed-work/0375-route-reviewed-direct-messages-and-record-explicit-handoff-acknowledgment.md)
 - [ADR-0379](../../decisions/execution/orchestration/governed-work/0379-install-bounded-unattended-assignment-scheduling.md)
+- [ADR-0380](../../decisions/execution/orchestration/governed-work/0380-install-bounded-dynamic-assignment-topology.md)
 - [Operating attention](operating-attention.md)
 - [Operating liveness](operating-liveness.md)
 - [Operating goals](operating-goals.md)

@@ -16,6 +16,7 @@ import {
   type WorkforceArtifactReference,
   type WorkforceAssignment,
   type WorkforceAssignmentRoutineProvenance,
+  type WorkforceAssignmentTopologyProvenance,
   type WorkforceEvent,
   type WorkforceEventRecorder,
   type WorkforceHandoff,
@@ -39,6 +40,12 @@ import {
   routineAssignmentMatches,
   validWorkforceRoutineProvenance,
 } from "./assignment-routine-state.js";
+import {
+  topologyAssignmentEventCoordinates,
+  topologyAssignmentId,
+  topologyAssignmentMatches,
+  validWorkforceTopologyProvenance,
+} from "./assignment-topology-state.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const ROLE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
@@ -224,6 +231,9 @@ function validAssignment(value: unknown, projectId: string): value is WorkforceA
     (item.routine === undefined ||
       item.routine === null ||
       validWorkforceRoutineProvenance(item.routine)) &&
+    (item.topology === undefined ||
+      item.topology === null ||
+      validWorkforceTopologyProvenance(item.topology)) &&
     ["queued", "leased", "blocked", "completed", "failed", "cancelled"].includes(item.status) &&
     Number.isSafeInteger(item.priority) &&
     item.priority >= 0 &&
@@ -355,7 +365,7 @@ async function transition<T>(input: {
   lockPath: string;
   now: Date;
   content: string;
-  event: WorkforceEvent;
+  event?: WorkforceEvent;
   recordEvent?: WorkforceEventRecorder;
   result: T;
   expectedBefore?: string | null;
@@ -368,7 +378,11 @@ async function transition<T>(input: {
       fail("agent_state_conflict", "The workforce state changed before apply.");
     await atomicWrite(input.path, input.content);
     try {
-      await input.recordEvent?.(input.event);
+      if (input.recordEvent !== undefined) {
+        if (input.event === undefined)
+          fail("workforce_write_failed", "The workforce transition event is missing.");
+        await input.recordEvent(input.event);
+      }
     } catch (error) {
       if (before === null) await rm(input.path, { force: true });
       else await atomicWrite(input.path, before);
@@ -781,6 +795,8 @@ async function createAssignmentOnce(input: {
   workstreamId?: string;
   requiredCapabilityHash?: string | null;
   routine?: WorkforceAssignmentRoutineProvenance | null;
+  topology?: WorkforceAssignmentTopologyProvenance | null;
+  initialStatus?: "queued" | "blocked";
   expectedRoleVersion?: string;
   expectedRoleContractHash?: string;
   now?: Date;
@@ -819,7 +835,15 @@ async function createAssignmentOnce(input: {
     (input.routine !== undefined &&
       input.routine !== null &&
       !validWorkforceRoutineProvenance(input.routine)) ||
-    (input.routine !== undefined && input.routine !== null && input.workstreamId === undefined)
+    (input.routine !== undefined && input.routine !== null && input.workstreamId === undefined) ||
+    (input.topology !== undefined &&
+      input.topology !== null &&
+      (!validWorkforceTopologyProvenance(input.topology) || input.workstreamId === undefined)) ||
+    (input.routine !== undefined &&
+      input.routine !== null &&
+      input.topology !== undefined &&
+      input.topology !== null) ||
+    (input.initialStatus === "blocked" && (input.topology === undefined || input.topology === null))
   )
     fail(
       "assignment_invalid",
@@ -833,30 +857,48 @@ async function createAssignmentOnce(input: {
     fail("assignment_invalid", "An assignment dependency does not exist.");
   const createdAt = now.toISOString();
   const assignmentId =
-    input.routine === undefined || input.routine === null
-      ? id("asn", { projectId: current.manifest.projectId, nonce: randomUUID() })
-      : routineAssignmentId(current.manifest.projectId, input.routine);
+    input.topology !== undefined && input.topology !== null
+      ? topologyAssignmentId(current.manifest.projectId, input.topology)
+      : input.routine === undefined || input.routine === null
+        ? id("asn", { projectId: current.manifest.projectId, nonce: randomUUID() })
+        : routineAssignmentId(current.manifest.projectId, input.routine);
   const existing = assignments.find((item) => item.assignmentId === assignmentId);
   if (existing !== undefined) {
     const exact =
-      input.routine !== undefined &&
-      input.routine !== null &&
-      input.workstreamId !== undefined &&
-      routineAssignmentMatches(existing, {
-        taskType: input.taskType,
-        roleId: input.roleId,
-        roleVersion: contract.version,
-        roleContractHash: contract.contractHash,
-        requiredCapabilityHash: input.requiredCapabilityHash ?? null,
-        routine: input.routine,
-        priority: input.priority ?? 50,
-        dependencyIds,
-        acceptanceCriteria: input.acceptanceCriteria,
-        verificationSuiteIds,
-        approvalRequirements,
-        expectedPaths,
-        workstreamId: input.workstreamId,
-      });
+      input.workstreamId !== undefined && input.topology !== undefined && input.topology !== null
+        ? topologyAssignmentMatches(existing, {
+            taskType: input.taskType,
+            roleId: input.roleId,
+            roleVersion: contract.version,
+            roleContractHash: contract.contractHash,
+            requiredCapabilityHash: input.requiredCapabilityHash ?? null,
+            topology: input.topology,
+            priority: input.priority ?? 50,
+            dependencyIds,
+            acceptanceCriteria: input.acceptanceCriteria,
+            verificationSuiteIds,
+            approvalRequirements,
+            expectedPaths,
+            workstreamId: input.workstreamId,
+          })
+        : input.routine !== undefined &&
+          input.routine !== null &&
+          input.workstreamId !== undefined &&
+          routineAssignmentMatches(existing, {
+            taskType: input.taskType,
+            roleId: input.roleId,
+            roleVersion: contract.version,
+            roleContractHash: contract.contractHash,
+            requiredCapabilityHash: input.requiredCapabilityHash ?? null,
+            routine: input.routine,
+            priority: input.priority ?? 50,
+            dependencyIds,
+            acceptanceCriteria: input.acceptanceCriteria,
+            verificationSuiteIds,
+            approvalRequirements,
+            expectedPaths,
+            workstreamId: input.workstreamId,
+          });
     if (!exact) fail("assignment_invalid", "The deterministic assignment ID is already in use.");
     return structuredClone(existing);
   }
@@ -872,7 +914,8 @@ async function createAssignmentOnce(input: {
     roleContractHash: contract.contractHash,
     requiredCapabilityHash: input.requiredCapabilityHash ?? null,
     routine: input.routine ?? null,
-    status: "queued",
+    topology: input.topology ?? null,
+    status: input.initialStatus ?? "queued",
     priority: input.priority ?? 50,
     dependencyIds,
     acceptanceCriteria: [...input.acceptanceCriteria],
@@ -911,6 +954,12 @@ async function createAssignmentOnce(input: {
         roleVersion: assignment.roleVersion,
         roleContractHash: assignment.roleContractHash,
         ...routineAssignmentEventCoordinates(assignment),
+        ...(assignment.topology === null
+          ? {}
+          : {
+              ...topologyAssignmentEventCoordinates(assignment),
+              initialStatus: assignment.status,
+            }),
         priority: assignment.priority,
         dependencyIds,
         expectedPathDigest: digest(stableJson(expectedPaths)),
@@ -967,6 +1016,64 @@ export function createRoutineAssignment(input: {
   );
 }
 
+export function createTopologyAssignment(input: {
+  repositoryRoot: string;
+  taskType: string;
+  roleId: string;
+  roleVersion: string;
+  roleContractHash: string;
+  requiredCapabilityHash: string | null;
+  priority: number;
+  dependencyIds: string[];
+  acceptanceCriteria: string[];
+  verificationSuiteIds: string[];
+  approvalRequirements: string[];
+  expectedPaths: string[];
+  workstreamId: string;
+  topology: WorkforceAssignmentTopologyProvenance;
+  now?: Date;
+  recordEvent?: WorkforceEventRecorder;
+}): Promise<WorkforceAssignment> {
+  return retryConcurrent(() =>
+    createAssignmentOnce({
+      ...input,
+      initialStatus: "blocked",
+      expectedRoleVersion: input.roleVersion,
+      expectedRoleContractHash: input.roleContractHash,
+    }),
+  );
+}
+
+export function activateTopologyAssignment(input: {
+  repositoryRoot: string;
+  assignmentId: string;
+  changeId: string;
+  now?: Date;
+}): Promise<WorkforceAssignment> {
+  return retryConcurrent(async () => {
+    const now = input.now ?? new Date();
+    const target = await assignmentPath(input.repositoryRoot, input.assignmentId);
+    const current = await readAssignmentState(input.repositoryRoot, input.assignmentId);
+    if (current.value.topology?.changeId !== input.changeId)
+      fail("assignment_invalid", "The assignment topology change binding is stale.");
+    if (current.value.status !== "blocked") return structuredClone(current.value);
+    const assignment: WorkforceAssignment = {
+      ...current.value,
+      status: "queued",
+      revision: current.value.revision + 1,
+      updatedAt: now.toISOString(),
+    };
+    return transition({
+      path: target.path,
+      lockPath: target.lockPath,
+      now,
+      content: `${JSON.stringify(assignment, null, 2)}\n`,
+      result: structuredClone(assignment),
+      expectedBefore: current.source,
+    });
+  });
+}
+
 export function withAssignmentRoutineLock<T>(input: {
   repositoryRoot: string;
   operation: () => Promise<T>;
@@ -975,7 +1082,7 @@ export function withAssignmentRoutineLock<T>(input: {
   return retryConcurrent(async () => {
     const current = await state(input.repositoryRoot);
     const release = await acquireLock(
-      resolve(current.base, "routine-materialization.lock"),
+      resolve(current.base, "graph-materialization.lock"),
       input.now ?? new Date(),
     );
     try {
@@ -985,6 +1092,8 @@ export function withAssignmentRoutineLock<T>(input: {
     }
   });
 }
+
+export const withAssignmentTopologyLock = withAssignmentRoutineLock;
 
 function overlaps(left: string[], right: string[]): boolean {
   if (left.includes("*") || right.includes("*")) return true;

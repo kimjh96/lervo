@@ -1,4 +1,5 @@
 import type {
+  AssignmentTopologyProvenanceV2,
   ManagedAttemptObservationV1,
   WorkGraphNodeV1,
   WorkGraphV1,
@@ -23,6 +24,7 @@ export interface AssignmentGraphSourceV1 {
     agentId: string;
     expiresAt: string;
   } | null;
+  topology?: AssignmentTopologyProvenanceV2 | null;
 }
 
 function approvalDigest(requirement: string): string {

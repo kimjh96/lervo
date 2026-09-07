@@ -1,6 +1,7 @@
 export * from "./assignment-communication.js";
 export * from "./assignment-connector.js";
 export * from "./assignment-routine.js";
+export * from "./assignment-topology.js";
 export * from "./improvement-effect.js";
 export * from "./managed-execution-budget.js";
 export * from "./operating-attention.js";

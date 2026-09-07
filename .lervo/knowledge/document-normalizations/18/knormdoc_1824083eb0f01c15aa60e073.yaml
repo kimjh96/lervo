@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_733c67f9b66d46f73698d85f
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_df157eb6722df553abf008f7
+outputLanguage: en
+outputs:
+  - byteCount: 258
+    contentHash: sha256:1fc94635727aa721f94e1e89749966fcca3fa1f3d36c2007b8c4253a683bcc6e
+    path: docs/product/vision/repository.md
+    userRegionHash: sha256:1fc94635727aa721f94e1e89749966fcca3fa1f3d36c2007b8c4253a683bcc6e
+  - byteCount: 863
+    contentHash: sha256:7e595aa5f0236411f71fe08a094abab7e3837a16b0d7bb7d724e779158674677
+    path: docs/product/vision/repository/knowledge.md
+    userRegionHash: sha256:7e595aa5f0236411f71fe08a094abab7e3837a16b0d7bb7d724e779158674677
+  - byteCount: 436
+    contentHash: sha256:acccd7ca0ce1203901d8cbc5ec8bed5ba88900ed2948b3055b614ab41e1a7c2a
+    path: docs/product/vision/repository/lifecycle.md
+    userRegionHash: sha256:acccd7ca0ce1203901d8cbc5ec8bed5ba88900ed2948b3055b614ab41e1a7c2a
+profile: product_document
+recordId: knormdoc_1824083eb0f01c15aa60e073
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:08ae59c111e3e4d4b53701ad4a1e455e185f306656149e9a858df47f6fda854a
+sourcePath: docs/product/vision/repository.md
+sourceUnitVersionIds:
+  - uv_5815f6406fa376a26da123e5
+  - uv_8d5b865c56b8a63c0e9f86b5
+  - uv_c209ca23c5b5849bece8dd4e

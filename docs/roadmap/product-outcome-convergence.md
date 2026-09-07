@@ -38,14 +38,16 @@ Detailed acceptance records:
 
 - Completed natural-language terminal v1 verifies retrieval, workstream checkpoints, declarations, and lifecycle inspection. It provides neither automatic semantic outcome drafting nor proactive user attention.
 - Completed branch-safe lifecycle verifies typed candidate creation and exact review. ADR-0327 still forbids direct-hook effect grounding and mutation; the installed explicit durable-instruction command owns candidate creation and exact reviewed materialization outside the hook.
-- The completed governed-loop roadmap covers manual v1 and a read-only workstream-goal projection. It excludes Prime-Agent-style unattended continuation, native provider-session resume, root-process heartbeat, independent goal mutation, and dynamic topology.
+- The completed governed-loop roadmap and subsequent installed extensions cover manual execution, read-only workstream goals, liveness, bounded unattended continuation, and reviewed additive dynamic topology. Native provider-session resume and independent nested-goal mutation remain outside those contracts.
 - The completed product-host protocol is a CLI compatibility boundary, not a Paperclip or Buzz product interface.
 - Retrieval selection proves only source selection for context. It does not prove a repeatable workflow, define a capability envelope, or authorize generated skill bytes. Skill candidacy starts with independently grouped workflow evidence.
 - The installed natural-language capability journey proves two independently verified workflows can become a generated portable-skill package through exact review, stale-source supersession, four-file promotion, project authorization, dependency-preserving migration, deterministic recommendation plus explicit selection, provider-confirmed MCP activation, result validation, completion evidence, and explicit post-promotion effect comparison. The comparison retains unestablished attribution and authorizes no rollback. The journey does not prove model reliance or authorize generation from retrieval selection alone.
 - The installed agent-profile journey uses exact role activation and passed-verification pairs from independent managed runs, exact review, user-owned role activation and resolution, and explicit rollback. The separate effect protocol retains unestablished attribution and never authorizes rollback.
 - A successful full repository check proves encoded contracts, not user outcomes absent from them.
 
-## Remaining delivery order
+## Delivery status and remaining boundaries
+
+No accepted Lervo-owned product-convergence outcome remains in `delivery required` state.
 
 Managed provider execution enforces exact total, input, cached-input, output, reasoning-output, and per-run stage-duration budgets without estimating unmanaged whole-request usage. See [managed execution resource budgets v1](../evidence/foundation/managed-execution-resource-budgets-v1.md).
 
@@ -53,7 +55,7 @@ Reviewed direct-message triggering and explicit handoff acknowledgment are insta
 
 Bounded unattended scheduling is installed through product-host protocol v5. One foreground invocation can poll, exact-revision claim, managed-execute, verify, and complete queued assignments while preserving current checkpoints, resource budgets, leases, retry limits, cancellation and approval boundaries, fail-closed uncertain effects, escalation, and a repository-local kill switch.
 
-The remaining Lervo-owned outcome in `delivery required` state is bounded dynamic graph branches, joins, and reviewed topology changes with migration, recovery, and historical replay.
+Bounded dynamic graph branches, joins, reviewed topology changes, migration, recovery, historical replay, and installed dependency-ordered execution are implemented through graph v2 and product-host protocol v6.
 
 Provider-native session memory and direct unmanaged whole-task token accounting remain `external dependency`; they do not block implemented portable checkpoint-resume and managed-resource outcomes. Unified interactive interfaces remain `external product`. Future product-host routes require packed external-consumer proof.
 
@@ -74,3 +76,4 @@ The installed authenticated webhook closes the first live-trigger outcome throug
 - [Evidence-bound agent-profile candidates v1](../evidence/foundation/evidence-bound-agent-profile-candidates-v1.md)
 - [Authenticated live webhook trigger v1](../evidence/foundation/authenticated-live-webhook-trigger-v1.md)
 - [Installed bounded unattended scheduler v1](../evidence/foundation/installed-bounded-unattended-scheduler-v1.md)
+- [Installed bounded dynamic execution graph v2](../evidence/foundation/installed-bounded-dynamic-execution-graph-v2.md)

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_94ee69d8a076b544369e1a60"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add reviewed bounded branch-and-join topology changes with recovery and replay."

@@ -199,6 +199,44 @@ describe("application command", () => {
     expect(report.unsupported).toContain("dynamic_graph_mutation");
   });
 
+  it("discovers reviewed bounded topology changes through protocol 6", async () => {
+    const output = io();
+
+    expect(
+      await runApplicationCommand(["capabilities", "--protocol", "6", "--json"], output.value),
+    ).toBe(0);
+    const report = JSON.parse(output.stdout.join(""));
+    expect(report.schemaVersion).toBe(6);
+    expect(report.routes.slice(-2)).toEqual([
+      {
+        routeId: "assignment_graph.inspect_v2",
+        area: "operating",
+        operation: "query",
+        contractVersion: 2,
+        resultContract: "assignment_graph_v2",
+        command: ["assignment", "topology", "inspect", "--json"],
+        output: "json",
+        effect: "none",
+        authority: "read_only",
+        availability: "available",
+      },
+      {
+        routeId: "assignment_topology.change",
+        area: "operating",
+        operation: "command",
+        contractVersion: 2,
+        resultContract: "assignment_topology_result_v2",
+        command: ["assignment", "topology", "change"],
+        output: "json",
+        effect: "repository_write",
+        authority: "reviewed_topology_change",
+        availability: "available",
+      },
+    ]);
+    expect(report.projections).toContain("assignment_graph_v2");
+    expect(report.unsupported).not.toContain("dynamic_graph_mutation");
+  });
+
   it("renders the injected read-only attention report", async () => {
     const output = io();
     const report = {

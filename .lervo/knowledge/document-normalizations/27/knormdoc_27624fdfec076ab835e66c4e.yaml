@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_733c67f9b66d46f73698d85f
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_557508c2cf93bca6e48458e9
+outputLanguage: en
+outputs:
+  - byteCount: 4101
+    contentHash: sha256:f0c5485730727ee049750b20a4a64aea9c44326bb7cfe4241fc129adcfa7838c
+    path: docs/decisions/execution/orchestration/governed-work/0380-install-bounded-dynamic-assignment-topology.md
+    userRegionHash: sha256:f0c5485730727ee049750b20a4a64aea9c44326bb7cfe4241fc129adcfa7838c
+profile: decision_record
+recordId: knormdoc_27624fdfec076ab835e66c4e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:67d989e4f27d5f7df79fe4c260e2f5dd1a3e385bc52058f0e59d591b87a59de6
+sourcePath: docs/decisions/execution/orchestration/governed-work/0380-install-bounded-dynamic-assignment-topology.md
+sourceUnitVersionIds:
+  - uv_26bbf54cabf7f175a8554d3a
+  - uv_32ae0cb0f882ccaec0d5e1e7
+  - uv_43643bec51ba51caa64c42ac
+  - uv_b203e574a6eeb0ad67ffd7d2
+  - uv_e2355c5216b4e7845915b3c4
+  - uv_e4e2e2fd2aa8c268905b01e4

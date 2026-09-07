@@ -26,6 +26,10 @@ import {
   runAssignmentRoutineCommand,
 } from "./assignment-routine-command.js";
 import {
+  assignmentTopologyUsage,
+  runAssignmentTopologyCommand,
+} from "./assignment-topology-command.js";
+import {
   assignmentConnectorUsage,
   runAssignmentConnectorCommand,
 } from "./assignment-connector-command.js";
@@ -88,6 +92,7 @@ ${assignmentCommunicationUsage}
 ${assignmentMessageTriggerUsage}
 ${assignmentConnectorUsage}
 ${assignmentRoutineUsage}
+${assignmentTopologyUsage}
 ${roleUsage}
 ${readmeUsage}
 `;
@@ -164,6 +169,9 @@ export async function runCli(
   }
   if (command === "assignment" && args[1] === "connector") {
     return runAssignmentConnectorCommand(args.slice(1), io, services);
+  }
+  if (command === "assignment" && args[1] === "topology") {
+    return runAssignmentTopologyCommand(args.slice(2), io);
   }
   if (command === "routine") return runAssignmentRoutineCommand(args.slice(1), io);
   if (command === "workforce" || command === "agent" || command === "assignment")

@@ -77,6 +77,19 @@ export interface WorkforceAssignmentRoutineProvenance {
   nodeKey: string;
 }
 
+export interface WorkforceAssignmentTopologyProvenance {
+  contractVersion: 2;
+  changeId: string;
+  changeKey: string;
+  requestHash: string;
+  planId: string;
+  approvalHash: string;
+  reviewerIdDigest: string;
+  expectedNodeCount: number;
+  nodeSetHash: string;
+  nodeKey: string;
+}
+
 export interface WorkforceAssignment {
   schemaVersion: 1;
   assignmentId: string;
@@ -87,6 +100,7 @@ export interface WorkforceAssignment {
   roleContractHash: string;
   requiredCapabilityHash?: string | null;
   routine?: WorkforceAssignmentRoutineProvenance | null;
+  topology?: WorkforceAssignmentTopologyProvenance | null;
   status: AssignmentStatus;
   priority: number;
   dependencyIds: string[];

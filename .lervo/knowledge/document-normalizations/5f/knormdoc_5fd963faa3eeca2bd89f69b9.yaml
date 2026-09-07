@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c7c82c043b8a1e15092a114b
+compiler:
+  compilerBuildId: sha256:94c169212651303766eabdc3bbf2e11498aea403e3c709a969f0310e7cf9c233
+  compilerId: lervo.claude.document-normalizer
+  compilerVersion: 1+2.1.236 (Claude Code)
+  isolation: external_no_capabilities
+  provider: claude
+formatVersion: lervo.document.v1
+operationId: knormop_c3c7bfd3ad9b89d974d1948f
+outputLanguage: en
+outputs:
+  - byteCount: 2119
+    contentHash: sha256:18d4bbb808f3a52369b0324dc527daa0a5d9016bae94072d4679c6aa03df6516
+    path: apps/cli/README.md
+    userRegionHash: sha256:18d4bbb808f3a52369b0324dc527daa0a5d9016bae94072d4679c6aa03df6516
+profile: human_readme
+recordId: knormdoc_5fd963faa3eeca2bd89f69b9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:79832ae2198d8687d2d5331a50fb489df07c4b15f5264c2709d97799faabcb12
+sourcePath: apps/cli/README.md
+sourceUnitVersionIds:
+  - uv_18f4c163839a64db51859353
+  - uv_1c2a5f5258e5b46e12f707da
+  - uv_2a6cd11c21208e909c2f85af
+  - uv_3a5cad874855c5a90619e03b

@@ -40,6 +40,12 @@ const versionFourRouteIds = [
 
 const versionFiveRouteIds = [...versionFourRouteIds, "unattended_scheduler.execute"];
 
+const versionSixRouteIds = [
+  ...versionFiveRouteIds,
+  "assignment_graph.inspect_v2",
+  "assignment_topology.change",
+];
+
 function parsed(result) {
   assert.equal(result.stderr, "");
   return JSON.parse(result.stdout);
@@ -250,5 +256,47 @@ export async function verifyPackedProductHostCapabilities(runCli) {
     availability: "available",
   });
   assert.equal(versionFive.unsupported.includes("unattended_scheduling"), false);
-  return versionFive;
+  const versionSix = parsed(
+    await runCli(["application", "capabilities", "--protocol", "6", "--json"]),
+  );
+  assert.equal(versionSix.schemaVersion, 6);
+  assert.deepEqual(versionSix.protocol, {
+    transport: "local_cli",
+    version: 6,
+    discoveryCommand: ["application", "capabilities", "--protocol", "6", "--json"],
+    requiresHub: false,
+  });
+  assert.deepEqual(
+    versionSix.routes.map((route) => route.routeId),
+    versionSixRouteIds,
+  );
+  assert.deepEqual(versionSix.routes.slice(-2), [
+    {
+      routeId: "assignment_graph.inspect_v2",
+      area: "operating",
+      operation: "query",
+      contractVersion: 2,
+      resultContract: "assignment_graph_v2",
+      command: ["assignment", "topology", "inspect", "--json"],
+      output: "json",
+      effect: "none",
+      authority: "read_only",
+      availability: "available",
+    },
+    {
+      routeId: "assignment_topology.change",
+      area: "operating",
+      operation: "command",
+      contractVersion: 2,
+      resultContract: "assignment_topology_result_v2",
+      command: ["assignment", "topology", "change"],
+      output: "json",
+      effect: "repository_write",
+      authority: "reviewed_topology_change",
+      availability: "available",
+    },
+  ]);
+  assert.equal(versionSix.projections.includes("assignment_graph_v2"), true);
+  assert.equal(versionSix.unsupported.includes("dynamic_graph_mutation"), false);
+  return versionSix;
 }

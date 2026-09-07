@@ -242,9 +242,47 @@ export interface ProductHostCapabilityReportV5 {
   ];
 }
 
+export type ProductHostRouteIdV6 =
+  ProductHostRouteIdV5 | "assignment_graph.inspect_v2" | "assignment_topology.change";
+
+export type ProductHostResultContractV6 =
+  ProductHostResultContractV5 | "assignment_graph_v2" | "assignment_topology_result_v2";
+
+export interface ProductHostRouteV6 extends Omit<
+  ProductHostRouteV1,
+  "routeId" | "resultContract" | "contractVersion" | "authority"
+> {
+  routeId: ProductHostRouteIdV6;
+  contractVersion: 1 | 2;
+  resultContract: ProductHostResultContractV6;
+  authority:
+    ProductHostRouteV1["authority"] | "bounded_unattended_execution" | "reviewed_topology_change";
+}
+
+export interface ProductHostCapabilityReportV6 {
+  schemaVersion: 6;
+  kind: "product_host.capabilities";
+  protocol: {
+    transport: "local_cli";
+    version: 6;
+    discoveryCommand: ["application", "capabilities", "--protocol", "6", "--json"];
+    requiresHub: false;
+  };
+  canonicalAuthorities: ProductHostCapabilityReportV1["canonicalAuthorities"];
+  projections: [...ProductHostCapabilityReportV4["projections"], "assignment_graph_v2"];
+  routes: ProductHostRouteV6[];
+  unsupported: [
+    "product_ui",
+    "product_database",
+    "implicit_approval",
+    "unmanaged_terminal_execution",
+  ];
+}
+
 export type ProductHostCapabilityReport =
   | ProductHostCapabilityReportV1
   | ProductHostCapabilityReportV2
   | ProductHostCapabilityReportV3
   | ProductHostCapabilityReportV4
-  | ProductHostCapabilityReportV5;
+  | ProductHostCapabilityReportV5
+  | ProductHostCapabilityReportV6;

@@ -4,7 +4,7 @@ Status: `complete`
 
 As of: 2026-09-07
 
-Completion covers the bounded manual slices below. Root-agent and managed-provider liveness, the read-only repository-goal lifecycle, and the later bounded unattended scheduler are installed. Native provider session resume, independent goal mutation, and dynamic topology remain in the [product outcome convergence roadmap](product-outcome-convergence.md).
+Completion covers the bounded manual slices below. Root-agent and managed-provider liveness, the read-only repository-goal lifecycle, bounded unattended scheduling, and reviewed additive dynamic topology are installed. Native provider session resume and independent nested-goal mutation remain external or separate scope in the [product outcome convergence roadmap](product-outcome-convergence.md).
 
 ## Goal
 
@@ -78,6 +78,7 @@ Events, CAS artifacts, assignment state, verification, and repository state rema
 - [Assignment connector specification](../specifications/execution/assignment-connectors.md)
 - [Assignment routine specification](../specifications/execution/assignment-routines.md)
 - [Bounded unattended scheduler specification](../specifications/execution/unattended-scheduling.md)
+- [Bounded dynamic assignment topology](../specifications/execution/dynamic-assignment-topology.md)
 - [Reviewed direct-message trigger specification](../specifications/execution/assignment-message-triggers.md)
 - [Verified improvement effects](../specifications/execution/verified-improvement-effects.md)
 - [Verified improvement-effect dogfood](../evidence/pilots/verified-improvement-effect-dogfood.md)

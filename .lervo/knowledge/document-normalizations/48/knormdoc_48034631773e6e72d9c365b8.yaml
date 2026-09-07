@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_db7289cf969322ac6aab23e8
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_176e2c03988ecbab20508281
+outputLanguage: en
+outputs:
+  - byteCount: 7075
+    contentHash: sha256:bd7e72524503b06efae199609c80113f55933d87974a771db120ebb85c8d8301
+    path: docs/roadmap/governed-loop-assignment-graph.md
+    userRegionHash: sha256:bd7e72524503b06efae199609c80113f55933d87974a771db120ebb85c8d8301
+profile: roadmap_document
+recordId: knormdoc_48034631773e6e72d9c365b8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:43b0090fcd7819958efa750fc5d1b6fa7c8350dd899d181eb33b02a4cd93f23a
+sourcePath: docs/roadmap/governed-loop-assignment-graph.md
+sourceUnitVersionIds:
+  - uv_3038d4266841d01cb278d159
+  - uv_3c2fd70c4701c52eaf050786
+  - uv_48e3818b6d85a2ef1558e0bb
+  - uv_706a400af69090d852d884ac
+  - uv_7dbff35ff142f3c46cd3c8fd
+  - uv_a26c558ea3830ba94d8d9eea
+  - uv_ce71e8de1a719aca5eabbde5

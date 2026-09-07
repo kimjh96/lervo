@@ -19,6 +19,7 @@ import { packCliArtifact } from "../../distribution/lib/packed-cli-artifact.mjs"
 import { verifyPackedProductHostConsumer } from "../../distribution/lib/product-host-consumer.mjs";
 import { verifyInstalledCapabilityJourney } from "../../distribution/lib/installed-capability-journey.mjs";
 import { verifyInstalledCrossProviderContinuation } from "../../distribution/lib/installed-cross-provider-continuation.mjs";
+import { verifyInstalledDynamicTopology } from "../../distribution/lib/installed-dynamic-topology.mjs";
 import { verifyInstalledLiveWebhookTrigger } from "../../distribution/lib/installed-live-webhook-trigger.mjs";
 import { verifyInstalledUnattendedScheduler } from "../../distribution/lib/installed-unattended-scheduler.mjs";
 
@@ -271,6 +272,7 @@ async function main() {
     );
     const liveTrigger = await verifyInstalledLiveWebhookTrigger(consumerRoot);
     const unattendedScheduler = await verifyInstalledUnattendedScheduler(consumerRoot);
+    const dynamicTopology = await verifyInstalledDynamicTopology(consumerRoot);
     console.log(`Claude native runtime verified: ${nativeRuntime.packageName}`);
     console.log(`Installed capability journey verified: ${capabilityJourney.runId}`);
     console.log(`Installed live webhook trigger verified: ${liveTrigger.assignmentId}`);
@@ -278,6 +280,11 @@ async function main() {
       unattendedScheduler.status === "passed"
         ? `Installed unattended scheduler verified: ${unattendedScheduler.assignmentId}`
         : `Installed unattended scheduler skipped: ${unattendedScheduler.reason}`,
+    );
+    console.log(
+      dynamicTopology.status === "passed"
+        ? `Installed dynamic topology verified: ${dynamicTopology.changeId}`
+        : `Installed dynamic topology skipped: ${dynamicTopology.reason}`,
     );
     console.log(
       continuation.status === "passed"

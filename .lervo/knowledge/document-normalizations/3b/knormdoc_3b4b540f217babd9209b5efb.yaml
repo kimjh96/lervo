@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_733c67f9b66d46f73698d85f
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7ace06b58aa49c831b1482bf
+outputLanguage: en
+outputs:
+  - byteCount: 321
+    contentHash: sha256:29c5e38b257e780afeec752ab4a2ede92e954b328f4c8b278190539ebcb4f221
+    path: docs/product/vision/coordination.md
+    userRegionHash: sha256:29c5e38b257e780afeec752ab4a2ede92e954b328f4c8b278190539ebcb4f221
+  - byteCount: 1356
+    contentHash: sha256:543ad597161c0a00dad9a31761b0410a7650f5e7412071abc20883057e339e82
+    path: docs/product/vision/coordination/governed-continuation.md
+    userRegionHash: sha256:543ad597161c0a00dad9a31761b0410a7650f5e7412071abc20883057e339e82
+  - byteCount: 237
+    contentHash: sha256:267152df025e2180b7d6ddf10151a1d0399ce019b2d448dd2247f26d641aa9f6
+    path: docs/product/vision/coordination/optional-coordination.md
+    userRegionHash: sha256:267152df025e2180b7d6ddf10151a1d0399ce019b2d448dd2247f26d641aa9f6
+profile: product_document
+recordId: knormdoc_3b4b540f217babd9209b5efb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0780f4671a837d3f24f90215708f71b709de942a96a284d0e2bbdc5e2515a860
+sourcePath: docs/product/vision/coordination.md
+sourceUnitVersionIds:
+  - uv_2f9d506186fea7aa0210c839
+  - uv_8c53a4bb1d4418f22fddc35d
+  - uv_dde7f18a3dae84afc1676038

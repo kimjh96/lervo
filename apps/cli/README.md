@@ -31,13 +31,11 @@ lervo knowledge query "architecture"
 lervo --help
 ```
 
-Preview with `lervo init --dry-run --name my-project`. Initialization completes safe generated stages, creates the initial developer agent, and reports remaining authority boundaries. Migration preserves user bytes without exact approval.
-
-After installing a newer CLI, run `lervo upgrade`, review its exact reconciliation plan, then apply it. User and provider authority remain separate.
-
-An owner-authorized signed webhook can materialize a fixed assignment routine with `lervo trigger webhook serve --config <config.json>`. The listener is loopback-only; external payloads never become assignment instructions, and provider execution remains separate.
-
-After assignments are queued and compatible agents are hired, `lervo loop schedule --provider codex --write` can poll, exact-revision claim, and managed-execute them within finite cycle, claim, run, time, retry, budget, lease, and kill-switch bounds. It works locally without a Hub and does not grant approval, cancellation, dynamic graph, or in-flight preemption authority.
+- Preview with `lervo init --dry-run --name my-project`. Initialization completes safe generated stages, creates the initial developer agent, and reports remaining authority boundaries. Migration preserves user bytes without exact approval.
+- After installing a newer CLI, run `lervo upgrade`, review its exact reconciliation plan, then apply it. User and provider authority remain separate.
+- An owner-authorized signed webhook can materialize a fixed assignment routine with `lervo trigger webhook serve --config <config.json>`. The listener is loopback-only; external payloads never become assignment instructions, and provider execution remains separate.
+- After assignments are queued and compatible agents are hired, `lervo loop schedule --provider codex --write` can poll, exact-revision claim, and managed-execute them within finite cycle, claim, run, time, retry, budget, lease, and kill-switch bounds. It works locally without a Hub and does not grant approval, cancellation, topology-change, or in-flight preemption authority.
+- `lervo assignment topology inspect --json` projects graph v2. A reviewed `assignment topology change` can add a finite branch-and-join node set through exact plan, approval hash, reviewer, and `--write` authority; it cannot rewire or delete existing assignments.
 
 ## Workflows
 

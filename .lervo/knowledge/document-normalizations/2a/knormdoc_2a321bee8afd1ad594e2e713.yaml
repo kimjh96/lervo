@@ -1,7 +1,7 @@
 byteOwnership:
   owner: reviewer
   rewritePolicy: reviewed_exact
-candidateId: knorm_4cc14856d68556ccab94ab3f
+candidateId: knorm_db7289cf969322ac6aab23e8
 compiler:
   compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
   compilerId: lervo.codex.document-normalizer
@@ -9,18 +9,18 @@ compiler:
   isolation: external_no_capabilities
   provider: codex
 formatVersion: lervo.document.v1
-operationId: knormop_e5a24465479871611e5e2e60
+operationId: knormop_49d50c8af0207d0a2477e2a1
 outputLanguage: en
 outputs:
-  - byteCount: 860
-    contentHash: sha256:4d051d5755c05c7e5da44dd074172fafc68829089653d743dd35f253e49e1ee6
+  - byteCount: 949
+    contentHash: sha256:d8ddb430839217033ccf017fd8a29875c513ac0407beacce039fc9784cd1e89a
     path: docs/roadmap/product-outcome-convergence/execution/autonomous-continuation.md
-    userRegionHash: sha256:4d051d5755c05c7e5da44dd074172fafc68829089653d743dd35f253e49e1ee6
+    userRegionHash: sha256:d8ddb430839217033ccf017fd8a29875c513ac0407beacce039fc9784cd1e89a
 profile: roadmap_document
-recordId: knormdoc_e95a921c11c2d9a416173aab
+recordId: knormdoc_2a321bee8afd1ad594e2e713
 resourceBindings: []
 schemaVersion: 2
-sourceContentHash: sha256:4d051d5755c05c7e5da44dd074172fafc68829089653d743dd35f253e49e1ee6
+sourceContentHash: sha256:80eb996832ec665e31a9c0139abee9581469d4e99fd6b96b3e1ec45544feafe0
 sourcePath: docs/roadmap/product-outcome-convergence/execution/autonomous-continuation.md
 sourceUnitVersionIds:
-  - uv_8d5e5b5f10b263d3fb46df04
+  - uv_0d2f275687b8dd7e973907a7
