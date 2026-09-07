@@ -24,6 +24,7 @@ Direct provider terminals use a narrower native-hook path with separate evidence
 
 - [Project, storage, workspaces, and capabilities](system/project-and-storage.md)
 - [Managed execution and terminal evidence](system/managed-execution.md)
+- [Natural-language conversation routing](system/conversation-routing.md)
 - [Repository knowledge, document ownership, and search](system/knowledge-and-context.md)
 - [Hub and node runtimes](system/hub-and-nodes.md)
 
