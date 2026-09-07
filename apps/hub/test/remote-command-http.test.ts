@@ -179,6 +179,13 @@ describe("authenticated remote command HTTP delivery", () => {
       risk: "medium",
       verificationSuiteIds: ["repo.check"],
       request: requestText,
+      continuation: {
+        workstreamId: `wks_${"1".repeat(24)}`,
+        revision: 4,
+        snapshotContentHash: `sha256:${"2".repeat(64)}`,
+        assignmentId: `asn_${"3".repeat(24)}`,
+        agentId: `agt_${"4".repeat(24)}`,
+      },
     };
     const submit = (body: unknown) =>
       fetch(submissionUrl, {
@@ -193,7 +200,7 @@ describe("authenticated remote command HTTP delivery", () => {
     expect(firstSubmission.status).toBe(201);
     const firstSubmissionBody = (await firstSubmission.json()) as {
       deliveryId: string;
-      envelope: { command: { commandId: string } };
+      envelope: { command: { commandId: string; action: { continuation: unknown } } };
     };
     const duplicateSubmission = await submit(submissionBody);
     expect(duplicateSubmission.status).toBe(200);
@@ -206,6 +213,9 @@ describe("authenticated remote command HTTP delivery", () => {
       deliveryId: firstSubmissionBody.deliveryId,
       envelope: firstSubmissionBody.envelope,
     });
+    expect(firstSubmissionBody.envelope.command.action.continuation).toEqual(
+      submissionBody.continuation,
+    );
     await expect(
       submit({ ...submissionBody, request: "different request" }).then(
         (response) => response.status,

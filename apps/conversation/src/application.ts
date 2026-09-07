@@ -22,6 +22,8 @@ import {
 import { SQLiteConversationPlatformStore } from "@lervo/conversation-platform-sqlite";
 
 import { configuredConversationIntegrations } from "./built-in-integrations.js";
+import { ConversationDiscordGatewayRuntime } from "./discord-runtime.js";
+import { ConversationInteractionRuntime } from "./interaction-runtime.js";
 import type { ConversationApplication, ConversationApplicationOptions } from "./types.js";
 
 function uniqueIntegrations(
@@ -58,7 +60,28 @@ function uniqueIntegrations(
 export async function openConversationApplication(
   options: ConversationApplicationOptions,
 ): Promise<ConversationApplication> {
-  const integrationDeployments = configuredConversationIntegrations(options);
+  let interactions: ConversationInteractionRuntime | null = null;
+  let adapters = new Map<string, ConversationAdapter>();
+  const discordRuntime = new ConversationDiscordGatewayRuntime(
+    options.discord ?? [],
+    async (integrationId, dispatch) => {
+      const adapter = adapters.get(integrationId);
+      if (!(adapter instanceof DiscordConversationAdapter) || interactions === null) {
+        throw new Error("The Discord interaction runtime is not ready.");
+      }
+      const ingress = await adapter.receiveGatewayDispatch(dispatch);
+      if (ingress.status === "ignored") return;
+      await interactions.handle(ingress.event);
+      await interactions.runDeliveryCycle(adapter);
+    },
+  );
+  if (discordRuntime.gateways.size > 0 && options.interactions === undefined) {
+    throw new Error("A managed Discord Gateway requires a conversation interaction deployment.");
+  }
+  const integrationDeployments = configuredConversationIntegrations(
+    options,
+    discordRuntime.authentications,
+  );
   uniqueIntegrations(options, integrationDeployments);
   const artifactStore = await FileSystemCas.open(resolve(options.dataDirectory, "artifacts"));
   const store = await SQLiteConversationPlatformStore.open({
@@ -70,6 +93,12 @@ export async function openConversationApplication(
   let deliberationStore: SQLiteConversationDeliberationJobStore | null = null;
   let resumeStore: SQLiteConversationDeliberationResumeJobStore | null = null;
   try {
+    if (options.interactions !== undefined) {
+      interactions = await ConversationInteractionRuntime.open({
+        dataDirectory: options.dataDirectory,
+        deployment: options.interactions,
+      });
+    }
     const deliberationOptions = options.deliberations;
     if (deliberationOptions !== undefined) {
       if (deliberationOptions.bindings.length === 0) {
@@ -121,7 +150,7 @@ export async function openConversationApplication(
             source: deliberationOptions.reconciliationSource,
             store: deliberationStore,
           };
-    const adapters = new Map<string, ConversationAdapter>();
+    adapters = new Map<string, ConversationAdapter>();
     for (const deployment of integrationDeployments) {
       const adapter = await deployment.create({
         artifactStore,
@@ -153,11 +182,24 @@ export async function openConversationApplication(
           entry[1] instanceof DiscordConversationAdapter,
       ),
     );
+    discordRuntime.start();
     return {
       adapters,
       slackAdapters,
       discordAdapters,
+      discordGateways: discordRuntime.gateways,
       deliberations,
+      handleInboundEvent: interactions === null ? null : (event) => interactions!.handle(event),
+      runDeliveryCycle:
+        interactions === null
+          ? null
+          : async (integrationId) => {
+              const adapter = adapters.get(integrationId);
+              if (adapter === undefined) {
+                throw new Error("The conversation delivery integration is not deployed.");
+              }
+              return interactions!.runDeliveryCycle(adapter);
+            },
       runDeliberationWorkerCycle: async () => {
         if (deliberationOptions === undefined || deliberationStore === null) {
           return { status: "idle" };
@@ -208,12 +250,16 @@ export async function openConversationApplication(
               });
             },
       close: () => {
+        discordRuntime.stop();
+        interactions?.close();
         resumeStore?.close();
         deliberationStore?.close();
         store.close();
       },
     };
   } catch (error) {
+    discordRuntime.stop();
+    interactions?.close();
     resumeStore?.close();
     deliberationStore?.close();
     store.close();

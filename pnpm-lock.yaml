@@ -263,13 +263,43 @@ importers:
       '@lervo/conversation-platform-sqlite':
         specifier: workspace:*
         version: link:../../packages/conversation-platform-sqlite
+      '@lervo/discord-gateway':
+        specifier: workspace:*
+        version: link:../../packages/discord-gateway
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../../packages/event-contract
+      '@lervo/interaction':
+        specifier: workspace:*
+        version: link:../../packages/interaction
+      '@lervo/interaction-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/interaction-sqlite
+      '@lervo/remote-command':
+        specifier: workspace:*
+        version: link:../../packages/remote-command
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../../packages/storage-contract
+      '@lervo/sync':
+        specifier: workspace:*
+        version: link:../../packages/sync
     devDependencies:
       '@lervo/adapter-native-chat':
         specifier: workspace:*
         version: link:../../packages/adapter-native-chat
+      '@lervo/conversation-responder':
+        specifier: workspace:*
+        version: link:../../packages/conversation-responder
+      '@lervo/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@lervo/writing':
+        specifier: workspace:*
+        version: link:../../packages/writing
 
   apps/hub:
     dependencies:
@@ -867,6 +897,12 @@ importers:
         specifier: workspace:*
         version: link:../storage-contract
 
+  packages/discord-gateway:
+    dependencies:
+      '@lervo/adapter-discord':
+        specifier: workspace:*
+        version: link:../adapter-discord
+
   packages/documents:
     dependencies:
       '@lervo/filesystem-durability':
@@ -1241,6 +1277,9 @@ importers:
       '@lervo/remote-command':
         specifier: workspace:*
         version: link:../remote-command
+      '@lervo/repository-knowledge':
+        specifier: workspace:*
+        version: link:../repository-knowledge
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas

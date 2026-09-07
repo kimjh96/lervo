@@ -2,7 +2,11 @@ import type { ProviderAdapter } from "@lervo/adapter-contract";
 import type { ManagedCapabilityApprovalVerifier } from "@lervo/orchestrator";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { RemoteCommandExecutor } from "@lervo/remote-command";
-import type { DocumentRegistry, RemoteCommandTarget } from "@lervo/schemas";
+import type {
+  DocumentRegistry,
+  RemoteCommandTarget,
+  RemoteContinuationCoordinate,
+} from "@lervo/schemas";
 
 import type { PreparedManagedProviderHostVerification } from "./verification.js";
 import type { ManagedProviderHostRoleRegistry } from "./role-registry.js";
@@ -36,6 +40,10 @@ export interface ManagedProviderHostOptions {
     artifactStore: ProjectStorage["artifacts"];
     now?: () => Date;
   }) => Promise<PreparedManagedProviderHostVerification>;
+  verifyContinuation?: (input: {
+    repositoryRoot: string;
+    continuation: RemoteContinuationCoordinate;
+  }) => Promise<void>;
 }
 
 export interface ManagedProviderHost extends RemoteCommandExecutor {}
@@ -45,6 +53,7 @@ export type ManagedProviderHostErrorCode =
   | "managed_command_unsupported"
   | "managed_approval_scope_invalid"
   | "managed_project_mismatch"
+  | "managed_continuation_mismatch"
   | "managed_execution_failed"
   | "managed_cleanup_failed";
 

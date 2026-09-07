@@ -51,6 +51,7 @@ function slackIntegration(
 
 function discordIntegration(
   deployment: DiscordConversationDeployment,
+  gatewayAuthentication: NonNullable<DiscordConversationDeployment["gatewayAuthentication"]>,
 ): ConversationIntegrationDeployment {
   return {
     integrationId: deployment.integrationId,
@@ -78,7 +79,7 @@ function discordIntegration(
         applicationId: deployment.applicationId,
         allowedGuildIds: deployment.allowedGuildIds,
         allowDirectMessages: deployment.allowDirectMessages,
-        gatewayAuthentication: deployment.gatewayAuthentication,
+        gatewayAuthentication,
         identity: context.identity,
         artifactStore: context.artifactStore,
         delivery,
@@ -90,10 +91,22 @@ function discordIntegration(
 
 export function configuredConversationIntegrations(
   options: ConversationApplicationOptions,
+  discordGatewayAuthentications: ReadonlyMap<
+    string,
+    NonNullable<DiscordConversationDeployment["gatewayAuthentication"]>
+  > = new Map(),
 ): ConversationIntegrationDeployment[] {
   return [
     ...(options.slack ?? []).map(slackIntegration),
-    ...(options.discord ?? []).map(discordIntegration),
+    ...(options.discord ?? []).map((deployment) => {
+      const authentication =
+        discordGatewayAuthentications.get(deployment.integrationId) ??
+        deployment.gatewayAuthentication;
+      if (authentication === undefined) {
+        throw new Error("A Discord integration requires one Gateway authentication owner.");
+      }
+      return discordIntegration(deployment, authentication);
+    }),
     ...(options.integrations ?? []),
   ];
 }

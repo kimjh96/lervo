@@ -58,6 +58,34 @@ export interface ConversationControlResponderOptions {
   now?: () => Date;
 }
 
+export interface ConversationRemoteContinuationPort {
+  request(input: {
+    projectId: string;
+    conversationId: string;
+    threadId: string | null;
+    eventId: string;
+    participantId: string;
+    request: string;
+    requestContentHash: string;
+    requestedAt: string;
+  }): Promise<{
+    status: "queued" | "duplicate";
+    deliveryId: string;
+    provider: string;
+    roleId: string;
+    workstreamId: string;
+    workstreamRevision: number;
+  }>;
+}
+
+export interface ConversationRemoteContinuationResponderOptions {
+  artifactStore: ArtifactStore;
+  continuation: ConversationRemoteContinuationPort;
+  writingContract: WritingContract;
+  semanticEvaluator: WritingSemanticEvaluator;
+  now?: () => Date;
+}
+
 export type ConversationControlResponderPort = ConversationResponder;
 
 export class ConversationControlError extends Error {
@@ -68,6 +96,8 @@ export class ConversationControlError extends Error {
       | "control_source_failed"
       | "deliberation_source_failed"
       | "message_artifact_invalid"
+      | "remote_continuation_denied"
+      | "remote_continuation_failed"
       | "writing_publication_blocked",
     message: string,
     options?: ErrorOptions,

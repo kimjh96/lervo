@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_590ece13c9c58ebce87a29f3
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a34582843ffa3f3a51ebfbfc
+outputLanguage: en
+outputs:
+  - byteCount: 4520
+    contentHash: sha256:31e1f660256536a89758dc5c2c5ce9b7b813abab57e669a69e3485f24616d591
+    path: docs/decisions/coordination/conversations/0381-discord-first-remote-continuation-intake.md
+    userRegionHash: sha256:31e1f660256536a89758dc5c2c5ce9b7b813abab57e669a69e3485f24616d591
+profile: decision_record
+recordId: knormdoc_fe7c87c5932a2dcf28699bff
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d7b6217cc6e728b218171302057d6f6f7c8380fa4b2ffdd07b2be93f3ed8af54
+sourcePath: docs/decisions/coordination/conversations/0381-discord-first-remote-continuation-intake.md
+sourceUnitVersionIds:
+  - uv_088af249efa3b9cf3510c21f
+  - uv_3261e534a30a28bf974c1e9c
+  - uv_4ccbbf9f77adb4e108d6875d
+  - uv_68aa86444b07814ceda50ebd
+  - uv_7e711c77c039fe4c8861cdd5

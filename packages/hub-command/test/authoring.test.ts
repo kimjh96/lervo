@@ -26,6 +26,13 @@ const request = {
   risk: "medium" as const,
   verificationSuiteIds: ["repo.check"],
   request: "A real request that a person can understand",
+  continuation: {
+    workstreamId: `wks_${"c".repeat(24)}`,
+    revision: 6,
+    snapshotContentHash: `sha256:${"d".repeat(64)}`,
+    assignmentId: `asn_${"e".repeat(24)}`,
+    agentId: `agt_${"f".repeat(24)}`,
+  },
 };
 
 function fixture() {
@@ -103,6 +110,7 @@ describe("Hub command authoring", () => {
       issuedAt: "2026-08-22T00:00:00.000Z",
       expiresAt: "2026-08-22T00:02:00.000Z",
       nonce: Buffer.alloc(32, 7).toString("base64url"),
+      action: { continuation: request.continuation },
     });
     expect(first.record.artifactRetainUntil).toBe("2026-09-21T00:00:00.000Z");
     expect(setup.artifacts.put).toHaveBeenCalledTimes(3);

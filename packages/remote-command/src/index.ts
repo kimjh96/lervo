@@ -4,6 +4,7 @@ export * from "./ed25519.js";
 export * from "./errors.js";
 export * from "./http-transport.js";
 export * from "./http-payload-loader.js";
+export * from "./http-submission.js";
 export * from "./polling-runtime.js";
 export * from "./receiver.js";
 export * from "./replay-store.js";

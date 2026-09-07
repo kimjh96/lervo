@@ -97,7 +97,7 @@ export function remoteCommandSubmissionBody(
   }
   const body = value as Record<string, unknown>;
   if (
-    Object.keys(body).length !== 8 ||
+    (Object.keys(body).length !== 8 && Object.keys(body).length !== 9) ||
     body.schemaVersion !== 1 ||
     typeof body.idempotencyKey !== "string" ||
     typeof body.lifetimeMs !== "number" ||
@@ -106,7 +106,8 @@ export function remoteCommandSubmissionBody(
     typeof body.risk !== "string" ||
     !Array.isArray(body.verificationSuiteIds) ||
     !body.verificationSuiteIds.every((item) => typeof item === "string") ||
-    typeof body.request !== "string"
+    typeof body.request !== "string" ||
+    (Object.keys(body).length === 9 && !("continuation" in body))
   )
     throw new InvalidHubHttpRequestError();
   return {
@@ -117,6 +118,11 @@ export function remoteCommandSubmissionBody(
     risk: body.risk as "low" | "medium" | "high",
     verificationSuiteIds: [...body.verificationSuiteIds] as string[],
     request: body.request,
+    ...(body.continuation === undefined
+      ? {}
+      : {
+          continuation: body.continuation as import("@lervo/schemas").RemoteContinuationCoordinate,
+        }),
   };
 }
 

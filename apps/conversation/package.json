@@ -23,9 +23,19 @@
     "@lervo/conversation-deliberation-sqlite": "workspace:*",
     "@lervo/conversation-platform": "workspace:*",
     "@lervo/conversation-platform-sqlite": "workspace:*",
+    "@lervo/discord-gateway": "workspace:*",
+    "@lervo/event-contract": "workspace:*",
+    "@lervo/interaction": "workspace:*",
+    "@lervo/interaction-sqlite": "workspace:*",
+    "@lervo/remote-command": "workspace:*",
+    "@lervo/schemas": "workspace:*",
+    "@lervo/sync": "workspace:*",
     "@lervo/storage-contract": "workspace:*"
   },
   "devDependencies": {
-    "@lervo/adapter-native-chat": "workspace:*"
+    "@lervo/adapter-native-chat": "workspace:*",
+    "@lervo/conversation-responder": "workspace:*",
+    "@lervo/core": "workspace:*",
+    "@lervo/writing": "workspace:*"
   }
 }

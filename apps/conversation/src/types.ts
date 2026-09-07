@@ -5,6 +5,16 @@ import type {
 import type { SlackConversationAdapter } from "@lervo/adapter-slack";
 import type { ConversationAdapter } from "@lervo/conversation-contract";
 import type {
+  AuthenticatedDiscordGatewayDriver,
+  DiscordGatewayDriverOptions,
+} from "@lervo/discord-gateway";
+import type {
+  ConversationPublicationVerifier,
+  ConversationRelevanceEvaluator,
+  ConversationResponder,
+} from "@lervo/interaction";
+import type { ConversationParticipationPolicy } from "@lervo/schemas";
+import type {
   ConversationDeliberationExecutionPort,
   ConversationDeliberationPort,
   ConversationDeliberationPrincipalBinding,
@@ -21,6 +31,7 @@ import type {
 } from "@lervo/conversation-platform-sqlite";
 
 import type { ConversationIntegrationDeployment } from "./integration.js";
+import type { ConversationInteractionResult } from "./interaction-runtime.js";
 
 interface PlatformCredentialTransportOptions {
   requestTimeoutMs?: number;
@@ -41,7 +52,26 @@ export interface DiscordConversationDeployment extends PlatformCredentialTranspo
   allowedGuildIds: readonly string[];
   allowDirectMessages: boolean;
   botToken: string;
-  gatewayAuthentication: DiscordGatewayAuthenticationPort;
+  gatewayAuthentication?: DiscordGatewayAuthenticationPort;
+  gateway?: Omit<DiscordGatewayDriverOptions, "applicationId" | "botToken" | "onDispatch">;
+}
+
+export interface ConversationInteractionBinding {
+  policy: ConversationParticipationPolicy;
+  agentParticipantId: string;
+  responder: ConversationResponder;
+  publicationVerifier: ConversationPublicationVerifier;
+  relevanceEvaluator?: ConversationRelevanceEvaluator;
+}
+
+export interface ConversationInteractionDeployment {
+  bindings: readonly ConversationInteractionBinding[];
+  workerId: string;
+  leaseDurationMs?: number;
+  retryDelayMs?: number;
+  deliveryLimit?: number;
+  maxRecords?: number;
+  now?: () => Date;
 }
 
 export interface ConversationApplicationOptions {
@@ -52,6 +82,7 @@ export interface ConversationApplicationOptions {
   slack?: readonly SlackConversationDeployment[];
   discord?: readonly DiscordConversationDeployment[];
   integrations?: readonly ConversationIntegrationDeployment[];
+  interactions?: ConversationInteractionDeployment;
   deliberations?: {
     bindings: readonly ConversationDeliberationPrincipalBinding[];
     executor: ConversationDeliberationExecutionPort;
@@ -70,7 +101,18 @@ export interface ConversationApplication {
   adapters: ReadonlyMap<string, ConversationAdapter>;
   slackAdapters: ReadonlyMap<string, SlackConversationAdapter>;
   discordAdapters: ReadonlyMap<string, DiscordConversationAdapter>;
+  discordGateways: ReadonlyMap<string, AuthenticatedDiscordGatewayDriver>;
   deliberations: ConversationDeliberationPort | null;
+  handleInboundEvent:
+    | ((
+        event: import("@lervo/schemas").ConversationInboundEvent,
+      ) => Promise<ConversationInteractionResult[]>)
+    | null;
+  runDeliveryCycle:
+    | ((
+        integrationId: string,
+      ) => Promise<import("@lervo/interaction").ConversationDeliveryCycleResult>)
+    | null;
   runDeliberationWorkerCycle(): Promise<ConversationDeliberationWorkerCycleResult>;
   runDeliberationResumeWorkerCycle(): Promise<ConversationDeliberationResumeWorkerCycleResult>;
   reconcileDeliberation:

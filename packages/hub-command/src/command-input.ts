@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 
 import { canonicalJson } from "@lervo/event-contract";
-import type { RemoteCommandPayloadReference, RemoteCommandTarget } from "@lervo/schemas";
+import {
+  isRemoteContinuationCoordinate,
+  type RemoteCommandPayloadReference,
+  type RemoteCommandTarget,
+  type RemoteContinuationCoordinate,
+} from "@lervo/schemas";
 
 import { HubCommandError } from "./errors.js";
 import type { AuthorHubCommandRequest } from "./types.js";
@@ -32,6 +37,7 @@ export function calculateHubCommandSubmissionHash(input: {
   verificationSuiteIds: string[];
   lifetimeMs: number;
   request: RemoteCommandPayloadReference;
+  continuation?: RemoteContinuationCoordinate;
 }): string {
   return hashHubCommandValue(canonicalJson({ schemaVersion: 1, ...structuredClone(input) }));
 }
@@ -81,7 +87,8 @@ export function validateHubCommandAuthoringInput(input: {
     new Set(request.verificationSuiteIds).size !== request.verificationSuiteIds.length ||
     !request.verificationSuiteIds.every(
       (id) => id.length <= 150 && /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(id),
-    )
+    ) ||
+    (request.continuation !== undefined && !isRemoteContinuationCoordinate(request.continuation))
   )
     throw new HubCommandError("invalid_request", "The Hub command authoring request is invalid.");
   return hashHubCommandValue(`${input.target.projectIdentityHash}\0${input.principalId}`);

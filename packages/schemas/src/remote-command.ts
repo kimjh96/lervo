@@ -12,6 +12,44 @@ import {
   verificationSuiteIdSchema,
 } from "./common.js";
 
+export const remoteContinuationCoordinateSchema = {
+  type: "object",
+  properties: {
+    workstreamId: { type: "string", pattern: "^wks_[a-f0-9]{24}$" },
+    revision: { type: "integer", minimum: 1 },
+    snapshotContentHash: sha256Schema,
+    assignmentId: {
+      oneOf: [{ type: "string", pattern: "^asn_[a-f0-9]{24}$" }, { type: "null" }],
+    },
+    agentId: {
+      oneOf: [{ type: "string", pattern: "^agt_[a-f0-9]{24}$" }, { type: "null" }],
+    },
+  },
+  required: ["workstreamId", "revision", "snapshotContentHash", "assignmentId", "agentId"],
+  additionalProperties: false,
+} as const;
+
+export function isRemoteContinuationCoordinate(
+  value: unknown,
+): value is RemoteContinuationCoordinate {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const coordinate = value as Record<string, unknown>;
+  return (
+    Object.keys(coordinate).length === 5 &&
+    typeof coordinate.workstreamId === "string" &&
+    /^wks_[a-f0-9]{24}$/u.test(coordinate.workstreamId) &&
+    Number.isSafeInteger(coordinate.revision) &&
+    Number(coordinate.revision) >= 1 &&
+    typeof coordinate.snapshotContentHash === "string" &&
+    /^sha256:[a-f0-9]{64}$/u.test(coordinate.snapshotContentHash) &&
+    (coordinate.assignmentId === null ||
+      (typeof coordinate.assignmentId === "string" &&
+        /^asn_[a-f0-9]{24}$/u.test(coordinate.assignmentId))) &&
+    (coordinate.agentId === null ||
+      (typeof coordinate.agentId === "string" && /^agt_[a-f0-9]{24}$/u.test(coordinate.agentId)))
+  );
+}
+
 export const remoteCommandTargetSchema = {
   type: "object",
   properties: {
@@ -49,6 +87,7 @@ export const managedRunRemoteCommandActionSchema = {
       items: verificationSuiteIdSchema,
     },
     request: remoteCommandPayloadReferenceSchema,
+    continuation: remoteContinuationCoordinateSchema,
   },
   required: ["kind", "roleId", "provider", "risk", "verificationSuiteIds", "request"],
   additionalProperties: false,
@@ -286,6 +325,7 @@ export const remoteCommandDeliveryConfirmationSchema = {
 
 export type RemoteCommandTarget = FromSchema<typeof remoteCommandTargetSchema>;
 export type RemoteCommandPayloadReference = FromSchema<typeof remoteCommandPayloadReferenceSchema>;
+export type RemoteContinuationCoordinate = FromSchema<typeof remoteContinuationCoordinateSchema>;
 export type ManagedRunRemoteCommandAction = FromSchema<typeof managedRunRemoteCommandActionSchema>;
 export type RemoteCommand = FromSchema<typeof remoteCommandSchema>;
 export type SignedRemoteCommand = FromSchema<

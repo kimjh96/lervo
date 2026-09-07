@@ -2,6 +2,7 @@ import type {
   RemoteCommand,
   RemoteCommandPayloadReference,
   RemoteCommandTarget,
+  RemoteContinuationCoordinate,
   SignedRemoteCommand,
 } from "@lervo/schemas";
 
@@ -184,4 +185,5 @@ export interface AuthorHubCommandRequest {
   risk: "low" | "medium" | "high";
   verificationSuiteIds: string[];
   request: string;
+  continuation?: RemoteContinuationCoordinate;
 }

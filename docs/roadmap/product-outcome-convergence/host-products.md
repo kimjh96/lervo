@@ -6,6 +6,7 @@ Part of [Product outcome convergence](../product-outcome-convergence.md); its ba
 - [Reviewed local repeatable triggers](host-products/triggers/reviewed-local.md): `implemented`.
 - [Authenticated live trigger adapters](host-products/triggers/authenticated-live.md): `implemented`.
 - [Governed Slack delivery](host-products/slack.md): `implemented`.
+- [Discord remote continuation](host-products/discord.md): authenticated exact-workstream intake, result return, and Mac-offline source handoff are `delivery required`.
 - [Product interfaces and host compatibility](host-products/host-boundary.md): `external product` interfaces; `implemented` host boundary.
 - [Dynamic execution graphs](host-products/execution-graphs.md): `implemented`.
 - [Replaceable components](host-products/replaceability.md): `implemented`.

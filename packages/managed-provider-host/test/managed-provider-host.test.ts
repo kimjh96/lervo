@@ -284,6 +284,13 @@ describe("managed remote provider host", () => {
     const fixture = await repository();
     const request = "Implement the approved result file.";
     const bytes = new TextEncoder().encode(request);
+    const continuation = {
+      workstreamId: `wks_${"c".repeat(24)}`,
+      revision: 11,
+      snapshotContentHash: `sha256:${"d".repeat(64)}`,
+      assignmentId: `asn_${"e".repeat(24)}`,
+      agentId: `agt_${"f".repeat(24)}`,
+    };
     const command = createRemoteCommand({
       idempotencyKey: "idk_managed_provider_host_01",
       nonce: Buffer.alloc(32, 7).toString("base64url"),
@@ -302,6 +309,7 @@ describe("managed remote provider host", () => {
           byteCount: bytes.byteLength,
           mediaType: "text/plain; charset=utf-8",
         },
+        continuation,
       },
     });
     const authorization = {
@@ -325,6 +333,9 @@ describe("managed remote provider host", () => {
       roleRegistry: new ManagedProviderHostRoleRegistry(),
       approvalVerifier: { verify },
       createId: ids(),
+      verifyContinuation: vi.fn(async (input) => {
+        expect(input).toEqual({ repositoryRoot: fixture.root, continuation });
+      }),
       adapterFactory: {
         create: ({ repositoryRoot, resolveArtifact }) =>
           new CodexAdapter({
@@ -363,6 +374,13 @@ describe("managed remote provider host", () => {
     expect(events.find((event) => event.type === "run.completed")?.payload).toMatchObject({
       verificationStatus: "passed",
     });
+    expect(events.find((event) => event.type === "work.causality.recorded")?.payload).toMatchObject(
+      {
+        workstreamId: continuation.workstreamId,
+        assignmentId: continuation.assignmentId,
+        agentId: continuation.agentId,
+      },
+    );
     expect(events.find((event) => event.type === "capability.decided")?.payload).toMatchObject({
       approvalId,
     });

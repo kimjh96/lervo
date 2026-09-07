@@ -121,6 +121,9 @@ export async function authorHubCommand(input: {
     verificationSuiteIds: input.request.verificationSuiteIds,
     lifetimeMs: input.request.lifetimeMs,
     request: reference,
+    ...(input.request.continuation === undefined
+      ? {}
+      : { continuation: input.request.continuation }),
   });
   const coordinate = {
     destinationId: input.destinationId,
@@ -159,6 +162,9 @@ export async function authorHubCommand(input: {
       risk: input.request.risk,
       verificationSuiteIds: [...input.request.verificationSuiteIds],
       request: reference,
+      ...(input.request.continuation === undefined
+        ? {}
+        : { continuation: structuredClone(input.request.continuation) }),
     },
   });
   const envelope = input.signer.sign(command);

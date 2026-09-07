@@ -13,6 +13,7 @@ import {
 } from "./types.js";
 import { prepareManagedProviderHostVerification } from "./verification.js";
 import { resolveManagedProviderHostSkills } from "./skills.js";
+import { verifyManagedProviderContinuation } from "./continuation.js";
 
 const PROVIDER_PATTERN = /^[a-z][a-z0-9_-]{0,63}$/u;
 
@@ -44,6 +45,9 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
   private readonly prepareVerification: NonNullable<
     ManagedProviderHostOptions["prepareVerification"]
   >;
+  private readonly verifyContinuation: NonNullable<
+    ManagedProviderHostOptions["verifyContinuation"]
+  >;
   private running = false;
 
   constructor(private readonly options: ManagedProviderHostOptions) {
@@ -71,6 +75,7 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
     this.resolveSkills = options.resolveSkills ?? resolveManagedProviderHostSkills;
     this.prepareVerification =
       options.prepareVerification ?? prepareManagedProviderHostVerification;
+    this.verifyContinuation = options.verifyContinuation ?? verifyManagedProviderContinuation;
   }
 
   async execute(input: Parameters<ManagedProviderHost["execute"]>[0]) {
@@ -149,6 +154,12 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
           "The managed provider host project identity differs from the remote command.",
         );
       }
+      if (command.action.continuation !== undefined) {
+        await this.verifyContinuation({
+          repositoryRoot: storage.paths.repositoryRoot,
+          continuation: command.action.continuation,
+        });
+      }
       const registry = await this.loadRegistry(storage.paths.repositoryRoot);
       const verification = await this.prepareVerification({
         repositoryRoot: storage.paths.repositoryRoot,
@@ -223,6 +234,16 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
         createEvidenceReceiptId: () => this.createId("ctx"),
         createTargetTurnId: () => this.createId("turn"),
         approvalAuthorization: input.policyAuthorization,
+        ...(command.action.continuation === undefined
+          ? {}
+          : {
+              workCausality: {
+                relationship: "root" as const,
+                workstreamId: command.action.continuation.workstreamId,
+                assignmentId: command.action.continuation.assignmentId,
+                agentId: command.action.continuation.agentId,
+              },
+            }),
       });
       const completedAt = this.now().toISOString();
       if (!Number.isFinite(Date.parse(completedAt))) throw new Error("invalid host clock");

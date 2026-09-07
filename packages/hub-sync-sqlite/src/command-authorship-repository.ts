@@ -88,6 +88,9 @@ function parseRecord(row: SQLiteRow): HubCommandAuthorshipRecord {
         verificationSuiteIds: command.action.verificationSuiteIds,
         lifetimeMs,
         request: command.action.request,
+        ...(command.action.continuation === undefined
+          ? {}
+          : { continuation: command.action.continuation }),
       }) ||
     !/^sha256:[a-f0-9]{64}$/.test(record.submissionHash) ||
     !/^sha256:[a-f0-9]{64}$/.test(record.authorSubjectHash) ||
