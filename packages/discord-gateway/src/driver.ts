@@ -9,6 +9,7 @@ import {
   parseDiscordReadyData,
   type DiscordGatewayPayload,
 } from "./payload.js";
+import { isAllowedDiscordGatewayResumeUrl } from "./resume-url.js";
 import {
   DiscordGatewayError,
   type DiscordGatewayConnection,
@@ -197,7 +198,7 @@ export class AuthenticatedDiscordGatewayDriver
         );
       }
       const resumeUrl = normalizeDiscordGatewayUrl(ready.resumeGatewayUrl);
-      if (resumeUrl.hostname !== this.initialUrl.hostname) {
+      if (!isAllowedDiscordGatewayResumeUrl(this.initialUrl, resumeUrl)) {
         throw new DiscordGatewayError(
           "authentication_failed",
           "Discord READY returned an unexpected resume host.",

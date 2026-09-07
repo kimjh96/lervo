@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fee59448e2a98958f2ef2bb8"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Accept Discord regional Gateway resume hosts within the official trust boundary."

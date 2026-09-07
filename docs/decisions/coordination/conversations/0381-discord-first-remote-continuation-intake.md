@@ -5,9 +5,9 @@
 
 ## Context
 
-A person may start repository work in a local Codex or Claude terminal, take the Mac offline, and continue issuing Discord instructions through an always-on repository Node. Existing components authenticated Discord messages, replicated workstreams through the Hub, authored signed remote commands, and executed managed provider runs. They did not compose these capabilities, own a Discord Gateway connection, or bind a remote command to its intended workstream revision.
+A person may start repository work in a local Codex or Claude terminal, take the Mac offline, and continue issuing Discord instructions through an always-on repository Node. Existing components authenticated Discord messages, replicated workstreams through the Hub, authored signed remote commands, and executed managed provider runs. They did not compose these capabilities, own a Discord Gateway connection, or bind remote commands to intended workstream revisions.
 
-Queue acknowledgement, execution completion, provider output publication, and source checkout transfer are distinct outcomes. Combining them would misrepresent queued commands as completed and replicated workstream metadata as replicated Git bytes.
+Queue acknowledgement, execution completion, provider output publication, and source checkout transfer are distinct outcomes. Queueing does not establish completion, and replicated workstream metadata does not establish replicated Git bytes.
 
 ## Decision
 
@@ -16,6 +16,8 @@ Queue acknowledgement, execution completion, provider output publication, and so
 The Gateway keeps the bot token, Discord session ID, resume URL, sequence, heartbeat acknowledgement flag, and generated Lervo session handle in process memory. Authenticated dispatch records contain only the session handle, sequence, and event name; they are bounded and cleared on reconnect or stop. No Gateway credential or Discord session state enters repository events, source documentation, or interaction SQLite.
 
 Terminal Discord close codes for invalid authentication, shard, API version, intents, or disallowed intents stop reconnecting and report `authentication_failed`. Invalid payloads and missed heartbeat acknowledgements trigger reconnect without treating a message as authenticated.
+
+Discord READY may return a regional `*.discord.gg` resume host instead of the initial `gateway.discord.gg` host. The Gateway accepts that documented official host family while retaining WSS, credential, fragment, and port checks. Custom Gateway endpoints may resume only on their exact configured host and port.
 
 `HubConversationRemoteContinuation` accepts only an authenticated mapped human within configured project, conversation, and participant scopes. It reads the exact CAS-bound message, resolves one authenticated active Hub workstream head, and submits the message through the Hub-owned command-authoring HTTP boundary. Its idempotency key binds project identity, event, participant, message content hash, and continuation coordinate. The immediate Discord reply names the delivery, provider, role, workstream, and revision and claims queueing only.
 

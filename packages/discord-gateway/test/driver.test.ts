@@ -59,7 +59,10 @@ async function settled(): Promise<void> {
   await new Promise<void>((resolve) => setImmediate(resolve));
 }
 
-function fixture(onReady: () => void | Promise<void> = () => undefined) {
+function fixture(
+  onReady: () => void | Promise<void> = () => undefined,
+  onError?: (error: Error) => void,
+) {
   const transport = new FixtureTransport();
   const schedule = new FixtureSchedule();
   const dispatches: Array<{ sessionHandle: string; body: Uint8Array }> = [];
@@ -75,6 +78,7 @@ function fixture(onReady: () => void | Promise<void> = () => undefined) {
     heartbeatJitter: () => 0.25,
     createSessionHandle: () => `discord_session_${transport.connections.length + 1}`,
     onReady: ready,
+    ...(onError === undefined ? {} : { onError }),
     async onDispatch(dispatch) {
       dispatches.push(dispatch);
       verified(
@@ -134,6 +138,47 @@ describe("authenticated Discord Gateway driver", () => {
       authenticated: false,
       reasonCode: "gateway_dispatch_unverified",
     });
+  });
+
+  it("accepts an official regional Discord resume host", async () => {
+    const setup = fixture();
+    setup.driver.start();
+    const connection = setup.transport.connections[0]!;
+
+    emit(connection.observer, { op: 10, d: { heartbeat_interval: 45_000 } });
+    emit(connection.observer, {
+      op: 0,
+      s: 1,
+      t: "READY",
+      d: {
+        session_id: "gateway-session",
+        resume_gateway_url: "wss://gateway-us-east1-b.discord.gg",
+      },
+    });
+    await settled();
+
+    expect(setup.ready).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a resume host outside the configured Discord trust boundary", async () => {
+    const onError = vi.fn();
+    const setup = fixture(undefined, onError);
+    setup.driver.start();
+    const connection = setup.transport.connections[0]!;
+
+    emit(connection.observer, { op: 10, d: { heartbeat_interval: 45_000 } });
+    emit(connection.observer, {
+      op: 0,
+      s: 1,
+      t: "READY",
+      d: { session_id: "gateway-session", resume_gateway_url: "wss://discord.example" },
+    });
+    await settled();
+
+    expect(setup.ready).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "authentication_failed" }),
+    );
   });
 
   it("waits for asynchronous READY observation before forwarding dispatches", async () => {
