@@ -249,6 +249,7 @@ export async function openConversationApplication(
                 ...(options.now === undefined ? {} : { now: options.now }),
               });
             },
+      stopIngress: () => discordRuntime.stop(),
       close: () => {
         discordRuntime.stop();
         interactions?.close();

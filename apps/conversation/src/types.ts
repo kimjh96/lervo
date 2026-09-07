@@ -121,5 +121,6 @@ export interface ConversationApplication {
         deliberationId: string;
       }) => Promise<ConversationDeliberationReconciliationResult>)
     | null;
+  stopIngress(): void;
   close(): void;
 }

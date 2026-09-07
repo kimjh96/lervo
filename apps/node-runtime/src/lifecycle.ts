@@ -53,6 +53,7 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
     } | null,
     private readonly conversation: {
       failed: Promise<void>;
+      stopIngress?(): void;
       close(): void;
     } | null,
     private readonly reloadBearerTokenSnapshot: () => Promise<void>,
@@ -199,7 +200,7 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
     let remoteControl: RemoteControlLoopResult | null = null;
     const shutdownErrors: unknown[] = [];
     try {
-      this.conversation?.close();
+      this.conversation?.stopIngress?.();
     } catch (error) {
       shutdownErrors.push(error);
     }
@@ -215,6 +216,11 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
     }
     try {
       this.control?.close();
+    } catch (error) {
+      shutdownErrors.push(error);
+    }
+    try {
+      this.conversation?.close();
     } catch (error) {
       shutdownErrors.push(error);
     }
@@ -245,6 +251,7 @@ export function createNodeRuntimeDeployment(
   } | null = null,
   conversation: {
     failed: Promise<void>;
+    stopIngress?(): void;
     close(): void;
   } | null = null,
   reloadBearerToken: () => Promise<void> = async () => undefined,

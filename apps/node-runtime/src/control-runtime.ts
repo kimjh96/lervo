@@ -54,6 +54,9 @@ export interface NodeRemoteCommandPorts {
   clock?: RemoteCommandClock;
   nowMilliseconds?: () => number;
   onCycle?: (result: RemoteControlCycleResult) => void | Promise<void>;
+  onAcknowledgementPrepared?: NonNullable<
+    Parameters<typeof runRemoteCommandReconnectCycle>[0]["onAcknowledgementPrepared"]
+  >;
 }
 
 export interface NodeRemoteControlRuntime {
@@ -231,6 +234,9 @@ export async function openNodeRemoteControlRuntime(input: {
                 ? {}
                 : { retryDelayMs: commands.retryDelayMs }),
               ...(commands.limit === undefined ? {} : { limit: commands.limit }),
+              ...(input.ports.onAcknowledgementPrepared === undefined
+                ? {}
+                : { onAcknowledgementPrepared: input.ports.onAcknowledgementPrepared }),
             }),
           ...(commands.idlePollIntervalMs === undefined
             ? {}

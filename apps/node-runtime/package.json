@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.226",
+    "@lervo/adapter-contract": "workspace:*",
     "@lervo/cas": "workspace:*",
     "@lervo/conversation-app": "workspace:*",
     "@lervo/conversation-contract": "workspace:*",
@@ -30,6 +31,8 @@
     "@lervo/adapter-codex": "workspace:*",
     "@lervo/event-store-sqlite": "workspace:*",
     "@lervo/event-contract": "workspace:*",
+    "@lervo/execution-contract": "workspace:*",
+    "@lervo/interaction": "workspace:*",
     "@lervo/managed-provider-host": "workspace:*",
     "@lervo/organization-credential-source-file": "workspace:*",
     "@lervo/organization-deployment-contract": "workspace:*",
@@ -37,6 +40,7 @@
     "@lervo/policy-sqlite": "workspace:*",
     "@lervo/project": "workspace:*",
     "@lervo/project-storage": "workspace:*",
+    "@lervo/provider-writing-evaluator": "workspace:*",
     "@lervo/repository-knowledge": "workspace:*",
     "@lervo/remote-command": "workspace:*",
     "@lervo/remote-command-sqlite": "workspace:*",
@@ -45,7 +49,8 @@
     "@lervo/storage-contract": "workspace:*",
     "@lervo/sync": "workspace:*",
     "@lervo/sync-contract": "workspace:*",
-    "@lervo/workspace-reservation-hub": "workspace:*"
+    "@lervo/workspace-reservation-hub": "workspace:*",
+    "@lervo/writing": "workspace:*"
   },
   "devDependencies": {
     "@lervo/hub": "workspace:*",

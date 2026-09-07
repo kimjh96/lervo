@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6f7521f562674d823193fba6"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Return verified managed execution results durably to their originating Discord conversations."

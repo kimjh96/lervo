@@ -71,10 +71,15 @@ export interface ConversationRemoteContinuationPort {
   }): Promise<{
     status: "queued" | "duplicate";
     deliveryId: string;
+    commandId: string;
     provider: string;
     roleId: string;
     workstreamId: string;
     workstreamRevision: number;
+    workstreamSnapshotContentHash: string;
+    assignmentId: string | null;
+    agentId: string | null;
+    queuedAt: string;
   }>;
 }
 

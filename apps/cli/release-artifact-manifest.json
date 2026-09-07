@@ -87,6 +87,7 @@
       "@lervo/policy@0.1.0",
       "@lervo/project-storage@0.1.0",
       "@lervo/project@0.1.0",
+      "@lervo/provider-writing-evaluator@0.1.0",
       "@lervo/remote-command-contract@0.1.0",
       "@lervo/remote-command-sqlite@0.1.0",
       "@lervo/remote-command@0.1.0",
@@ -155,7 +156,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:843c62cf0fe6227e260cb7f26a7843b0f69134dabd73ad1ebf6edfd5288da1cd"
+    "bundleDigest": "sha256:893bc062b05da08abbe6337e3642fa66f7f2774ce6e085dd55b85742d3792143"
   },
   "archive": {
     "rootFiles": [
@@ -169,13 +170,13 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 5723286,
-        "sha256": "sha256:916d84c581e0cae33d9747f4899ab680fa27273be80db604d77f70506efcf716"
+        "size": 5724278,
+        "sha256": "sha256:bafbe542b259fb82bb2e0f8c7e1704a6c7af718a3e51aa4390c4a3a44cd3c733"
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 2930387,
-        "sha256": "sha256:a08fa6c47396597f6d6694f78179745be4ac0de741fedfb0c2b4f0a008de1f06"
+        "size": 2971855,
+        "sha256": "sha256:eda8235547b0f723545b44ec57f9789f66c049b6b027b5f9d613e3451c956640"
       },
       {
         "path": "dist/terminal-hook.js",
@@ -184,7 +185,7 @@
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:275ad6ea000515f24d34644da7114c0700633858e01b5acb16f91718691891b2"
+    "contentDigest": "sha256:6d9c47e94ffa6e0e9652ee089b06ef394a6efb888703c12f40f9793aea70ffe7"
   },
   "dependencies": {
     "portable": [
@@ -297,5 +298,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:71ed5f87608e06f9d22398af78e398915c5c7bcb26c85e21291075fda5c180f4"
+  "artifactDigest": "sha256:3d40ae2481c5efcac5adb1b8e0146e3f39ce91a455588797bfa9d8d4694ae7f0"
 }

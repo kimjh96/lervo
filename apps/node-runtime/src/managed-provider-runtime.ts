@@ -6,6 +6,7 @@ import {
   type ManagedProviderHostAdapterFactory,
 } from "@lervo/managed-provider-host";
 import type { RoleProfile } from "@lervo/schemas";
+import type { ProviderAdapter } from "@lervo/adapter-contract";
 
 import type { NodeRuntimeConfig } from "./config-types.js";
 import type { NodeRemoteCommandPorts } from "./control-runtime.js";
@@ -14,6 +15,22 @@ import { NodeRuntimeError } from "./errors.js";
 export interface ManagedProviderRemoteCommandDependencies {
   createAdapter?: ManagedProviderHostAdapterFactory["create"];
   roleProfiles?: readonly RoleProfile[];
+}
+
+export function createNodeProviderAdapter(input: {
+  provider: "codex" | "claude";
+  repositoryRoot: string;
+  resolveArtifact: (uri: string) => Promise<Uint8Array>;
+}): ProviderAdapter {
+  return input.provider === "codex"
+    ? new CodexAdapter({
+        repositoryRoot: input.repositoryRoot,
+        resolveArtifact: input.resolveArtifact,
+      })
+    : new ClaudeAdapter({
+        repositoryRoot: input.repositoryRoot,
+        resolveArtifact: input.resolveArtifact,
+      });
 }
 
 export function createManagedProviderRemoteCommandPorts(
@@ -72,9 +89,11 @@ export function createManagedProviderRemoteCommandPorts(
             if (dependencies.createAdapter !== undefined) {
               return dependencies.createAdapter({ provider, repositoryRoot, resolveArtifact });
             }
-            return provider === "codex"
-              ? new CodexAdapter({ repositoryRoot, resolveArtifact })
-              : new ClaudeAdapter({ repositoryRoot, resolveArtifact });
+            return createNodeProviderAdapter({
+              provider: provider as "codex" | "claude",
+              repositoryRoot,
+              resolveArtifact,
+            });
           },
         },
       }),

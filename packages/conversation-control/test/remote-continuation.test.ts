@@ -97,10 +97,15 @@ describe("conversation remote continuation responder", () => {
     const submit = vi.fn(async () => ({
       status: "queued" as const,
       deliveryId: `rcd_${"a".repeat(64)}`,
+      commandId: `rcm_${"c".repeat(64)}`,
       provider: "codex",
       roleId: "developer",
       workstreamId: `wks_${"b".repeat(24)}`,
       workstreamRevision: 12,
+      workstreamSnapshotContentHash: `sha256:${"d".repeat(64)}`,
+      assignmentId: null,
+      agentId: null,
+      queuedAt: "2026-09-07T08:00:00.000Z",
     }));
     const responder = new ConversationRemoteContinuationResponder({
       artifactStore: artifacts,

@@ -1,7 +1,7 @@
 byteOwnership:
   owner: reviewer
   rewritePolicy: reviewed_exact
-candidateId: knorm_e2bc8c774649a30f21052698
+candidateId: knorm_1adb23e1b7d6a30c5b679a11
 compiler:
   compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
   compilerId: lervo.codex.document-normalizer
@@ -9,19 +9,19 @@ compiler:
   isolation: external_no_capabilities
   provider: codex
 formatVersion: lervo.document.v1
-operationId: knormop_1c96f6673ec8af4efbd9709c
+operationId: knormop_bce078272c3d647e62f38f2b
 outputLanguage: en
 outputs:
-  - byteCount: 2553
-    contentHash: sha256:937ec83634078aaf482f25826686d607392b534c4e07fb1f4d5f1e32d3d2a7a2
+  - byteCount: 2699
+    contentHash: sha256:96f74584f94bf94aba236bd235a245114d711990adffca9e5bd2e4a8eb81292f
     path: docs/architecture/system/hub-and-nodes.md
-    userRegionHash: sha256:937ec83634078aaf482f25826686d607392b534c4e07fb1f4d5f1e32d3d2a7a2
+    userRegionHash: sha256:96f74584f94bf94aba236bd235a245114d711990adffca9e5bd2e4a8eb81292f
 profile: architecture_document
-recordId: knormdoc_89b32c21f35973be2bad6d00
+recordId: knormdoc_72cbc4ea53da4f27eec64d3e
 resourceBindings: []
 schemaVersion: 2
-sourceContentHash: sha256:937ec83634078aaf482f25826686d607392b534c4e07fb1f4d5f1e32d3d2a7a2
+sourceContentHash: sha256:96f74584f94bf94aba236bd235a245114d711990adffca9e5bd2e4a8eb81292f
 sourcePath: docs/architecture/system/hub-and-nodes.md
 sourceUnitVersionIds:
-  - uv_09db67f063e99ea5a591dc7c
-  - uv_ed5f9c31c49f670beec6ca5d
+  - uv_5537c6fb03b7422cb1cfad30
+  - uv_dfd5b1c7a0d3cd10eb1fef72

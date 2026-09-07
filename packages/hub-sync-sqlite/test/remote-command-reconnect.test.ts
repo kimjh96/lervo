@@ -17,6 +17,7 @@ import { createRemoteCommand } from "@lervo/remote-command-contract";
 import { SQLiteRemoteCommandReplayStore } from "@lervo/remote-command-sqlite";
 import {
   type RemoteCommandDeliveryAcknowledgement,
+  type RemoteCommandLease,
   type RemoteCommandTarget,
   type SignedRemoteCommand,
 } from "@lervo/schemas";
@@ -200,6 +201,12 @@ describe("durable remote command offline queue and reconnect", () => {
     const replayPath = await databasePath();
     let replayStore = await SQLiteRemoteCommandReplayStore.open({ path: replayPath, target });
     const executor = vi.fn();
+    const observeAcknowledgement = vi.fn(
+      async (_input: {
+        lease: RemoteCommandLease;
+        acknowledgement: RemoteCommandDeliveryAcknowledgement;
+      }) => undefined,
+    );
     let commandReceiver = receiver({ target, publicKey, replayStore, clock, executor });
     const workerOptions = () => ({
       destinationId,
@@ -211,6 +218,7 @@ describe("durable remote command offline queue and reconnect", () => {
       clock,
       leaseDurationMs: 30_000,
       retryDelayMs: 5_000,
+      onAcknowledgementPrepared: observeAcknowledgement,
     });
 
     transport.offline = true;
@@ -232,6 +240,7 @@ describe("durable remote command offline queue and reconnect", () => {
       acknowledgedCount: 0,
     });
     expect(executor).toHaveBeenCalledTimes(1);
+    expect(observeAcknowledgement).toHaveBeenCalledTimes(1);
     expect(executor).toHaveBeenCalledWith(requestText);
     await expect(hub.getRemoteCommandDelivery(queued.deliveryId)).resolves.toMatchObject({
       status: "leased",
@@ -254,6 +263,16 @@ describe("durable remote command offline queue and reconnect", () => {
       duplicateCount: 1,
     });
     expect(executor).toHaveBeenCalledTimes(1);
+    expect(observeAcknowledgement).toHaveBeenCalledTimes(2);
+    const firstAcknowledgement = observeAcknowledgement.mock.calls[0]![0].acknowledgement;
+    const secondAcknowledgement = observeAcknowledgement.mock.calls[1]![0].acknowledgement;
+    if (
+      firstAcknowledgement.disposition !== "completed" ||
+      secondAcknowledgement.disposition !== "completed"
+    ) {
+      throw new Error("Expected completed acknowledgement observations.");
+    }
+    expect(firstAcknowledgement.receipt).toEqual(secondAcknowledgement.receipt);
     await expect(hub.getRemoteCommandDelivery(queued.deliveryId)).resolves.toMatchObject({
       status: "completed",
       attemptCount: 2,

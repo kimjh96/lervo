@@ -164,6 +164,9 @@ importers:
       '@lervo/project-storage':
         specifier: workspace:*
         version: link:../../packages/project-storage
+      '@lervo/provider-writing-evaluator':
+        specifier: workspace:*
+        version: link:../../packages/provider-writing-evaluator
       '@lervo/repository-knowledge':
         specifier: workspace:*
         version: link:../../packages/repository-knowledge
@@ -407,6 +410,9 @@ importers:
       '@lervo/adapter-codex':
         specifier: workspace:*
         version: link:../../packages/adapter-codex
+      '@lervo/adapter-contract':
+        specifier: workspace:*
+        version: link:../../packages/adapter-contract
       '@lervo/cas':
         specifier: workspace:*
         version: link:../../packages/cas
@@ -434,6 +440,12 @@ importers:
       '@lervo/event-store-sqlite':
         specifier: workspace:*
         version: link:../../packages/event-store-sqlite
+      '@lervo/execution-contract':
+        specifier: workspace:*
+        version: link:../../packages/execution-contract
+      '@lervo/interaction':
+        specifier: workspace:*
+        version: link:../../packages/interaction
       '@lervo/managed-provider-host':
         specifier: workspace:*
         version: link:../../packages/managed-provider-host
@@ -455,6 +467,9 @@ importers:
       '@lervo/project-storage':
         specifier: workspace:*
         version: link:../../packages/project-storage
+      '@lervo/provider-writing-evaluator':
+        specifier: workspace:*
+        version: link:../../packages/provider-writing-evaluator
       '@lervo/remote-command':
         specifier: workspace:*
         version: link:../../packages/remote-command
@@ -482,6 +497,9 @@ importers:
       '@lervo/workspace-reservation-hub':
         specifier: workspace:*
         version: link:../../packages/workspace-reservation-hub
+      '@lervo/writing':
+        specifier: workspace:*
+        version: link:../../packages/writing
     devDependencies:
       '@lervo/hub':
         specifier: workspace:*
@@ -1478,6 +1496,18 @@ importers:
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
+
+  packages/provider-writing-evaluator:
+    dependencies:
+      '@lervo/adapter-contract':
+        specifier: workspace:*
+        version: link:../adapter-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/writing':
+        specifier: workspace:*
+        version: link:../writing
 
   packages/remote-command:
     dependencies:

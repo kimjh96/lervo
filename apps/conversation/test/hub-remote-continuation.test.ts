@@ -107,10 +107,15 @@ describe("Hub conversation remote continuation", () => {
     expect(first).toEqual({
       status: "queued",
       deliveryId: `rcd_${"7".repeat(64)}`,
+      commandId: `rcm_${"8".repeat(64)}`,
       provider: "codex",
       roleId: "developer",
       workstreamId: continuation.workstreamId,
       workstreamRevision: continuation.revision,
+      workstreamSnapshotContentHash: continuation.snapshotContentHash,
+      assignmentId: continuation.assignmentId,
+      agentId: continuation.agentId,
+      queuedAt: source.requestedAt,
     });
     expect(submit).toHaveBeenCalledTimes(2);
     expect(submit.mock.calls[0]![0].idempotencyKey).toBe(submit.mock.calls[1]![0].idempotencyKey);

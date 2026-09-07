@@ -198,10 +198,15 @@ export class HubConversationRemoteContinuation implements ConversationRemoteCont
     return {
       status: submitted.status === "created" ? "queued" : "duplicate",
       deliveryId: submitted.deliveryId,
+      commandId: submitted.envelope.command.commandId,
       provider: action.provider,
       roleId: action.roleId,
       workstreamId: continuation.workstreamId,
       workstreamRevision: continuation.revision,
+      workstreamSnapshotContentHash: continuation.snapshotContentHash,
+      assignmentId: continuation.assignmentId,
+      agentId: continuation.agentId,
+      queuedAt: submitted.queuedAt,
     };
   }
 }

@@ -120,9 +120,14 @@ export async function openNodeRuntime(
         stateDirectory: paths.data,
         ports: {
           ...ports.remoteCommands,
+          onAcknowledgementPrepared: async (input) => {
+            await conversation?.observeRemoteAcknowledgement(input);
+            await ports.remoteCommands!.onAcknowledgementPrepared?.(input);
+          },
           onCycle: async (result) => {
             await health.observeRemoteControl(result);
             await ports.remoteCommands!.onCycle?.(result);
+            await conversation?.runResultDeliveryCycle();
           },
         },
         trust: runtimeTrust,
@@ -233,6 +238,7 @@ export async function openNodeRuntime(
           projectIdentityHash: target.projectIdentityHash,
           createdAt: manifest.createdAt,
         },
+        repositoryRoot: paths.repositoryRoot,
         dataDirectory: resolve(
           paths.data,
           "conversation",

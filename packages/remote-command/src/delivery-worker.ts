@@ -48,6 +48,10 @@ export interface RemoteCommandReconnectWorkerOptions {
   leaseDurationMs?: number;
   retryDelayMs?: number;
   limit?: number;
+  onAcknowledgementPrepared?(input: {
+    lease: RemoteCommandLease;
+    acknowledgement: RemoteCommandDeliveryAcknowledgement;
+  }): void | Promise<void>;
 }
 
 export type RemoteCommandReconnectCycleResult =
@@ -81,7 +85,7 @@ export type RemoteCommandReconnectCycleResult =
     }
   | {
       status: "local_deferred";
-      failureCode: RemoteCommandRuntimeErrorCode;
+      failureCode: RemoteCommandRuntimeErrorCode | "acknowledgement_observer_failed";
       nextAttemptAt: string;
       leasedCount: number;
       acknowledgedCount: number;
@@ -286,6 +290,21 @@ export async function runRemoteCommandReconnectCycle(
         acknowledgedAt: timestamp(clock).value,
       });
       rejectedCount += 1;
+    }
+
+    try {
+      await options.onAcknowledgementPrepared?.({
+        lease: structuredClone(lease),
+        acknowledgement: structuredClone(acknowledgement),
+      });
+    } catch {
+      return {
+        status: "local_deferred",
+        failureCode: "acknowledgement_observer_failed",
+        nextAttemptAt: lease.leaseExpiresAt,
+        leasedCount: leases.length,
+        acknowledgedCount,
+      };
     }
 
     try {

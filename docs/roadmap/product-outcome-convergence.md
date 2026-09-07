@@ -14,10 +14,10 @@ Each outcome has exactly one acceptance owner and one state:
 
 - `implemented`: the exact scenario is evidenced.
 - `delivery required`: Lervo owns the accepted outcome, but the exact installed scenario is incomplete. Lower-level primitives are evidence, not fractional acceptance.
-- `external dependency`: the outcome requires provider or platform support and evidence Lervo cannot supply. It becomes actionable Lervo delivery only when that dependency exists.
+- `external dependency`: provider or platform support and evidence beyond Lervo's control are required. Lervo delivery becomes actionable only when that dependency exists.
 - `external product`: Lervo supplies primitives; a separate host owns the outcome outside Lervo's core delivery scope.
 
-Do not use intermediate states to imply narrower slices satisfy incomplete outcomes. Split mixed outcomes into installed Lervo behavior, Lervo-owned remaining delivery, external dependencies, and external products.
+Do not use intermediate states to imply narrower slices satisfy incomplete outcomes. Split mixed outcomes into installed Lervo behavior, remaining Lervo-owned delivery, external dependencies, and external products.
 
 ## Acceptance baseline
 
@@ -40,14 +40,14 @@ Detailed acceptance records:
 - Completed branch-safe lifecycle verifies typed candidate creation and exact review. ADR-0327 still forbids direct-hook effect grounding and mutation. The installed explicit durable-instruction command owns candidate creation and exact reviewed materialization outside the hook.
 - The completed governed-loop roadmap and subsequent installed extensions cover manual execution, read-only workstream goals, liveness, bounded unattended continuation, and reviewed additive dynamic topology. Native provider-session resume and independent nested-goal mutation remain outside those contracts.
 - The completed product-host protocol establishes a CLI compatibility boundary, not a Paperclip or Buzz product interface.
-- Retrieval selection proves only source selection for context. It neither proves a repeatable workflow, defines a capability envelope, nor authorizes generated skill bytes. Skill candidacy starts with independently grouped workflow evidence.
+- Retrieval selection proves only source selection for context. It does not prove a repeatable workflow, define a capability envelope, or authorize generated skill bytes. Skill candidacy starts with independently grouped workflow evidence.
 - The installed natural-language capability journey proves two independently verified workflows can become a generated portable-skill package through exact review, stale-source supersession, four-file promotion, project authorization, dependency-preserving migration, deterministic recommendation plus explicit selection, provider-confirmed MCP activation, result validation, completion evidence, and explicit post-promotion effect comparison. The comparison retains unestablished attribution and authorizes no rollback. The journey does not prove model reliance or authorize generation from retrieval selection alone.
 - The installed agent-profile journey uses exact role activation and passed-verification pairs from independent managed runs, exact review, user-owned role activation and resolution, and explicit rollback. The separate effect protocol retains unestablished attribution and never authorizes rollback.
 - A successful full repository check proves encoded contracts, not user outcomes absent from them.
 
 ## Delivery status and remaining boundaries
 
-The newly accepted Discord-first remote continuation outcomes are `delivery required`. The authenticated Gateway-to-Hub application path and exact-workstream managed-host admission are implemented. Installed daemon delivery, result return to the originating thread, and explicit Mac-offline source handoff remain open and separately tracked: completed queue intake does not establish conversational execution completion or source replication.
+The Discord-first remote continuation family remains `delivery required`. Authenticated Gateway-to-Hub intake, exact-workstream managed-host admission, installed Node service composition, and durable publication-verified execution-result return are implemented. A real external Discord round trip on the always-on host and explicit Mac-offline source handoff remain open and separately tracked. Simulated delivery and completed queue intake do not establish installed external acceptance or source replication.
 
 Managed provider execution enforces exact total, input, cached-input, output, reasoning-output, and per-run stage-duration budgets without estimating unmanaged whole-request usage. See [managed execution resource budgets v1](../evidence/foundation/managed-execution-resource-budgets-v1.md).
 

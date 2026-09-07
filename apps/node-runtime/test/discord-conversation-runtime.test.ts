@@ -90,10 +90,15 @@ describe("installed Node Discord conversation runtime", () => {
     const request = vi.fn<ConversationRemoteContinuationPort["request"]>(async () => ({
       status: "queued",
       deliveryId: `rcd_${"a".repeat(64)}`,
+      commandId: `rcm_${"c".repeat(64)}`,
       provider: "codex",
       roleId: "developer",
       workstreamId: `wks_${"b".repeat(24)}`,
       workstreamRevision: 9,
+      workstreamSnapshotContentHash: `sha256:${"d".repeat(64)}`,
+      assignmentId: null,
+      agentId: null,
+      queuedAt: "2026-09-07T08:00:00.000Z",
     }));
     const delivery = vi.fn(
       async () =>
