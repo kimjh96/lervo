@@ -54,7 +54,7 @@ async function storeWriting(
 export async function createVerifiedConversationControlReply(input: {
   artifactStore: ArtifactStore;
   writingContract: WritingContract;
-  semanticEvaluator: WritingSemanticEvaluator;
+  semanticEvaluator?: WritingSemanticEvaluator;
   content: string;
   now?: () => Date;
 }): Promise<ConversationReplyCandidate> {
@@ -65,7 +65,9 @@ export async function createVerifiedConversationControlReply(input: {
       contract: input.writingContract,
       surface: "chat",
       artifactStore: input.artifactStore,
-      semanticEvaluator: input.semanticEvaluator,
+      ...(input.semanticEvaluator === undefined
+        ? {}
+        : { semanticEvaluator: input.semanticEvaluator }),
     },
     input.now === undefined ? {} : { now: input.now },
   );

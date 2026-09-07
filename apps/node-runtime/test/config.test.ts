@@ -102,6 +102,54 @@ describe("Node runtime configuration", () => {
     );
   });
 
+  it("parses bounded Discord conversation scope and owner-only credential paths", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, await availablePort());
+    const configured = structuredClone(fixture.value);
+    configured.discordConversation = {
+      integrationId: "itg_discord01",
+      applicationId: "999999999999999999",
+      botTokenFile: "discord.token",
+      intents: 37_377,
+      allowedGuildIds: ["123456789012345678"],
+      allowDirectMessages: false,
+      workerId: "discord-operator",
+      agentParticipantId: "ptc_lervoagent",
+      conversations: [
+        {
+          tenantKey: "123456789012345678",
+          conversationKey: "223456789012345678",
+          conversationId: "cnv_operator01",
+        },
+      ],
+      participants: [
+        {
+          tenantKey: "123456789012345678",
+          userId: "323456789012345678",
+          participantId: "ptc_operator01",
+        },
+      ],
+      command: {
+        roleId: "developer",
+        provider: "codex",
+        risk: "medium",
+        verificationSuiteIds: ["repo.check"],
+        lifetimeMs: 120_000,
+      },
+    };
+    expect(parseNodeRuntimeConfig(configured, root)).toMatchObject({
+      discordConversation: {
+        botTokenFile: `${root}/discord.token`,
+        command: { assignmentId: null, agentId: null },
+      },
+    });
+    const unscoped = structuredClone(configured);
+    (unscoped.discordConversation as { allowedGuildIds: string[] }).allowedGuildIds = [];
+    expect(() => parseNodeRuntimeConfig(unscoped, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
+  });
+
   it("binds organization credential delivery to one explicit organization Node identity", async () => {
     const root = await temporaryRoot();
     const fixture = await nodeRuntimeFixture(root, await availablePort());

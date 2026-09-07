@@ -145,4 +145,31 @@ describe("Node runtime readiness snapshot", () => {
       workspaceCoordination: { status: "ready" },
     });
   });
+
+  it("keeps an enabled conversation pending until Gateway authentication", async () => {
+    const publisher = createNodeRuntimeHealthPublisher(
+      await stateDirectory(),
+      false,
+      false,
+      undefined,
+      true,
+    );
+    await publisher.initialize();
+    await publisher.observeSync(idleSync);
+    await publisher.observeWorkstreamReplication(absentWorkstream);
+    expect(await snapshot(publisher.path)).toMatchObject({
+      status: "starting",
+      conversation: { status: "pending" },
+    });
+    await publisher.observeConversationReady();
+    expect(await snapshot(publisher.path)).toMatchObject({
+      status: "ready",
+      conversation: { status: "ready" },
+    });
+    await publisher.observeConversationFailure("authentication_failed");
+    expect(await snapshot(publisher.path)).toMatchObject({
+      status: "degraded",
+      conversation: { status: "unavailable", failureCode: "authentication_failed" },
+    });
+  });
 });

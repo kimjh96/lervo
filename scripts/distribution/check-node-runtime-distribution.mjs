@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { access, mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -53,6 +53,67 @@ try {
   assert.match(installedResult.stdout, /The service was not enabled\./u);
   await access(resolve(installed, "dist/bin.js"));
   await access(resolve(installed, "lervo-node-distribution.manifest.json"));
+
+  const hubToken = resolve(fixtureRoot, "hub.token");
+  const discordToken = resolve(fixtureRoot, "discord.token");
+  const config = resolve(fixtureRoot, "node-runtime.json");
+  await Promise.all([
+    writeFile(hubToken, `${"h".repeat(40)}\n`, { mode: 0o600 }),
+    writeFile(discordToken, `discord.${"d".repeat(40)}\n`, { mode: 0o600 }),
+    writeFile(
+      config,
+      JSON.stringify({
+        schemaVersion: 1,
+        repositoryRoot: ".",
+        hub: {
+          baseUrl: "https://hub.example.test/",
+          bearerTokenFile: hubToken,
+          destinationId: "hub:packed-node",
+          hubIdentityHash: `sha256:${"9".repeat(64)}`,
+        },
+        sync: { workerId: "node:packed-consumer" },
+        discordConversation: {
+          integrationId: "itg_packeddiscord",
+          applicationId: "999999999999999999",
+          botTokenFile: discordToken,
+          intents: 37_377,
+          allowedGuildIds: ["123456789012345678"],
+          allowDirectMessages: false,
+          workerId: "discord-packed-consumer",
+          agentParticipantId: "ptc_packedagent",
+          conversations: [
+            {
+              tenantKey: "123456789012345678",
+              conversationKey: "223456789012345678",
+              conversationId: "cnv_packedconsumer",
+            },
+          ],
+          participants: [
+            {
+              tenantKey: "123456789012345678",
+              userId: "323456789012345678",
+              participantId: "ptc_packedoperator",
+            },
+          ],
+          command: {
+            roleId: "developer",
+            provider: "codex",
+            risk: "medium",
+            verificationSuiteIds: ["repo.check"],
+            lifetimeMs: 120_000,
+          },
+        },
+      }),
+      { mode: 0o600 },
+    ),
+  ]);
+  await Promise.all([chmod(hubToken, 0o600), chmod(discordToken, 0o600), chmod(config, 0o600)]);
+  const preflight = await execFileAsync(
+    process.execPath,
+    [resolve(installed, "dist/bin.js"), "--check-config", config],
+    { cwd: fixtureRoot, encoding: "utf8", timeout: 30_000 },
+  );
+  assert.equal(preflight.stdout, "Lervo Node configuration preflight passed.\n");
 
   await assert.rejects(
     run("scripts/distribution/install-node-runtime-distribution.mjs", [

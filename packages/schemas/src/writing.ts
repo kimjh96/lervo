@@ -168,7 +168,7 @@ export const writingContractSchema = {
             required: ["checkId", "requirement", "required"],
             additionalProperties: false,
           },
-          minItems: 1,
+          minItems: 0,
           uniqueItems: true,
         },
         semanticEvaluationMode: { const: "separate_pass" },

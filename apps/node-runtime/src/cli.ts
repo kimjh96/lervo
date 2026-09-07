@@ -1,8 +1,10 @@
 import { resolve } from "node:path";
 
 import { loadNodeRuntimeConfig } from "./config.js";
-import { openNodeRuntime, type NodeRuntimeOpenPorts } from "./deployment.js";
+import { preflightNodeRuntimeCredentials } from "./config-preflight.js";
+import { openNodeRuntime } from "./deployment.js";
 import { NodeRuntimeError } from "./errors.js";
+import type { NodeRuntimeOpenPorts } from "./open-ports.js";
 import { createManagedProviderRemoteCommandPorts } from "./managed-provider-runtime.js";
 import {
   attachNodeRuntimeSignalHandlers,
@@ -16,16 +18,19 @@ export interface NodeRuntimeCliPorts extends NodeRuntimeOpenPorts {
   signals?: NodeRuntimeSignalSource;
 }
 
-function configArgument(args: readonly string[]): string {
+function configArgument(args: readonly string[]): { mode: "run" | "check"; path: string } {
   if (
     args.length !== 2 ||
-    args[0] !== "--config" ||
+    (args[0] !== "--config" && args[0] !== "--check-config") ||
     args[1] === undefined ||
     args[1].length === 0
   ) {
-    throw new NodeRuntimeError("invalid_arguments", "Usage: lervo-node --config <config.json>");
+    throw new NodeRuntimeError(
+      "invalid_arguments",
+      "Usage: lervo-node --config <config.json> | --check-config <config.json>",
+    );
   }
-  return args[1];
+  return { mode: args[0] === "--config" ? "run" : "check", path: args[1] };
 }
 
 export async function runNodeRuntimeCli(
@@ -33,8 +38,14 @@ export async function runNodeRuntimeCli(
   ports: NodeRuntimeCliPorts,
 ): Promise<number> {
   try {
-    const path = resolve(ports.cwd, configArgument(args));
+    const request = configArgument(args);
+    const path = resolve(ports.cwd, request.path);
     const config = await loadNodeRuntimeConfig(path);
+    if (request.mode === "check") {
+      await preflightNodeRuntimeCredentials(config);
+      ports.stdout("Lervo Node configuration preflight passed.\n");
+      return 0;
+    }
     const managedRemoteCommands = createManagedProviderRemoteCommandPorts(config);
     const deployment = await openNodeRuntime(config, {
       ...ports,

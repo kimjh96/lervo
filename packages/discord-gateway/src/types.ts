@@ -29,6 +29,7 @@ export interface DiscordGatewayDriverOptions {
   botToken: string;
   intents: number;
   onDispatch(dispatch: DiscordGatewayDispatch): void | Promise<void>;
+  onReady?(): void | Promise<void>;
   onError?(error: Error): void;
   gatewayUrl?: string;
   reconnectDelayMs?: number;

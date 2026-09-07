@@ -8,6 +8,7 @@ import {
   evaluateWritingGate,
   lintDeterministicWriting,
   writingContractForLanguage,
+  fixedEnglishStatusWritingContract,
 } from "../src/index.js";
 
 const artifactId = "art_01234567";
@@ -51,6 +52,26 @@ describe("provider-neutral writing verification", () => {
       valid: true,
       errors: [],
     });
+  });
+
+  it("keeps fixed status publication deterministic without claiming semantic review", () => {
+    expect(validateSchema("writingContract", fixedEnglishStatusWritingContract)).toEqual({
+      valid: true,
+      errors: [],
+    });
+    expect(fixedEnglishStatusWritingContract.verification.semanticChecks).toEqual([]);
+    const result = evaluation("passed");
+    result.writingPolicyId = fixedEnglishStatusWritingContract.writingPolicyId;
+    result.evaluators = result.evaluators.filter((evaluator) => evaluator.kind === "deterministic");
+    result.checks = result.checks.filter((check) => check.kind === "deterministic");
+    expect(
+      evaluateWritingGate({
+        contract: fixedEnglishStatusWritingContract,
+        evaluation: result,
+        artifactId,
+        contentHash,
+      }),
+    ).toEqual({ allowed: true, missingChecks: [], failedChecks: [] });
   });
 
   it("resolves the v1 publication language and rejects unsupported languages", () => {

@@ -67,7 +67,9 @@ export class ConversationRemoteContinuationResponder {
     return createVerifiedConversationControlReply({
       artifactStore: this.options.artifactStore,
       writingContract: this.options.writingContract,
-      semanticEvaluator: this.options.semanticEvaluator,
+      ...(this.options.semanticEvaluator === undefined
+        ? {}
+        : { semanticEvaluator: this.options.semanticEvaluator }),
       content: `Remote execution request ${queued.deliveryId} for workstream ${queued.workstreamId} revision ${queued.workstreamRevision} was ${queued.status}. The selected provider is ${queued.provider} and the role is ${queued.roleId}. This confirms queueing only; execution and repository changes remain separately verified.`,
       now: this.now,
     });

@@ -78,6 +78,17 @@ export const defaultEnglishWritingContract = {
   },
 } as const satisfies WritingContract;
 
+export const fixedEnglishStatusWritingContract = {
+  ...defaultEnglishWritingContract,
+  writingPolicyId: "writing_en-fixed-status",
+  surfaces: ["status", "chat"],
+  verification: {
+    ...defaultEnglishWritingContract.verification,
+    semanticChecks: [],
+    semanticEvaluationMode: "separate_pass",
+  },
+} as const satisfies WritingContract;
+
 const writingContracts = {
   en: defaultEnglishWritingContract,
 } as const satisfies Record<SupportedWritingLanguage, WritingContract>;

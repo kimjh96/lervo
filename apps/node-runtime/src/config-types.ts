@@ -24,6 +24,7 @@ export interface NodeRuntimeConfig {
     mode: "hub_coordinated";
     nodeId: string;
   };
+  discordConversation?: NodeDiscordConversationConfig;
   remoteCommands?: {
     nodeId: string;
     trustFile?: string;
@@ -49,5 +50,50 @@ export interface NodeRuntimeConfig {
     maxResponseBytes?: number;
     maxLifetimeMs?: number;
     clockSkewMs?: number;
+  };
+}
+
+export interface NodeDiscordConversationConfig {
+  integrationId: string;
+  applicationId: string;
+  botTokenFile: string;
+  intents: number;
+  allowedGuildIds: string[];
+  allowDirectMessages: boolean;
+  workerId: string;
+  agentParticipantId: string;
+  conversations: Array<{
+    tenantKey: string;
+    conversationKey: string;
+    conversationId: string;
+  }>;
+  participants: Array<{
+    tenantKey: string;
+    userId: string;
+    participantId: string;
+  }>;
+  command: {
+    roleId: string;
+    provider: "codex" | "claude";
+    risk: "low" | "medium" | "high";
+    verificationSuiteIds: string[];
+    lifetimeMs: number;
+    assignmentId: string | null;
+    agentId: string | null;
+  };
+  gateway?: {
+    url?: string;
+    reconnectDelayMs?: number;
+    maximumPayloadBytes?: number;
+    maximumDispatchRecords?: number;
+  };
+  http?: {
+    requestTimeoutMs?: number;
+    maxResponseBytes?: number;
+  };
+  policy?: {
+    cooldownSeconds?: number;
+    maxResponsesPerHour?: number;
+    maxAutomationDepth?: number;
   };
 }

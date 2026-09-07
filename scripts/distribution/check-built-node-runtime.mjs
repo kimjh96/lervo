@@ -22,7 +22,7 @@ try {
     assert.equal(result.stdout, "");
     assert.equal(
       result.stderr,
-      "Lervo Node error (invalid_arguments): Usage: lervo-node --config <config.json>\n",
+      "Lervo Node error (invalid_arguments): Usage: lervo-node --config <config.json> | --check-config <config.json>\n",
     );
   }
 } finally {

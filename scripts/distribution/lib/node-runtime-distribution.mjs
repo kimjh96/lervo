@@ -535,7 +535,7 @@ export async function verifyNodeDistributionArchive(input) {
       if (
         result.stdout !== "" ||
         result.stderr !==
-          "Lervo Node error (invalid_arguments): Usage: lervo-node --config <config.json>\n"
+          "Lervo Node error (invalid_arguments): Usage: lervo-node --config <config.json> | --check-config <config.json>\n"
       ) {
         fail(
           "node_distribution_smoke_failed",

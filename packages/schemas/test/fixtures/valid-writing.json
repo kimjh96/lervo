@@ -1,5 +1,50 @@
 [
   {
+    "name": "fixed status writing policy without semantic claims",
+    "schema": "writingContract",
+    "value": {
+      "schemaVersion": 1,
+      "writingPolicyId": "writing_en-fixed-status",
+      "locale": "en",
+      "surfaces": ["status", "chat"],
+      "audience": "mixed",
+      "informationOrder": {
+        "lead": "purpose_or_conclusion",
+        "then": ["reason", "next_action"]
+      },
+      "prose": {
+        "register": "plain_spec",
+        "completeSentences": true,
+        "cohesiveParagraphs": true,
+        "oneMainFactPerSentence": true,
+        "avoidTranslationeseAndFragments": true
+      },
+      "terminology": {
+        "preserveMachineIdentifiers": true,
+        "explainInternalTermsAtFirstUse": true,
+        "preferConcreteVerbs": true,
+        "forbiddenVagueTerms": []
+      },
+      "actions": {
+        "abstractActors": "forbid",
+        "stateObjectAndActionDirectly": true,
+        "stateWhenNoActionIsNeeded": true
+      },
+      "evidence": {
+        "majorClaimsRequireEvidence": true,
+        "distinguishRunFromNotRun": true,
+        "keepRawLogsOutOfPrimaryProse": true
+      },
+      "verification": {
+        "deterministicChecks": ["forbid_em_dash"],
+        "semanticChecks": [],
+        "semanticEvaluationMode": "separate_pass",
+        "requiresPassedEvaluation": true,
+        "failureDisposition": "block_publication"
+      }
+    }
+  },
+  {
     "name": "Korean human-readable writing policy",
     "schema": "writingContract",
     "value": {

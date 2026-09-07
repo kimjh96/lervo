@@ -38,6 +38,8 @@
       "@lervo/adapter-claude@0.1.0",
       "@lervo/adapter-codex@0.1.0",
       "@lervo/adapter-contract@0.1.0",
+      "@lervo/adapter-discord@0.1.0",
+      "@lervo/adapter-slack@0.1.0",
       "@lervo/adapter-webhook@0.1.0",
       "@lervo/agent-workforce@0.1.0",
       "@lervo/application-contract@0.1.0",
@@ -46,10 +48,18 @@
       "@lervo/context-coverage@0.1.0",
       "@lervo/context-delivery@0.1.0",
       "@lervo/context@0.1.0",
+      "@lervo/conversation-contract@0.1.0",
+      "@lervo/conversation-control@0.1.0",
+      "@lervo/conversation-deliberation-contract@0.1.0",
+      "@lervo/conversation-deliberation-sqlite@0.1.0",
+      "@lervo/conversation-platform-sqlite@0.1.0",
+      "@lervo/conversation-platform@0.1.0",
+      "@lervo/conversation-responder@0.1.0",
       "@lervo/core@0.1.0",
       "@lervo/deliberation-runtime@0.1.0",
       "@lervo/deliberation@0.1.0",
       "@lervo/diagnostics@0.1.0",
+      "@lervo/discord-gateway@0.1.0",
       "@lervo/documents@0.1.0",
       "@lervo/environment-adapter-tailscale@0.1.0",
       "@lervo/environment@0.1.0",
@@ -61,6 +71,8 @@
       "@lervo/hub-sync@0.1.0",
       "@lervo/identity-migration@0.1.0",
       "@lervo/improvement-observation-local@0.1.0",
+      "@lervo/interaction-sqlite@0.1.0",
+      "@lervo/interaction@0.1.0",
       "@lervo/knowledge-okf@0.1.0",
       "@lervo/knowledge@0.1.0",
       "@lervo/live-trigger-contract@0.1.0",
@@ -143,7 +155,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:7dd0e52908d91758bc6b8eaf6625720e5fcdf901239bcffb51a5bdc5000ae1d7"
+    "bundleDigest": "sha256:843c62cf0fe6227e260cb7f26a7843b0f69134dabd73ad1ebf6edfd5288da1cd"
   },
   "archive": {
     "rootFiles": [
@@ -157,22 +169,22 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 5709995,
-        "sha256": "sha256:420a8ebc44e51269e3bfd99258d6d8028f08c38f9c2a4943252e2dfd8d291bfb"
+        "size": 5723286,
+        "sha256": "sha256:916d84c581e0cae33d9747f4899ab680fa27273be80db604d77f70506efcf716"
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 2625684,
-        "sha256": "sha256:eef75971997007355b133213c792fcead362409f18122c6cb2fde9dd48408def"
+        "size": 2930387,
+        "sha256": "sha256:a08fa6c47396597f6d6694f78179745be4ac0de741fedfb0c2b4f0a008de1f06"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 2859168,
-        "sha256": "sha256:40046b22eb7804c5b5beccb566241c6db32fc2f8fa1d1c8d6fecbe3ad22e5061"
+        "size": 2861732,
+        "sha256": "sha256:8aefd02e94847f3f9d6299a1302bd142505d652fe8cfb69214842a937db43f76"
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:610d32526438c6504755404bb8b4263681f07dd48b855d2258d60c9e56e704c9"
+    "contentDigest": "sha256:275ad6ea000515f24d34644da7114c0700633858e01b5acb16f91718691891b2"
   },
   "dependencies": {
     "portable": [
@@ -285,5 +297,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:51281543bda84a835408e878e8b0c318765d55b49fe9a1a70384390093639828"
+  "artifactDigest": "sha256:71ed5f87608e06f9d22398af78e398915c5c7bcb26c85e21291075fda5c180f4"
 }

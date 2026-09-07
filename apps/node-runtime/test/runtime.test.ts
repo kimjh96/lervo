@@ -511,6 +511,22 @@ describe("installed Node sync runtime", () => {
     expect(output).not.toContain(nodeRuntimeToken);
   });
 
+  it("preflights owner-only runtime credentials without starting network work", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, await availablePort());
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    await expect(
+      runNodeRuntimeCli(["--check-config", fixture.configPath], {
+        cwd: root,
+        stdout: (message) => stdout.push(message),
+        stderr: (message) => stderr.push(message),
+      }),
+    ).resolves.toBe(0);
+    expect(stdout).toEqual(["Lervo Node configuration preflight passed.\n"]);
+    expect(stderr).toEqual([]);
+  });
+
   it("fails the process boundary when a cycle observer cannot finish", async () => {
     const root = await temporaryRoot();
     const fixture = await nodeRuntimeFixture(root, await availablePort());

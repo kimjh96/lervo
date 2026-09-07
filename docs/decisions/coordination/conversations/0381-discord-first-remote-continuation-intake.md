@@ -27,7 +27,7 @@ Hub workstream absence, divergence, a completed or blocked head, peer identity d
 
 The repository has one composed path from an authenticated Discord Gateway message to an exact-workstream Hub command and a publication-verified queue acknowledgement. Commands without a continuation coordinate remain valid for backward compatibility.
 
-This decision does not establish installed-daemon packaging for the conversation service, transfer of Git working-tree bytes from the closed Mac, or automatic return of the Node's provider result to the originating Discord thread. These separate product outcomes remain in the Discord remote continuation roadmap.
+[ADR-0382](0382-node-hosted-discord-conversation-service.md) establishes installed-daemon packaging for this intake. This decision does not transfer Git working-tree bytes from the closed Mac or automatically return the Node's provider result to the originating Discord thread. Those separate product outcomes remain in the Discord remote continuation roadmap.
 
 ## References
 

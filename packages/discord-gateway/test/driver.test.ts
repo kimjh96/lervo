@@ -59,11 +59,12 @@ async function settled(): Promise<void> {
   await new Promise<void>((resolve) => setImmediate(resolve));
 }
 
-function fixture() {
+function fixture(onReady: () => void | Promise<void> = () => undefined) {
   const transport = new FixtureTransport();
   const schedule = new FixtureSchedule();
   const dispatches: Array<{ sessionHandle: string; body: Uint8Array }> = [];
   const verified = vi.fn();
+  const ready = vi.fn(onReady);
   const driver = new AuthenticatedDiscordGatewayDriver({
     applicationId: "999999999999999999",
     botToken: `discord.${"t".repeat(40)}`,
@@ -73,6 +74,7 @@ function fixture() {
     reconnectDelayMs: 100,
     heartbeatJitter: () => 0.25,
     createSessionHandle: () => `discord_session_${transport.connections.length + 1}`,
+    onReady: ready,
     async onDispatch(dispatch) {
       dispatches.push(dispatch);
       verified(
@@ -86,7 +88,7 @@ function fixture() {
       );
     },
   });
-  return { driver, transport, schedule, dispatches, verified };
+  return { driver, transport, schedule, dispatches, verified, ready };
 }
 
 describe("authenticated Discord Gateway driver", () => {
@@ -117,6 +119,7 @@ describe("authenticated Discord Gateway driver", () => {
     });
     await settled();
 
+    expect(setup.ready).toHaveBeenCalledOnce();
     expect(setup.dispatches).toHaveLength(1);
     expect(setup.verified).toHaveBeenCalledWith({ authenticated: true });
     await expect(
@@ -131,6 +134,37 @@ describe("authenticated Discord Gateway driver", () => {
       authenticated: false,
       reasonCode: "gateway_dispatch_unverified",
     });
+  });
+
+  it("waits for asynchronous READY observation before forwarding dispatches", async () => {
+    let releaseReady!: () => void;
+    const readyGate = new Promise<void>((resolve) => {
+      releaseReady = resolve;
+    });
+    const setup = fixture(() => readyGate);
+    setup.driver.start();
+    const connection = setup.transport.connections[0]!;
+
+    emit(connection.observer, { op: 10, d: { heartbeat_interval: 45_000 } });
+    emit(connection.observer, {
+      op: 0,
+      s: 1,
+      t: "READY",
+      d: { session_id: "gateway-session", resume_gateway_url: "wss://gateway.discord.gg" },
+    });
+    emit(connection.observer, {
+      op: 0,
+      s: 2,
+      t: "MESSAGE_CREATE",
+      d: { id: "message-1" },
+    });
+    await settled();
+
+    expect(setup.ready).toHaveBeenCalledOnce();
+    expect(setup.dispatches).toHaveLength(0);
+    releaseReady();
+    await settled();
+    expect(setup.dispatches).toHaveLength(1);
   });
 
   it("reconnects and resumes after a missed heartbeat acknowledgement", async () => {

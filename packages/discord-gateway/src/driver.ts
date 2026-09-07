@@ -206,6 +206,7 @@ export class AuthenticatedDiscordGatewayDriver
       this.sessionId = ready.sessionId;
       this.resumeUrl = resumeUrl;
       this.identified = true;
+      await this.options.onReady?.();
       return;
     }
     if (payload.t === "RESUMED") {
@@ -216,6 +217,7 @@ export class AuthenticatedDiscordGatewayDriver
         );
       }
       this.identified = true;
+      await this.options.onReady?.();
       return;
     }
     if (!this.identified) return;

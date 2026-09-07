@@ -319,7 +319,7 @@
     },
     {
       "path": "scripts/distribution/lib/node-runtime-distribution.mjs",
-      "contentHash": "sha256:27b667e854b17684b30f30b1ffffb832af1ca007138e8f5ad057b822d236203e",
+      "contentHash": "sha256:8d0f8337a755eb6611b74ab8675fa50165044121c0e05dcef22ed61990f9c030",
       "responsibility": "Node runtime distribution builder",
       "rationale": "Dependency inventory, manifest, SBOM, archive, platform validation, and verification are phases of one Node distribution artifact contract.",
       "disposition": "cohesive"

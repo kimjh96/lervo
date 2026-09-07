@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:6baec5c3-9c64-5c88-9f4e-b7c96edbadaf",
+  "serialNumber": "urn:uuid:f3948e8c-2b5a-5746-8625-9ed04f1a2387",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "420a8ebc44e51269e3bfd99258d6d8028f08c38f9c2a4943252e2dfd8d291bfb"
+          "content": "916d84c581e0cae33d9747f4899ab680fa27273be80db604d77f70506efcf716"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:51281543bda84a835408e878e8b0c318765d55b49fe9a1a70384390093639828"
+          "value": "sha256:71ed5f87608e06f9d22398af78e398915c5c7bcb26c85e21291075fda5c180f4"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:7dd0e52908d91758bc6b8eaf6625720e5fcdf901239bcffb51a5bdc5000ae1d7"
+          "value": "sha256:843c62cf0fe6227e260cb7f26a7843b0f69134dabd73ad1ebf6edfd5288da1cd"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -380,6 +380,36 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/adapter-discord@0.1.0",
+      "group": "@lervo",
+      "name": "adapter-discord",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/adapter-discord@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/adapter-slack@0.1.0",
+      "group": "@lervo",
+      "name": "adapter-slack",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/adapter-slack@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/%40lervo/adapter-webhook@0.1.0",
       "group": "@lervo",
       "name": "adapter-webhook",
@@ -500,6 +530,111 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/conversation-contract@0.1.0",
+      "group": "@lervo",
+      "name": "conversation-contract",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/conversation-contract@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/conversation-control@0.1.0",
+      "group": "@lervo",
+      "name": "conversation-control",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/conversation-control@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/conversation-deliberation-contract@0.1.0",
+      "group": "@lervo",
+      "name": "conversation-deliberation-contract",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/conversation-deliberation-contract@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/conversation-deliberation-sqlite@0.1.0",
+      "group": "@lervo",
+      "name": "conversation-deliberation-sqlite",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/conversation-deliberation-sqlite@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/conversation-platform-sqlite@0.1.0",
+      "group": "@lervo",
+      "name": "conversation-platform-sqlite",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/conversation-platform-sqlite@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/conversation-platform@0.1.0",
+      "group": "@lervo",
+      "name": "conversation-platform",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/conversation-platform@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/conversation-responder@0.1.0",
+      "group": "@lervo",
+      "name": "conversation-responder",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/conversation-responder@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/%40lervo/core@0.1.0",
       "group": "@lervo",
       "name": "core",
@@ -550,6 +685,21 @@
       "name": "diagnostics",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/diagnostics@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/discord-gateway@0.1.0",
+      "group": "@lervo",
+      "name": "discord-gateway",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/discord-gateway@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -715,6 +865,36 @@
       "name": "improvement-observation-local",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/improvement-observation-local@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/interaction-sqlite@0.1.0",
+      "group": "@lervo",
+      "name": "interaction-sqlite",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/interaction-sqlite@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/interaction@0.1.0",
+      "group": "@lervo",
+      "name": "interaction",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/interaction@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -4073,6 +4253,8 @@
         "pkg:npm/%40lervo/adapter-claude@0.1.0",
         "pkg:npm/%40lervo/adapter-codex@0.1.0",
         "pkg:npm/%40lervo/adapter-contract@0.1.0",
+        "pkg:npm/%40lervo/adapter-discord@0.1.0",
+        "pkg:npm/%40lervo/adapter-slack@0.1.0",
         "pkg:npm/%40lervo/adapter-webhook@0.1.0",
         "pkg:npm/%40lervo/agent-workforce@0.1.0",
         "pkg:npm/%40lervo/application-contract@0.1.0",
@@ -4081,10 +4263,18 @@
         "pkg:npm/%40lervo/context-coverage@0.1.0",
         "pkg:npm/%40lervo/context-delivery@0.1.0",
         "pkg:npm/%40lervo/context@0.1.0",
+        "pkg:npm/%40lervo/conversation-contract@0.1.0",
+        "pkg:npm/%40lervo/conversation-control@0.1.0",
+        "pkg:npm/%40lervo/conversation-deliberation-contract@0.1.0",
+        "pkg:npm/%40lervo/conversation-deliberation-sqlite@0.1.0",
+        "pkg:npm/%40lervo/conversation-platform-sqlite@0.1.0",
+        "pkg:npm/%40lervo/conversation-platform@0.1.0",
+        "pkg:npm/%40lervo/conversation-responder@0.1.0",
         "pkg:npm/%40lervo/core@0.1.0",
         "pkg:npm/%40lervo/deliberation-runtime@0.1.0",
         "pkg:npm/%40lervo/deliberation@0.1.0",
         "pkg:npm/%40lervo/diagnostics@0.1.0",
+        "pkg:npm/%40lervo/discord-gateway@0.1.0",
         "pkg:npm/%40lervo/documents@0.1.0",
         "pkg:npm/%40lervo/environment-adapter-tailscale@0.1.0",
         "pkg:npm/%40lervo/environment@0.1.0",
@@ -4096,6 +4286,8 @@
         "pkg:npm/%40lervo/hub-sync@0.1.0",
         "pkg:npm/%40lervo/identity-migration@0.1.0",
         "pkg:npm/%40lervo/improvement-observation-local@0.1.0",
+        "pkg:npm/%40lervo/interaction-sqlite@0.1.0",
+        "pkg:npm/%40lervo/interaction@0.1.0",
         "pkg:npm/%40lervo/knowledge-okf@0.1.0",
         "pkg:npm/%40lervo/knowledge@0.1.0",
         "pkg:npm/%40lervo/live-trigger-contract@0.1.0",

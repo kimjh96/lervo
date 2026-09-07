@@ -82,7 +82,7 @@ export interface ConversationRemoteContinuationResponderOptions {
   artifactStore: ArtifactStore;
   continuation: ConversationRemoteContinuationPort;
   writingContract: WritingContract;
-  semanticEvaluator: WritingSemanticEvaluator;
+  semanticEvaluator?: WritingSemanticEvaluator;
   now?: () => Date;
 }
 

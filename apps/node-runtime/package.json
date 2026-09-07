@@ -20,6 +20,12 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.226",
     "@lervo/cas": "workspace:*",
+    "@lervo/conversation-app": "workspace:*",
+    "@lervo/conversation-contract": "workspace:*",
+    "@lervo/conversation-control": "workspace:*",
+    "@lervo/conversation-responder": "workspace:*",
+    "@lervo/core": "workspace:*",
+    "@lervo/discord-gateway": "workspace:*",
     "@lervo/adapter-claude": "workspace:*",
     "@lervo/adapter-codex": "workspace:*",
     "@lervo/event-store-sqlite": "workspace:*",

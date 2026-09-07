@@ -1,50 +1,5 @@
 [
   {
-    "name": "writing policy cannot omit semantic prose review",
-    "schema": "writingContract",
-    "value": {
-      "schemaVersion": 1,
-      "writingPolicyId": "writing_en-human",
-      "locale": "ko-KR",
-      "surfaces": ["documentation"],
-      "audience": "mixed",
-      "informationOrder": {
-        "lead": "purpose_or_conclusion",
-        "then": ["reason", "next_action"]
-      },
-      "prose": {
-        "register": "polite",
-        "completeSentences": true,
-        "cohesiveParagraphs": true,
-        "oneMainFactPerSentence": true,
-        "avoidTranslationeseAndFragments": true
-      },
-      "terminology": {
-        "preserveMachineIdentifiers": true,
-        "explainInternalTermsAtFirstUse": true,
-        "preferConcreteVerbs": true,
-        "forbiddenVagueTerms": []
-      },
-      "actions": {
-        "abstractActors": "forbid",
-        "stateObjectAndActionDirectly": true,
-        "stateWhenNoActionIsNeeded": true
-      },
-      "evidence": {
-        "majorClaimsRequireEvidence": true,
-        "distinguishRunFromNotRun": true,
-        "keepRawLogsOutOfPrimaryProse": true
-      },
-      "verification": {
-        "deterministicChecks": ["forbid_em_dash"],
-        "semanticChecks": [],
-        "semanticEvaluationMode": "separate_pass",
-        "requiresPassedEvaluation": true,
-        "failureDisposition": "block_publication"
-      }
-    }
-  },
-  {
     "name": "semantic evaluator must record a separate pass",
     "schema": "writingEvaluation",
     "value": {

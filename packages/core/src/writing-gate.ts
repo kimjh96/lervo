@@ -54,7 +54,9 @@ export function evaluateWritingGate(input: {
       (evaluator.kind === "model" || evaluator.kind === "human") &&
       evaluator.phase === "separate_pass",
   );
-  if (!hasSeparateSemanticEvaluator) missingChecks.push("semantic_evaluator");
+  if (input.contract.verification.semanticChecks.length > 0 && !hasSeparateSemanticEvaluator) {
+    missingChecks.push("semantic_evaluator");
+  }
 
   if (
     coordinateMismatch ||

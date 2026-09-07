@@ -24,6 +24,8 @@ export interface NodeRuntimeHealthPublisher {
   observeWorkspaceCoordination(): Promise<void>;
   observeWorkspaceCoordinationFailure(code: string): Promise<void>;
   observeRemoteControl(result: RemoteControlCycleResult): Promise<void>;
+  observeConversationReady(): Promise<void>;
+  observeConversationFailure(code: string): Promise<void>;
   stopping(): Promise<void>;
 }
 
@@ -33,7 +35,8 @@ function aggregate(snapshot: NodeRuntimeHealthSnapshot): NodeRuntimeHealthSnapsh
     snapshot.sync.status === "unavailable" ||
     snapshot.workstreamReplication.status === "unavailable" ||
     snapshot.workspaceCoordination.status === "unavailable" ||
-    snapshot.remoteControl.status === "unavailable"
+    snapshot.remoteControl.status === "unavailable" ||
+    snapshot.conversation?.status === "unavailable"
   ) {
     return "degraded";
   }
@@ -42,7 +45,10 @@ function aggregate(snapshot: NodeRuntimeHealthSnapshot): NodeRuntimeHealthSnapsh
     snapshot.workstreamReplication.status === "ready" &&
     (snapshot.workspaceCoordination.status === "ready" ||
       snapshot.workspaceCoordination.status === "disabled") &&
-    (snapshot.remoteControl.status === "ready" || snapshot.remoteControl.status === "disabled")
+    (snapshot.remoteControl.status === "ready" || snapshot.remoteControl.status === "disabled") &&
+    (snapshot.conversation === undefined ||
+      snapshot.conversation.status === "ready" ||
+      snapshot.conversation.status === "disabled")
   ) {
     return "ready";
   }
@@ -99,6 +105,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
     remoteControlConfigured: boolean,
     workspaceCoordinationConfigured: boolean,
     eventReaderIdentity: NodeRuntimeEventReaderIdentity | undefined,
+    conversationConfigured: boolean,
   ) {
     this.path = resolve(stateDirectory, NODE_RUNTIME_HEALTH_FILE);
     const now = new Date().toISOString();
@@ -118,6 +125,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
         ? { status: "pending" }
         : { status: "disabled" },
       remoteControl: remoteControlConfigured ? { status: "pending" } : { status: "disabled" },
+      conversation: conversationConfigured ? { status: "pending" } : { status: "disabled" },
     };
   }
 
@@ -173,6 +181,18 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
     });
   }
 
+  observeConversationReady(): Promise<void> {
+    return this.publish(() => {
+      this.snapshot.conversation = { status: "ready" };
+    });
+  }
+
+  observeConversationFailure(code: string): Promise<void> {
+    return this.publish(() => {
+      this.snapshot.conversation = { status: "unavailable", failureCode: code };
+    });
+  }
+
   stopping(): Promise<void> {
     return this.publish(() => {
       this.snapshot.status = "stopping";
@@ -196,11 +216,13 @@ export function createNodeRuntimeHealthPublisher(
   remoteControlConfigured: boolean,
   workspaceCoordinationConfigured = false,
   eventReaderIdentity?: NodeRuntimeEventReaderIdentity,
+  conversationConfigured = false,
 ): NodeRuntimeHealthPublisher {
   return new FileNodeRuntimeHealthPublisher(
     stateDirectory,
     remoteControlConfigured,
     workspaceCoordinationConfigured,
     eventReaderIdentity,
+    conversationConfigured,
   );
 }

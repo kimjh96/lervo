@@ -1,0 +1,42 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e2bc8c774649a30f21052698
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f5671bc647bf2d656c3f406a
+outputLanguage: en
+outputs:
+  - byteCount: 979
+    contentHash: sha256:03d52ffa87548e69dea9369e0c5203d71bbc5502b9b002622953bd0f13fea6e9
+    path: docs/roadmap/product-outcome-convergence/host-products/discord.md
+    userRegionHash: sha256:03d52ffa87548e69dea9369e0c5203d71bbc5502b9b002622953bd0f13fea6e9
+  - byteCount: 1305
+    contentHash: sha256:6ede16c9957c7977765a0583e62dc39b4e67a3aeeba79ca95d7b5ff8720d5126
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/authenticated-intake.md
+    userRegionHash: sha256:6ede16c9957c7977765a0583e62dc39b4e67a3aeeba79ca95d7b5ff8720d5126
+  - byteCount: 663
+    contentHash: sha256:9eb39088eb6f1fbb8e64f137ddfef5c0b88c854427e2ffa8ea1e7e067cba17fb
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/execution-results.md
+    userRegionHash: sha256:9eb39088eb6f1fbb8e64f137ddfef5c0b88c854427e2ffa8ea1e7e067cba17fb
+  - byteCount: 647
+    contentHash: sha256:5fca90e2b2ddf63c2b38fee9183a887b5abcd6d004ef4b7018bad077a093138a
+    path: docs/roadmap/product-outcome-convergence/host-products/discord/source-handoff.md
+    userRegionHash: sha256:5fca90e2b2ddf63c2b38fee9183a887b5abcd6d004ef4b7018bad077a093138a
+profile: roadmap_document
+recordId: knormdoc_e907d14ed79fb6036ee3d5a6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:569cf3f396121fa54eb671c632d389cde9d63a8db695d801096aa54b0453a972
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord.md
+sourceUnitVersionIds:
+  - uv_1680233dc7df99086cf1ae44
+  - uv_aad959af907abb75a9c92e94
+  - uv_c5c4429b842fbcceef3ea573
+  - uv_e6242378f7541c18772f47ad
+  - uv_f77aef7bcb8c55a87da59109

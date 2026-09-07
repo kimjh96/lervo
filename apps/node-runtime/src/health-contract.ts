@@ -26,6 +26,7 @@ export interface NodeRuntimeHealthSnapshot {
   workstreamReplication: NodeRuntimeComponentHealth;
   workspaceCoordination: NodeRuntimeComponentHealth;
   remoteControl: NodeRuntimeComponentHealth;
+  conversation?: NodeRuntimeComponentHealth;
 }
 
 function componentHealth(value: unknown): value is NodeRuntimeComponentHealth {
@@ -78,6 +79,7 @@ export function readNodeRuntimeHealthSnapshot(value: unknown): NodeRuntimeHealth
       !componentHealth(snapshot.workstreamReplication) ||
       !componentHealth(snapshot.workspaceCoordination) ||
       !componentHealth(snapshot.remoteControl) ||
+      (snapshot.conversation !== undefined && !componentHealth(snapshot.conversation)) ||
       (snapshot.eventReader !== undefined && !validEventReader(snapshot.eventReader)) ||
       (snapshot.eventReaderIdentity !== undefined &&
         !eventReaderIdentity(snapshot.eventReaderIdentity))

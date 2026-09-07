@@ -27,3 +27,4 @@ Coordination contract: [Hub and Node coordination](../../specifications/coordina
 - [Bounded rollout recovery](../../decisions/operations/security/0234-bounded-node-rollout-effect-recovery.md)
 - [Predecessor-bound rollback](../../decisions/operations/security/0235-predecessor-bound-node-rollout-rollback.md)
 - [Upgrade](../../decisions/operations/services/0214-bounded-repository-upgrade-orchestration.md)
+- [Node-hosted Discord conversation service](../../decisions/coordination/conversations/0382-node-hosted-discord-conversation-service.md)

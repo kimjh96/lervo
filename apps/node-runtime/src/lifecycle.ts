@@ -12,7 +12,8 @@ import type {
 
 export interface NodeRuntimeCloseResult {
   status: "stopped" | "failed";
-  failureCode?: "sync_runtime_failed" | "remote_control_runtime_failed";
+  failureCode?:
+    "sync_runtime_failed" | "remote_control_runtime_failed" | "conversation_runtime_failed";
   sync: OutboundSyncLoopResult | null;
   remoteControl: RemoteControlLoopResult | null;
 }
@@ -50,6 +51,10 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
       run(signal: AbortSignal): Promise<RemoteControlLoopResult>;
       close(): void;
     } | null,
+    private readonly conversation: {
+      failed: Promise<void>;
+      close(): void;
+    } | null,
     private readonly reloadBearerTokenSnapshot: () => Promise<void>,
     private readonly reloadRuntimeMaterialSnapshot: () => Promise<void>,
     private readonly health: Pick<NodeRuntimeHealthPublisher, "stopping"> | null,
@@ -76,6 +81,12 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
       this.controlLoop = Promise.resolve().then(() => control.run(this.abort.signal));
       void this.controlLoop.catch(() => {
         this.failureCode ??= "remote_control_runtime_failed";
+        void this.close();
+      });
+    }
+    if (this.conversation !== null) {
+      void this.conversation.failed.then(() => {
+        this.failureCode ??= "conversation_runtime_failed";
         void this.close();
       });
     }
@@ -186,6 +197,12 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
   private async finish(): Promise<NodeRuntimeCloseResult> {
     let sync: OutboundSyncLoopResult | null = null;
     let remoteControl: RemoteControlLoopResult | null = null;
+    const shutdownErrors: unknown[] = [];
+    try {
+      this.conversation?.close();
+    } catch (error) {
+      shutdownErrors.push(error);
+    }
     try {
       if (this.syncLoop !== null) sync = await this.syncLoop;
     } catch {
@@ -196,7 +213,6 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
     } catch {
       this.failureCode ??= "remote_control_runtime_failed";
     }
-    const shutdownErrors: unknown[] = [];
     try {
       this.control?.close();
     } catch (error) {
@@ -227,6 +243,10 @@ export function createNodeRuntimeDeployment(
     run(signal: AbortSignal): Promise<RemoteControlLoopResult>;
     close(): void;
   } | null = null,
+  conversation: {
+    failed: Promise<void>;
+    close(): void;
+  } | null = null,
   reloadBearerToken: () => Promise<void> = async () => undefined,
   reloadRuntimeMaterials: () => Promise<void> = reloadBearerToken,
   health: Pick<NodeRuntimeHealthPublisher, "stopping"> | null = null,
@@ -236,6 +256,7 @@ export function createNodeRuntimeDeployment(
     store,
     runLoop,
     control,
+    conversation,
     reloadBearerToken,
     reloadRuntimeMaterials,
     health,

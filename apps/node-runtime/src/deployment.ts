@@ -1,4 +1,5 @@
 import { lstat } from "node:fs/promises";
+import { resolve } from "node:path";
 
 import { FileSystemCas } from "@lervo/cas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
@@ -11,8 +12,6 @@ import {
   runWorkstreamReplicationCycle,
   type AuthenticatedHubTransport,
   type AuthenticatedWorkstreamHubTransport,
-  type OutboundSyncPollingWaitPort,
-  type SyncCycleResult,
   type SyncHttpTransportOptions,
 } from "@lervo/sync";
 import {
@@ -32,20 +31,13 @@ import { createNodeRuntimeHealthPublisher } from "./health.js";
 import { createNodeRuntimeDeployment, type NodeRuntimeDeployment } from "./lifecycle.js";
 import { createNodeOrganizationCredentialDelivery } from "./organization-credential-delivery.js";
 import {
-  openNodeRemoteControlRuntime,
-  type NodeRemoteCommandPorts,
-  type NodeRemoteControlRuntime,
-} from "./control-runtime.js";
+  openNodeDiscordConversationRuntime,
+  type NodeDiscordConversationRuntime,
+} from "./discord-conversation-runtime.js";
+import { openNodeRemoteControlRuntime, type NodeRemoteControlRuntime } from "./control-runtime.js";
+import type { NodeRuntimeOpenPorts } from "./open-ports.js";
 import { loadNodeRuntimeTrust, ReloadableNodeRuntimeTrust } from "./trust.js";
 import { NodeWorkstreamReplicationLocalPort } from "./workstream-replication.js";
-
-export interface NodeRuntimeOpenPorts {
-  createTransport?: (options: SyncHttpTransportOptions) => AuthenticatedHubTransport;
-  wait?: OutboundSyncPollingWaitPort;
-  nowMilliseconds?: () => number;
-  onCycle?: (result: SyncCycleResult) => void | Promise<void>;
-  remoteCommands?: NodeRemoteCommandPorts;
-}
 
 async function assertRepositoryRoot(path: string): Promise<void> {
   try {
@@ -67,6 +59,7 @@ export async function openNodeRuntime(
   let store: SQLiteEventStore | undefined;
   let remoteControl: NodeRemoteControlRuntime | undefined;
   let runtimeTrust: ReloadableNodeRuntimeTrust | undefined;
+  let conversation: NodeDiscordConversationRuntime | undefined;
   try {
     const validated = parseNodeRuntimeConfig(config, process.cwd());
     await assertRepositoryRoot(validated.repositoryRoot);
@@ -92,6 +85,7 @@ export async function openNodeRuntime(
         repositoryIdentityHash: calculateProjectIdentityHash(manifest),
         destinationId: validated.hub.destinationId,
       },
+      validated.discordConversation !== undefined,
     );
     store = await SQLiteEventStore.open({
       path: paths.eventDatabase,
@@ -102,6 +96,12 @@ export async function openNodeRuntime(
       projectId: manifest.projectId,
       projectIdentityHash: calculateProjectIdentityHash(manifest),
     };
+    if (validated.discordConversation === undefined && ports.discordConversation !== undefined) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "Discord conversation ports require Discord conversation configuration.",
+      );
+    }
     if ((validated.remoteCommands === undefined) !== (ports.remoteCommands === undefined)) {
       throw new NodeRuntimeError(
         "invalid_config",
@@ -224,6 +224,26 @@ export async function openNodeRuntime(
           }),
     };
     await health.initialize();
+    if (validated.discordConversation !== undefined) {
+      conversation = await openNodeDiscordConversationRuntime({
+        config: validated.discordConversation,
+        hub: validated.hub,
+        project: {
+          projectId: manifest.projectId,
+          projectIdentityHash: target.projectIdentityHash,
+          createdAt: manifest.createdAt,
+        },
+        dataDirectory: resolve(
+          paths.data,
+          "conversation",
+          validated.discordConversation.integrationId,
+        ),
+        bearerToken: () => bearerToken.current(),
+        ...ports.discordConversation,
+        onReady: () => health.observeConversationReady(),
+        onFailure: (code) => health.observeConversationFailure(code),
+      });
+    }
     return createNodeRuntimeDeployment(
       store,
       (signal) =>
@@ -294,6 +314,7 @@ export async function openNodeRuntime(
           },
         }),
       remoteControl ?? null,
+      conversation ?? null,
       async () => {
         const next = await loadNodeBearerToken(validated.hub.bearerTokenFile);
         bearerToken.replace(next);
@@ -337,6 +358,11 @@ export async function openNodeRuntime(
     );
   } catch (error) {
     const cleanupErrors: unknown[] = [];
+    try {
+      conversation?.close();
+    } catch (cleanupError) {
+      cleanupErrors.push(cleanupError);
+    }
     try {
       remoteControl?.close();
     } catch (cleanupError) {
