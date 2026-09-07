@@ -231,6 +231,21 @@ export const foundationEffectInventory: readonly EffectBoundaryContract[] = [
     privacySafeFailureCode: "migration_recovery_required",
     growingCollectionIds: ["migration_journals", "knowledge_projections", "event_chain"],
   }),
+  declareEffect({
+    effectId: "effect_live_trigger_assignment_invocation",
+    category: "live_trigger_invocation",
+    owner: "live_trigger.assignment_routine",
+    effectKind: "local",
+    idempotencyCoordinate: "source_event_key.invocation_fingerprint",
+    duplicateBehavior: "same_result",
+    automaticRetry: "disabled",
+    uncertainty: "journal_recovery",
+    compensation: "convergent_replay",
+    durableSuccessEvidence: "live_trigger.completion",
+    recoveryOwner: "live_trigger.reservation_store",
+    privacySafeFailureCode: "live_trigger_recovery_required",
+    growingCollectionIds: ["live_trigger_reservations", "live_trigger_authorization_usage"],
+  }),
 ] as const;
 
 assertCompleteEffectInventory(foundationEffectInventory);

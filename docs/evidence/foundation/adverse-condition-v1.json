@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidenceBuildDigest": "sha256:1a7bc485f1d73d5631646d15034344843f42b4c57e27e1a5b22f38a2deb3fc2d",
-  "repositoryRevision": "sha256:3c06d625603bea1c1bcd54f025d7cd2c1602599a326a97d61121f24e707bca75",
+  "repositoryRevision": "sha256:c15d6616aa812e965f62005f9c85b123345026db8349987b3ec6890e34d079ba",
   "environment": { "operatingSystem": "darwin", "architecture": "arm64", "nodeVersion": "v26.5.1" },
   "effects": [
     {
@@ -283,6 +283,28 @@
       "recoveryOwner": "repository_knowledge.durable_apply",
       "privacySafeFailureCode": "migration_recovery_required",
       "growingCollectionIds": ["migration_journals", "knowledge_projections", "event_chain"],
+      "cancellation": {
+        "beforeStart": "cancelled_without_effect",
+        "duringEffect": "rollback_or_recovery_required",
+        "afterEffect": "complete_or_recovery_required"
+      },
+      "absenceMeaning": "not_completed_or_unobserved"
+    },
+    {
+      "schemaVersion": 1,
+      "effectId": "effect_live_trigger_assignment_invocation",
+      "category": "live_trigger_invocation",
+      "owner": "live_trigger.assignment_routine",
+      "effectKind": "local",
+      "idempotencyCoordinate": "source_event_key.invocation_fingerprint",
+      "duplicateBehavior": "same_result",
+      "automaticRetry": "disabled",
+      "uncertainty": "journal_recovery",
+      "compensation": "convergent_replay",
+      "durableSuccessEvidence": "live_trigger.completion",
+      "recoveryOwner": "live_trigger.reservation_store",
+      "privacySafeFailureCode": "live_trigger_recovery_required",
+      "growingCollectionIds": ["live_trigger_reservations", "live_trigger_authorization_usage"],
       "cancellation": {
         "beforeStart": "cancelled_without_effect",
         "duringEffect": "rollback_or_recovery_required",
@@ -811,12 +833,52 @@
       "expected": "recovery_required",
       "observed": "recovery_required",
       "status": "passed"
+    },
+    {
+      "scenarioId": "effect_live_trigger_assignment_invocation:before_effect",
+      "effectId": "effect_live_trigger_assignment_invocation",
+      "faultPoint": "before_effect",
+      "expected": "exact_rollback",
+      "observed": "exact_rollback",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_live_trigger_assignment_invocation:after_effect_before_evidence",
+      "effectId": "effect_live_trigger_assignment_invocation",
+      "faultPoint": "after_effect_before_evidence",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_live_trigger_assignment_invocation:after_evidence_before_projection",
+      "effectId": "effect_live_trigger_assignment_invocation",
+      "faultPoint": "after_evidence_before_projection",
+      "expected": "exact_completion",
+      "observed": "exact_completion",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_live_trigger_assignment_invocation:state_evidence_conflict",
+      "effectId": "effect_live_trigger_assignment_invocation",
+      "faultPoint": "state_evidence_conflict",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
+    },
+    {
+      "scenarioId": "effect_live_trigger_assignment_invocation:uncertain_external_response",
+      "effectId": "effect_live_trigger_assignment_invocation",
+      "faultPoint": "uncertain_external_response",
+      "expected": "recovery_required",
+      "observed": "recovery_required",
+      "status": "passed"
     }
   ],
   "telemetry": {
-    "eventTypeCount": 71,
-    "fieldCount": 622,
-    "registryDigest": "sha256:1a923ef5ad0bfd25b3f8654448c545c8f3011e96e3b9ad046f1888497d5fe5e5"
+    "eventTypeCount": 75,
+    "fieldCount": 663,
+    "registryDigest": "sha256:cee3716c73bff1d807b53c955cdb3d95b26e2a96de041727e34c3af71bc9b291"
   },
   "threats": [
     {
@@ -879,7 +941,8 @@
       "controls": ["idempotency_key", "nonce_fence", "generation"],
       "evidencePaths": [
         "packages/remote-command-sqlite/test/replay-store.test.ts",
-        "packages/organization-deployment-sqlite/test/replay-store.test.ts"
+        "packages/organization-deployment-sqlite/test/replay-store.test.ts",
+        "packages/live-trigger-sqlite/test/live-trigger-store.test.ts"
       ]
     },
     {
@@ -915,7 +978,8 @@
       "controls": ["provider_signal_bound", "normalization_batch_bound", "no_unattended_loop"],
       "evidencePaths": [
         "packages/orchestrator/test/managed-provider-run-failures.test.ts",
-        "packages/repository-knowledge/test/document-normalization.test.ts"
+        "packages/repository-knowledge/test/document-normalization.test.ts",
+        "packages/live-trigger-sqlite/test/live-trigger-store.test.ts"
       ]
     },
     {
@@ -1135,6 +1199,26 @@
       "operationWindow": 3,
       "overflow": "reject_before_mutation",
       "reconstruction": "normal_producer"
+    },
+    {
+      "collectionId": "live_trigger_reservations",
+      "owner": "live_trigger",
+      "authority": "coordination",
+      "growthPolicy": "age_count_byte_prune",
+      "maximumItems": 100000,
+      "operationWindow": 1000,
+      "overflow": "reject_before_mutation",
+      "reconstruction": "not_applicable"
+    },
+    {
+      "collectionId": "live_trigger_authorization_usage",
+      "owner": "live_trigger",
+      "authority": "canonical",
+      "growthPolicy": "bounded_count",
+      "maximumItems": 100000,
+      "operationWindow": 1000,
+      "overflow": "reject_before_mutation",
+      "reconstruction": "not_applicable"
     }
   ],
   "capacityProfiles": [
@@ -1143,9 +1227,9 @@
       "eventWindow": 1000,
       "assignmentWindow": 128,
       "concurrentWorkers": 4,
-      "durationMs": 0.096041,
-      "cpuMs": 0.114,
-      "processPeakResidentMemoryBytes": 190185472,
+      "durationMs": 0.100375,
+      "cpuMs": 0.119,
+      "processPeakResidentMemoryBytes": 190169088,
       "status": "passed"
     },
     {
@@ -1153,8 +1237,8 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 16,
-      "durationMs": 0.274834,
-      "cpuMs": 0.331,
+      "durationMs": 0.267875,
+      "cpuMs": 0.319,
       "processPeakResidentMemoryBytes": 190201856,
       "status": "passed"
     },
@@ -1163,9 +1247,9 @@
       "eventWindow": 100000,
       "assignmentWindow": 10000,
       "concurrentWorkers": 32,
-      "durationMs": 2.435166,
-      "cpuMs": 2.803,
-      "processPeakResidentMemoryBytes": 191102976,
+      "durationMs": 2.370459,
+      "cpuMs": 2.74,
+      "processPeakResidentMemoryBytes": 191070208,
       "status": "passed"
     },
     {
@@ -1173,9 +1257,9 @@
       "eventWindow": 10000,
       "assignmentWindow": 1000,
       "concurrentWorkers": 32,
-      "durationMs": 0.256125,
-      "cpuMs": 0.359,
-      "processPeakResidentMemoryBytes": 191135744,
+      "durationMs": 0.254542,
+      "cpuMs": 0.372,
+      "processPeakResidentMemoryBytes": 191102976,
       "status": "passed"
     }
   ],
@@ -1223,14 +1307,24 @@
   ],
   "evidenceSuites": [
     {
+      "area": "concurrency",
+      "path": "apps/cli/test/live-trigger-command.test.ts",
+      "sourceHash": "sha256:f4dceea929dca94b7663de953a8dc39b8de93e17dd07fac0ac7181c55864ea6d"
+    },
+    {
       "area": "recovery",
       "path": "apps/cli/test/terminal-integration.test.ts",
-      "sourceHash": "sha256:a4ddc613867d6eb4545b6e737e6428816288b82b8c518b27eae67aa06d86f0de"
+      "sourceHash": "sha256:592e359ab33a45457e2e20888e5bb11763bced3882bc99335526ff48b1e08270"
     },
     {
       "area": "compatibility",
       "path": "apps/cli/test/upgrade-command.test.ts",
       "sourceHash": "sha256:7fd5fac7e96e3a7190f15c9f11ce6adf45ede6cfab870b5bee4a8686a3d54760"
+    },
+    {
+      "area": "security",
+      "path": "packages/adapter-webhook/test/adapter-webhook.test.ts",
+      "sourceHash": "sha256:a31259f893b98502a73646a169ba38f5e6452687b74e65e6dba93da81d9222d5"
     },
     {
       "area": "concurrency",
@@ -1245,17 +1339,17 @@
     {
       "area": "concurrency",
       "path": "packages/agent-workforce/test/workspace-lifecycle.test.ts",
-      "sourceHash": "sha256:8fad25b9f262f7f4b5a178bb7b5db81cbef948f1621e410a7c38176df38416d8"
+      "sourceHash": "sha256:77e3f9b0077f382efce051c3e4730d61c99b05c01c3435c9e4fbd7f9af73e2b6"
     },
     {
       "area": "recovery",
       "path": "packages/capabilities/test/capabilities.test.ts",
-      "sourceHash": "sha256:676851eca5c728a2afa784c20bbd7bcc2d0a5fd7a6ebeb0393e00f70665078d2"
+      "sourceHash": "sha256:31bbe6d5898477ed05bf900f83ac297a3733a13b588ffe35e8db1407e1d903b2"
     },
     {
       "area": "security",
       "path": "packages/capabilities/test/capabilities.test.ts",
-      "sourceHash": "sha256:676851eca5c728a2afa784c20bbd7bcc2d0a5fd7a6ebeb0393e00f70665078d2"
+      "sourceHash": "sha256:31bbe6d5898477ed05bf900f83ac297a3733a13b588ffe35e8db1407e1d903b2"
     },
     {
       "area": "recovery",
@@ -1265,7 +1359,7 @@
     {
       "area": "security",
       "path": "packages/event-contract/test/redaction.test.ts",
-      "sourceHash": "sha256:e47a686b2237a467f85acdaa9606e3e14852630bea78b0e69641d67dc2917a55"
+      "sourceHash": "sha256:f32005b57dddd3f5e929b2fc80930f9c530040bb9b466fda50681eb5bd496b6b"
     },
     {
       "area": "recovery",
@@ -1276,6 +1370,11 @@
       "area": "concurrency",
       "path": "packages/event-store-sqlite/test/outbox.test.ts",
       "sourceHash": "sha256:e43b47cb07307ab44c669b4f091f3b2592fdfedf2aba3316fd361aae1e795ed5"
+    },
+    {
+      "area": "recovery",
+      "path": "packages/live-trigger-sqlite/test/live-trigger-store.test.ts",
+      "sourceHash": "sha256:65864c520492963eb21217ddcf52d585630718d4a3f71c33d512ad8564778341"
     },
     {
       "area": "recovery",
@@ -1310,7 +1409,7 @@
     {
       "area": "compatibility",
       "path": "packages/project/test/state-retention.test.ts",
-      "sourceHash": "sha256:3e44afd685400b1311282b95678c27a2cdfe7079f17ebfe5b23164265385cd5c"
+      "sourceHash": "sha256:646911a014410709e630ce39a86e548b7ec279f7aea7e3631bb40ea3342ad253"
     },
     {
       "area": "security",
@@ -1351,5 +1450,5 @@
     "credentials": "excluded",
     "absolutePaths": "excluded"
   },
-  "reportId": "adverse_a030a167438110578a5d3257"
+  "reportId": "adverse_4083fc591cb632ceb598fe30"
 }

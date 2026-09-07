@@ -31,6 +31,7 @@ import {
 } from "./assignment-connector-command.js";
 import { runInitCommand, initUsage } from "./init-command.js";
 import { runLoopCommand, loopUsage } from "./loop-command.js";
+import { liveTriggerUsage, runLiveTriggerCommand } from "./live-trigger-command.js";
 import { executeManagedRun } from "./managed-run.js";
 import { executeManagedDeliberation } from "./managed-deliberation.js";
 import { environmentUsage, runEnvironmentCommand } from "./environment-command.js";
@@ -67,6 +68,7 @@ ${migrateUsage}
 ${knowledgeUsage}
 ${applicationUsage}
 ${loopUsage}
+${liveTriggerUsage}
 ${runUsage}
 ${deliberateUsage}
 ${traceUsage}
@@ -134,6 +136,7 @@ export async function runCli(
   if (command === "knowledge") return runKnowledgeCommand(args.slice(1), io, services);
   if (command === "application") return runApplicationCommand(args.slice(1), io, services);
   if (command === "loop") return runLoopCommand(args.slice(1), io, services);
+  if (command === "trigger") return runLiveTriggerCommand(args.slice(1), io);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);
   if (command === "deliberate") return runDeliberateCommand(args.slice(1), io, services);
   if (command === "trace") return runTraceCommand(args.slice(1), io, services);

@@ -1,0 +1,51 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_044d281704a0888df45f3f7a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d1e696ce7ae82885cf4f76d1
+outputLanguage: en
+outputs:
+  - byteCount: 1088
+    contentHash: sha256:dd9b1a2bfeb899664f221439f2b3853dd06ba5ce0a2798485de2a78947bc5307
+    path: docs/specifications/execution/adverse-condition-safety.md
+    userRegionHash: sha256:dd9b1a2bfeb899664f221439f2b3853dd06ba5ce0a2798485de2a78947bc5307
+  - byteCount: 1848
+    contentHash: sha256:85a703d2562f4a8e292a91670abe1c3fbf5cb0a457b7c5046d296ec31a00056d
+    path: docs/specifications/execution/adverse-condition-safety/capacity.md
+    userRegionHash: sha256:85a703d2562f4a8e292a91670abe1c3fbf5cb0a457b7c5046d296ec31a00056d
+  - byteCount: 4323
+    contentHash: sha256:a3bc43ec66d80e03d421d6887eb75a99bdde83a9961b18f578296701c9038756
+    path: docs/specifications/execution/adverse-condition-safety/recovery.md
+    userRegionHash: sha256:a3bc43ec66d80e03d421d6887eb75a99bdde83a9961b18f578296701c9038756
+  - byteCount: 1917
+    contentHash: sha256:c273b97b0bf8f0011116da17f27adc79c7ceafef5b453b65a2c7bce465acc367
+    path: docs/specifications/execution/adverse-condition-safety/security.md
+    userRegionHash: sha256:c273b97b0bf8f0011116da17f27adc79c7ceafef5b453b65a2c7bce465acc367
+  - byteCount: 912
+    contentHash: sha256:6d4c04d3bb5c4d0e2f8b3dfe3116d4e151aea073dcbbe922884fdc3fed7925fc
+    path: docs/specifications/execution/adverse-condition-safety/verification.md
+    userRegionHash: sha256:6d4c04d3bb5c4d0e2f8b3dfe3116d4e151aea073dcbbe922884fdc3fed7925fc
+profile: specification_document
+recordId: knormdoc_668e74a445c9e153c4068668
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bc25886830090467e64fef6880d6ebe9335b17509573ba5251c4c27e8dd1c52c
+sourcePath: docs/specifications/execution/adverse-condition-safety.md
+sourceUnitVersionIds:
+  - uv_1c475a85528d29696e74ce1e
+  - uv_1c933e2ed8fafcdf03562eed
+  - uv_2a5600d9a9d30bcdeb26ab39
+  - uv_3fa5181e6ca6a3637dd3de5c
+  - uv_4bb7db886f68190e05bfa3c2
+  - uv_c48e5b7b0b2ef83fdde82b50
+  - uv_de649bb4b13881f9f57cbd42
+  - uv_debcdc47e9ea18886a32054b
+  - uv_e48330ad73807d816b0998cf
+  - uv_e7ee51367d672ea9843e1f0b

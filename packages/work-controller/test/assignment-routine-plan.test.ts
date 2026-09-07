@@ -197,6 +197,6 @@ describe("assignment routine planning", () => {
     ).toMatchObject({ status: "blocked", blockedReasons: ["assignment_capacity"] });
     const automatic = request();
     (automatic.trigger as { kind: string }).kind = "cron";
-    expect(() => plan({ request: automatic })).toThrow(/manual trigger/u);
+    expect(() => plan({ request: automatic })).toThrow(/trigger is invalid/u);
   });
 });

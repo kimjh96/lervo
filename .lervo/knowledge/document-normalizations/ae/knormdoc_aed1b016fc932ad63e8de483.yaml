@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_044d281704a0888df45f3f7a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_050e00fe3586aff7b9580e9a
+outputLanguage: en
+outputs:
+  - byteCount: 6350
+    contentHash: sha256:e08719d0c3f0977265a92c5189a70d1eec37e748ec9c46ff743a93c3d8761281
+    path: docs/specifications/execution/assignment-routines.md
+    userRegionHash: sha256:e08719d0c3f0977265a92c5189a70d1eec37e748ec9c46ff743a93c3d8761281
+profile: specification_document
+recordId: knormdoc_aed1b016fc932ad63e8de483
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:673abc12f972156363586503dfeb8b547235fe1bbf96c7e7aba2ef996e111c28
+sourcePath: docs/specifications/execution/assignment-routines.md
+sourceUnitVersionIds:
+  - uv_0e7835b0648fd3a49a2b93bb
+  - uv_171e0eba2afb76ba5c93b914
+  - uv_3d5a32e5bf9a38ed8e99e86d
+  - uv_4be3bbd7c521b94eaa40ed0e
+  - uv_7bdff3466d2210a084147b77
+  - uv_9af08e670f2e2a9dcb66146a
+  - uv_a89cfb25cc26bf2608fed511
+  - uv_ccb2c717de6d945b099c41a8

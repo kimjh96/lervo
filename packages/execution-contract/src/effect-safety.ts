@@ -14,6 +14,7 @@ export const effectBoundaryCategories = [
   "remote_command",
   "external_deployment",
   "repository_migration",
+  "live_trigger_invocation",
 ] as const;
 
 export type EffectBoundaryCategory = (typeof effectBoundaryCategories)[number];
@@ -35,7 +36,8 @@ export interface EffectBoundaryContract {
     duringEffect: "rollback_or_recovery_required" | "reconcile_required";
     afterEffect: "complete_or_recovery_required";
   };
-  compensation: "restore_exact_bytes" | "release_authority" | "external_reconciliation";
+  compensation:
+    "restore_exact_bytes" | "release_authority" | "convergent_replay" | "external_reconciliation";
   durableSuccessEvidence: string;
   absenceMeaning: "not_completed_or_unobserved";
   recoveryOwner: string;

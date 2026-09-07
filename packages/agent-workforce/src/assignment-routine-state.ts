@@ -28,7 +28,7 @@ export function validWorkforceRoutineProvenance(
     VERSION.test(item.templateVersion) &&
     HASH.test(item.templateHash) &&
     INVOCATION_ID.test(item.invocationId) &&
-    item.triggerKind === "manual" &&
+    ["manual", "authenticated_live"].includes(item.triggerKind) &&
     HASH.test(item.triggerDigest) &&
     ROUTINE_ID.test(item.nodeKey) &&
     item.nodeKey.length <= 100

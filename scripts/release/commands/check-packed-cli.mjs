@@ -19,6 +19,7 @@ import { packCliArtifact } from "../../distribution/lib/packed-cli-artifact.mjs"
 import { verifyPackedProductHostConsumer } from "../../distribution/lib/product-host-consumer.mjs";
 import { verifyInstalledCapabilityJourney } from "../../distribution/lib/installed-capability-journey.mjs";
 import { verifyInstalledCrossProviderContinuation } from "../../distribution/lib/installed-cross-provider-continuation.mjs";
+import { verifyInstalledLiveWebhookTrigger } from "../../distribution/lib/installed-live-webhook-trigger.mjs";
 
 const cliManifestPath = resolve(repositoryRoot, "apps/cli/package.json");
 
@@ -267,8 +268,10 @@ async function main() {
       consumerRoot,
       nativeRuntime.executable,
     );
+    const liveTrigger = await verifyInstalledLiveWebhookTrigger(consumerRoot);
     console.log(`Claude native runtime verified: ${nativeRuntime.packageName}`);
     console.log(`Installed capability journey verified: ${capabilityJourney.runId}`);
+    console.log(`Installed live webhook trigger verified: ${liveTrigger.assignmentId}`);
     console.log(
       continuation.status === "passed"
         ? `Installed cross-provider continuation verified: ${continuation.initialRunId} -> ${continuation.resumedRunId}`

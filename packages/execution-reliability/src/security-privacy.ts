@@ -154,6 +154,7 @@ export const foundationThreatModel: readonly FoundationThreatControl[] = [
     evidencePaths: [
       "packages/remote-command-sqlite/test/replay-store.test.ts",
       "packages/organization-deployment-sqlite/test/replay-store.test.ts",
+      "packages/live-trigger-sqlite/test/live-trigger-store.test.ts",
     ],
   },
   {
@@ -190,6 +191,7 @@ export const foundationThreatModel: readonly FoundationThreatControl[] = [
     evidencePaths: [
       "packages/orchestrator/test/managed-provider-run-failures.test.ts",
       "packages/repository-knowledge/test/document-normalization.test.ts",
+      "packages/live-trigger-sqlite/test/live-trigger-store.test.ts",
     ],
   },
   {

@@ -198,6 +198,26 @@ export const foundationGrowingCollections: readonly GrowingCollectionContract[] 
     overflow: "reject_before_mutation",
     reconstruction: "normal_producer",
   },
+  {
+    collectionId: "live_trigger_reservations",
+    owner: "live_trigger",
+    authority: "coordination",
+    growthPolicy: "age_count_byte_prune",
+    maximumItems: 100_000,
+    operationWindow: 1_000,
+    overflow: "reject_before_mutation",
+    reconstruction: "not_applicable",
+  },
+  {
+    collectionId: "live_trigger_authorization_usage",
+    owner: "live_trigger",
+    authority: "canonical",
+    growthPolicy: "bounded_count",
+    maximumItems: 100_000,
+    operationWindow: 1_000,
+    overflow: "reject_before_mutation",
+    reconstruction: "not_applicable",
+  },
 ] as const;
 
 export interface FoundationCapacityProfile {

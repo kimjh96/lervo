@@ -38746,14 +38746,30 @@ var developmentPatternTransitionedEventPayloadSchema = {
       anyOf: [
         {
           type: "string",
-          enum: ["observed", "candidate", "reviewed", "promoted", "rejected", "deferred"]
+          enum: [
+            "observed",
+            "candidate",
+            "reviewed",
+            "promoted",
+            "rejected",
+            "deferred",
+            "rolled_back"
+          ]
         },
         { type: "null" }
       ]
     },
     toState: {
       type: "string",
-      enum: ["candidate", "reviewed", "promoted", "rejected", "deferred", "superseded"]
+      enum: [
+        "candidate",
+        "reviewed",
+        "promoted",
+        "rejected",
+        "deferred",
+        "superseded",
+        "rolled_back"
+      ]
     },
     candidateArtifactId: { anyOf: [artifactIdSchema, { type: "null" }] },
     candidateContentHash: { anyOf: [sha256Schema, { type: "null" }] },
@@ -38767,9 +38783,24 @@ var developmentPatternTransitionedEventPayloadSchema = {
         "scoped_instruction",
         "portable_skill",
         "decision",
-        "automated_check"
+        "automated_check",
+        "agent_profile"
       ]
     },
+    previousTargetArtifactId: { anyOf: [artifactIdSchema, { type: "null" }] },
+    previousTargetContentHash: { anyOf: [sha256Schema, { type: "null" }] },
+    activatedRoleId: { anyOf: [roleIdSchema, { type: "null" }] },
+    activatedRoleVersion: {
+      anyOf: [
+        {
+          type: "string",
+          pattern: "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
+        },
+        { type: "null" }
+      ]
+    },
+    activatedRoleContractHash: { anyOf: [sha256Schema, { type: "null" }] },
+    activatedRoleProfileHash: { anyOf: [sha256Schema, { type: "null" }] },
     approvalHash: { anyOf: [sha256Schema, { type: "null" }] },
     occurredAt: timestampSchema
   },
@@ -40046,7 +40077,8 @@ var eventTypesV2 = [
   "provider.process.observed",
   "work.causality.recorded",
   "resource.usage.recorded",
-  "execution.stages.observed"
+  "execution.stages.observed",
+  "role.profile.activated"
 ];
 var eventTypes = eventTypesV2;
 var eventEnvelopeProperties = {
@@ -44459,6 +44491,40 @@ var roleEvaluationResultSchema = {
   additionalProperties: false
 };
 
+// packages/schemas/dist/role-profile-event.js
+var roleProfileActivatedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/role-profile-activated-event-payload.schema.json",
+  type: "object",
+  properties: {
+    activationId: { type: "string", pattern: "^rpact_[a-f0-9]{24}$" },
+    provider: providerSchema,
+    roleId: roleIdSchema,
+    roleVersion: {
+      type: "string",
+      pattern: "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$",
+      maxLength: 100
+    },
+    roleContractHash: sha256Schema,
+    roleProfileHash: sha256Schema,
+    runtimeProfileHash: sha256Schema,
+    sourceKind: { type: "string", enum: ["built_in", "repository"] },
+    activatedAt: timestampSchema
+  },
+  required: [
+    "activationId",
+    "provider",
+    "roleId",
+    "roleVersion",
+    "roleContractHash",
+    "roleProfileHash",
+    "runtimeProfileHash",
+    "sourceKind",
+    "activatedAt"
+  ],
+  additionalProperties: false
+};
+
 // packages/schemas/dist/run-event.js
 var runCompletedEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -46890,6 +46956,7 @@ var validators = {
   role: ajv.compile(roleProfileSchema),
   roleEvaluationBundle: ajv.compile(roleEvaluationBundleSchema),
   roleEvaluationResult: ajv.compile(roleEvaluationResultSchema),
+  roleProfileActivatedEventPayload: ajv.compile(roleProfileActivatedEventPayloadSchema),
   highRiskRoleWorkflow: ajv.compile(highRiskRoleWorkflowSchema),
   runCompletedEventPayload: ajv.compile(runCompletedEventPayloadSchema),
   assignmentCompletionPreparedEventPayload: ajv.compile(assignmentCompletionPreparedEventPayloadSchema),
@@ -47490,6 +47557,12 @@ var eventPayloadAllowlists = {
     "reviewContentHash",
     "supersededByPatternId",
     "targetKind",
+    "previousTargetArtifactId",
+    "previousTargetContentHash",
+    "activatedRoleId",
+    "activatedRoleVersion",
+    "activatedRoleContractHash",
+    "activatedRoleProfileHash",
     "approvalHash",
     "occurredAt"
   ],
@@ -47530,6 +47603,17 @@ var eventPayloadAllowlists = {
     "rollbackDisposition",
     "metricCount",
     "observedAt"
+  ],
+  "role.profile.activated": [
+    "activationId",
+    "provider",
+    "roleId",
+    "roleVersion",
+    "roleContractHash",
+    "roleProfileHash",
+    "runtimeProfileHash",
+    "sourceKind",
+    "activatedAt"
   ],
   "knowledge.candidate.created": [
     "candidateId",
@@ -47951,6 +48035,7 @@ var eventPayloadSchemas = {
   "development.pattern.transitioned": "developmentPatternTransitionedEventPayload",
   "development.pattern.evaluation.registered": "developmentPatternEvaluationRegisteredEventPayload",
   "development.pattern.effect.observed": "developmentPatternEffectObservedEventPayload",
+  "role.profile.activated": "roleProfileActivatedEventPayload",
   "knowledge.candidate.created": "knowledgeCandidateCreatedEventPayload",
   "knowledge.candidate.reviewed": "knowledgeCandidateReviewedEventPayload",
   "knowledge.reconciliation.reviewed": "knowledgeReconciliationReviewedEventPayload",
@@ -53742,6 +53827,29 @@ function hashSkillContentFiles(files) {
   return `sha256:${hash2.digest("hex")}`;
 }
 
+// packages/runtime-security/dist/file-identity.js
+function sameFileIdentityWithinStatSurface(before, after) {
+  return before.dev === after.dev && before.ino === after.ino;
+}
+function sameFileIdentityAcrossStatSurfaces(pathObservation, handleObservation, platform = process.platform) {
+  return platform === "win32" || sameFileIdentityWithinStatSurface(pathObservation, handleObservation);
+}
+
+// packages/runtime-security/dist/owner-file.js
+import { TextDecoder as TextDecoder2 } from "node:util";
+var utf8 = new TextDecoder2("utf-8", { fatal: true });
+
+// packages/skills/dist/stable-file-observation.js
+function sameMetadata(left, right) {
+  return left.size === right.size && left.mtimeMs === right.mtimeMs;
+}
+function sameFileWithinStatSurface(before, after) {
+  return sameFileIdentityWithinStatSurface(before, after) && sameMetadata(before, after);
+}
+function sameFileAcrossStatSurfaces(pathObservation, handleObservation) {
+  return sameFileIdentityAcrossStatSurfaces(pathObservation, handleObservation) && sameMetadata(pathObservation, handleObservation);
+}
+
 // packages/skills/dist/types.js
 var SkillResolutionError = class extends Error {
   code;
@@ -53772,20 +53880,22 @@ function assertWithin(root2, path) {
   }
 }
 async function regularFile(path, maximumBytes2 = MAX_PACKAGE_BYTES) {
-  const before = await lstat11(path);
-  if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes2) {
+  const beforePath = await lstat11(path);
+  if (!beforePath.isFile() || beforePath.isSymbolicLink() || beforePath.size > maximumBytes2) {
     throw new SkillResolutionError("unsafe_skill_package", "A skill package file must be a regular file within the size limit.");
   }
   let handle;
   try {
     handle = await open6(path, constants6.O_RDONLY | constants6.O_NOFOLLOW);
-    const opened = await handle.stat();
-    if (before.dev !== opened.dev || before.ino !== opened.ino) {
+    const openedHandle = await handle.stat();
+    const afterOpenPath = await lstat11(path);
+    if (!openedHandle.isFile() || openedHandle.size > maximumBytes2 || !afterOpenPath.isFile() || afterOpenPath.isSymbolicLink() || afterOpenPath.size > maximumBytes2 || !sameFileWithinStatSurface(beforePath, afterOpenPath) || !sameFileAcrossStatSurfaces(afterOpenPath, openedHandle)) {
       throw new SkillResolutionError("unsafe_skill_package", "The skill package file path changed before it was read.");
     }
     const bytes = await handle.readFile();
-    const after = await handle.stat();
-    if (!after.isFile() || after.size > maximumBytes2 || before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs) {
+    const afterReadHandle = await handle.stat();
+    const afterReadPath = await lstat11(path);
+    if (!afterReadHandle.isFile() || afterReadHandle.size > maximumBytes2 || !afterReadPath.isFile() || afterReadPath.isSymbolicLink() || afterReadPath.size > maximumBytes2 || !sameFileWithinStatSurface(openedHandle, afterReadHandle) || !sameFileWithinStatSurface(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces(afterReadPath, afterReadHandle)) {
       throw new SkillResolutionError("unsafe_skill_package", "The skill package file changed while it was being read.");
     }
     return bytes;
@@ -62918,7 +63028,7 @@ function safeTarget(root2, path) {
 }
 function validJournal(value) {
   const item = value;
-  return item !== null && typeof item === "object" && item.schemaVersion === 1 && item.transactionType === "knowledge_materialization" && /^(?:ksmat|kstruct|kbridgeplan|kinstbootplan|klayout|knormplan|kwstreamplan|kpatternplan)_[a-f0-9]{24}$/.test(item.planId) && typeof item.projectId === "string" && Number.isSafeInteger(item.ownerPid) && item.ownerPid > 0 && ["preparing", "staged", "publishing", "event_recording", "committed"].includes(item.phase) && Number.isSafeInteger(item.publishedCount) && item.publishedCount >= 0 && (item.activeIndex === null || Number.isSafeInteger(item.activeIndex) && item.activeIndex >= 0) && Array.isArray(item.operations) && item.operations.length > 0 && item.operations.length <= 2e4 && new Set(item.operations.flatMap((operation) => [
+  return item !== null && typeof item === "object" && item.schemaVersion === 1 && item.transactionType === "knowledge_materialization" && /^(?:ksmat|kstruct|kbridgeplan|kinstbootplan|kinstructionplan|klayout|knormplan|kwstreamplan|kpatternplan)_[a-f0-9]{24}$/.test(item.planId) && typeof item.projectId === "string" && Number.isSafeInteger(item.ownerPid) && item.ownerPid > 0 && ["preparing", "staged", "publishing", "event_recording", "committed"].includes(item.phase) && Number.isSafeInteger(item.publishedCount) && item.publishedCount >= 0 && (item.activeIndex === null || Number.isSafeInteger(item.activeIndex) && item.activeIndex >= 0) && Array.isArray(item.operations) && item.operations.length > 0 && item.operations.length <= 2e4 && new Set(item.operations.flatMap((operation) => [
     operation.path,
     ...operation.destinationPath === void 0 ? [] : [operation.destinationPath]
   ])).size === item.operations.reduce((count, operation) => count + (operation.destinationPath === void 0 ? 1 : 2), 0) && item.operations.every((operation) => typeof operation.path === "string" && (operation.action === "create" || operation.action === "update" || operation.action === "delete" || operation.action === "move" || operation.action === "move_update") && (operation.beforeHash === null || /^sha256:[a-f0-9]{64}$/.test(operation.beforeHash)) && (operation.afterHash === null || /^sha256:[a-f0-9]{64}$/.test(operation.afterHash)) && (operation.action === "delete" ? operation.destinationPath === void 0 && operation.beforeHash !== null && operation.afterHash === null : operation.action === "move" || operation.action === "move_update" ? typeof operation.destinationPath === "string" && operation.destinationPath !== operation.path && operation.beforeHash !== null && operation.afterHash !== null && (operation.action === "move_update" || operation.afterHash === operation.beforeHash) : operation.destinationPath === void 0 && operation.afterHash !== null));
@@ -64077,7 +64187,7 @@ async function scanConfiguredRepositoryKnowledge(repositoryRoot, options = {}) {
 var MAX_SHARD_BYTES = 256 * 1024;
 
 // packages/repository-knowledge/dist/canonicalization-candidate.js
-import { resolve as resolve26 } from "node:path";
+import { resolve as resolve27 } from "node:path";
 
 // packages/repository-knowledge/dist/canonicalization-responsibility.js
 function canonicalResponsibilityForPath(path) {
@@ -64118,4391 +64228,13 @@ function recommendedCanonicalRoot(responsibility) {
 }
 
 // packages/repository-knowledge/dist/canonicalization-candidate-record.js
-import { lstat as lstat17, mkdir as mkdir7, readFile as readFile11, readdir as readdir9, rename as rename5, rm as rm6, writeFile } from "node:fs/promises";
-import { dirname as dirname7, resolve as resolve25 } from "node:path";
-
-// packages/repository-knowledge/dist/portable-skill-pattern.js
-var hashPattern = /^sha256:[a-f0-9]{64}$/u;
-var coordinatePattern = /^(?:evt|run)_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
-var verificationPattern = /^ver_[a-f0-9]{16}$/u;
-function boundedStrings(values, field2, maximum) {
-  if (!Array.isArray(values) || values.length > maximum || values.some((value) => typeof value !== "string" || value.length === 0 || value.length > 512))
-    throw new Error(`${field2} must contain bounded non-empty strings.`);
-}
-function validateVerificationReference(value) {
-  if (value.independentGroup.length === 0 || value.independentGroup.length > 128 || !coordinatePattern.test(value.eventId) || !coordinatePattern.test(value.runId) || !verificationPattern.test(value.verificationId) || !hashPattern.test(value.eventHash) || !hashPattern.test(value.suiteHash) || !hashPattern.test(value.repositoryRevision) || !hashPattern.test(value.resultContentHash))
-    throw new Error("Workflow verification evidence is unsafe or unbounded.");
-}
-function assertExactPassedWorkflowVerification(references, evidence) {
-  const byEvent = new Map(evidence.map((item) => [item.eventId, item]));
-  for (const reference of references) {
-    validateVerificationReference(reference);
-    const observed = byEvent.get(reference.eventId);
-    if (observed === void 0 || Object.entries(observed).some(([field2, value]) => reference[field2] !== value))
-      throw new Error("Workflow verification evidence is missing, failed, or changed.");
-  }
-}
-function createPackage(input) {
-  const directory = input.target.path.slice(0, -"/SKILL.md".length);
-  const expectedSkillId = directory.slice(directory.lastIndexOf("/") + 1);
-  if (input.contract.skillId !== expectedSkillId)
-    throw new Error("The portable-skill ID must equal its package directory.");
-  boundedStrings(input.contract.supportedRoles, "supportedRoles", 32);
-  boundedStrings(input.contract.platforms, "platforms", 3);
-  boundedStrings(input.contract.requiredTools, "requiredTools", 32);
-  boundedStrings(input.contract.requiredCapabilities, "requiredCapabilities", 8);
-  if (input.contract.resources.length > 16 || new Set(input.contract.resources.map((item) => item.path)).size !== input.contract.resources.length)
-    throw new Error("Portable-skill resources must be bounded and unique.");
-  let resourceBytes = 0;
-  for (const resource of input.contract.resources) {
-    resourceBytes += Buffer.byteLength(resource.content);
-    const pathSegments = resource.path.split("/");
-    if (!/^(?:references|scripts|assets)\/[a-zA-Z0-9][a-zA-Z0-9._/-]*\.(?:md|json|ya?ml|mjs)$/u.test(resource.path) || pathSegments.some((segment) => segment.length === 0 || segment === "." || segment === "..") || resource.content.length === 0 || resource.purpose.trim().length === 0 || resource.purpose.length > 256 || resourceBytes > 64 * 1024)
-      throw new Error("A portable-skill resource is unsafe or unbounded.");
-  }
-  if (!/^---\s*\n[\s\S]*?^name:\s*["']?([^"'\n]+)["']?\s*$[\s\S]*?^---\s*$/mu.test(input.target.content))
-    throw new Error("The portable-skill instructions require bounded frontmatter with a name.");
-  const declaredName = input.target.content.match(/^name:\s*["']?([^"'\n]+)["']?\s*$/mu)?.[1];
-  if (declaredName !== input.contract.skillId)
-    throw new Error("The portable-skill instruction name must equal its contract ID.");
-  const packageContentHash = hashSkillContentFiles([
-    { path: "SKILL.md", bytes: new TextEncoder().encode(input.target.content) },
-    ...input.contract.resources.map((item) => ({
-      path: item.path,
-      bytes: new TextEncoder().encode(item.content)
-    }))
-  ]);
-  const manifest = {
-    schemaVersion: 1,
-    skillId: input.contract.skillId,
-    version: input.contract.version,
-    contentHash: packageContentHash,
-    source: {
-      kind: "project",
-      uri: directory,
-      publisher: {
-        id: "lervo.development-pattern",
-        name: "Lervo development-pattern review"
-      }
-    },
-    supportedRoles: [...input.contract.supportedRoles],
-    compatibility: {
-      providers: structuredClone(input.contract.providerCompatibility),
-      minimumRuntimeVersion: input.contract.minimumRuntimeVersion,
-      platforms: [...input.contract.platforms],
-      requiredTools: [...input.contract.requiredTools],
-      unknownIsCompatible: false
-    },
-    requiredCapabilities: [
-      ...input.contract.requiredCapabilities
-    ],
-    contracts: {
-      inputSchemaRef: input.contract.inputSchemaRef,
-      outputSchemaRef: input.contract.outputSchemaRef
-    },
-    trust: { level: "untrusted", signatureStatus: "unsigned" },
-    enabledScope: { kind: "disabled" },
-    pinned: false
-  };
-  if (!validateSchema("skill", manifest).valid)
-    throw new Error("The proposed portable-skill contract is invalid.");
-  const manifestContent = `${JSON.stringify(manifest, null, 2)}
-`;
-  const capabilityManifest = {
-    schemaVersion: 1,
-    capabilityId: input.contract.capabilityId,
-    kind: "skill",
-    version: input.contract.version,
-    contentHash: packageContentHash,
-    source: {
-      kind: "project",
-      uri: directory,
-      publisher: structuredClone(manifest.source.publisher)
-    },
-    compatibility: {
-      providers: structuredClone(input.contract.providerCompatibility),
-      minimumRuntimeVersion: input.contract.minimumRuntimeVersion,
-      platforms: [...input.contract.platforms]
-    },
-    requiredPermissions: [
-      ...input.contract.requiredCapabilities
-    ],
-    dependencies: structuredClone(input.contract.dependencies),
-    ...input.contract.discovery === void 0 ? {} : { discovery: structuredClone(input.contract.discovery) },
-    entrypoint: {
-      kind: "skill",
-      skillId: input.contract.skillId,
-      manifestPath: "lervo-skill.json"
-    },
-    activation: "explicit",
-    publication: { defaultVisibility: "local", secretMaterial: "excluded" }
-  };
-  if (!validateSchema("capabilityPackageManifest", capabilityManifest).valid)
-    throw new Error("The proposed portable-skill capability package is invalid.");
-  const capabilityManifestContent = `${JSON.stringify(capabilityManifest, null, 2)}
-`;
-  return {
-    packageContentHash,
-    manifestContent,
-    manifestContentHash: sha2562(manifestContent),
-    capabilityManifestContent,
-    capabilityManifestContentHash: sha2562(capabilityManifestContent),
-    resources: structuredClone(input.contract.resources)
-  };
-}
-function createPortableSkillPackageCandidate(input) {
-  const enhanced = input.verification !== void 0 || input.contract !== void 0;
-  if (!enhanced)
-    return void 0;
-  if (input.target.kind !== "portable_skill" || input.verification === void 0 || input.contract === void 0 || input.verification.length !== input.independentGroups.size || new Set(input.verification.map((item) => item.independentGroup)).size !== input.verification.length || [...input.independentGroups].some((group) => !input.verification.some((item) => item.independentGroup === group)) || new Set(input.verification.map((item) => item.eventId)).size !== input.verification.length || new Set(input.verification.map((item) => item.runId)).size !== input.verification.length)
-    throw new Error("A portable-skill candidate requires one distinct passed verification per independent evidence group.");
-  assertExactPassedWorkflowVerification(input.verification, input.passedVerificationEvidence);
-  return createPackage({ target: input.target, contract: input.contract });
-}
-
-// packages/repository-knowledge/dist/development-pattern-candidate.js
-var developmentPatternTargetKinds = [
-  "repository_instruction",
-  "scoped_instruction",
-  "portable_skill",
-  "decision",
-  "automated_check"
-];
-var safeRelativePath = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))(?!.*\\)[^\0]+$/u;
-function boundedStrings2(values, field2, maximum) {
-  if (!Array.isArray(values) || values.length > maximum || values.some((value) => typeof value !== "string" || value.length === 0 || value.length > 512))
-    throw new Error(`${field2} must contain bounded non-empty strings.`);
-}
-function validateTarget(target) {
-  if (!developmentPatternTargetKinds.includes(target.kind))
-    throw new Error("Unsupported development-pattern target kind.");
-  if (!safeRelativePath.test(target.path) || target.content.length === 0 || target.content.length > 64e3)
-    throw new Error("Development-pattern target coordinates are unsafe or unbounded.");
-  const accepted = target.kind === "repository_instruction" ? /^docs\/(?:foundation|instructions)\/[a-z0-9][a-z0-9/-]*\.md$/u.test(target.path) : target.kind === "scoped_instruction" ? /^docs\/instructions\/[a-z0-9][a-z0-9/-]*\.md$/u.test(target.path) : target.kind === "portable_skill" ? /^\.agents\/skills\/[a-z][a-z0-9-]*\/SKILL\.md$/u.test(target.path) : target.kind === "decision" ? /^docs\/decisions\/[a-z0-9][a-z0-9/-]*\.md$/u.test(target.path) : /^scripts\/check-[a-z0-9-]+\.mjs$/u.test(target.path);
-  if (!accepted)
-    throw new Error("Development-pattern target path does not match its owner.");
-}
-function validateProposal(input) {
-  const proposal = input.proposal;
-  if (proposal.schemaVersion !== 1 || proposal.title.length === 0 || proposal.title.length > 160 || /[\r\n]/u.test(proposal.title) || proposal.summary.length === 0 || proposal.summary.length > 2e3 || proposal.scope.length === 0 || proposal.scope.length > 256 || !Array.isArray(proposal.occurrences) || proposal.occurrences.length < 2 || proposal.occurrences.length > 64)
-    throw new Error("Development-pattern proposal does not satisfy the bounded v1 contract.");
-  const independent = /* @__PURE__ */ new Set();
-  for (const occurrence of proposal.occurrences) {
-    if (!safeRelativePath.test(occurrence.path) || occurrence.locator.length === 0 || occurrence.locator.length > 256 || occurrence.independentGroup.length === 0 || occurrence.independentGroup.length > 128)
-      throw new Error("Development-pattern occurrence is unsafe or unbounded.");
-    independent.add(occurrence.independentGroup);
-  }
-  if (independent.size < 2)
-    throw new Error("A pattern requires at least two independent occurrences.");
-  boundedStrings2(proposal.exceptions, "exceptions", 32);
-  boundedStrings2(proposal.affectedInvariants, "affectedInvariants", 32);
-  boundedStrings2(proposal.reasonsToChange, "reasonsToChange", 32);
-  boundedStrings2(proposal.verificationCommands, "verificationCommands", 16);
-  if (proposal.affectedInvariants.length === 0 || proposal.reasonsToChange.length === 0)
-    throw new Error("A pattern requires affected invariants and reasons to change.");
-  validateTarget(proposal.target);
-  return createPortableSkillPackageCandidate({
-    target: proposal.target,
-    independentGroups: independent,
-    verification: proposal.workflowVerification,
-    contract: proposal.portableSkillContract,
-    passedVerificationEvidence: input.passedVerificationEvidence
-  });
-}
-function parseDevelopmentPatternProposal(value) {
-  const proposal = value;
-  validateProposal({
-    proposal,
-    passedVerificationEvidence: proposal?.workflowVerification ?? []
-  });
-  return structuredClone(proposal);
-}
-function createDevelopmentPatternCandidate(input) {
-  const portableSkillPackage = validateProposal({
-    proposal: input.proposal,
-    passedVerificationEvidence: input.passedVerificationEvidence ?? []
-  });
-  const occurrences = input.proposal.occurrences.map((occurrence) => {
-    const units = input.scan.units.filter((unit3) => unit3.path === occurrence.path && unit3.locator === occurrence.locator);
-    if (units.length !== 1)
-      throw new Error("Each pattern occurrence must resolve to one current source unit.");
-    const unit2 = units[0];
-    return {
-      ...occurrence,
-      unitId: unit2.unitId,
-      unitVersionId: unit2.unitVersionId,
-      evidenceDigest: sha2562(canonicalJson3({
-        unitVersionId: unit2.unitVersionId,
-        independentGroup: occurrence.independentGroup
-      })),
-      ...portableSkillPackage === void 0 ? {} : { sourceHash: unit2.sourceHash, unitHash: unit2.unitHash }
-    };
-  });
-  const sourceSnapshotHash = sha2562(canonicalJson3({ snapshotId: input.scan.contentSnapshotId, occurrences }));
-  const identity2 = {
-    ...input.proposal,
-    occurrences,
-    sourceSnapshotId: input.scan.contentSnapshotId,
-    sourceSnapshotHash,
-    ...portableSkillPackage === void 0 ? {} : { portableSkillPackage }
-  };
-  const patternId = stableId("pattern", identity2);
-  const candidate = { ...identity2, patternId };
-  const content3 = `${canonicalJson3(candidate)}
-`;
-  return { candidate, content: content3, contentHash: sha2562(content3) };
-}
-
-// packages/repository-knowledge/dist/canonicalization-outcome.js
-var HASH3 = /^sha256:[a-f0-9]{64}$/u;
-var MAXIMUM_OUTCOME_TARGETS = 8;
-var MAXIMUM_OUTCOME_SOURCE_PATHS = 256;
-var MAXIMUM_PROPOSED_BYTES = 12 * 1024;
-function safePath(path) {
-  return typeof path === "string" && path.length > 0 && !path.startsWith("/") && !path.includes("\\") && !path.split("/").some((part) => part.length === 0 || part === "." || part === "..");
-}
-function validSourcePaths(value) {
-  return Array.isArray(value) && value.length <= MAXIMUM_OUTCOME_SOURCE_PATHS && value.every(safePath) && new Set(value).size === value.length;
-}
-function validSummary(value) {
-  return typeof value === "string" && value.trim().length > 0 && Buffer.byteLength(value) <= 512 && !value.includes("\0");
-}
-function parseCanonicalizationOutcome(value) {
-  const outcome = value;
-  const baseValid = outcome !== null && typeof outcome === "object" && outcome.schemaVersion === 1 && validSummary(outcome.summary);
-  const noDurableValid = baseValid && outcome.kind === "no_durable_change" && ["implementation_only", "verification_only", "already_canonical", "transient"].includes(outcome.reasonCode ?? "") && validSourcePaths(outcome.sourcePaths);
-  const canonicalUpdateValid = baseValid && outcome.kind === "canonical_update" && Array.isArray(outcome.targets) && outcome.targets.length > 0 && outcome.targets.length <= MAXIMUM_OUTCOME_TARGETS && outcome.targets.every((target) => safePath(target.path) && canonicalResponsibilityForPath(target.path) !== null && typeof target.contentHash === "string" && HASH3.test(target.contentHash) && validSourcePaths(target.sourcePaths)) && new Set(outcome.targets.map((target) => target.path)).size === outcome.targets.length;
-  const reviewDraftValid = baseValid && outcome.kind === "review_draft" && Array.isArray(outcome.drafts) && outcome.drafts.length > 0 && outcome.drafts.length <= MAXIMUM_OUTCOME_TARGETS && outcome.drafts.every((draft) => safePath(draft.targetPath) && canonicalResponsibilityForPath(draft.targetPath) !== null && validSourcePaths(draft.sourcePaths) && typeof draft.proposedMarkdown === "string" && draft.proposedMarkdown.trim().length > 0 && Buffer.byteLength(draft.proposedMarkdown) <= MAXIMUM_PROPOSED_BYTES && typeof draft.proposedContentHash === "string" && HASH3.test(draft.proposedContentHash) && sha2562(draft.proposedMarkdown) === draft.proposedContentHash) && new Set(outcome.drafts.map((draft) => draft.targetPath)).size === outcome.drafts.length;
-  let portableSkillValid = false;
-  if (baseValid && outcome.kind === "portable_skill_candidate" && validSourcePaths(outcome.sourcePaths)) {
-    try {
-      const proposal = parseDevelopmentPatternProposal(outcome.proposal);
-      portableSkillValid = proposal.target.kind === "portable_skill" && proposal.workflowVerification !== void 0 && proposal.portableSkillContract !== void 0 && Buffer.byteLength(canonicalJson3(proposal)) <= MAXIMUM_PROPOSED_BYTES && outcome.sourcePaths.every((path) => proposal.occurrences.some((occurrence) => occurrence.path === path));
-    } catch {
-      portableSkillValid = false;
-    }
-  }
-  if (!noDurableValid && !canonicalUpdateValid && !reviewDraftValid && !portableSkillValid)
-    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonicalization outcome is invalid or exceeds its bounded contract.");
-  return outcome;
-}
-function sameMembers(left, right) {
-  return left.length === right.length && left.toSorted().every((item, index2) => item === right.toSorted()[index2]);
-}
-function validateCanonicalizationOutcomeForChange(input) {
-  const outcome = parseCanonicalizationOutcome(input.outcome);
-  const expectedKind = input.disposition === "canonical_sources_updated" ? "canonical_update" : input.disposition === "pending_user_approval" ? ["review_draft", "portable_skill_candidate"] : "no_durable_change";
-  if (Array.isArray(expectedKind) ? !expectedKind.includes(outcome.kind) : outcome.kind !== expectedKind)
-    throw new RepositoryKnowledgeError("knowledge_approval_required", `The ${input.disposition} disposition requires a ${Array.isArray(expectedKind) ? expectedKind.join(" or ") : expectedKind} outcome.`);
-  const changedPaths = [
-    .../* @__PURE__ */ new Set([...Object.keys(input.beforeFiles), ...Object.keys(input.afterFiles)])
-  ].filter((path) => input.beforeFiles[path] !== input.afterFiles[path]).toSorted();
-  const expectedSources = changedPaths.filter((path) => sourceResponsibilityForPath(path) !== null && canonicalResponsibilityForPath(path) === null);
-  const boundSources = outcome.kind === "no_durable_change" ? outcome.sourcePaths : outcome.kind === "canonical_update" ? outcome.targets.flatMap((target) => target.sourcePaths) : outcome.kind === "review_draft" ? outcome.drafts.flatMap((draft) => draft.sourcePaths) : outcome.sourcePaths;
-  if (new Set(boundSources).size !== boundSources.length || !sameMembers(boundSources, expectedSources))
-    throw new RepositoryKnowledgeError("knowledge_approval_required", "The canonicalization outcome must bind every changed noncanonical source exactly once.");
-  if (outcome.kind === "canonical_update") {
-    for (const target of outcome.targets) {
-      if (input.afterFiles[target.path] !== target.contentHash || input.beforeFiles[target.path] === input.afterFiles[target.path])
-        throw new RepositoryKnowledgeError("knowledge_plan_stale", "A declared canonical target is not an exact changed repository file.");
-      const targetResponsibility = canonicalResponsibilityForPath(target.path);
-      if (target.sourcePaths.some((path) => sourceResponsibilityForPath(path) !== targetResponsibility))
-        throw new RepositoryKnowledgeError("knowledge_approval_required", "A canonical target does not match the responsibility of its bound sources.");
-    }
-  }
-  if (outcome.kind === "review_draft") {
-    for (const draft of outcome.drafts) {
-      const targetResponsibility = canonicalResponsibilityForPath(draft.targetPath);
-      if (draft.sourcePaths.some((path) => sourceResponsibilityForPath(path) !== targetResponsibility))
-        throw new RepositoryKnowledgeError("knowledge_approval_required", "A proposed canonical target does not match the responsibility of its bound sources.");
-    }
-  }
-}
-
-// packages/repository-knowledge/dist/canonicalization-candidate-record.js
-var ROOT = ".lervo/state/knowledge/canonicalization-candidates";
-var MAXIMUM_CANDIDATE_RECORDS = 256;
-var MAXIMUM_CANONICALIZATION_SOURCE_BINDINGS = 256;
-function safePath2(path) {
-  return path.length > 0 && !path.startsWith("/") && !path.includes("\\") && !path.split("/").some((part) => part.length === 0 || part === "." || part === "..");
-}
-function canonicalizationCandidatePath(candidateId) {
-  return `${ROOT}/${candidateId.slice("kcanon_".length, "kcanon_".length + 2)}/${candidateId}.json`;
-}
-async function boundedCandidatePaths(root2) {
-  const directory = resolve25(root2, ROOT);
-  let shards;
-  try {
-    shards = await readdir9(directory, { withFileTypes: true });
-  } catch (error) {
-    if (error.code === "ENOENT")
-      return [];
-    throw error;
-  }
-  const paths = [];
-  for (const shard of shards.sort((left, right) => left.name.localeCompare(right.name))) {
-    if (!shard.isDirectory() || !/^[a-f0-9]{2}$/u.test(shard.name))
-      throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonicalization candidate registry contains an unsafe entry.");
-    const entries = await readdir9(resolve25(directory, shard.name), { withFileTypes: true });
-    for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
-      if (!entry.isFile() || !/^kcanon_[a-f0-9]{24}\.json$/u.test(entry.name))
-        throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonicalization candidate shard contains an unsafe entry.");
-      paths.push(`${ROOT}/${shard.name}/${entry.name}`);
-    }
-  }
-  if (paths.length > MAXIMUM_CANDIDATE_RECORDS)
-    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", `The canonicalization candidate registry exceeds ${MAXIMUM_CANDIDATE_RECORDS} records.`);
-  return paths;
-}
-function validateRecord(value) {
-  const record3 = value;
-  if (record3 === null || typeof record3 !== "object" || record3.schemaVersion !== 1 || typeof record3.candidateId !== "string" || !/^kcanon_[a-f0-9]{24}$/u.test(record3.candidateId) || !["candidate", "pending", "promoted", "rejected"].includes(record3.state ?? "") || typeof record3.beforeRevision !== "string" || typeof record3.afterRevision !== "string" || !Array.isArray(record3.sourceBindings) || record3.sourceBindings.length === 0 || record3.sourceBindings.length > MAXIMUM_CANONICALIZATION_SOURCE_BINDINGS || !record3.sourceBindings.every((item) => safePath2(item.path) && (item.beforeHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.beforeHash)) && (item.afterHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.afterHash)) && sourceResponsibilityForPath(item.path) === item.responsibility) || !Array.isArray(record3.recommendedRoots) || !record3.recommendedRoots.every((path) => safePath2(path)) || typeof record3.createdAt !== "string" || record3.review !== null && (typeof record3.review !== "object" || typeof record3.review.reviewerId !== "string" || !["defer", "reject"].includes(record3.review.decision) || typeof record3.review.reviewedAt !== "string") || record3.promotion !== null && (typeof record3.promotion !== "object" || typeof record3.promotion.reviewerId !== "string" || !safePath2(record3.promotion.targetPath) || !/^sha256:[a-f0-9]{64}$/u.test(record3.promotion.targetContentHash) || typeof record3.promotion.promotedAt !== "string"))
-    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonicalization candidate record is invalid.");
-  if (record3.outcome !== void 0) {
-    const outcome = parseCanonicalizationOutcome(record3.outcome);
-    if (outcome.kind === "portable_skill_candidate")
-      throw new RepositoryKnowledgeError("knowledge_source_unsafe", "Portable-skill outcomes belong to the development-pattern registry.");
-  }
-  return record3;
-}
-async function readCanonicalizationCandidate(root2, path) {
-  const bytes = await readFile11(resolve25(root2, path), "utf8");
-  const record3 = validateRecord(JSON.parse(bytes));
-  let stale = false;
-  for (const binding of record3.sourceBindings) {
-    try {
-      const stats = await lstat17(resolve25(root2, binding.path));
-      if (!stats.isFile() || stats.isSymbolicLink())
-        throw new Error();
-      if (sha2562(await readFile11(resolve25(root2, binding.path))) !== binding.afterHash)
-        stale = true;
-    } catch {
-      if (binding.afterHash !== null)
-        stale = true;
-    }
-  }
-  return {
-    ...record3,
-    observedState: stale && !["promoted", "rejected"].includes(record3.state) ? "stale" : record3.state,
-    contentHash: sha2562(bytes)
-  };
-}
-async function listCanonicalizationCandidates(repositoryRoot) {
-  const root2 = resolve25(repositoryRoot);
-  return Promise.all((await boundedCandidatePaths(root2)).map((path) => readCanonicalizationCandidate(root2, path)));
-}
-async function writeCanonicalizationCandidateRecord(root2, record3) {
-  const path = resolve25(root2, canonicalizationCandidatePath(record3.candidateId));
-  await mkdir7(dirname7(path), { recursive: true });
-  const temporary = `${path}.next`;
-  await rm6(temporary, { force: true });
-  await writeFile(temporary, `${canonicalJson3(record3)}
-`, { encoding: "utf8", flag: "wx" });
-  await rename5(temporary, path);
-}
-
-// packages/repository-knowledge/dist/canonicalization-candidate.js
-var MAXIMUM_ACTIVE_CANDIDATES = 64;
-async function assessCanonicalization(input) {
-  const paths = /* @__PURE__ */ new Set([...Object.keys(input.beforeFiles), ...Object.keys(input.afterFiles)]);
-  const changedPaths = [...paths].filter((path) => input.beforeFiles[path] !== input.afterFiles[path]).sort();
-  if (input.outcome !== void 0)
-    validateCanonicalizationOutcomeForChange({
-      outcome: input.outcome,
-      disposition: input.disposition,
-      beforeFiles: input.beforeFiles,
-      afterFiles: input.afterFiles
-    });
-  const canonicalResponsibilities = new Set(input.outcome === void 0 ? changedPaths.flatMap((path) => {
-    const responsibility = canonicalResponsibilityForPath(path);
-    return responsibility === null ? [] : [responsibility];
-  }) : input.outcome.kind === "canonical_update" ? input.outcome.targets.flatMap((target) => {
-    const responsibility = canonicalResponsibilityForPath(target.path);
-    return responsibility === null ? [] : [responsibility];
-  }) : []);
-  const sourceBindings = changedPaths.flatMap((path) => {
-    const responsibility = sourceResponsibilityForPath(path);
-    if (responsibility === null || canonicalResponsibilityForPath(path) !== null)
-      return [];
-    if (canonicalResponsibilities.has(responsibility))
-      return [];
-    return [
-      {
-        path,
-        beforeHash: input.beforeFiles[path] ?? null,
-        afterHash: input.afterFiles[path] ?? null,
-        responsibility
-      }
-    ];
-  });
-  if (sourceBindings.length > MAXIMUM_CANONICALIZATION_SOURCE_BINDINGS)
-    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", `Canonicalization candidate exceeds ${MAXIMUM_CANONICALIZATION_SOURCE_BINDINGS} source bindings.`);
-  if (sourceBindings.length === 0)
-    return {
-      schemaVersion: 1,
-      status: "current",
-      changedPathCount: changedPaths.length,
-      canonicalPathCount: canonicalResponsibilities.size,
-      candidate: null
-    };
-  if (input.outcome?.kind === "portable_skill_candidate")
-    return {
-      schemaVersion: 1,
-      status: "pending",
-      changedPathCount: changedPaths.length,
-      canonicalPathCount: canonicalResponsibilities.size,
-      candidate: null
-    };
-  const candidateId = stableId("kcanon", {
-    beforeRevision: input.beforeRevision,
-    afterRevision: input.afterRevision,
-    sourceBindings,
-    outcome: input.outcome ?? null
-  });
-  const record3 = {
-    schemaVersion: 1,
-    candidateId,
-    state: input.disposition === "pending_user_approval" ? "pending" : "candidate",
-    beforeRevision: input.beforeRevision,
-    afterRevision: input.afterRevision,
-    sourceBindings,
-    recommendedRoots: [
-      ...new Set(sourceBindings.map((item) => recommendedCanonicalRoot(item.responsibility)))
-    ].sort(),
-    createdAt: input.now.toISOString(),
-    ...input.outcome === void 0 ? {} : { outcome: input.outcome },
-    review: null,
-    promotion: null
-  };
-  const candidates = await listCanonicalizationCandidates(input.repositoryRoot);
-  const existing = candidates.find((item) => item.candidateId === candidateId);
-  if (existing === void 0 && candidates.filter((item) => item.observedState === "candidate" || item.observedState === "pending").length >= MAXIMUM_ACTIVE_CANDIDATES)
-    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", `The canonicalization candidate registry has ${MAXIMUM_ACTIVE_CANDIDATES} active records.`);
-  if (existing === void 0)
-    await writeCanonicalizationCandidateRecord(resolve26(input.repositoryRoot), record3);
-  const candidate = existing ?? await readCanonicalizationCandidate(resolve26(input.repositoryRoot), canonicalizationCandidatePath(candidateId));
-  return {
-    schemaVersion: 1,
-    status: record3.state === "pending" ? "pending" : "candidate",
-    changedPathCount: changedPaths.length,
-    canonicalPathCount: canonicalResponsibilities.size,
-    candidate
-  };
-}
-
-// packages/repository-knowledge/dist/cross-provider-merge.js
-var CROSS_PROVIDER_MERGE_BUILD = sha2562(canonicalJson3({
-  implementation: "lervo-cross-provider-exact-merge-v1",
-  semanticSignatures: "candidate-signatures-v1"
-}));
-
-// packages/repository-knowledge/dist/cross-provider-fuzzy-merge.js
-var SIMILARITY = {
-  algorithm: "unicode_token_dice_v1",
-  thresholdBasisPoints: 6e3,
-  ambiguityMarginBasisPoints: 1e3,
-  minimumSharedTokens: 2
-};
-var FUZZY_MERGE_COMPILER = {
-  compilerId: "lervo.cross-provider.approval-gated-fuzzy-merge",
-  compilerVersion: "1",
-  compilerBuildId: sha2562(canonicalJson3({ implementation: "approval-gated-fuzzy-merge-v1", similarity: SIMILARITY })),
-  provider: "cross_provider",
-  isolation: "deterministic_local_derivation"
-};
-
-// packages/repository-knowledge/dist/durable-instruction.js
-function durableInstructionCatalogEntry(input) {
-  const excerptBytes = Buffer.from(input.content);
-  let excerpt = input.content;
-  if (excerptBytes.byteLength > 2048) {
-    let end = 2048;
-    while (end > 0 && ((excerptBytes[end] ?? 0) & 192) === 128)
-      end -= 1;
-    excerpt = excerptBytes.subarray(0, end).toString("utf8");
-  }
-  return {
-    path: input.path,
-    contentHash: sha2562(input.content),
-    excerpt
-  };
-}
-
-// packages/repository-knowledge/dist/document-structure-delete.js
-var import_yaml14 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/document-normalization-record-retirement.js
-var import_yaml13 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/document-structure-move.js
-var import_yaml16 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/document-normalization-record-move.js
-var import_yaml15 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/document-structure-merge.js
-var import_yaml17 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/document-structure-split.js
-var import_yaml18 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/document-normalization.js
-import { lstat as lstat18, mkdir as mkdir8, open as open9, readFile as readFile12 } from "node:fs/promises";
-import { basename as basename8, dirname as dirname8, posix as posix5, resolve as resolve27 } from "node:path";
-var import_yaml19 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/document-normalization-cache.js
-var MAX_SHARD_CACHE_BYTES = 4 * 1024 * 1024;
-
-// packages/repository-knowledge/dist/document-normalization-workset.js
-var defaultDocumentNormalizationResourceCeilings = {
-  maximumSourceBytes: 1024 * 1024,
-  maximumProviderCalls: 256,
-  maximumObservedTokens: null,
-  maximumElapsedMilliseconds: null
-};
-
-// packages/repository-knowledge/dist/document-normalization.js
-var MAX_ENVELOPE_BYTES = 32 * 1024;
-var MAX_OUTPUT_BYTES = 32 * 1024;
-var MAX_CANDIDATE_BYTES = 16 * 1024 * 1024;
-var HASH4 = /^sha256:[a-f0-9]{64}$/u;
-function normalizationProfile(source) {
-  if (!/\.md$/iu.test(source.path))
-    return null;
-  if (source.path === "README.md" || /\/README\.md$/u.test(source.path))
-    return "human_readme";
-  if (source.path === "AGENTS.md" || /\/(?:AGENTS|AGENTS\.override)\.md$/u.test(source.path))
-    return "agent_instruction";
-  if (source.path === "CLAUDE.md" || /\/(?:CLAUDE|CLAUDE\.local)\.md$/u.test(source.path))
-    return "provider_bridge";
-  if (source.path === ".github/PULL_REQUEST_TEMPLATE.md")
-    return "pull_request_template";
-  if (/^(?:.*\/)?\.agents\/skills\/[^/]+\/SKILL\.md$/u.test(source.path))
-    return "portable_skill";
-  if (/^(?:.*\/)?\.agents\/skills\/[^/]+\/references\/.*\.md$/u.test(source.path))
-    return "skill_reference";
-  if (/^docs\/decisions\//u.test(source.path))
-    return "decision_record";
-  if (/^docs\/product\//u.test(source.path))
-    return "product_document";
-  if (/^docs\/architecture\//u.test(source.path))
-    return "architecture_document";
-  if (/^docs\/(?:specifications|specs)\//u.test(source.path))
-    return "specification_document";
-  if (/^docs\/roadmap\//u.test(source.path))
-    return "roadmap_document";
-  if (/^docs\/instructions\//u.test(source.path))
-    return "instruction_document";
-  if (source.content !== void 0) {
-    const headings = [...source.content.matchAll(/^#{1,6}\s+(.+)$/gmu)].map((match) => match[1]).join("\n");
-    const name2 = `${basename8(source.path, ".md")} ${headings.slice(0, 500)}`;
-    const named = /(?:handoff|hand-over|session|context|status|progress|resume|continuation|current[-_ ]?(?:work|task)|work[-_ ]?log|\uC778\uACC4|\uC138\uC158|\uB9E5\uB77D|\uC9C4\uD589|\uD604\uD669|\uC791\uC5C5)/iu.test(name2);
-    const structured = /(?:objective|goal|purpose|focus|\uBAA9\uD45C|\uBAA9\uC801|\uC911\uC810)/iu.test(headings) && /(?:next|action|resume|procedure|task|continue|todo|\uB2E4\uC74C|\uD560 \uC77C|\uC7AC\uAC1C|\uC774\uC5B4|\uC791\uC5C5)/iu.test(headings);
-    const active = /(?:\b(?:resume|continue|next step|in progress|remaining)\b|\uC7AC\uAC1C|\uC774\uC5B4\uC11C|\uB2E4\uC74C \uC791\uC5C5|\uC9C4\uD589 \uC911|\uB0A8\uC740 \uC791\uC5C5)/iu.test(source.content.slice(0, 8192));
-    if (named && active || structured)
-      return "handoff_document";
-  }
-  if (source.kind === "documentation" || source.kind === "instruction" || source.kind === "skill_contract")
-    return "repository_document";
-  return null;
-}
-function unitsForSource(scan, source) {
-  const units = scan.units.filter((unit2) => unit2.sourceId === source.sourceId);
-  const specific = units.filter((unit2) => unit2.unitKind !== "file");
-  return (specific.length > 0 ? specific : units).sort((left, right) => left.range.startByte - right.range.startByte);
-}
-function eligibleDocuments(scan, publicationRoot, taxonomy, normalizationExclude = []) {
-  const generatedPrefix = `${publicationRoot.replace(/\/$/u, "")}/`;
-  return scan.sources.flatMap((source) => {
-    if (source.status !== "included" || source.classification !== "ordinary" || source.content === void 0 || source.contentHash === null || source.path === "README.md" || source.path === publicationRoot || source.path.startsWith(generatedPrefix) || taxonomy !== void 0 && bytePreservedDocumentCollection(source.path, taxonomy) || repositoryPathMatchesPatterns(source.path, normalizationExclude))
-      return [];
-    const profile8 = normalizationProfile(source);
-    if (profile8 === null)
-      return [];
-    const units = unitsForSource(scan, source);
-    if (units.length === 0)
-      return [];
-    return [
-      {
-        source,
-        profile: profile8,
-        units
-      }
-    ];
-  }).sort((left, right) => left.source.path.localeCompare(right.source.path));
-}
-function safeRelativePath2(path) {
-  return path.length > 0 && path.length <= 1024 && posix5.normalize(path) === path && !path.startsWith("/") && !path.includes("../") && !path.includes("\\") && !path.includes("\0");
-}
-function userRegionHash(content3) {
-  return sha2562(content3.replace(/<!-- lervo:begin\b[^>]*-->[\s\S]*?<!-- lervo:end\b[^>]*-->/gu, "<!-- lervo:managed-block -->"));
-}
-async function hashAt(path) {
-  try {
-    const stat = await lstat18(path);
-    if (!stat.isFile() || stat.isSymbolicLink())
-      return null;
-    return sha2562(await readFile12(path));
-  } catch (error) {
-    if (error.code === "ENOENT")
-      return null;
-    throw error;
-  }
-}
-async function userRegionHashAt(path) {
-  try {
-    const stat = await lstat18(path);
-    if (!stat.isFile() || stat.isSymbolicLink())
-      return null;
-    return userRegionHash(await readFile12(path, "utf8"));
-  } catch (error) {
-    if (error.code === "ENOENT")
-      return null;
-    throw error;
-  }
-}
-function validDocumentNormalizationRecord(value, path, outputLanguage) {
-  if (value === null || typeof value !== "object")
-    return false;
-  const record3 = value;
-  return !(![1, 2].includes(record3.schemaVersion ?? 0) || record3.schemaVersion === 2 && (record3.byteOwnership?.owner !== "reviewer" || record3.byteOwnership.rewritePolicy !== "reviewed_exact") || typeof record3.recordId !== "string" || !/^knormdoc_[a-f0-9]{24}$/u.test(record3.recordId) || path !== shardedKnowledgeArtifactPath(".lervo/knowledge/document-normalizations", record3.recordId, "yaml") || typeof record3.sourcePath !== "string" || !safeRelativePath2(record3.sourcePath) || record3.outputLanguage !== outputLanguage || record3.formatVersion !== "lervo.document.v1" || !Array.isArray(record3.outputs) || record3.outputs.length < 1 || record3.outputs.some((output) => output === null || typeof output !== "object" || typeof output.path !== "string" || !safeRelativePath2(output.path) || typeof output.contentHash !== "string" || !HASH4.test(output.contentHash) || output.userRegionHash !== void 0 && (typeof output.userRegionHash !== "string" || !HASH4.test(output.userRegionHash))) || !Array.isArray(record3.resourceBindings) || record3.resourceBindings.some((resource) => resource === null || typeof resource !== "object" || typeof resource.path !== "string" || !safeRelativePath2(resource.path) || typeof resource.contentHash !== "string" || !HASH4.test(resource.contentHash)));
-}
-async function inspectConfiguredDocumentNormalization(input) {
-  const root2 = resolve27(input.repositoryRoot);
-  const [{ policy, scan }, taxonomy] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(root2, {
-      ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources },
-      ...input.preparedScan === void 0 ? {} : { preparedScan: input.preparedScan },
-      ...input.allowTransactionPlanId === void 0 ? {} : { allowTransactionPlanId: input.allowTransactionPlanId }
-    }),
-    loadDecisionTaxonomy(root2)
-  ]);
-  const records = [];
-  const current = /* @__PURE__ */ new Set();
-  const paths = await listKnowledgeArtifactPaths({
-    root: root2,
-    directory: ".lervo/knowledge/document-normalizations",
-    extension: "yaml",
-    maximumFiles: 2e4
-  });
-  for (const path of paths) {
-    let record3 = null;
-    try {
-      record3 = (0, import_yaml19.parse)(await readFile12(resolve27(root2, path), "utf8"));
-    } catch {
-    }
-    if (!validDocumentNormalizationRecord(record3, path, policy.publication.language)) {
-      records.push({
-        path,
-        recordId: record3 !== null && typeof record3 === "object" && "recordId" in record3 && typeof record3.recordId === "string" ? record3.recordId : null,
-        status: "invalid",
-        outputPaths: []
-      });
-      continue;
-    }
-    const hashes = await Promise.all(record3.outputs.map((output) => hashAt(resolve27(root2, output.path))));
-    const userHashes = await Promise.all(record3.outputs.map((output) => output.userRegionHash === void 0 ? null : userRegionHashAt(resolve27(root2, output.path))));
-    const resources = await Promise.all(record3.resourceBindings.map((resource) => hashAt(resolve27(root2, resource.path))));
-    const status = hashes.every((hash2, index2) => hash2 === record3.outputs[index2].contentHash || record3.outputs[index2].userRegionHash !== void 0 && userHashes[index2] === record3.outputs[index2].userRegionHash) && resources.every((hash2, index2) => hash2 === record3.resourceBindings[index2].contentHash) ? "current" : "stale";
-    if (status === "current")
-      for (const output of record3.outputs)
-        current.add(output.path);
-    records.push({
-      path,
-      recordId: record3.recordId,
-      status,
-      outputPaths: record3.outputs.map((output) => output.path)
-    });
-  }
-  const eligible = eligibleDocuments(scan, policy.publicationRoot, taxonomy, policy.normalization?.exclude);
-  const pendingDocuments = eligible.map((item) => item.source.path).filter((path) => !current.has(path));
-  return {
-    schemaVersion: 1,
-    outputLanguage: policy.publication.language,
-    formatVersion: "lervo.document.v1",
-    eligibleDocuments: eligible.length,
-    currentDocuments: eligible.length - pendingDocuments.length,
-    pendingDocuments,
-    records
-  };
-}
-
-// packages/repository-knowledge/dist/decision-layout.js
-var import_yaml20 = __toESM(require_dist(), 1);
-function normalizedWords2(value) {
-  return value.normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/gu, " ");
-}
-function containsTerm2(title, term) {
-  const normalizedTitle = ` ${normalizedWords2(title)} `;
-  const normalizedTerm = normalizedWords2(term);
-  return normalizedTerm.length > 0 && normalizedTitle.includes(` ${normalizedTerm} `);
-}
-function flatDecisionName(path, taxonomy) {
-  for (const root2 of [taxonomy.decisionRoot, ...taxonomy.legacyRoots]) {
-    const prefix = `${root2}/`;
-    if (!path.startsWith(prefix))
-      continue;
-    const name2 = path.slice(prefix.length);
-    return !name2.includes("/") && /^\d{4}-.+\.md$/u.test(name2) ? name2 : null;
-  }
-  return null;
-}
-function explicitRoute2(content3) {
-  if (!content3.startsWith("---\n") && !content3.startsWith("---\r\n"))
-    return { state: "absent" };
-  const boundary = /\r?\n---\r?\n/gu;
-  boundary.lastIndex = content3.indexOf("\n") + 1;
-  const match = boundary.exec(content3);
-  if (match === null || match.index > 8192)
-    return { state: "absent" };
-  let value;
-  try {
-    value = (0, import_yaml20.parse)(content3.slice(content3.indexOf("\n") + 1, match.index));
-  } catch {
-    return { state: "invalid" };
-  }
-  const decision = value?.lervo?.decision;
-  if (decision === void 0)
-    return { state: "absent" };
-  if (decision === null || typeof decision !== "object" || typeof decision.route !== "string" || decision.taxonomy !== void 0 && typeof decision.taxonomy !== "string")
-    return { state: "invalid" };
-  return {
-    state: "present",
-    ...decision.taxonomy === void 0 ? {} : { taxonomyId: decision.taxonomy },
-    routeId: decision.route
-  };
-}
-function inferredRoute2(title, taxonomy) {
-  const candidates = taxonomy.routes.flatMap((route) => {
-    const matchedTerms = route.titleTerms.filter((term) => containsTerm2(title, term));
-    return matchedTerms.length >= route.minimumTitleTermMatches ? [{ route, matchedTerms }] : [];
-  });
-  if (candidates.length === 0)
-    return null;
-  const highestPriority = Math.max(...candidates.map((candidate) => candidate.route.priority));
-  const prioritized = candidates.filter((candidate) => candidate.route.priority === highestPriority);
-  const strongest = Math.max(...prioritized.map((candidate) => candidate.matchedTerms.length));
-  const finalists = prioritized.filter((candidate) => candidate.matchedTerms.length === strongest);
-  return finalists.length === 1 ? finalists[0] : { candidates: finalists.map((candidate) => candidate.route.id).sort() };
-}
-function classifyFlatDecision(path, content3, taxonomy) {
-  const name2 = flatDecisionName(path, taxonomy);
-  if (name2 === null)
-    return { kind: "not_flat_decision" };
-  const heading = /^#\s+ADR-\d{4}:\s+(.+)$/mu.exec(content3)?.[1]?.trim();
-  if (heading === void 0 || heading.length === 0)
-    return { kind: "blocked", blocker: { code: "invalid_decision_heading", path } };
-  const metadata = explicitRoute2(content3);
-  if (metadata.state === "invalid" || metadata.state === "present" && metadata.taxonomyId !== void 0 && metadata.taxonomyId !== taxonomy.taxonomyId) {
-    return { kind: "blocked", blocker: { code: "invalid_decision_metadata", path } };
-  }
-  let route;
-  let classificationBasis;
-  let matchedTitleTerms;
-  if (metadata.state === "present") {
-    const selected = taxonomy.routes.find((candidate) => candidate.id === metadata.routeId);
-    if (selected === void 0)
-      return {
-        kind: "blocked",
-        blocker: { code: "unknown_decision_route", path, candidateRouteIds: [metadata.routeId] }
-      };
-    route = selected;
-    classificationBasis = "explicit_metadata";
-    matchedTitleTerms = [];
-  } else {
-    const inferred = inferredRoute2(heading, taxonomy);
-    if (inferred === null)
-      return { kind: "blocked", blocker: { code: "unclassified_decision", path } };
-    if ("candidates" in inferred)
-      return {
-        kind: "blocked",
-        blocker: { code: "ambiguous_decision_route", path, candidateRouteIds: inferred.candidates }
-      };
-    route = inferred.route;
-    classificationBasis = "title_terms";
-    matchedTitleTerms = inferred.matchedTerms;
-  }
-  const [group, ...subgroupParts] = route.path.split("/");
-  return {
-    kind: "classified",
-    destination: {
-      toPath: `${taxonomy.decisionRoot}/${route.path}/${name2}`,
-      routeId: route.id,
-      routePath: route.path,
-      group,
-      ...subgroupParts.length === 0 ? {} : { subgroup: subgroupParts.join("/") },
-      classificationBasis,
-      matchedTitleTerms
-    }
-  };
-}
-function inspectGroupedDecisionPaths(paths, taxonomy) {
-  const blockers = [];
-  const routeCounts = /* @__PURE__ */ new Map();
-  const routeByPath = new Map(taxonomy.routes.map((route) => [route.path, route]));
-  for (const path of paths.filter((item) => /(?:^|\/)\d{4}-.+\.md$/u.test(item)).sort()) {
-    const canonicalPrefix = `${taxonomy.decisionRoot}/`;
-    if (path.startsWith(canonicalPrefix)) {
-      const suffix = path.slice(canonicalPrefix.length);
-      const parent = suffix.slice(0, suffix.lastIndexOf("/"));
-      if (parent.length === 0)
-        continue;
-      const route = routeByPath.get(parent);
-      if (route === void 0)
-        blockers.push({ code: "unknown_decision_route", path });
-      else
-        routeCounts.set(route.id, (routeCounts.get(route.id) ?? 0) + 1);
-      continue;
-    }
-    for (const legacyRoot of taxonomy.legacyRoots) {
-      if (path.startsWith(`${legacyRoot}/`) && path.slice(legacyRoot.length + 1).includes("/"))
-        blockers.push({ code: "legacy_decision_layout", path });
-    }
-  }
-  for (const route of taxonomy.routes) {
-    const count = routeCounts.get(route.id) ?? 0;
-    if (count > taxonomy.maxLeafDocuments)
-      blockers.push({
-        code: "decision_leaf_overflow",
-        path: `${taxonomy.decisionRoot}/${route.path}`,
-        configuredMaximum: taxonomy.maxLeafDocuments,
-        observedCount: count
-      });
-  }
-  return blockers;
-}
-
-// packages/repository-knowledge/dist/document-rewriter-adapters.js
-import { resolve as resolve28 } from "node:path";
-async function inspectRepositoryDocumentRewriters(input) {
-  const root2 = resolve28(input.repositoryRoot);
-  const [taxonomy, lifecycle, registry2] = await Promise.all([
-    loadDecisionTaxonomy(root2),
-    inspectConfiguredDocumentNormalization({
-      repositoryRoot: root2,
-      ...input.allowTransactionPlanId === void 0 ? {} : { allowTransactionPlanId: input.allowTransactionPlanId }
-    }),
-    loadDocumentRegistry(root2)
-  ]);
-  const ownershipByPath = /* @__PURE__ */ new Map();
-  for (const record3 of Object.values(registry2.documents)) {
-    if (record3.ownership.mode === "user")
-      continue;
-    ownershipByPath.set(record3.path, {
-      path: record3.path,
-      owner: record3.ownership.mode === "managed_blocks" ? "shared_regions" : "lervo",
-      rewritePolicy: "lervo_exact"
-    });
-  }
-  for (const path of lifecycle.records.flatMap((record3) => record3.status === "current" ? record3.outputPaths : [])) {
-    ownershipByPath.set(path, { path, owner: "reviewer", rewritePolicy: "reviewed_exact" });
-  }
-  const ownership = [...ownershipByPath.values()].sort((left, right) => left.path.localeCompare(right.path));
-  const evaluation = evaluateDocumentRewriters({
-    ownership,
-    rewriters: input.rewriters ?? [],
-    managedRules: input.managedRules ?? {},
-    dryRuns: input.dryRuns ?? {},
-    contract: taxonomy.documentPolicy.rewrite,
-    policyHash: sha2562(JSON.stringify(taxonomy.documentPolicy))
-  });
-  return {
-    ownership,
-    ...evaluation
-  };
-}
-
-// packages/repository-knowledge/dist/execution-event-source.js
-var EXECUTION_EVENT_SOURCE_ADAPTER = "execution-event-v1+event-chain";
-var MAX_EVENT_SEQUENCE = 1e5;
-var EXECUTION_EVENT_SOURCE_MAX_EVENTS = 8192;
-var MAX_EVENT_BYTES = 256 * 1024;
-var MAX_TOTAL_EVENT_BYTES = 16 * 1024 * 1024;
-var executionEventTypes = /* @__PURE__ */ new Set([
-  "run.requested",
-  "run.resolved",
-  "run.completed",
-  "run.failed",
-  "context.recommended",
-  "context.selected",
-  "document.loaded",
-  "context.injected",
-  "context.invalidated",
-  "context.published",
-  "handoff.created",
-  "adapter.started",
-  "adapter.stopped",
-  "capability.requested",
-  "capability.decided",
-  "capability.activated",
-  "capability.recommended",
-  "capability.selected",
-  "capability.loaded",
-  "capability.invoked",
-  "capability.completed",
-  "tool.called",
-  "command.executed",
-  "file.changed",
-  "skill.resolved",
-  "skill.invoked",
-  "skill.completed",
-  "verification.started",
-  "deliberation.started",
-  "deliberation.artifact.recorded",
-  "deliberation.completed",
-  "unmanaged_change.detected"
-]);
-function fail7() {
-  throw new RepositoryKnowledgeError("knowledge_evidence_source_invalid", "The execution event evidence source cannot be verified safely and completely.");
-}
-function canonicalEvent(event) {
-  if (!validateSchema("event", event).valid)
-    return fail7();
-  if (computeEventHash(eventWithoutHash(event)) !== event.eventHash)
-    return fail7();
-  let sanitized;
-  try {
-    sanitized = sanitizeEventPayload(event.type, event.payload);
-  } catch {
-    return fail7();
-  }
-  if (sanitized.redactions.length !== 0 || canonicalJson(sanitized.payload) !== canonicalJson(event.payload))
-    return fail7();
-  try {
-    return `${canonicalJson(event)}
-`;
-  } catch {
-    return fail7();
-  }
-}
-function collectExecutionEventSources(input) {
-  let latest;
-  try {
-    if (!input.events.verifyIntegrity().valid)
-      return fail7();
-    latest = input.events.latest();
-  } catch {
-    return fail7();
-  }
-  if (latest === null)
-    return [];
-  if (!Number.isSafeInteger(latest.seq) || latest.seq < 1 || latest.seq > MAX_EVENT_SEQUENCE)
-    return fail7();
-  const sources = [];
-  const eventIds = /* @__PURE__ */ new Set();
-  let totalBytes = 0;
-  try {
-    visitEventSnapshot({
-      events: input.events,
-      throughSeq: latest.seq,
-      visit: (event) => {
-        if (!executionEventTypes.has(event.type))
-          return;
-        if (eventIds.has(event.eventId) || sources.length >= EXECUTION_EVENT_SOURCE_MAX_EVENTS)
-          return fail7();
-        const content3 = canonicalEvent(event);
-        const byteCount = Buffer.byteLength(content3);
-        totalBytes += byteCount;
-        if (byteCount > MAX_EVENT_BYTES || totalBytes > MAX_TOTAL_EVENT_BYTES)
-          return fail7();
-        eventIds.add(event.eventId);
-        sources.push({
-          path: `@event/${event.eventId}`,
-          kind: "execution_event",
-          classification: "ordinary",
-          content: content3,
-          origin: "execution_event_store",
-          unitKind: "event",
-          locator: `event:${event.eventId}`,
-          title: `${event.type} event`,
-          adapter: EXECUTION_EVENT_SOURCE_ADAPTER
-        });
-      }
-    });
-    if (!input.events.verifyIntegrity().valid)
-      return fail7();
-  } catch {
-    return fail7();
-  }
-  return sources.sort((left, right) => left.path.localeCompare(right.path));
-}
-
-// packages/repository-knowledge/dist/instruction-bridge.js
-var import_yaml21 = __toESM(require_dist(), 1);
-import { constants as constants8 } from "node:fs";
-import { lstat as lstat19, open as open10 } from "node:fs/promises";
-import { resolve as resolve29 } from "node:path";
-
-// packages/repository-knowledge/dist/instruction-bridge-target.js
-var encoder = new TextEncoder();
-var decoder = new TextDecoder("utf-8", { fatal: true });
-function managedContent(profile8) {
-  return `@${profile8.canonicalPath}
-`;
-}
-function completeTarget(profile8) {
-  return [
-    `<!-- lervo:begin block=${profile8.blockId} schema=1 -->`,
-    `@${profile8.canonicalPath}`,
-    `<!-- lervo:end block=${profile8.blockId} -->`,
-    ""
-  ].join("\n");
-}
-function separatorFor(content3) {
-  if (content3.length === 0 || content3.endsWith("\n\n"))
-    return "";
-  return content3.endsWith("\n") ? "\n" : "\n\n";
-}
-function isExactAdoptedDuplicate(input) {
-  if (input.canonicalRouteBlock === null)
-    return false;
-  return `${input.targetContent}${separatorFor(input.targetContent)}${input.canonicalRouteBlock}` === input.canonicalContent;
-}
-function createInstructionBridgeTarget(input) {
-  const replacement = managedContent(input.profile);
-  const managedContentHash = sha2562(replacement);
-  if (input.existing === null) {
-    return {
-      content: completeTarget(input.profile),
-      action: "create",
-      classification: "missing",
-      managedContentHash
-    };
-  }
-  const sourceBytes = encoder.encode(input.existing.content);
-  const parsed = parseManagedMarkdownBlocks(sourceBytes);
-  if (parsed.status !== "valid")
-    throw new Error("invalid_managed_block_structure");
-  const block = parsed.blocks.find((item) => item.blockId === input.profile.blockId);
-  if (block === void 0) {
-    if (isExactAdoptedDuplicate({
-      canonicalContent: input.canonicalContent,
-      targetContent: input.existing.content,
-      canonicalRouteBlock: input.canonicalRouteBlock
-    })) {
-      return {
-        content: completeTarget(input.profile),
-        action: "update",
-        classification: "exact_adopted_duplicate",
-        managedContentHash
-      };
-    }
-    return {
-      content: `${input.existing.content}${separatorFor(input.existing.content)}${completeTarget(input.profile)}`,
-      action: "update",
-      classification: "unresolved_mixed_user_content",
-      managedContentHash
-    };
-  }
-  const current = sourceBytes.slice(block.contentRange.start, block.contentRange.end);
-  if (sha2562(current) === managedContentHash && decoder.decode(current) === replacement) {
-    return {
-      content: input.existing.content,
-      action: "unchanged",
-      classification: "managed_bridge",
-      managedContentHash
-    };
-  }
-  const patched = createManagedBlockPatchCandidate({
-    source: {
-      path: input.profile.targetPath,
-      contentHash: input.existing.contentHash,
-      byteCount: input.existing.byteCount,
-      bytes: sourceBytes
-    },
-    blockId: input.profile.blockId,
-    replacementBytes: encoder.encode(replacement)
-  });
-  return {
-    content: decoder.decode(patched.outputBytes),
-    action: "update",
-    classification: "managed_bridge",
-    managedContentHash
-  };
-}
-
-// packages/repository-knowledge/dist/instruction-bridge.js
-var HASH5 = /^sha256:[a-f0-9]{64}$/;
-var decoder2 = new TextDecoder("utf-8", { fatal: true });
-var profiles = {
-  claude: {
-    profileId: "claude_agents_import_v1",
-    profileVersion: 1,
-    provider: "claude",
-    canonicalPath: "AGENTS.md",
-    targetPath: "CLAUDE.md",
-    blockId: "provider_entry",
-    discoveryContract: "claude-code-memory-import"
-  }
-};
-function instructionBridgeProfile(provider) {
-  return profiles[provider];
-}
-function validExistingBridgeRecord(bytes, profile8, bridgeId) {
-  try {
-    const value = (0, import_yaml21.parse)(bytes.toString("utf8"));
-    return value !== null && typeof value === "object" && value.schemaVersion === 1 && value.bridgeId === bridgeId && value.profile?.id === profile8.profileId && value.profile.version === profile8.profileVersion && value.profile.provider === profile8.provider && value.profile.discoveryContract === profile8.discoveryContract && value.canonical?.path === profile8.canonicalPath && typeof value.canonical.contentHash === "string" && HASH5.test(value.canonical.contentHash) && value.target?.path === profile8.targetPath && value.target.blockId === profile8.blockId && typeof value.target.contentHash === "string" && HASH5.test(value.target.contentHash) && typeof value.target.managedContentHash === "string" && HASH5.test(value.target.managedContentHash);
-  } catch {
-    return false;
-  }
-}
-async function safeOptionalFile(path, maximumBytes2) {
-  let handle;
-  try {
-    try {
-      const stats = await lstat19(path);
-      if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes2)
-        throw new Error("unsafe file");
-    } catch (error) {
-      if (error.code === "ENOENT")
-        return null;
-      throw error;
-    }
-    handle = await open10(path, constants8.O_RDONLY | (constants8.O_NOFOLLOW ?? 0));
-    const before = await handle.stat();
-    const bytes = await handle.readFile();
-    const after = await handle.stat();
-    if (!before.isFile() || before.size > maximumBytes2 || before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size)
-      throw new Error("file changed");
-    return bytes;
-  } catch {
-    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The instruction bridge file cannot be read safely.");
-  } finally {
-    await handle?.close();
-  }
-}
-async function registryDigest(root2) {
-  const stored = await loadStoredConcepts(root2);
-  if (stored.some((item) => item.value === null)) {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The instruction bridge cannot be changed because the knowledge concept registry is incomplete.");
-  }
-  const materials = await Promise.all(stored.map(async (item) => {
-    const bytes = await safeOptionalFile(resolve29(root2, item.file), 256 * 1024);
-    if (bytes === null)
-      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "A knowledge concept sidecar is missing.");
-    return { file: item.file, contentHash: sha2562(bytes) };
-  }));
-  materials.sort((left, right) => left.file.localeCompare(right.file));
-  return { digest: sha2562(canonicalJson3(materials)), materials };
-}
-async function createKnowledgeInstructionBridgePlan(input) {
-  const root2 = resolve29(input.repositoryRoot);
-  const profile8 = instructionBridgeProfile(input.provider);
-  const [{ policy, scan }, beforeRegistry] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(root2, {
-      ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources },
-      ...input.preparedScan === void 0 ? {} : { preparedScan: input.preparedScan }
-    }),
-    registryDigest(root2)
-  ]);
-  const scannedCanonical = scan.sources.find((item) => item.path === profile8.canonicalPath);
-  let canonical2;
-  if (scannedCanonical?.status === "included" && scannedCanonical.kind === "instruction" && scannedCanonical.contentHash !== null && scannedCanonical.content !== void 0) {
-    canonical2 = {
-      contentHash: scannedCanonical.contentHash,
-      content: scannedCanonical.content,
-      byteCount: scannedCanonical.byteCount
-    };
-  } else {
-    const generatedBytes = await safeOptionalFile(resolve29(root2, profile8.canonicalPath), policy.limits.maxFileBytes);
-    const generatedHash = generatedBytes === null ? null : sha2562(generatedBytes);
-    if (generatedBytes === null || generatedHash === null || !await matchesRecordedStructuralGeneration(root2, profile8.canonicalPath, generatedHash)) {
-      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "Canonical AGENTS.md must be either an included instruction source or an exact recorded Lervo generation.");
-    }
-    canonical2 = {
-      contentHash: generatedHash,
-      content: decoder2.decode(generatedBytes),
-      byteCount: generatedBytes.byteLength
-    };
-  }
-  const targetSource = scan.sources.find((item) => item.path === profile8.targetPath);
-  if (targetSource !== void 0 && (targetSource.status !== "included" || targetSource.kind !== "instruction" || targetSource.contentHash === null || targetSource.content === void 0)) {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The provider instruction target is not a safe included instruction.");
-  }
-  if (targetSource === void 0) {
-    const existing = await safeOptionalFile(resolve29(root2, profile8.targetPath), policy.limits.maxFileBytes);
-    if (existing !== null)
-      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The provider instruction target does not match the scan.");
-  }
-  let target;
-  try {
-    target = createInstructionBridgeTarget({
-      profile: profile8,
-      canonicalContent: canonical2.content,
-      canonicalRouteBlock: /<!-- lervo:begin block=repository_instruction_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n/u.exec(canonical2.content)?.[0] ?? null,
-      existing: targetSource === void 0 ? null : {
-        content: targetSource.content,
-        contentHash: targetSource.contentHash,
-        byteCount: targetSource.byteCount
-      }
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message === "invalid_managed_block_structure") {
-      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The provider instruction target has an invalid managed-block structure.");
-    }
-    throw error;
-  }
-  if (Buffer.byteLength(target.content) > policy.limits.maxFileBytes) {
-    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "The instruction bridge output exceeds the file-size limit.");
-  }
-  const targetAfterHash = sha2562(target.content);
-  const virtualScan = upsertRepositoryKnowledgeScanSource({
-    scan,
-    path: profile8.targetPath,
-    content: target.content
-  });
-  const structural = await createKnowledgeMigrationPlanForScan({
-    repositoryRoot: root2,
-    scan: virtualScan,
-    mode: "refresh"
-  });
-  if (structural.status !== "ready" || structural.operations.some((item) => item.action === "conflict")) {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "Generated publications cannot be updated safely after the instruction bridge change.", {
-      code: "generated_publication_reconciliation_unsafe",
-      message: "Generated publications cannot be updated safely after the instruction bridge change."
-    });
-  }
-  const bridgeId = stableId("kbridge", {
-    projectId: scan.projectId,
-    provider: profile8.provider,
-    canonicalPath: profile8.canonicalPath,
-    targetPath: profile8.targetPath
-  });
-  const bridgeRecordPath = shardedKnowledgeArtifactPath(".lervo/knowledge/instruction-bridges", bridgeId, "yaml");
-  const bridgeRecordContent = (0, import_yaml21.stringify)({
-    schemaVersion: 1,
-    bridgeId,
-    profile: {
-      id: profile8.profileId,
-      version: profile8.profileVersion,
-      provider: profile8.provider,
-      discoveryContract: profile8.discoveryContract
-    },
-    canonical: { path: profile8.canonicalPath, contentHash: canonical2.contentHash },
-    target: {
-      path: profile8.targetPath,
-      contentHash: targetAfterHash,
-      blockId: profile8.blockId,
-      managedContentHash: target.managedContentHash
-    }
-  }, { lineWidth: 0, sortMapEntries: true });
-  const bridgeRecordBytes = await safeOptionalFile(resolve29(root2, bridgeRecordPath), 64 * 1024);
-  const bridgeRecordHash = sha2562(bridgeRecordContent);
-  const bridgeRecordOperation = bridgeRecordBytes === null ? {
-    path: bridgeRecordPath,
-    action: "create",
-    ownership: "lervo_generated",
-    mediaType: "application/yaml",
-    content: bridgeRecordContent,
-    desiredHash: bridgeRecordHash
-  } : sha2562(bridgeRecordBytes) === bridgeRecordHash ? {
-    path: bridgeRecordPath,
-    action: "unchanged",
-    ownership: "lervo_generated",
-    mediaType: "application/yaml",
-    desiredHash: bridgeRecordHash
-  } : validExistingBridgeRecord(bridgeRecordBytes, profile8, bridgeId) ? {
-    path: bridgeRecordPath,
-    action: "update",
-    ownership: "lervo_generated",
-    mediaType: "application/yaml",
-    content: bridgeRecordContent,
-    expectedCurrentHash: sha2562(bridgeRecordBytes),
-    desiredHash: bridgeRecordHash
-  } : (() => {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The existing instruction bridge record does not satisfy the profile contract.");
-  })();
-  const targetOperation = target.action === "unchanged" ? null : {
-    path: profile8.targetPath,
-    action: target.action,
-    ownership: "user",
-    mediaType: "text/markdown",
-    content: target.content,
-    ...targetSource?.contentHash === null || targetSource?.contentHash === void 0 ? {} : { expectedCurrentHash: targetSource.contentHash },
-    desiredHash: targetAfterHash
-  };
-  const operations = [
-    ...structural.operations,
-    bridgeRecordOperation,
-    ...targetOperation === null ? [] : [targetOperation]
-  ];
-  const conceptOperations = structural.operations.filter((item) => item.path.startsWith(`${structuralConceptDirectory}/`) && item.action !== "conflict");
-  const afterHashes = new Map(beforeRegistry.materials.map((item) => [item.file, item.contentHash]));
-  for (const item of conceptOperations)
-    afterHashes.set(item.path, item.desiredHash);
-  const afterRegistryDigest = sha2562(canonicalJson3([...afterHashes].map(([file, contentHash2]) => ({ file, contentHash: contentHash2 })).sort((left, right) => left.file.localeCompare(right.file))));
-  const conceptIdFor = (path) => path.slice(path.lastIndexOf("/") + 1, -".yaml".length);
-  const createdConceptIds = conceptOperations.filter((item) => item.action === "create").map((item) => conceptIdFor(item.path)).sort();
-  const updatedConceptIds = conceptOperations.filter((item) => item.action === "update").map((item) => conceptIdFor(item.path)).sort();
-  const operationId = stableId("kinstop", {
-    projectId: scan.projectId,
-    profile: profile8,
-    canonicalHash: canonical2.contentHash,
-    targetBeforeHash: targetSource?.contentHash ?? null,
-    targetAfterHash,
-    managedContentHash: target.managedContentHash
-  });
-  const operationBindings = operations.map(({ content: _content, ...operation }) => operation);
-  const approvalHash = sha2562(canonicalJson3({
-    operationId,
-    action: "ensure_instruction_bridge",
-    profile: profile8,
-    canonical: {
-      path: profile8.canonicalPath,
-      contentHash: canonical2.contentHash,
-      byteCount: canonical2.byteCount
-    },
-    target: {
-      path: profile8.targetPath,
-      action: target.action,
-      classification: target.classification,
-      beforeHash: targetSource?.contentHash ?? null,
-      afterHash: targetAfterHash
-    },
-    bridgeId,
-    operations: operationBindings
-  }));
-  const policyHash = sha2562(canonicalJson3(policy));
-  const planId = stableId("kbridgeplan", {
-    projectId: scan.projectId,
-    sourceSnapshotId: scan.snapshotId,
-    afterSourceSnapshotId: virtualScan.snapshotId,
-    policyHash,
-    registryDigest: beforeRegistry.digest,
-    afterRegistryDigest,
-    operationId,
-    approvalHash,
-    operations: operationBindings
-  });
-  const changed = operations.some((item) => item.action === "create" || item.action === "update");
-  await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root2, operations });
-  return {
-    schemaVersion: 1,
-    planId,
-    operationId,
-    approvalHash,
-    status: targetOperation !== null ? "review_required" : changed ? "ready" : "current",
-    projectId: scan.projectId,
-    repositoryRoot: root2,
-    sourceSnapshotId: scan.snapshotId,
-    afterSourceSnapshotId: virtualScan.snapshotId,
-    policyHash,
-    coverage: scan.coverage,
-    registryDigest: beforeRegistry.digest,
-    afterRegistryDigest,
-    profile: profile8,
-    canonical: {
-      path: profile8.canonicalPath,
-      contentHash: canonical2.contentHash,
-      byteCount: canonical2.byteCount
-    },
-    target: {
-      path: profile8.targetPath,
-      action: target.action,
-      beforeHash: targetSource?.contentHash ?? null,
-      afterHash: targetAfterHash,
-      beforeByteCount: targetSource?.byteCount ?? null,
-      afterByteCount: Buffer.byteLength(target.content),
-      classification: target.classification,
-      managedContentHash: target.managedContentHash
-    },
-    bridgeId,
-    bridgeRecordPath,
-    createdConceptIds,
-    updatedConceptIds,
-    deprecatedConceptIds: [],
-    operations
-  };
-}
-
-// packages/repository-knowledge/dist/instruction-bootstrap.js
-import { lstat as lstat20 } from "node:fs/promises";
-import { resolve as resolve30 } from "node:path";
-function includedSource(sources, path) {
-  const source = sources.find((item) => item.path === path);
-  if (source === void 0)
-    return null;
-  if (source.status !== "included" || source.kind !== "instruction" || source.content === void 0 || source.contentHash === null) {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", `The ${path} bootstrap source is not a safe included instruction.`);
-  }
-  return source;
-}
-function hasProviderImportOrManagedBlock(content3) {
-  return /^@AGENTS\.md\s*$/mu.test(content3) || /<!--\s*lervo:(?:begin|end)\s+block=/u.test(content3);
-}
-async function safeFilePresent(path) {
-  try {
-    const stats = await lstat20(path);
-    if (!stats.isFile() || stats.isSymbolicLink()) {
-      throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonical instruction bootstrap target is not a safe regular file.");
-    }
-    return true;
-  } catch (error) {
-    if (error.code === "ENOENT")
-      return false;
-    throw error;
-  }
-}
-function routeBlock(sources) {
-  return repositoryInstructionRouteBlock({
-    instructions: sources.flatMap((source) => source.status === "included" && source.content !== void 0 && source.path.startsWith("docs/instructions/") && source.path.endsWith(".md") ? [{ path: source.path, instructionPaths: repositoryInstructionPaths(source.content) }] : []),
-    skills: sources.flatMap((source) => source.status === "included" && source.path.startsWith(".agents/skills/") && source.path.endsWith("/SKILL.md") ? [{ path: source.path }] : [])
-  });
-}
-function appendBlock(content3, block) {
-  const separator = content3.length === 0 || content3.endsWith("\n\n") ? "" : content3.endsWith("\n") ? "\n" : "\n\n";
-  return `${content3}${separator}${block}`;
-}
-async function createKnowledgeInstructionBootstrapPlan(input) {
-  const root2 = resolve30(input.repositoryRoot);
-  const { policy, scan } = await scanConfiguredRepositoryKnowledge(root2, {
-    ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources },
-    ...input.preparedScan === void 0 ? {} : { preparedScan: input.preparedScan }
-  });
-  const agents = includedSource(scan.sources, "AGENTS.md");
-  const claude = includedSource(scan.sources, "CLAUDE.md");
-  const agentsPresent = agents !== null || await safeFilePresent(resolve30(root2, "AGENTS.md"));
-  const policyHash = sha2562(canonicalJson3(policy));
-  const base = {
-    schemaVersion: 1,
-    planKind: "instruction_canonical_bootstrap",
-    projectId: scan.projectId,
-    repositoryRoot: root2,
-    sourceSnapshotId: scan.snapshotId,
-    policyHash,
-    coverage: scan.coverage
-  };
-  if (agentsPresent || claude === null) {
-    const state3 = {
-      ...base,
-      operationId: null,
-      approvalHash: null,
-      status: "not_applicable",
-      canonical: {
-        path: "AGENTS.md",
-        state: agentsPresent ? "present" : "missing",
-        afterHash: agents?.contentHash ?? null
-      },
-      source: {
-        path: "CLAUDE.md",
-        state: claude === null ? "missing" : "shared_candidate",
-        contentHash: claude?.contentHash ?? null
-      },
-      disposition: "defer",
-      blocker: null,
-      operations: []
-    };
-    return { ...state3, planId: stableId("kinstbootplan", state3) };
-  }
-  if (hasProviderImportOrManagedBlock(claude.content)) {
-    const state3 = {
-      ...base,
-      operationId: null,
-      approvalHash: null,
-      status: "blocked",
-      canonical: { path: "AGENTS.md", state: "missing", afterHash: null },
-      source: {
-        path: "CLAUDE.md",
-        state: "unresolved_mixed",
-        contentHash: claude.contentHash
-      },
-      disposition: "defer",
-      blocker: "claude_source_contains_provider_import_or_managed_blocks",
-      operations: []
-    };
-    return { ...state3, planId: stableId("kinstbootplan", state3) };
-  }
-  const content3 = appendBlock(claude.content, routeBlock(scan.sources));
-  const canonicalHash2 = sha2562(content3);
-  const operationId = stableId("kinstbootop", {
-    projectId: scan.projectId,
-    sourcePath: claude.path,
-    sourceContentHash: claude.contentHash,
-    canonicalPath: "AGENTS.md",
-    canonicalHash: canonicalHash2
-  });
-  const operation = {
-    path: "AGENTS.md",
-    action: "create",
-    ownership: "user",
-    mediaType: "text/markdown",
-    content: content3,
-    desiredHash: canonicalHash2
-  };
-  const approvalHash = sha2562(canonicalJson3({
-    operationId,
-    disposition: "accept",
-    source: { path: claude.path, contentHash: claude.contentHash },
-    canonical: { path: operation.path, contentHash: canonicalHash2 }
-  }));
-  const state2 = {
-    ...base,
-    operationId,
-    approvalHash,
-    status: "review_required",
-    canonical: {
-      path: "AGENTS.md",
-      state: "missing",
-      afterHash: canonicalHash2
-    },
-    source: {
-      path: "CLAUDE.md",
-      state: "shared_candidate",
-      contentHash: claude.contentHash
-    },
-    disposition: "accept",
-    blocker: null,
-    operations: [operation]
-  };
-  await authorizeCurrentRepositoryDocumentLayout({
-    repositoryRoot: root2,
-    operations: state2.operations
-  });
-  return { ...state2, planId: stableId("kinstbootplan", state2) };
-}
-
-// packages/repository-knowledge/dist/lint-query.js
-import { lstat as lstat22, readFile as readFile14, readdir as readdir10 } from "node:fs/promises";
-import { relative as relative8, resolve as resolve32, sep as sep8 } from "node:path";
-var import_yaml22 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/repository-publication-files.js
-import { constants as constants9 } from "node:fs";
-import { lstat as lstat21, open as open11, readFile as readFile13 } from "node:fs/promises";
-import { relative as relative7, resolve as resolve31, sep as sep7 } from "node:path";
-async function generatedKnowledgePaths(root2) {
-  const result = /* @__PURE__ */ new Set();
-  const groups = [
-    [structuralManifestPath, legacyStructuralManifestPath],
-    await listKnowledgeArtifactPaths({
-      root: root2,
-      directory: ".lervo/generated/semantic-manifests",
-      extension: "json",
-      maximumFiles: 2e4
-    })
-  ];
-  for (const paths of groups) {
-    for (const path of paths) {
-      try {
-        const value = JSON.parse(await readFile13(resolve31(root2, path), "utf8"));
-        for (const output of value.outputs ?? [])
-          if (typeof output.path === "string")
-            result.add(output.path);
-      } catch {
-      }
-    }
-  }
-  return result;
-}
-function safePublicationPath(root2, path) {
-  const target = resolve31(root2, path);
-  const fromRoot = relative7(root2, target);
-  return fromRoot === ".." || fromRoot.startsWith(`..${sep7}`) ? null : target;
-}
-async function readSafePublication(root2, path, maximumBytes2) {
-  const target = safePublicationPath(root2, path);
-  if (target === null)
-    return null;
-  let current = root2;
-  try {
-    const rootStats = await lstat21(root2);
-    if (!rootStats.isDirectory() || rootStats.isSymbolicLink())
-      return null;
-    const segments = relative7(root2, target).split(sep7);
-    for (const [index2, segment] of segments.entries()) {
-      current = resolve31(current, segment);
-      const stats = await lstat21(current);
-      if (stats.isSymbolicLink())
-        return null;
-      if (index2 === segments.length - 1 ? !stats.isFile() : !stats.isDirectory())
-        return null;
-    }
-    const handle = await open11(target, constants9.O_RDONLY | (constants9.O_NOFOLLOW ?? 0));
-    try {
-      const before = await handle.stat();
-      if (!before.isFile() || before.size > maximumBytes2)
-        return null;
-      const bytes = await handle.readFile();
-      const after = await handle.stat();
-      if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs || bytes.byteLength !== before.size)
-        return null;
-      return bytes;
-    } finally {
-      await handle.close();
-    }
-  } catch {
-    return null;
-  }
-}
-
-// packages/repository-knowledge/dist/lint-query.js
-async function lintSemanticManifests(root2, issues) {
-  const directoryPath = ".lervo/generated/semantic-manifests";
-  let paths;
-  try {
-    paths = await listKnowledgeArtifactPaths({
-      root: root2,
-      directory: directoryPath,
-      extension: "json",
-      maximumFiles: 2e4
-    });
-  } catch {
-    return;
-  }
-  for (const path of paths) {
-    let outputs;
-    try {
-      const value = JSON.parse(await readFile14(resolve32(root2, path), "utf8"));
-      if (value.kind !== "semantic" || !Array.isArray(value.outputs) || !value.outputs.every((item) => typeof item?.path === "string" && typeof item.contentHash === "string"))
-        throw new Error();
-      outputs = value.outputs;
-    } catch {
-      issues.push({
-        code: "invalid_semantic_generation_manifest",
-        severity: "error",
-        path,
-        message: "The semantic generation manifest is invalid."
-      });
-      continue;
-    }
-    for (const output of outputs) {
-      const target = safePublicationPath(root2, output.path);
-      try {
-        if (target === null)
-          throw new Error();
-        const stats = await lstat22(target);
-        if (!stats.isFile() || stats.isSymbolicLink() || sha2562(await readFile14(target)) !== output.contentHash)
-          throw new Error();
-      } catch {
-        issues.push({
-          code: "semantic_generated_output_modified",
-          severity: "error",
-          path: output.path,
-          message: "The output differs from the Lervo-owned bytes recorded by semantic generation."
-        });
-      }
-    }
-  }
-}
-async function lintInstructionBridgeRecords(root2, projectId, issues) {
-  const directoryPath = ".lervo/knowledge/instruction-bridges";
-  let paths;
-  try {
-    paths = await listKnowledgeArtifactPaths({
-      root: root2,
-      directory: directoryPath,
-      extension: "yaml",
-      maximumFiles: 256
-    });
-  } catch {
-    issues.push({
-      code: "invalid_instruction_bridge_record",
-      severity: "error",
-      path: directoryPath,
-      message: "The instruction bridge registry cannot be read safely."
-    });
-    return;
-  }
-  const ids = /* @__PURE__ */ new Set();
-  for (const path of paths) {
-    const name2 = path.split("/").at(-1);
-    const recordBytes = await readSafePublication(root2, path, 64 * 1024);
-    if (recordBytes === null) {
-      issues.push({
-        code: "invalid_instruction_bridge_record",
-        severity: "error",
-        path,
-        message: "The instruction bridge record cannot be read safely."
-      });
-      continue;
-    }
-    let value;
-    try {
-      value = (0, import_yaml22.parse)(new TextDecoder("utf-8", { fatal: true }).decode(recordBytes));
-      const expectedId = stableId("kbridge", {
-        projectId,
-        provider: "claude",
-        canonicalPath: "AGENTS.md",
-        targetPath: "CLAUDE.md"
-      });
-      if (value?.schemaVersion !== 1 || value.bridgeId !== expectedId || name2 !== `${expectedId}.yaml` || ids.has(value.bridgeId) || path.split("/").length > 4 && path !== shardedKnowledgeArtifactPath(directoryPath, value.bridgeId, "yaml") || value.profile?.id !== "claude_agents_import_v1" || value.profile.version !== 1 || value.profile.provider !== "claude" || value.profile.discoveryContract !== "claude-code-memory-import" || value.canonical?.path !== "AGENTS.md" || value.target?.path !== "CLAUDE.md" || value.target.blockId !== "provider_entry" || !/^sha256:[a-f0-9]{64}$/.test(value.canonical.contentHash) || !/^sha256:[a-f0-9]{64}$/.test(value.target.contentHash) || !/^sha256:[a-f0-9]{64}$/.test(value.target.managedContentHash))
-        throw new Error("invalid record");
-      ids.add(value.bridgeId);
-    } catch {
-      issues.push({
-        code: "invalid_instruction_bridge_record",
-        severity: "error",
-        path,
-        message: "The instruction bridge record does not satisfy its registered profile contract."
-      });
-      continue;
-    }
-    const canonicalBytes = await readSafePublication(root2, value.canonical.path, 1024 * 1024);
-    const targetBytes = await readSafePublication(root2, value.target.path, 1024 * 1024);
-    if (canonicalBytes === null || targetBytes === null || sha2562(canonicalBytes) !== value.canonical.contentHash || sha2562(targetBytes) !== value.target.contentHash) {
-      issues.push({
-        code: "instruction_bridge_binding_stale",
-        severity: "error",
-        path,
-        message: "The instruction bridge canonical or target byte binding differs from the current repository."
-      });
-      continue;
-    }
-    const parsedTarget = parseManagedMarkdownBlocks(targetBytes);
-    const block = parsedTarget.blocks.find((item) => item.blockId === value.target.blockId);
-    if (parsedTarget.status !== "valid" || block === void 0 || sha2562(targetBytes.slice(block.contentRange.start, block.contentRange.end)) !== value.target.managedContentHash || new TextDecoder().decode(targetBytes.slice(block.contentRange.start, block.contentRange.end)) !== "@AGENTS.md\n") {
-      issues.push({
-        code: "instruction_bridge_target_invalid",
-        severity: "error",
-        path: value.target.path,
-        message: "The provider entry managed block differs from the profile's canonical import."
-      });
-    }
-  }
-}
-async function lintRepositoryLayout(root2, issues) {
-  const layout = await evaluateCurrentRepositoryDocumentLayout({
-    repositoryRoot: root2,
-    operations: []
-  });
-  for (const blocker of layout.blockers) {
-    issues.push({
-      code: blocker.code,
-      severity: "error",
-      path: "directory" in blocker ? blocker.directory : "scope" in blocker ? blocker.scope : ".",
-      message: `The current repository document layout violates ${blocker.code}.`
-    });
-  }
-  const taxonomy = await loadDecisionTaxonomy(root2);
-  const decisionPaths = [];
-  for (const directory of [taxonomy.decisionRoot, ...taxonomy.legacyRoots]) {
-    try {
-      const entries = await readdir10(resolve32(root2, directory), {
-        withFileTypes: true,
-        recursive: true
-      });
-      for (const entry of entries) {
-        if (!entry.isFile() || !/^\d{4}-.+\.md$/u.test(entry.name))
-          continue;
-        decisionPaths.push(relative8(root2, resolve32(entry.parentPath, entry.name)).split(sep8).join("/"));
-      }
-    } catch {
-    }
-  }
-  for (const path of decisionPaths) {
-    const roots = [taxonomy.decisionRoot, ...taxonomy.legacyRoots];
-    if (roots.some((directory) => path.startsWith(`${directory}/`) && !path.slice(directory.length + 1).includes("/"))) {
-      issues.push({
-        code: "ungrouped_decision_document",
-        severity: "error",
-        path,
-        message: "The decision document requires an explicit configured semantic route. Run lervo migrate knowledge."
-      });
-    }
-  }
-  for (const blocker of inspectGroupedDecisionPaths(decisionPaths, taxonomy)) {
-    const message = blocker.code === "decision_leaf_overflow" ? `The decision leaf has ${blocker.observedCount} documents and exceeds its configured maximum of ${blocker.configuredMaximum}. Add a semantic route and move the affected decisions.` : blocker.code === "legacy_decision_layout" ? "The decision remains under a legacy decision root. Run lervo migrate knowledge." : "The decision directory is not an allowed route in the tracked repository taxonomy.";
-    issues.push({ code: blocker.code, severity: "error", path: blocker.path, message });
-  }
-  const registries = [
-    [structuralBundleDirectory, "yaml"],
-    [structuralConceptDirectory, "yaml"],
-    [".lervo/knowledge/bundles", "yaml"],
-    [".lervo/knowledge/concepts", "yaml"],
-    [".lervo/knowledge/claims", "yaml"],
-    [".lervo/knowledge/relations", "yaml"],
-    [".lervo/knowledge/source-lineage", "yaml"],
-    [".lervo/knowledge/instruction-bridges", "yaml"],
-    [".lervo/knowledge/document-normalizations", "yaml"],
-    [".lervo/generated/semantic-manifests", "json"],
-    [".lervo/state/knowledge/candidates", "json"]
-  ];
-  for (const [directory, extension2] of registries) {
-    let paths;
-    try {
-      paths = await listKnowledgeArtifactPaths({
-        root: root2,
-        directory,
-        extension: extension2,
-        maximumFiles: 2e4
-      });
-    } catch {
-      continue;
-    }
-    for (const path of paths) {
-      if (!path.slice(directory.length + 1).includes("/"))
-        issues.push({
-          code: "legacy_flat_artifact",
-          severity: "error",
-          path,
-          message: "The ID-addressed artifact requires deterministic two-hex sharding. Run lervo migrate knowledge."
-        });
-    }
-  }
-}
-async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
-  const root2 = resolve32(repositoryRoot);
-  await assertNoKnowledgeMaterializationTransaction({
-    repositoryRoot: root2,
-    ...options?.allowTransactionPlanId === void 0 ? {} : { allowedPlanId: options.allowTransactionPlanId }
-  });
-  const issues = [];
-  await lintRepositoryLayout(root2, issues);
-  const rewrite = await inspectRepositoryDocumentRewriters({
-    repositoryRoot: root2,
-    ...options.allowTransactionPlanId === void 0 ? {} : { allowTransactionPlanId: options.allowTransactionPlanId }
-  });
-  for (const blocker of rewrite.blockers) {
-    issues.push({
-      code: blocker.code,
-      severity: "error",
-      path: "path" in blocker ? blocker.path : ".lervo/knowledge/document-layout.yaml",
-      message: `The current repository document rewrite contract violates ${blocker.code}.`
-    });
-  }
-  await lintSemanticManifests(root2, issues);
-  const manifests = [];
-  let manifestFound = false;
-  for (const path of [structuralManifestPath, legacyStructuralManifestPath]) {
-    try {
-      const stats = await lstat22(resolve32(root2, path));
-      if (!stats.isFile() || stats.isSymbolicLink())
-        throw new Error();
-      manifestFound = true;
-      try {
-        const value = JSON.parse(await readFile14(resolve32(root2, path), "utf8"));
-        if (typeof value.sourceSnapshotId !== "string" || !Array.isArray(value.outputs) || !value.outputs.every((item) => typeof item?.path === "string" && typeof item.contentHash === "string"))
-          throw new Error();
-        manifests.push(value);
-      } catch {
-        issues.push({
-          code: "invalid_generation_manifest",
-          severity: "error",
-          path,
-          message: "The generation manifest JSON cannot be read."
-        });
-      }
-    } catch (error) {
-      if (error.code !== "ENOENT" && manifestFound === false)
-        issues.push({
-          code: "invalid_generation_manifest",
-          severity: "error",
-          path,
-          message: "The generation manifest is not a safe regular file."
-        });
-    }
-  }
-  if (!manifestFound) {
-    issues.push({
-      code: "missing_generation_manifest",
-      severity: "warning",
-      path: structuralManifestPath,
-      message: "No applied structural knowledge generation exists. Check for a refresh candidate because only semantic materialization may be present."
-    });
-  }
-  const project2 = await loadProjectManifest(root2);
-  await lintInstructionBridgeRecords(root2, project2.projectId, issues);
-  const normalization = options.preparedNormalization ?? await inspectConfiguredDocumentNormalization({
-    repositoryRoot: root2,
-    ...options.supplementalSources === void 0 ? {} : { supplementalSources: options.supplementalSources },
-    ...options.preparedScan === void 0 ? {} : { preparedScan: options.preparedScan },
-    ...options.allowTransactionPlanId === void 0 ? {} : { allowTransactionPlanId: options.allowTransactionPlanId }
-  });
-  for (const record3 of normalization.records) {
-    if (record3.status === "invalid")
-      issues.push({
-        code: "invalid_document_normalization_record",
-        severity: "error",
-        path: record3.path,
-        message: "The document normalization lifecycle record is invalid."
-      });
-    const historicalPublicReadme = record3.outputPaths.length === 1 && record3.outputPaths[0] === "README.md";
-    if (record3.status === "stale" && !historicalPublicReadme)
-      issues.push({
-        code: "document_normalization_stale",
-        severity: "warning",
-        path: record3.path,
-        message: "A normalized document family changed after its reviewed rewrite. Create a new content-bound normalization candidate."
-      });
-  }
-  const policy = await loadRepositoryKnowledgePolicy(root2);
-  const generated = await generatedKnowledgePaths(root2);
-  const scan = options.preparedScan ?? await scanRepositoryKnowledge({
-    repositoryRoot: root2,
-    projectId: project2.projectId,
-    policy,
-    generatedPaths: generated,
-    ...options.supplementalSources === void 0 ? {} : { supplementalSources: options.supplementalSources }
-  });
-  if (scan.projectId !== project2.projectId || scan.policyId !== policy.policyId) {
-    throw new Error("The prepared knowledge scan does not match the current project policy.");
-  }
-  const currentManifest = manifests.find((item) => item.sourceSnapshotId === repositoryKnowledgePublicationSnapshotId(scan));
-  if (currentManifest === void 0) {
-    issues.push({
-      code: "materialization_stale",
-      severity: "warning",
-      path: ".lervo/knowledge",
-      message: "No generation materializes the current source snapshot. Inspect the knowledge refresh plan."
-    });
-  } else {
-    for (const output of currentManifest.outputs) {
-      const target = safePublicationPath(root2, output.path);
-      if (target === null) {
-        issues.push({
-          code: "generated_output_outside_repository",
-          severity: "error",
-          path: output.path,
-          message: "The generation output escapes the repository."
-        });
-        continue;
-      }
-      try {
-        const stats = await lstat22(target);
-        const bytes = await readFile14(target);
-        if (!stats.isFile() || stats.isSymbolicLink() || sha2562(bytes) !== output.contentHash)
-          throw new Error();
-        const publicationPrefix = `${policy.publicationRoot.replace(/\/$/u, "")}/`;
-        if (output.path.startsWith(publicationPrefix) && output.path.endsWith(".md")) {
-          if (bytes.byteLength > policy.publication.maxNavigationBytes) {
-            issues.push({
-              code: "publication_size_exceeded",
-              severity: "error",
-              path: output.path,
-              message: "Generated navigation exceeds the configured UTF-8 byte bound."
-            });
-          }
-          const prose = bytes.toString("utf8").replace(/```[\s\S]*?```/gu, "").replace(/`[^`]*`/gu, "").replace(/\]\([^)]*\)/gu, "]").replace(/<!--[\s\S]*?-->/gu, "");
-          if (policy.publication.language === "en" && /[\u3131-\u318E\uAC00-\uD7A3]/u.test(prose)) {
-            issues.push({
-              code: "publication_language_mismatch",
-              severity: "error",
-              path: output.path,
-              message: "Generated publication contains Hangul while publication.language is en."
-            });
-          }
-        }
-      } catch {
-        issues.push({
-          code: "generated_output_modified",
-          severity: "error",
-          path: output.path,
-          message: "The output differs from the Lervo-generated bytes recorded by the current source generation."
-        });
-      }
-    }
-  }
-  const currentUnitVersions = new Set(scan.units.map((unit2) => unit2.unitVersionId));
-  const concepts = await loadStoredConcepts(root2);
-  const claims = await loadStoredClaims(root2);
-  const relations = await loadStoredRelations(root2);
-  const impact = claims.every((item) => item.value !== null) && relations.every((item) => item.value !== null) ? await analyzeRepositoryKnowledgeImpact({ repositoryRoot: root2, scan }) : null;
-  const impactBySubject = new Map(impact?.items.map((item) => [`${item.subjectKind}:${item.subjectId}`, item]));
-  const claimedPaths = /* @__PURE__ */ new Map();
-  for (const stored of concepts) {
-    if (stored.value === null) {
-      issues.push({
-        code: "invalid_concept",
-        severity: "error",
-        path: stored.file,
-        message: stored.error ?? "The concept sidecar is invalid."
-      });
-      continue;
-    }
-    const concept = stored.value;
-    if (concept.publicationStatus === "deprecated")
-      continue;
-    const existing = claimedPaths.get(concept.path);
-    if (existing !== void 0) {
-      issues.push({
-        code: "publication_path_conflict",
-        severity: "error",
-        path: stored.file,
-        message: `${concept.path} conflicts with ${existing}.`
-      });
-    } else
-      claimedPaths.set(concept.path, concept.conceptId);
-    const publication = safePublicationPath(root2, concept.path);
-    if (publication === null) {
-      issues.push({
-        code: "publication_outside_repository",
-        severity: "error",
-        path: stored.file,
-        message: `${concept.path} escapes the repository.`
-      });
-      continue;
-    }
-    try {
-      const stats = await lstat22(publication);
-      if (!stats.isFile() || stats.isSymbolicLink())
-        throw new Error();
-    } catch {
-      issues.push({
-        code: "publication_missing",
-        severity: "error",
-        path: concept.path,
-        message: "The concept publication does not exist as a regular file."
-      });
-    }
-    const stale = concept.sourceUnitVersionIds.filter((id) => !currentUnitVersions.has(id));
-    if (stale.length > 0) {
-      issues.push({
-        code: "source_unit_stale",
-        severity: "warning",
-        path: stored.file,
-        message: `${stale.length} source unit versions differ from the current snapshot.`
-      });
-    }
-  }
-  const conceptIds = new Set(concepts.flatMap((item) => item.value === null ? [] : [item.value.conceptId]));
-  for (const stored of claims) {
-    if (stored.value === null) {
-      issues.push({
-        code: "invalid_claim",
-        severity: "error",
-        path: stored.file,
-        message: stored.error ?? "The claim sidecar is invalid."
-      });
-      continue;
-    }
-    if (!conceptIds.has(stored.value.conceptId))
-      issues.push({
-        code: "claim_concept_missing",
-        severity: "error",
-        path: stored.file,
-        message: "The claim references a concept that does not exist."
-      });
-    const claimImpact = impactBySubject.get(`claim:${stored.value.claimId}`);
-    if (claimImpact?.freshness === "stale")
-      issues.push({
-        code: "claim_evidence_stale",
-        severity: "warning",
-        path: stored.file,
-        message: `Claim evidence depends on changed or deleted source units: ${claimImpact.reasons.join(", ")}`
-      });
-    if (claimImpact?.freshness === "unknown")
-      issues.push({
-        code: "claim_evidence_unknown",
-        severity: "warning",
-        path: stored.file,
-        message: "Stable source-unit lineage cannot be confirmed for the claim evidence."
-      });
-  }
-  for (const stored of relations) {
-    if (stored.value === null) {
-      issues.push({
-        code: "invalid_relation",
-        severity: "error",
-        path: stored.file,
-        message: stored.error ?? "The relation sidecar is invalid."
-      });
-      continue;
-    }
-    if (!conceptIds.has(stored.value.from.id) || !conceptIds.has(stored.value.to.id))
-      issues.push({
-        code: "relation_endpoint_missing",
-        severity: "error",
-        path: stored.file,
-        message: "A relation concept endpoint is missing."
-      });
-    const relationImpact = impactBySubject.get(`relation:${stored.value.relationId}`);
-    if (relationImpact?.freshness === "stale")
-      issues.push({
-        code: "relation_evidence_stale",
-        severity: "warning",
-        path: stored.file,
-        message: `Relation evidence depends on changed or deleted source units: ${relationImpact.reasons.join(", ")}`
-      });
-    if (relationImpact?.freshness === "unknown")
-      issues.push({
-        code: "relation_evidence_unknown",
-        severity: "warning",
-        path: stored.file,
-        message: "Stable source-unit lineage cannot be confirmed for the relation evidence."
-      });
-  }
-  return {
-    schemaVersion: 1,
-    repositoryRoot: root2,
-    valid: issues.every((issue) => issue.severity !== "error"),
-    checkedConcepts: concepts.filter((item) => item.value !== null).length,
-    issues
-  };
-}
-
-// packages/repository-knowledge/dist/query.js
-import { resolve as resolve33 } from "node:path";
-
-// packages/repository-knowledge/dist/relation-query.js
-var KNOWLEDGE_RELATION_LIMITS = {
-  maximumSeeds: 5,
-  maximumExaminedRelations: 64,
-  maximumRecommendations: 5,
-  maximumSelections: 2,
-  hops: 1
-};
-function compareText3(left, right) {
-  return left < right ? -1 : left > right ? 1 : 0;
-}
-function projectKnowledgeRelations(input) {
-  const conceptsById = new Map(input.concepts.map((concept) => [concept.conceptId, concept]));
-  const seedConceptIds = [...new Set(input.seedConceptIds)].slice(0, KNOWLEDGE_RELATION_LIMITS.maximumSeeds).filter((conceptId) => {
-    const concept = conceptsById.get(conceptId);
-    return concept !== void 0 && !concept.deprecated && concept.assurance === "human_reviewed" && concept.freshness === "current";
-  });
-  const seeds = new Map(seedConceptIds.map((conceptId, rank) => [conceptId, rank + 1]));
-  const conceptsByPath = /* @__PURE__ */ new Map();
-  for (const concept of input.concepts) {
-    const values = conceptsByPath.get(concept.path) ?? [];
-    values.push(concept);
-    conceptsByPath.set(concept.path, values);
-  }
-  const documentsByPath = /* @__PURE__ */ new Map();
-  for (const [documentId, document4] of Object.entries(input.documentRegistry?.documents ?? {})) {
-    const values = documentsByPath.get(document4.path) ?? [];
-    values.push(documentId);
-    documentsByPath.set(document4.path, values);
-  }
-  const incident = input.relations.filter((relation) => seeds.has(relation.from.id) || seeds.has(relation.to.id)).sort((left, right) => compareText3(left.relationId, right.relationId));
-  const examined = incident.slice(0, KNOWLEDGE_RELATION_LIMITS.maximumExaminedRelations);
-  const candidates = [];
-  for (const relation of examined) {
-    const fromSeedRank = seeds.get(relation.from.id);
-    const toSeedRank = seeds.get(relation.to.id);
-    const seedRank = Math.min(fromSeedRank ?? Number.MAX_SAFE_INTEGER, toSeedRank ?? Number.MAX_SAFE_INTEGER);
-    const seedConceptId = fromSeedRank === seedRank ? relation.from.id : relation.to.id;
-    const targetConceptId = seedConceptId === relation.from.id ? relation.to.id : relation.from.id;
-    const target = conceptsById.get(targetConceptId);
-    if (target === void 0 || target.deprecated || target.assurance !== "human_reviewed" || target.freshness !== "current" || conceptsByPath.get(target.path)?.length !== 1) {
-      continue;
-    }
-    const documentIds = documentsByPath.get(target.path) ?? [];
-    if (documentIds.length !== 1)
-      continue;
-    candidates.push({
-      schemaVersion: 1,
-      recommendationId: stableId("krelrec", {
-        sourceSnapshotId: input.sourceSnapshotId,
-        relationId: relation.relationId,
-        seedConceptId,
-        targetConceptId,
-        documentId: documentIds[0],
-        contentHash: target.contentHash
-      }),
-      relationId: relation.relationId,
-      relationType: relation.type,
-      direction: seedConceptId === relation.from.id ? "outgoing" : "incoming",
-      seedConceptId,
-      targetConceptId,
-      documentId: documentIds[0],
-      path: target.path,
-      sourceContentHash: target.contentHash,
-      sourceSnapshotId: input.sourceSnapshotId,
-      impactReportId: input.impactReportId,
-      seedRank
-    });
-  }
-  const seenDocuments = /* @__PURE__ */ new Set();
-  const recommendations = candidates.sort((left, right) => left.seedRank - right.seedRank || compareText3(left.relationType, right.relationType) || compareText3(left.direction, right.direction) || compareText3(left.relationId, right.relationId) || compareText3(left.documentId, right.documentId)).filter((recommendation) => {
-    if (seenDocuments.has(recommendation.documentId))
-      return false;
-    seenDocuments.add(recommendation.documentId);
-    return true;
-  }).slice(0, KNOWLEDGE_RELATION_LIMITS.maximumRecommendations).map(({ seedRank: _seedRank, ...recommendation }) => recommendation);
-  const core = {
-    schemaVersion: 1,
-    sourceSnapshotId: input.sourceSnapshotId,
-    impactReportId: input.impactReportId,
-    conceptSidecarSetHash: input.conceptSidecarSetHash,
-    relationSidecarSetHash: input.relationSidecarSetHash,
-    seedConceptIds,
-    limits: KNOWLEDGE_RELATION_LIMITS,
-    examinedRelationCount: examined.length,
-    truncated: incident.length > examined.length,
-    recommendations
-  };
-  return { ...core, projectionId: stableId("krelproj", core) };
-}
-
-// packages/repository-knowledge/dist/query.js
-function terms(value) {
-  return [
-    ...new Set(value.normalize("NFKC").toLocaleLowerCase().match(/[\p{L}\p{N}]{2,}/gu) ?? [])
-  ];
-}
-function textTerms(value) {
-  return new Set(terms(value));
-}
-function hasLexicalTerm(values, term) {
-  if (values.has(term))
-    return true;
-  return /^[\uAC00-\uD7A3]{2,}$/u.test(term) && [...values].some((value) => value.startsWith(term));
-}
-async function queryRepositoryKnowledge(input) {
-  const root2 = resolve33(input.repositoryRoot);
-  await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root2 });
-  const project2 = await loadProjectManifest(root2);
-  const policy = await loadRepositoryKnowledgePolicy(root2);
-  const generated = await generatedKnowledgePaths(root2);
-  const scan = await scanRepositoryKnowledge({
-    repositoryRoot: root2,
-    projectId: project2.projectId,
-    policy,
-    generatedPaths: generated,
-    ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources }
-  });
-  const currentUnits = new Set(scan.units.map((unit2) => unit2.unitVersionId));
-  const impact = await analyzeRepositoryKnowledgeImpact({ repositoryRoot: root2, scan });
-  const conceptImpact = new Map(impact.items.filter((item) => item.subjectKind === "concept").map((item) => [item.subjectId, item.freshness]));
-  const queryTerms = terms(input.query);
-  const hits = [];
-  const resolvedConcepts = [];
-  const claimsByConcept = /* @__PURE__ */ new Map();
-  for (const stored of await loadStoredClaims(root2)) {
-    if (stored.value === null)
-      continue;
-    const values = claimsByConcept.get(stored.value.conceptId) ?? [];
-    values.push(stored.value);
-    claimsByConcept.set(stored.value.conceptId, values);
-  }
-  const storedConcepts = await loadStoredConcepts(root2);
-  const storedRelations = await loadStoredRelations(root2);
-  for (const stored of storedConcepts) {
-    const concept = stored.value;
-    if (concept === null)
-      continue;
-    if (concept.publicationStatus === "deprecated")
-      continue;
-    let content3;
-    let contentHash2;
-    try {
-      const bytes = await readSafePublication(root2, concept.path, Math.min(policy.limits.maxFileBytes, 131072));
-      if (bytes === null)
-        continue;
-      content3 = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-      contentHash2 = sha2562(bytes);
-    } catch {
-      continue;
-    }
-    const linkedClaims = claimsByConcept.get(concept.conceptId) ?? [];
-    const titleTerms = textTerms(concept.title);
-    const pathTerms = textTerms(concept.path);
-    const bodyTerms = textTerms(`${content3}
-${linkedClaims.map((claim) => claim.statement).join("\n")}`);
-    const assurance = linkedClaims.length > 0 || concept.assurance === "human_reviewed" ? "human_reviewed" : "unreviewed";
-    const freshness = conceptImpact.get(concept.conceptId) ?? (concept.sourceUnitVersionIds.length === 0 ? "unknown" : concept.sourceUnitVersionIds.every((id) => currentUnits.has(id)) ? "current" : "stale");
-    resolvedConcepts.push({
-      conceptId: concept.conceptId,
-      path: concept.path,
-      contentHash: contentHash2,
-      assurance,
-      freshness,
-      deprecated: false
-    });
-    const matchedTerms = queryTerms.filter((term) => hasLexicalTerm(titleTerms, term) || hasLexicalTerm(pathTerms, term) || hasLexicalTerm(bodyTerms, term));
-    if (matchedTerms.length === 0)
-      continue;
-    const score = matchedTerms.reduce((total, term) => total + (hasLexicalTerm(titleTerms, term) ? 8 : 0) + (hasLexicalTerm(pathTerms, term) ? 4 : 0) + (hasLexicalTerm(bodyTerms, term) ? 1 : 0), 0);
-    hits.push({
-      conceptId: concept.conceptId,
-      title: concept.title,
-      path: concept.path,
-      ownership: concept.ownership,
-      score,
-      matchedTerms,
-      assurance,
-      freshness,
-      contentHash: contentHash2
-    });
-  }
-  hits.sort((left, right) => right.score - left.score || left.path.localeCompare(right.path));
-  const conceptSidecarSetHash = sha2562(JSON.stringify(await Promise.all(storedConcepts.map(async (stored) => {
-    const bytes = await readSafePublication(root2, stored.file, 256 * 1024);
-    return [stored.file, bytes === null ? "unreadable" : sha2562(bytes)];
-  }))));
-  const relationSidecarSetHash = sha2562(JSON.stringify(await Promise.all(storedRelations.map(async (stored) => {
-    const bytes = await readSafePublication(root2, stored.file, 256 * 1024);
-    return [stored.file, bytes === null ? "unreadable" : sha2562(bytes)];
-  }))));
-  const strongestScore = hits[0]?.score ?? 0;
-  const relativeRelevanceFloor = Math.max(1, Math.ceil(strongestScore / 10));
-  const selectedHits = hits.filter((hit) => hit.score >= relativeRelevanceFloor).slice(0, input.limit ?? 20);
-  return {
-    schemaVersion: 1,
-    query: input.query,
-    semantics: "recommended",
-    sourceSnapshotId: scan.snapshotId,
-    impactReportId: impact.reportId,
-    hits: selectedHits,
-    relationProjection: projectKnowledgeRelations({
-      sourceSnapshotId: scan.snapshotId,
-      impactReportId: impact.reportId,
-      conceptSidecarSetHash,
-      relationSidecarSetHash,
-      seedConceptIds: selectedHits.map((hit) => hit.conceptId),
-      concepts: resolvedConcepts,
-      relations: storedRelations.flatMap((stored) => stored.value === null ? [] : [stored.value]),
-      ...input.documentRegistry === void 0 ? {} : { documentRegistry: input.documentRegistry }
-    })
-  };
-}
-
-// packages/repository-knowledge/dist/projection-ignore.js
-import { lstat as lstat23, readFile as readFile15 } from "node:fs/promises";
-import { resolve as resolve34 } from "node:path";
-var BEGIN = "# lervo:begin rebuildable-knowledge schema=1";
-var END = "# lervo:end rebuildable-knowledge";
-function normalizedRule(publicationRoot) {
-  const root2 = publicationRoot.replace(/^\.\//u, "").replace(/\/+$/u, "");
-  if (root2.length === 0 || root2.startsWith("/") || root2.split("/").includes(".."))
-    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The rebuildable publication root cannot be represented safely in .gitignore.");
-  return `${root2}/`;
-}
-function project(current, rule2) {
-  const content3 = current ?? "";
-  const begin = content3.indexOf(BEGIN);
-  const end = content3.indexOf(END);
-  if (begin === -1 !== (end === -1) || begin !== -1 && end < begin)
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The rebuildable knowledge ignore block is malformed.");
-  const block = `${BEGIN}
-${rule2}
-${END}
-`;
-  if (begin === -1)
-    return `${content3}${content3.length === 0 || content3.endsWith("\n") ? "" : "\n"}${block}`;
-  const afterEnd = end + END.length;
-  return `${content3.slice(0, begin)}${block}${content3.slice(afterEnd).replace(/^\n/u, "")}`;
-}
-async function projectRebuildableKnowledgeIgnore(input) {
-  const path = resolve34(input.repositoryRoot, ".gitignore");
-  let beforeContent = null;
-  try {
-    const stats = await lstat23(path);
-    if (!stats.isFile() || stats.isSymbolicLink())
-      throw new RepositoryKnowledgeError("knowledge_source_unsafe", ".gitignore is not a safe regular file.");
-    beforeContent = await readFile15(path, "utf8");
-  } catch (error) {
-    if (error.code !== "ENOENT")
-      throw error;
-  }
-  const afterContent = project(beforeContent, normalizedRule(input.publicationRoot));
-  return {
-    path: ".gitignore",
-    beforeContent,
-    afterContent,
-    beforeHash: beforeContent === null ? null : sha2562(beforeContent),
-    afterHash: sha2562(afterContent),
-    changed: beforeContent !== afterContent
-  };
-}
-
-// packages/repository-knowledge/dist/reconciliation-review.js
-var import_yaml23 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/repository-layout-migration.js
-import { constants as constants10 } from "node:fs";
-import { lstat as lstat24, open as open12, readFile as readFile16 } from "node:fs/promises";
-import { basename as basename9, posix as posix6, resolve as resolve35 } from "node:path";
-var import_yaml24 = __toESM(require_dist(), 1);
-var ECOSYSTEM_ROOT_ENTRYPOINTS = /* @__PURE__ */ new Set([
-  "CONTRIBUTING.md",
-  "SECURITY.md",
-  "CHANGELOG.md",
-  "CODE_OF_CONDUCT.md"
-]);
-function mediaTypeFor(source) {
-  if (/\.mdx?$/iu.test(source.path))
-    return "text/markdown";
-  if (/\.json$/iu.test(source.path))
-    return "application/json";
-  if (/\.ya?ml$/iu.test(source.path))
-    return "application/yaml";
-  if (/\.[cm]?js$/iu.test(source.path))
-    return "text/javascript";
-  if (/\.[cm]?tsx?$/iu.test(source.path))
-    return "text/typescript";
-  return "text/plain";
-}
-function classifiedRootDestination(path, content3, taxonomy) {
-  const roles = [...taxonomy.documentPolicy.roles, ...providerSurfaceRoles()];
-  const protectedPaths = new Set(roles.map((role) => role.path).filter((rolePath2) => !rolePath2.includes("/")));
-  if (path.includes("/") || protectedPaths.has(path) || ECOSYSTEM_ROOT_ENTRYPOINTS.has(path) || !/\.md$/iu.test(path))
-    return null;
-  const rolePath = (roleId) => taxonomy.documentPolicy.roles.find((role) => role.roleId === roleId)?.path ?? null;
-  const stem = basename9(path, ".md").toUpperCase();
-  const heading = /^#\s+(.+)$/mu.exec(content3)?.[1]?.trim().toLowerCase() ?? "";
-  const visionPath = rolePath("product_vision");
-  if (visionPath !== null && /(?:^|_)VISION$/u.test(stem) && /(?:vision|\uBE44\uC804)/u.test(heading))
-    return {
-      toPath: visionPath,
-      classification: "product",
-      reason: "recognized_root_document_role"
-    };
-  const architecturePath = rolePath("system_architecture");
-  if (architecturePath !== null && /(?:^|_)ARCHITECTURE$/u.test(stem) && /(?:architecture|\uC544\uD0A4\uD14D\uCC98|\uAD6C\uC870)/u.test(heading))
-    return {
-      toPath: architecturePath,
-      classification: "architecture",
-      reason: "recognized_root_document_role"
-    };
-  const executionPath = rolePath("execution_specification");
-  if (executionPath !== null && /(?:^|_)EXECUTION_SPEC$/u.test(stem) && /(?:(?:execution|\uC2E4\uD589).*(?:spec|\uADDC\uACA9)|(?:spec|\uADDC\uACA9).*(?:execution|\uC2E4\uD589))/u.test(heading))
-    return {
-      toPath: executionPath,
-      classification: "specification",
-      reason: "recognized_root_document_role"
-    };
-  const versionedPlan = /(?:^|_)V(\d+)_PLAN$/u.exec(stem);
-  if (versionedPlan !== null && /(?:plan|\uACC4\uD68D|roadmap|\uB85C\uB4DC\uB9F5)/u.test(heading))
-    return {
-      toPath: `docs/roadmap/v${versionedPlan[1]}.md`,
-      classification: "roadmap",
-      reason: "recognized_root_document_role"
-    };
-  const roadmapPath = rolePath("delivery_roadmap");
-  if (roadmapPath !== null && /(?:^|_)ROADMAP$/u.test(stem) && /(?:roadmap|\uB85C\uB4DC\uB9F5|\uACC4\uD68D)/u.test(heading))
-    return {
-      toPath: roadmapPath,
-      classification: "roadmap",
-      reason: "recognized_root_document_role"
-    };
-  return null;
-}
-async function safeFile(path, maximumBytes2 = 256 * 1024) {
-  let handle;
-  try {
-    handle = await open12(path, constants10.O_RDONLY | (constants10.O_NOFOLLOW ?? 0));
-    const before = await handle.stat();
-    if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes2)
-      throw new Error("unsafe registry item");
-    const bytes = await handle.readFile();
-    const after = await handle.stat();
-    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size)
-      throw new Error("registry changed");
-    return { contentHash: sha2562(bytes), byteCount: bytes.byteLength };
-  } catch {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The knowledge registry cannot be read safely.");
-  } finally {
-    await handle?.close();
-  }
-}
-async function machineArtifactMoves(root2) {
-  const registries = [
-    {
-      directory: ".lervo/knowledge/bundles",
-      extension: "yaml",
-      registry: "bundles",
-      maximumBytes: 1024 * 1024
-    },
-    {
-      directory: ".lervo/knowledge/concepts",
-      extension: "yaml",
-      registry: "concepts",
-      maximumBytes: 1024 * 1024
-    },
-    {
-      directory: ".lervo/knowledge/claims",
-      extension: "yaml",
-      registry: "claims",
-      maximumBytes: 1024 * 1024
-    },
-    {
-      directory: ".lervo/knowledge/relations",
-      extension: "yaml",
-      registry: "relations",
-      maximumBytes: 1024 * 1024
-    },
-    {
-      directory: ".lervo/knowledge/source-lineage",
-      extension: "yaml",
-      registry: "source_lineage",
-      maximumBytes: 1024 * 1024
-    },
-    {
-      directory: ".lervo/knowledge/instruction-bridges",
-      extension: "yaml",
-      registry: "instruction_bridges",
-      maximumBytes: 1024 * 1024
-    },
-    {
-      directory: ".lervo/knowledge/document-normalizations",
-      extension: "yaml",
-      registry: "document_normalizations",
-      maximumBytes: 1024 * 1024
-    },
-    {
-      directory: ".lervo/generated/semantic-manifests",
-      extension: "json",
-      registry: "semantic_manifests",
-      maximumBytes: 16 * 1024 * 1024
-    },
-    {
-      directory: ".lervo/state/knowledge/candidates",
-      extension: "json",
-      registry: "candidates",
-      maximumBytes: 32 * 1024 * 1024
-    }
-  ];
-  const moves = [];
-  for (const item of registries) {
-    const paths = await listKnowledgeArtifactPaths({
-      root: root2,
-      directory: item.directory,
-      extension: item.extension,
-      maximumFiles: 2e4
-    });
-    for (const fromPath of paths.filter((path) => !path.slice(item.directory.length + 1).includes("/"))) {
-      const name2 = fromPath.split("/").at(-1);
-      const id = name2.slice(0, -(item.extension.length + 1));
-      const toPath = shardedKnowledgeArtifactPath(item.directory, id, item.extension);
-      const file = await safeFile(resolve35(root2, fromPath), item.maximumBytes);
-      moves.push({ fromPath, toPath, ...file, registry: item.registry });
-    }
-  }
-  return moves.sort((left, right) => left.fromPath.localeCompare(right.fromPath));
-}
-async function normalizationOwnershipUpgradeOperations(root2) {
-  const operations = [];
-  const paths = await listKnowledgeArtifactPaths({
-    root: root2,
-    directory: ".lervo/knowledge/document-normalizations",
-    extension: "yaml",
-    maximumFiles: 2e4
-  });
-  for (const path of paths) {
-    const source = await readFile16(resolve35(root2, path), "utf8");
-    const value = (0, import_yaml24.parse)(source);
-    if (value.schemaVersion !== 1)
-      continue;
-    const content3 = (0, import_yaml24.stringify)({
-      ...value,
-      schemaVersion: 2,
-      byteOwnership: { owner: "reviewer", rewritePolicy: "reviewed_exact" }
-    }, { lineWidth: 0, sortMapEntries: true });
-    operations.push({
-      path,
-      action: "update",
-      ownership: "lervo_generated",
-      mediaType: "application/yaml",
-      content: content3,
-      expectedCurrentHash: sha2562(source),
-      desiredHash: sha2562(content3),
-      reason: "upgrade_document_rewrite_ownership"
-    });
-  }
-  return operations;
-}
-async function exists2(path) {
-  try {
-    await lstat24(path);
-    return true;
-  } catch (error) {
-    if (error.code === "ENOENT")
-      return false;
-    throw error;
-  }
-}
-function replaceAllLiteral(content3, from, to) {
-  if (from.length === 0 || from === to)
-    return { content: content3, count: 0 };
-  const parts = content3.split(from);
-  return parts.length === 1 ? { content: content3, count: 0 } : { content: parts.join(to), count: parts.length - 1 };
-}
-function rewriteReferences(sourcePath, content3, moves) {
-  let output = content3;
-  let count = 0;
-  const sourceDirectory = posix6.dirname(sourcePath);
-  for (const move of moves) {
-    const fromRelative = posix6.relative(sourceDirectory, move.fromPath);
-    const toRelative = posix6.relative(sourceDirectory, move.toPath);
-    const variants = [
-      ...fromRelative.startsWith(".") ? [[fromRelative, toRelative]] : [
-        [`./${fromRelative}`, `./${toRelative}`],
-        [fromRelative, toRelative]
-      ]
-    ];
-    if (move.fromPath !== fromRelative)
-      variants.push([move.fromPath, move.toPath]);
-    for (const [from, to] of variants) {
-      const replaced = replaceAllLiteral(output, from, to);
-      output = replaced.content;
-      count += replaced.count;
-    }
-  }
-  return { content: output, count };
-}
-function rebaseMarkdownLinks(content3, fromPath, toPath) {
-  const tree = fromMarkdown(content3);
-  const replacements = [];
-  const visit2 = (node2) => {
-    if ((node2.type === "link" || node2.type === "image" || node2.type === "definition") && typeof node2.url === "string" && node2.url.length > 0 && !/^(?:[a-z][a-z0-9+.-]*:|\/|#)/iu.test(node2.url)) {
-      const match = /^([^?#]*)([?#].*)?$/u.exec(node2.url);
-      const relativeTarget = match?.[1] ?? "";
-      if (relativeTarget.length > 0) {
-        const absoluteTarget = posix6.normalize(posix6.join(posix6.dirname(fromPath), relativeTarget));
-        let rebased = posix6.relative(posix6.dirname(toPath), absoluteTarget);
-        if (!rebased.startsWith("."))
-          rebased = `./${rebased}`;
-        rebased += match?.[2] ?? "";
-        if (rebased !== node2.url) {
-          const start = node2.position?.start?.offset;
-          const end = node2.position?.end?.offset;
-          if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end))
-            throw new RepositoryKnowledgeError("knowledge_unit_extraction_failed", "The Markdown reference coordinates cannot be determined.");
-          const slice2 = content3.slice(start, end);
-          const destinationMarker = node2.type === "definition" ? "]:" : "](";
-          const marker = slice2.indexOf(destinationMarker);
-          const local = marker < 0 ? -1 : slice2.indexOf(node2.url, marker + destinationMarker.length);
-          if (local < 0)
-            throw new RepositoryKnowledgeError("knowledge_unit_extraction_failed", "The Markdown reference destination cannot be determined.");
-          replacements.push({
-            start: start + local,
-            end: start + local + node2.url.length,
-            value: rebased
-          });
-        }
-      }
-    }
-    for (const child of node2.children ?? [])
-      visit2(child);
-  };
-  visit2(tree);
-  let output = content3;
-  for (const replacement of replacements.sort((left, right) => right.start - left.start))
-    output = `${output.slice(0, replacement.start)}${replacement.value}${output.slice(replacement.end)}`;
-  return { content: output, count: replacements.length };
-}
-function withoutContent(operation) {
-  return operation.action === "move" ? operation : (({ content: _content, ...item }) => item)(operation);
-}
-async function createRepositoryLayoutMigrationPlan(input) {
-  const root2 = resolve35(input.repositoryRoot);
-  const taxonomyPath = resolve35(root2, ".lervo/knowledge/document-layout.yaml");
-  const taxonomySource = await readFile16(taxonomyPath, "utf8");
-  const [{ policy, scan }, storedConcepts, generatedPaths, taxonomy] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(root2, {
-      ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources },
-      ...input.preparedScan === void 0 ? {} : { preparedScan: input.preparedScan }
-    }),
-    loadStoredConcepts(root2),
-    recordedGeneratedKnowledgePaths(root2),
-    loadDecisionTaxonomy(root2)
-  ]);
-  if (storedConcepts.some((item) => item.value === null))
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The knowledge concept registry is incomplete.", {
-      code: "knowledge_concept_registry_incomplete",
-      message: "The knowledge concept registry is incomplete."
-    });
-  const classificationBlockers = [];
-  const candidates = scan.sources.flatMap((source) => {
-    if (source.status !== "included" || source.contentHash === null || source.content === void 0)
-      return [];
-    const includedSource2 = source;
-    const claudeSkill = /^(?:.*\/)?\.claude\/skills\/([^/]+)\/(.+)$/u.exec(source.path);
-    if (claudeSkill !== null)
-      return [
-        {
-          source: includedSource2,
-          toPath: `.agents/skills/${claudeSkill[1]}/${claudeSkill[2]}`,
-          classification: "skill",
-          reason: "normalized_portable_skill"
-        }
-      ];
-    const instruction = classifyClaudeRule(source.path, source.content, taxonomy);
-    if (instruction.kind === "blocked") {
-      classificationBlockers.push({
-        ...instruction.blocker,
-        pathDigest: sha2562(instruction.blocker.path)
-      });
-      return [];
-    }
-    if (instruction.kind === "classified")
-      return [
-        {
-          source: includedSource2,
-          ...instruction.route.destination,
-          instructionPaths: instruction.route.paths,
-          classification: "instruction",
-          reason: "normalized_provider_instruction"
-        }
-      ];
-    if (source.kind !== "documentation")
-      return [];
-    const decision = classifyFlatDecision(source.path, source.content, taxonomy);
-    if (decision.kind === "blocked") {
-      classificationBlockers.push({
-        ...decision.blocker,
-        pathDigest: sha2562(decision.blocker.path)
-      });
-      return [];
-    }
-    if (decision.kind === "classified")
-      return [
-        {
-          source: includedSource2,
-          ...decision.destination,
-          classification: "decision",
-          reason: "recognized_decision_document"
-        }
-      ];
-    const classification = classifiedRootDestination(source.path, source.content, taxonomy);
-    if (classification !== null)
-      return [{ source: includedSource2, ...classification }];
-    const document4 = classifyRepositoryDocument(source.path, source.content, taxonomy);
-    if (document4.kind === "blocked") {
-      classificationBlockers.push({
-        ...document4.blocker,
-        pathDigest: sha2562(document4.blocker.path)
-      });
-      return [];
-    }
-    return document4.kind === "classified" ? [
-      {
-        source: includedSource2,
-        ...document4.destination,
-        classification: "document",
-        reason: "classified_repository_document"
-      }
-    ] : [];
-  }).sort((left, right) => left.source.path.localeCompare(right.source.path));
-  const repairableDecisionPaths = /* @__PURE__ */ new Set();
-  const lineage = await loadDocumentMoveLineages({
-    repositoryRoot: root2,
-    projectId: scan.projectId
-  });
-  const includedSources = new Map(scan.sources.flatMap((source) => source.status === "included" && source.content !== void 0 && source.contentHash !== null ? [
-    [
-      source.path,
-      source
-    ]
-  ] : []));
-  const allowedRoutePaths = new Set(taxonomy.routes.map((route) => route.path));
-  for (const record3 of lineage.records.filter((item) => item.activeTerminal)) {
-    const name2 = basename9(record3.value.toPath);
-    const cameFromLegacyFlatRoot = taxonomy.legacyRoots.some((legacyRoot) => record3.value.identityPath === `${legacyRoot}/${name2}`);
-    const canonicalPrefix = `${taxonomy.decisionRoot}/`;
-    if (!cameFromLegacyFlatRoot || !record3.value.toPath.startsWith(canonicalPrefix))
-      continue;
-    const relativeDestination = record3.value.toPath.slice(canonicalPrefix.length);
-    const currentRoutePath = relativeDestination.slice(0, relativeDestination.lastIndexOf("/"));
-    const isRetiredRoute = !allowedRoutePaths.has(currentRoutePath);
-    const isPreviousDefaultFallback = taxonomy.taxonomyId === "decisions.default" && currentRoutePath === "foundation";
-    if (!isRetiredRoute && !isPreviousDefaultFallback)
-      continue;
-    const source = includedSources.get(record3.value.toPath);
-    if (source === void 0)
-      continue;
-    const reclassified = classifyFlatDecision(record3.value.identityPath, source.content, taxonomy);
-    if (reclassified.kind !== "classified" || reclassified.destination.toPath === source.path)
-      continue;
-    candidates.push({
-      source,
-      ...reclassified.destination,
-      classification: "decision",
-      reason: "recognized_decision_document"
-    });
-    repairableDecisionPaths.add(source.path);
-  }
-  candidates.sort((left, right) => left.source.path.localeCompare(right.source.path));
-  const destinationCounts = /* @__PURE__ */ new Map();
-  for (const item of candidates)
-    destinationCounts.set(item.toPath, (destinationCounts.get(item.toPath) ?? 0) + 1);
-  const blockers = [
-    ...classificationBlockers,
-    ...inspectGroupedDecisionPaths(scan.sources.map((source) => source.path), taxonomy).filter((blocker) => blocker.code !== "unknown_decision_route" || !repairableDecisionPaths.has(blocker.path)).map((blocker) => ({ ...blocker, pathDigest: sha2562(blocker.path) }))
-  ];
-  const blockedDestinations = /* @__PURE__ */ new Set();
-  for (const item of candidates) {
-    if ((destinationCounts.get(item.toPath) ?? 0) > 1) {
-      blockers.push({ code: "ambiguous_destination", pathDigest: sha2562(item.toPath) });
-      blockedDestinations.add(item.toPath);
-    } else if (scan.sources.some((source) => source.path === item.toPath) || generatedPaths.has(item.toPath) || await exists2(resolve35(root2, item.toPath))) {
-      blockers.push({ code: "destination_exists", pathDigest: sha2562(item.toPath) });
-      blockedDestinations.add(item.toPath);
-    } else if (!repositoryPathCanRemainIncluded(item.toPath, policy)) {
-      blockers.push({ code: "destination_exists", pathDigest: sha2562(item.toPath) });
-      blockedDestinations.add(item.toPath);
-    }
-  }
-  const executableCandidates = candidates.filter((item) => !blockedDestinations.has(item.toPath));
-  const movePaths = executableCandidates.map(({ source, toPath }) => ({
-    fromPath: source.path,
-    toPath
-  }));
-  const referenceChanges = /* @__PURE__ */ new Map();
-  const movedContentChanges = /* @__PURE__ */ new Map();
-  for (const source of scan.sources) {
-    if (source.status !== "included" || source.content === void 0 || source.contentHash === null || generatedPaths.has(source.path) || bytePreservedDocumentCollection(source.path, taxonomy) || source.path.startsWith(".lervo/") || source.path.startsWith("knowledge/"))
-      continue;
-    const move = movePaths.find((item) => item.fromPath === source.path);
-    const rebased = move === void 0 ? { content: source.content, count: 0 } : rebaseMarkdownLinks(source.content, source.path, move.toPath);
-    const rewritten = rewriteReferences(move?.toPath ?? source.path, rebased.content, movePaths);
-    rewritten.count += rebased.count;
-    if (rewritten.count === 0)
-      continue;
-    if (move !== void 0)
-      movedContentChanges.set(source.path, rewritten);
-    else
-      referenceChanges.set(source.path, {
-        source,
-        content: rewritten.content,
-        count: rewritten.count
-      });
-  }
-  const instructionCandidates = executableCandidates.filter((item) => item.classification === "instruction");
-  const existingInstructions = scan.sources.flatMap((source) => source.status === "included" && source.content !== void 0 && source.contentHash !== null && source.path.startsWith("docs/instructions/") && source.path.endsWith(".md") ? [{ toPath: source.path, instructionPaths: repositoryInstructionPaths(source.content) }] : []);
-  const skillCandidates = executableCandidates.filter((item) => item.classification === "skill" && item.toPath.endsWith("/SKILL.md"));
-  const existingSkills = scan.sources.flatMap((source) => source.status === "included" && source.path.startsWith(".agents/skills/") && source.path.endsWith("/SKILL.md") ? [{ toPath: source.path }] : []);
-  const routedInstructions = instructionCandidates.length > 0 ? instructionCandidates : existingInstructions;
-  const routedSkills = skillCandidates.length > 0 ? skillCandidates : existingSkills;
-  let managedAgentRouteOperation = null;
-  const agents = scan.sources.find((source) => source.path === "AGENTS.md" && source.status === "included" && source.content !== void 0 && source.contentHash !== null);
-  if (agents === void 0 && (routedInstructions.length > 0 || routedSkills.length > 0)) {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "Provider instruction normalization requires a canonical AGENTS.md source.");
-  }
-  if (agents !== void 0) {
-    const block = repositoryInstructionRouteBlock({
-      instructions: routedInstructions.map((item) => ({
-        path: item.toPath,
-        instructionPaths: item.instructionPaths ?? []
-      })),
-      skills: routedSkills.map((item) => ({ path: item.toPath }))
-    });
-    const blockPattern = /<!-- lervo:begin block=repository_instruction_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n?/gu;
-    const legacyPatternBlock = /\n?<!-- lervo:begin block=development_pattern_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=development_pattern_routes -->\n?/u;
-    const existing = referenceChanges.get("AGENTS.md");
-    const baseContent = (existing?.content ?? agents.content).replace(legacyPatternBlock, "");
-    const existingBlocks = baseContent.match(blockPattern) ?? [];
-    let replacedBlock = false;
-    const combined = existingBlocks.length > 0 ? baseContent.replace(blockPattern, () => {
-      if (replacedBlock)
-        return "";
-      replacedBlock = true;
-      return block;
-    }) : `${baseContent}${baseContent.endsWith("\n\n") ? "" : baseContent.endsWith("\n") ? "\n" : "\n\n"}${block}`;
-    if (combined !== agents.content) {
-      if (existing === void 0 && (agents.content.match(blockPattern)?.length ?? 0) > 0) {
-        managedAgentRouteOperation = {
-          path: "AGENTS.md",
-          action: "update",
-          ownership: "managed_blocks",
-          mediaType: "text/markdown",
-          content: combined,
-          expectedCurrentHash: agents.contentHash,
-          desiredHash: sha2562(combined),
-          reason: "refresh_instruction_registry_bootstrap"
-        };
-      } else {
-        referenceChanges.set("AGENTS.md", {
-          source: agents,
-          content: combined,
-          count: (existing?.count ?? 0) + 1
-        });
-      }
-    }
-  }
-  const registryMaterials = await Promise.all(storedConcepts.map(async (item) => ({
-    file: item.file,
-    contentHash: (await safeFile(resolve35(root2, item.file))).contentHash
-  })));
-  registryMaterials.sort((left, right) => left.file.localeCompare(right.file));
-  const registryDigest2 = sha2562(canonicalJson3(registryMaterials));
-  let virtualScan = scan;
-  for (const [path, change] of [...movedContentChanges].sort(([left], [right]) => left.localeCompare(right))) {
-    virtualScan = upsertRepositoryKnowledgeScanSource({
-      scan: virtualScan,
-      path,
-      content: change.content
-    });
-  }
-  for (const change of [...referenceChanges.values()].sort((left, right) => left.source.path.localeCompare(right.source.path))) {
-    virtualScan = upsertRepositoryKnowledgeScanSource({
-      scan: virtualScan,
-      path: change.source.path,
-      content: change.content
-    });
-  }
-  if (managedAgentRouteOperation?.content !== void 0) {
-    virtualScan = upsertRepositoryKnowledgeScanSource({
-      scan: virtualScan,
-      path: "AGENTS.md",
-      content: managedAgentRouteOperation.content
-    });
-  }
-  const moves = [];
-  const lineageOperations = [];
-  const moveOperations = [];
-  const referenceApprovalBindings = [...referenceChanges.values()].sort((left, right) => left.source.path.localeCompare(right.source.path)).map((change) => ({
-    path: change.source.path,
-    beforeHash: change.source.contentHash,
-    afterHash: sha2562(change.content),
-    replacementCount: change.count
-  }));
-  for (const item of executableCandidates) {
-    const changedContent = movedContentChanges.get(item.source.path);
-    const destinationContentHash = changedContent === void 0 ? item.source.contentHash : sha2562(changedContent.content);
-    const sourceUnits = virtualScan.units.filter((unit2) => unit2.sourceId === item.source.sourceId);
-    const preservedConceptIds = storedConcepts.filter((stored) => stored.value?.path === item.source.path && stored.value.ownership === "user" && stored.value.publicationStatus !== "deprecated").map((stored) => stored.value.conceptId).sort();
-    if (preservedConceptIds.length > 1 || sourceUnits.length < 1 || sourceUnits.length > 16384)
-      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The layout migration source identity is ambiguous.");
-    const operationId = stableId("kdocop", {
-      projectId: scan.projectId,
-      action: "layout_move",
-      sourceId: item.source.sourceId,
-      fromPath: item.source.path,
-      toPath: item.toPath,
-      contentHash: item.source.contentHash,
-      destinationContentHash,
-      sourceUnitIds: sourceUnits.map((unit2) => unit2.unitId).sort()
-    });
-    const lineage2 = createDocumentMoveLineage({
-      projectId: scan.projectId,
-      operationId,
-      fromPath: item.source.path,
-      toPath: item.toPath,
-      identityPath: item.source.identityPath ?? item.source.path,
-      sourceId: item.source.sourceId,
-      sourceContentHash: destinationContentHash,
-      sourceUnitIds: sourceUnits.map((unit2) => unit2.unitId)
-    });
-    const approvalHash = sha2562(canonicalJson3({
-      operationId,
-      action: "move_user_document",
-      source: {
-        path: item.source.path,
-        contentHash: item.source.contentHash,
-        byteCount: item.source.byteCount
-      },
-      destination: { path: item.toPath, contentHash: destinationContentHash },
-      lineageId: lineage2.value.lineageId,
-      referenceUpdates: referenceApprovalBindings
-    }));
-    moves.push({
-      operationId,
-      approvalHash,
-      fromPath: item.source.path,
-      toPath: item.toPath,
-      contentHash: item.source.contentHash,
-      destinationContentHash,
-      byteCount: item.source.byteCount,
-      preservedConceptIds,
-      lineageId: lineage2.value.lineageId,
-      classification: item.classification,
-      ...item.group === void 0 ? {} : { group: item.group },
-      ...item.subgroup === void 0 ? {} : { subgroup: item.subgroup },
-      ...item.routeId === void 0 ? {} : { routeId: item.routeId },
-      ...item.classificationBasis === void 0 ? {} : { classificationBasis: item.classificationBasis },
-      ...item.matchedTitleTerms === void 0 ? {} : { matchedTitleTerms: item.matchedTitleTerms },
-      reason: item.reason
-    });
-    lineageOperations.push({
-      path: lineage2.file,
-      action: "create",
-      ownership: "lervo_generated",
-      mediaType: "application/yaml",
-      content: lineage2.content,
-      desiredHash: sha2562(lineage2.content)
-    });
-    moveOperations.push(changedContent === void 0 ? {
-      path: item.source.path,
-      destinationPath: item.toPath,
-      action: "move",
-      expectedCurrentHash: item.source.contentHash
-    } : {
-      path: item.source.path,
-      destinationPath: item.toPath,
-      action: "move_update",
-      ownership: "user",
-      mediaType: "text/markdown",
-      expectedCurrentHash: item.source.contentHash,
-      desiredHash: destinationContentHash,
-      content: changedContent.content
-    });
-    virtualScan = relocateRepositoryKnowledgeScanSource({
-      scan: virtualScan,
-      fromPath: item.source.path,
-      toPath: item.toPath
-    });
-  }
-  const referenceOperations = [...referenceChanges.values()].sort((left, right) => left.source.path.localeCompare(right.source.path)).map((change) => ({
-    path: change.source.path,
-    action: "update",
-    ownership: "user",
-    mediaType: mediaTypeFor(change.source),
-    content: change.content,
-    expectedCurrentHash: change.source.contentHash,
-    desiredHash: sha2562(change.content)
-  }));
-  const referenceUserUpdates = moves.length === 0 ? referenceOperations.map((operation) => {
-    const operationId = stableId("kdocop", {
-      projectId: scan.projectId,
-      action: "refresh_instruction_routes",
-      path: operation.path,
-      beforeHash: operation.expectedCurrentHash,
-      afterHash: operation.desiredHash
-    });
-    return {
-      operationId,
-      approvalHash: sha2562(canonicalJson3({
-        operationId,
-        action: "update_user_document",
-        path: operation.path,
-        beforeHash: operation.expectedCurrentHash,
-        afterHash: operation.desiredHash
-      })),
-      path: operation.path,
-      beforeHash: operation.expectedCurrentHash,
-      afterHash: operation.desiredHash,
-      reason: operation.path === "AGENTS.md" ? "refresh_instruction_routes" : "normalize_agent_surface_references"
-    };
-  }) : [];
-  const publicationIgnore = await projectRebuildableKnowledgeIgnore({
-    repositoryRoot: root2,
-    publicationRoot: policy.publicationRoot
-  });
-  const publicationIgnoreOperations = publicationIgnore.changed ? [
-    {
-      path: publicationIgnore.path,
-      action: publicationIgnore.beforeContent === null ? "create" : "update",
-      ownership: "user",
-      mediaType: "text/plain",
-      content: publicationIgnore.afterContent,
-      ...publicationIgnore.beforeHash === null ? {} : { expectedCurrentHash: publicationIgnore.beforeHash },
-      desiredHash: publicationIgnore.afterHash
-    }
-  ] : [];
-  const publicationIgnoreUserUpdates = publicationIgnore.changed ? (() => {
-    const operationId = stableId("kdocop", {
-      projectId: scan.projectId,
-      action: "exclude_rebuildable_publications",
-      path: publicationIgnore.path,
-      beforeHash: publicationIgnore.beforeHash,
-      afterHash: publicationIgnore.afterHash
-    });
-    return [
-      {
-        operationId,
-        approvalHash: sha2562(canonicalJson3({
-          operationId,
-          action: "write_user_configuration",
-          path: publicationIgnore.path,
-          beforeHash: publicationIgnore.beforeHash,
-          afterHash: publicationIgnore.afterHash
-        })),
-        path: publicationIgnore.path,
-        beforeHash: publicationIgnore.beforeHash,
-        afterHash: publicationIgnore.afterHash,
-        reason: "exclude_rebuildable_publications"
-      }
-    ];
-  })() : [];
-  const userUpdates = [...referenceUserUpdates, ...publicationIgnoreUserUpdates];
-  const normalizationOwnershipOperations = await normalizationOwnershipUpgradeOperations(root2);
-  const taxonomyUpgradeOperation = decisionTaxonomyRequiresUpgrade((0, import_yaml24.parse)(taxonomySource)) ? [
-    {
-      path: ".lervo/knowledge/document-layout.yaml",
-      action: "update",
-      ownership: "lervo_generated",
-      mediaType: "application/yaml",
-      content: serializeDecisionTaxonomy(taxonomy),
-      expectedCurrentHash: sha2562(taxonomySource),
-      desiredHash: sha2562(serializeDecisionTaxonomy(taxonomy)),
-      reason: "upgrade_document_policy"
-    }
-  ] : [];
-  const structural = publicationIgnoreOperations.length > 0 || moves.length === 0 && userUpdates.length === 0 && normalizationOwnershipOperations.length === 0 && taxonomyUpgradeOperation.length === 0 ? null : await createKnowledgeMigrationPlanForScan({
-    repositoryRoot: root2,
-    scan: virtualScan,
-    mode: "migrate"
-  });
-  if (structural?.operations.some((operation) => operation.action === "conflict"))
-    blockers.push({ code: "destination_exists", pathDigest: sha2562("structural-output-conflict") });
-  const bridgeOperations = [];
-  const canonicalInstructionChange = referenceChanges.get("AGENTS.md") ?? (managedAgentRouteOperation?.content === void 0 ? void 0 : { content: managedAgentRouteOperation.content });
-  const existingInstructionBridgeRecords = await listKnowledgeArtifactPaths({
-    root: root2,
-    directory: ".lervo/knowledge/instruction-bridges",
-    extension: "yaml",
-    maximumFiles: 64
-  });
-  if (canonicalInstructionChange !== void 0 && existingInstructionBridgeRecords.length > 0 && await exists2(resolve35(root2, "CLAUDE.md"))) {
-    const bridge = await createKnowledgeInstructionBridgePlan({
-      repositoryRoot: root2,
-      provider: "claude",
-      ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources }
-    });
-    if (bridge.target.action !== "unchanged")
-      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The instruction bridge target must be current before repository layout migration.");
-    const currentRecord = bridge.operations.find((operation) => operation.path === bridge.bridgeRecordPath && operation.ownership !== "user");
-    if (currentRecord === void 0 || currentRecord.action === "conflict")
-      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The instruction bridge record cannot be bound to the layout migration.");
-    const content3 = (0, import_yaml24.stringify)({
-      schemaVersion: 1,
-      bridgeId: bridge.bridgeId,
-      profile: {
-        id: bridge.profile.profileId,
-        version: bridge.profile.profileVersion,
-        provider: bridge.profile.provider,
-        discoveryContract: bridge.profile.discoveryContract
-      },
-      canonical: {
-        path: bridge.profile.canonicalPath,
-        contentHash: sha2562(canonicalInstructionChange.content)
-      },
-      target: {
-        path: bridge.profile.targetPath,
-        contentHash: referenceChanges.get(bridge.profile.targetPath) === void 0 ? bridge.target.afterHash : sha2562(referenceChanges.get(bridge.profile.targetPath).content),
-        blockId: bridge.profile.blockId,
-        managedContentHash: bridge.target.managedContentHash
-      }
-    }, { lineWidth: 0, sortMapEntries: true });
-    const desiredHash = sha2562(content3);
-    bridgeOperations.push(currentRecord.action === "create" ? { ...currentRecord, content: content3, desiredHash } : currentRecord.desiredHash === desiredHash ? { ...currentRecord, action: "unchanged", desiredHash } : {
-      path: bridge.bridgeRecordPath,
-      action: "update",
-      ownership: "lervo_generated",
-      mediaType: "application/yaml",
-      content: content3,
-      expectedCurrentHash: currentRecord.action === "unchanged" ? currentRecord.desiredHash : currentRecord.expectedCurrentHash,
-      desiredHash
-    });
-  }
-  const structuralPaths = new Set((structural?.operations ?? []).map((operation) => operation.path));
-  const machineMoves = (await machineArtifactMoves(root2)).filter((move) => !structuralPaths.has(move.fromPath) && !structuralPaths.has(move.toPath));
-  for (const move of machineMoves) {
-    if (await exists2(resolve35(root2, move.toPath)))
-      blockers.push({ code: "destination_exists", pathDigest: sha2562(move.toPath) });
-  }
-  const machineMoveOperations = machineMoves.map((move) => ({
-    path: move.fromPath,
-    destinationPath: move.toPath,
-    action: "move",
-    expectedCurrentHash: move.contentHash
-  }));
-  const operations = [
-    ...taxonomyUpgradeOperation,
-    ...normalizationOwnershipOperations,
-    ...structural?.operations ?? [],
-    ...publicationIgnoreOperations,
-    ...managedAgentRouteOperation === null ? [] : [managedAgentRouteOperation],
-    ...referenceOperations,
-    ...bridgeOperations,
-    ...lineageOperations,
-    ...moveOperations,
-    ...machineMoveOperations
-  ];
-  const taxonomyHash = sha2562(canonicalJson3(taxonomy));
-  const policyHash = sha2562(canonicalJson3({ knowledge: policy, decisionTaxonomy: taxonomy }));
-  const status = blockers.length > 0 ? "blocked" : moves.length > 0 || userUpdates.length > 0 ? "review_required" : machineMoves.length > 0 || managedAgentRouteOperation !== null || taxonomyUpgradeOperation.length > 0 || normalizationOwnershipOperations.length > 0 ? "ready" : "current";
-  const materials = {
-    projectId: scan.projectId,
-    sourceSnapshotId: scan.snapshotId,
-    afterSourceSnapshotId: virtualScan.snapshotId,
-    policyHash,
-    taxonomyHash,
-    registryDigest: registryDigest2,
-    moves,
-    userUpdates,
-    machineMoves,
-    referenceUpdates: referenceOperations.map(withoutContent),
-    operations: operations.map(withoutContent),
-    blockers
-  };
-  const referenceUpdates = [
-    ...[...referenceChanges.values()].map((change) => ({
-      path: change.source.path,
-      beforeHash: change.source.contentHash,
-      afterHash: sha2562(change.content),
-      replacementCount: change.count
-    })),
-    ...executableCandidates.flatMap((item) => {
-      const change = movedContentChanges.get(item.source.path);
-      return change === void 0 ? [] : [
-        {
-          path: item.toPath,
-          beforeHash: item.source.contentHash,
-          afterHash: sha2562(change.content),
-          replacementCount: change.count
-        }
-      ];
-    })
-  ].sort((left, right) => left.path.localeCompare(right.path));
-  if (blockers.length === 0)
-    await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root2, operations });
-  return {
-    schemaVersion: 1,
-    planKind: "repository_layout",
-    planId: stableId("klayout", materials),
-    status,
-    projectId: scan.projectId,
-    repositoryRoot: root2,
-    sourceSnapshotId: scan.snapshotId,
-    afterSourceSnapshotId: virtualScan.snapshotId,
-    policyHash,
-    taxonomyHash,
-    coverage: scan.coverage,
-    registryDigest: registryDigest2,
-    moves,
-    userUpdates,
-    machineMoves,
-    referenceUpdates,
-    blockers,
-    operations
-  };
-}
-
-// packages/repository-knowledge/dist/semantic-materialization.js
-var import_yaml25 = __toESM(require_dist(), 1);
-
-// packages/repository-knowledge/dist/terminal-integration.js
-import { constants as constants11 } from "node:fs";
-import { lstat as lstat25, open as open13 } from "node:fs/promises";
-import { resolve as resolve36 } from "node:path";
-var MAXIMUM_CONFIG_BYTES = 256 * 1024;
-var MAXIMUM_RUNTIME_BYTES = 4 * 1024 * 1024;
-var FORMAT = { insertSpaces: true, tabSize: 2, eol: "\n", insertFinalNewline: true };
-var PROVIDERS = ["codex", "claude"];
-var EVENTS = ["UserPromptSubmit", "Stop"];
-var CONTRACT_ID = "lervo_terminal_hooks_v2";
-var RUNTIME_PATH = ".lervo/generated/terminal-hooks/runtime-v2.mjs";
-var RUNTIME_MANIFEST_PATH = ".lervo/generated/terminal-hooks/runtime-v2.json";
-function configurationPath(provider) {
-  return provider === "codex" ? ".codex/hooks.json" : ".claude/settings.json";
-}
-function terminalHookCommand(provider) {
-  return `node "$(git rev-parse --show-toplevel)/${RUNTIME_PATH}" --provider ${provider} --contract 2`;
-}
-function terminalHookWindowsCommand(provider) {
-  return `powershell.exe -NoProfile -NonInteractive -Command "$root = git rev-parse --show-toplevel; if ($LASTEXITCODE -ne 0) { exit 2 }; & node (Join-Path $root '${RUNTIME_PATH}') --provider ${provider} --contract 2"`;
-}
-function hookEntry(provider) {
-  return {
-    hooks: [
-      {
-        type: "command",
-        command: terminalHookCommand(provider),
-        ...provider === "codex" ? { commandWindows: terminalHookWindowsCommand(provider) } : {},
-        timeout: 30
-      }
-    ]
-  };
-}
-async function safeOptionalText(path, maximumBytes2 = MAXIMUM_CONFIG_BYTES) {
-  let handle;
-  try {
-    try {
-      const stats = await lstat25(path);
-      if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes2)
-        throw new Error("unsafe");
-    } catch (error) {
-      if (error.code === "ENOENT")
-        return null;
-      throw error;
-    }
-    handle = await open13(path, constants11.O_RDONLY | (constants11.O_NOFOLLOW ?? 0));
-    const before = await handle.stat();
-    const bytes = await handle.readFile();
-    const after = await handle.stat();
-    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size)
-      throw new Error("changed");
-    return {
-      content: new TextDecoder("utf-8", { fatal: true }).decode(bytes),
-      contentHash: sha2562(bytes)
-    };
-  } catch {
-    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A provider hook configuration cannot be read safely.");
-  } finally {
-    await handle?.close();
-  }
-}
-function codexHooksDisabled(content3) {
-  let section = "";
-  for (const rawLine of content3.split(/\r?\n/u)) {
-    const line = rawLine.replace(/#.*$/u, "").trim();
-    const heading = /^\[([^\]]+)\]$/u.exec(line);
-    if (heading !== null) {
-      section = heading[1].trim();
-      continue;
-    }
-    if (section === "features" && /^hooks\s*=\s*false\s*$/iu.test(line))
-      return true;
-  }
-  return false;
-}
-function isObject(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-function lervoTerminalProvider(command) {
-  if (!(/\blervo\s+terminal\s+hook\b/u.test(command) || command.includes(RUNTIME_PATH)))
-    return null;
-  if (/--provider\s+codex\b/u.test(command))
-    return "codex";
-  if (/--provider\s+claude\b/u.test(command))
-    return "claude";
-  return null;
-}
-function mergeTarget(provider, existing) {
-  const path = configurationPath(provider);
-  const original = existing?.content ?? "{}\n";
-  const errors = [];
-  const parsed = parse10(original, errors, {
-    allowTrailingComma: true,
-    disallowComments: false
-  });
-  if (errors.length > 0 || !isObject(parsed)) {
-    return {
-      target: {
-        provider,
-        path,
-        action: "blocked",
-        beforeHash: existing?.contentHash ?? null,
-        afterHash: null
-      },
-      blocker: { provider, path, code: "invalid_json" }
-    };
-  }
-  if (provider === "claude" && parsed.disableAllHooks === true) {
-    return {
-      target: {
-        provider,
-        path,
-        action: "blocked",
-        beforeHash: existing?.contentHash ?? null,
-        afterHash: null
-      },
-      blocker: { provider, path, code: "hooks_disabled" }
-    };
-  }
-  if (parsed.hooks !== void 0 && !isObject(parsed.hooks)) {
-    return {
-      target: {
-        provider,
-        path,
-        action: "blocked",
-        beforeHash: existing?.contentHash ?? null,
-        afterHash: null
-      },
-      blocker: { provider, path, code: "invalid_hook_shape" }
-    };
-  }
-  let output = original;
-  for (const event of EVENTS) {
-    const current = parse10(output, [], {
-      allowTrailingComma: true,
-      disallowComments: false
-    });
-    const hooks = isObject(current.hooks) ? current.hooks : {};
-    const eventEntries = hooks[event] === void 0 ? [] : hooks[event];
-    if (!Array.isArray(eventEntries) || !eventEntries.every(isObject)) {
-      return {
-        target: {
-          provider,
-          path,
-          action: "blocked",
-          beforeHash: existing?.contentHash ?? null,
-          afterHash: null
-        },
-        blocker: { provider, path, code: "invalid_hook_shape" }
-      };
-    }
-    let found = false;
-    let lervoHandlerCount = 0;
-    const expectedCommand = terminalHookCommand(provider);
-    for (const group of eventEntries) {
-      if (!Array.isArray(group.hooks) || !group.hooks.every(isObject)) {
-        return {
-          target: {
-            provider,
-            path,
-            action: "blocked",
-            beforeHash: existing?.contentHash ?? null,
-            afterHash: null
-          },
-          blocker: { provider, path, code: "invalid_hook_shape" }
-        };
-      }
-      for (const handler of group.hooks) {
-        if (typeof handler.command !== "string")
-          continue;
-        const commandProvider = lervoTerminalProvider(handler.command);
-        if (commandProvider === provider) {
-          lervoHandlerCount += 1;
-          found ||= handler.command === expectedCommand && handler.type === "command" && handler.timeout === 30 && (provider !== "codex" || handler.commandWindows === terminalHookWindowsCommand(provider));
-        } else if (commandProvider !== null || /\blervo\s+terminal\s+hook\b/u.test(handler.command) || handler.command.includes(RUNTIME_PATH)) {
-          return {
-            target: {
-              provider,
-              path,
-              action: "blocked",
-              beforeHash: existing?.contentHash ?? null,
-              afterHash: null
-            },
-            blocker: { provider, path, code: "conflicting_lervo_hook" }
-          };
-        }
-      }
-    }
-    if (lervoHandlerCount > 0 && (!found || lervoHandlerCount > 1)) {
-      const next = eventEntries.flatMap((group) => {
-        const handlers = group.hooks.filter((handler) => typeof handler.command !== "string" || lervoTerminalProvider(handler.command) !== provider);
-        return handlers.length === 0 ? [] : [{ ...group, hooks: handlers }];
-      });
-      next.push(hookEntry(provider));
-      output = applyEdits(output, modify(output, ["hooks", event], next, { formattingOptions: FORMAT }));
-    } else if (!found) {
-      output = applyEdits(output, modify(output, ["hooks", event], [...eventEntries, hookEntry(provider)], {
-        formattingOptions: FORMAT
-      }));
-    }
-  }
-  const afterHash = sha2562(output);
-  return {
-    target: {
-      provider,
-      path,
-      action: existing === null ? "create" : existing.contentHash === afterHash ? "unchanged" : "update",
-      beforeHash: existing?.contentHash ?? null,
-      afterHash
-    },
-    content: output
-  };
-}
-function validRuntimeContent(content3) {
-  const bytes = Buffer.byteLength(content3);
-  return bytes > 0 && bytes <= MAXIMUM_RUNTIME_BYTES && content3.startsWith("#!/usr/bin/env node\n");
-}
-async function inspectTerminalIntegration(repositoryRoot) {
-  const root2 = resolve36(repositoryRoot);
-  const existing = await Promise.all(PROVIDERS.map(async (provider) => [provider, await safeOptionalText(resolve36(root2, configurationPath(provider)))]));
-  const blockers = [];
-  try {
-    const config = await safeOptionalText(resolve36(root2, ".codex/config.toml"));
-    if (config !== null && codexHooksDisabled(config.content))
-      blockers.push({ provider: "codex", path: ".codex/config.toml", code: "hooks_disabled" });
-  } catch (error) {
-    if (error instanceof RepositoryKnowledgeError)
-      blockers.push({ provider: "codex", path: ".codex/config.toml", code: "unsafe_file" });
-    else
-      throw error;
-  }
-  const merged = existing.map(([provider, file]) => mergeTarget(provider, file));
-  for (const item of merged)
-    if (item.blocker !== void 0)
-      blockers.push(item.blocker);
-  let runtime;
-  try {
-    const [artifact2, manifestFile] = await Promise.all([
-      safeOptionalText(resolve36(root2, RUNTIME_PATH), MAXIMUM_RUNTIME_BYTES),
-      safeOptionalText(resolve36(root2, RUNTIME_MANIFEST_PATH))
-    ]);
-    let valid = false;
-    if (artifact2 !== null && manifestFile !== null && validRuntimeContent(artifact2.content)) {
-      const manifest = JSON.parse(manifestFile.content);
-      valid = isObject(manifest) && Object.keys(manifest).sort().join("\0") === ["byteCount", "contentHash", "contractId", "kind", "runtimePath", "schemaVersion"].sort().join("\0") && manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === CONTRACT_ID && manifest.runtimePath === RUNTIME_PATH && manifest.contentHash === artifact2.contentHash && manifest.byteCount === Buffer.byteLength(artifact2.content);
-    }
-    runtime = {
-      path: RUNTIME_PATH,
-      manifestPath: RUNTIME_MANIFEST_PATH,
-      action: valid ? "unchanged" : artifact2 === null ? "create" : "blocked",
-      beforeHash: artifact2?.contentHash ?? null,
-      afterHash: artifact2?.contentHash ?? sha2562(""),
-      byteCount: artifact2 === null ? 0 : Buffer.byteLength(artifact2.content)
-    };
-    if (artifact2 !== null && !valid)
-      blockers.push({ provider: "runtime", path: RUNTIME_PATH, code: "runtime_invalid" });
-  } catch {
-    runtime = {
-      path: RUNTIME_PATH,
-      manifestPath: RUNTIME_MANIFEST_PATH,
-      action: "blocked",
-      beforeHash: null,
-      afterHash: sha2562(""),
-      byteCount: 0
-    };
-    blockers.push({ provider: "runtime", path: RUNTIME_PATH, code: "unsafe_file" });
-  }
-  const targets = merged.map((item) => item.target);
-  return {
-    schemaVersion: 1,
-    contractId: CONTRACT_ID,
-    status: blockers.length > 0 ? "blocked" : targets.every((target) => target.action === "unchanged") && runtime.action === "unchanged" ? "current" : "stale",
-    targets,
-    runtime,
-    blockers
-  };
-}
-
-// packages/repository-knowledge/dist/public-readme.js
-var MAXIMUM_README_BYTES = 256 * 1024;
-
-// packages/repository-knowledge/dist/verification-source.js
-var VERIFICATION_RESULT_SOURCE_ADAPTER = "verification-result-v1+event-cas";
-var MAX_EVENT_SEQUENCE2 = 1e5;
-var MAX_RESULTS = 256;
-var MAX_RESULT_BYTES = 1024 * 1024;
-var MAX_TOTAL_RESULT_BYTES = 16 * 1024 * 1024;
-function fail8() {
-  throw new RepositoryKnowledgeError("knowledge_evidence_source_invalid", "The verification evidence source cannot be verified safely and completely.");
-}
-async function collectVerificationResultSources(input) {
-  let latest;
-  try {
-    const integrity = input.events.verifyIntegrity();
-    if (!integrity.valid)
-      return fail8();
-    latest = input.events.latest();
-  } catch {
-    return fail8();
-  }
-  if (latest === null)
-    return [];
-  if (!Number.isSafeInteger(latest.seq) || latest.seq < 1 || latest.seq > MAX_EVENT_SEQUENCE2)
-    return fail8();
-  const completed = /* @__PURE__ */ new Map();
-  try {
-    visitEventSnapshot({
-      events: input.events,
-      throughSeq: latest.seq,
-      visit: (event) => {
-        if (event.type !== "verification.completed")
-          return;
-        const verificationId = event.payload.verificationId;
-        if (typeof verificationId !== "string")
-          return fail8();
-        const previous2 = completed.get(verificationId);
-        if (previous2 !== void 0 && JSON.stringify(previous2.payload) !== JSON.stringify(event.payload))
-          return fail8();
-        completed.set(verificationId, event);
-        if (completed.size > MAX_RESULTS)
-          return fail8();
-      }
-    });
-    if (!input.events.verifyIntegrity().valid)
-      return fail8();
-  } catch {
-    return fail8();
-  }
-  const sources = [];
-  let totalBytes = 0;
-  for (const event of [...completed.values()].sort((left, right) => String(left.payload.verificationId).localeCompare(String(right.payload.verificationId)))) {
-    const payload = event.payload;
-    const verificationId = payload.verificationId;
-    const suiteId = payload.suiteId;
-    const resultArtifactId = payload.resultArtifactId;
-    const resultContentHash = payload.resultContentHash;
-    if (typeof verificationId !== "string" || typeof suiteId !== "string" || typeof resultArtifactId !== "string" || typeof resultContentHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(resultContentHash) || resultArtifactId !== `art_${resultContentHash.slice("sha256:".length)}`)
-      return fail8();
-    const uri = `lervo-cas://sha256/${resultContentHash.slice("sha256:".length)}`;
-    let bytes;
-    let suite;
-    try {
-      [bytes, suite] = await Promise.all([input.artifacts.get(uri), input.loadSuite(suiteId)]);
-    } catch {
-      return fail8();
-    }
-    totalBytes += bytes.byteLength;
-    if (bytes.byteLength > MAX_RESULT_BYTES || totalBytes > MAX_TOTAL_RESULT_BYTES)
-      return fail8();
-    if (verificationSha256(bytes) !== resultContentHash)
-      return fail8();
-    let result;
-    try {
-      result = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-      validateVerificationResult(result, suite);
-    } catch {
-      return fail8();
-    }
-    if (!Buffer.from(verificationResultBytes(result)).equals(Buffer.from(bytes)))
-      return fail8();
-    if (result.verificationId !== verificationId || result.suiteId !== suiteId || result.suiteHash !== payload.suiteHash || result.repositoryRevision !== payload.repositoryRevision || result.status !== payload.status || result.completedAt !== event.occurredAt || JSON.stringify(result.commands.filter((command) => command.status !== "passed").map((command) => command.commandId)) !== JSON.stringify(payload.nonPassedCommandIds))
-      return fail8();
-    sources.push({
-      path: `@verification/${verificationId}`,
-      kind: "verification_result",
-      classification: "ordinary",
-      content: new TextDecoder().decode(bytes),
-      origin: "verification_event_cas",
-      unitKind: "verification",
-      locator: `verification:${verificationId}`,
-      title: `Verification ${suiteId}`,
-      adapter: VERIFICATION_RESULT_SOURCE_ADAPTER
-    });
-  }
-  return sources;
-}
-
-// packages/repository-knowledge/dist/workstream.js
-import { constants as constants12 } from "node:fs";
-import { lstat as lstat26, mkdir as mkdir9, open as open14, rename as rename6, rm as rm7 } from "node:fs/promises";
-import { basename as basename10, dirname as dirname9, posix as posix7, relative as relative9, resolve as resolve37, sep as sep9 } from "node:path";
-var CURRENT_WORKSTREAM_PATH = ".lervo/state/workstreams/current.json";
-var MAX_HANDOFF_BYTES = 128 * 1024;
-function insideRoot(root2, path) {
-  const target = resolve37(root2, path);
-  const child = relative9(root2, target);
-  if (child === ".." || child.startsWith(`..${sep9}`)) {
-    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream path escapes the repository.");
-  }
-  return target;
-}
-async function safeTextFile(root2, path, maximumBytes2) {
-  const target = insideRoot(root2, path);
-  let handle;
-  try {
-    handle = await open14(target, constants12.O_RDONLY | (constants12.O_NOFOLLOW ?? 0));
-    const before = await handle.stat();
-    if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes2) {
-      throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream source is not a bounded regular file.");
-    }
-    const bytes = await handle.readFile();
-    const after = await handle.stat();
-    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size) {
-      throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream source changed while it was read.");
-    }
-    const content3 = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    return {
-      content: content3,
-      contentHash: sha2562(bytes),
-      byteCount: bytes.byteLength,
-      modifiedAt: before.mtime.toISOString()
-    };
-  } catch (error) {
-    if (error.code === "ENOENT")
-      return null;
-    if (error instanceof RepositoryKnowledgeError)
-      throw error;
-    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream source cannot be read safely.");
-  } finally {
-    await handle?.close();
-  }
-}
-async function readCurrentWorkstreamState(repositoryRoot) {
-  const source = await safeTextFile(resolve37(repositoryRoot), CURRENT_WORKSTREAM_PATH, 64 * 1024);
-  if (source === null)
-    return null;
-  let value;
-  try {
-    value = JSON.parse(source.content);
-  } catch {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The current workstream state is not valid JSON.");
-  }
-  if (!validateSchema("workstreamSnapshot", value).valid || !pendingCoordinatesValid(value)) {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The current workstream state does not satisfy the v1 contract.");
-  }
-  return {
-    snapshot: value,
-    content: source.content,
-    contentHash: source.contentHash
-  };
-}
-async function restoreCurrentWorkstreamState(input) {
-  const root2 = resolve37(input.repositoryRoot);
-  const content3 = Buffer.from(input.content).toString("utf8");
-  if (input.content.byteLength > 64 * 1024 || sha2562(input.content) !== input.expectedHash) {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact is invalid.");
-  }
-  let value;
-  try {
-    value = JSON.parse(content3);
-  } catch {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact is not valid JSON.");
-  }
-  if (`${canonicalJson3(value)}
-` !== content3 || !validateSchema("workstreamSnapshot", value).valid || !pendingCoordinatesValid(value)) {
-    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact does not satisfy the v1 contract.");
-  }
-  const directory = resolve37(root2, dirname9(CURRENT_WORKSTREAM_PATH));
-  await mkdir9(directory, { recursive: true, mode: 448 });
-  const stats = await lstat26(directory);
-  if (!stats.isDirectory() || stats.isSymbolicLink()) {
-    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The workstream projection directory is unsafe.");
-  }
-  const target = resolve37(root2, CURRENT_WORKSTREAM_PATH);
-  const temporary = `${target}.restore-${process.pid}`;
-  await rm7(temporary, { force: true });
-  const handle = await open14(temporary, constants12.O_WRONLY | constants12.O_CREAT | constants12.O_EXCL | (constants12.O_NOFOLLOW ?? 0), 384);
-  try {
-    await handle.writeFile(input.content);
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
-  await rename6(temporary, target);
-  return value;
-}
-function formatWorkstreamContext(snapshot) {
-  const pendingDecisions = snapshot.pendingDecisions ?? [];
-  const pendingApprovals = snapshot.pendingApprovals ?? [];
-  const lines = [
-    "## Lervo current workstream",
-    `workstreamId: ${snapshot.workstreamId}; revision: ${snapshot.revision}; status: ${snapshot.status}; snapshotHash: ${sha2562(`${canonicalJson3(snapshot)}
-`)}`,
-    `Title: ${snapshot.title}`,
-    `Objective: ${snapshot.objective}`,
-    ...snapshot.nextActions.length === 0 ? [] : ["Next actions:", ...snapshot.nextActions.map((item, index2) => `${index2 + 1}. ${item}`)],
-    ...snapshot.blockers.length === 0 ? [] : ["Blockers:", ...snapshot.blockers.map((item) => `- ${item}`)],
-    ...snapshot.notes.length === 0 ? [] : ["Current facts:", ...snapshot.notes.map((item) => `- ${item}`)],
-    ...snapshot.references.length === 0 ? [] : ["References:", ...snapshot.references.map((item) => `- ${item.label}: ${item.path}`)],
-    ...pendingDecisions.length === 0 ? [] : [
-      "Pending user decisions:",
-      ...pendingDecisions.map((item) => `- ${item.decisionId}${item.blocking ? " [blocking]" : ""}: ${item.question}; choices=${item.choices.map((choice) => `${choice.choiceId}:${choice.label}`).join(", ")}; recommended=${item.recommendedChoiceId ?? "none"}`)
-    ],
-    ...pendingApprovals.length === 0 ? [] : [
-      "Pending user approvals:",
-      ...pendingApprovals.map((item) => `- ${item.approvalId}${item.blocking ? " [blocking]" : ""}: ${item.kind}; ${item.summary}; binding=${item.bindingHash}`)
-    ],
-    "This is mutable continuation state, not a long-term architecture contract. Promote durable decisions to canonical repository documentation.",
-    "Treat a natural-language user reply to a pending item as input to resolve, apply, remove, and canonically record that item when authorized. Never require the user to type a Lervo bookkeeping command.",
-    "Before completing a repository-changing direct provider terminal turn, use `lervo workstream current --json` and the reviewed `lervo workstream update` plan/apply flow to record the next bounded revision. Replace stale facts instead of accumulating prose; do not ask the user to run this bookkeeping command."
-  ];
-  return lines.join("\n");
-}
-function pendingCoordinatesValid(snapshot) {
-  const decisions = snapshot.pendingDecisions ?? [];
-  const approvals = snapshot.pendingApprovals ?? [];
-  if (new Set(decisions.map((item) => item.decisionId)).size !== decisions.length)
-    return false;
-  if (new Set(approvals.map((item) => item.approvalId)).size !== approvals.length)
-    return false;
-  return decisions.every((item) => {
-    const choiceIds = item.choices.map((choice) => choice.choiceId);
-    return new Set(choiceIds).size === choiceIds.length && (item.recommendedChoiceId === null || choiceIds.includes(item.recommendedChoiceId));
-  });
-}
-
-// apps/cli/src/terminal-coverage-format.ts
-function formatTerminalCoverageReport(report) {
-  if (report.reports.length === 0) {
-    return "No unmanaged terminal context observations were found.\n";
-  }
-  const lines = report.reports.map((item) => {
-    const referenced = item.coverage.explicitReference.value === null ? item.coverage.explicitReference.reason : `${item.coverage.explicitReference.numerator}/${item.coverage.explicitReference.denominator}`;
-    const queryProjection = item.resources.queryProjection.usage === null ? item.resources.queryProjection.reasonCode : `${item.resources.queryProjection.usage.totalTokens} tokens (${item.resources.queryProjection.status}: ${item.resources.queryProjection.reasonCode})`;
-    const timing = item.stages.observations.length === 0 ? item.stages.missingReasons.join(",") : item.stages.observations.map((observation) => {
-      const total = observation.stages.find((stage) => stage.stageId === "total");
-      return `${observation.hookEvent}=${total?.durationMs ?? "unknown"}ms`;
-    }).join(",");
-    return [
-      `  ${item.provider} ${item.occurredAt}: prepared=${item.documents.length}`,
-      `referenced=${referenced}`,
-      `completion=${item.completion.result}`,
-      `whole-task=${item.resources.wholeTask.reasonCode}`,
-      `query-projection=${queryProjection}`,
-      `timing=${timing}`
-    ].join("; ");
-  });
-  return [
-    `Unmanaged terminal context observations: ${report.reports.length}`,
-    ...lines,
-    "Managed delivery and internal use remain unsupported for direct provider execution.",
-    "Provider-reported usage is not billed cost.",
-    ""
-  ].join("\n");
-}
-
-// apps/cli/src/terminal-budget-command.ts
-import { resolve as resolve39 } from "node:path";
-import { parseArgs } from "node:util";
-
-// apps/cli/src/terminal-budget-format.ts
-function formatTerminalBudgetReport(report) {
-  const lines = [
-    `Lervo unmanaged terminal budget: ${report.disposition}`,
-    `Source contexts: ${report.sourceReportCount}; missing hook observations: ${report.missingHookObservationCount}; incomplete hook outcomes: ${report.incompleteHookOutcomeCount}; invalid stage sets: ${report.invalidStageObservationSetCount}`,
-    "Whole-task provider usage: unavailable (unmanaged provider work is not observable)",
-    "Hook profiles:",
-    ...report.hookProfiles.map(
-      (profile8) => `  ${profile8.provider} ${profile8.hookEvent} ${profile8.repositoryProfile}/${profile8.coldState} samples=${profile8.sampleCount} p95=${profile8.p95DurationMs}ms/${profile8.budgetMs}ms max=${profile8.maximumDurationMs}ms status=${profile8.status}${profile8.reasonCodes.length === 0 ? "" : ` reasons=${profile8.reasonCodes.join(",")}`}`
-    ),
-    "Query projections:",
-    ...report.queryProjections.map(
-      (assessment) => `  ${assessment.provider} ${assessment.contextEventId}: ${assessment.observedTokens ?? "unobserved"}${assessment.limitTokens === null ? " tokens (no limit)" : `/${assessment.limitTokens} tokens`} status=${assessment.status}${assessment.reasonCode === null ? "" : ` reason=${assessment.reasonCode}`}`
-    ),
-    ...report.reasonCodes.length === 0 ? [] : [`Decision reasons: ${report.reasonCodes.join(", ")}`],
-    ""
-  ];
-  if (report.hookProfiles.length === 0) lines.splice(4, 0, "  No observed hook profiles.");
-  if (report.queryProjections.length === 0)
-    lines.splice(lines.indexOf("Query projections:") + 1, 0, "  No query projections.");
-  return lines.join("\n");
-}
-
-// apps/cli/src/terminal-command-usage.ts
-var terminalUsage = "  lervo terminal status [--root <path>] [--json]\n  lervo terminal coverage [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--json]\n  lervo terminal budget [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--minimum-samples <1-100>] [--max-query-tokens <tokens>] [--unobserved <block|escalate>] [--exhausted <block|escalate>] [--json]\n  lervo terminal declare --provider <codex|claude> --observation <observation-id> --stdin [--root <path>] [--json]\n  lervo terminal hook --provider <codex|claude> --contract <1|2>";
-
-// apps/cli/src/terminal-repository-root.ts
-import { lstat as lstat27 } from "node:fs/promises";
-import { dirname as dirname10, resolve as resolve38 } from "node:path";
-async function resolveTerminalRepositoryRoot(start) {
-  let current = resolve38(start);
-  while (true) {
-    try {
-      const manifest = await lstat27(resolve38(current, ".lervo/project.yaml"));
-      if (manifest.isFile() && !manifest.isSymbolicLink()) return current;
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-    }
-    const parent = dirname10(current);
-    if (parent === current)
-      throw new Error("No initialized Lervo repository contains the hook working directory.");
-    current = parent;
-  }
-}
-
-// apps/cli/src/terminal-budget-command.ts
-function boundedInteger(value, fallback, maximum) {
-  if (value === void 0) return fallback;
-  if (!/^[1-9]\d*$/u.test(value)) throw new Error("A terminal budget integer is invalid.");
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed > maximum)
-    throw new Error("A terminal budget integer exceeds its bound.");
-  return parsed;
-}
-async function runTerminalBudgetCommand(args, io) {
-  let storage;
-  try {
-    const parsed = parseArgs({
-      args,
-      strict: true,
-      allowPositionals: false,
-      options: {
-        root: { type: "string" },
-        provider: { type: "string" },
-        limit: { type: "string" },
-        "minimum-samples": { type: "string" },
-        "max-query-tokens": { type: "string" },
-        unobserved: { type: "string" },
-        exhausted: { type: "string" },
-        json: { type: "boolean" }
-      }
-    });
-    const provider = parsed.values.provider;
-    if (provider !== void 0 && provider !== "codex" && provider !== "claude")
-      throw new Error("--provider must be codex or claude.");
-    const unobservedAction = parsed.values.unobserved ?? "escalate";
-    const exhaustedAction = parsed.values.exhausted ?? "block";
-    if (unobservedAction !== "block" && unobservedAction !== "escalate" || exhaustedAction !== "block" && exhaustedAction !== "escalate")
-      throw new Error("Terminal budget actions must be block or escalate.");
-    const limit = boundedInteger(parsed.values.limit, 100, 100);
-    const minimumSamples = boundedInteger(parsed.values["minimum-samples"], 30, 100);
-    const maxQueryProjectionTokens = parsed.values["max-query-tokens"] === void 0 ? null : boundedInteger(parsed.values["max-query-tokens"], 1, Number.MAX_SAFE_INTEGER);
-    const root2 = await resolveTerminalRepositoryRoot(resolve39(io.cwd, parsed.values.root ?? "."));
-    storage = await openProjectStorage(root2);
-    const coverage = createTerminalCoverageReport({
-      projectId: storage.manifest.projectId,
-      events: storage.events,
-      ...provider === void 0 ? {} : { provider },
-      limit
-    });
-    const policy = {
-      minimumSamples,
-      maxQueryProjectionTokens,
-      unobservedAction,
-      exhaustedAction
-    };
-    const report = createTerminalBudgetReport({ coverage, policy });
-    io.stdout(
-      parsed.values.json ? `${JSON.stringify(report, null, 2)}
-` : formatTerminalBudgetReport(report)
-    );
-    return report.disposition === "passed" ? 0 : 1;
-  } catch (error) {
-    io.stderr(`${error instanceof Error ? error.message : String(error)}
-${terminalUsage}
-`);
-    return 1;
-  } finally {
-    await storage?.close();
-  }
-}
-
-// apps/cli/src/terminal-declaration-command.ts
-import { resolve as resolve52 } from "node:path";
-import { parseArgs as parseArgs2 } from "node:util";
-
-// packages/agent-workforce/dist/limits.js
-var workforceLimits = {
-  maximumAgents: 256,
-  maximumAssignments: 1e4,
-  maximumDelegationDepth: 8,
-  maximumAssignmentDependencies: 64,
-  maximumIntegrationBatch: 32,
-  maximumConcurrentLeases: 256
-};
-
-// packages/agent-workforce/dist/agent-liveness.js
-var DEFAULT_ROOT_AGENT_LIVENESS_STALE_AFTER_MS = 2 * 60 * 1e3;
-
-// packages/agent-workforce/dist/store.js
-import { createHash as createHash14, randomUUID as randomUUID3 } from "node:crypto";
-
-// packages/capabilities/dist/package-reader.js
-import { createHash as createHash12 } from "node:crypto";
-import { constants as constants13 } from "node:fs";
-import { lstat as lstat28, open as open15, readdir as readdir11 } from "node:fs/promises";
-import { relative as relative11, resolve as resolve41, sep as sep11 } from "node:path";
-
-// packages/capabilities/dist/types.js
-var CapabilityPackageError = class extends Error {
-  code;
-  constructor(code, message, options) {
-    super(message, options);
-    this.code = code;
-    this.name = "CapabilityPackageError";
-  }
-};
-
-// packages/capabilities/dist/activation.js
-import { isIP } from "node:net";
-import { relative as relative10, resolve as resolve40, sep as sep10 } from "node:path";
-function fail9(message, cause) {
-  throw new CapabilityPackageError("capability_unsupported", message, cause === void 0 ? void 0 : { cause });
-}
-function decodeJson(bytes, label) {
-  try {
-    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-  } catch (error) {
-    return fail9(`${label} is not valid UTF-8 JSON.`, error);
-  }
-}
-function safePackagePath(root2, value) {
-  const path = resolve40(root2, value);
-  const child = relative10(root2, path);
-  if (child === "" || child === ".." || child.startsWith(`..${sep10}`)) {
-    fail9("A capability activation path escaped its immutable package root.");
-  }
-  return path;
-}
-function httpUrl(value) {
-  let url;
-  try {
-    url = new URL(value);
-  } catch (error) {
-    return fail9("An MCP HTTP transport URL is invalid.", error);
-  }
-  const host = url.hostname.toLowerCase();
-  const loopback = host === "localhost" || host === "::1" || host === "[::1]" || host.startsWith("127.") || isIP(host) === 6 && host === "::1";
-  if (url.username !== "" || url.password !== "" || url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) {
-    fail9("MCP HTTP transports require HTTPS, or HTTP on a loopback host, without URL credentials.");
-  }
-  return url.toString();
-}
-function mcpActivation(value) {
-  const entrypoint = value.manifest.entrypoint;
-  if (entrypoint.kind !== "mcp_server")
-    fail9("The resolved MCP activation entrypoint is inconsistent.");
-  const file = value.files.find((item) => item.path === entrypoint.runtimeDescriptorPath);
-  if (file === void 0)
-    fail9("An MCP capability is missing its runtime descriptor.");
-  const decoded = decodeJson(file.bytes, entrypoint.runtimeDescriptorPath);
-  if (!validateSchema("mcpRuntimeDescriptor", decoded).valid) {
-    fail9("An MCP runtime descriptor does not satisfy the provider-neutral v1 contract.");
-  }
-  const descriptor = decoded;
-  if (descriptor.transport.kind === "stdio") {
-    const transport = descriptor.transport;
-    const entrypointPath = safePackagePath(value.directoryPath, transport.entrypointPath);
-    if (!value.files.some((item) => item.path === transport.entrypointPath)) {
-      fail9("An MCP stdio entrypoint is not part of the immutable package.");
-    }
-    return {
-      kind: "capability_activation_request",
-      schemaVersion: 1,
-      capabilityId: value.manifest.capabilityId,
-      capabilityKind: "mcp_server",
-      version: value.manifest.version,
-      contentHash: value.manifest.contentHash,
-      runtime: {
-        kind: "mcp_stdio",
-        serverName: descriptor.serverName,
-        command: transport.command,
-        arguments: [entrypointPath, ...transport.arguments],
-        credentialNames: [...entrypoint.credentialNames],
-        timeoutMs: transport.timeoutMs
-      }
-    };
-  }
-  const credential = descriptor.transport.bearerTokenCredential;
-  const declared = [...entrypoint.credentialNames];
-  if (credential === null && declared.length !== 0 || credential !== null && (declared.length !== 1 || declared[0] !== credential)) {
-    fail9("An MCP HTTP bearer credential must exactly match the package credential declaration.");
-  }
-  return {
-    kind: "capability_activation_request",
-    schemaVersion: 1,
-    capabilityId: value.manifest.capabilityId,
-    capabilityKind: "mcp_server",
-    version: value.manifest.version,
-    contentHash: value.manifest.contentHash,
-    runtime: {
-      kind: "mcp_http",
-      serverName: descriptor.serverName,
-      url: httpUrl(descriptor.transport.url),
-      bearerTokenCredential: credential,
-      timeoutMs: descriptor.transport.timeoutMs
-    }
-  };
-}
-function pluginActivation(value) {
-  const entrypoint = value.manifest.entrypoint;
-  if (entrypoint.kind !== "provider_plugin")
-    fail9("The resolved plugin activation entrypoint is inconsistent.");
-  const expectedPath = entrypoint.provider === "codex" ? ".codex-plugin/plugin.json" : ".claude-plugin/plugin.json";
-  if (entrypoint.pluginManifestPath !== expectedPath) {
-    fail9(`A ${entrypoint.provider} plugin must use its native ${expectedPath} manifest.`);
-  }
-  const file = value.files.find((item) => item.path === entrypoint.pluginManifestPath);
-  if (file === void 0)
-    fail9("A provider plugin manifest is missing from the immutable package.");
-  const decoded = decodeJson(file.bytes, entrypoint.pluginManifestPath);
-  if (typeof decoded !== "object" || decoded === null || Array.isArray(decoded) || typeof decoded.name !== "string" || decoded.name.length === 0 || decoded.version !== value.manifest.version) {
-    fail9("A provider plugin requires a native name and an exact outer-package version.");
-  }
-  return {
-    kind: "capability_activation_request",
-    schemaVersion: 1,
-    capabilityId: value.manifest.capabilityId,
-    capabilityKind: "provider_plugin",
-    version: value.manifest.version,
-    contentHash: value.manifest.contentHash,
-    runtime: {
-      kind: "provider_plugin",
-      provider: entrypoint.provider,
-      pluginRoot: value.directoryPath,
-      pluginManifestPath: entrypoint.pluginManifestPath
-    }
-  };
-}
-function createCapabilityActivationRequests(packages) {
-  const result = packages.flatMap((value) => {
-    if (value.manifest.kind === "mcp_server")
-      return [mcpActivation(value)];
-    if (value.manifest.kind === "provider_plugin")
-      return [pluginActivation(value)];
-    return [];
-  });
-  const serverNames = result.flatMap((item) => item.runtime.kind === "mcp_stdio" || item.runtime.kind === "mcp_http" ? [item.runtime.serverName] : []);
-  if (new Set(serverNames).size !== serverNames.length)
-    fail9("Resolved MCP capabilities contain duplicate provider server names.");
-  for (const item of result) {
-    if (!validateSchema("adapterCapabilityActivationRequest", item).valid) {
-      fail9("A resolved provider capability activation request is invalid.");
-    }
-  }
-  return result.sort((left, right) => left.capabilityId.localeCompare(right.capabilityId));
-}
-
-// packages/capabilities/dist/package-reader.js
-var CAPABILITY_MANIFEST = "lervo-capability.json";
-var MAX_FILES = 256;
-var MAX_TOTAL_BYTES = 16 * 1024 * 1024;
-var MAX_MANIFEST_BYTES2 = 1024 * 1024;
-var DENIED_NAMES = /(?:^|\/)(?:\.env(?:\..*)?|id_(?:rsa|dsa|ecdsa|ed25519)|credentials?\.json|secrets?\.(?:json|ya?ml)|.*\.(?:p12|pfx|pem|key))$/iu;
-function isSafeCapabilityContentPath(value) {
-  const parts = value.split("/");
-  const nativePluginMetadata = (parts[0] === ".codex-plugin" || parts[0] === ".claude-plugin") && parts.length === 2 && parts[1] === "plugin.json";
-  return value.length > 0 && value.length <= 500 && !value.startsWith("/") && (nativePluginMetadata || !parts.some((part) => part === "" || part === ".." || part.startsWith("."))) && !DENIED_NAMES.test(value);
-}
-function portable(value) {
-  return value.split(sep11).join("/");
-}
-function compare(left, right) {
-  return left === right ? 0 : left < right ? -1 : 1;
-}
-function fail10(code, message, cause) {
-  throw new CapabilityPackageError(code, message, cause === void 0 ? void 0 : { cause });
-}
-function within(root2, path) {
-  const child = relative11(root2, path);
-  if (child === "" || child === ".." || child.startsWith(`..${sep11}`))
-    fail10("capability_unsafe_package", "A capability path escaped its package root.");
-}
-async function regularFile2(path, maximumBytes2 = MAX_TOTAL_BYTES) {
-  const before = await lstat28(path);
-  if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes2)
-    fail10("capability_unsafe_package", "Capability packages may contain only bounded regular files.");
-  let handle;
-  try {
-    handle = await open15(path, constants13.O_RDONLY | constants13.O_NOFOLLOW);
-    const opened = await handle.stat();
-    if (before.dev !== opened.dev || before.ino !== opened.ino)
-      fail10("capability_unsafe_package", "A capability file changed before it was read.");
-    const bytes = await handle.readFile();
-    const after = await handle.stat();
-    if (!after.isFile() || before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs)
-      fail10("capability_unsafe_package", "A capability file changed while it was read.");
-    return bytes;
-  } catch (error) {
-    if (error instanceof CapabilityPackageError)
-      throw error;
-    return fail10("capability_unsafe_package", "A capability file could not be opened safely.", error);
-  } finally {
-    await handle?.close();
-  }
-}
-async function collect(root2, current = root2) {
-  const entries = await readdir11(current, { withFileTypes: true });
-  const files = [];
-  for (const entry of entries.sort((a, b) => compare(a.name, b.name))) {
-    const path = resolve41(current, entry.name);
-    within(root2, path);
-    if (entry.isSymbolicLink())
-      fail10("capability_unsafe_package", "Symbolic links are not allowed in a capability package.");
-    if (entry.isDirectory())
-      files.push(...await collect(root2, path));
-    else if (entry.isFile())
-      files.push(path);
-    else
-      fail10("capability_unsafe_package", "Unsupported filesystem entries are not allowed in a capability package.");
-    if (files.length > MAX_FILES + 1)
-      fail10("capability_unsafe_package", "The capability package file limit was exceeded.");
-  }
-  return files;
-}
-function hashCapabilityFiles(files) {
-  const hash2 = createHash12("sha256");
-  let total = 0;
-  for (const file of [...files].sort((a, b) => compare(a.path, b.path))) {
-    if (file.path === CAPABILITY_MANIFEST || file.path === "lervo-skill.json")
-      continue;
-    total += file.bytes.byteLength;
-    if (total > MAX_TOTAL_BYTES)
-      fail10("capability_unsafe_package", "The capability package size limit was exceeded.");
-    hash2.update(`${Buffer.byteLength(file.path)}:${file.path}:${file.bytes.byteLength}:`);
-    hash2.update(file.bytes);
-  }
-  return `sha256:${hash2.digest("hex")}`;
-}
-async function readCapabilityPackage(directoryPath) {
-  const info = await lstat28(directoryPath);
-  if (!info.isDirectory() || info.isSymbolicLink())
-    fail10("capability_unsafe_package", "A capability package root must be a physical directory.");
-  const paths = await collect(directoryPath);
-  const manifestPath2 = resolve41(directoryPath, CAPABILITY_MANIFEST);
-  if (!paths.includes(manifestPath2))
-    fail10("capability_invalid", `The package is missing ${CAPABILITY_MANIFEST}.`);
-  const files = [];
-  for (const path of paths) {
-    const relativePath = portable(relative11(directoryPath, path));
-    if (relativePath !== CAPABILITY_MANIFEST && !isSafeCapabilityContentPath(relativePath))
-      fail10("capability_unsafe_package", `Capability package file '${relativePath}' is not publishable or installable.`);
-    files.push({
-      path: relativePath,
-      bytes: await regularFile2(path, relativePath === CAPABILITY_MANIFEST ? MAX_MANIFEST_BYTES2 : MAX_TOTAL_BYTES)
-    });
-  }
-  let manifest;
-  try {
-    manifest = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(files.find((file) => file.path === CAPABILITY_MANIFEST).bytes));
-  } catch (error) {
-    fail10("capability_invalid", `${CAPABILITY_MANIFEST} is not valid UTF-8 JSON.`, error);
-  }
-  if (!validateSchema("capabilityPackageManifest", manifest).valid)
-    fail10("capability_invalid", `${CAPABILITY_MANIFEST} does not satisfy the v1 contract.`);
-  const typed = manifest;
-  if (typed.kind !== typed.entrypoint.kind)
-    fail10("capability_invalid", "The package kind and entrypoint kind differ.");
-  const actual = hashCapabilityFiles(files);
-  if (actual !== typed.contentHash)
-    fail10("capability_content_hash_mismatch", "The capability manifest hash differs from the verified package content.");
-  if (typed.entrypoint.kind === "skill") {
-    const entrypoint = typed.entrypoint;
-    const skillFile = files.find((file) => file.path === entrypoint.manifestPath);
-    let skill;
-    try {
-      skill = skillFile === void 0 ? null : JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(skillFile.bytes));
-    } catch {
-      skill = null;
-    }
-    if (!validateSchema("skill", skill).valid || skill.skillId !== entrypoint.skillId || skill.contentHash !== actual)
-      fail10("capability_invalid", "A skill capability must contain a matching, independently valid lervo-skill.json contract.");
-  }
-  if (typed.entrypoint.kind === "provider_plugin") {
-    const entrypoint = typed.entrypoint;
-    if (!files.some((file) => file.path === entrypoint.pluginManifestPath))
-      fail10("capability_invalid", "The provider plugin manifest path is missing from the package.");
-  }
-  const verified = {
-    manifest: structuredClone(typed),
-    directoryPath,
-    files: files.map((file) => ({ path: file.path, bytes: new Uint8Array(file.bytes) }))
-  };
-  if (typed.kind === "mcp_server" || typed.kind === "provider_plugin") {
-    createCapabilityActivationRequests([{ ...verified, sourceKind: "project" }]);
-  }
-  return verified;
-}
-
-// packages/capabilities/dist/resolution.js
-import { lstat as lstat29, readdir as readdir12, writeFile as writeFile2, mkdir as mkdir10, rename as rename7, open as open16 } from "node:fs/promises";
-import { dirname as dirname11, resolve as resolve42 } from "node:path";
-function compare2(left, right) {
-  return left === right ? 0 : left < right ? -1 : 1;
-}
-function compareCapabilityVersions(left, right) {
-  const parse30 = (value) => {
-    const withoutBuild = value.split("+", 1)[0];
-    const [core, prerelease] = withoutBuild.split("-", 2);
-    return { core: core.split(".").map(Number), prerelease: prerelease?.split(".") };
-  };
-  const a = parse30(left);
-  const b = parse30(right);
-  for (let index2 = 0; index2 < 3; index2 += 1) {
-    const difference = a.core[index2] - b.core[index2];
-    if (difference !== 0)
-      return difference;
-  }
-  if (a.prerelease === void 0)
-    return b.prerelease === void 0 ? 0 : 1;
-  if (b.prerelease === void 0)
-    return -1;
-  for (let index2 = 0; index2 < Math.max(a.prerelease.length, b.prerelease.length); index2 += 1) {
-    const av = a.prerelease[index2];
-    const bv = b.prerelease[index2];
-    if (av === void 0)
-      return -1;
-    if (bv === void 0)
-      return 1;
-    if (av === bv)
-      continue;
-    const an = /^\d+$/u.test(av);
-    const bn = /^\d+$/u.test(bv);
-    if (an && bn)
-      return Number(av) - Number(bv);
-    if (an !== bn)
-      return an ? -1 : 1;
-    return compare2(av, bv);
-  }
-  return 0;
-}
-function key(id, version) {
-  return `${encodeURIComponent(id)}@${version}`;
-}
-function fail11(code, message, cause) {
-  throw new CapabilityPackageError(code, message, cause === void 0 ? void 0 : { cause });
-}
-function capabilityRoot(repositoryRoot, scope, userRoot) {
-  return scope === "project" ? resolve42(repositoryRoot, ".lervo/capabilities/packages") : resolve42(userRoot ?? process.env.LERVO_USER_CAPABILITY_ROOT ?? resolve42(process.env.HOME ?? "", ".lervo/capabilities"), "packages");
-}
-async function discoverCapabilityRoot(root2, sourceKind) {
-  let entries;
-  try {
-    const info = await lstat29(root2);
-    if (!info.isDirectory() || info.isSymbolicLink())
-      fail11("capability_unsafe_package", "A capability root must be a physical directory.");
-    entries = await readdir12(root2, { withFileTypes: true });
-  } catch (error) {
-    if (error.code === "ENOENT")
-      return [];
-    throw error;
-  }
-  const result = [];
-  for (const entry of entries.sort((a, b) => compare2(a.name, b.name))) {
-    if (!entry.isDirectory() || entry.isSymbolicLink())
-      continue;
-    const verified = await readCapabilityPackage(resolve42(root2, entry.name));
-    if (entry.name !== key(verified.manifest.capabilityId, verified.manifest.version))
-      fail11("capability_invalid", `Capability directory '${entry.name}' does not match its immutable coordinate.`);
-    result.push({ ...verified, source: { kind: sourceKind, uri: `${sourceKind}:${entry.name}` } });
-  }
-  return result;
-}
-function providerCompatible(candidate, provider) {
-  const contract = candidate.manifest.compatibility.providers;
-  return contract.mode === "any" || contract.providers.includes(provider);
-}
-async function resolveCapabilities(input) {
-  const requested = [...new Set(input.capabilityIds)].sort();
-  if (requested.length > 64 || requested.some((id) => !/^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u.test(id) || id.length > 150))
-    fail11("capability_invalid", "A requested capability ID is invalid.");
-  const candidates = [
-    ...await discoverCapabilityRoot(capabilityRoot(input.repositoryRoot, "project"), "project"),
-    ...await discoverCapabilityRoot(capabilityRoot(input.repositoryRoot, "user", input.userRoot), "user")
-  ];
-  const selected = /* @__PURE__ */ new Map();
-  const activationPackages = /* @__PURE__ */ new Map();
-  const resolving = /* @__PURE__ */ new Set();
-  const resolveOne = (capabilityId, coordinate) => {
-    const already = selected.get(capabilityId);
-    if (already !== void 0) {
-      if (coordinate !== void 0 && (already.version !== coordinate.version || already.contentHash !== coordinate.contentHash))
-        fail11("capability_conflict", `Capability '${capabilityId}' has conflicting dependency coordinates.`);
-      return;
-    }
-    if (resolving.has(capabilityId) || resolving.size >= 64)
-      fail11("capability_conflict", `Capability '${capabilityId}' has cyclic or over-deep dependencies.`);
-    const compatible = candidates.filter((item) => item.manifest.capabilityId === capabilityId && providerCompatible(item, input.provider) && item.manifest.compatibility.platforms.includes(input.platform));
-    compatible.sort((a, b) => a.source.kind === b.source.kind ? compareCapabilityVersions(b.manifest.version, a.manifest.version) : a.source.kind === "project" ? -1 : 1);
-    const candidate = coordinate === void 0 ? compatible[0] : compatible.find((item) => item.manifest.version === coordinate.version && item.manifest.contentHash === coordinate.contentHash);
-    if (candidate === void 0)
-      fail11("capability_not_found", `No compatible package resolved capability '${capabilityId}'${coordinate === void 0 ? "" : " at its exact dependency coordinate"}.`);
-    if (input.allowedPermissions !== void 0 && candidate.manifest.requiredPermissions.some((permission) => !input.allowedPermissions.includes(permission)))
-      fail11("capability_unsupported", `Capability '${capabilityId}' requires permission not allowed by the role.`);
-    resolving.add(capabilityId);
-    try {
-      for (const dependency of candidate.manifest.dependencies)
-        resolveOne(dependency.capabilityId, dependency);
-      if (candidate.manifest.entrypoint.kind === "bundle")
-        for (const member of candidate.manifest.entrypoint.members)
-          resolveOne(member.capabilityId, member);
-    } finally {
-      resolving.delete(capabilityId);
-    }
-    selected.set(capabilityId, {
-      capabilityId,
-      kind: candidate.manifest.kind,
-      version: candidate.manifest.version,
-      contentHash: candidate.manifest.contentHash,
-      sourceKind: candidate.source.kind,
-      sourceUri: candidate.source.uri,
-      activationStatus: "resolved",
-      entrypoint: structuredClone(candidate.manifest.entrypoint),
-      requiredPermissions: [...candidate.manifest.requiredPermissions]
-    });
-    activationPackages.set(capabilityId, {
-      manifest: structuredClone(candidate.manifest),
-      directoryPath: candidate.directoryPath,
-      files: candidate.files.map((file) => ({
-        path: file.path,
-        bytes: new Uint8Array(file.bytes)
-      })),
-      sourceKind: candidate.source.kind
-    });
-  };
-  for (const capabilityId of requested)
-    resolveOne(capabilityId);
-  const values = [...selected.values()].sort((a, b) => compare2(a.capabilityId, b.capabilityId));
-  const lock = {
-    schemaVersion: 1,
-    projectId: input.projectId,
-    generatedAt: input.generatedAt,
-    entries: values.map((item) => ({
-      capabilityId: item.capabilityId,
-      kind: item.kind,
-      version: item.version,
-      contentHash: item.contentHash,
-      source: { kind: item.sourceKind, uri: item.sourceUri },
-      activationStatus: "resolved"
-    }))
-  };
-  if (!validateSchema("capabilityLock", lock).valid)
-    fail11("capability_invalid", "The resolved capability lock is invalid.");
-  return {
-    selected: values,
-    activationPackages: values.map((item) => activationPackages.get(item.capabilityId)),
-    lock
-  };
-}
-
-// packages/agent-workforce/dist/store.js
-import { chmod as chmod4, lstat as lstat31, mkdir as mkdir11, open as open17, readFile as readFile18, readdir as readdir14, rename as rename8, rm as rm8 } from "node:fs/promises";
-import { basename as basename12, dirname as dirname12, posix as posix8, resolve as resolve44 } from "node:path";
+import { lstat as lstat18, mkdir as mkdir7, readFile as readFile12, readdir as readdir10, rename as rename5, rm as rm6, writeFile } from "node:fs/promises";
+import { dirname as dirname7, resolve as resolve26 } from "node:path";
 
 // packages/roles/dist/integrity.js
-import { createHash as createHash13 } from "node:crypto";
+import { createHash as createHash12 } from "node:crypto";
 function roleSha256(value) {
-  return `sha256:${createHash13("sha256").update(value).digest("hex")}`;
+  return `sha256:${createHash12("sha256").update(value).digest("hex")}`;
 }
 function roleProfileHash(profile8) {
   return roleSha256(canonicalJson(profile8));
@@ -69052,8 +64784,8 @@ function listBuiltInRoleDefinitions() {
 }
 
 // packages/roles/dist/repository.js
-import { lstat as lstat30, readFile as readFile17, readdir as readdir13 } from "node:fs/promises";
-import { basename as basename11, resolve as resolve43 } from "node:path";
+import { lstat as lstat17, readFile as readFile11, readdir as readdir9 } from "node:fs/promises";
+import { basename as basename8, resolve as resolve25 } from "node:path";
 var ROLE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
 var VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
 var BUILT_IN_VERSION = "1.0.0";
@@ -69095,7 +64827,20 @@ var CAPABILITY_KEYS = /* @__PURE__ */ new Set([
 var CONTEXT_KEYS = /* @__PURE__ */ new Set(["requiredDocumentRuleIds", "minimumAssurance", "referencesRequired"]);
 var VERIFICATION_KEYS = /* @__PURE__ */ new Set(["suiteIds", "failureDisposition"]);
 var HANDOFF_KEYS = /* @__PURE__ */ new Set(["allowedRoleIds", "evidenceLinksRequired", "sharedContextRequired"]);
-function fail12(code, message, cause) {
+function renderRepositoryRoleSource(source) {
+  const parsed = parseRepositoryRoleSource(source, source.roleId);
+  return `${JSON.stringify({
+    schemaVersion: parsed.schemaVersion,
+    kind: parsed.kind,
+    roleId: parsed.roleId,
+    version: parsed.version,
+    extends: parsed.extends,
+    profile: parsed.profile,
+    checks: parsed.checks
+  }, null, 2)}
+`;
+}
+function fail7(code, message, cause) {
   throw new RoleContractError(code, message, cause === void 0 ? void 0 : { cause });
 }
 function record(value) {
@@ -69138,13 +64883,13 @@ function validProfilePatch(value) {
     return false;
   return true;
 }
-function validateSource(value, expectedRoleId) {
+function parseRepositoryRoleSource(value, expectedRoleId) {
   if (!record(value) || !exactKeys(value, SOURCE_KEYS) || value.schemaVersion !== 1 || value.kind !== "lervo_repository_role" || typeof value.roleId !== "string" || !ROLE_ID.test(value.roleId) || value.roleId.length > 100 || typeof value.version !== "string" || !VERSION.test(value.version) || value.version.length > 100 || !Array.isArray(value.extends) || value.extends.length > 8 || !record(value.profile) || !exactKeys(value.profile, PROFILE_KEYS) || !validProfilePatch(value.profile) || !Array.isArray(value.checks) || value.checks.length > 32 || expectedRoleId !== void 0 && value.roleId !== expectedRoleId) {
-    fail12("role_profile_invalid", "The repository role source does not satisfy the bounded v1 contract.");
+    fail7("role_profile_invalid", "The repository role source does not satisfy the bounded v1 contract.");
   }
   const references = value.extends;
   if (!references.every((item) => record(item) && exactKeys(item, REFERENCE_KEYS) && typeof item.roleId === "string" && ROLE_ID.test(item.roleId) && typeof item.version === "string" && VERSION.test(item.version)) || new Set(references.map((item) => `${item.roleId}@${item.version}`)).size !== references.length || references.some((item) => item.roleId === value.roleId)) {
-    fail12("role_profile_invalid", "The repository role ancestry is invalid, duplicated, or self-referential.");
+    fail7("role_profile_invalid", "The repository role ancestry is invalid, duplicated, or self-referential.");
   }
   return structuredClone(value);
 }
@@ -69160,7 +64905,7 @@ function mergeInputs(groups) {
     for (const input of group) {
       const previous2 = inputs.get(input.name);
       if (previous2 !== void 0 && !same(previous2, input))
-        fail12("role_profile_invalid", `Role input ${input.name} has incompatible inherited contracts.`);
+        fail7("role_profile_invalid", `Role input ${input.name} has incompatible inherited contracts.`);
       inputs.set(input.name, structuredClone(input));
     }
   }
@@ -69172,7 +64917,7 @@ function mergeChecks(groups) {
     for (const check of group) {
       const previous2 = checks.get(check.checkId);
       if (previous2 !== void 0 && !same(previous2, check))
-        fail12("role_profile_invalid", `Role evaluation check ${check.checkId} has incompatible inherited contracts.`);
+        fail7("role_profile_invalid", `Role evaluation check ${check.checkId} has incompatible inherited contracts.`);
       checks.set(check.checkId, structuredClone(check));
     }
   }
@@ -69313,7 +65058,7 @@ function builtInContract(roleId) {
 }
 function customContract(source, bases, sourcePath) {
   if (bases.length > 1 && (source.profile.name === void 0 || source.profile.description === void 0 || source.profile.outputContract === void 0)) {
-    fail12("role_profile_invalid", "A composed role must explicitly define its name, description, and output contract.");
+    fail7("role_profile_invalid", "A composed role must explicitly define its name, description, and output contract.");
   }
   const profile8 = applyPatch(source.roleId, mergedBaseProfile(source.roleId, bases), source.profile);
   const checks = mergeChecks([
@@ -69338,38 +65083,38 @@ function customContract(source, bases, sourcePath) {
   return { ...material, sourcePath, contractHash: roleSha256(canonicalJson(material)) };
 }
 async function repositorySources(repositoryRoot) {
-  const directory = resolve43(repositoryRoot, ".lervo/roles");
+  const directory = resolve25(repositoryRoot, ".lervo/roles");
   let directoryInfo;
   try {
-    directoryInfo = await lstat30(directory);
+    directoryInfo = await lstat17(directory);
   } catch (error) {
     if (error.code === "ENOENT")
       return /* @__PURE__ */ new Map();
-    fail12("role_profile_invalid", "The repository role directory could not be inspected.", error);
+    fail7("role_profile_invalid", "The repository role directory could not be inspected.", error);
   }
   if (!directoryInfo.isDirectory() || directoryInfo.isSymbolicLink())
-    fail12("role_profile_invalid", "The repository role path must be a physical directory.");
-  const names = (await readdir13(directory)).filter((name2) => name2.endsWith(".json")).sort();
+    fail7("role_profile_invalid", "The repository role path must be a physical directory.");
+  const names = (await readdir9(directory)).filter((name2) => name2.endsWith(".json")).sort();
   if (names.length > MAXIMUM_ROLE_FILES)
-    fail12("role_profile_invalid", "The repository role file limit was exceeded.");
+    fail7("role_profile_invalid", "The repository role file limit was exceeded.");
   const result = /* @__PURE__ */ new Map();
   for (const name2 of names) {
-    const expectedRoleId = basename11(name2, ".json");
+    const expectedRoleId = basename8(name2, ".json");
     if (!ROLE_ID.test(expectedRoleId))
-      fail12("role_profile_invalid", `Repository role filename ${name2} is invalid.`);
-    const path = resolve43(directory, name2);
-    const info = await lstat30(path);
+      fail7("role_profile_invalid", `Repository role filename ${name2} is invalid.`);
+    const path = resolve25(directory, name2);
+    const info = await lstat17(path);
     if (!info.isFile() || info.isSymbolicLink() || info.size > MAXIMUM_ROLE_BYTES)
-      fail12("role_profile_invalid", `Repository role source ${name2} is unsafe.`);
+      fail7("role_profile_invalid", `Repository role source ${name2} is unsafe.`);
     let parsed;
     try {
-      parsed = JSON.parse(await readFile17(path, "utf8"));
+      parsed = JSON.parse(await readFile11(path, "utf8"));
     } catch (error) {
-      fail12("role_profile_invalid", `Repository role source ${name2} is not valid JSON.`, error);
+      fail7("role_profile_invalid", `Repository role source ${name2} is not valid JSON.`, error);
     }
-    const source = validateSource(parsed, expectedRoleId);
+    const source = parseRepositoryRoleSource(parsed, expectedRoleId);
     if (listBuiltInRoleDefinitions().some((definition2) => definition2.profile.roleId === source.roleId) || result.has(source.roleId))
-      fail12("role_profile_invalid", `Repository role ${source.roleId} duplicates an existing role ID.`);
+      fail7("role_profile_invalid", `Repository role ${source.roleId} duplicates an existing role ID.`);
     result.set(source.roleId, { source, path: `.lervo/roles/${name2}` });
   }
   return result;
@@ -69386,15 +65131,15 @@ async function listRoleContracts(repositoryRoot) {
       return present;
     const entry = sources.get(roleId);
     if (entry === void 0)
-      fail12("role_not_found", `Role ${roleId} does not exist in the built-in or repository registry.`);
+      fail7("role_not_found", `Role ${roleId} does not exist in the built-in or repository registry.`);
     if (depth > MAXIMUM_COMPOSITION_DEPTH || resolving.has(roleId))
-      fail12("role_profile_invalid", `Role ${roleId} has cyclic or over-deep ancestry.`);
+      fail7("role_profile_invalid", `Role ${roleId} has cyclic or over-deep ancestry.`);
     resolving.add(roleId);
     try {
       const bases = entry.source.extends.map((reference) => {
         const base = resolveCustom(reference.roleId, depth + 1);
         if (base.version !== reference.version)
-          fail12("role_contract_stale", `Role ${roleId} requires ${reference.roleId}@${reference.version}, but ${base.version} is current.`);
+          fail7("role_contract_stale", `Role ${roleId} requires ${reference.roleId}@${reference.version}, but ${base.version} is current.`);
         return base;
       });
       let contract;
@@ -69403,7 +65148,7 @@ async function listRoleContracts(repositoryRoot) {
       } catch (error) {
         if (error instanceof RoleContractError)
           throw error;
-        fail12("role_profile_invalid", `Role ${roleId} could not be resolved into a valid executable contract.`, error);
+        fail7("role_profile_invalid", `Role ${roleId} could not be resolved into a valid executable contract.`, error);
       }
       resolved.set(roleId, contract);
       return contract;
@@ -69417,17 +65162,4496 @@ async function listRoleContracts(repositoryRoot) {
 }
 async function resolveRoleContract(repositoryRoot, roleId) {
   if (!ROLE_ID.test(roleId) || roleId.length > 100)
-    fail12("role_not_found", "The requested role ID is invalid.");
+    fail7("role_not_found", "The requested role ID is invalid.");
   const contract = (await listRoleContracts(repositoryRoot)).find((item) => item.roleId === roleId);
   if (contract === void 0)
-    fail12("role_not_found", `Role ${roleId} does not exist in the built-in or repository registry.`);
+    fail7("role_not_found", `Role ${roleId} does not exist in the built-in or repository registry.`);
   return contract;
 }
 function assertRoleContractBinding(contract, binding) {
   if (binding.roleId !== contract.roleId || binding.roleVersion !== contract.version || binding.roleContractHash !== contract.contractHash || binding.roleProfileHash !== roleProfileHash(contract.definition.profile)) {
-    fail12("role_contract_stale", `Role ${binding.roleId} no longer matches its versioned repository contract.`);
+    fail7("role_contract_stale", `Role ${binding.roleId} no longer matches its versioned repository contract.`);
   }
 }
+
+// packages/repository-knowledge/dist/portable-skill-pattern.js
+var hashPattern = /^sha256:[a-f0-9]{64}$/u;
+var coordinatePattern = /^(?:evt|run)_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
+var verificationPattern = /^ver_[a-f0-9]{16}$/u;
+function boundedStrings(values, field2, maximum) {
+  if (!Array.isArray(values) || values.length > maximum || values.some((value) => typeof value !== "string" || value.length === 0 || value.length > 512))
+    throw new Error(`${field2} must contain bounded non-empty strings.`);
+}
+function validateVerificationReference(value) {
+  if (value.independentGroup.length === 0 || value.independentGroup.length > 128 || !coordinatePattern.test(value.eventId) || !coordinatePattern.test(value.runId) || !verificationPattern.test(value.verificationId) || !hashPattern.test(value.eventHash) || !hashPattern.test(value.suiteHash) || !hashPattern.test(value.repositoryRevision) || !hashPattern.test(value.resultContentHash))
+    throw new Error("Workflow verification evidence is unsafe or unbounded.");
+}
+function assertExactPassedWorkflowVerification(references, evidence) {
+  const byEvent = new Map(evidence.map((item) => [item.eventId, item]));
+  for (const reference of references) {
+    validateVerificationReference(reference);
+    const observed = byEvent.get(reference.eventId);
+    if (observed === void 0 || Object.entries(observed).some(([field2, value]) => reference[field2] !== value))
+      throw new Error("Workflow verification evidence is missing, failed, or changed.");
+  }
+}
+function createPackage(input) {
+  const directory = input.target.path.slice(0, -"/SKILL.md".length);
+  const expectedSkillId = directory.slice(directory.lastIndexOf("/") + 1);
+  if (input.contract.skillId !== expectedSkillId)
+    throw new Error("The portable-skill ID must equal its package directory.");
+  boundedStrings(input.contract.supportedRoles, "supportedRoles", 32);
+  boundedStrings(input.contract.platforms, "platforms", 3);
+  boundedStrings(input.contract.requiredTools, "requiredTools", 32);
+  boundedStrings(input.contract.requiredCapabilities, "requiredCapabilities", 8);
+  if (input.contract.resources.length > 16 || new Set(input.contract.resources.map((item) => item.path)).size !== input.contract.resources.length)
+    throw new Error("Portable-skill resources must be bounded and unique.");
+  let resourceBytes = 0;
+  for (const resource of input.contract.resources) {
+    resourceBytes += Buffer.byteLength(resource.content);
+    const pathSegments = resource.path.split("/");
+    if (!/^(?:references|scripts|assets)\/[a-zA-Z0-9][a-zA-Z0-9._/-]*\.(?:md|json|ya?ml|mjs)$/u.test(resource.path) || pathSegments.some((segment) => segment.length === 0 || segment === "." || segment === "..") || resource.content.length === 0 || resource.purpose.trim().length === 0 || resource.purpose.length > 256 || resourceBytes > 64 * 1024)
+      throw new Error("A portable-skill resource is unsafe or unbounded.");
+  }
+  if (!/^---\s*\n[\s\S]*?^name:\s*["']?([^"'\n]+)["']?\s*$[\s\S]*?^---\s*$/mu.test(input.target.content))
+    throw new Error("The portable-skill instructions require bounded frontmatter with a name.");
+  const declaredName = input.target.content.match(/^name:\s*["']?([^"'\n]+)["']?\s*$/mu)?.[1];
+  if (declaredName !== input.contract.skillId)
+    throw new Error("The portable-skill instruction name must equal its contract ID.");
+  const packageContentHash = hashSkillContentFiles([
+    { path: "SKILL.md", bytes: new TextEncoder().encode(input.target.content) },
+    ...input.contract.resources.map((item) => ({
+      path: item.path,
+      bytes: new TextEncoder().encode(item.content)
+    }))
+  ]);
+  const manifest = {
+    schemaVersion: 1,
+    skillId: input.contract.skillId,
+    version: input.contract.version,
+    contentHash: packageContentHash,
+    source: {
+      kind: "project",
+      uri: directory,
+      publisher: {
+        id: "lervo.development-pattern",
+        name: "Lervo development-pattern review"
+      }
+    },
+    supportedRoles: [...input.contract.supportedRoles],
+    compatibility: {
+      providers: structuredClone(input.contract.providerCompatibility),
+      minimumRuntimeVersion: input.contract.minimumRuntimeVersion,
+      platforms: [...input.contract.platforms],
+      requiredTools: [...input.contract.requiredTools],
+      unknownIsCompatible: false
+    },
+    requiredCapabilities: [
+      ...input.contract.requiredCapabilities
+    ],
+    contracts: {
+      inputSchemaRef: input.contract.inputSchemaRef,
+      outputSchemaRef: input.contract.outputSchemaRef
+    },
+    trust: { level: "untrusted", signatureStatus: "unsigned" },
+    enabledScope: { kind: "disabled" },
+    pinned: false
+  };
+  if (!validateSchema("skill", manifest).valid)
+    throw new Error("The proposed portable-skill contract is invalid.");
+  const manifestContent = `${JSON.stringify(manifest, null, 2)}
+`;
+  const capabilityManifest = {
+    schemaVersion: 1,
+    capabilityId: input.contract.capabilityId,
+    kind: "skill",
+    version: input.contract.version,
+    contentHash: packageContentHash,
+    source: {
+      kind: "project",
+      uri: directory,
+      publisher: structuredClone(manifest.source.publisher)
+    },
+    compatibility: {
+      providers: structuredClone(input.contract.providerCompatibility),
+      minimumRuntimeVersion: input.contract.minimumRuntimeVersion,
+      platforms: [...input.contract.platforms]
+    },
+    requiredPermissions: [
+      ...input.contract.requiredCapabilities
+    ],
+    dependencies: structuredClone(input.contract.dependencies),
+    ...input.contract.discovery === void 0 ? {} : { discovery: structuredClone(input.contract.discovery) },
+    entrypoint: {
+      kind: "skill",
+      skillId: input.contract.skillId,
+      manifestPath: "lervo-skill.json"
+    },
+    activation: "explicit",
+    publication: { defaultVisibility: "local", secretMaterial: "excluded" }
+  };
+  if (!validateSchema("capabilityPackageManifest", capabilityManifest).valid)
+    throw new Error("The proposed portable-skill capability package is invalid.");
+  const capabilityManifestContent = `${JSON.stringify(capabilityManifest, null, 2)}
+`;
+  return {
+    packageContentHash,
+    manifestContent,
+    manifestContentHash: sha2562(manifestContent),
+    capabilityManifestContent,
+    capabilityManifestContentHash: sha2562(capabilityManifestContent),
+    resources: structuredClone(input.contract.resources)
+  };
+}
+function createPortableSkillPackageCandidate(input) {
+  const enhanced = input.verification !== void 0 || input.contract !== void 0;
+  if (!enhanced)
+    return void 0;
+  if (input.target.kind !== "portable_skill" || input.verification === void 0 || input.contract === void 0 || input.verification.length !== input.independentGroups.size || new Set(input.verification.map((item) => item.independentGroup)).size !== input.verification.length || [...input.independentGroups].some((group) => !input.verification.some((item) => item.independentGroup === group)) || new Set(input.verification.map((item) => item.eventId)).size !== input.verification.length || new Set(input.verification.map((item) => item.runId)).size !== input.verification.length)
+    throw new Error("A portable-skill candidate requires one distinct passed verification per independent evidence group.");
+  assertExactPassedWorkflowVerification(input.verification, input.passedVerificationEvidence);
+  return createPackage({ target: input.target, contract: input.contract });
+}
+
+// packages/repository-knowledge/dist/agent-profile-pattern.js
+var HASH3 = /^sha256:[a-f0-9]{64}$/u;
+var EVENT_ID = /^evt_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
+var RUN_ID = /^run_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
+var VERSION2 = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
+function assertActivationReference(value) {
+  if (!EVENT_ID.test(value.eventId) || !HASH3.test(value.eventHash) || !RUN_ID.test(value.runId) || !["codex", "claude"].includes(value.provider) || !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(value.roleId) || !VERSION2.test(value.roleVersion) || !HASH3.test(value.roleContractHash) || !HASH3.test(value.roleProfileHash) || !HASH3.test(value.runtimeProfileHash))
+    throw new Error("Agent-profile activation evidence is unsafe or unbounded.");
+}
+function sameActivation(expected, observed) {
+  return Object.keys(observed).every((field2) => observed[field2] === expected[field2]);
+}
+function parseTargetSource(target) {
+  const match = /^\.lervo\/roles\/([a-z][a-z0-9]*(?:[._-][a-z0-9]+)*)\.json$/u.exec(target.path);
+  if (match === null || target.expectedCurrentHash !== null && !HASH3.test(target.expectedCurrentHash))
+    throw new Error("An agent-profile target requires a safe role path and exact current hash.");
+  let value;
+  try {
+    value = JSON.parse(target.content);
+  } catch {
+    throw new Error("The agent-profile target must contain valid repository-role JSON.");
+  }
+  const source = parseRepositoryRoleSource(value, match[1]);
+  if (renderRepositoryRoleSource(source) !== target.content)
+    throw new Error("The agent-profile target must use deterministic repository-role rendering.");
+  return source;
+}
+function assertAgentProfilePattern(input) {
+  const source = parseTargetSource(input.target);
+  const evidence = input.evidence;
+  if (evidence === void 0 || evidence.length !== input.independentGroups.size || evidence.length < 2 || evidence.length > 64 || new Set(evidence.map((item) => item.independentGroup)).size !== evidence.length || [...input.independentGroups].some((group) => !evidence.some((item) => item.independentGroup === group)) || evidence.some((item) => item.independentGroup !== item.verification.independentGroup || item.activation.runId !== item.verification.runId) || new Set(evidence.map((item) => item.activation.eventId)).size !== evidence.length || new Set(evidence.map((item) => item.verification.eventId)).size !== evidence.length || new Set(evidence.map((item) => item.activation.runId)).size !== evidence.length)
+    throw new Error("An agent-profile candidate requires one distinct activated and passed run per independent evidence group.");
+  const activations = new Map(input.activationEvidence.map((item) => [item.eventId, item]));
+  for (const item of evidence) {
+    assertActivationReference(item.activation);
+    const observed = activations.get(item.activation.eventId);
+    if (observed === void 0 || !sameActivation(item.activation, observed))
+      throw new Error("Agent-profile activation evidence is missing or changed.");
+  }
+  assertExactPassedWorkflowVerification(evidence.map((item) => item.verification), input.passedVerificationEvidence);
+  const [first, ...rest] = evidence.map((item) => item.activation);
+  if (first === void 0 || rest.some((item) => item.roleId !== first.roleId || item.roleVersion !== first.roleVersion || item.roleContractHash !== first.roleContractHash || item.roleProfileHash !== first.roleProfileHash))
+    throw new Error("Agent-profile evidence must bind one exact source role contract.");
+  if (source.roleId === first.roleId) {
+    if (input.target.expectedCurrentHash === null || source.version === first.roleVersion)
+      throw new Error("A replacement profile requires the exact current target and a new version.");
+  } else if (!source.extends.some((reference) => reference.roleId === first.roleId && reference.version === first.roleVersion)) {
+    throw new Error("A new agent profile must specialize its exact evidence-bound source role.");
+  }
+  return source;
+}
+
+// packages/repository-knowledge/dist/development-pattern-candidate.js
+var developmentPatternTargetKinds = [
+  "repository_instruction",
+  "scoped_instruction",
+  "portable_skill",
+  "decision",
+  "automated_check",
+  "agent_profile"
+];
+var safeRelativePath = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))(?!.*\\)[^\0]+$/u;
+function boundedStrings2(values, field2, maximum) {
+  if (!Array.isArray(values) || values.length > maximum || values.some((value) => typeof value !== "string" || value.length === 0 || value.length > 512))
+    throw new Error(`${field2} must contain bounded non-empty strings.`);
+}
+function validateTarget(target) {
+  if (!developmentPatternTargetKinds.includes(target.kind))
+    throw new Error("Unsupported development-pattern target kind.");
+  if (!safeRelativePath.test(target.path) || target.content.length === 0 || target.content.length > 64e3)
+    throw new Error("Development-pattern target coordinates are unsafe or unbounded.");
+  const accepted = target.kind === "repository_instruction" ? /^docs\/(?:foundation|instructions)\/[a-z0-9][a-z0-9/-]*\.md$/u.test(target.path) : target.kind === "scoped_instruction" ? /^docs\/instructions\/[a-z0-9][a-z0-9/-]*\.md$/u.test(target.path) : target.kind === "portable_skill" ? /^\.agents\/skills\/[a-z][a-z0-9-]*\/SKILL\.md$/u.test(target.path) : target.kind === "decision" ? /^docs\/decisions\/[a-z0-9][a-z0-9/-]*\.md$/u.test(target.path) : target.kind === "automated_check" ? /^scripts\/check-[a-z0-9-]+\.mjs$/u.test(target.path) : /^\.lervo\/roles\/[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*\.json$/u.test(target.path);
+  if (!accepted)
+    throw new Error("Development-pattern target path does not match its owner.");
+}
+function validateProposal(input) {
+  const proposal = input.proposal;
+  if (proposal.schemaVersion !== 1 || proposal.title.length === 0 || proposal.title.length > 160 || /[\r\n]/u.test(proposal.title) || proposal.summary.length === 0 || proposal.summary.length > 2e3 || proposal.scope.length === 0 || proposal.scope.length > 256 || !Array.isArray(proposal.occurrences) || proposal.occurrences.length < 2 || proposal.occurrences.length > 64)
+    throw new Error("Development-pattern proposal does not satisfy the bounded v1 contract.");
+  const independent = /* @__PURE__ */ new Set();
+  for (const occurrence of proposal.occurrences) {
+    if (!safeRelativePath.test(occurrence.path) || occurrence.locator.length === 0 || occurrence.locator.length > 256 || occurrence.independentGroup.length === 0 || occurrence.independentGroup.length > 128)
+      throw new Error("Development-pattern occurrence is unsafe or unbounded.");
+    independent.add(occurrence.independentGroup);
+  }
+  if (independent.size < 2)
+    throw new Error("A pattern requires at least two independent occurrences.");
+  boundedStrings2(proposal.exceptions, "exceptions", 32);
+  boundedStrings2(proposal.affectedInvariants, "affectedInvariants", 32);
+  boundedStrings2(proposal.reasonsToChange, "reasonsToChange", 32);
+  boundedStrings2(proposal.verificationCommands, "verificationCommands", 16);
+  if (proposal.affectedInvariants.length === 0 || proposal.reasonsToChange.length === 0)
+    throw new Error("A pattern requires affected invariants and reasons to change.");
+  validateTarget(proposal.target);
+  if (proposal.target.kind === "agent_profile") {
+    if (proposal.portableSkillContract !== void 0)
+      throw new Error("An agent-profile candidate cannot include a portable-skill contract.");
+    assertAgentProfilePattern({
+      target: proposal.target,
+      independentGroups: independent,
+      evidence: proposal.agentProfileEvidence,
+      passedVerificationEvidence: input.passedVerificationEvidence,
+      activationEvidence: input.roleProfileActivationEvidence
+    });
+  } else if (proposal.agentProfileEvidence !== void 0) {
+    throw new Error("Agent-profile evidence is valid only for an agent-profile target.");
+  }
+  return createPortableSkillPackageCandidate({
+    target: proposal.target,
+    independentGroups: independent,
+    verification: proposal.workflowVerification,
+    contract: proposal.portableSkillContract,
+    passedVerificationEvidence: input.passedVerificationEvidence
+  });
+}
+function parseDevelopmentPatternProposal(value) {
+  const proposal = value;
+  validateProposal({
+    proposal,
+    passedVerificationEvidence: [
+      ...proposal?.workflowVerification ?? [],
+      ...proposal?.agentProfileEvidence?.map((item) => item.verification) ?? []
+    ],
+    roleProfileActivationEvidence: proposal?.agentProfileEvidence?.map((item) => item.activation) ?? []
+  });
+  return structuredClone(proposal);
+}
+function createDevelopmentPatternCandidate(input) {
+  const portableSkillPackage = validateProposal({
+    proposal: input.proposal,
+    passedVerificationEvidence: input.passedVerificationEvidence ?? [],
+    roleProfileActivationEvidence: input.roleProfileActivationEvidence ?? []
+  });
+  const occurrences = input.proposal.occurrences.map((occurrence) => {
+    const units = input.scan.units.filter((unit3) => unit3.path === occurrence.path && unit3.locator === occurrence.locator);
+    if (units.length !== 1)
+      throw new Error("Each pattern occurrence must resolve to one current source unit.");
+    const unit2 = units[0];
+    return {
+      ...occurrence,
+      unitId: unit2.unitId,
+      unitVersionId: unit2.unitVersionId,
+      evidenceDigest: sha2562(canonicalJson3({
+        unitVersionId: unit2.unitVersionId,
+        independentGroup: occurrence.independentGroup
+      })),
+      ...portableSkillPackage === void 0 ? {} : { sourceHash: unit2.sourceHash, unitHash: unit2.unitHash }
+    };
+  });
+  const sourceSnapshotHash = sha2562(canonicalJson3({ snapshotId: input.scan.contentSnapshotId, occurrences }));
+  const identity2 = {
+    ...input.proposal,
+    occurrences,
+    sourceSnapshotId: input.scan.contentSnapshotId,
+    sourceSnapshotHash,
+    ...portableSkillPackage === void 0 ? {} : { portableSkillPackage }
+  };
+  const patternId = stableId("pattern", identity2);
+  const candidate = { ...identity2, patternId };
+  const content3 = `${canonicalJson3(candidate)}
+`;
+  return { candidate, content: content3, contentHash: sha2562(content3) };
+}
+
+// packages/repository-knowledge/dist/canonicalization-outcome.js
+var HASH4 = /^sha256:[a-f0-9]{64}$/u;
+var MAXIMUM_OUTCOME_TARGETS = 8;
+var MAXIMUM_OUTCOME_SOURCE_PATHS = 256;
+var MAXIMUM_PROPOSED_BYTES = 12 * 1024;
+function safePath(path) {
+  return typeof path === "string" && path.length > 0 && !path.startsWith("/") && !path.includes("\\") && !path.split("/").some((part) => part.length === 0 || part === "." || part === "..");
+}
+function validSourcePaths(value) {
+  return Array.isArray(value) && value.length <= MAXIMUM_OUTCOME_SOURCE_PATHS && value.every(safePath) && new Set(value).size === value.length;
+}
+function validSummary(value) {
+  return typeof value === "string" && value.trim().length > 0 && Buffer.byteLength(value) <= 512 && !value.includes("\0");
+}
+function parseCanonicalizationOutcome(value) {
+  const outcome = value;
+  const baseValid = outcome !== null && typeof outcome === "object" && outcome.schemaVersion === 1 && validSummary(outcome.summary);
+  const noDurableValid = baseValid && outcome.kind === "no_durable_change" && ["implementation_only", "verification_only", "already_canonical", "transient"].includes(outcome.reasonCode ?? "") && validSourcePaths(outcome.sourcePaths);
+  const canonicalUpdateValid = baseValid && outcome.kind === "canonical_update" && Array.isArray(outcome.targets) && outcome.targets.length > 0 && outcome.targets.length <= MAXIMUM_OUTCOME_TARGETS && outcome.targets.every((target) => safePath(target.path) && canonicalResponsibilityForPath(target.path) !== null && typeof target.contentHash === "string" && HASH4.test(target.contentHash) && validSourcePaths(target.sourcePaths)) && new Set(outcome.targets.map((target) => target.path)).size === outcome.targets.length;
+  const reviewDraftValid = baseValid && outcome.kind === "review_draft" && Array.isArray(outcome.drafts) && outcome.drafts.length > 0 && outcome.drafts.length <= MAXIMUM_OUTCOME_TARGETS && outcome.drafts.every((draft) => safePath(draft.targetPath) && canonicalResponsibilityForPath(draft.targetPath) !== null && validSourcePaths(draft.sourcePaths) && typeof draft.proposedMarkdown === "string" && draft.proposedMarkdown.trim().length > 0 && Buffer.byteLength(draft.proposedMarkdown) <= MAXIMUM_PROPOSED_BYTES && typeof draft.proposedContentHash === "string" && HASH4.test(draft.proposedContentHash) && sha2562(draft.proposedMarkdown) === draft.proposedContentHash) && new Set(outcome.drafts.map((draft) => draft.targetPath)).size === outcome.drafts.length;
+  let portableSkillValid = false;
+  if (baseValid && outcome.kind === "portable_skill_candidate" && validSourcePaths(outcome.sourcePaths)) {
+    try {
+      const proposal = parseDevelopmentPatternProposal(outcome.proposal);
+      portableSkillValid = proposal.target.kind === "portable_skill" && proposal.workflowVerification !== void 0 && proposal.portableSkillContract !== void 0 && Buffer.byteLength(canonicalJson3(proposal)) <= MAXIMUM_PROPOSED_BYTES && outcome.sourcePaths.every((path) => proposal.occurrences.some((occurrence) => occurrence.path === path));
+    } catch {
+      portableSkillValid = false;
+    }
+  }
+  if (!noDurableValid && !canonicalUpdateValid && !reviewDraftValid && !portableSkillValid)
+    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonicalization outcome is invalid or exceeds its bounded contract.");
+  return outcome;
+}
+function sameMembers(left, right) {
+  return left.length === right.length && left.toSorted().every((item, index2) => item === right.toSorted()[index2]);
+}
+function validateCanonicalizationOutcomeForChange(input) {
+  const outcome = parseCanonicalizationOutcome(input.outcome);
+  const expectedKind = input.disposition === "canonical_sources_updated" ? "canonical_update" : input.disposition === "pending_user_approval" ? ["review_draft", "portable_skill_candidate"] : "no_durable_change";
+  if (Array.isArray(expectedKind) ? !expectedKind.includes(outcome.kind) : outcome.kind !== expectedKind)
+    throw new RepositoryKnowledgeError("knowledge_approval_required", `The ${input.disposition} disposition requires a ${Array.isArray(expectedKind) ? expectedKind.join(" or ") : expectedKind} outcome.`);
+  const changedPaths = [
+    .../* @__PURE__ */ new Set([...Object.keys(input.beforeFiles), ...Object.keys(input.afterFiles)])
+  ].filter((path) => input.beforeFiles[path] !== input.afterFiles[path]).toSorted();
+  const expectedSources = changedPaths.filter((path) => sourceResponsibilityForPath(path) !== null && canonicalResponsibilityForPath(path) === null);
+  const boundSources = outcome.kind === "no_durable_change" ? outcome.sourcePaths : outcome.kind === "canonical_update" ? outcome.targets.flatMap((target) => target.sourcePaths) : outcome.kind === "review_draft" ? outcome.drafts.flatMap((draft) => draft.sourcePaths) : outcome.sourcePaths;
+  if (new Set(boundSources).size !== boundSources.length || !sameMembers(boundSources, expectedSources))
+    throw new RepositoryKnowledgeError("knowledge_approval_required", "The canonicalization outcome must bind every changed noncanonical source exactly once.");
+  if (outcome.kind === "canonical_update") {
+    for (const target of outcome.targets) {
+      if (input.afterFiles[target.path] !== target.contentHash || input.beforeFiles[target.path] === input.afterFiles[target.path])
+        throw new RepositoryKnowledgeError("knowledge_plan_stale", "A declared canonical target is not an exact changed repository file.");
+      const targetResponsibility = canonicalResponsibilityForPath(target.path);
+      if (target.sourcePaths.some((path) => sourceResponsibilityForPath(path) !== targetResponsibility))
+        throw new RepositoryKnowledgeError("knowledge_approval_required", "A canonical target does not match the responsibility of its bound sources.");
+    }
+  }
+  if (outcome.kind === "review_draft") {
+    for (const draft of outcome.drafts) {
+      const targetResponsibility = canonicalResponsibilityForPath(draft.targetPath);
+      if (draft.sourcePaths.some((path) => sourceResponsibilityForPath(path) !== targetResponsibility))
+        throw new RepositoryKnowledgeError("knowledge_approval_required", "A proposed canonical target does not match the responsibility of its bound sources.");
+    }
+  }
+}
+
+// packages/repository-knowledge/dist/canonicalization-candidate-record.js
+var ROOT = ".lervo/state/knowledge/canonicalization-candidates";
+var MAXIMUM_CANDIDATE_RECORDS = 256;
+var MAXIMUM_CANONICALIZATION_SOURCE_BINDINGS = 256;
+function safePath2(path) {
+  return path.length > 0 && !path.startsWith("/") && !path.includes("\\") && !path.split("/").some((part) => part.length === 0 || part === "." || part === "..");
+}
+function canonicalizationCandidatePath(candidateId) {
+  return `${ROOT}/${candidateId.slice("kcanon_".length, "kcanon_".length + 2)}/${candidateId}.json`;
+}
+async function boundedCandidatePaths(root2) {
+  const directory = resolve26(root2, ROOT);
+  let shards;
+  try {
+    shards = await readdir10(directory, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return [];
+    throw error;
+  }
+  const paths = [];
+  for (const shard of shards.sort((left, right) => left.name.localeCompare(right.name))) {
+    if (!shard.isDirectory() || !/^[a-f0-9]{2}$/u.test(shard.name))
+      throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonicalization candidate registry contains an unsafe entry.");
+    const entries = await readdir10(resolve26(directory, shard.name), { withFileTypes: true });
+    for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+      if (!entry.isFile() || !/^kcanon_[a-f0-9]{24}\.json$/u.test(entry.name))
+        throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonicalization candidate shard contains an unsafe entry.");
+      paths.push(`${ROOT}/${shard.name}/${entry.name}`);
+    }
+  }
+  if (paths.length > MAXIMUM_CANDIDATE_RECORDS)
+    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", `The canonicalization candidate registry exceeds ${MAXIMUM_CANDIDATE_RECORDS} records.`);
+  return paths;
+}
+function validateRecord(value) {
+  const record3 = value;
+  if (record3 === null || typeof record3 !== "object" || record3.schemaVersion !== 1 || typeof record3.candidateId !== "string" || !/^kcanon_[a-f0-9]{24}$/u.test(record3.candidateId) || !["candidate", "pending", "promoted", "rejected"].includes(record3.state ?? "") || typeof record3.beforeRevision !== "string" || typeof record3.afterRevision !== "string" || !Array.isArray(record3.sourceBindings) || record3.sourceBindings.length === 0 || record3.sourceBindings.length > MAXIMUM_CANONICALIZATION_SOURCE_BINDINGS || !record3.sourceBindings.every((item) => safePath2(item.path) && (item.beforeHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.beforeHash)) && (item.afterHash === null || /^sha256:[a-f0-9]{64}$/u.test(item.afterHash)) && sourceResponsibilityForPath(item.path) === item.responsibility) || !Array.isArray(record3.recommendedRoots) || !record3.recommendedRoots.every((path) => safePath2(path)) || typeof record3.createdAt !== "string" || record3.review !== null && (typeof record3.review !== "object" || typeof record3.review.reviewerId !== "string" || !["defer", "reject"].includes(record3.review.decision) || typeof record3.review.reviewedAt !== "string") || record3.promotion !== null && (typeof record3.promotion !== "object" || typeof record3.promotion.reviewerId !== "string" || !safePath2(record3.promotion.targetPath) || !/^sha256:[a-f0-9]{64}$/u.test(record3.promotion.targetContentHash) || typeof record3.promotion.promotedAt !== "string"))
+    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonicalization candidate record is invalid.");
+  if (record3.outcome !== void 0) {
+    const outcome = parseCanonicalizationOutcome(record3.outcome);
+    if (outcome.kind === "portable_skill_candidate")
+      throw new RepositoryKnowledgeError("knowledge_source_unsafe", "Portable-skill outcomes belong to the development-pattern registry.");
+  }
+  return record3;
+}
+async function readCanonicalizationCandidate(root2, path) {
+  const bytes = await readFile12(resolve26(root2, path), "utf8");
+  const record3 = validateRecord(JSON.parse(bytes));
+  let stale = false;
+  for (const binding of record3.sourceBindings) {
+    try {
+      const stats = await lstat18(resolve26(root2, binding.path));
+      if (!stats.isFile() || stats.isSymbolicLink())
+        throw new Error();
+      if (sha2562(await readFile12(resolve26(root2, binding.path))) !== binding.afterHash)
+        stale = true;
+    } catch {
+      if (binding.afterHash !== null)
+        stale = true;
+    }
+  }
+  return {
+    ...record3,
+    observedState: stale && !["promoted", "rejected"].includes(record3.state) ? "stale" : record3.state,
+    contentHash: sha2562(bytes)
+  };
+}
+async function listCanonicalizationCandidates(repositoryRoot) {
+  const root2 = resolve26(repositoryRoot);
+  return Promise.all((await boundedCandidatePaths(root2)).map((path) => readCanonicalizationCandidate(root2, path)));
+}
+async function writeCanonicalizationCandidateRecord(root2, record3) {
+  const path = resolve26(root2, canonicalizationCandidatePath(record3.candidateId));
+  await mkdir7(dirname7(path), { recursive: true });
+  const temporary = `${path}.next`;
+  await rm6(temporary, { force: true });
+  await writeFile(temporary, `${canonicalJson3(record3)}
+`, { encoding: "utf8", flag: "wx" });
+  await rename5(temporary, path);
+}
+
+// packages/repository-knowledge/dist/canonicalization-candidate.js
+var MAXIMUM_ACTIVE_CANDIDATES = 64;
+async function assessCanonicalization(input) {
+  const paths = /* @__PURE__ */ new Set([...Object.keys(input.beforeFiles), ...Object.keys(input.afterFiles)]);
+  const changedPaths = [...paths].filter((path) => input.beforeFiles[path] !== input.afterFiles[path]).sort();
+  if (input.outcome !== void 0)
+    validateCanonicalizationOutcomeForChange({
+      outcome: input.outcome,
+      disposition: input.disposition,
+      beforeFiles: input.beforeFiles,
+      afterFiles: input.afterFiles
+    });
+  const canonicalResponsibilities = new Set(input.outcome === void 0 ? changedPaths.flatMap((path) => {
+    const responsibility = canonicalResponsibilityForPath(path);
+    return responsibility === null ? [] : [responsibility];
+  }) : input.outcome.kind === "canonical_update" ? input.outcome.targets.flatMap((target) => {
+    const responsibility = canonicalResponsibilityForPath(target.path);
+    return responsibility === null ? [] : [responsibility];
+  }) : []);
+  const sourceBindings = changedPaths.flatMap((path) => {
+    const responsibility = sourceResponsibilityForPath(path);
+    if (responsibility === null || canonicalResponsibilityForPath(path) !== null)
+      return [];
+    if (canonicalResponsibilities.has(responsibility))
+      return [];
+    return [
+      {
+        path,
+        beforeHash: input.beforeFiles[path] ?? null,
+        afterHash: input.afterFiles[path] ?? null,
+        responsibility
+      }
+    ];
+  });
+  if (sourceBindings.length > MAXIMUM_CANONICALIZATION_SOURCE_BINDINGS)
+    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", `Canonicalization candidate exceeds ${MAXIMUM_CANONICALIZATION_SOURCE_BINDINGS} source bindings.`);
+  if (sourceBindings.length === 0)
+    return {
+      schemaVersion: 1,
+      status: "current",
+      changedPathCount: changedPaths.length,
+      canonicalPathCount: canonicalResponsibilities.size,
+      candidate: null
+    };
+  if (input.outcome?.kind === "portable_skill_candidate")
+    return {
+      schemaVersion: 1,
+      status: "pending",
+      changedPathCount: changedPaths.length,
+      canonicalPathCount: canonicalResponsibilities.size,
+      candidate: null
+    };
+  const candidateId = stableId("kcanon", {
+    beforeRevision: input.beforeRevision,
+    afterRevision: input.afterRevision,
+    sourceBindings,
+    outcome: input.outcome ?? null
+  });
+  const record3 = {
+    schemaVersion: 1,
+    candidateId,
+    state: input.disposition === "pending_user_approval" ? "pending" : "candidate",
+    beforeRevision: input.beforeRevision,
+    afterRevision: input.afterRevision,
+    sourceBindings,
+    recommendedRoots: [
+      ...new Set(sourceBindings.map((item) => recommendedCanonicalRoot(item.responsibility)))
+    ].sort(),
+    createdAt: input.now.toISOString(),
+    ...input.outcome === void 0 ? {} : { outcome: input.outcome },
+    review: null,
+    promotion: null
+  };
+  const candidates = await listCanonicalizationCandidates(input.repositoryRoot);
+  const existing = candidates.find((item) => item.candidateId === candidateId);
+  if (existing === void 0 && candidates.filter((item) => item.observedState === "candidate" || item.observedState === "pending").length >= MAXIMUM_ACTIVE_CANDIDATES)
+    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", `The canonicalization candidate registry has ${MAXIMUM_ACTIVE_CANDIDATES} active records.`);
+  if (existing === void 0)
+    await writeCanonicalizationCandidateRecord(resolve27(input.repositoryRoot), record3);
+  const candidate = existing ?? await readCanonicalizationCandidate(resolve27(input.repositoryRoot), canonicalizationCandidatePath(candidateId));
+  return {
+    schemaVersion: 1,
+    status: record3.state === "pending" ? "pending" : "candidate",
+    changedPathCount: changedPaths.length,
+    canonicalPathCount: canonicalResponsibilities.size,
+    candidate
+  };
+}
+
+// packages/repository-knowledge/dist/cross-provider-merge.js
+var CROSS_PROVIDER_MERGE_BUILD = sha2562(canonicalJson3({
+  implementation: "lervo-cross-provider-exact-merge-v1",
+  semanticSignatures: "candidate-signatures-v1"
+}));
+
+// packages/repository-knowledge/dist/cross-provider-fuzzy-merge.js
+var SIMILARITY = {
+  algorithm: "unicode_token_dice_v1",
+  thresholdBasisPoints: 6e3,
+  ambiguityMarginBasisPoints: 1e3,
+  minimumSharedTokens: 2
+};
+var FUZZY_MERGE_COMPILER = {
+  compilerId: "lervo.cross-provider.approval-gated-fuzzy-merge",
+  compilerVersion: "1",
+  compilerBuildId: sha2562(canonicalJson3({ implementation: "approval-gated-fuzzy-merge-v1", similarity: SIMILARITY })),
+  provider: "cross_provider",
+  isolation: "deterministic_local_derivation"
+};
+
+// packages/repository-knowledge/dist/durable-instruction.js
+function durableInstructionCatalogEntry(input) {
+  const excerptBytes = Buffer.from(input.content);
+  let excerpt = input.content;
+  if (excerptBytes.byteLength > 2048) {
+    let end = 2048;
+    while (end > 0 && ((excerptBytes[end] ?? 0) & 192) === 128)
+      end -= 1;
+    excerpt = excerptBytes.subarray(0, end).toString("utf8");
+  }
+  return {
+    path: input.path,
+    contentHash: sha2562(input.content),
+    excerpt
+  };
+}
+
+// packages/repository-knowledge/dist/durable-instruction-candidate.js
+var maximumDurableInstructionCandidateBytes = 16 * 1024;
+
+// packages/repository-knowledge/dist/document-structure-delete.js
+var import_yaml14 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-normalization-record-retirement.js
+var import_yaml13 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-structure-move.js
+var import_yaml16 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-normalization-record-move.js
+var import_yaml15 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-structure-merge.js
+var import_yaml17 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-structure-split.js
+var import_yaml18 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-normalization.js
+import { lstat as lstat19, mkdir as mkdir8, open as open9, readFile as readFile13 } from "node:fs/promises";
+import { basename as basename9, dirname as dirname8, posix as posix5, resolve as resolve28 } from "node:path";
+var import_yaml19 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/document-normalization-cache.js
+var MAX_SHARD_CACHE_BYTES = 4 * 1024 * 1024;
+
+// packages/repository-knowledge/dist/document-normalization-workset.js
+var defaultDocumentNormalizationResourceCeilings = {
+  maximumSourceBytes: 1024 * 1024,
+  maximumProviderCalls: 256,
+  maximumObservedTokens: null,
+  maximumElapsedMilliseconds: null
+};
+
+// packages/repository-knowledge/dist/document-normalization.js
+var MAX_ENVELOPE_BYTES = 32 * 1024;
+var MAX_OUTPUT_BYTES = 32 * 1024;
+var MAX_CANDIDATE_BYTES = 16 * 1024 * 1024;
+var HASH5 = /^sha256:[a-f0-9]{64}$/u;
+function normalizationProfile(source) {
+  if (!/\.md$/iu.test(source.path))
+    return null;
+  if (source.path === "README.md" || /\/README\.md$/u.test(source.path))
+    return "human_readme";
+  if (source.path === "AGENTS.md" || /\/(?:AGENTS|AGENTS\.override)\.md$/u.test(source.path))
+    return "agent_instruction";
+  if (source.path === "CLAUDE.md" || /\/(?:CLAUDE|CLAUDE\.local)\.md$/u.test(source.path))
+    return "provider_bridge";
+  if (source.path === ".github/PULL_REQUEST_TEMPLATE.md")
+    return "pull_request_template";
+  if (/^(?:.*\/)?\.agents\/skills\/[^/]+\/SKILL\.md$/u.test(source.path))
+    return "portable_skill";
+  if (/^(?:.*\/)?\.agents\/skills\/[^/]+\/references\/.*\.md$/u.test(source.path))
+    return "skill_reference";
+  if (/^docs\/decisions\//u.test(source.path))
+    return "decision_record";
+  if (/^docs\/product\//u.test(source.path))
+    return "product_document";
+  if (/^docs\/architecture\//u.test(source.path))
+    return "architecture_document";
+  if (/^docs\/(?:specifications|specs)\//u.test(source.path))
+    return "specification_document";
+  if (/^docs\/roadmap\//u.test(source.path))
+    return "roadmap_document";
+  if (/^docs\/instructions\//u.test(source.path))
+    return "instruction_document";
+  if (source.content !== void 0) {
+    const headings = [...source.content.matchAll(/^#{1,6}\s+(.+)$/gmu)].map((match) => match[1]).join("\n");
+    const name2 = `${basename9(source.path, ".md")} ${headings.slice(0, 500)}`;
+    const named = /(?:handoff|hand-over|session|context|status|progress|resume|continuation|current[-_ ]?(?:work|task)|work[-_ ]?log|\uC778\uACC4|\uC138\uC158|\uB9E5\uB77D|\uC9C4\uD589|\uD604\uD669|\uC791\uC5C5)/iu.test(name2);
+    const structured = /(?:objective|goal|purpose|focus|\uBAA9\uD45C|\uBAA9\uC801|\uC911\uC810)/iu.test(headings) && /(?:next|action|resume|procedure|task|continue|todo|\uB2E4\uC74C|\uD560 \uC77C|\uC7AC\uAC1C|\uC774\uC5B4|\uC791\uC5C5)/iu.test(headings);
+    const active = /(?:\b(?:resume|continue|next step|in progress|remaining)\b|\uC7AC\uAC1C|\uC774\uC5B4\uC11C|\uB2E4\uC74C \uC791\uC5C5|\uC9C4\uD589 \uC911|\uB0A8\uC740 \uC791\uC5C5)/iu.test(source.content.slice(0, 8192));
+    if (named && active || structured)
+      return "handoff_document";
+  }
+  if (source.kind === "documentation" || source.kind === "instruction" || source.kind === "skill_contract")
+    return "repository_document";
+  return null;
+}
+function unitsForSource(scan, source) {
+  const units = scan.units.filter((unit2) => unit2.sourceId === source.sourceId);
+  const specific = units.filter((unit2) => unit2.unitKind !== "file");
+  return (specific.length > 0 ? specific : units).sort((left, right) => left.range.startByte - right.range.startByte);
+}
+function eligibleDocuments(scan, publicationRoot, taxonomy, normalizationExclude = []) {
+  const generatedPrefix = `${publicationRoot.replace(/\/$/u, "")}/`;
+  return scan.sources.flatMap((source) => {
+    if (source.status !== "included" || source.classification !== "ordinary" || source.content === void 0 || source.contentHash === null || source.path === "README.md" || source.path === publicationRoot || source.path.startsWith(generatedPrefix) || taxonomy !== void 0 && bytePreservedDocumentCollection(source.path, taxonomy) || repositoryPathMatchesPatterns(source.path, normalizationExclude))
+      return [];
+    const profile8 = normalizationProfile(source);
+    if (profile8 === null)
+      return [];
+    const units = unitsForSource(scan, source);
+    if (units.length === 0)
+      return [];
+    return [
+      {
+        source,
+        profile: profile8,
+        units
+      }
+    ];
+  }).sort((left, right) => left.source.path.localeCompare(right.source.path));
+}
+function safeRelativePath2(path) {
+  return path.length > 0 && path.length <= 1024 && posix5.normalize(path) === path && !path.startsWith("/") && !path.includes("../") && !path.includes("\\") && !path.includes("\0");
+}
+function userRegionHash(content3) {
+  return sha2562(content3.replace(/<!-- lervo:begin\b[^>]*-->[\s\S]*?<!-- lervo:end\b[^>]*-->/gu, "<!-- lervo:managed-block -->"));
+}
+async function hashAt(path) {
+  try {
+    const stat = await lstat19(path);
+    if (!stat.isFile() || stat.isSymbolicLink())
+      return null;
+    return sha2562(await readFile13(path));
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return null;
+    throw error;
+  }
+}
+async function userRegionHashAt(path) {
+  try {
+    const stat = await lstat19(path);
+    if (!stat.isFile() || stat.isSymbolicLink())
+      return null;
+    return userRegionHash(await readFile13(path, "utf8"));
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return null;
+    throw error;
+  }
+}
+function validDocumentNormalizationRecord(value, path, outputLanguage) {
+  if (value === null || typeof value !== "object")
+    return false;
+  const record3 = value;
+  return !(![1, 2].includes(record3.schemaVersion ?? 0) || record3.schemaVersion === 2 && (record3.byteOwnership?.owner !== "reviewer" || record3.byteOwnership.rewritePolicy !== "reviewed_exact") || typeof record3.recordId !== "string" || !/^knormdoc_[a-f0-9]{24}$/u.test(record3.recordId) || path !== shardedKnowledgeArtifactPath(".lervo/knowledge/document-normalizations", record3.recordId, "yaml") || typeof record3.sourcePath !== "string" || !safeRelativePath2(record3.sourcePath) || record3.outputLanguage !== outputLanguage || record3.formatVersion !== "lervo.document.v1" || !Array.isArray(record3.outputs) || record3.outputs.length < 1 || record3.outputs.some((output) => output === null || typeof output !== "object" || typeof output.path !== "string" || !safeRelativePath2(output.path) || typeof output.contentHash !== "string" || !HASH5.test(output.contentHash) || output.userRegionHash !== void 0 && (typeof output.userRegionHash !== "string" || !HASH5.test(output.userRegionHash))) || !Array.isArray(record3.resourceBindings) || record3.resourceBindings.some((resource) => resource === null || typeof resource !== "object" || typeof resource.path !== "string" || !safeRelativePath2(resource.path) || typeof resource.contentHash !== "string" || !HASH5.test(resource.contentHash)));
+}
+async function inspectConfiguredDocumentNormalization(input) {
+  const root2 = resolve28(input.repositoryRoot);
+  const [{ policy, scan }, taxonomy] = await Promise.all([
+    scanConfiguredRepositoryKnowledge(root2, {
+      ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources },
+      ...input.preparedScan === void 0 ? {} : { preparedScan: input.preparedScan },
+      ...input.allowTransactionPlanId === void 0 ? {} : { allowTransactionPlanId: input.allowTransactionPlanId }
+    }),
+    loadDecisionTaxonomy(root2)
+  ]);
+  const records = [];
+  const current = /* @__PURE__ */ new Set();
+  const paths = await listKnowledgeArtifactPaths({
+    root: root2,
+    directory: ".lervo/knowledge/document-normalizations",
+    extension: "yaml",
+    maximumFiles: 2e4
+  });
+  for (const path of paths) {
+    let record3 = null;
+    try {
+      record3 = (0, import_yaml19.parse)(await readFile13(resolve28(root2, path), "utf8"));
+    } catch {
+    }
+    if (!validDocumentNormalizationRecord(record3, path, policy.publication.language)) {
+      records.push({
+        path,
+        recordId: record3 !== null && typeof record3 === "object" && "recordId" in record3 && typeof record3.recordId === "string" ? record3.recordId : null,
+        status: "invalid",
+        outputPaths: []
+      });
+      continue;
+    }
+    const hashes = await Promise.all(record3.outputs.map((output) => hashAt(resolve28(root2, output.path))));
+    const userHashes = await Promise.all(record3.outputs.map((output) => output.userRegionHash === void 0 ? null : userRegionHashAt(resolve28(root2, output.path))));
+    const resources = await Promise.all(record3.resourceBindings.map((resource) => hashAt(resolve28(root2, resource.path))));
+    const status = hashes.every((hash2, index2) => hash2 === record3.outputs[index2].contentHash || record3.outputs[index2].userRegionHash !== void 0 && userHashes[index2] === record3.outputs[index2].userRegionHash) && resources.every((hash2, index2) => hash2 === record3.resourceBindings[index2].contentHash) ? "current" : "stale";
+    if (status === "current")
+      for (const output of record3.outputs)
+        current.add(output.path);
+    records.push({
+      path,
+      recordId: record3.recordId,
+      status,
+      outputPaths: record3.outputs.map((output) => output.path)
+    });
+  }
+  const eligible = eligibleDocuments(scan, policy.publicationRoot, taxonomy, policy.normalization?.exclude);
+  const pendingDocuments = eligible.map((item) => item.source.path).filter((path) => !current.has(path));
+  return {
+    schemaVersion: 1,
+    outputLanguage: policy.publication.language,
+    formatVersion: "lervo.document.v1",
+    eligibleDocuments: eligible.length,
+    currentDocuments: eligible.length - pendingDocuments.length,
+    pendingDocuments,
+    records
+  };
+}
+
+// packages/repository-knowledge/dist/decision-layout.js
+var import_yaml20 = __toESM(require_dist(), 1);
+function normalizedWords2(value) {
+  return value.normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/gu, " ");
+}
+function containsTerm2(title, term) {
+  const normalizedTitle = ` ${normalizedWords2(title)} `;
+  const normalizedTerm = normalizedWords2(term);
+  return normalizedTerm.length > 0 && normalizedTitle.includes(` ${normalizedTerm} `);
+}
+function flatDecisionName(path, taxonomy) {
+  for (const root2 of [taxonomy.decisionRoot, ...taxonomy.legacyRoots]) {
+    const prefix = `${root2}/`;
+    if (!path.startsWith(prefix))
+      continue;
+    const name2 = path.slice(prefix.length);
+    return !name2.includes("/") && /^\d{4}-.+\.md$/u.test(name2) ? name2 : null;
+  }
+  return null;
+}
+function explicitRoute2(content3) {
+  if (!content3.startsWith("---\n") && !content3.startsWith("---\r\n"))
+    return { state: "absent" };
+  const boundary = /\r?\n---\r?\n/gu;
+  boundary.lastIndex = content3.indexOf("\n") + 1;
+  const match = boundary.exec(content3);
+  if (match === null || match.index > 8192)
+    return { state: "absent" };
+  let value;
+  try {
+    value = (0, import_yaml20.parse)(content3.slice(content3.indexOf("\n") + 1, match.index));
+  } catch {
+    return { state: "invalid" };
+  }
+  const decision = value?.lervo?.decision;
+  if (decision === void 0)
+    return { state: "absent" };
+  if (decision === null || typeof decision !== "object" || typeof decision.route !== "string" || decision.taxonomy !== void 0 && typeof decision.taxonomy !== "string")
+    return { state: "invalid" };
+  return {
+    state: "present",
+    ...decision.taxonomy === void 0 ? {} : { taxonomyId: decision.taxonomy },
+    routeId: decision.route
+  };
+}
+function inferredRoute2(title, taxonomy) {
+  const candidates = taxonomy.routes.flatMap((route) => {
+    const matchedTerms = route.titleTerms.filter((term) => containsTerm2(title, term));
+    return matchedTerms.length >= route.minimumTitleTermMatches ? [{ route, matchedTerms }] : [];
+  });
+  if (candidates.length === 0)
+    return null;
+  const highestPriority = Math.max(...candidates.map((candidate) => candidate.route.priority));
+  const prioritized = candidates.filter((candidate) => candidate.route.priority === highestPriority);
+  const strongest = Math.max(...prioritized.map((candidate) => candidate.matchedTerms.length));
+  const finalists = prioritized.filter((candidate) => candidate.matchedTerms.length === strongest);
+  return finalists.length === 1 ? finalists[0] : { candidates: finalists.map((candidate) => candidate.route.id).sort() };
+}
+function classifyFlatDecision(path, content3, taxonomy) {
+  const name2 = flatDecisionName(path, taxonomy);
+  if (name2 === null)
+    return { kind: "not_flat_decision" };
+  const heading = /^#\s+ADR-\d{4}:\s+(.+)$/mu.exec(content3)?.[1]?.trim();
+  if (heading === void 0 || heading.length === 0)
+    return { kind: "blocked", blocker: { code: "invalid_decision_heading", path } };
+  const metadata = explicitRoute2(content3);
+  if (metadata.state === "invalid" || metadata.state === "present" && metadata.taxonomyId !== void 0 && metadata.taxonomyId !== taxonomy.taxonomyId) {
+    return { kind: "blocked", blocker: { code: "invalid_decision_metadata", path } };
+  }
+  let route;
+  let classificationBasis;
+  let matchedTitleTerms;
+  if (metadata.state === "present") {
+    const selected = taxonomy.routes.find((candidate) => candidate.id === metadata.routeId);
+    if (selected === void 0)
+      return {
+        kind: "blocked",
+        blocker: { code: "unknown_decision_route", path, candidateRouteIds: [metadata.routeId] }
+      };
+    route = selected;
+    classificationBasis = "explicit_metadata";
+    matchedTitleTerms = [];
+  } else {
+    const inferred = inferredRoute2(heading, taxonomy);
+    if (inferred === null)
+      return { kind: "blocked", blocker: { code: "unclassified_decision", path } };
+    if ("candidates" in inferred)
+      return {
+        kind: "blocked",
+        blocker: { code: "ambiguous_decision_route", path, candidateRouteIds: inferred.candidates }
+      };
+    route = inferred.route;
+    classificationBasis = "title_terms";
+    matchedTitleTerms = inferred.matchedTerms;
+  }
+  const [group, ...subgroupParts] = route.path.split("/");
+  return {
+    kind: "classified",
+    destination: {
+      toPath: `${taxonomy.decisionRoot}/${route.path}/${name2}`,
+      routeId: route.id,
+      routePath: route.path,
+      group,
+      ...subgroupParts.length === 0 ? {} : { subgroup: subgroupParts.join("/") },
+      classificationBasis,
+      matchedTitleTerms
+    }
+  };
+}
+function inspectGroupedDecisionPaths(paths, taxonomy) {
+  const blockers = [];
+  const routeCounts = /* @__PURE__ */ new Map();
+  const routeByPath = new Map(taxonomy.routes.map((route) => [route.path, route]));
+  for (const path of paths.filter((item) => /(?:^|\/)\d{4}-.+\.md$/u.test(item)).sort()) {
+    const canonicalPrefix = `${taxonomy.decisionRoot}/`;
+    if (path.startsWith(canonicalPrefix)) {
+      const suffix = path.slice(canonicalPrefix.length);
+      const parent = suffix.slice(0, suffix.lastIndexOf("/"));
+      if (parent.length === 0)
+        continue;
+      const route = routeByPath.get(parent);
+      if (route === void 0)
+        blockers.push({ code: "unknown_decision_route", path });
+      else
+        routeCounts.set(route.id, (routeCounts.get(route.id) ?? 0) + 1);
+      continue;
+    }
+    for (const legacyRoot of taxonomy.legacyRoots) {
+      if (path.startsWith(`${legacyRoot}/`) && path.slice(legacyRoot.length + 1).includes("/"))
+        blockers.push({ code: "legacy_decision_layout", path });
+    }
+  }
+  for (const route of taxonomy.routes) {
+    const count = routeCounts.get(route.id) ?? 0;
+    if (count > taxonomy.maxLeafDocuments)
+      blockers.push({
+        code: "decision_leaf_overflow",
+        path: `${taxonomy.decisionRoot}/${route.path}`,
+        configuredMaximum: taxonomy.maxLeafDocuments,
+        observedCount: count
+      });
+  }
+  return blockers;
+}
+
+// packages/repository-knowledge/dist/document-rewriter-adapters.js
+import { resolve as resolve29 } from "node:path";
+async function inspectRepositoryDocumentRewriters(input) {
+  const root2 = resolve29(input.repositoryRoot);
+  const [taxonomy, lifecycle, registry2] = await Promise.all([
+    loadDecisionTaxonomy(root2),
+    inspectConfiguredDocumentNormalization({
+      repositoryRoot: root2,
+      ...input.allowTransactionPlanId === void 0 ? {} : { allowTransactionPlanId: input.allowTransactionPlanId }
+    }),
+    loadDocumentRegistry(root2)
+  ]);
+  const ownershipByPath = /* @__PURE__ */ new Map();
+  for (const record3 of Object.values(registry2.documents)) {
+    if (record3.ownership.mode === "user")
+      continue;
+    ownershipByPath.set(record3.path, {
+      path: record3.path,
+      owner: record3.ownership.mode === "managed_blocks" ? "shared_regions" : "lervo",
+      rewritePolicy: "lervo_exact"
+    });
+  }
+  for (const path of lifecycle.records.flatMap((record3) => record3.status === "current" ? record3.outputPaths : [])) {
+    ownershipByPath.set(path, { path, owner: "reviewer", rewritePolicy: "reviewed_exact" });
+  }
+  const ownership = [...ownershipByPath.values()].sort((left, right) => left.path.localeCompare(right.path));
+  const evaluation = evaluateDocumentRewriters({
+    ownership,
+    rewriters: input.rewriters ?? [],
+    managedRules: input.managedRules ?? {},
+    dryRuns: input.dryRuns ?? {},
+    contract: taxonomy.documentPolicy.rewrite,
+    policyHash: sha2562(JSON.stringify(taxonomy.documentPolicy))
+  });
+  return {
+    ownership,
+    ...evaluation
+  };
+}
+
+// packages/repository-knowledge/dist/execution-event-source.js
+var EXECUTION_EVENT_SOURCE_ADAPTER = "execution-event-v1+event-chain";
+var MAX_EVENT_SEQUENCE = 1e5;
+var EXECUTION_EVENT_SOURCE_MAX_EVENTS = 8192;
+var MAX_EVENT_BYTES = 256 * 1024;
+var MAX_TOTAL_EVENT_BYTES = 16 * 1024 * 1024;
+var executionEventTypes = /* @__PURE__ */ new Set([
+  "run.requested",
+  "run.resolved",
+  "run.completed",
+  "run.failed",
+  "context.recommended",
+  "context.selected",
+  "document.loaded",
+  "context.injected",
+  "context.invalidated",
+  "context.published",
+  "handoff.created",
+  "adapter.started",
+  "adapter.stopped",
+  "capability.requested",
+  "capability.decided",
+  "capability.activated",
+  "capability.recommended",
+  "capability.selected",
+  "capability.loaded",
+  "capability.invoked",
+  "capability.completed",
+  "tool.called",
+  "command.executed",
+  "file.changed",
+  "skill.resolved",
+  "skill.invoked",
+  "skill.completed",
+  "verification.started",
+  "deliberation.started",
+  "deliberation.artifact.recorded",
+  "deliberation.completed",
+  "unmanaged_change.detected"
+]);
+function fail8() {
+  throw new RepositoryKnowledgeError("knowledge_evidence_source_invalid", "The execution event evidence source cannot be verified safely and completely.");
+}
+function canonicalEvent(event) {
+  if (!validateSchema("event", event).valid)
+    return fail8();
+  if (computeEventHash(eventWithoutHash(event)) !== event.eventHash)
+    return fail8();
+  let sanitized;
+  try {
+    sanitized = sanitizeEventPayload(event.type, event.payload);
+  } catch {
+    return fail8();
+  }
+  if (sanitized.redactions.length !== 0 || canonicalJson(sanitized.payload) !== canonicalJson(event.payload))
+    return fail8();
+  try {
+    return `${canonicalJson(event)}
+`;
+  } catch {
+    return fail8();
+  }
+}
+function collectExecutionEventSources(input) {
+  let latest;
+  try {
+    if (!input.events.verifyIntegrity().valid)
+      return fail8();
+    latest = input.events.latest();
+  } catch {
+    return fail8();
+  }
+  if (latest === null)
+    return [];
+  if (!Number.isSafeInteger(latest.seq) || latest.seq < 1 || latest.seq > MAX_EVENT_SEQUENCE)
+    return fail8();
+  const sources = [];
+  const eventIds = /* @__PURE__ */ new Set();
+  let totalBytes = 0;
+  try {
+    visitEventSnapshot({
+      events: input.events,
+      throughSeq: latest.seq,
+      visit: (event) => {
+        if (!executionEventTypes.has(event.type))
+          return;
+        if (eventIds.has(event.eventId) || sources.length >= EXECUTION_EVENT_SOURCE_MAX_EVENTS)
+          return fail8();
+        const content3 = canonicalEvent(event);
+        const byteCount = Buffer.byteLength(content3);
+        totalBytes += byteCount;
+        if (byteCount > MAX_EVENT_BYTES || totalBytes > MAX_TOTAL_EVENT_BYTES)
+          return fail8();
+        eventIds.add(event.eventId);
+        sources.push({
+          path: `@event/${event.eventId}`,
+          kind: "execution_event",
+          classification: "ordinary",
+          content: content3,
+          origin: "execution_event_store",
+          unitKind: "event",
+          locator: `event:${event.eventId}`,
+          title: `${event.type} event`,
+          adapter: EXECUTION_EVENT_SOURCE_ADAPTER
+        });
+      }
+    });
+    if (!input.events.verifyIntegrity().valid)
+      return fail8();
+  } catch {
+    return fail8();
+  }
+  return sources.sort((left, right) => left.path.localeCompare(right.path));
+}
+
+// packages/repository-knowledge/dist/instruction-bridge.js
+var import_yaml21 = __toESM(require_dist(), 1);
+import { constants as constants8 } from "node:fs";
+import { lstat as lstat20, open as open10 } from "node:fs/promises";
+import { resolve as resolve30 } from "node:path";
+
+// packages/repository-knowledge/dist/instruction-bridge-target.js
+var encoder = new TextEncoder();
+var decoder = new TextDecoder("utf-8", { fatal: true });
+function managedContent(profile8) {
+  return `@${profile8.canonicalPath}
+`;
+}
+function completeTarget(profile8) {
+  return [
+    `<!-- lervo:begin block=${profile8.blockId} schema=1 -->`,
+    `@${profile8.canonicalPath}`,
+    `<!-- lervo:end block=${profile8.blockId} -->`,
+    ""
+  ].join("\n");
+}
+function separatorFor(content3) {
+  if (content3.length === 0 || content3.endsWith("\n\n"))
+    return "";
+  return content3.endsWith("\n") ? "\n" : "\n\n";
+}
+function isExactAdoptedDuplicate(input) {
+  if (input.canonicalRouteBlock === null)
+    return false;
+  return `${input.targetContent}${separatorFor(input.targetContent)}${input.canonicalRouteBlock}` === input.canonicalContent;
+}
+function createInstructionBridgeTarget(input) {
+  const replacement = managedContent(input.profile);
+  const managedContentHash = sha2562(replacement);
+  if (input.existing === null) {
+    return {
+      content: completeTarget(input.profile),
+      action: "create",
+      classification: "missing",
+      managedContentHash
+    };
+  }
+  const sourceBytes = encoder.encode(input.existing.content);
+  const parsed = parseManagedMarkdownBlocks(sourceBytes);
+  if (parsed.status !== "valid")
+    throw new Error("invalid_managed_block_structure");
+  const block = parsed.blocks.find((item) => item.blockId === input.profile.blockId);
+  if (block === void 0) {
+    if (isExactAdoptedDuplicate({
+      canonicalContent: input.canonicalContent,
+      targetContent: input.existing.content,
+      canonicalRouteBlock: input.canonicalRouteBlock
+    })) {
+      return {
+        content: completeTarget(input.profile),
+        action: "update",
+        classification: "exact_adopted_duplicate",
+        managedContentHash
+      };
+    }
+    return {
+      content: `${input.existing.content}${separatorFor(input.existing.content)}${completeTarget(input.profile)}`,
+      action: "update",
+      classification: "unresolved_mixed_user_content",
+      managedContentHash
+    };
+  }
+  const current = sourceBytes.slice(block.contentRange.start, block.contentRange.end);
+  if (sha2562(current) === managedContentHash && decoder.decode(current) === replacement) {
+    return {
+      content: input.existing.content,
+      action: "unchanged",
+      classification: "managed_bridge",
+      managedContentHash
+    };
+  }
+  const patched = createManagedBlockPatchCandidate({
+    source: {
+      path: input.profile.targetPath,
+      contentHash: input.existing.contentHash,
+      byteCount: input.existing.byteCount,
+      bytes: sourceBytes
+    },
+    blockId: input.profile.blockId,
+    replacementBytes: encoder.encode(replacement)
+  });
+  return {
+    content: decoder.decode(patched.outputBytes),
+    action: "update",
+    classification: "managed_bridge",
+    managedContentHash
+  };
+}
+
+// packages/repository-knowledge/dist/instruction-bridge.js
+var HASH6 = /^sha256:[a-f0-9]{64}$/;
+var decoder2 = new TextDecoder("utf-8", { fatal: true });
+var profiles = {
+  claude: {
+    profileId: "claude_agents_import_v1",
+    profileVersion: 1,
+    provider: "claude",
+    canonicalPath: "AGENTS.md",
+    targetPath: "CLAUDE.md",
+    blockId: "provider_entry",
+    discoveryContract: "claude-code-memory-import"
+  }
+};
+function instructionBridgeProfile(provider) {
+  return profiles[provider];
+}
+function validExistingBridgeRecord(bytes, profile8, bridgeId) {
+  try {
+    const value = (0, import_yaml21.parse)(bytes.toString("utf8"));
+    return value !== null && typeof value === "object" && value.schemaVersion === 1 && value.bridgeId === bridgeId && value.profile?.id === profile8.profileId && value.profile.version === profile8.profileVersion && value.profile.provider === profile8.provider && value.profile.discoveryContract === profile8.discoveryContract && value.canonical?.path === profile8.canonicalPath && typeof value.canonical.contentHash === "string" && HASH6.test(value.canonical.contentHash) && value.target?.path === profile8.targetPath && value.target.blockId === profile8.blockId && typeof value.target.contentHash === "string" && HASH6.test(value.target.contentHash) && typeof value.target.managedContentHash === "string" && HASH6.test(value.target.managedContentHash);
+  } catch {
+    return false;
+  }
+}
+async function safeOptionalFile(path, maximumBytes2) {
+  let handle;
+  try {
+    try {
+      const stats = await lstat20(path);
+      if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes2)
+        throw new Error("unsafe file");
+    } catch (error) {
+      if (error.code === "ENOENT")
+        return null;
+      throw error;
+    }
+    handle = await open10(path, constants8.O_RDONLY | (constants8.O_NOFOLLOW ?? 0));
+    const before = await handle.stat();
+    const bytes = await handle.readFile();
+    const after = await handle.stat();
+    if (!before.isFile() || before.size > maximumBytes2 || before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size)
+      throw new Error("file changed");
+    return bytes;
+  } catch {
+    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The instruction bridge file cannot be read safely.");
+  } finally {
+    await handle?.close();
+  }
+}
+async function registryDigest(root2) {
+  const stored = await loadStoredConcepts(root2);
+  if (stored.some((item) => item.value === null)) {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The instruction bridge cannot be changed because the knowledge concept registry is incomplete.");
+  }
+  const materials = await Promise.all(stored.map(async (item) => {
+    const bytes = await safeOptionalFile(resolve30(root2, item.file), 256 * 1024);
+    if (bytes === null)
+      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "A knowledge concept sidecar is missing.");
+    return { file: item.file, contentHash: sha2562(bytes) };
+  }));
+  materials.sort((left, right) => left.file.localeCompare(right.file));
+  return { digest: sha2562(canonicalJson3(materials)), materials };
+}
+async function createKnowledgeInstructionBridgePlan(input) {
+  const root2 = resolve30(input.repositoryRoot);
+  const profile8 = instructionBridgeProfile(input.provider);
+  const [{ policy, scan }, beforeRegistry] = await Promise.all([
+    scanConfiguredRepositoryKnowledge(root2, {
+      ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources },
+      ...input.preparedScan === void 0 ? {} : { preparedScan: input.preparedScan }
+    }),
+    registryDigest(root2)
+  ]);
+  const scannedCanonical = scan.sources.find((item) => item.path === profile8.canonicalPath);
+  let canonical2;
+  if (scannedCanonical?.status === "included" && scannedCanonical.kind === "instruction" && scannedCanonical.contentHash !== null && scannedCanonical.content !== void 0) {
+    canonical2 = {
+      contentHash: scannedCanonical.contentHash,
+      content: scannedCanonical.content,
+      byteCount: scannedCanonical.byteCount
+    };
+  } else {
+    const generatedBytes = await safeOptionalFile(resolve30(root2, profile8.canonicalPath), policy.limits.maxFileBytes);
+    const generatedHash = generatedBytes === null ? null : sha2562(generatedBytes);
+    if (generatedBytes === null || generatedHash === null || !await matchesRecordedStructuralGeneration(root2, profile8.canonicalPath, generatedHash)) {
+      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "Canonical AGENTS.md must be either an included instruction source or an exact recorded Lervo generation.");
+    }
+    canonical2 = {
+      contentHash: generatedHash,
+      content: decoder2.decode(generatedBytes),
+      byteCount: generatedBytes.byteLength
+    };
+  }
+  const targetSource = scan.sources.find((item) => item.path === profile8.targetPath);
+  if (targetSource !== void 0 && (targetSource.status !== "included" || targetSource.kind !== "instruction" || targetSource.contentHash === null || targetSource.content === void 0)) {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The provider instruction target is not a safe included instruction.");
+  }
+  if (targetSource === void 0) {
+    const existing = await safeOptionalFile(resolve30(root2, profile8.targetPath), policy.limits.maxFileBytes);
+    if (existing !== null)
+      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The provider instruction target does not match the scan.");
+  }
+  let target;
+  try {
+    target = createInstructionBridgeTarget({
+      profile: profile8,
+      canonicalContent: canonical2.content,
+      canonicalRouteBlock: /<!-- lervo:begin block=repository_instruction_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n/u.exec(canonical2.content)?.[0] ?? null,
+      existing: targetSource === void 0 ? null : {
+        content: targetSource.content,
+        contentHash: targetSource.contentHash,
+        byteCount: targetSource.byteCount
+      }
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "invalid_managed_block_structure") {
+      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The provider instruction target has an invalid managed-block structure.");
+    }
+    throw error;
+  }
+  if (Buffer.byteLength(target.content) > policy.limits.maxFileBytes) {
+    throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "The instruction bridge output exceeds the file-size limit.");
+  }
+  const targetAfterHash = sha2562(target.content);
+  const virtualScan = upsertRepositoryKnowledgeScanSource({
+    scan,
+    path: profile8.targetPath,
+    content: target.content
+  });
+  const structural = await createKnowledgeMigrationPlanForScan({
+    repositoryRoot: root2,
+    scan: virtualScan,
+    mode: "refresh"
+  });
+  if (structural.status !== "ready" || structural.operations.some((item) => item.action === "conflict")) {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "Generated publications cannot be updated safely after the instruction bridge change.", {
+      code: "generated_publication_reconciliation_unsafe",
+      message: "Generated publications cannot be updated safely after the instruction bridge change."
+    });
+  }
+  const bridgeId = stableId("kbridge", {
+    projectId: scan.projectId,
+    provider: profile8.provider,
+    canonicalPath: profile8.canonicalPath,
+    targetPath: profile8.targetPath
+  });
+  const bridgeRecordPath = shardedKnowledgeArtifactPath(".lervo/knowledge/instruction-bridges", bridgeId, "yaml");
+  const bridgeRecordContent = (0, import_yaml21.stringify)({
+    schemaVersion: 1,
+    bridgeId,
+    profile: {
+      id: profile8.profileId,
+      version: profile8.profileVersion,
+      provider: profile8.provider,
+      discoveryContract: profile8.discoveryContract
+    },
+    canonical: { path: profile8.canonicalPath, contentHash: canonical2.contentHash },
+    target: {
+      path: profile8.targetPath,
+      contentHash: targetAfterHash,
+      blockId: profile8.blockId,
+      managedContentHash: target.managedContentHash
+    }
+  }, { lineWidth: 0, sortMapEntries: true });
+  const bridgeRecordBytes = await safeOptionalFile(resolve30(root2, bridgeRecordPath), 64 * 1024);
+  const bridgeRecordHash = sha2562(bridgeRecordContent);
+  const bridgeRecordOperation = bridgeRecordBytes === null ? {
+    path: bridgeRecordPath,
+    action: "create",
+    ownership: "lervo_generated",
+    mediaType: "application/yaml",
+    content: bridgeRecordContent,
+    desiredHash: bridgeRecordHash
+  } : sha2562(bridgeRecordBytes) === bridgeRecordHash ? {
+    path: bridgeRecordPath,
+    action: "unchanged",
+    ownership: "lervo_generated",
+    mediaType: "application/yaml",
+    desiredHash: bridgeRecordHash
+  } : validExistingBridgeRecord(bridgeRecordBytes, profile8, bridgeId) ? {
+    path: bridgeRecordPath,
+    action: "update",
+    ownership: "lervo_generated",
+    mediaType: "application/yaml",
+    content: bridgeRecordContent,
+    expectedCurrentHash: sha2562(bridgeRecordBytes),
+    desiredHash: bridgeRecordHash
+  } : (() => {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The existing instruction bridge record does not satisfy the profile contract.");
+  })();
+  const targetOperation = target.action === "unchanged" ? null : {
+    path: profile8.targetPath,
+    action: target.action,
+    ownership: "user",
+    mediaType: "text/markdown",
+    content: target.content,
+    ...targetSource?.contentHash === null || targetSource?.contentHash === void 0 ? {} : { expectedCurrentHash: targetSource.contentHash },
+    desiredHash: targetAfterHash
+  };
+  const operations = [
+    ...structural.operations,
+    bridgeRecordOperation,
+    ...targetOperation === null ? [] : [targetOperation]
+  ];
+  const conceptOperations = structural.operations.filter((item) => item.path.startsWith(`${structuralConceptDirectory}/`) && item.action !== "conflict");
+  const afterHashes = new Map(beforeRegistry.materials.map((item) => [item.file, item.contentHash]));
+  for (const item of conceptOperations)
+    afterHashes.set(item.path, item.desiredHash);
+  const afterRegistryDigest = sha2562(canonicalJson3([...afterHashes].map(([file, contentHash2]) => ({ file, contentHash: contentHash2 })).sort((left, right) => left.file.localeCompare(right.file))));
+  const conceptIdFor = (path) => path.slice(path.lastIndexOf("/") + 1, -".yaml".length);
+  const createdConceptIds = conceptOperations.filter((item) => item.action === "create").map((item) => conceptIdFor(item.path)).sort();
+  const updatedConceptIds = conceptOperations.filter((item) => item.action === "update").map((item) => conceptIdFor(item.path)).sort();
+  const operationId = stableId("kinstop", {
+    projectId: scan.projectId,
+    profile: profile8,
+    canonicalHash: canonical2.contentHash,
+    targetBeforeHash: targetSource?.contentHash ?? null,
+    targetAfterHash,
+    managedContentHash: target.managedContentHash
+  });
+  const operationBindings = operations.map(({ content: _content, ...operation }) => operation);
+  const approvalHash = sha2562(canonicalJson3({
+    operationId,
+    action: "ensure_instruction_bridge",
+    profile: profile8,
+    canonical: {
+      path: profile8.canonicalPath,
+      contentHash: canonical2.contentHash,
+      byteCount: canonical2.byteCount
+    },
+    target: {
+      path: profile8.targetPath,
+      action: target.action,
+      classification: target.classification,
+      beforeHash: targetSource?.contentHash ?? null,
+      afterHash: targetAfterHash
+    },
+    bridgeId,
+    operations: operationBindings
+  }));
+  const policyHash = sha2562(canonicalJson3(policy));
+  const planId = stableId("kbridgeplan", {
+    projectId: scan.projectId,
+    sourceSnapshotId: scan.snapshotId,
+    afterSourceSnapshotId: virtualScan.snapshotId,
+    policyHash,
+    registryDigest: beforeRegistry.digest,
+    afterRegistryDigest,
+    operationId,
+    approvalHash,
+    operations: operationBindings
+  });
+  const changed = operations.some((item) => item.action === "create" || item.action === "update");
+  await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root2, operations });
+  return {
+    schemaVersion: 1,
+    planId,
+    operationId,
+    approvalHash,
+    status: targetOperation !== null ? "review_required" : changed ? "ready" : "current",
+    projectId: scan.projectId,
+    repositoryRoot: root2,
+    sourceSnapshotId: scan.snapshotId,
+    afterSourceSnapshotId: virtualScan.snapshotId,
+    policyHash,
+    coverage: scan.coverage,
+    registryDigest: beforeRegistry.digest,
+    afterRegistryDigest,
+    profile: profile8,
+    canonical: {
+      path: profile8.canonicalPath,
+      contentHash: canonical2.contentHash,
+      byteCount: canonical2.byteCount
+    },
+    target: {
+      path: profile8.targetPath,
+      action: target.action,
+      beforeHash: targetSource?.contentHash ?? null,
+      afterHash: targetAfterHash,
+      beforeByteCount: targetSource?.byteCount ?? null,
+      afterByteCount: Buffer.byteLength(target.content),
+      classification: target.classification,
+      managedContentHash: target.managedContentHash
+    },
+    bridgeId,
+    bridgeRecordPath,
+    createdConceptIds,
+    updatedConceptIds,
+    deprecatedConceptIds: [],
+    operations
+  };
+}
+
+// packages/repository-knowledge/dist/instruction-bootstrap.js
+import { lstat as lstat21 } from "node:fs/promises";
+import { resolve as resolve31 } from "node:path";
+function includedSource(sources, path) {
+  const source = sources.find((item) => item.path === path);
+  if (source === void 0)
+    return null;
+  if (source.status !== "included" || source.kind !== "instruction" || source.content === void 0 || source.contentHash === null) {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", `The ${path} bootstrap source is not a safe included instruction.`);
+  }
+  return source;
+}
+function hasProviderImportOrManagedBlock(content3) {
+  return /^@AGENTS\.md\s*$/mu.test(content3) || /<!--\s*lervo:(?:begin|end)\s+block=/u.test(content3);
+}
+async function safeFilePresent(path) {
+  try {
+    const stats = await lstat21(path);
+    if (!stats.isFile() || stats.isSymbolicLink()) {
+      throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The canonical instruction bootstrap target is not a safe regular file.");
+    }
+    return true;
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return false;
+    throw error;
+  }
+}
+function routeBlock(sources) {
+  return repositoryInstructionRouteBlock({
+    instructions: sources.flatMap((source) => source.status === "included" && source.content !== void 0 && source.path.startsWith("docs/instructions/") && source.path.endsWith(".md") ? [{ path: source.path, instructionPaths: repositoryInstructionPaths(source.content) }] : []),
+    skills: sources.flatMap((source) => source.status === "included" && source.path.startsWith(".agents/skills/") && source.path.endsWith("/SKILL.md") ? [{ path: source.path }] : [])
+  });
+}
+function appendBlock(content3, block) {
+  const separator = content3.length === 0 || content3.endsWith("\n\n") ? "" : content3.endsWith("\n") ? "\n" : "\n\n";
+  return `${content3}${separator}${block}`;
+}
+async function createKnowledgeInstructionBootstrapPlan(input) {
+  const root2 = resolve31(input.repositoryRoot);
+  const { policy, scan } = await scanConfiguredRepositoryKnowledge(root2, {
+    ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources },
+    ...input.preparedScan === void 0 ? {} : { preparedScan: input.preparedScan }
+  });
+  const agents = includedSource(scan.sources, "AGENTS.md");
+  const claude = includedSource(scan.sources, "CLAUDE.md");
+  const agentsPresent = agents !== null || await safeFilePresent(resolve31(root2, "AGENTS.md"));
+  const policyHash = sha2562(canonicalJson3(policy));
+  const base = {
+    schemaVersion: 1,
+    planKind: "instruction_canonical_bootstrap",
+    projectId: scan.projectId,
+    repositoryRoot: root2,
+    sourceSnapshotId: scan.snapshotId,
+    policyHash,
+    coverage: scan.coverage
+  };
+  if (agentsPresent || claude === null) {
+    const state3 = {
+      ...base,
+      operationId: null,
+      approvalHash: null,
+      status: "not_applicable",
+      canonical: {
+        path: "AGENTS.md",
+        state: agentsPresent ? "present" : "missing",
+        afterHash: agents?.contentHash ?? null
+      },
+      source: {
+        path: "CLAUDE.md",
+        state: claude === null ? "missing" : "shared_candidate",
+        contentHash: claude?.contentHash ?? null
+      },
+      disposition: "defer",
+      blocker: null,
+      operations: []
+    };
+    return { ...state3, planId: stableId("kinstbootplan", state3) };
+  }
+  if (hasProviderImportOrManagedBlock(claude.content)) {
+    const state3 = {
+      ...base,
+      operationId: null,
+      approvalHash: null,
+      status: "blocked",
+      canonical: { path: "AGENTS.md", state: "missing", afterHash: null },
+      source: {
+        path: "CLAUDE.md",
+        state: "unresolved_mixed",
+        contentHash: claude.contentHash
+      },
+      disposition: "defer",
+      blocker: "claude_source_contains_provider_import_or_managed_blocks",
+      operations: []
+    };
+    return { ...state3, planId: stableId("kinstbootplan", state3) };
+  }
+  const content3 = appendBlock(claude.content, routeBlock(scan.sources));
+  const canonicalHash2 = sha2562(content3);
+  const operationId = stableId("kinstbootop", {
+    projectId: scan.projectId,
+    sourcePath: claude.path,
+    sourceContentHash: claude.contentHash,
+    canonicalPath: "AGENTS.md",
+    canonicalHash: canonicalHash2
+  });
+  const operation = {
+    path: "AGENTS.md",
+    action: "create",
+    ownership: "user",
+    mediaType: "text/markdown",
+    content: content3,
+    desiredHash: canonicalHash2
+  };
+  const approvalHash = sha2562(canonicalJson3({
+    operationId,
+    disposition: "accept",
+    source: { path: claude.path, contentHash: claude.contentHash },
+    canonical: { path: operation.path, contentHash: canonicalHash2 }
+  }));
+  const state2 = {
+    ...base,
+    operationId,
+    approvalHash,
+    status: "review_required",
+    canonical: {
+      path: "AGENTS.md",
+      state: "missing",
+      afterHash: canonicalHash2
+    },
+    source: {
+      path: "CLAUDE.md",
+      state: "shared_candidate",
+      contentHash: claude.contentHash
+    },
+    disposition: "accept",
+    blocker: null,
+    operations: [operation]
+  };
+  await authorizeCurrentRepositoryDocumentLayout({
+    repositoryRoot: root2,
+    operations: state2.operations
+  });
+  return { ...state2, planId: stableId("kinstbootplan", state2) };
+}
+
+// packages/repository-knowledge/dist/lint-query.js
+import { lstat as lstat23, readFile as readFile15, readdir as readdir11 } from "node:fs/promises";
+import { relative as relative8, resolve as resolve33, sep as sep8 } from "node:path";
+var import_yaml22 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/repository-publication-files.js
+import { constants as constants9 } from "node:fs";
+import { lstat as lstat22, open as open11, readFile as readFile14 } from "node:fs/promises";
+import { relative as relative7, resolve as resolve32, sep as sep7 } from "node:path";
+async function generatedKnowledgePaths(root2) {
+  const result = /* @__PURE__ */ new Set();
+  const groups = [
+    [structuralManifestPath, legacyStructuralManifestPath],
+    await listKnowledgeArtifactPaths({
+      root: root2,
+      directory: ".lervo/generated/semantic-manifests",
+      extension: "json",
+      maximumFiles: 2e4
+    })
+  ];
+  for (const paths of groups) {
+    for (const path of paths) {
+      try {
+        const value = JSON.parse(await readFile14(resolve32(root2, path), "utf8"));
+        for (const output of value.outputs ?? [])
+          if (typeof output.path === "string")
+            result.add(output.path);
+      } catch {
+      }
+    }
+  }
+  return result;
+}
+function safePublicationPath(root2, path) {
+  const target = resolve32(root2, path);
+  const fromRoot = relative7(root2, target);
+  return fromRoot === ".." || fromRoot.startsWith(`..${sep7}`) ? null : target;
+}
+async function readSafePublication(root2, path, maximumBytes2) {
+  const target = safePublicationPath(root2, path);
+  if (target === null)
+    return null;
+  let current = root2;
+  try {
+    const rootStats = await lstat22(root2);
+    if (!rootStats.isDirectory() || rootStats.isSymbolicLink())
+      return null;
+    const segments = relative7(root2, target).split(sep7);
+    for (const [index2, segment] of segments.entries()) {
+      current = resolve32(current, segment);
+      const stats = await lstat22(current);
+      if (stats.isSymbolicLink())
+        return null;
+      if (index2 === segments.length - 1 ? !stats.isFile() : !stats.isDirectory())
+        return null;
+    }
+    const handle = await open11(target, constants9.O_RDONLY | (constants9.O_NOFOLLOW ?? 0));
+    try {
+      const before = await handle.stat();
+      if (!before.isFile() || before.size > maximumBytes2)
+        return null;
+      const bytes = await handle.readFile();
+      const after = await handle.stat();
+      if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs || bytes.byteLength !== before.size)
+        return null;
+      return bytes;
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    return null;
+  }
+}
+
+// packages/repository-knowledge/dist/lint-query.js
+async function lintSemanticManifests(root2, issues) {
+  const directoryPath = ".lervo/generated/semantic-manifests";
+  let paths;
+  try {
+    paths = await listKnowledgeArtifactPaths({
+      root: root2,
+      directory: directoryPath,
+      extension: "json",
+      maximumFiles: 2e4
+    });
+  } catch {
+    return;
+  }
+  for (const path of paths) {
+    let outputs;
+    try {
+      const value = JSON.parse(await readFile15(resolve33(root2, path), "utf8"));
+      if (value.kind !== "semantic" || !Array.isArray(value.outputs) || !value.outputs.every((item) => typeof item?.path === "string" && typeof item.contentHash === "string"))
+        throw new Error();
+      outputs = value.outputs;
+    } catch {
+      issues.push({
+        code: "invalid_semantic_generation_manifest",
+        severity: "error",
+        path,
+        message: "The semantic generation manifest is invalid."
+      });
+      continue;
+    }
+    for (const output of outputs) {
+      const target = safePublicationPath(root2, output.path);
+      try {
+        if (target === null)
+          throw new Error();
+        const stats = await lstat23(target);
+        if (!stats.isFile() || stats.isSymbolicLink() || sha2562(await readFile15(target)) !== output.contentHash)
+          throw new Error();
+      } catch {
+        issues.push({
+          code: "semantic_generated_output_modified",
+          severity: "error",
+          path: output.path,
+          message: "The output differs from the Lervo-owned bytes recorded by semantic generation."
+        });
+      }
+    }
+  }
+}
+async function lintInstructionBridgeRecords(root2, projectId, issues) {
+  const directoryPath = ".lervo/knowledge/instruction-bridges";
+  let paths;
+  try {
+    paths = await listKnowledgeArtifactPaths({
+      root: root2,
+      directory: directoryPath,
+      extension: "yaml",
+      maximumFiles: 256
+    });
+  } catch {
+    issues.push({
+      code: "invalid_instruction_bridge_record",
+      severity: "error",
+      path: directoryPath,
+      message: "The instruction bridge registry cannot be read safely."
+    });
+    return;
+  }
+  const ids = /* @__PURE__ */ new Set();
+  for (const path of paths) {
+    const name2 = path.split("/").at(-1);
+    const recordBytes = await readSafePublication(root2, path, 64 * 1024);
+    if (recordBytes === null) {
+      issues.push({
+        code: "invalid_instruction_bridge_record",
+        severity: "error",
+        path,
+        message: "The instruction bridge record cannot be read safely."
+      });
+      continue;
+    }
+    let value;
+    try {
+      value = (0, import_yaml22.parse)(new TextDecoder("utf-8", { fatal: true }).decode(recordBytes));
+      const expectedId = stableId("kbridge", {
+        projectId,
+        provider: "claude",
+        canonicalPath: "AGENTS.md",
+        targetPath: "CLAUDE.md"
+      });
+      if (value?.schemaVersion !== 1 || value.bridgeId !== expectedId || name2 !== `${expectedId}.yaml` || ids.has(value.bridgeId) || path.split("/").length > 4 && path !== shardedKnowledgeArtifactPath(directoryPath, value.bridgeId, "yaml") || value.profile?.id !== "claude_agents_import_v1" || value.profile.version !== 1 || value.profile.provider !== "claude" || value.profile.discoveryContract !== "claude-code-memory-import" || value.canonical?.path !== "AGENTS.md" || value.target?.path !== "CLAUDE.md" || value.target.blockId !== "provider_entry" || !/^sha256:[a-f0-9]{64}$/.test(value.canonical.contentHash) || !/^sha256:[a-f0-9]{64}$/.test(value.target.contentHash) || !/^sha256:[a-f0-9]{64}$/.test(value.target.managedContentHash))
+        throw new Error("invalid record");
+      ids.add(value.bridgeId);
+    } catch {
+      issues.push({
+        code: "invalid_instruction_bridge_record",
+        severity: "error",
+        path,
+        message: "The instruction bridge record does not satisfy its registered profile contract."
+      });
+      continue;
+    }
+    const canonicalBytes = await readSafePublication(root2, value.canonical.path, 1024 * 1024);
+    const targetBytes = await readSafePublication(root2, value.target.path, 1024 * 1024);
+    if (canonicalBytes === null || targetBytes === null || sha2562(canonicalBytes) !== value.canonical.contentHash || sha2562(targetBytes) !== value.target.contentHash) {
+      issues.push({
+        code: "instruction_bridge_binding_stale",
+        severity: "error",
+        path,
+        message: "The instruction bridge canonical or target byte binding differs from the current repository."
+      });
+      continue;
+    }
+    const parsedTarget = parseManagedMarkdownBlocks(targetBytes);
+    const block = parsedTarget.blocks.find((item) => item.blockId === value.target.blockId);
+    if (parsedTarget.status !== "valid" || block === void 0 || sha2562(targetBytes.slice(block.contentRange.start, block.contentRange.end)) !== value.target.managedContentHash || new TextDecoder().decode(targetBytes.slice(block.contentRange.start, block.contentRange.end)) !== "@AGENTS.md\n") {
+      issues.push({
+        code: "instruction_bridge_target_invalid",
+        severity: "error",
+        path: value.target.path,
+        message: "The provider entry managed block differs from the profile's canonical import."
+      });
+    }
+  }
+}
+async function lintRepositoryLayout(root2, issues) {
+  const layout = await evaluateCurrentRepositoryDocumentLayout({
+    repositoryRoot: root2,
+    operations: []
+  });
+  for (const blocker of layout.blockers) {
+    issues.push({
+      code: blocker.code,
+      severity: "error",
+      path: "directory" in blocker ? blocker.directory : "scope" in blocker ? blocker.scope : ".",
+      message: `The current repository document layout violates ${blocker.code}.`
+    });
+  }
+  const taxonomy = await loadDecisionTaxonomy(root2);
+  const decisionPaths = [];
+  for (const directory of [taxonomy.decisionRoot, ...taxonomy.legacyRoots]) {
+    try {
+      const entries = await readdir11(resolve33(root2, directory), {
+        withFileTypes: true,
+        recursive: true
+      });
+      for (const entry of entries) {
+        if (!entry.isFile() || !/^\d{4}-.+\.md$/u.test(entry.name))
+          continue;
+        decisionPaths.push(relative8(root2, resolve33(entry.parentPath, entry.name)).split(sep8).join("/"));
+      }
+    } catch {
+    }
+  }
+  for (const path of decisionPaths) {
+    const roots = [taxonomy.decisionRoot, ...taxonomy.legacyRoots];
+    if (roots.some((directory) => path.startsWith(`${directory}/`) && !path.slice(directory.length + 1).includes("/"))) {
+      issues.push({
+        code: "ungrouped_decision_document",
+        severity: "error",
+        path,
+        message: "The decision document requires an explicit configured semantic route. Run lervo migrate knowledge."
+      });
+    }
+  }
+  for (const blocker of inspectGroupedDecisionPaths(decisionPaths, taxonomy)) {
+    const message = blocker.code === "decision_leaf_overflow" ? `The decision leaf has ${blocker.observedCount} documents and exceeds its configured maximum of ${blocker.configuredMaximum}. Add a semantic route and move the affected decisions.` : blocker.code === "legacy_decision_layout" ? "The decision remains under a legacy decision root. Run lervo migrate knowledge." : "The decision directory is not an allowed route in the tracked repository taxonomy.";
+    issues.push({ code: blocker.code, severity: "error", path: blocker.path, message });
+  }
+  const registries = [
+    [structuralBundleDirectory, "yaml"],
+    [structuralConceptDirectory, "yaml"],
+    [".lervo/knowledge/bundles", "yaml"],
+    [".lervo/knowledge/concepts", "yaml"],
+    [".lervo/knowledge/claims", "yaml"],
+    [".lervo/knowledge/relations", "yaml"],
+    [".lervo/knowledge/source-lineage", "yaml"],
+    [".lervo/knowledge/instruction-bridges", "yaml"],
+    [".lervo/knowledge/document-normalizations", "yaml"],
+    [".lervo/generated/semantic-manifests", "json"],
+    [".lervo/state/knowledge/candidates", "json"]
+  ];
+  for (const [directory, extension2] of registries) {
+    let paths;
+    try {
+      paths = await listKnowledgeArtifactPaths({
+        root: root2,
+        directory,
+        extension: extension2,
+        maximumFiles: 2e4
+      });
+    } catch {
+      continue;
+    }
+    for (const path of paths) {
+      if (!path.slice(directory.length + 1).includes("/"))
+        issues.push({
+          code: "legacy_flat_artifact",
+          severity: "error",
+          path,
+          message: "The ID-addressed artifact requires deterministic two-hex sharding. Run lervo migrate knowledge."
+        });
+    }
+  }
+}
+async function lintRepositoryKnowledge(repositoryRoot, options = {}) {
+  const root2 = resolve33(repositoryRoot);
+  await assertNoKnowledgeMaterializationTransaction({
+    repositoryRoot: root2,
+    ...options?.allowTransactionPlanId === void 0 ? {} : { allowedPlanId: options.allowTransactionPlanId }
+  });
+  const issues = [];
+  await lintRepositoryLayout(root2, issues);
+  const rewrite = await inspectRepositoryDocumentRewriters({
+    repositoryRoot: root2,
+    ...options.allowTransactionPlanId === void 0 ? {} : { allowTransactionPlanId: options.allowTransactionPlanId }
+  });
+  for (const blocker of rewrite.blockers) {
+    issues.push({
+      code: blocker.code,
+      severity: "error",
+      path: "path" in blocker ? blocker.path : ".lervo/knowledge/document-layout.yaml",
+      message: `The current repository document rewrite contract violates ${blocker.code}.`
+    });
+  }
+  await lintSemanticManifests(root2, issues);
+  const manifests = [];
+  let manifestFound = false;
+  for (const path of [structuralManifestPath, legacyStructuralManifestPath]) {
+    try {
+      const stats = await lstat23(resolve33(root2, path));
+      if (!stats.isFile() || stats.isSymbolicLink())
+        throw new Error();
+      manifestFound = true;
+      try {
+        const value = JSON.parse(await readFile15(resolve33(root2, path), "utf8"));
+        if (typeof value.sourceSnapshotId !== "string" || !Array.isArray(value.outputs) || !value.outputs.every((item) => typeof item?.path === "string" && typeof item.contentHash === "string"))
+          throw new Error();
+        manifests.push(value);
+      } catch {
+        issues.push({
+          code: "invalid_generation_manifest",
+          severity: "error",
+          path,
+          message: "The generation manifest JSON cannot be read."
+        });
+      }
+    } catch (error) {
+      if (error.code !== "ENOENT" && manifestFound === false)
+        issues.push({
+          code: "invalid_generation_manifest",
+          severity: "error",
+          path,
+          message: "The generation manifest is not a safe regular file."
+        });
+    }
+  }
+  if (!manifestFound) {
+    issues.push({
+      code: "missing_generation_manifest",
+      severity: "warning",
+      path: structuralManifestPath,
+      message: "No applied structural knowledge generation exists. Check for a refresh candidate because only semantic materialization may be present."
+    });
+  }
+  const project2 = await loadProjectManifest(root2);
+  await lintInstructionBridgeRecords(root2, project2.projectId, issues);
+  const normalization = options.preparedNormalization ?? await inspectConfiguredDocumentNormalization({
+    repositoryRoot: root2,
+    ...options.supplementalSources === void 0 ? {} : { supplementalSources: options.supplementalSources },
+    ...options.preparedScan === void 0 ? {} : { preparedScan: options.preparedScan },
+    ...options.allowTransactionPlanId === void 0 ? {} : { allowTransactionPlanId: options.allowTransactionPlanId }
+  });
+  for (const record3 of normalization.records) {
+    if (record3.status === "invalid")
+      issues.push({
+        code: "invalid_document_normalization_record",
+        severity: "error",
+        path: record3.path,
+        message: "The document normalization lifecycle record is invalid."
+      });
+    const historicalPublicReadme = record3.outputPaths.length === 1 && record3.outputPaths[0] === "README.md";
+    if (record3.status === "stale" && !historicalPublicReadme)
+      issues.push({
+        code: "document_normalization_stale",
+        severity: "warning",
+        path: record3.path,
+        message: "A normalized document family changed after its reviewed rewrite. Create a new content-bound normalization candidate."
+      });
+  }
+  const policy = await loadRepositoryKnowledgePolicy(root2);
+  const generated = await generatedKnowledgePaths(root2);
+  const scan = options.preparedScan ?? await scanRepositoryKnowledge({
+    repositoryRoot: root2,
+    projectId: project2.projectId,
+    policy,
+    generatedPaths: generated,
+    ...options.supplementalSources === void 0 ? {} : { supplementalSources: options.supplementalSources }
+  });
+  if (scan.projectId !== project2.projectId || scan.policyId !== policy.policyId) {
+    throw new Error("The prepared knowledge scan does not match the current project policy.");
+  }
+  const currentManifest = manifests.find((item) => item.sourceSnapshotId === repositoryKnowledgePublicationSnapshotId(scan));
+  if (currentManifest === void 0) {
+    issues.push({
+      code: "materialization_stale",
+      severity: "warning",
+      path: ".lervo/knowledge",
+      message: "No generation materializes the current source snapshot. Inspect the knowledge refresh plan."
+    });
+  } else {
+    for (const output of currentManifest.outputs) {
+      const target = safePublicationPath(root2, output.path);
+      if (target === null) {
+        issues.push({
+          code: "generated_output_outside_repository",
+          severity: "error",
+          path: output.path,
+          message: "The generation output escapes the repository."
+        });
+        continue;
+      }
+      try {
+        const stats = await lstat23(target);
+        const bytes = await readFile15(target);
+        if (!stats.isFile() || stats.isSymbolicLink() || sha2562(bytes) !== output.contentHash)
+          throw new Error();
+        const publicationPrefix = `${policy.publicationRoot.replace(/\/$/u, "")}/`;
+        if (output.path.startsWith(publicationPrefix) && output.path.endsWith(".md")) {
+          if (bytes.byteLength > policy.publication.maxNavigationBytes) {
+            issues.push({
+              code: "publication_size_exceeded",
+              severity: "error",
+              path: output.path,
+              message: "Generated navigation exceeds the configured UTF-8 byte bound."
+            });
+          }
+          const prose = bytes.toString("utf8").replace(/```[\s\S]*?```/gu, "").replace(/`[^`]*`/gu, "").replace(/\]\([^)]*\)/gu, "]").replace(/<!--[\s\S]*?-->/gu, "");
+          if (policy.publication.language === "en" && /[\u3131-\u318E\uAC00-\uD7A3]/u.test(prose)) {
+            issues.push({
+              code: "publication_language_mismatch",
+              severity: "error",
+              path: output.path,
+              message: "Generated publication contains Hangul while publication.language is en."
+            });
+          }
+        }
+      } catch {
+        issues.push({
+          code: "generated_output_modified",
+          severity: "error",
+          path: output.path,
+          message: "The output differs from the Lervo-generated bytes recorded by the current source generation."
+        });
+      }
+    }
+  }
+  const currentUnitVersions = new Set(scan.units.map((unit2) => unit2.unitVersionId));
+  const concepts = await loadStoredConcepts(root2);
+  const claims = await loadStoredClaims(root2);
+  const relations = await loadStoredRelations(root2);
+  const impact = claims.every((item) => item.value !== null) && relations.every((item) => item.value !== null) ? await analyzeRepositoryKnowledgeImpact({ repositoryRoot: root2, scan }) : null;
+  const impactBySubject = new Map(impact?.items.map((item) => [`${item.subjectKind}:${item.subjectId}`, item]));
+  const claimedPaths = /* @__PURE__ */ new Map();
+  for (const stored of concepts) {
+    if (stored.value === null) {
+      issues.push({
+        code: "invalid_concept",
+        severity: "error",
+        path: stored.file,
+        message: stored.error ?? "The concept sidecar is invalid."
+      });
+      continue;
+    }
+    const concept = stored.value;
+    if (concept.publicationStatus === "deprecated")
+      continue;
+    const existing = claimedPaths.get(concept.path);
+    if (existing !== void 0) {
+      issues.push({
+        code: "publication_path_conflict",
+        severity: "error",
+        path: stored.file,
+        message: `${concept.path} conflicts with ${existing}.`
+      });
+    } else
+      claimedPaths.set(concept.path, concept.conceptId);
+    const publication = safePublicationPath(root2, concept.path);
+    if (publication === null) {
+      issues.push({
+        code: "publication_outside_repository",
+        severity: "error",
+        path: stored.file,
+        message: `${concept.path} escapes the repository.`
+      });
+      continue;
+    }
+    try {
+      const stats = await lstat23(publication);
+      if (!stats.isFile() || stats.isSymbolicLink())
+        throw new Error();
+    } catch {
+      issues.push({
+        code: "publication_missing",
+        severity: "error",
+        path: concept.path,
+        message: "The concept publication does not exist as a regular file."
+      });
+    }
+    const stale = concept.sourceUnitVersionIds.filter((id) => !currentUnitVersions.has(id));
+    if (stale.length > 0) {
+      issues.push({
+        code: "source_unit_stale",
+        severity: "warning",
+        path: stored.file,
+        message: `${stale.length} source unit versions differ from the current snapshot.`
+      });
+    }
+  }
+  const conceptIds = new Set(concepts.flatMap((item) => item.value === null ? [] : [item.value.conceptId]));
+  for (const stored of claims) {
+    if (stored.value === null) {
+      issues.push({
+        code: "invalid_claim",
+        severity: "error",
+        path: stored.file,
+        message: stored.error ?? "The claim sidecar is invalid."
+      });
+      continue;
+    }
+    if (!conceptIds.has(stored.value.conceptId))
+      issues.push({
+        code: "claim_concept_missing",
+        severity: "error",
+        path: stored.file,
+        message: "The claim references a concept that does not exist."
+      });
+    const claimImpact = impactBySubject.get(`claim:${stored.value.claimId}`);
+    if (claimImpact?.freshness === "stale")
+      issues.push({
+        code: "claim_evidence_stale",
+        severity: "warning",
+        path: stored.file,
+        message: `Claim evidence depends on changed or deleted source units: ${claimImpact.reasons.join(", ")}`
+      });
+    if (claimImpact?.freshness === "unknown")
+      issues.push({
+        code: "claim_evidence_unknown",
+        severity: "warning",
+        path: stored.file,
+        message: "Stable source-unit lineage cannot be confirmed for the claim evidence."
+      });
+  }
+  for (const stored of relations) {
+    if (stored.value === null) {
+      issues.push({
+        code: "invalid_relation",
+        severity: "error",
+        path: stored.file,
+        message: stored.error ?? "The relation sidecar is invalid."
+      });
+      continue;
+    }
+    if (!conceptIds.has(stored.value.from.id) || !conceptIds.has(stored.value.to.id))
+      issues.push({
+        code: "relation_endpoint_missing",
+        severity: "error",
+        path: stored.file,
+        message: "A relation concept endpoint is missing."
+      });
+    const relationImpact = impactBySubject.get(`relation:${stored.value.relationId}`);
+    if (relationImpact?.freshness === "stale")
+      issues.push({
+        code: "relation_evidence_stale",
+        severity: "warning",
+        path: stored.file,
+        message: `Relation evidence depends on changed or deleted source units: ${relationImpact.reasons.join(", ")}`
+      });
+    if (relationImpact?.freshness === "unknown")
+      issues.push({
+        code: "relation_evidence_unknown",
+        severity: "warning",
+        path: stored.file,
+        message: "Stable source-unit lineage cannot be confirmed for the relation evidence."
+      });
+  }
+  return {
+    schemaVersion: 1,
+    repositoryRoot: root2,
+    valid: issues.every((issue) => issue.severity !== "error"),
+    checkedConcepts: concepts.filter((item) => item.value !== null).length,
+    issues
+  };
+}
+
+// packages/repository-knowledge/dist/query.js
+import { resolve as resolve34 } from "node:path";
+
+// packages/repository-knowledge/dist/relation-query.js
+var KNOWLEDGE_RELATION_LIMITS = {
+  maximumSeeds: 5,
+  maximumExaminedRelations: 64,
+  maximumRecommendations: 5,
+  maximumSelections: 2,
+  hops: 1
+};
+function compareText3(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+function projectKnowledgeRelations(input) {
+  const conceptsById = new Map(input.concepts.map((concept) => [concept.conceptId, concept]));
+  const seedConceptIds = [...new Set(input.seedConceptIds)].slice(0, KNOWLEDGE_RELATION_LIMITS.maximumSeeds).filter((conceptId) => {
+    const concept = conceptsById.get(conceptId);
+    return concept !== void 0 && !concept.deprecated && concept.assurance === "human_reviewed" && concept.freshness === "current";
+  });
+  const seeds = new Map(seedConceptIds.map((conceptId, rank) => [conceptId, rank + 1]));
+  const conceptsByPath = /* @__PURE__ */ new Map();
+  for (const concept of input.concepts) {
+    const values = conceptsByPath.get(concept.path) ?? [];
+    values.push(concept);
+    conceptsByPath.set(concept.path, values);
+  }
+  const documentsByPath = /* @__PURE__ */ new Map();
+  for (const [documentId, document4] of Object.entries(input.documentRegistry?.documents ?? {})) {
+    const values = documentsByPath.get(document4.path) ?? [];
+    values.push(documentId);
+    documentsByPath.set(document4.path, values);
+  }
+  const incident = input.relations.filter((relation) => seeds.has(relation.from.id) || seeds.has(relation.to.id)).sort((left, right) => compareText3(left.relationId, right.relationId));
+  const examined = incident.slice(0, KNOWLEDGE_RELATION_LIMITS.maximumExaminedRelations);
+  const candidates = [];
+  for (const relation of examined) {
+    const fromSeedRank = seeds.get(relation.from.id);
+    const toSeedRank = seeds.get(relation.to.id);
+    const seedRank = Math.min(fromSeedRank ?? Number.MAX_SAFE_INTEGER, toSeedRank ?? Number.MAX_SAFE_INTEGER);
+    const seedConceptId = fromSeedRank === seedRank ? relation.from.id : relation.to.id;
+    const targetConceptId = seedConceptId === relation.from.id ? relation.to.id : relation.from.id;
+    const target = conceptsById.get(targetConceptId);
+    if (target === void 0 || target.deprecated || target.assurance !== "human_reviewed" || target.freshness !== "current" || conceptsByPath.get(target.path)?.length !== 1) {
+      continue;
+    }
+    const documentIds = documentsByPath.get(target.path) ?? [];
+    if (documentIds.length !== 1)
+      continue;
+    candidates.push({
+      schemaVersion: 1,
+      recommendationId: stableId("krelrec", {
+        sourceSnapshotId: input.sourceSnapshotId,
+        relationId: relation.relationId,
+        seedConceptId,
+        targetConceptId,
+        documentId: documentIds[0],
+        contentHash: target.contentHash
+      }),
+      relationId: relation.relationId,
+      relationType: relation.type,
+      direction: seedConceptId === relation.from.id ? "outgoing" : "incoming",
+      seedConceptId,
+      targetConceptId,
+      documentId: documentIds[0],
+      path: target.path,
+      sourceContentHash: target.contentHash,
+      sourceSnapshotId: input.sourceSnapshotId,
+      impactReportId: input.impactReportId,
+      seedRank
+    });
+  }
+  const seenDocuments = /* @__PURE__ */ new Set();
+  const recommendations = candidates.sort((left, right) => left.seedRank - right.seedRank || compareText3(left.relationType, right.relationType) || compareText3(left.direction, right.direction) || compareText3(left.relationId, right.relationId) || compareText3(left.documentId, right.documentId)).filter((recommendation) => {
+    if (seenDocuments.has(recommendation.documentId))
+      return false;
+    seenDocuments.add(recommendation.documentId);
+    return true;
+  }).slice(0, KNOWLEDGE_RELATION_LIMITS.maximumRecommendations).map(({ seedRank: _seedRank, ...recommendation }) => recommendation);
+  const core = {
+    schemaVersion: 1,
+    sourceSnapshotId: input.sourceSnapshotId,
+    impactReportId: input.impactReportId,
+    conceptSidecarSetHash: input.conceptSidecarSetHash,
+    relationSidecarSetHash: input.relationSidecarSetHash,
+    seedConceptIds,
+    limits: KNOWLEDGE_RELATION_LIMITS,
+    examinedRelationCount: examined.length,
+    truncated: incident.length > examined.length,
+    recommendations
+  };
+  return { ...core, projectionId: stableId("krelproj", core) };
+}
+
+// packages/repository-knowledge/dist/query.js
+function terms(value) {
+  return [
+    ...new Set(value.normalize("NFKC").toLocaleLowerCase().match(/[\p{L}\p{N}]{2,}/gu) ?? [])
+  ];
+}
+function textTerms(value) {
+  return new Set(terms(value));
+}
+function hasLexicalTerm(values, term) {
+  if (values.has(term))
+    return true;
+  return /^[\uAC00-\uD7A3]{2,}$/u.test(term) && [...values].some((value) => value.startsWith(term));
+}
+async function queryRepositoryKnowledge(input) {
+  const root2 = resolve34(input.repositoryRoot);
+  await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root2 });
+  const project2 = await loadProjectManifest(root2);
+  const policy = await loadRepositoryKnowledgePolicy(root2);
+  const generated = await generatedKnowledgePaths(root2);
+  const scan = await scanRepositoryKnowledge({
+    repositoryRoot: root2,
+    projectId: project2.projectId,
+    policy,
+    generatedPaths: generated,
+    ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources }
+  });
+  const currentUnits = new Set(scan.units.map((unit2) => unit2.unitVersionId));
+  const impact = await analyzeRepositoryKnowledgeImpact({ repositoryRoot: root2, scan });
+  const conceptImpact = new Map(impact.items.filter((item) => item.subjectKind === "concept").map((item) => [item.subjectId, item.freshness]));
+  const queryTerms = terms(input.query);
+  const hits = [];
+  const resolvedConcepts = [];
+  const claimsByConcept = /* @__PURE__ */ new Map();
+  for (const stored of await loadStoredClaims(root2)) {
+    if (stored.value === null)
+      continue;
+    const values = claimsByConcept.get(stored.value.conceptId) ?? [];
+    values.push(stored.value);
+    claimsByConcept.set(stored.value.conceptId, values);
+  }
+  const storedConcepts = await loadStoredConcepts(root2);
+  const storedRelations = await loadStoredRelations(root2);
+  for (const stored of storedConcepts) {
+    const concept = stored.value;
+    if (concept === null)
+      continue;
+    if (concept.publicationStatus === "deprecated")
+      continue;
+    let content3;
+    let contentHash2;
+    try {
+      const bytes = await readSafePublication(root2, concept.path, Math.min(policy.limits.maxFileBytes, 131072));
+      if (bytes === null)
+        continue;
+      content3 = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      contentHash2 = sha2562(bytes);
+    } catch {
+      continue;
+    }
+    const linkedClaims = claimsByConcept.get(concept.conceptId) ?? [];
+    const titleTerms = textTerms(concept.title);
+    const pathTerms = textTerms(concept.path);
+    const bodyTerms = textTerms(`${content3}
+${linkedClaims.map((claim) => claim.statement).join("\n")}`);
+    const assurance = linkedClaims.length > 0 || concept.assurance === "human_reviewed" ? "human_reviewed" : "unreviewed";
+    const freshness = conceptImpact.get(concept.conceptId) ?? (concept.sourceUnitVersionIds.length === 0 ? "unknown" : concept.sourceUnitVersionIds.every((id) => currentUnits.has(id)) ? "current" : "stale");
+    resolvedConcepts.push({
+      conceptId: concept.conceptId,
+      path: concept.path,
+      contentHash: contentHash2,
+      assurance,
+      freshness,
+      deprecated: false
+    });
+    const matchedTerms = queryTerms.filter((term) => hasLexicalTerm(titleTerms, term) || hasLexicalTerm(pathTerms, term) || hasLexicalTerm(bodyTerms, term));
+    if (matchedTerms.length === 0)
+      continue;
+    const score = matchedTerms.reduce((total, term) => total + (hasLexicalTerm(titleTerms, term) ? 8 : 0) + (hasLexicalTerm(pathTerms, term) ? 4 : 0) + (hasLexicalTerm(bodyTerms, term) ? 1 : 0), 0);
+    hits.push({
+      conceptId: concept.conceptId,
+      title: concept.title,
+      path: concept.path,
+      ownership: concept.ownership,
+      score,
+      matchedTerms,
+      assurance,
+      freshness,
+      contentHash: contentHash2
+    });
+  }
+  hits.sort((left, right) => right.score - left.score || left.path.localeCompare(right.path));
+  const conceptSidecarSetHash = sha2562(JSON.stringify(await Promise.all(storedConcepts.map(async (stored) => {
+    const bytes = await readSafePublication(root2, stored.file, 256 * 1024);
+    return [stored.file, bytes === null ? "unreadable" : sha2562(bytes)];
+  }))));
+  const relationSidecarSetHash = sha2562(JSON.stringify(await Promise.all(storedRelations.map(async (stored) => {
+    const bytes = await readSafePublication(root2, stored.file, 256 * 1024);
+    return [stored.file, bytes === null ? "unreadable" : sha2562(bytes)];
+  }))));
+  const strongestScore = hits[0]?.score ?? 0;
+  const relativeRelevanceFloor = Math.max(1, Math.ceil(strongestScore / 10));
+  const selectedHits = hits.filter((hit) => hit.score >= relativeRelevanceFloor).slice(0, input.limit ?? 20);
+  return {
+    schemaVersion: 1,
+    query: input.query,
+    semantics: "recommended",
+    sourceSnapshotId: scan.snapshotId,
+    impactReportId: impact.reportId,
+    hits: selectedHits,
+    relationProjection: projectKnowledgeRelations({
+      sourceSnapshotId: scan.snapshotId,
+      impactReportId: impact.reportId,
+      conceptSidecarSetHash,
+      relationSidecarSetHash,
+      seedConceptIds: selectedHits.map((hit) => hit.conceptId),
+      concepts: resolvedConcepts,
+      relations: storedRelations.flatMap((stored) => stored.value === null ? [] : [stored.value]),
+      ...input.documentRegistry === void 0 ? {} : { documentRegistry: input.documentRegistry }
+    })
+  };
+}
+
+// packages/repository-knowledge/dist/projection-ignore.js
+import { lstat as lstat24, readFile as readFile16 } from "node:fs/promises";
+import { resolve as resolve35 } from "node:path";
+var BEGIN = "# lervo:begin rebuildable-knowledge schema=1";
+var END = "# lervo:end rebuildable-knowledge";
+function normalizedRule(publicationRoot) {
+  const root2 = publicationRoot.replace(/^\.\//u, "").replace(/\/+$/u, "");
+  if (root2.length === 0 || root2.startsWith("/") || root2.split("/").includes(".."))
+    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The rebuildable publication root cannot be represented safely in .gitignore.");
+  return `${root2}/`;
+}
+function project(current, rule2) {
+  const content3 = current ?? "";
+  const begin = content3.indexOf(BEGIN);
+  const end = content3.indexOf(END);
+  if (begin === -1 !== (end === -1) || begin !== -1 && end < begin)
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The rebuildable knowledge ignore block is malformed.");
+  const block = `${BEGIN}
+${rule2}
+${END}
+`;
+  if (begin === -1)
+    return `${content3}${content3.length === 0 || content3.endsWith("\n") ? "" : "\n"}${block}`;
+  const afterEnd = end + END.length;
+  return `${content3.slice(0, begin)}${block}${content3.slice(afterEnd).replace(/^\n/u, "")}`;
+}
+async function projectRebuildableKnowledgeIgnore(input) {
+  const path = resolve35(input.repositoryRoot, ".gitignore");
+  let beforeContent = null;
+  try {
+    const stats = await lstat24(path);
+    if (!stats.isFile() || stats.isSymbolicLink())
+      throw new RepositoryKnowledgeError("knowledge_source_unsafe", ".gitignore is not a safe regular file.");
+    beforeContent = await readFile16(path, "utf8");
+  } catch (error) {
+    if (error.code !== "ENOENT")
+      throw error;
+  }
+  const afterContent = project(beforeContent, normalizedRule(input.publicationRoot));
+  return {
+    path: ".gitignore",
+    beforeContent,
+    afterContent,
+    beforeHash: beforeContent === null ? null : sha2562(beforeContent),
+    afterHash: sha2562(afterContent),
+    changed: beforeContent !== afterContent
+  };
+}
+
+// packages/repository-knowledge/dist/reconciliation-review.js
+var import_yaml23 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/repository-layout-migration.js
+import { constants as constants10 } from "node:fs";
+import { lstat as lstat25, open as open12, readFile as readFile17 } from "node:fs/promises";
+import { basename as basename10, posix as posix6, resolve as resolve36 } from "node:path";
+var import_yaml24 = __toESM(require_dist(), 1);
+var ECOSYSTEM_ROOT_ENTRYPOINTS = /* @__PURE__ */ new Set([
+  "CONTRIBUTING.md",
+  "SECURITY.md",
+  "CHANGELOG.md",
+  "CODE_OF_CONDUCT.md"
+]);
+function mediaTypeFor(source) {
+  if (/\.mdx?$/iu.test(source.path))
+    return "text/markdown";
+  if (/\.json$/iu.test(source.path))
+    return "application/json";
+  if (/\.ya?ml$/iu.test(source.path))
+    return "application/yaml";
+  if (/\.[cm]?js$/iu.test(source.path))
+    return "text/javascript";
+  if (/\.[cm]?tsx?$/iu.test(source.path))
+    return "text/typescript";
+  return "text/plain";
+}
+function classifiedRootDestination(path, content3, taxonomy) {
+  const roles = [...taxonomy.documentPolicy.roles, ...providerSurfaceRoles()];
+  const protectedPaths = new Set(roles.map((role) => role.path).filter((rolePath2) => !rolePath2.includes("/")));
+  if (path.includes("/") || protectedPaths.has(path) || ECOSYSTEM_ROOT_ENTRYPOINTS.has(path) || !/\.md$/iu.test(path))
+    return null;
+  const rolePath = (roleId) => taxonomy.documentPolicy.roles.find((role) => role.roleId === roleId)?.path ?? null;
+  const stem = basename10(path, ".md").toUpperCase();
+  const heading = /^#\s+(.+)$/mu.exec(content3)?.[1]?.trim().toLowerCase() ?? "";
+  const visionPath = rolePath("product_vision");
+  if (visionPath !== null && /(?:^|_)VISION$/u.test(stem) && /(?:vision|\uBE44\uC804)/u.test(heading))
+    return {
+      toPath: visionPath,
+      classification: "product",
+      reason: "recognized_root_document_role"
+    };
+  const architecturePath = rolePath("system_architecture");
+  if (architecturePath !== null && /(?:^|_)ARCHITECTURE$/u.test(stem) && /(?:architecture|\uC544\uD0A4\uD14D\uCC98|\uAD6C\uC870)/u.test(heading))
+    return {
+      toPath: architecturePath,
+      classification: "architecture",
+      reason: "recognized_root_document_role"
+    };
+  const executionPath = rolePath("execution_specification");
+  if (executionPath !== null && /(?:^|_)EXECUTION_SPEC$/u.test(stem) && /(?:(?:execution|\uC2E4\uD589).*(?:spec|\uADDC\uACA9)|(?:spec|\uADDC\uACA9).*(?:execution|\uC2E4\uD589))/u.test(heading))
+    return {
+      toPath: executionPath,
+      classification: "specification",
+      reason: "recognized_root_document_role"
+    };
+  const versionedPlan = /(?:^|_)V(\d+)_PLAN$/u.exec(stem);
+  if (versionedPlan !== null && /(?:plan|\uACC4\uD68D|roadmap|\uB85C\uB4DC\uB9F5)/u.test(heading))
+    return {
+      toPath: `docs/roadmap/v${versionedPlan[1]}.md`,
+      classification: "roadmap",
+      reason: "recognized_root_document_role"
+    };
+  const roadmapPath = rolePath("delivery_roadmap");
+  if (roadmapPath !== null && /(?:^|_)ROADMAP$/u.test(stem) && /(?:roadmap|\uB85C\uB4DC\uB9F5|\uACC4\uD68D)/u.test(heading))
+    return {
+      toPath: roadmapPath,
+      classification: "roadmap",
+      reason: "recognized_root_document_role"
+    };
+  return null;
+}
+async function safeFile(path, maximumBytes2 = 256 * 1024) {
+  let handle;
+  try {
+    handle = await open12(path, constants10.O_RDONLY | (constants10.O_NOFOLLOW ?? 0));
+    const before = await handle.stat();
+    if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes2)
+      throw new Error("unsafe registry item");
+    const bytes = await handle.readFile();
+    const after = await handle.stat();
+    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size)
+      throw new Error("registry changed");
+    return { contentHash: sha2562(bytes), byteCount: bytes.byteLength };
+  } catch {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The knowledge registry cannot be read safely.");
+  } finally {
+    await handle?.close();
+  }
+}
+async function machineArtifactMoves(root2) {
+  const registries = [
+    {
+      directory: ".lervo/knowledge/bundles",
+      extension: "yaml",
+      registry: "bundles",
+      maximumBytes: 1024 * 1024
+    },
+    {
+      directory: ".lervo/knowledge/concepts",
+      extension: "yaml",
+      registry: "concepts",
+      maximumBytes: 1024 * 1024
+    },
+    {
+      directory: ".lervo/knowledge/claims",
+      extension: "yaml",
+      registry: "claims",
+      maximumBytes: 1024 * 1024
+    },
+    {
+      directory: ".lervo/knowledge/relations",
+      extension: "yaml",
+      registry: "relations",
+      maximumBytes: 1024 * 1024
+    },
+    {
+      directory: ".lervo/knowledge/source-lineage",
+      extension: "yaml",
+      registry: "source_lineage",
+      maximumBytes: 1024 * 1024
+    },
+    {
+      directory: ".lervo/knowledge/instruction-bridges",
+      extension: "yaml",
+      registry: "instruction_bridges",
+      maximumBytes: 1024 * 1024
+    },
+    {
+      directory: ".lervo/knowledge/document-normalizations",
+      extension: "yaml",
+      registry: "document_normalizations",
+      maximumBytes: 1024 * 1024
+    },
+    {
+      directory: ".lervo/generated/semantic-manifests",
+      extension: "json",
+      registry: "semantic_manifests",
+      maximumBytes: 16 * 1024 * 1024
+    },
+    {
+      directory: ".lervo/state/knowledge/candidates",
+      extension: "json",
+      registry: "candidates",
+      maximumBytes: 32 * 1024 * 1024
+    }
+  ];
+  const moves = [];
+  for (const item of registries) {
+    const paths = await listKnowledgeArtifactPaths({
+      root: root2,
+      directory: item.directory,
+      extension: item.extension,
+      maximumFiles: 2e4
+    });
+    for (const fromPath of paths.filter((path) => !path.slice(item.directory.length + 1).includes("/"))) {
+      const name2 = fromPath.split("/").at(-1);
+      const id = name2.slice(0, -(item.extension.length + 1));
+      const toPath = shardedKnowledgeArtifactPath(item.directory, id, item.extension);
+      const file = await safeFile(resolve36(root2, fromPath), item.maximumBytes);
+      moves.push({ fromPath, toPath, ...file, registry: item.registry });
+    }
+  }
+  return moves.sort((left, right) => left.fromPath.localeCompare(right.fromPath));
+}
+async function normalizationOwnershipUpgradeOperations(root2) {
+  const operations = [];
+  const paths = await listKnowledgeArtifactPaths({
+    root: root2,
+    directory: ".lervo/knowledge/document-normalizations",
+    extension: "yaml",
+    maximumFiles: 2e4
+  });
+  for (const path of paths) {
+    const source = await readFile17(resolve36(root2, path), "utf8");
+    const value = (0, import_yaml24.parse)(source);
+    if (value.schemaVersion !== 1)
+      continue;
+    const content3 = (0, import_yaml24.stringify)({
+      ...value,
+      schemaVersion: 2,
+      byteOwnership: { owner: "reviewer", rewritePolicy: "reviewed_exact" }
+    }, { lineWidth: 0, sortMapEntries: true });
+    operations.push({
+      path,
+      action: "update",
+      ownership: "lervo_generated",
+      mediaType: "application/yaml",
+      content: content3,
+      expectedCurrentHash: sha2562(source),
+      desiredHash: sha2562(content3),
+      reason: "upgrade_document_rewrite_ownership"
+    });
+  }
+  return operations;
+}
+async function exists2(path) {
+  try {
+    await lstat25(path);
+    return true;
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return false;
+    throw error;
+  }
+}
+function replaceAllLiteral(content3, from, to) {
+  if (from.length === 0 || from === to)
+    return { content: content3, count: 0 };
+  const parts = content3.split(from);
+  return parts.length === 1 ? { content: content3, count: 0 } : { content: parts.join(to), count: parts.length - 1 };
+}
+function rewriteReferences(sourcePath, content3, moves) {
+  let output = content3;
+  let count = 0;
+  const sourceDirectory = posix6.dirname(sourcePath);
+  for (const move of moves) {
+    const fromRelative = posix6.relative(sourceDirectory, move.fromPath);
+    const toRelative = posix6.relative(sourceDirectory, move.toPath);
+    const variants = [
+      ...fromRelative.startsWith(".") ? [[fromRelative, toRelative]] : [
+        [`./${fromRelative}`, `./${toRelative}`],
+        [fromRelative, toRelative]
+      ]
+    ];
+    if (move.fromPath !== fromRelative)
+      variants.push([move.fromPath, move.toPath]);
+    for (const [from, to] of variants) {
+      const replaced = replaceAllLiteral(output, from, to);
+      output = replaced.content;
+      count += replaced.count;
+    }
+  }
+  return { content: output, count };
+}
+function rebaseMarkdownLinks(content3, fromPath, toPath) {
+  const tree = fromMarkdown(content3);
+  const replacements = [];
+  const visit2 = (node2) => {
+    if ((node2.type === "link" || node2.type === "image" || node2.type === "definition") && typeof node2.url === "string" && node2.url.length > 0 && !/^(?:[a-z][a-z0-9+.-]*:|\/|#)/iu.test(node2.url)) {
+      const match = /^([^?#]*)([?#].*)?$/u.exec(node2.url);
+      const relativeTarget = match?.[1] ?? "";
+      if (relativeTarget.length > 0) {
+        const absoluteTarget = posix6.normalize(posix6.join(posix6.dirname(fromPath), relativeTarget));
+        let rebased = posix6.relative(posix6.dirname(toPath), absoluteTarget);
+        if (!rebased.startsWith("."))
+          rebased = `./${rebased}`;
+        rebased += match?.[2] ?? "";
+        if (rebased !== node2.url) {
+          const start = node2.position?.start?.offset;
+          const end = node2.position?.end?.offset;
+          if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end))
+            throw new RepositoryKnowledgeError("knowledge_unit_extraction_failed", "The Markdown reference coordinates cannot be determined.");
+          const slice2 = content3.slice(start, end);
+          const destinationMarker = node2.type === "definition" ? "]:" : "](";
+          const marker = slice2.indexOf(destinationMarker);
+          const local = marker < 0 ? -1 : slice2.indexOf(node2.url, marker + destinationMarker.length);
+          if (local < 0)
+            throw new RepositoryKnowledgeError("knowledge_unit_extraction_failed", "The Markdown reference destination cannot be determined.");
+          replacements.push({
+            start: start + local,
+            end: start + local + node2.url.length,
+            value: rebased
+          });
+        }
+      }
+    }
+    for (const child of node2.children ?? [])
+      visit2(child);
+  };
+  visit2(tree);
+  let output = content3;
+  for (const replacement of replacements.sort((left, right) => right.start - left.start))
+    output = `${output.slice(0, replacement.start)}${replacement.value}${output.slice(replacement.end)}`;
+  return { content: output, count: replacements.length };
+}
+function withoutContent(operation) {
+  return operation.action === "move" ? operation : (({ content: _content, ...item }) => item)(operation);
+}
+async function createRepositoryLayoutMigrationPlan(input) {
+  const root2 = resolve36(input.repositoryRoot);
+  const taxonomyPath = resolve36(root2, ".lervo/knowledge/document-layout.yaml");
+  const taxonomySource = await readFile17(taxonomyPath, "utf8");
+  const [{ policy, scan }, storedConcepts, generatedPaths, taxonomy] = await Promise.all([
+    scanConfiguredRepositoryKnowledge(root2, {
+      ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources },
+      ...input.preparedScan === void 0 ? {} : { preparedScan: input.preparedScan }
+    }),
+    loadStoredConcepts(root2),
+    recordedGeneratedKnowledgePaths(root2),
+    loadDecisionTaxonomy(root2)
+  ]);
+  if (storedConcepts.some((item) => item.value === null))
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The knowledge concept registry is incomplete.", {
+      code: "knowledge_concept_registry_incomplete",
+      message: "The knowledge concept registry is incomplete."
+    });
+  const classificationBlockers = [];
+  const candidates = scan.sources.flatMap((source) => {
+    if (source.status !== "included" || source.contentHash === null || source.content === void 0)
+      return [];
+    const includedSource2 = source;
+    const claudeSkill = /^(?:.*\/)?\.claude\/skills\/([^/]+)\/(.+)$/u.exec(source.path);
+    if (claudeSkill !== null)
+      return [
+        {
+          source: includedSource2,
+          toPath: `.agents/skills/${claudeSkill[1]}/${claudeSkill[2]}`,
+          classification: "skill",
+          reason: "normalized_portable_skill"
+        }
+      ];
+    const instruction = classifyClaudeRule(source.path, source.content, taxonomy);
+    if (instruction.kind === "blocked") {
+      classificationBlockers.push({
+        ...instruction.blocker,
+        pathDigest: sha2562(instruction.blocker.path)
+      });
+      return [];
+    }
+    if (instruction.kind === "classified")
+      return [
+        {
+          source: includedSource2,
+          ...instruction.route.destination,
+          instructionPaths: instruction.route.paths,
+          classification: "instruction",
+          reason: "normalized_provider_instruction"
+        }
+      ];
+    if (source.kind !== "documentation")
+      return [];
+    const decision = classifyFlatDecision(source.path, source.content, taxonomy);
+    if (decision.kind === "blocked") {
+      classificationBlockers.push({
+        ...decision.blocker,
+        pathDigest: sha2562(decision.blocker.path)
+      });
+      return [];
+    }
+    if (decision.kind === "classified")
+      return [
+        {
+          source: includedSource2,
+          ...decision.destination,
+          classification: "decision",
+          reason: "recognized_decision_document"
+        }
+      ];
+    const classification = classifiedRootDestination(source.path, source.content, taxonomy);
+    if (classification !== null)
+      return [{ source: includedSource2, ...classification }];
+    const document4 = classifyRepositoryDocument(source.path, source.content, taxonomy);
+    if (document4.kind === "blocked") {
+      classificationBlockers.push({
+        ...document4.blocker,
+        pathDigest: sha2562(document4.blocker.path)
+      });
+      return [];
+    }
+    return document4.kind === "classified" ? [
+      {
+        source: includedSource2,
+        ...document4.destination,
+        classification: "document",
+        reason: "classified_repository_document"
+      }
+    ] : [];
+  }).sort((left, right) => left.source.path.localeCompare(right.source.path));
+  const repairableDecisionPaths = /* @__PURE__ */ new Set();
+  const lineage = await loadDocumentMoveLineages({
+    repositoryRoot: root2,
+    projectId: scan.projectId
+  });
+  const includedSources = new Map(scan.sources.flatMap((source) => source.status === "included" && source.content !== void 0 && source.contentHash !== null ? [
+    [
+      source.path,
+      source
+    ]
+  ] : []));
+  const allowedRoutePaths = new Set(taxonomy.routes.map((route) => route.path));
+  for (const record3 of lineage.records.filter((item) => item.activeTerminal)) {
+    const name2 = basename10(record3.value.toPath);
+    const cameFromLegacyFlatRoot = taxonomy.legacyRoots.some((legacyRoot) => record3.value.identityPath === `${legacyRoot}/${name2}`);
+    const canonicalPrefix = `${taxonomy.decisionRoot}/`;
+    if (!cameFromLegacyFlatRoot || !record3.value.toPath.startsWith(canonicalPrefix))
+      continue;
+    const relativeDestination = record3.value.toPath.slice(canonicalPrefix.length);
+    const currentRoutePath = relativeDestination.slice(0, relativeDestination.lastIndexOf("/"));
+    const isRetiredRoute = !allowedRoutePaths.has(currentRoutePath);
+    const isPreviousDefaultFallback = taxonomy.taxonomyId === "decisions.default" && currentRoutePath === "foundation";
+    if (!isRetiredRoute && !isPreviousDefaultFallback)
+      continue;
+    const source = includedSources.get(record3.value.toPath);
+    if (source === void 0)
+      continue;
+    const reclassified = classifyFlatDecision(record3.value.identityPath, source.content, taxonomy);
+    if (reclassified.kind !== "classified" || reclassified.destination.toPath === source.path)
+      continue;
+    candidates.push({
+      source,
+      ...reclassified.destination,
+      classification: "decision",
+      reason: "recognized_decision_document"
+    });
+    repairableDecisionPaths.add(source.path);
+  }
+  candidates.sort((left, right) => left.source.path.localeCompare(right.source.path));
+  const destinationCounts = /* @__PURE__ */ new Map();
+  for (const item of candidates)
+    destinationCounts.set(item.toPath, (destinationCounts.get(item.toPath) ?? 0) + 1);
+  const blockers = [
+    ...classificationBlockers,
+    ...inspectGroupedDecisionPaths(scan.sources.map((source) => source.path), taxonomy).filter((blocker) => blocker.code !== "unknown_decision_route" || !repairableDecisionPaths.has(blocker.path)).map((blocker) => ({ ...blocker, pathDigest: sha2562(blocker.path) }))
+  ];
+  const blockedDestinations = /* @__PURE__ */ new Set();
+  for (const item of candidates) {
+    if ((destinationCounts.get(item.toPath) ?? 0) > 1) {
+      blockers.push({ code: "ambiguous_destination", pathDigest: sha2562(item.toPath) });
+      blockedDestinations.add(item.toPath);
+    } else if (scan.sources.some((source) => source.path === item.toPath) || generatedPaths.has(item.toPath) || await exists2(resolve36(root2, item.toPath))) {
+      blockers.push({ code: "destination_exists", pathDigest: sha2562(item.toPath) });
+      blockedDestinations.add(item.toPath);
+    } else if (!repositoryPathCanRemainIncluded(item.toPath, policy)) {
+      blockers.push({ code: "destination_exists", pathDigest: sha2562(item.toPath) });
+      blockedDestinations.add(item.toPath);
+    }
+  }
+  const executableCandidates = candidates.filter((item) => !blockedDestinations.has(item.toPath));
+  const movePaths = executableCandidates.map(({ source, toPath }) => ({
+    fromPath: source.path,
+    toPath
+  }));
+  const referenceChanges = /* @__PURE__ */ new Map();
+  const movedContentChanges = /* @__PURE__ */ new Map();
+  for (const source of scan.sources) {
+    if (source.status !== "included" || source.content === void 0 || source.contentHash === null || generatedPaths.has(source.path) || bytePreservedDocumentCollection(source.path, taxonomy) || source.path.startsWith(".lervo/") || source.path.startsWith("knowledge/"))
+      continue;
+    const move = movePaths.find((item) => item.fromPath === source.path);
+    const rebased = move === void 0 ? { content: source.content, count: 0 } : rebaseMarkdownLinks(source.content, source.path, move.toPath);
+    const rewritten = rewriteReferences(move?.toPath ?? source.path, rebased.content, movePaths);
+    rewritten.count += rebased.count;
+    if (rewritten.count === 0)
+      continue;
+    if (move !== void 0)
+      movedContentChanges.set(source.path, rewritten);
+    else
+      referenceChanges.set(source.path, {
+        source,
+        content: rewritten.content,
+        count: rewritten.count
+      });
+  }
+  const instructionCandidates = executableCandidates.filter((item) => item.classification === "instruction");
+  const existingInstructions = scan.sources.flatMap((source) => source.status === "included" && source.content !== void 0 && source.contentHash !== null && source.path.startsWith("docs/instructions/") && source.path.endsWith(".md") ? [{ toPath: source.path, instructionPaths: repositoryInstructionPaths(source.content) }] : []);
+  const skillCandidates = executableCandidates.filter((item) => item.classification === "skill" && item.toPath.endsWith("/SKILL.md"));
+  const existingSkills = scan.sources.flatMap((source) => source.status === "included" && source.path.startsWith(".agents/skills/") && source.path.endsWith("/SKILL.md") ? [{ toPath: source.path }] : []);
+  const routedInstructions = instructionCandidates.length > 0 ? instructionCandidates : existingInstructions;
+  const routedSkills = skillCandidates.length > 0 ? skillCandidates : existingSkills;
+  let managedAgentRouteOperation = null;
+  const agents = scan.sources.find((source) => source.path === "AGENTS.md" && source.status === "included" && source.content !== void 0 && source.contentHash !== null);
+  if (agents === void 0 && (routedInstructions.length > 0 || routedSkills.length > 0)) {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "Provider instruction normalization requires a canonical AGENTS.md source.");
+  }
+  if (agents !== void 0) {
+    const block = repositoryInstructionRouteBlock({
+      instructions: routedInstructions.map((item) => ({
+        path: item.toPath,
+        instructionPaths: item.instructionPaths ?? []
+      })),
+      skills: routedSkills.map((item) => ({ path: item.toPath }))
+    });
+    const blockPattern = /<!-- lervo:begin block=repository_instruction_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n?/gu;
+    const legacyPatternBlock = /\n?<!-- lervo:begin block=development_pattern_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=development_pattern_routes -->\n?/u;
+    const existing = referenceChanges.get("AGENTS.md");
+    const baseContent = (existing?.content ?? agents.content).replace(legacyPatternBlock, "");
+    const existingBlocks = baseContent.match(blockPattern) ?? [];
+    let replacedBlock = false;
+    const combined = existingBlocks.length > 0 ? baseContent.replace(blockPattern, () => {
+      if (replacedBlock)
+        return "";
+      replacedBlock = true;
+      return block;
+    }) : `${baseContent}${baseContent.endsWith("\n\n") ? "" : baseContent.endsWith("\n") ? "\n" : "\n\n"}${block}`;
+    if (combined !== agents.content) {
+      if (existing === void 0 && (agents.content.match(blockPattern)?.length ?? 0) > 0) {
+        managedAgentRouteOperation = {
+          path: "AGENTS.md",
+          action: "update",
+          ownership: "managed_blocks",
+          mediaType: "text/markdown",
+          content: combined,
+          expectedCurrentHash: agents.contentHash,
+          desiredHash: sha2562(combined),
+          reason: "refresh_instruction_registry_bootstrap"
+        };
+      } else {
+        referenceChanges.set("AGENTS.md", {
+          source: agents,
+          content: combined,
+          count: (existing?.count ?? 0) + 1
+        });
+      }
+    }
+  }
+  const registryMaterials = await Promise.all(storedConcepts.map(async (item) => ({
+    file: item.file,
+    contentHash: (await safeFile(resolve36(root2, item.file))).contentHash
+  })));
+  registryMaterials.sort((left, right) => left.file.localeCompare(right.file));
+  const registryDigest2 = sha2562(canonicalJson3(registryMaterials));
+  let virtualScan = scan;
+  for (const [path, change] of [...movedContentChanges].sort(([left], [right]) => left.localeCompare(right))) {
+    virtualScan = upsertRepositoryKnowledgeScanSource({
+      scan: virtualScan,
+      path,
+      content: change.content
+    });
+  }
+  for (const change of [...referenceChanges.values()].sort((left, right) => left.source.path.localeCompare(right.source.path))) {
+    virtualScan = upsertRepositoryKnowledgeScanSource({
+      scan: virtualScan,
+      path: change.source.path,
+      content: change.content
+    });
+  }
+  if (managedAgentRouteOperation?.content !== void 0) {
+    virtualScan = upsertRepositoryKnowledgeScanSource({
+      scan: virtualScan,
+      path: "AGENTS.md",
+      content: managedAgentRouteOperation.content
+    });
+  }
+  const moves = [];
+  const lineageOperations = [];
+  const moveOperations = [];
+  const referenceApprovalBindings = [...referenceChanges.values()].sort((left, right) => left.source.path.localeCompare(right.source.path)).map((change) => ({
+    path: change.source.path,
+    beforeHash: change.source.contentHash,
+    afterHash: sha2562(change.content),
+    replacementCount: change.count
+  }));
+  for (const item of executableCandidates) {
+    const changedContent = movedContentChanges.get(item.source.path);
+    const destinationContentHash = changedContent === void 0 ? item.source.contentHash : sha2562(changedContent.content);
+    const sourceUnits = virtualScan.units.filter((unit2) => unit2.sourceId === item.source.sourceId);
+    const preservedConceptIds = storedConcepts.filter((stored) => stored.value?.path === item.source.path && stored.value.ownership === "user" && stored.value.publicationStatus !== "deprecated").map((stored) => stored.value.conceptId).sort();
+    if (preservedConceptIds.length > 1 || sourceUnits.length < 1 || sourceUnits.length > 16384)
+      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The layout migration source identity is ambiguous.");
+    const operationId = stableId("kdocop", {
+      projectId: scan.projectId,
+      action: "layout_move",
+      sourceId: item.source.sourceId,
+      fromPath: item.source.path,
+      toPath: item.toPath,
+      contentHash: item.source.contentHash,
+      destinationContentHash,
+      sourceUnitIds: sourceUnits.map((unit2) => unit2.unitId).sort()
+    });
+    const lineage2 = createDocumentMoveLineage({
+      projectId: scan.projectId,
+      operationId,
+      fromPath: item.source.path,
+      toPath: item.toPath,
+      identityPath: item.source.identityPath ?? item.source.path,
+      sourceId: item.source.sourceId,
+      sourceContentHash: destinationContentHash,
+      sourceUnitIds: sourceUnits.map((unit2) => unit2.unitId)
+    });
+    const approvalHash = sha2562(canonicalJson3({
+      operationId,
+      action: "move_user_document",
+      source: {
+        path: item.source.path,
+        contentHash: item.source.contentHash,
+        byteCount: item.source.byteCount
+      },
+      destination: { path: item.toPath, contentHash: destinationContentHash },
+      lineageId: lineage2.value.lineageId,
+      referenceUpdates: referenceApprovalBindings
+    }));
+    moves.push({
+      operationId,
+      approvalHash,
+      fromPath: item.source.path,
+      toPath: item.toPath,
+      contentHash: item.source.contentHash,
+      destinationContentHash,
+      byteCount: item.source.byteCount,
+      preservedConceptIds,
+      lineageId: lineage2.value.lineageId,
+      classification: item.classification,
+      ...item.group === void 0 ? {} : { group: item.group },
+      ...item.subgroup === void 0 ? {} : { subgroup: item.subgroup },
+      ...item.routeId === void 0 ? {} : { routeId: item.routeId },
+      ...item.classificationBasis === void 0 ? {} : { classificationBasis: item.classificationBasis },
+      ...item.matchedTitleTerms === void 0 ? {} : { matchedTitleTerms: item.matchedTitleTerms },
+      reason: item.reason
+    });
+    lineageOperations.push({
+      path: lineage2.file,
+      action: "create",
+      ownership: "lervo_generated",
+      mediaType: "application/yaml",
+      content: lineage2.content,
+      desiredHash: sha2562(lineage2.content)
+    });
+    moveOperations.push(changedContent === void 0 ? {
+      path: item.source.path,
+      destinationPath: item.toPath,
+      action: "move",
+      expectedCurrentHash: item.source.contentHash
+    } : {
+      path: item.source.path,
+      destinationPath: item.toPath,
+      action: "move_update",
+      ownership: "user",
+      mediaType: "text/markdown",
+      expectedCurrentHash: item.source.contentHash,
+      desiredHash: destinationContentHash,
+      content: changedContent.content
+    });
+    virtualScan = relocateRepositoryKnowledgeScanSource({
+      scan: virtualScan,
+      fromPath: item.source.path,
+      toPath: item.toPath
+    });
+  }
+  const referenceOperations = [...referenceChanges.values()].sort((left, right) => left.source.path.localeCompare(right.source.path)).map((change) => ({
+    path: change.source.path,
+    action: "update",
+    ownership: "user",
+    mediaType: mediaTypeFor(change.source),
+    content: change.content,
+    expectedCurrentHash: change.source.contentHash,
+    desiredHash: sha2562(change.content)
+  }));
+  const referenceUserUpdates = moves.length === 0 ? referenceOperations.map((operation) => {
+    const operationId = stableId("kdocop", {
+      projectId: scan.projectId,
+      action: "refresh_instruction_routes",
+      path: operation.path,
+      beforeHash: operation.expectedCurrentHash,
+      afterHash: operation.desiredHash
+    });
+    return {
+      operationId,
+      approvalHash: sha2562(canonicalJson3({
+        operationId,
+        action: "update_user_document",
+        path: operation.path,
+        beforeHash: operation.expectedCurrentHash,
+        afterHash: operation.desiredHash
+      })),
+      path: operation.path,
+      beforeHash: operation.expectedCurrentHash,
+      afterHash: operation.desiredHash,
+      reason: operation.path === "AGENTS.md" ? "refresh_instruction_routes" : "normalize_agent_surface_references"
+    };
+  }) : [];
+  const publicationIgnore = await projectRebuildableKnowledgeIgnore({
+    repositoryRoot: root2,
+    publicationRoot: policy.publicationRoot
+  });
+  const publicationIgnoreOperations = publicationIgnore.changed ? [
+    {
+      path: publicationIgnore.path,
+      action: publicationIgnore.beforeContent === null ? "create" : "update",
+      ownership: "user",
+      mediaType: "text/plain",
+      content: publicationIgnore.afterContent,
+      ...publicationIgnore.beforeHash === null ? {} : { expectedCurrentHash: publicationIgnore.beforeHash },
+      desiredHash: publicationIgnore.afterHash
+    }
+  ] : [];
+  const publicationIgnoreUserUpdates = publicationIgnore.changed ? (() => {
+    const operationId = stableId("kdocop", {
+      projectId: scan.projectId,
+      action: "exclude_rebuildable_publications",
+      path: publicationIgnore.path,
+      beforeHash: publicationIgnore.beforeHash,
+      afterHash: publicationIgnore.afterHash
+    });
+    return [
+      {
+        operationId,
+        approvalHash: sha2562(canonicalJson3({
+          operationId,
+          action: "write_user_configuration",
+          path: publicationIgnore.path,
+          beforeHash: publicationIgnore.beforeHash,
+          afterHash: publicationIgnore.afterHash
+        })),
+        path: publicationIgnore.path,
+        beforeHash: publicationIgnore.beforeHash,
+        afterHash: publicationIgnore.afterHash,
+        reason: "exclude_rebuildable_publications"
+      }
+    ];
+  })() : [];
+  const userUpdates = [...referenceUserUpdates, ...publicationIgnoreUserUpdates];
+  const normalizationOwnershipOperations = await normalizationOwnershipUpgradeOperations(root2);
+  const taxonomyUpgradeOperation = decisionTaxonomyRequiresUpgrade((0, import_yaml24.parse)(taxonomySource)) ? [
+    {
+      path: ".lervo/knowledge/document-layout.yaml",
+      action: "update",
+      ownership: "lervo_generated",
+      mediaType: "application/yaml",
+      content: serializeDecisionTaxonomy(taxonomy),
+      expectedCurrentHash: sha2562(taxonomySource),
+      desiredHash: sha2562(serializeDecisionTaxonomy(taxonomy)),
+      reason: "upgrade_document_policy"
+    }
+  ] : [];
+  const structural = publicationIgnoreOperations.length > 0 || moves.length === 0 && userUpdates.length === 0 && normalizationOwnershipOperations.length === 0 && taxonomyUpgradeOperation.length === 0 ? null : await createKnowledgeMigrationPlanForScan({
+    repositoryRoot: root2,
+    scan: virtualScan,
+    mode: "migrate"
+  });
+  if (structural?.operations.some((operation) => operation.action === "conflict"))
+    blockers.push({ code: "destination_exists", pathDigest: sha2562("structural-output-conflict") });
+  const bridgeOperations = [];
+  const canonicalInstructionChange = referenceChanges.get("AGENTS.md") ?? (managedAgentRouteOperation?.content === void 0 ? void 0 : { content: managedAgentRouteOperation.content });
+  const existingInstructionBridgeRecords = await listKnowledgeArtifactPaths({
+    root: root2,
+    directory: ".lervo/knowledge/instruction-bridges",
+    extension: "yaml",
+    maximumFiles: 64
+  });
+  if (canonicalInstructionChange !== void 0 && existingInstructionBridgeRecords.length > 0 && await exists2(resolve36(root2, "CLAUDE.md"))) {
+    const bridge = await createKnowledgeInstructionBridgePlan({
+      repositoryRoot: root2,
+      provider: "claude",
+      ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources }
+    });
+    if (bridge.target.action !== "unchanged")
+      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The instruction bridge target must be current before repository layout migration.");
+    const currentRecord = bridge.operations.find((operation) => operation.path === bridge.bridgeRecordPath && operation.ownership !== "user");
+    if (currentRecord === void 0 || currentRecord.action === "conflict")
+      throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The instruction bridge record cannot be bound to the layout migration.");
+    const content3 = (0, import_yaml24.stringify)({
+      schemaVersion: 1,
+      bridgeId: bridge.bridgeId,
+      profile: {
+        id: bridge.profile.profileId,
+        version: bridge.profile.profileVersion,
+        provider: bridge.profile.provider,
+        discoveryContract: bridge.profile.discoveryContract
+      },
+      canonical: {
+        path: bridge.profile.canonicalPath,
+        contentHash: sha2562(canonicalInstructionChange.content)
+      },
+      target: {
+        path: bridge.profile.targetPath,
+        contentHash: referenceChanges.get(bridge.profile.targetPath) === void 0 ? bridge.target.afterHash : sha2562(referenceChanges.get(bridge.profile.targetPath).content),
+        blockId: bridge.profile.blockId,
+        managedContentHash: bridge.target.managedContentHash
+      }
+    }, { lineWidth: 0, sortMapEntries: true });
+    const desiredHash = sha2562(content3);
+    bridgeOperations.push(currentRecord.action === "create" ? { ...currentRecord, content: content3, desiredHash } : currentRecord.desiredHash === desiredHash ? { ...currentRecord, action: "unchanged", desiredHash } : {
+      path: bridge.bridgeRecordPath,
+      action: "update",
+      ownership: "lervo_generated",
+      mediaType: "application/yaml",
+      content: content3,
+      expectedCurrentHash: currentRecord.action === "unchanged" ? currentRecord.desiredHash : currentRecord.expectedCurrentHash,
+      desiredHash
+    });
+  }
+  const structuralPaths = new Set((structural?.operations ?? []).map((operation) => operation.path));
+  const machineMoves = (await machineArtifactMoves(root2)).filter((move) => !structuralPaths.has(move.fromPath) && !structuralPaths.has(move.toPath));
+  for (const move of machineMoves) {
+    if (await exists2(resolve36(root2, move.toPath)))
+      blockers.push({ code: "destination_exists", pathDigest: sha2562(move.toPath) });
+  }
+  const machineMoveOperations = machineMoves.map((move) => ({
+    path: move.fromPath,
+    destinationPath: move.toPath,
+    action: "move",
+    expectedCurrentHash: move.contentHash
+  }));
+  const operations = [
+    ...taxonomyUpgradeOperation,
+    ...normalizationOwnershipOperations,
+    ...structural?.operations ?? [],
+    ...publicationIgnoreOperations,
+    ...managedAgentRouteOperation === null ? [] : [managedAgentRouteOperation],
+    ...referenceOperations,
+    ...bridgeOperations,
+    ...lineageOperations,
+    ...moveOperations,
+    ...machineMoveOperations
+  ];
+  const taxonomyHash = sha2562(canonicalJson3(taxonomy));
+  const policyHash = sha2562(canonicalJson3({ knowledge: policy, decisionTaxonomy: taxonomy }));
+  const status = blockers.length > 0 ? "blocked" : moves.length > 0 || userUpdates.length > 0 ? "review_required" : machineMoves.length > 0 || managedAgentRouteOperation !== null || taxonomyUpgradeOperation.length > 0 || normalizationOwnershipOperations.length > 0 ? "ready" : "current";
+  const materials = {
+    projectId: scan.projectId,
+    sourceSnapshotId: scan.snapshotId,
+    afterSourceSnapshotId: virtualScan.snapshotId,
+    policyHash,
+    taxonomyHash,
+    registryDigest: registryDigest2,
+    moves,
+    userUpdates,
+    machineMoves,
+    referenceUpdates: referenceOperations.map(withoutContent),
+    operations: operations.map(withoutContent),
+    blockers
+  };
+  const referenceUpdates = [
+    ...[...referenceChanges.values()].map((change) => ({
+      path: change.source.path,
+      beforeHash: change.source.contentHash,
+      afterHash: sha2562(change.content),
+      replacementCount: change.count
+    })),
+    ...executableCandidates.flatMap((item) => {
+      const change = movedContentChanges.get(item.source.path);
+      return change === void 0 ? [] : [
+        {
+          path: item.toPath,
+          beforeHash: item.source.contentHash,
+          afterHash: sha2562(change.content),
+          replacementCount: change.count
+        }
+      ];
+    })
+  ].sort((left, right) => left.path.localeCompare(right.path));
+  if (blockers.length === 0)
+    await authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root2, operations });
+  return {
+    schemaVersion: 1,
+    planKind: "repository_layout",
+    planId: stableId("klayout", materials),
+    status,
+    projectId: scan.projectId,
+    repositoryRoot: root2,
+    sourceSnapshotId: scan.snapshotId,
+    afterSourceSnapshotId: virtualScan.snapshotId,
+    policyHash,
+    taxonomyHash,
+    coverage: scan.coverage,
+    registryDigest: registryDigest2,
+    moves,
+    userUpdates,
+    machineMoves,
+    referenceUpdates,
+    blockers,
+    operations
+  };
+}
+
+// packages/repository-knowledge/dist/semantic-materialization.js
+var import_yaml25 = __toESM(require_dist(), 1);
+
+// packages/repository-knowledge/dist/terminal-integration.js
+import { constants as constants11 } from "node:fs";
+import { lstat as lstat26, open as open13 } from "node:fs/promises";
+import { resolve as resolve37 } from "node:path";
+var MAXIMUM_CONFIG_BYTES = 256 * 1024;
+var MAXIMUM_RUNTIME_BYTES = 4 * 1024 * 1024;
+var FORMAT = { insertSpaces: true, tabSize: 2, eol: "\n", insertFinalNewline: true };
+var PROVIDERS = ["codex", "claude"];
+var EVENTS = ["UserPromptSubmit", "Stop"];
+var CONTRACT_ID = "lervo_terminal_hooks_v2";
+var RUNTIME_PATH = ".lervo/generated/terminal-hooks/runtime-v2.mjs";
+var RUNTIME_MANIFEST_PATH = ".lervo/generated/terminal-hooks/runtime-v2.json";
+function configurationPath(provider) {
+  return provider === "codex" ? ".codex/hooks.json" : ".claude/settings.json";
+}
+function terminalHookCommand(provider) {
+  return `node "$(git rev-parse --show-toplevel)/${RUNTIME_PATH}" --provider ${provider} --contract 2`;
+}
+function terminalHookWindowsCommand(provider) {
+  return `powershell.exe -NoProfile -NonInteractive -Command "$root = git rev-parse --show-toplevel; if ($LASTEXITCODE -ne 0) { exit 2 }; & node (Join-Path $root '${RUNTIME_PATH}') --provider ${provider} --contract 2"`;
+}
+function hookEntry(provider) {
+  return {
+    hooks: [
+      {
+        type: "command",
+        command: terminalHookCommand(provider),
+        ...provider === "codex" ? { commandWindows: terminalHookWindowsCommand(provider) } : {},
+        timeout: 30
+      }
+    ]
+  };
+}
+async function safeOptionalText(path, maximumBytes2 = MAXIMUM_CONFIG_BYTES) {
+  let handle;
+  try {
+    try {
+      const stats = await lstat26(path);
+      if (!stats.isFile() || stats.isSymbolicLink() || stats.size > maximumBytes2)
+        throw new Error("unsafe");
+    } catch (error) {
+      if (error.code === "ENOENT")
+        return null;
+      throw error;
+    }
+    handle = await open13(path, constants11.O_RDONLY | (constants11.O_NOFOLLOW ?? 0));
+    const before = await handle.stat();
+    const bytes = await handle.readFile();
+    const after = await handle.stat();
+    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size)
+      throw new Error("changed");
+    return {
+      content: new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+      contentHash: sha2562(bytes)
+    };
+  } catch {
+    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A provider hook configuration cannot be read safely.");
+  } finally {
+    await handle?.close();
+  }
+}
+function codexHooksDisabled(content3) {
+  let section = "";
+  for (const rawLine of content3.split(/\r?\n/u)) {
+    const line = rawLine.replace(/#.*$/u, "").trim();
+    const heading = /^\[([^\]]+)\]$/u.exec(line);
+    if (heading !== null) {
+      section = heading[1].trim();
+      continue;
+    }
+    if (section === "features" && /^hooks\s*=\s*false\s*$/iu.test(line))
+      return true;
+  }
+  return false;
+}
+function isObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function lervoTerminalProvider(command) {
+  if (!(/\blervo\s+terminal\s+hook\b/u.test(command) || command.includes(RUNTIME_PATH)))
+    return null;
+  if (/--provider\s+codex\b/u.test(command))
+    return "codex";
+  if (/--provider\s+claude\b/u.test(command))
+    return "claude";
+  return null;
+}
+function mergeTarget(provider, existing) {
+  const path = configurationPath(provider);
+  const original = existing?.content ?? "{}\n";
+  const errors = [];
+  const parsed = parse10(original, errors, {
+    allowTrailingComma: true,
+    disallowComments: false
+  });
+  if (errors.length > 0 || !isObject(parsed)) {
+    return {
+      target: {
+        provider,
+        path,
+        action: "blocked",
+        beforeHash: existing?.contentHash ?? null,
+        afterHash: null
+      },
+      blocker: { provider, path, code: "invalid_json" }
+    };
+  }
+  if (provider === "claude" && parsed.disableAllHooks === true) {
+    return {
+      target: {
+        provider,
+        path,
+        action: "blocked",
+        beforeHash: existing?.contentHash ?? null,
+        afterHash: null
+      },
+      blocker: { provider, path, code: "hooks_disabled" }
+    };
+  }
+  if (parsed.hooks !== void 0 && !isObject(parsed.hooks)) {
+    return {
+      target: {
+        provider,
+        path,
+        action: "blocked",
+        beforeHash: existing?.contentHash ?? null,
+        afterHash: null
+      },
+      blocker: { provider, path, code: "invalid_hook_shape" }
+    };
+  }
+  let output = original;
+  for (const event of EVENTS) {
+    const current = parse10(output, [], {
+      allowTrailingComma: true,
+      disallowComments: false
+    });
+    const hooks = isObject(current.hooks) ? current.hooks : {};
+    const eventEntries = hooks[event] === void 0 ? [] : hooks[event];
+    if (!Array.isArray(eventEntries) || !eventEntries.every(isObject)) {
+      return {
+        target: {
+          provider,
+          path,
+          action: "blocked",
+          beforeHash: existing?.contentHash ?? null,
+          afterHash: null
+        },
+        blocker: { provider, path, code: "invalid_hook_shape" }
+      };
+    }
+    let found = false;
+    let lervoHandlerCount = 0;
+    const expectedCommand = terminalHookCommand(provider);
+    for (const group of eventEntries) {
+      if (!Array.isArray(group.hooks) || !group.hooks.every(isObject)) {
+        return {
+          target: {
+            provider,
+            path,
+            action: "blocked",
+            beforeHash: existing?.contentHash ?? null,
+            afterHash: null
+          },
+          blocker: { provider, path, code: "invalid_hook_shape" }
+        };
+      }
+      for (const handler of group.hooks) {
+        if (typeof handler.command !== "string")
+          continue;
+        const commandProvider = lervoTerminalProvider(handler.command);
+        if (commandProvider === provider) {
+          lervoHandlerCount += 1;
+          found ||= handler.command === expectedCommand && handler.type === "command" && handler.timeout === 30 && (provider !== "codex" || handler.commandWindows === terminalHookWindowsCommand(provider));
+        } else if (commandProvider !== null || /\blervo\s+terminal\s+hook\b/u.test(handler.command) || handler.command.includes(RUNTIME_PATH)) {
+          return {
+            target: {
+              provider,
+              path,
+              action: "blocked",
+              beforeHash: existing?.contentHash ?? null,
+              afterHash: null
+            },
+            blocker: { provider, path, code: "conflicting_lervo_hook" }
+          };
+        }
+      }
+    }
+    if (lervoHandlerCount > 0 && (!found || lervoHandlerCount > 1)) {
+      const next = eventEntries.flatMap((group) => {
+        const handlers = group.hooks.filter((handler) => typeof handler.command !== "string" || lervoTerminalProvider(handler.command) !== provider);
+        return handlers.length === 0 ? [] : [{ ...group, hooks: handlers }];
+      });
+      next.push(hookEntry(provider));
+      output = applyEdits(output, modify(output, ["hooks", event], next, { formattingOptions: FORMAT }));
+    } else if (!found) {
+      output = applyEdits(output, modify(output, ["hooks", event], [...eventEntries, hookEntry(provider)], {
+        formattingOptions: FORMAT
+      }));
+    }
+  }
+  const afterHash = sha2562(output);
+  return {
+    target: {
+      provider,
+      path,
+      action: existing === null ? "create" : existing.contentHash === afterHash ? "unchanged" : "update",
+      beforeHash: existing?.contentHash ?? null,
+      afterHash
+    },
+    content: output
+  };
+}
+function validRuntimeContent(content3) {
+  const bytes = Buffer.byteLength(content3);
+  return bytes > 0 && bytes <= MAXIMUM_RUNTIME_BYTES && content3.startsWith("#!/usr/bin/env node\n");
+}
+async function inspectTerminalIntegration(repositoryRoot) {
+  const root2 = resolve37(repositoryRoot);
+  const existing = await Promise.all(PROVIDERS.map(async (provider) => [provider, await safeOptionalText(resolve37(root2, configurationPath(provider)))]));
+  const blockers = [];
+  try {
+    const config = await safeOptionalText(resolve37(root2, ".codex/config.toml"));
+    if (config !== null && codexHooksDisabled(config.content))
+      blockers.push({ provider: "codex", path: ".codex/config.toml", code: "hooks_disabled" });
+  } catch (error) {
+    if (error instanceof RepositoryKnowledgeError)
+      blockers.push({ provider: "codex", path: ".codex/config.toml", code: "unsafe_file" });
+    else
+      throw error;
+  }
+  const merged = existing.map(([provider, file]) => mergeTarget(provider, file));
+  for (const item of merged)
+    if (item.blocker !== void 0)
+      blockers.push(item.blocker);
+  let runtime;
+  try {
+    const [artifact2, manifestFile] = await Promise.all([
+      safeOptionalText(resolve37(root2, RUNTIME_PATH), MAXIMUM_RUNTIME_BYTES),
+      safeOptionalText(resolve37(root2, RUNTIME_MANIFEST_PATH))
+    ]);
+    let valid = false;
+    if (artifact2 !== null && manifestFile !== null && validRuntimeContent(artifact2.content)) {
+      const manifest = JSON.parse(manifestFile.content);
+      valid = isObject(manifest) && Object.keys(manifest).sort().join("\0") === ["byteCount", "contentHash", "contractId", "kind", "runtimePath", "schemaVersion"].sort().join("\0") && manifest.schemaVersion === 1 && manifest.kind === "lervo_terminal_hook_runtime" && manifest.contractId === CONTRACT_ID && manifest.runtimePath === RUNTIME_PATH && manifest.contentHash === artifact2.contentHash && manifest.byteCount === Buffer.byteLength(artifact2.content);
+    }
+    runtime = {
+      path: RUNTIME_PATH,
+      manifestPath: RUNTIME_MANIFEST_PATH,
+      action: valid ? "unchanged" : artifact2 === null ? "create" : "blocked",
+      beforeHash: artifact2?.contentHash ?? null,
+      afterHash: artifact2?.contentHash ?? sha2562(""),
+      byteCount: artifact2 === null ? 0 : Buffer.byteLength(artifact2.content)
+    };
+    if (artifact2 !== null && !valid)
+      blockers.push({ provider: "runtime", path: RUNTIME_PATH, code: "runtime_invalid" });
+  } catch {
+    runtime = {
+      path: RUNTIME_PATH,
+      manifestPath: RUNTIME_MANIFEST_PATH,
+      action: "blocked",
+      beforeHash: null,
+      afterHash: sha2562(""),
+      byteCount: 0
+    };
+    blockers.push({ provider: "runtime", path: RUNTIME_PATH, code: "unsafe_file" });
+  }
+  const targets = merged.map((item) => item.target);
+  return {
+    schemaVersion: 1,
+    contractId: CONTRACT_ID,
+    status: blockers.length > 0 ? "blocked" : targets.every((target) => target.action === "unchanged") && runtime.action === "unchanged" ? "current" : "stale",
+    targets,
+    runtime,
+    blockers
+  };
+}
+
+// packages/repository-knowledge/dist/public-readme.js
+var MAXIMUM_README_BYTES = 256 * 1024;
+
+// packages/repository-knowledge/dist/verification-source.js
+var VERIFICATION_RESULT_SOURCE_ADAPTER = "verification-result-v1+event-cas";
+var MAX_EVENT_SEQUENCE2 = 1e5;
+var MAX_RESULTS = 256;
+var MAX_RESULT_BYTES = 1024 * 1024;
+var MAX_TOTAL_RESULT_BYTES = 16 * 1024 * 1024;
+function fail9() {
+  throw new RepositoryKnowledgeError("knowledge_evidence_source_invalid", "The verification evidence source cannot be verified safely and completely.");
+}
+async function collectVerificationResultSources(input) {
+  let latest;
+  try {
+    const integrity = input.events.verifyIntegrity();
+    if (!integrity.valid)
+      return fail9();
+    latest = input.events.latest();
+  } catch {
+    return fail9();
+  }
+  if (latest === null)
+    return [];
+  if (!Number.isSafeInteger(latest.seq) || latest.seq < 1 || latest.seq > MAX_EVENT_SEQUENCE2)
+    return fail9();
+  const completed = /* @__PURE__ */ new Map();
+  try {
+    visitEventSnapshot({
+      events: input.events,
+      throughSeq: latest.seq,
+      visit: (event) => {
+        if (event.type !== "verification.completed")
+          return;
+        const verificationId = event.payload.verificationId;
+        if (typeof verificationId !== "string")
+          return fail9();
+        const previous2 = completed.get(verificationId);
+        if (previous2 !== void 0 && JSON.stringify(previous2.payload) !== JSON.stringify(event.payload))
+          return fail9();
+        completed.set(verificationId, event);
+        if (completed.size > MAX_RESULTS)
+          return fail9();
+      }
+    });
+    if (!input.events.verifyIntegrity().valid)
+      return fail9();
+  } catch {
+    return fail9();
+  }
+  const sources = [];
+  let totalBytes = 0;
+  for (const event of [...completed.values()].sort((left, right) => String(left.payload.verificationId).localeCompare(String(right.payload.verificationId)))) {
+    const payload = event.payload;
+    const verificationId = payload.verificationId;
+    const suiteId = payload.suiteId;
+    const resultArtifactId = payload.resultArtifactId;
+    const resultContentHash = payload.resultContentHash;
+    if (typeof verificationId !== "string" || typeof suiteId !== "string" || typeof resultArtifactId !== "string" || typeof resultContentHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(resultContentHash) || resultArtifactId !== `art_${resultContentHash.slice("sha256:".length)}`)
+      return fail9();
+    const uri = `lervo-cas://sha256/${resultContentHash.slice("sha256:".length)}`;
+    let bytes;
+    let suite;
+    try {
+      [bytes, suite] = await Promise.all([input.artifacts.get(uri), input.loadSuite(suiteId)]);
+    } catch {
+      return fail9();
+    }
+    totalBytes += bytes.byteLength;
+    if (bytes.byteLength > MAX_RESULT_BYTES || totalBytes > MAX_TOTAL_RESULT_BYTES)
+      return fail9();
+    if (verificationSha256(bytes) !== resultContentHash)
+      return fail9();
+    let result;
+    try {
+      result = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+      validateVerificationResult(result, suite);
+    } catch {
+      return fail9();
+    }
+    if (!Buffer.from(verificationResultBytes(result)).equals(Buffer.from(bytes)))
+      return fail9();
+    if (result.verificationId !== verificationId || result.suiteId !== suiteId || result.suiteHash !== payload.suiteHash || result.repositoryRevision !== payload.repositoryRevision || result.status !== payload.status || result.completedAt !== event.occurredAt || JSON.stringify(result.commands.filter((command) => command.status !== "passed").map((command) => command.commandId)) !== JSON.stringify(payload.nonPassedCommandIds))
+      return fail9();
+    sources.push({
+      path: `@verification/${verificationId}`,
+      kind: "verification_result",
+      classification: "ordinary",
+      content: new TextDecoder().decode(bytes),
+      origin: "verification_event_cas",
+      unitKind: "verification",
+      locator: `verification:${verificationId}`,
+      title: `Verification ${suiteId}`,
+      adapter: VERIFICATION_RESULT_SOURCE_ADAPTER
+    });
+  }
+  return sources;
+}
+
+// packages/repository-knowledge/dist/workstream.js
+import { constants as constants12 } from "node:fs";
+import { lstat as lstat27, mkdir as mkdir9, open as open14, rename as rename6, rm as rm7 } from "node:fs/promises";
+import { basename as basename11, dirname as dirname9, posix as posix7, relative as relative9, resolve as resolve38, sep as sep9 } from "node:path";
+var CURRENT_WORKSTREAM_PATH = ".lervo/state/workstreams/current.json";
+var MAX_HANDOFF_BYTES = 128 * 1024;
+function insideRoot(root2, path) {
+  const target = resolve38(root2, path);
+  const child = relative9(root2, target);
+  if (child === ".." || child.startsWith(`..${sep9}`)) {
+    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream path escapes the repository.");
+  }
+  return target;
+}
+async function safeTextFile(root2, path, maximumBytes2) {
+  const target = insideRoot(root2, path);
+  let handle;
+  try {
+    handle = await open14(target, constants12.O_RDONLY | (constants12.O_NOFOLLOW ?? 0));
+    const before = await handle.stat();
+    if (!before.isFile() || before.isSymbolicLink() || before.size > maximumBytes2) {
+      throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream source is not a bounded regular file.");
+    }
+    const bytes = await handle.readFile();
+    const after = await handle.stat();
+    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeMs !== after.mtimeMs || bytes.byteLength !== before.size) {
+      throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream source changed while it was read.");
+    }
+    const content3 = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    return {
+      content: content3,
+      contentHash: sha2562(bytes),
+      byteCount: bytes.byteLength,
+      modifiedAt: before.mtime.toISOString()
+    };
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return null;
+    if (error instanceof RepositoryKnowledgeError)
+      throw error;
+    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "A workstream source cannot be read safely.");
+  } finally {
+    await handle?.close();
+  }
+}
+async function readCurrentWorkstreamState(repositoryRoot) {
+  const source = await safeTextFile(resolve38(repositoryRoot), CURRENT_WORKSTREAM_PATH, 64 * 1024);
+  if (source === null)
+    return null;
+  let value;
+  try {
+    value = JSON.parse(source.content);
+  } catch {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The current workstream state is not valid JSON.");
+  }
+  if (!validateSchema("workstreamSnapshot", value).valid || !pendingCoordinatesValid(value)) {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The current workstream state does not satisfy the v1 contract.");
+  }
+  return {
+    snapshot: value,
+    content: source.content,
+    contentHash: source.contentHash
+  };
+}
+async function restoreCurrentWorkstreamState(input) {
+  const root2 = resolve38(input.repositoryRoot);
+  const content3 = Buffer.from(input.content).toString("utf8");
+  if (input.content.byteLength > 64 * 1024 || sha2562(input.content) !== input.expectedHash) {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact is invalid.");
+  }
+  let value;
+  try {
+    value = JSON.parse(content3);
+  } catch {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact is not valid JSON.");
+  }
+  if (`${canonicalJson3(value)}
+` !== content3 || !validateSchema("workstreamSnapshot", value).valid || !pendingCoordinatesValid(value)) {
+    throw new RepositoryKnowledgeError("knowledge_reconciliation_conflict", "The workstream recovery artifact does not satisfy the v1 contract.");
+  }
+  const directory = resolve38(root2, dirname9(CURRENT_WORKSTREAM_PATH));
+  await mkdir9(directory, { recursive: true, mode: 448 });
+  const stats = await lstat27(directory);
+  if (!stats.isDirectory() || stats.isSymbolicLink()) {
+    throw new RepositoryKnowledgeError("knowledge_source_unsafe", "The workstream projection directory is unsafe.");
+  }
+  const target = resolve38(root2, CURRENT_WORKSTREAM_PATH);
+  const temporary = `${target}.restore-${process.pid}`;
+  await rm7(temporary, { force: true });
+  const handle = await open14(temporary, constants12.O_WRONLY | constants12.O_CREAT | constants12.O_EXCL | (constants12.O_NOFOLLOW ?? 0), 384);
+  try {
+    await handle.writeFile(input.content);
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+  await rename6(temporary, target);
+  return value;
+}
+function formatWorkstreamContext(snapshot) {
+  const pendingDecisions = snapshot.pendingDecisions ?? [];
+  const pendingApprovals = snapshot.pendingApprovals ?? [];
+  const lines = [
+    "## Lervo current workstream",
+    `workstreamId: ${snapshot.workstreamId}; revision: ${snapshot.revision}; status: ${snapshot.status}; snapshotHash: ${sha2562(`${canonicalJson3(snapshot)}
+`)}`,
+    `Title: ${snapshot.title}`,
+    `Objective: ${snapshot.objective}`,
+    ...snapshot.nextActions.length === 0 ? [] : ["Next actions:", ...snapshot.nextActions.map((item, index2) => `${index2 + 1}. ${item}`)],
+    ...snapshot.blockers.length === 0 ? [] : ["Blockers:", ...snapshot.blockers.map((item) => `- ${item}`)],
+    ...snapshot.notes.length === 0 ? [] : ["Current facts:", ...snapshot.notes.map((item) => `- ${item}`)],
+    ...snapshot.references.length === 0 ? [] : ["References:", ...snapshot.references.map((item) => `- ${item.label}: ${item.path}`)],
+    ...pendingDecisions.length === 0 ? [] : [
+      "Pending user decisions:",
+      ...pendingDecisions.map((item) => `- ${item.decisionId}${item.blocking ? " [blocking]" : ""}: ${item.question}; choices=${item.choices.map((choice) => `${choice.choiceId}:${choice.label}`).join(", ")}; recommended=${item.recommendedChoiceId ?? "none"}`)
+    ],
+    ...pendingApprovals.length === 0 ? [] : [
+      "Pending user approvals:",
+      ...pendingApprovals.map((item) => `- ${item.approvalId}${item.blocking ? " [blocking]" : ""}: ${item.kind}; ${item.summary}; binding=${item.bindingHash}`)
+    ],
+    "This is mutable continuation state, not a long-term architecture contract. Promote durable decisions to canonical repository documentation.",
+    "Treat a natural-language user reply to a pending item as input to resolve, apply, remove, and canonically record that item when authorized. Never require the user to type a Lervo bookkeeping command.",
+    "Before completing a repository-changing direct provider terminal turn, use `lervo workstream current --json` and the reviewed `lervo workstream update` plan/apply flow to record the next bounded revision. Replace stale facts instead of accumulating prose; do not ask the user to run this bookkeeping command."
+  ];
+  return lines.join("\n");
+}
+function pendingCoordinatesValid(snapshot) {
+  const decisions = snapshot.pendingDecisions ?? [];
+  const approvals = snapshot.pendingApprovals ?? [];
+  if (new Set(decisions.map((item) => item.decisionId)).size !== decisions.length)
+    return false;
+  if (new Set(approvals.map((item) => item.approvalId)).size !== approvals.length)
+    return false;
+  return decisions.every((item) => {
+    const choiceIds = item.choices.map((choice) => choice.choiceId);
+    return new Set(choiceIds).size === choiceIds.length && (item.recommendedChoiceId === null || choiceIds.includes(item.recommendedChoiceId));
+  });
+}
+
+// apps/cli/src/terminal-coverage-format.ts
+function formatTerminalCoverageReport(report) {
+  if (report.reports.length === 0) {
+    return "No unmanaged terminal context observations were found.\n";
+  }
+  const lines = report.reports.map((item) => {
+    const referenced = item.coverage.explicitReference.value === null ? item.coverage.explicitReference.reason : `${item.coverage.explicitReference.numerator}/${item.coverage.explicitReference.denominator}`;
+    const queryProjection = item.resources.queryProjection.usage === null ? item.resources.queryProjection.reasonCode : `${item.resources.queryProjection.usage.totalTokens} tokens (${item.resources.queryProjection.status}: ${item.resources.queryProjection.reasonCode})`;
+    const timing = item.stages.observations.length === 0 ? item.stages.missingReasons.join(",") : item.stages.observations.map((observation) => {
+      const total = observation.stages.find((stage) => stage.stageId === "total");
+      return `${observation.hookEvent}=${total?.durationMs ?? "unknown"}ms`;
+    }).join(",");
+    return [
+      `  ${item.provider} ${item.occurredAt}: prepared=${item.documents.length}`,
+      `referenced=${referenced}`,
+      `completion=${item.completion.result}`,
+      `whole-task=${item.resources.wholeTask.reasonCode}`,
+      `query-projection=${queryProjection}`,
+      `timing=${timing}`
+    ].join("; ");
+  });
+  return [
+    `Unmanaged terminal context observations: ${report.reports.length}`,
+    ...lines,
+    "Managed delivery and internal use remain unsupported for direct provider execution.",
+    "Provider-reported usage is not billed cost.",
+    ""
+  ].join("\n");
+}
+
+// apps/cli/src/terminal-budget-command.ts
+import { resolve as resolve40 } from "node:path";
+import { parseArgs } from "node:util";
+
+// apps/cli/src/terminal-budget-format.ts
+function formatTerminalBudgetReport(report) {
+  const lines = [
+    `Lervo unmanaged terminal budget: ${report.disposition}`,
+    `Source contexts: ${report.sourceReportCount}; missing hook observations: ${report.missingHookObservationCount}; incomplete hook outcomes: ${report.incompleteHookOutcomeCount}; invalid stage sets: ${report.invalidStageObservationSetCount}`,
+    "Whole-task provider usage: unavailable (unmanaged provider work is not observable)",
+    "Hook profiles:",
+    ...report.hookProfiles.map(
+      (profile8) => `  ${profile8.provider} ${profile8.hookEvent} ${profile8.repositoryProfile}/${profile8.coldState} samples=${profile8.sampleCount} p95=${profile8.p95DurationMs}ms/${profile8.budgetMs}ms max=${profile8.maximumDurationMs}ms status=${profile8.status}${profile8.reasonCodes.length === 0 ? "" : ` reasons=${profile8.reasonCodes.join(",")}`}`
+    ),
+    "Query projections:",
+    ...report.queryProjections.map(
+      (assessment) => `  ${assessment.provider} ${assessment.contextEventId}: ${assessment.observedTokens ?? "unobserved"}${assessment.limitTokens === null ? " tokens (no limit)" : `/${assessment.limitTokens} tokens`} status=${assessment.status}${assessment.reasonCode === null ? "" : ` reason=${assessment.reasonCode}`}`
+    ),
+    ...report.reasonCodes.length === 0 ? [] : [`Decision reasons: ${report.reasonCodes.join(", ")}`],
+    ""
+  ];
+  if (report.hookProfiles.length === 0) lines.splice(4, 0, "  No observed hook profiles.");
+  if (report.queryProjections.length === 0)
+    lines.splice(lines.indexOf("Query projections:") + 1, 0, "  No query projections.");
+  return lines.join("\n");
+}
+
+// apps/cli/src/terminal-command-usage.ts
+var terminalUsage = "  lervo terminal status [--root <path>] [--json]\n  lervo terminal coverage [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--json]\n  lervo terminal budget [--root <path>] [--provider <codex|claude>] [--limit <1-100>] [--minimum-samples <1-100>] [--max-query-tokens <tokens>] [--unobserved <block|escalate>] [--exhausted <block|escalate>] [--json]\n  lervo terminal declare --provider <codex|claude> --observation <observation-id> --stdin [--root <path>] [--json]\n  lervo terminal hook --provider <codex|claude> --contract <1|2>";
+
+// apps/cli/src/terminal-repository-root.ts
+import { lstat as lstat28 } from "node:fs/promises";
+import { dirname as dirname10, resolve as resolve39 } from "node:path";
+async function resolveTerminalRepositoryRoot(start) {
+  let current = resolve39(start);
+  while (true) {
+    try {
+      const manifest = await lstat28(resolve39(current, ".lervo/project.yaml"));
+      if (manifest.isFile() && !manifest.isSymbolicLink()) return current;
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+    const parent = dirname10(current);
+    if (parent === current)
+      throw new Error("No initialized Lervo repository contains the hook working directory.");
+    current = parent;
+  }
+}
+
+// apps/cli/src/terminal-budget-command.ts
+function boundedInteger(value, fallback, maximum) {
+  if (value === void 0) return fallback;
+  if (!/^[1-9]\d*$/u.test(value)) throw new Error("A terminal budget integer is invalid.");
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed > maximum)
+    throw new Error("A terminal budget integer exceeds its bound.");
+  return parsed;
+}
+async function runTerminalBudgetCommand(args, io) {
+  let storage;
+  try {
+    const parsed = parseArgs({
+      args,
+      strict: true,
+      allowPositionals: false,
+      options: {
+        root: { type: "string" },
+        provider: { type: "string" },
+        limit: { type: "string" },
+        "minimum-samples": { type: "string" },
+        "max-query-tokens": { type: "string" },
+        unobserved: { type: "string" },
+        exhausted: { type: "string" },
+        json: { type: "boolean" }
+      }
+    });
+    const provider = parsed.values.provider;
+    if (provider !== void 0 && provider !== "codex" && provider !== "claude")
+      throw new Error("--provider must be codex or claude.");
+    const unobservedAction = parsed.values.unobserved ?? "escalate";
+    const exhaustedAction = parsed.values.exhausted ?? "block";
+    if (unobservedAction !== "block" && unobservedAction !== "escalate" || exhaustedAction !== "block" && exhaustedAction !== "escalate")
+      throw new Error("Terminal budget actions must be block or escalate.");
+    const limit = boundedInteger(parsed.values.limit, 100, 100);
+    const minimumSamples = boundedInteger(parsed.values["minimum-samples"], 30, 100);
+    const maxQueryProjectionTokens = parsed.values["max-query-tokens"] === void 0 ? null : boundedInteger(parsed.values["max-query-tokens"], 1, Number.MAX_SAFE_INTEGER);
+    const root2 = await resolveTerminalRepositoryRoot(resolve40(io.cwd, parsed.values.root ?? "."));
+    storage = await openProjectStorage(root2);
+    const coverage = createTerminalCoverageReport({
+      projectId: storage.manifest.projectId,
+      events: storage.events,
+      ...provider === void 0 ? {} : { provider },
+      limit
+    });
+    const policy = {
+      minimumSamples,
+      maxQueryProjectionTokens,
+      unobservedAction,
+      exhaustedAction
+    };
+    const report = createTerminalBudgetReport({ coverage, policy });
+    io.stdout(
+      parsed.values.json ? `${JSON.stringify(report, null, 2)}
+` : formatTerminalBudgetReport(report)
+    );
+    return report.disposition === "passed" ? 0 : 1;
+  } catch (error) {
+    io.stderr(`${error instanceof Error ? error.message : String(error)}
+${terminalUsage}
+`);
+    return 1;
+  } finally {
+    await storage?.close();
+  }
+}
+
+// apps/cli/src/terminal-declaration-command.ts
+import { resolve as resolve52 } from "node:path";
+import { parseArgs as parseArgs2 } from "node:util";
+
+// packages/agent-workforce/dist/limits.js
+var workforceLimits = {
+  maximumAgents: 256,
+  maximumAssignments: 1e4,
+  maximumDelegationDepth: 8,
+  maximumAssignmentDependencies: 64,
+  maximumIntegrationBatch: 32,
+  maximumConcurrentLeases: 256
+};
+
+// packages/agent-workforce/dist/agent-liveness.js
+var DEFAULT_ROOT_AGENT_LIVENESS_STALE_AFTER_MS = 2 * 60 * 1e3;
+
+// packages/agent-workforce/dist/store.js
+import { createHash as createHash14, randomUUID as randomUUID3 } from "node:crypto";
+
+// packages/capabilities/dist/package-reader.js
+import { createHash as createHash13 } from "node:crypto";
+import { lstat as lstat30, readdir as readdir12 } from "node:fs/promises";
+import { relative as relative11, resolve as resolve42, sep as sep11 } from "node:path";
+
+// packages/capabilities/dist/types.js
+var CapabilityPackageError = class extends Error {
+  code;
+  constructor(code, message, options) {
+    super(message, options);
+    this.code = code;
+    this.name = "CapabilityPackageError";
+  }
+};
+
+// packages/capabilities/dist/activation.js
+import { isIP } from "node:net";
+import { relative as relative10, resolve as resolve41, sep as sep10 } from "node:path";
+function fail10(message, cause) {
+  throw new CapabilityPackageError("capability_unsupported", message, cause === void 0 ? void 0 : { cause });
+}
+function decodeJson(bytes, label) {
+  try {
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  } catch (error) {
+    return fail10(`${label} is not valid UTF-8 JSON.`, error);
+  }
+}
+function safePackagePath(root2, value) {
+  const path = resolve41(root2, value);
+  const child = relative10(root2, path);
+  if (child === "" || child === ".." || child.startsWith(`..${sep10}`)) {
+    fail10("A capability activation path escaped its immutable package root.");
+  }
+  return path;
+}
+function httpUrl(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch (error) {
+    return fail10("An MCP HTTP transport URL is invalid.", error);
+  }
+  const host = url.hostname.toLowerCase();
+  const loopback = host === "localhost" || host === "::1" || host === "[::1]" || host.startsWith("127.") || isIP(host) === 6 && host === "::1";
+  if (url.username !== "" || url.password !== "" || url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) {
+    fail10("MCP HTTP transports require HTTPS, or HTTP on a loopback host, without URL credentials.");
+  }
+  return url.toString();
+}
+function mcpActivation(value) {
+  const entrypoint = value.manifest.entrypoint;
+  if (entrypoint.kind !== "mcp_server")
+    fail10("The resolved MCP activation entrypoint is inconsistent.");
+  const file = value.files.find((item) => item.path === entrypoint.runtimeDescriptorPath);
+  if (file === void 0)
+    fail10("An MCP capability is missing its runtime descriptor.");
+  const decoded = decodeJson(file.bytes, entrypoint.runtimeDescriptorPath);
+  if (!validateSchema("mcpRuntimeDescriptor", decoded).valid) {
+    fail10("An MCP runtime descriptor does not satisfy the provider-neutral v1 contract.");
+  }
+  const descriptor = decoded;
+  if (descriptor.transport.kind === "stdio") {
+    const transport = descriptor.transport;
+    const entrypointPath = safePackagePath(value.directoryPath, transport.entrypointPath);
+    if (!value.files.some((item) => item.path === transport.entrypointPath)) {
+      fail10("An MCP stdio entrypoint is not part of the immutable package.");
+    }
+    return {
+      kind: "capability_activation_request",
+      schemaVersion: 1,
+      capabilityId: value.manifest.capabilityId,
+      capabilityKind: "mcp_server",
+      version: value.manifest.version,
+      contentHash: value.manifest.contentHash,
+      runtime: {
+        kind: "mcp_stdio",
+        serverName: descriptor.serverName,
+        command: transport.command,
+        arguments: [entrypointPath, ...transport.arguments],
+        credentialNames: [...entrypoint.credentialNames],
+        timeoutMs: transport.timeoutMs
+      }
+    };
+  }
+  const credential = descriptor.transport.bearerTokenCredential;
+  const declared = [...entrypoint.credentialNames];
+  if (credential === null && declared.length !== 0 || credential !== null && (declared.length !== 1 || declared[0] !== credential)) {
+    fail10("An MCP HTTP bearer credential must exactly match the package credential declaration.");
+  }
+  return {
+    kind: "capability_activation_request",
+    schemaVersion: 1,
+    capabilityId: value.manifest.capabilityId,
+    capabilityKind: "mcp_server",
+    version: value.manifest.version,
+    contentHash: value.manifest.contentHash,
+    runtime: {
+      kind: "mcp_http",
+      serverName: descriptor.serverName,
+      url: httpUrl(descriptor.transport.url),
+      bearerTokenCredential: credential,
+      timeoutMs: descriptor.transport.timeoutMs
+    }
+  };
+}
+function pluginActivation(value) {
+  const entrypoint = value.manifest.entrypoint;
+  if (entrypoint.kind !== "provider_plugin")
+    fail10("The resolved plugin activation entrypoint is inconsistent.");
+  const expectedPath = entrypoint.provider === "codex" ? ".codex-plugin/plugin.json" : ".claude-plugin/plugin.json";
+  if (entrypoint.pluginManifestPath !== expectedPath) {
+    fail10(`A ${entrypoint.provider} plugin must use its native ${expectedPath} manifest.`);
+  }
+  const file = value.files.find((item) => item.path === entrypoint.pluginManifestPath);
+  if (file === void 0)
+    fail10("A provider plugin manifest is missing from the immutable package.");
+  const decoded = decodeJson(file.bytes, entrypoint.pluginManifestPath);
+  if (typeof decoded !== "object" || decoded === null || Array.isArray(decoded) || typeof decoded.name !== "string" || decoded.name.length === 0 || decoded.version !== value.manifest.version) {
+    fail10("A provider plugin requires a native name and an exact outer-package version.");
+  }
+  return {
+    kind: "capability_activation_request",
+    schemaVersion: 1,
+    capabilityId: value.manifest.capabilityId,
+    capabilityKind: "provider_plugin",
+    version: value.manifest.version,
+    contentHash: value.manifest.contentHash,
+    runtime: {
+      kind: "provider_plugin",
+      provider: entrypoint.provider,
+      pluginRoot: value.directoryPath,
+      pluginManifestPath: entrypoint.pluginManifestPath
+    }
+  };
+}
+function createCapabilityActivationRequests(packages) {
+  const result = packages.flatMap((value) => {
+    if (value.manifest.kind === "mcp_server")
+      return [mcpActivation(value)];
+    if (value.manifest.kind === "provider_plugin")
+      return [pluginActivation(value)];
+    return [];
+  });
+  const serverNames = result.flatMap((item) => item.runtime.kind === "mcp_stdio" || item.runtime.kind === "mcp_http" ? [item.runtime.serverName] : []);
+  if (new Set(serverNames).size !== serverNames.length)
+    fail10("Resolved MCP capabilities contain duplicate provider server names.");
+  for (const item of result) {
+    if (!validateSchema("adapterCapabilityActivationRequest", item).valid) {
+      fail10("A resolved provider capability activation request is invalid.");
+    }
+  }
+  return result.sort((left, right) => left.capabilityId.localeCompare(right.capabilityId));
+}
+
+// packages/capabilities/dist/path-boundary.js
+import * as nativePath from "node:path";
+function isPathInsideDirectory(directory, candidate, paths = nativePath) {
+  const child = paths.relative(directory, candidate);
+  return child !== "" && child !== ".." && !child.startsWith(`..${paths.sep}`) && !paths.isAbsolute(child);
+}
+
+// packages/capabilities/dist/safe-file-reader.js
+import { constants as constants13 } from "node:fs";
+import { lstat as lstat29, open as open15 } from "node:fs/promises";
+function sameMetadata2(left, right) {
+  return left.size === right.size && left.mtimeMs === right.mtimeMs;
+}
+function sameFileAcrossStatSurfaces2(pathObservation, handleObservation) {
+  return sameMetadata2(pathObservation, handleObservation) && sameFileIdentityAcrossStatSurfaces(pathObservation, handleObservation);
+}
+function sameFileWithinStatSurface2(before, after) {
+  return sameFileIdentityWithinStatSurface(before, after) && sameMetadata2(before, after);
+}
+function fail11(message, cause) {
+  throw new CapabilityPackageError("capability_unsafe_package", message, cause === void 0 ? void 0 : { cause });
+}
+function boundedRegularFile(info, maximumBytes2) {
+  return info.isFile() && !info.isSymbolicLink() && info.size <= maximumBytes2;
+}
+async function readBoundedRegularFile(path, maximumBytes2) {
+  const beforePath = await lstat29(path);
+  if (!boundedRegularFile(beforePath, maximumBytes2))
+    fail11("Capability packages may contain only bounded regular files.");
+  let handle;
+  try {
+    handle = await open15(path, constants13.O_RDONLY | constants13.O_NOFOLLOW);
+    const openedHandle = await handle.stat();
+    const afterOpenPath = await lstat29(path);
+    if (!boundedRegularFile(openedHandle, maximumBytes2) || !boundedRegularFile(afterOpenPath, maximumBytes2) || !sameFileWithinStatSurface2(beforePath, afterOpenPath) || !sameFileAcrossStatSurfaces2(afterOpenPath, openedHandle))
+      fail11("A capability file changed before it was read.");
+    const bytes = await handle.readFile();
+    const afterReadHandle = await handle.stat();
+    const afterReadPath = await lstat29(path);
+    if (!boundedRegularFile(afterReadHandle, maximumBytes2) || !boundedRegularFile(afterReadPath, maximumBytes2) || !sameFileWithinStatSurface2(openedHandle, afterReadHandle) || !sameFileWithinStatSurface2(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces2(afterReadPath, afterReadHandle))
+      fail11("A capability file changed while it was read.");
+    return bytes;
+  } catch (error) {
+    if (error instanceof CapabilityPackageError)
+      throw error;
+    return fail11("A capability file could not be opened safely.", error);
+  } finally {
+    await handle?.close();
+  }
+}
+
+// packages/capabilities/dist/package-reader.js
+var CAPABILITY_MANIFEST = "lervo-capability.json";
+var MAX_FILES = 256;
+var MAX_TOTAL_BYTES = 16 * 1024 * 1024;
+var MAX_MANIFEST_BYTES2 = 1024 * 1024;
+var DENIED_NAMES = /(?:^|\/)(?:\.env(?:\..*)?|id_(?:rsa|dsa|ecdsa|ed25519)|credentials?\.json|secrets?\.(?:json|ya?ml)|.*\.(?:p12|pfx|pem|key))$/iu;
+function isSafeCapabilityContentPath(value) {
+  const parts = value.split("/");
+  const nativePluginMetadata = (parts[0] === ".codex-plugin" || parts[0] === ".claude-plugin") && parts.length === 2 && parts[1] === "plugin.json";
+  return value.length > 0 && value.length <= 500 && !value.startsWith("/") && (nativePluginMetadata || !parts.some((part) => part === "" || part === ".." || part.startsWith("."))) && !DENIED_NAMES.test(value);
+}
+function portable(value) {
+  return value.split(sep11).join("/");
+}
+function compare(left, right) {
+  return left === right ? 0 : left < right ? -1 : 1;
+}
+function fail12(code, message, cause) {
+  throw new CapabilityPackageError(code, message, cause === void 0 ? void 0 : { cause });
+}
+function within(root2, path) {
+  if (!isPathInsideDirectory(root2, path))
+    fail12("capability_unsafe_package", "A capability path escaped its package root.");
+}
+async function collect(root2, current = root2) {
+  const entries = await readdir12(current, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries.sort((a, b) => compare(a.name, b.name))) {
+    const path = resolve42(current, entry.name);
+    within(root2, path);
+    if (entry.isSymbolicLink())
+      fail12("capability_unsafe_package", "Symbolic links are not allowed in a capability package.");
+    if (entry.isDirectory())
+      files.push(...await collect(root2, path));
+    else if (entry.isFile())
+      files.push(path);
+    else
+      fail12("capability_unsafe_package", "Unsupported filesystem entries are not allowed in a capability package.");
+    if (files.length > MAX_FILES + 1)
+      fail12("capability_unsafe_package", "The capability package file limit was exceeded.");
+  }
+  return files;
+}
+function hashCapabilityFiles(files) {
+  const hash2 = createHash13("sha256");
+  let total = 0;
+  for (const file of [...files].sort((a, b) => compare(a.path, b.path))) {
+    if (file.path === CAPABILITY_MANIFEST || file.path === "lervo-skill.json")
+      continue;
+    total += file.bytes.byteLength;
+    if (total > MAX_TOTAL_BYTES)
+      fail12("capability_unsafe_package", "The capability package size limit was exceeded.");
+    hash2.update(`${Buffer.byteLength(file.path)}:${file.path}:${file.bytes.byteLength}:`);
+    hash2.update(file.bytes);
+  }
+  return `sha256:${hash2.digest("hex")}`;
+}
+async function readCapabilityPackage(directoryPath) {
+  const info = await lstat30(directoryPath);
+  if (!info.isDirectory() || info.isSymbolicLink())
+    fail12("capability_unsafe_package", "A capability package root must be a physical directory.");
+  const paths = await collect(directoryPath);
+  const manifestPath2 = resolve42(directoryPath, CAPABILITY_MANIFEST);
+  if (!paths.includes(manifestPath2))
+    fail12("capability_invalid", `The package is missing ${CAPABILITY_MANIFEST}.`);
+  const files = [];
+  for (const path of paths) {
+    const relativePath = portable(relative11(directoryPath, path));
+    if (relativePath !== CAPABILITY_MANIFEST && !isSafeCapabilityContentPath(relativePath))
+      fail12("capability_unsafe_package", `Capability package file '${relativePath}' is not publishable or installable.`);
+    files.push({
+      path: relativePath,
+      bytes: await readBoundedRegularFile(path, relativePath === CAPABILITY_MANIFEST ? MAX_MANIFEST_BYTES2 : MAX_TOTAL_BYTES)
+    });
+  }
+  let manifest;
+  try {
+    manifest = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(files.find((file) => file.path === CAPABILITY_MANIFEST).bytes));
+  } catch (error) {
+    fail12("capability_invalid", `${CAPABILITY_MANIFEST} is not valid UTF-8 JSON.`, error);
+  }
+  if (!validateSchema("capabilityPackageManifest", manifest).valid)
+    fail12("capability_invalid", `${CAPABILITY_MANIFEST} does not satisfy the v1 contract.`);
+  const typed = manifest;
+  if (typed.kind !== typed.entrypoint.kind)
+    fail12("capability_invalid", "The package kind and entrypoint kind differ.");
+  const actual = hashCapabilityFiles(files);
+  if (actual !== typed.contentHash)
+    fail12("capability_content_hash_mismatch", "The capability manifest hash differs from the verified package content.");
+  if (typed.entrypoint.kind === "skill") {
+    const entrypoint = typed.entrypoint;
+    const skillFile = files.find((file) => file.path === entrypoint.manifestPath);
+    let skill;
+    try {
+      skill = skillFile === void 0 ? null : JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(skillFile.bytes));
+    } catch {
+      skill = null;
+    }
+    if (!validateSchema("skill", skill).valid || skill.skillId !== entrypoint.skillId || skill.contentHash !== actual)
+      fail12("capability_invalid", "A skill capability must contain a matching, independently valid lervo-skill.json contract.");
+  }
+  if (typed.entrypoint.kind === "provider_plugin") {
+    const entrypoint = typed.entrypoint;
+    if (!files.some((file) => file.path === entrypoint.pluginManifestPath))
+      fail12("capability_invalid", "The provider plugin manifest path is missing from the package.");
+  }
+  const verified = {
+    manifest: structuredClone(typed),
+    directoryPath,
+    files: files.map((file) => ({ path: file.path, bytes: new Uint8Array(file.bytes) }))
+  };
+  if (typed.kind === "mcp_server" || typed.kind === "provider_plugin") {
+    createCapabilityActivationRequests([{ ...verified, sourceKind: "project" }]);
+  }
+  return verified;
+}
+
+// packages/capabilities/dist/resolution.js
+import { lstat as lstat31, readdir as readdir13, writeFile as writeFile2, mkdir as mkdir10, rename as rename7, open as open16 } from "node:fs/promises";
+import { homedir } from "node:os";
+import { dirname as dirname11, resolve as resolve43 } from "node:path";
+function compare2(left, right) {
+  return left === right ? 0 : left < right ? -1 : 1;
+}
+function compareCapabilityVersions(left, right) {
+  const parse30 = (value) => {
+    const withoutBuild = value.split("+", 1)[0];
+    const [core, prerelease] = withoutBuild.split("-", 2);
+    return { core: core.split(".").map(Number), prerelease: prerelease?.split(".") };
+  };
+  const a = parse30(left);
+  const b = parse30(right);
+  for (let index2 = 0; index2 < 3; index2 += 1) {
+    const difference = a.core[index2] - b.core[index2];
+    if (difference !== 0)
+      return difference;
+  }
+  if (a.prerelease === void 0)
+    return b.prerelease === void 0 ? 0 : 1;
+  if (b.prerelease === void 0)
+    return -1;
+  for (let index2 = 0; index2 < Math.max(a.prerelease.length, b.prerelease.length); index2 += 1) {
+    const av = a.prerelease[index2];
+    const bv = b.prerelease[index2];
+    if (av === void 0)
+      return -1;
+    if (bv === void 0)
+      return 1;
+    if (av === bv)
+      continue;
+    const an = /^\d+$/u.test(av);
+    const bn = /^\d+$/u.test(bv);
+    if (an && bn)
+      return Number(av) - Number(bv);
+    if (an !== bn)
+      return an ? -1 : 1;
+    return compare2(av, bv);
+  }
+  return 0;
+}
+function key(id, version) {
+  return `${encodeURIComponent(id)}@${version}`;
+}
+function fail13(code, message, cause) {
+  throw new CapabilityPackageError(code, message, cause === void 0 ? void 0 : { cause });
+}
+function capabilityRoot(repositoryRoot, scope, userRoot) {
+  return scope === "project" ? resolve43(repositoryRoot, ".lervo/capabilities/packages") : resolve43(userRoot ?? process.env.LERVO_USER_CAPABILITY_ROOT ?? resolve43(homedir(), ".lervo/capabilities"), "packages");
+}
+async function discoverCapabilityRoot(root2, sourceKind) {
+  let entries;
+  try {
+    const info = await lstat31(root2);
+    if (!info.isDirectory() || info.isSymbolicLink())
+      fail13("capability_unsafe_package", "A capability root must be a physical directory.");
+    entries = await readdir13(root2, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return [];
+    throw error;
+  }
+  const result = [];
+  for (const entry of entries.sort((a, b) => compare2(a.name, b.name))) {
+    if (!entry.isDirectory() || entry.isSymbolicLink())
+      continue;
+    const verified = await readCapabilityPackage(resolve43(root2, entry.name));
+    if (entry.name !== key(verified.manifest.capabilityId, verified.manifest.version))
+      fail13("capability_invalid", `Capability directory '${entry.name}' does not match its immutable coordinate.`);
+    result.push({ ...verified, source: { kind: sourceKind, uri: `${sourceKind}:${entry.name}` } });
+  }
+  return result;
+}
+function providerCompatible(candidate, provider) {
+  const contract = candidate.manifest.compatibility.providers;
+  return contract.mode === "any" || contract.providers.includes(provider);
+}
+async function resolveCapabilities(input) {
+  const requested = [...new Set(input.capabilityIds)].sort();
+  if (requested.length > 64 || requested.some((id) => !/^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u.test(id) || id.length > 150))
+    fail13("capability_invalid", "A requested capability ID is invalid.");
+  const candidates = [
+    ...await discoverCapabilityRoot(capabilityRoot(input.repositoryRoot, "project"), "project"),
+    ...await discoverCapabilityRoot(capabilityRoot(input.repositoryRoot, "user", input.userRoot), "user")
+  ];
+  const selected = /* @__PURE__ */ new Map();
+  const activationPackages = /* @__PURE__ */ new Map();
+  const resolving = /* @__PURE__ */ new Set();
+  const resolveOne = (capabilityId, coordinate) => {
+    const already = selected.get(capabilityId);
+    if (already !== void 0) {
+      if (coordinate !== void 0 && (already.version !== coordinate.version || already.contentHash !== coordinate.contentHash))
+        fail13("capability_conflict", `Capability '${capabilityId}' has conflicting dependency coordinates.`);
+      return;
+    }
+    if (resolving.has(capabilityId) || resolving.size >= 64)
+      fail13("capability_conflict", `Capability '${capabilityId}' has cyclic or over-deep dependencies.`);
+    const compatible = candidates.filter((item) => item.manifest.capabilityId === capabilityId && providerCompatible(item, input.provider) && item.manifest.compatibility.platforms.includes(input.platform));
+    compatible.sort((a, b) => a.source.kind === b.source.kind ? compareCapabilityVersions(b.manifest.version, a.manifest.version) : a.source.kind === "project" ? -1 : 1);
+    const candidate = coordinate === void 0 ? compatible[0] : compatible.find((item) => item.manifest.version === coordinate.version && item.manifest.contentHash === coordinate.contentHash);
+    if (candidate === void 0)
+      fail13("capability_not_found", `No compatible package resolved capability '${capabilityId}'${coordinate === void 0 ? "" : " at its exact dependency coordinate"}.`);
+    if (input.allowedPermissions !== void 0 && candidate.manifest.requiredPermissions.some((permission) => !input.allowedPermissions.includes(permission)))
+      fail13("capability_unsupported", `Capability '${capabilityId}' requires permission not allowed by the role.`);
+    resolving.add(capabilityId);
+    try {
+      for (const dependency of candidate.manifest.dependencies)
+        resolveOne(dependency.capabilityId, dependency);
+      if (candidate.manifest.entrypoint.kind === "bundle")
+        for (const member of candidate.manifest.entrypoint.members)
+          resolveOne(member.capabilityId, member);
+    } finally {
+      resolving.delete(capabilityId);
+    }
+    selected.set(capabilityId, {
+      capabilityId,
+      kind: candidate.manifest.kind,
+      version: candidate.manifest.version,
+      contentHash: candidate.manifest.contentHash,
+      sourceKind: candidate.source.kind,
+      sourceUri: candidate.source.uri,
+      activationStatus: "resolved",
+      entrypoint: structuredClone(candidate.manifest.entrypoint),
+      requiredPermissions: [...candidate.manifest.requiredPermissions]
+    });
+    activationPackages.set(capabilityId, {
+      manifest: structuredClone(candidate.manifest),
+      directoryPath: candidate.directoryPath,
+      files: candidate.files.map((file) => ({
+        path: file.path,
+        bytes: new Uint8Array(file.bytes)
+      })),
+      sourceKind: candidate.source.kind
+    });
+  };
+  for (const capabilityId of requested)
+    resolveOne(capabilityId);
+  const values = [...selected.values()].sort((a, b) => compare2(a.capabilityId, b.capabilityId));
+  const lock = {
+    schemaVersion: 1,
+    projectId: input.projectId,
+    generatedAt: input.generatedAt,
+    entries: values.map((item) => ({
+      capabilityId: item.capabilityId,
+      kind: item.kind,
+      version: item.version,
+      contentHash: item.contentHash,
+      source: { kind: item.sourceKind, uri: item.sourceUri },
+      activationStatus: "resolved"
+    }))
+  };
+  if (!validateSchema("capabilityLock", lock).valid)
+    fail13("capability_invalid", "The resolved capability lock is invalid.");
+  return {
+    selected: values,
+    activationPackages: values.map((item) => activationPackages.get(item.capabilityId)),
+    lock
+  };
+}
+
+// packages/agent-workforce/dist/store.js
+import { chmod as chmod4, lstat as lstat32, mkdir as mkdir11, open as open17, readFile as readFile18, readdir as readdir14, rename as rename8, rm as rm8 } from "node:fs/promises";
+import { basename as basename12, dirname as dirname12, posix as posix8, resolve as resolve44 } from "node:path";
 
 // packages/agent-workforce/dist/types.js
 var AgentWorkforceError = class extends Error {
@@ -69440,33 +69664,33 @@ var AgentWorkforceError = class extends Error {
 };
 
 // packages/agent-workforce/dist/assignment-routine-state.js
-var HASH6 = /^sha256:[a-f0-9]{64}$/u;
+var HASH7 = /^sha256:[a-f0-9]{64}$/u;
 var ROUTINE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
-var VERSION2 = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
+var VERSION3 = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
 var INVOCATION_ID = /^rin_[a-f0-9]{24}$/u;
 function validWorkforceRoutineProvenance(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return false;
   const item = value;
-  return ROUTINE_ID.test(item.routineId) && item.routineId.length <= 100 && VERSION2.test(item.templateVersion) && HASH6.test(item.templateHash) && INVOCATION_ID.test(item.invocationId) && item.triggerKind === "manual" && HASH6.test(item.triggerDigest) && ROUTINE_ID.test(item.nodeKey) && item.nodeKey.length <= 100;
+  return ROUTINE_ID.test(item.routineId) && item.routineId.length <= 100 && VERSION3.test(item.templateVersion) && HASH7.test(item.templateHash) && INVOCATION_ID.test(item.invocationId) && ["manual", "authenticated_live"].includes(item.triggerKind) && HASH7.test(item.triggerDigest) && ROUTINE_ID.test(item.nodeKey) && item.nodeKey.length <= 100;
 }
 
 // packages/agent-workforce/dist/store.js
-var HASH7 = /^sha256:[a-f0-9]{64}$/u;
+var HASH8 = /^sha256:[a-f0-9]{64}$/u;
 var ROLE_ID2 = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
 var ROLE_VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
 var AGENT_ID = /^agt_[a-f0-9]{24}$/u;
 var ASSIGNMENT_ID = /^asn_[a-f0-9]{24}$/u;
 var HANDOFF_ID = /^hnd_[a-f0-9]{24}$/u;
 var SESSION_ID = /^ses_[A-Za-z0-9_-]{8,128}$/u;
-var EVENT_ID = /^evt_[A-Za-z0-9_-]{8,128}$/u;
+var EVENT_ID2 = /^evt_[A-Za-z0-9_-]{8,128}$/u;
 var ARTIFACT_ID2 = /^art_[A-Za-z0-9_-]{8,128}$/u;
 var WORKSTREAM_ID = /^wks_[a-f0-9]{24}$/u;
 var CONVERSATION_EVENT_ID = /^cve_[a-f0-9]{64}$/u;
 var ADAPTER_ID = /^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u;
 var MAXIMUM_STATE_BYTES = 2 * 1024 * 1024;
 var MAXIMUM_LEASE_MS = 30 * 6e4;
-function fail13(code, message, cause) {
+function fail14(code, message, cause) {
   throw new AgentWorkforceError(code, message, cause === void 0 ? void 0 : { cause });
 }
 function digest3(value) {
@@ -69492,29 +69716,29 @@ function validAgent(agent, projectId) {
   if (agent === null || typeof agent !== "object" || Array.isArray(agent))
     return false;
   const value = agent;
-  return value.schemaVersion === 1 && AGENT_ID.test(value.agentId) && value.projectId === projectId && ROLE_ID2.test(value.roleId) && value.roleId.length <= 100 && (value.roleVersion === void 0 || ROLE_VERSION.test(value.roleVersion)) && (value.roleContractHash === void 0 || HASH7.test(value.roleContractHash)) && HASH7.test(value.roleProfileHash) && HASH7.test(value.capabilityHash) && ["codex", "claude", "any"].includes(value.provider) && boundedStrings3(value.skillIds, 32) && (value.capabilityPackages === void 0 || Array.isArray(value.capabilityPackages) && value.capabilityPackages.length <= 64 && value.capabilityPackages.every((item) => item !== null && typeof item === "object" && /^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u.test(item.capabilityId) && ["skill", "mcp_server", "provider_plugin", "bundle"].includes(item.kind) && ROLE_VERSION.test(item.version) && HASH7.test(item.contentHash) && ["project", "user"].includes(item.sourceKind))) && boundedStrings3(value.responsibilityPaths, 64) && value.responsibilityPaths.every(safePath3) && (value.parentAgentId === null || AGENT_ID.test(value.parentAgentId)) && Number.isSafeInteger(value.delegationDepth) && value.delegationDepth >= 0 && value.delegationDepth <= workforceLimits.maximumDelegationDepth && ["active", "suspended", "retired"].includes(value.status) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime(value.createdAt) && validTime(value.updatedAt);
+  return value.schemaVersion === 1 && AGENT_ID.test(value.agentId) && value.projectId === projectId && ROLE_ID2.test(value.roleId) && value.roleId.length <= 100 && (value.roleVersion === void 0 || ROLE_VERSION.test(value.roleVersion)) && (value.roleContractHash === void 0 || HASH8.test(value.roleContractHash)) && HASH8.test(value.roleProfileHash) && HASH8.test(value.capabilityHash) && ["codex", "claude", "any"].includes(value.provider) && boundedStrings3(value.skillIds, 32) && (value.capabilityPackages === void 0 || Array.isArray(value.capabilityPackages) && value.capabilityPackages.length <= 64 && value.capabilityPackages.every((item) => item !== null && typeof item === "object" && /^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u.test(item.capabilityId) && ["skill", "mcp_server", "provider_plugin", "bundle"].includes(item.kind) && ROLE_VERSION.test(item.version) && HASH8.test(item.contentHash) && ["project", "user"].includes(item.sourceKind))) && boundedStrings3(value.responsibilityPaths, 64) && value.responsibilityPaths.every(safePath3) && (value.parentAgentId === null || AGENT_ID.test(value.parentAgentId)) && Number.isSafeInteger(value.delegationDepth) && value.delegationDepth >= 0 && value.delegationDepth <= workforceLimits.maximumDelegationDepth && ["active", "suspended", "retired"].includes(value.status) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime(value.createdAt) && validTime(value.updatedAt);
 }
 function validArtifact(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value) && ARTIFACT_ID2.test(value.artifactId) && HASH7.test(value.contentHash);
+  return value !== null && typeof value === "object" && !Array.isArray(value) && ARTIFACT_ID2.test(value.artifactId) && HASH8.test(value.contentHash);
 }
 function validHandoffTrigger(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return false;
   const item = value;
-  return item.kind === "reviewed_direct_message" && ADAPTER_ID.test(item.adapterId) && item.adapterId.length <= 128 && ROLE_VERSION.test(item.adapterVersion) && HASH7.test(item.descriptorHash) && CONVERSATION_EVENT_ID.test(item.sourceEventId) && HASH7.test(item.sourceEventKeyHash);
+  return item.kind === "reviewed_direct_message" && ADAPTER_ID.test(item.adapterId) && item.adapterId.length <= 128 && ROLE_VERSION.test(item.adapterVersion) && HASH8.test(item.descriptorHash) && CONVERSATION_EVENT_ID.test(item.sourceEventId) && HASH8.test(item.sourceEventKeyHash);
 }
 function validHandoff(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return false;
   const item = value;
-  return HANDOFF_ID.test(item.handoffId) && AGENT_ID.test(item.fromAgentId) && AGENT_ID.test(item.toAgentId) && HASH7.test(item.requestDigest) && Array.isArray(item.artifactReferences) && item.artifactReferences.length <= 32 && item.artifactReferences.every(validArtifact) && boundedStrings3(item.contextEvidenceEventIds, 64, EVENT_ID) && validTime(item.createdAt) && (item.acknowledgedAt === null || validTime(item.acknowledgedAt)) && (item.trigger === void 0 || item.trigger === null || validHandoffTrigger(item.trigger));
+  return HANDOFF_ID.test(item.handoffId) && AGENT_ID.test(item.fromAgentId) && AGENT_ID.test(item.toAgentId) && HASH8.test(item.requestDigest) && Array.isArray(item.artifactReferences) && item.artifactReferences.length <= 32 && item.artifactReferences.every(validArtifact) && boundedStrings3(item.contextEvidenceEventIds, 64, EVENT_ID2) && validTime(item.createdAt) && (item.acknowledgedAt === null || validTime(item.acknowledgedAt)) && (item.trigger === void 0 || item.trigger === null || validHandoffTrigger(item.trigger));
 }
 function validAssignment(value, projectId) {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return false;
   const item = value;
   const lease = item.lease;
-  return item.schemaVersion === 1 && ASSIGNMENT_ID.test(item.assignmentId) && item.projectId === projectId && /^[a-z][a-z0-9._-]{1,99}$/u.test(item.taskType) && ROLE_ID2.test(item.roleId) && item.roleId.length <= 100 && (item.roleVersion === void 0 || ROLE_VERSION.test(item.roleVersion)) && (item.roleContractHash === void 0 || HASH7.test(item.roleContractHash)) && (item.requiredCapabilityHash === void 0 || item.requiredCapabilityHash === null || HASH7.test(item.requiredCapabilityHash)) && (item.routine === void 0 || item.routine === null || validWorkforceRoutineProvenance(item.routine)) && ["queued", "leased", "blocked", "completed", "failed", "cancelled"].includes(item.status) && Number.isSafeInteger(item.priority) && item.priority >= 0 && item.priority <= 100 && boundedStrings3(item.dependencyIds, 64, ASSIGNMENT_ID) && !item.dependencyIds.includes(item.assignmentId) && boundedStrings3(item.acceptanceCriteria, 32) && boundedStrings3(item.verificationSuiteIds, 32) && boundedStrings3(item.approvalRequirements, 32) && boundedStrings3(item.expectedPaths, 128) && item.expectedPaths.every(safePath3) && (item.workstreamId === null || WORKSTREAM_ID.test(item.workstreamId)) && (item.assigneeAgentId === null || AGENT_ID.test(item.assigneeAgentId)) && (lease === null || /^lse_[a-f0-9]{24}$/u.test(lease.leaseId) && AGENT_ID.test(lease.agentId) && SESSION_ID.test(lease.sessionId) && Number.isSafeInteger(lease.generation) && lease.generation >= 1 && validTime(lease.acquiredAt) && validTime(lease.expiresAt)) && Array.isArray(item.handoffs) && item.handoffs.length <= 256 && item.handoffs.every(validHandoff) && Array.isArray(item.resultArtifacts) && item.resultArtifacts.length <= 64 && item.resultArtifacts.every(validArtifact) && (item.failureCode === null || /^[a-z][a-z0-9_]{1,99}$/u.test(item.failureCode)) && Number.isSafeInteger(item.revision) && item.revision >= 1 && validTime(item.createdAt) && validTime(item.updatedAt);
+  return item.schemaVersion === 1 && ASSIGNMENT_ID.test(item.assignmentId) && item.projectId === projectId && /^[a-z][a-z0-9._-]{1,99}$/u.test(item.taskType) && ROLE_ID2.test(item.roleId) && item.roleId.length <= 100 && (item.roleVersion === void 0 || ROLE_VERSION.test(item.roleVersion)) && (item.roleContractHash === void 0 || HASH8.test(item.roleContractHash)) && (item.requiredCapabilityHash === void 0 || item.requiredCapabilityHash === null || HASH8.test(item.requiredCapabilityHash)) && (item.routine === void 0 || item.routine === null || validWorkforceRoutineProvenance(item.routine)) && ["queued", "leased", "blocked", "completed", "failed", "cancelled"].includes(item.status) && Number.isSafeInteger(item.priority) && item.priority >= 0 && item.priority <= 100 && boundedStrings3(item.dependencyIds, 64, ASSIGNMENT_ID) && !item.dependencyIds.includes(item.assignmentId) && boundedStrings3(item.acceptanceCriteria, 32) && boundedStrings3(item.verificationSuiteIds, 32) && boundedStrings3(item.approvalRequirements, 32) && boundedStrings3(item.expectedPaths, 128) && item.expectedPaths.every(safePath3) && (item.workstreamId === null || WORKSTREAM_ID.test(item.workstreamId)) && (item.assigneeAgentId === null || AGENT_ID.test(item.assigneeAgentId)) && (lease === null || /^lse_[a-f0-9]{24}$/u.test(lease.leaseId) && AGENT_ID.test(lease.agentId) && SESSION_ID.test(lease.sessionId) && Number.isSafeInteger(lease.generation) && lease.generation >= 1 && validTime(lease.acquiredAt) && validTime(lease.expiresAt)) && Array.isArray(item.handoffs) && item.handoffs.length <= 256 && item.handoffs.every(validHandoff) && Array.isArray(item.resultArtifacts) && item.resultArtifacts.length <= 64 && item.resultArtifacts.every(validArtifact) && (item.failureCode === null || /^[a-z][a-z0-9_]{1,99}$/u.test(item.failureCode)) && Number.isSafeInteger(item.revision) && item.revision >= 1 && validTime(item.createdAt) && validTime(item.updatedAt);
 }
 async function state(root2) {
   const manifest = await loadProjectManifest(root2);
@@ -69524,16 +69748,16 @@ async function state(root2) {
 }
 async function readBounded(path) {
   try {
-    const info = await lstat31(path);
+    const info = await lstat32(path);
     if (!info.isFile() || info.isSymbolicLink() || info.size > MAXIMUM_STATE_BYTES || process.platform !== "win32" && (info.mode & 63) !== 0)
-      fail13("workforce_state_invalid", "A workforce state file is unsafe.");
+      fail14("workforce_state_invalid", "A workforce state file is unsafe.");
     return readFile18(path, "utf8");
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
     if (error instanceof AgentWorkforceError)
       throw error;
-    fail13("workforce_state_invalid", "A workforce state file could not be read.", error);
+    fail14("workforce_state_invalid", "A workforce state file could not be read.", error);
   }
 }
 async function normalizeAgent(root2, agent) {
@@ -69542,18 +69766,18 @@ async function normalizeAgent(root2, agent) {
   const legacyCapabilityHash = digest3(stableJson(contract.definition.profile.capabilities));
   if (agent.roleVersion === void 0 || agent.roleContractHash === void 0) {
     if (contract.sourceKind !== "built_in" || agent.roleProfileHash !== currentProfileHash || agent.capabilityHash !== legacyCapabilityHash || agent.capabilityPackages !== void 0) {
-      fail13("workforce_state_invalid", `Legacy agent ${agent.agentId} cannot be bound to the current built-in role contract.`);
+      fail14("workforce_state_invalid", `Legacy agent ${agent.agentId} cannot be bound to the current built-in role contract.`);
     }
     return { ...agent, roleVersion: contract.version, roleContractHash: contract.contractHash };
   }
   try {
     assertRoleContractBinding(contract, agent);
   } catch (error) {
-    fail13("agent_state_conflict", `Agent ${agent.agentId} is bound to a stale role contract.`, error);
+    fail14("agent_state_conflict", `Agent ${agent.agentId} is bound to a stale role contract.`, error);
   }
   if (agent.capabilityPackages === void 0) {
     if (agent.capabilityHash !== legacyCapabilityHash)
-      fail13("agent_state_conflict", `Agent ${agent.agentId} capability binding is stale.`);
+      fail14("agent_state_conflict", `Agent ${agent.agentId} capability binding is stale.`);
     return agent;
   }
   const current = await resolveCapabilities({
@@ -69573,7 +69797,7 @@ async function normalizeAgent(root2, agent) {
     sourceKind
   }));
   if (stableJson(packages) !== stableJson(agent.capabilityPackages))
-    fail13("agent_state_conflict", `Agent ${agent.agentId} capability package binding is stale.`);
+    fail14("agent_state_conflict", `Agent ${agent.agentId} capability package binding is stale.`);
   const currentCapabilityHash = digest3(stableJson({
     permissions: contract.definition.profile.capabilities,
     packages: packages.map(({ capabilityId, version, contentHash: contentHash2 }) => ({
@@ -69583,7 +69807,7 @@ async function normalizeAgent(root2, agent) {
     }))
   }));
   if (agent.capabilityHash !== currentCapabilityHash)
-    fail13("agent_state_conflict", `Agent ${agent.agentId} capability binding is stale.`);
+    fail14("agent_state_conflict", `Agent ${agent.agentId} capability binding is stale.`);
   return agent;
 }
 async function registry(root2) {
@@ -69592,10 +69816,10 @@ async function registry(root2) {
   const source = await readBounded(path);
   const value = source === null ? { schemaVersion: 1, kind: "lervo_agent_registry", agents: [] } : JSON.parse(source);
   if (value.schemaVersion !== 1 || value.kind !== "lervo_agent_registry" || !Array.isArray(value.agents) || value.agents.length > workforceLimits.maximumAgents || !value.agents.every((agent) => validAgent(agent, current.manifest.projectId)))
-    fail13("workforce_state_invalid", "The agent registry is invalid.");
+    fail14("workforce_state_invalid", "The agent registry is invalid.");
   const ids = value.agents.map((agent) => agent.agentId);
   if (new Set(ids).size !== ids.length || value.agents.some((agent) => agent.parentAgentId !== null && !ids.includes(agent.parentAgentId)))
-    fail13("workforce_state_invalid", "The agent registry contains duplicate or missing parent identities.");
+    fail14("workforce_state_invalid", "The agent registry contains duplicate or missing parent identities.");
   const normalized2 = await Promise.all(value.agents.map((agent) => normalizeAgent(root2, agent)));
   return {
     path,
@@ -69607,7 +69831,7 @@ async function registry(root2) {
 }
 async function assignmentPath(root2, assignmentId) {
   if (!ASSIGNMENT_ID.test(assignmentId))
-    fail13("assignment_invalid", "The assignment ID is invalid.");
+    fail14("assignment_invalid", "The assignment ID is invalid.");
   const current = await state(root2);
   return {
     path: resolve44(current.base, "assignments", `${assignmentId}.json`),
@@ -69619,21 +69843,21 @@ async function readAssignmentState(root2, assignmentId) {
   const target = await assignmentPath(root2, assignmentId);
   const source = await readBounded(target.path);
   if (source === null)
-    fail13("assignment_not_found", "The assignment does not exist.");
+    fail14("assignment_not_found", "The assignment does not exist.");
   const value = JSON.parse(source);
   if (!validAssignment(value, target.projectId) || value.assignmentId !== assignmentId)
-    fail13("workforce_state_invalid", "The assignment state is invalid.");
+    fail14("workforce_state_invalid", "The assignment state is invalid.");
   const contract = await resolveRoleContract(root2, value.roleId);
   if (value.roleVersion === void 0 || value.roleContractHash === void 0) {
     if (contract.sourceKind !== "built_in")
-      fail13("workforce_state_invalid", "A legacy assignment cannot bind to a repository role.");
+      fail14("workforce_state_invalid", "A legacy assignment cannot bind to a repository role.");
     return {
       source,
       value: { ...value, roleVersion: contract.version, roleContractHash: contract.contractHash }
     };
   }
   if (value.roleVersion !== contract.version || value.roleContractHash !== contract.contractHash)
-    fail13("assignment_lease_conflict", `Assignment ${assignmentId} is bound to a stale role contract.`);
+    fail14("assignment_lease_conflict", `Assignment ${assignmentId} is bound to a stale role contract.`);
   return { source, value };
 }
 async function readAssignment(root2, assignmentId) {
@@ -69646,12 +69870,12 @@ async function listAssignments(root2) {
   const current = await state(root2);
   const names = (await readdir14(resolve44(current.base, "assignments"))).filter((name2) => /^asn_[a-f0-9]{24}\.json$/u.test(name2)).sort();
   if (names.length > workforceLimits.maximumAssignments)
-    fail13("workforce_state_invalid", "The assignment limit was exceeded.");
+    fail14("workforce_state_invalid", "The assignment limit was exceeded.");
   return Promise.all(names.map((name2) => readAssignment(root2, name2.slice(0, -5))));
 }
 function exactLease(assignment, agentId, leaseId, now) {
   if (assignment.status !== "leased" || assignment.lease === null || assignment.lease.agentId !== agentId || assignment.lease.leaseId !== leaseId || Date.parse(assignment.lease.expiresAt) <= now.getTime())
-    fail13("assignment_lease_conflict", "The assignment lease is absent, stale, expired, or owned by another agent.");
+    fail14("assignment_lease_conflict", "The assignment lease is absent, stale, expired, or owned by another agent.");
 }
 async function assertAssignmentExecutionAuthority(input) {
   const now = input.now ?? /* @__PURE__ */ new Date();
@@ -69661,20 +69885,20 @@ async function assertAssignmentExecutionAuthority(input) {
   ]);
   const agent = agents.find((item) => item.agentId === input.agentId);
   if (agent === void 0 || agent.status !== "active" || agent.roleId !== assignment.roleId || agent.provider !== "any" && agent.provider !== input.provider)
-    fail13("agent_state_conflict", "The managed run agent, role, status, or provider does not match the assignment.");
+    fail14("agent_state_conflict", "The managed run agent, role, status, or provider does not match the assignment.");
   if (agent.roleVersion !== assignment.roleVersion || agent.roleContractHash !== assignment.roleContractHash)
-    fail13("agent_state_conflict", "The managed run agent and assignment role contracts differ.");
+    fail14("agent_state_conflict", "The managed run agent and assignment role contracts differ.");
   exactLease(assignment, input.agentId, input.leaseId, now);
   const expectedPaths = [...new Set(input.expectedPaths)].sort();
   const suites = [...new Set(input.verificationSuiteIds)].sort();
   if (expectedPaths.length !== input.expectedPaths.length || !expectedPaths.every(safePath3) || !expectedPaths.every((path) => assignment.expectedPaths.some((scope) => scope === "*" || path === scope || path.startsWith(`${scope}/`))) || JSON.stringify(suites) !== JSON.stringify([...assignment.verificationSuiteIds].sort()))
-    fail13("assignment_path_conflict", "The managed run paths or verification suites differ from the leased assignment.");
+    fail14("assignment_path_conflict", "The managed run paths or verification suites differ from the leased assignment.");
   return { assignment: structuredClone(assignment), agent: structuredClone(agent) };
 }
 
 // packages/agent-workforce/dist/workspace-lifecycle.js
 import { isAbsolute as isAbsolute3 } from "node:path";
-var HASH8 = /^sha256:[a-f0-9]{64}$/u;
+var HASH9 = /^sha256:[a-f0-9]{64}$/u;
 var COMMIT = /^[a-f0-9]{40,64}$/u;
 var WORKSPACE_ID = /^wsp_[a-f0-9]{24}$/u;
 var REPOSITORY_INSTANCE_ID2 = /^rpi_[a-f0-9]{24}$/u;
@@ -69696,7 +69920,7 @@ var transitions = {
   removed: [],
   recovery_required: ["cleanup_eligible", "removed"]
 };
-function fail14(code, message) {
+function fail15(code, message) {
   throw new AgentWorkforceError(code, message);
 }
 function validTime2(value) {
@@ -69706,15 +69930,15 @@ function validSession(value) {
   return value === null || /^ses_[A-Za-z0-9_-]{8,128}$/u.test(value.sessionId) && validTime2(value.startedAt) && (value.lastSeenAt === void 0 || validTime2(value.lastSeenAt) && Date.parse(value.lastSeenAt) >= Date.parse(value.startedAt));
 }
 function validSeal(value) {
-  return value !== null && COMMIT.test(value.baseCommit) && COMMIT.test(value.headCommit) && COMMIT.test(value.treeHash) && HASH8.test(value.changedPathSetDigest) && Number.isSafeInteger(value.changedPathCount) && value.changedPathCount >= 0 && value.changedPaths.length === value.changedPathCount && value.changedPaths.length <= 1e4 && value.changedPaths.every((path) => SAFE_PATH.test(path)) && new Set(value.changedPaths).size === value.changedPaths.length && value.commitIds.length <= 1e4 && value.commitIds.every((commitId) => COMMIT.test(commitId)) && ARTIFACT_ID3.test(value.resultArtifactId) && HASH8.test(value.resultArtifactHash) && value.verificationResults.length <= 64 && value.verificationResults.every((result) => /^[a-z][a-z0-9._-]{1,99}$/u.test(result.suiteId) && HASH8.test(result.policyHash) && ARTIFACT_ID3.test(result.resultArtifactId) && HASH8.test(result.resultArtifactHash) && validTime2(result.completedAt) && result.passed) && !value.approvalPending && !value.recoveryPending && (value.sourceWorkstream === null || /^wks_[a-f0-9]{24}$/u.test(value.sourceWorkstream.workstreamId) && Number.isSafeInteger(value.sourceWorkstream.revision) && value.sourceWorkstream.revision >= 1 && HASH8.test(value.sourceWorkstream.snapshotHash)) && validTime2(value.sealedAt) && (value.noChange ? value.changedPathCount === 0 && value.commitIds.length === 0 && value.headCommit === value.baseCommit : value.changedPathCount > 0 && value.commitIds.length > 0);
+  return value !== null && COMMIT.test(value.baseCommit) && COMMIT.test(value.headCommit) && COMMIT.test(value.treeHash) && HASH9.test(value.changedPathSetDigest) && Number.isSafeInteger(value.changedPathCount) && value.changedPathCount >= 0 && value.changedPaths.length === value.changedPathCount && value.changedPaths.length <= 1e4 && value.changedPaths.every((path) => SAFE_PATH.test(path)) && new Set(value.changedPaths).size === value.changedPaths.length && value.commitIds.length <= 1e4 && value.commitIds.every((commitId) => COMMIT.test(commitId)) && ARTIFACT_ID3.test(value.resultArtifactId) && HASH9.test(value.resultArtifactHash) && value.verificationResults.length <= 64 && value.verificationResults.every((result) => /^[a-z][a-z0-9._-]{1,99}$/u.test(result.suiteId) && HASH9.test(result.policyHash) && ARTIFACT_ID3.test(result.resultArtifactId) && HASH9.test(result.resultArtifactHash) && validTime2(result.completedAt) && result.passed) && !value.approvalPending && !value.recoveryPending && (value.sourceWorkstream === null || /^wks_[a-f0-9]{24}$/u.test(value.sourceWorkstream.workstreamId) && Number.isSafeInteger(value.sourceWorkstream.revision) && value.sourceWorkstream.revision >= 1 && HASH9.test(value.sourceWorkstream.snapshotHash)) && validTime2(value.sealedAt) && (value.noChange ? value.changedPathCount === 0 && value.commitIds.length === 0 && value.headCommit === value.baseCommit : value.changedPathCount > 0 && value.commitIds.length > 0);
 }
 function isAgentWorkspace(value) {
-  return value.schemaVersion === 1 && WORKSPACE_ID.test(value.workspaceId) && REPOSITORY_INSTANCE_ID2.test(value.repositoryInstanceId) && Number.isSafeInteger(value.generation) && value.generation >= 1 && Number.isSafeInteger(value.leaseGeneration) && value.leaseGeneration >= 1 && ["worker", "integrator"].includes(value.executionKind) && ["git", "orca"].includes(value.host.kind) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(value.host.version) && (value.host.nativeInstanceDigest === null || HASH8.test(value.host.nativeInstanceDigest)) && COMMIT.test(value.baseCommit) && HASH8.test(value.integrationTargetDigest) && /^wpl_[a-f0-9]{24}$/u.test(value.creationPlanId) && HASH8.test(value.markerHash) && HASH8.test(value.pathDigest) && (value.ownerWorkspacePath === void 0 || value.ownerWorkspacePath.length <= 4096 && !value.ownerWorkspacePath.includes("\0") && isAbsolute3(value.ownerWorkspacePath)) && validSession(value.writerSession) && Object.hasOwn(transitions, value.state) && (value.sealedResult === null || validSeal(value.sealedResult)) && (value.integrationQueueEntryId === null || /^inq_[a-f0-9]{24}$/u.test(value.integrationQueueEntryId)) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime2(value.createdAt) && validTime2(value.updatedAt);
+  return value.schemaVersion === 1 && WORKSPACE_ID.test(value.workspaceId) && REPOSITORY_INSTANCE_ID2.test(value.repositoryInstanceId) && Number.isSafeInteger(value.generation) && value.generation >= 1 && Number.isSafeInteger(value.leaseGeneration) && value.leaseGeneration >= 1 && ["worker", "integrator"].includes(value.executionKind) && ["git", "orca"].includes(value.host.kind) && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(value.host.version) && (value.host.nativeInstanceDigest === null || HASH9.test(value.host.nativeInstanceDigest)) && COMMIT.test(value.baseCommit) && HASH9.test(value.integrationTargetDigest) && /^wpl_[a-f0-9]{24}$/u.test(value.creationPlanId) && HASH9.test(value.markerHash) && HASH9.test(value.pathDigest) && (value.ownerWorkspacePath === void 0 || value.ownerWorkspacePath.length <= 4096 && !value.ownerWorkspacePath.includes("\0") && isAbsolute3(value.ownerWorkspacePath)) && validSession(value.writerSession) && Object.hasOwn(transitions, value.state) && (value.sealedResult === null || validSeal(value.sealedResult)) && (value.integrationQueueEntryId === null || /^inq_[a-f0-9]{24}$/u.test(value.integrationQueueEntryId)) && Number.isSafeInteger(value.revision) && value.revision >= 1 && validTime2(value.createdAt) && validTime2(value.updatedAt);
 }
 function requireEvidence(evidence, fields) {
   const missing = fields.filter((field2) => evidence[field2] !== true);
   if (missing.length > 0)
-    fail14("workspace_transition_conflict", `Workspace evidence is missing: ${missing.join(", ")}.`);
+    fail15("workspace_transition_conflict", `Workspace evidence is missing: ${missing.join(", ")}.`);
 }
 function validateTransitionEvidence(input) {
   const { nextState, evidence } = input;
@@ -69722,34 +69946,34 @@ function validateTransitionEvidence(input) {
     requireEvidence(evidence, ["hostInspected", "markerMatched", "checkoutClean"]);
   if (nextState === "active") {
     if (input.writerSession === void 0 || input.writerSession === null)
-      fail14("workspace_transition_conflict", "Workspace activation requires one writer session.");
+      fail15("workspace_transition_conflict", "Workspace activation requires one writer session.");
   }
   if (nextState === "paused") {
     requireEvidence(evidence, ["writerFrozen"]);
     if (input.writerSession !== null)
-      fail14("workspace_transition_conflict", "Workspace pause must release its writer session.");
+      fail15("workspace_transition_conflict", "Workspace pause must release its writer session.");
   }
   if (nextState === "sealing") {
     requireEvidence(evidence, ["writerFrozen"]);
     if (input.writerSession !== null)
-      fail14("workspace_transition_conflict", "Workspace sealing must freeze its writer.");
+      fail15("workspace_transition_conflict", "Workspace sealing must freeze its writer.");
   }
   if (nextState === "sealed") {
     requireEvidence(evidence, ["checkoutClean"]);
     if (!validSeal(input.sealedResult ?? null))
-      fail14("workspace_transition_conflict", "Workspace sealing requires an immutable result.");
+      fail15("workspace_transition_conflict", "Workspace sealing requires an immutable result.");
   }
   if (nextState === "integration_pending") {
     requireEvidence(evidence, ["queueEntryCommitted"]);
     if (!/^inq_[a-f0-9]{24}$/u.test(input.integrationQueueEntryId ?? ""))
-      fail14("workspace_transition_conflict", "Workspace queue evidence is missing.");
+      fail15("workspace_transition_conflict", "Workspace queue evidence is missing.");
   }
   if (nextState === "integrating")
     requireEvidence(evidence, ["integrationLeaseHeld"]);
   if (nextState === "integrated") {
     requireEvidence(evidence, ["integrationVerified"]);
     if (!/^int_[a-f0-9]{24}$/u.test(input.integrationEvidenceId ?? ""))
-      fail14("workspace_transition_conflict", "Integration evidence is missing.");
+      fail15("workspace_transition_conflict", "Integration evidence is missing.");
   }
   if (nextState === "integration_conflict")
     requireEvidence(evidence, ["conflictAborted"]);
@@ -69758,20 +69982,20 @@ function validateTransitionEvidence(input) {
   if (nextState === "removing") {
     requireEvidence(evidence, ["cleanupPlanBound"]);
     if (!/^wcp_[a-f0-9]{24}$/u.test(input.cleanupPlanId ?? ""))
-      fail14("workspace_transition_conflict", "Cleanup plan evidence is missing.");
+      fail15("workspace_transition_conflict", "Cleanup plan evidence is missing.");
   }
   if (nextState === "removed")
     requireEvidence(evidence, ["hostAbsent", "gitMetadataAbsent"]);
   if (nextState === "recovery_required" && !/^[a-z][a-z0-9_]{1,99}$/u.test(input.recoveryReason ?? ""))
-    fail14("workspace_transition_conflict", "Recovery requires one bounded reason code.");
+    fail15("workspace_transition_conflict", "Recovery requires one bounded reason code.");
 }
 function transitionWorkspace(input) {
   if (!isAgentWorkspace(input.current))
-    fail14("workspace_invalid", "The workspace record is invalid.");
+    fail15("workspace_invalid", "The workspace record is invalid.");
   if (input.current.revision !== input.expectedRevision || input.current.generation !== input.expectedGeneration || !validTime2(input.occurredAt) || Date.parse(input.occurredAt) < Date.parse(input.current.updatedAt))
-    fail14("workspace_transition_conflict", "The workspace transition coordinate is stale.");
+    fail15("workspace_transition_conflict", "The workspace transition coordinate is stale.");
   if (!transitions[input.current.state].includes(input.nextState))
-    fail14("workspace_transition_conflict", `Workspace state cannot move from ${input.current.state} to ${input.nextState}.`);
+    fail15("workspace_transition_conflict", `Workspace state cannot move from ${input.current.state} to ${input.nextState}.`);
   validateTransitionEvidence({ ...input, evidence: input.evidence ?? {} });
   const next = {
     ...input.current,
@@ -69787,7 +70011,7 @@ function transitionWorkspace(input) {
     ...input.hostNativeInstanceDigest === void 0 ? {} : { host: { ...input.current.host, nativeInstanceDigest: input.hostNativeInstanceDigest } }
   };
   if (!isAgentWorkspace(next))
-    fail14("workspace_invalid", "The resulting workspace record is invalid.");
+    fail15("workspace_invalid", "The resulting workspace record is invalid.");
   return next;
 }
 function pathContains(scope, path) {
@@ -69809,7 +70033,7 @@ function partitionWorkspaceChanges(input) {
 }
 
 // packages/agent-workforce/dist/workspace-store.js
-var EVENT_ID2 = /^evt_[A-Za-z0-9_-]{8,128}$/u;
+var EVENT_ID3 = /^evt_[A-Za-z0-9_-]{8,128}$/u;
 function stableJson2(value) {
   if (Array.isArray(value))
     return `[${value.map(stableJson2).join(",")}]`;
@@ -69818,13 +70042,13 @@ function stableJson2(value) {
   return JSON.stringify(value);
 }
 function isWorkspaceCheckpoint(value) {
-  return value.schemaVersion === 1 && value.type === "agent.workspace.checkpointed" && EVENT_ID2.test(value.eventId) && /^wsp_[a-f0-9]{24}$/u.test(value.workspaceId) && Number.isSafeInteger(value.generation) && value.generation >= 1 && Number.isSafeInteger(value.workspaceRevision) && value.workspaceRevision >= 1 && /^asn_[a-f0-9]{24}$/u.test(value.assignmentId) && Number.isSafeInteger(value.assignmentRevision) && value.assignmentRevision >= 1 && Number.isSafeInteger(value.leaseGeneration) && value.leaseGeneration >= 1 && /^ses_[A-Za-z0-9_-]{8,128}$/u.test(value.writerSessionId) && /^[a-f0-9]{40,64}$/u.test(value.headCommit) && /^[a-f0-9]{40,64}$/u.test(value.treeHash) && /^sha256:[a-f0-9]{64}$/u.test(value.changedPathSetDigest) && Number.isSafeInteger(value.changedPathCount) && value.changedPathCount >= 0 && Number.isFinite(Date.parse(value.occurredAt));
+  return value.schemaVersion === 1 && value.type === "agent.workspace.checkpointed" && EVENT_ID3.test(value.eventId) && /^wsp_[a-f0-9]{24}$/u.test(value.workspaceId) && Number.isSafeInteger(value.generation) && value.generation >= 1 && Number.isSafeInteger(value.workspaceRevision) && value.workspaceRevision >= 1 && /^asn_[a-f0-9]{24}$/u.test(value.assignmentId) && Number.isSafeInteger(value.assignmentRevision) && value.assignmentRevision >= 1 && Number.isSafeInteger(value.leaseGeneration) && value.leaseGeneration >= 1 && /^ses_[A-Za-z0-9_-]{8,128}$/u.test(value.writerSessionId) && /^[a-f0-9]{40,64}$/u.test(value.headCommit) && /^[a-f0-9]{40,64}$/u.test(value.treeHash) && /^sha256:[a-f0-9]{64}$/u.test(value.changedPathSetDigest) && Number.isSafeInteger(value.changedPathCount) && value.changedPathCount >= 0 && Number.isFinite(Date.parse(value.occurredAt));
 }
 function invalid3(message) {
   throw new AgentWorkforceError("workspace_invalid", message);
 }
 function eventFor(input) {
-  if (!EVENT_ID2.test(input.eventId))
+  if (!EVENT_ID3.test(input.eventId))
     invalid3("The workspace event ID is invalid.");
   const type = input.next.state === "provisioning" ? "agent.workspace.provisioned" : input.next.state === "sealed" ? "agent.workspace.sealed" : input.next.state === "removed" ? "agent.workspace.removed" : "agent.workspace.state.changed";
   return {
@@ -69928,7 +70152,7 @@ var MAX_VERSION_BYTES = 16 * 1024;
 
 // packages/context/dist/filesystem.js
 import { constants as constants14 } from "node:fs";
-import { lstat as lstat32, open as open18, realpath as realpath2 } from "node:fs/promises";
+import { lstat as lstat33, open as open18, realpath as realpath2 } from "node:fs/promises";
 import { relative as relative12, resolve as resolve46, sep as sep12 } from "node:path";
 
 // packages/context/dist/paths.js
@@ -69978,7 +70202,7 @@ async function canonicalRepositoryRoot2(root2) {
   const absoluteRoot = resolve46(root2);
   let stats;
   try {
-    stats = await lstat32(absoluteRoot);
+    stats = await lstat33(absoluteRoot);
   } catch (error) {
     throw new ContextPreparationError("unsafe_document_path", `The repository root cannot be inspected: ${absoluteRoot}`, { cause: error });
   }
@@ -69996,7 +70220,7 @@ async function inspectPath(root2, path) {
     current = resolve46(current, segment);
     let stats;
     try {
-      stats = await lstat32(current);
+      stats = await lstat33(current);
     } catch (error) {
       if (error.code === "ENOENT") {
         return { absolutePath: current, kind: "missing" };
@@ -70048,7 +70272,7 @@ async function readRepositoryFile(root2, path, maximumBytes2 = Number.MAX_SAFE_I
       bytes = buffer.subarray(0, result.bytesRead);
     }
     const after = identity(await handle.stat({ bigint: true }));
-    const pathStats = await lstat32(inspected.absolutePath, { bigint: true });
+    const pathStats = await lstat33(inspected.absolutePath, { bigint: true });
     const resolvedPath = await realpath2(inspected.absolutePath);
     if (!sameIdentity(before, after) || boundedBytesRead !== void 0 && boundedBytesRead !== Number(before.size) || after.size > BigInt(maximumBytes2) || pathStats.isSymbolicLink() || !sameRepositoryPathIdentity(identity(pathStats), after) || resolvedPath !== inspected.absolutePath) {
       throw new ContextPreparationError("document_changed_during_read", `The document path or content changed while it was being read: ${normalized2}`);
@@ -70769,7 +70993,7 @@ var defaultManagedProviderRunDeadlines = {
 
 // packages/orchestrator/dist/repository-snapshot.js
 import { createHash as createHash17 } from "node:crypto";
-import { lstat as lstat33, readdir as readdir15, readlink } from "node:fs/promises";
+import { lstat as lstat34, readdir as readdir15, readlink } from "node:fs/promises";
 import { relative as relative13, resolve as resolve47, sep as sep13 } from "node:path";
 var defaultRepositorySnapshotPolicy = Object.freeze({
   excludedDirectoryNames: Object.freeze([
@@ -70827,7 +71051,7 @@ async function captureRepositorySnapshot(repositoryRoot, policy = defaultReposit
   const excludedPaths = new Set(resolvedPolicy.excludedPaths);
   const root2 = resolve47(repositoryRoot);
   try {
-    const rootStats = await lstat33(root2);
+    const rootStats = await lstat34(root2);
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink())
       throw new Error("unsafe root");
   } catch {
@@ -70869,9 +71093,9 @@ async function captureRepositorySnapshot(repositoryRoot, policy = defaultReposit
         continue;
       }
       try {
-        const before = await lstat33(absolutePath, { bigint: true });
+        const before = await lstat34(absolutePath, { bigint: true });
         const bytes = await readRepositoryFile(root2, path);
-        const after = await lstat33(absolutePath, { bigint: true });
+        const after = await lstat34(absolutePath, { bigint: true });
         if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs) {
           throw new Error("changed while reading");
         }
@@ -70929,6 +71153,12 @@ function projectPatterns(events) {
       reviewArtifactId: null,
       reviewContentHash: null,
       supersededByPatternId: null,
+      previousTargetArtifactId: null,
+      previousTargetContentHash: null,
+      activatedRoleId: null,
+      activatedRoleVersion: null,
+      activatedRoleContractHash: null,
+      activatedRoleProfileHash: null,
       targetKind: "unknown",
       occurrenceCount: 0,
       updatedAt: event.occurredAt
@@ -70950,6 +71180,17 @@ function projectPatterns(events) {
       ]) {
         const value = event.payload[field2];
         if (typeof value === "string") current[field2] = value;
+      }
+      for (const field2 of [
+        "previousTargetArtifactId",
+        "previousTargetContentHash",
+        "activatedRoleId",
+        "activatedRoleVersion",
+        "activatedRoleContractHash",
+        "activatedRoleProfileHash"
+      ]) {
+        const value = event.payload[field2];
+        if (typeof value === "string" || value === null) current[field2] = value;
       }
       const supersededByPatternId = event.payload.supersededByPatternId;
       if (typeof supersededByPatternId === "string" || supersededByPatternId === null)
@@ -71151,7 +71392,7 @@ function terminalEventDraft(input) {
 // apps/cli/src/terminal-knowledge-lifecycle-cache.ts
 import { constants as constants15 } from "node:fs";
 import { randomUUID as randomUUID6 } from "node:crypto";
-import { lstat as lstat34, mkdir as mkdir13, open as open19, readFile as readFile19, rename as rename10, rm as rm9 } from "node:fs/promises";
+import { lstat as lstat35, mkdir as mkdir13, open as open19, readFile as readFile19, rename as rename10, rm as rm9 } from "node:fs/promises";
 import { resolve as resolve49 } from "node:path";
 
 // apps/cli/src/version-command.ts
@@ -71174,7 +71415,7 @@ var KNOWLEDGE_PROJECTION_COORDINATE_PATHS = [
   ".lervo/state/knowledge/current/source-units.json",
   ".lervo/state/knowledge/current/structural/manifests/current.json"
 ];
-var HASH9 = /^sha256:[a-f0-9]{64}$/u;
+var HASH10 = /^sha256:[a-f0-9]{64}$/u;
 function supplementalSourcesDigest(sources) {
   return sha2562(
     canonicalJson3(
@@ -71222,7 +71463,7 @@ function validIssue(value) {
 }
 function validateCache(value) {
   const cache = value;
-  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 2 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH9.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH9.test(cache.supplementalSourcesDigest) || typeof cache.knowledgeProjectionDigest !== "string" || !HASH9.test(cache.knowledgeProjectionDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue)) {
+  if (cache === null || typeof cache !== "object" || cache.schemaVersion !== 2 || typeof cache.cliVersion !== "string" || typeof cache.repositoryRevision !== "string" || !HASH10.test(cache.repositoryRevision) || typeof cache.supplementalSourcesDigest !== "string" || !HASH10.test(cache.supplementalSourcesDigest) || typeof cache.knowledgeProjectionDigest !== "string" || !HASH10.test(cache.knowledgeProjectionDigest) || !Array.isArray(cache.issues) || cache.issues.length > 128 || !cache.issues.every(validIssue)) {
     return null;
   }
   return cache;
@@ -71230,7 +71471,7 @@ function validateCache(value) {
 async function readTerminalKnowledgeLifecycleCache(input) {
   try {
     const target = resolve49(input.root, CACHE_PATH);
-    const stats = await lstat34(target);
+    const stats = await lstat35(target);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_CACHE_BYTES) return null;
     const cache = validateCache(JSON.parse(await readFile19(target, "utf8")));
     if (cache === null) return null;
@@ -71245,7 +71486,7 @@ async function readTerminalKnowledgeLifecycleCache(input) {
   }
 }
 async function writeTerminalKnowledgeLifecycleCache(input) {
-  if (!HASH9.test(input.repositoryRevision) || input.issues.length > 128 || !input.issues.every(validIssue)) {
+  if (!HASH10.test(input.repositoryRevision) || input.issues.length > 128 || !input.issues.every(validIssue)) {
     throw new Error("The terminal knowledge lifecycle cache input is invalid.");
   }
   const coordinates = await cacheCoordinates(input);
@@ -71253,7 +71494,7 @@ async function writeTerminalKnowledgeLifecycleCache(input) {
     throw new Error("The terminal knowledge lifecycle cache coordinates are unavailable.");
   const directory = resolve49(input.root, ".lervo/state/terminal-integration");
   await mkdir13(directory, { recursive: true, mode: 448 });
-  const directoryStats = await lstat34(directory);
+  const directoryStats = await lstat35(directory);
   if (!directoryStats.isDirectory() || directoryStats.isSymbolicLink())
     throw new Error("Unsafe terminal knowledge lifecycle cache directory.");
   const cache = {
@@ -71487,7 +71728,7 @@ async function inspectTerminalRepositoryKnowledgeLifecycle(input) {
 // apps/cli/src/terminal-prepared-snapshot.ts
 import { constants as constants16 } from "node:fs";
 import { randomUUID as randomUUID7 } from "node:crypto";
-import { lstat as lstat35, mkdir as mkdir14, open as open20, readFile as readFile20, readdir as readdir16, rename as rename11, rm as rm10 } from "node:fs/promises";
+import { lstat as lstat36, mkdir as mkdir14, open as open20, readFile as readFile20, readdir as readdir16, rename as rename11, rm as rm10 } from "node:fs/promises";
 import { resolve as resolve50 } from "node:path";
 var DIRECTORY = ".lervo/state/terminal-integration/prepared-snapshots";
 var MAXIMUM_SNAPSHOTS = 64;
@@ -71508,7 +71749,7 @@ function validate(value) {
 async function writePreparedRepositorySnapshot(root2, snapshot) {
   const directory = resolve50(root2, DIRECTORY);
   await mkdir14(directory, { recursive: true, mode: 448 });
-  const stats = await lstat35(directory);
+  const stats = await lstat36(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe prepared snapshot state directory.");
   const bytes = `${JSON.stringify(snapshot)}
@@ -71541,7 +71782,7 @@ async function writePreparedRepositorySnapshot(root2, snapshot) {
 async function readPreparedRepositorySnapshot(root2, observationId) {
   try {
     const path = snapshotPath(root2, observationId);
-    const stats = await lstat35(path);
+    const stats = await lstat36(path);
     if (!stats.isFile() || stats.isSymbolicLink() || stats.size > MAXIMUM_BYTES2)
       throw new Error("The prepared repository snapshot is unsafe.");
     const snapshot = validate(JSON.parse(await readFile20(path, "utf8")));
@@ -71901,9 +72142,50 @@ async function recordObservedTerminalTurn(input) {
 
 // packages/verification/dist/suite-loader.js
 var import_yaml26 = __toESM(require_dist(), 1);
-import { constants as constants17 } from "node:fs";
-import { lstat as lstat36, open as open21, realpath as realpath3 } from "node:fs/promises";
+import { lstat as lstat38, realpath as realpath3 } from "node:fs/promises";
 import { resolve as resolve51 } from "node:path";
+
+// packages/verification/dist/suite-file-reader.js
+import { constants as constants17 } from "node:fs";
+import { lstat as lstat37, open as open21 } from "node:fs/promises";
+function boundedRegularFile2(observation, maximumBytes2) {
+  return observation.isFile() && !observation.isSymbolicLink() && observation.size <= maximumBytes2;
+}
+function sameMetadata3(left, right) {
+  return left.size === right.size && left.mtimeNs === right.mtimeNs && left.ctimeNs === right.ctimeNs;
+}
+function sameObservation(left, right) {
+  return sameFileIdentityWithinStatSurface(left, right) && sameMetadata3(left, right);
+}
+function sameAcrossStatSurfaces(pathObservation, handleObservation) {
+  return sameFileIdentityAcrossStatSurfaces(pathObservation, handleObservation) && sameMetadata3(pathObservation, handleObservation);
+}
+async function readVerificationSuiteFile(path, maximumBytes2) {
+  const limit = BigInt(maximumBytes2);
+  const beforePath = await lstat37(path, { bigint: true });
+  if (!boundedRegularFile2(beforePath, limit)) {
+    throw new VerificationError("verification_layout_invalid", "The verification suite file is not a safe regular file or exceeds the size limit.");
+  }
+  const handle = await open21(path, constants17.O_RDONLY | (constants17.O_NOFOLLOW ?? 0));
+  try {
+    const openedHandle = await handle.stat({ bigint: true });
+    const afterOpenPath = await lstat37(path, { bigint: true });
+    if (!boundedRegularFile2(openedHandle, limit) || !boundedRegularFile2(afterOpenPath, limit) || !sameObservation(beforePath, afterOpenPath) || !sameAcrossStatSurfaces(afterOpenPath, openedHandle)) {
+      throw new VerificationError("verification_layout_invalid", "The verification suite changed before it was read.");
+    }
+    const bytes = await handle.readFile();
+    const afterReadHandle = await handle.stat({ bigint: true });
+    const afterReadPath = await lstat37(path, { bigint: true });
+    if (!boundedRegularFile2(afterReadHandle, limit) || !boundedRegularFile2(afterReadPath, limit) || !sameObservation(openedHandle, afterReadHandle) || !sameObservation(afterOpenPath, afterReadPath) || !sameAcrossStatSurfaces(afterReadPath, afterReadHandle)) {
+      throw new VerificationError("verification_layout_invalid", "The verification suite changed while it was being read.");
+    }
+    return bytes;
+  } finally {
+    await handle.close();
+  }
+}
+
+// packages/verification/dist/suite-loader.js
 var MAXIMUM_SUITE_BYTES = 64 * 1024;
 var SUITE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
 async function loadVerificationSuite(repositoryRoot, suiteId) {
@@ -71913,7 +72195,7 @@ async function loadVerificationSuite(repositoryRoot, suiteId) {
   const root2 = resolve51(repositoryRoot);
   const directory = resolve51(root2, ".lervo/verifications");
   try {
-    const stats = await lstat36(directory);
+    const stats = await lstat38(directory);
     const expectedDirectory = resolve51(await realpath3(root2), ".lervo/verifications");
     if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath3(directory) !== expectedDirectory) {
       throw new Error("unsafe directory");
@@ -71922,18 +72204,8 @@ async function loadVerificationSuite(repositoryRoot, suiteId) {
     throw new VerificationError("verification_layout_invalid", "The verification suite directory is not a safe real directory.", { cause: error });
   }
   const path = resolve51(directory, `${suiteId}.yaml`);
-  let handle;
   try {
-    const before = await lstat36(path, { bigint: true });
-    if (!before.isFile() || before.isSymbolicLink() || before.size > MAXIMUM_SUITE_BYTES) {
-      throw new VerificationError("verification_layout_invalid", "The verification suite file is not a safe regular file or exceeds the size limit.");
-    }
-    handle = await open21(path, constants17.O_RDONLY | (constants17.O_NOFOLLOW ?? 0));
-    const bytes = await handle.readFile();
-    const after = await handle.stat({ bigint: true });
-    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs) {
-      throw new VerificationError("verification_layout_invalid", "The verification suite changed while it was being read.");
-    }
+    const bytes = await readVerificationSuiteFile(path, MAXIMUM_SUITE_BYTES);
     let value;
     try {
       value = (0, import_yaml26.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
@@ -71953,8 +72225,6 @@ async function loadVerificationSuite(repositoryRoot, suiteId) {
       throw new VerificationError("verification_suite_not_found", `Verification suite ${suiteId} was not found.`);
     }
     throw new VerificationError("verification_layout_invalid", "The verification suite file could not be read safely.", { cause: error });
-  } finally {
-    await handle?.close();
   }
 }
 
@@ -72179,7 +72449,7 @@ import { parseArgs as parseArgs3 } from "node:util";
 // apps/cli/src/terminal-activation-state.ts
 import { constants as constants18 } from "node:fs";
 import { randomUUID as randomUUID8 } from "node:crypto";
-import { lstat as lstat37, mkdir as mkdir15, open as open22, readFile as readFile21, rename as rename12, rm as rm11 } from "node:fs/promises";
+import { lstat as lstat39, mkdir as mkdir15, open as open22, readFile as readFile21, rename as rename12, rm as rm11 } from "node:fs/promises";
 import { resolve as resolve53 } from "node:path";
 function activationPath(root2, provider, event) {
   return resolve53(
@@ -72195,7 +72465,7 @@ async function writeTerminalActivationReceipt(root2, receipt) {
   } catch (error) {
     if (error.code !== "EEXIST") throw error;
   }
-  const stats = await lstat37(directory);
+  const stats = await lstat39(directory);
   if (!stats.isDirectory() || stats.isSymbolicLink())
     throw new Error("Unsafe terminal activation state directory.");
   const target = activationPath(root2, receipt.provider, receipt.hookEvent);
@@ -72224,7 +72494,7 @@ async function readTerminalActivationReceipts(root2) {
     for (const event of ["UserPromptSubmit", "Stop"]) {
       try {
         const path = activationPath(root2, provider, event);
-        const stats = await lstat37(path);
+        const stats = await lstat39(path);
         if (!stats.isFile() || stats.isSymbolicLink() || stats.size > 16 * 1024) continue;
         const value = JSON.parse(await readFile21(path, "utf8"));
         if (value.schemaVersion === 1 && value.contractId === "lervo_terminal_hooks_v2" && value.provider === provider && value.hookEvent === event && typeof value.occurredAt === "string")
@@ -72317,7 +72587,7 @@ function parseTerminalHookInput(value) {
 }
 
 // apps/cli/src/terminal-lifecycle-inspection.ts
-import { lstat as lstat39 } from "node:fs/promises";
+import { lstat as lstat41 } from "node:fs/promises";
 import { resolve as resolve55 } from "node:path";
 
 // apps/cli/src/terminal-workspace-attachment.ts
@@ -72330,14 +72600,14 @@ import { createHash as createHash19 } from "node:crypto";
 import { execFile as execFile3 } from "node:child_process";
 import { createHash as createHash18 } from "node:crypto";
 import { constants as constants19 } from "node:fs";
-import { lstat as lstat38, open as open23, readFile as readFile22, realpath as realpath4 } from "node:fs/promises";
+import { lstat as lstat40, open as open23, readFile as readFile22, realpath as realpath4 } from "node:fs/promises";
 import { dirname as dirname13, isAbsolute as isAbsolute5, resolve as resolve54 } from "node:path";
 import { promisify as promisify3 } from "node:util";
 var execute2 = promisify3(execFile3);
 var COMMIT2 = /^[a-f0-9]{40,64}$/u;
-var HASH10 = /^sha256:[a-f0-9]{64}$/u;
+var HASH11 = /^sha256:[a-f0-9]{64}$/u;
 var MARKER_NAME = "lervo-workspace-owner.json";
-function fail15(code, message, cause) {
+function fail16(code, message, cause) {
   throw new WorkspaceHostError(code, message, cause === void 0 ? void 0 : { cause });
 }
 function stableJson3(value) {
@@ -72358,7 +72628,7 @@ async function git(root2, arguments_) {
     });
     return stdout.trim();
   } catch (error) {
-    fail15("host_git_failed", "The Git workspace operation failed.", error);
+    fail16("host_git_failed", "The Git workspace operation failed.", error);
   }
 }
 async function gitSucceeds(root2, arguments_) {
@@ -72371,7 +72641,7 @@ async function gitSucceeds(root2, arguments_) {
   } catch (error) {
     if (error.code === 1)
       return false;
-    fail15("host_git_failed", "The Git workspace predicate failed.", error);
+    fail16("host_git_failed", "The Git workspace predicate failed.", error);
   }
 }
 async function registeredWorktrees(repositoryRoot) {
@@ -72403,7 +72673,7 @@ async function gitOperationInProgress(workspacePath) {
     "rebase-apply"
   ]) {
     try {
-      await lstat38(resolve54(gitDirectory, name2));
+      await lstat40(resolve54(gitDirectory, name2));
       return true;
     } catch (error) {
       if (error.code !== "ENOENT")
@@ -72418,11 +72688,11 @@ var GitWorkspaceEvidence = class {
     this.binding = binding;
   }
   validMarker(marker) {
-    return marker.schemaVersion === 1 && /^wsp_[a-f0-9]{24}$/u.test(marker.workspaceId) && Number.isSafeInteger(marker.generation) && marker.generation >= 1 && /^rpi_[a-f0-9]{24}$/u.test(marker.repositoryInstanceId) && marker.adapterKind === this.binding.kind && marker.adapterVersion === this.binding.version && /^wpl_[a-f0-9]{24}$/u.test(marker.creationPlanId) && HASH10.test(marker.pathDigest);
+    return marker.schemaVersion === 1 && /^wsp_[a-f0-9]{24}$/u.test(marker.workspaceId) && Number.isSafeInteger(marker.generation) && marker.generation >= 1 && /^rpi_[a-f0-9]{24}$/u.test(marker.repositoryInstanceId) && marker.adapterKind === this.binding.kind && marker.adapterVersion === this.binding.version && /^wpl_[a-f0-9]{24}$/u.test(marker.creationPlanId) && HASH11.test(marker.pathDigest);
   }
   validateRequest(repositoryRoot, workspacePath, marker, allowSamePath = false) {
     if (!isAbsolute5(repositoryRoot) || !isAbsolute5(workspacePath) || resolve54(repositoryRoot) !== repositoryRoot || resolve54(workspacePath) !== workspacePath || !allowSamePath && repositoryRoot === workspacePath || !this.validMarker(marker))
-      fail15("host_coordinate_invalid", "The Git workspace coordinate is invalid.");
+      fail16("host_coordinate_invalid", "The Git workspace coordinate is invalid.");
   }
   async markerMatches(workspacePath, expected) {
     try {
@@ -72432,7 +72702,7 @@ var GitWorkspaceEvidence = class {
         "--git-dir"
       ]);
       const path = resolve54(gitDirectory, MARKER_NAME);
-      const info = await lstat38(path);
+      const info = await lstat40(path);
       if (!info.isFile() || info.isSymbolicLink() || info.size > 16384)
         return false;
       return stableJson3(JSON.parse(await readFile22(path, "utf8"))) === stableJson3(expected);
@@ -72442,7 +72712,7 @@ var GitWorkspaceEvidence = class {
   }
   async writeMarker(workspacePath, marker) {
     if (!this.validMarker(marker))
-      fail15("host_coordinate_invalid", "The workspace ownership marker is invalid.");
+      fail16("host_coordinate_invalid", "The workspace ownership marker is invalid.");
     const gitDirectory = await git(workspacePath, [
       "rev-parse",
       "--path-format=absolute",
@@ -72460,7 +72730,7 @@ var GitWorkspaceEvidence = class {
   async inspect(input) {
     this.validateRequest(input.repositoryRoot, input.workspacePath, input.marker, true);
     if (!COMMIT2.test(input.baseCommit))
-      fail15("host_coordinate_invalid", "The Git inspection base is invalid.");
+      fail16("host_coordinate_invalid", "The Git inspection base is invalid.");
     const worktrees = await registeredWorktrees(input.repositoryRoot);
     let registeredPath = input.workspacePath;
     try {
@@ -72483,7 +72753,7 @@ var GitWorkspaceEvidence = class {
         nativeInstanceDigest: null
       };
     try {
-      const info = await lstat38(input.workspacePath);
+      const info = await lstat40(input.workspacePath);
       if (!info.isDirectory() || info.isSymbolicLink())
         return {
           status: "recovery_required",
@@ -72552,7 +72822,7 @@ var GitWorkspaceEvidence = class {
   }
   async inspectCleanup(request) {
     if (!/^refs\/(?:heads|tags)\/[A-Za-z0-9._/-]{1,512}$/u.test(request.integrationTargetRef) || !COMMIT2.test(request.integratedHeadCommit))
-      fail15("host_coordinate_invalid", "The Git cleanup target coordinate is invalid.");
+      fail16("host_coordinate_invalid", "The Git cleanup target coordinate is invalid.");
     const inspection = await this.inspect(request);
     if (inspection.status === "absent")
       return {
@@ -72593,16 +72863,16 @@ var GitWorkspaceEvidence = class {
   async provisionDetached(request) {
     this.validateRequest(request.repositoryRoot, request.workspacePath, request.marker);
     if (!COMMIT2.test(request.baseCommit) || !/^idk_[A-Za-z0-9_-]{8,128}$/u.test(request.idempotencyKey))
-      fail15("host_coordinate_invalid", "The Git provision binding is invalid.");
+      fail16("host_coordinate_invalid", "The Git provision binding is invalid.");
     const existing = await this.inspect(request);
     if (existing.status !== "absent") {
       if (existing.markerMatched && existing.headCommit === request.baseCommit)
         return existing;
-      fail15("host_effect_uncertain", "A different workspace occupies the provision coordinate.");
+      fail16("host_effect_uncertain", "A different workspace occupies the provision coordinate.");
     }
-    const parentInfo = await lstat38(dirname13(request.workspacePath));
+    const parentInfo = await lstat40(dirname13(request.workspacePath));
     if (!parentInfo.isDirectory() || parentInfo.isSymbolicLink())
-      fail15("host_coordinate_invalid", "The workspace parent must be a real directory.");
+      fail16("host_coordinate_invalid", "The workspace parent must be a real directory.");
     await git(request.repositoryRoot, [
       "worktree",
       "add",
@@ -72613,27 +72883,27 @@ var GitWorkspaceEvidence = class {
     try {
       await this.writeMarker(request.workspacePath, request.marker);
     } catch (error) {
-      fail15("host_effect_uncertain", "The worktree exists without its ownership marker.", error);
+      fail16("host_effect_uncertain", "The worktree exists without its ownership marker.", error);
     }
     return this.inspect(request);
   }
   async removeNonForce(request) {
     this.validateRequest(request.repositoryRoot, request.workspacePath, request.marker);
     if (!/^idk_[A-Za-z0-9_-]{8,128}$/u.test(request.idempotencyKey))
-      fail15("host_coordinate_invalid", "The Git removal binding is invalid.");
+      fail16("host_coordinate_invalid", "The Git removal binding is invalid.");
     const before = await this.inspect(request);
     if (before.status === "absent")
       return before;
     if (!before.markerMatched)
-      fail15("host_marker_mismatch", "The workspace ownership marker changed.");
+      fail16("host_marker_mismatch", "The workspace ownership marker changed.");
     if (before.gitOperationInProgress)
-      fail15("host_operation_in_progress", "A Git operation is in progress.");
+      fail16("host_operation_in_progress", "A Git operation is in progress.");
     if (!before.clean)
-      fail15("host_not_clean", "The workspace contains tracked or untracked changes.");
+      fail16("host_not_clean", "The workspace contains tracked or untracked changes.");
     await git(request.repositoryRoot, ["worktree", "remove", request.workspacePath]);
     const after = await this.inspect(request);
     if (after.status !== "absent")
-      fail15("host_effect_uncertain", "Git did not prove non-force worktree removal.");
+      fail16("host_effect_uncertain", "Git did not prove non-force worktree removal.");
     return after;
   }
 };
@@ -72651,10 +72921,10 @@ var execute3 = promisify4(execFile4);
 var execute4 = promisify5(execFile5);
 
 // packages/workspace-host-git/dist/index.js
-var VERSION3 = "1.0.0";
+var VERSION4 = "1.0.0";
 var GitWorkspaceHostAdapter = class {
   kind = "git";
-  version = VERSION3;
+  version = VERSION4;
   capabilities = {
     provision: true,
     inspect: true,
@@ -73036,7 +73306,7 @@ async function inspectTerminalLifecycle(root2, expected) {
     }
   }
   try {
-    const handoff = await lstat39(resolve55(root2, "HANDOFF.md"));
+    const handoff = await lstat41(resolve55(root2, "HANDOFF.md"));
     if (handoff.isFile() && !handoff.isSymbolicLink())
       issues.push({ code: "legacy_root_handoff_pending", command: "lervo migrate knowledge" });
     else
@@ -73226,8 +73496,21 @@ var MAX_TOTAL_BYTES2 = 16 * 1024 * 1024;
 
 // packages/search-local/dist/observation-files.js
 import { constants as constants21 } from "node:fs";
-import { link as link2, lstat as lstat40, mkdir as mkdir16, open as open25, readdir as readdir17, realpath as realpath5, unlink as unlink3 } from "node:fs/promises";
+import { link as link2, lstat as lstat42, mkdir as mkdir16, open as open25, readdir as readdir17, realpath as realpath5, unlink as unlink3 } from "node:fs/promises";
 import { dirname as dirname14, resolve as resolve57 } from "node:path";
+
+// packages/search-local/dist/stable-file-observation.js
+function sameMetadata4(left, right) {
+  return left.size === right.size && left.mtimeNs === right.mtimeNs && left.ctimeNs === right.ctimeNs;
+}
+function sameFileWithinStatSurface3(left, right) {
+  return sameFileIdentityWithinStatSurface(left, right) && sameMetadata4(left, right);
+}
+function sameFileAcrossStatSurfaces3(left, right) {
+  return sameFileIdentityAcrossStatSurfaces(left, right) && sameMetadata4(left, right);
+}
+
+// packages/search-local/dist/observation-files.js
 var MAX_OBSERVATIONS = 1e4;
 var MAX_FILE_BYTES = 64 * 1024;
 function compareText6(left, right) {
@@ -73243,7 +73526,7 @@ async function safeDirectory(path, create) {
     }
   }
   try {
-    const stats = await lstat40(path);
+    const stats = await lstat42(path);
     if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath5(path) !== path) {
       throw new SearchLocalError("observation_invalid", "The search observation path must be a real directory.");
     }
@@ -73269,7 +73552,7 @@ async function observationPaths(repositoryRoot) {
 async function existingObservationSubdirectory(repositoryRoot, name2) {
   const paths = await observationPaths(repositoryRoot);
   try {
-    await lstat40(paths.state);
+    await lstat42(paths.state);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -73277,7 +73560,7 @@ async function existingObservationSubdirectory(repositoryRoot, name2) {
   }
   await safeDirectory(paths.state, false);
   try {
-    await lstat40(paths.root);
+    await lstat42(paths.root);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -73288,7 +73571,7 @@ async function existingObservationSubdirectory(repositoryRoot, name2) {
   await safeDirectory(paths.root, false);
   const directory = resolve57(paths.root, name2);
   try {
-    await lstat40(directory);
+    await lstat42(directory);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -73302,19 +73585,21 @@ async function existingObservationSubdirectory(repositoryRoot, name2) {
 async function readObservation(path) {
   let handle;
   try {
-    const before = await lstat40(path, { bigint: true });
-    if (!before.isFile() || before.isSymbolicLink() || before.size > BigInt(MAX_FILE_BYTES)) {
+    const beforePath = await lstat42(path, { bigint: true });
+    if (!beforePath.isFile() || beforePath.isSymbolicLink() || beforePath.size > BigInt(MAX_FILE_BYTES)) {
       throw new SearchLocalError("observation_invalid", "The search observation source file is unsafe.");
     }
     handle = await open25(path, constants21.O_RDONLY | (constants21.O_NOFOLLOW ?? 0));
-    const opened = await handle.stat({ bigint: true });
-    if (before.dev !== opened.dev || before.ino !== opened.ino || opened.size > BigInt(MAX_FILE_BYTES)) {
+    const openedHandle = await handle.stat({ bigint: true });
+    const afterOpenPath = await lstat42(path, { bigint: true });
+    if (!openedHandle.isFile() || openedHandle.size > BigInt(MAX_FILE_BYTES) || !afterOpenPath.isFile() || afterOpenPath.isSymbolicLink() || afterOpenPath.size > BigInt(MAX_FILE_BYTES) || !sameFileWithinStatSurface3(beforePath, afterOpenPath) || !sameFileAcrossStatSurfaces3(afterOpenPath, openedHandle)) {
       throw new SearchLocalError("observation_invalid", "The search observation source path changed before it was read.");
     }
-    const buffer = Buffer.alloc(Number(opened.size) + 1);
+    const buffer = Buffer.alloc(Number(openedHandle.size) + 1);
     const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
-    const after = await handle.stat({ bigint: true });
-    if (bytesRead !== Number(opened.size) || opened.size !== after.size || opened.mtimeNs !== after.mtimeNs) {
+    const afterReadHandle = await handle.stat({ bigint: true });
+    const afterReadPath = await lstat42(path, { bigint: true });
+    if (bytesRead !== Number(openedHandle.size) || !afterReadHandle.isFile() || afterReadHandle.size > BigInt(MAX_FILE_BYTES) || !afterReadPath.isFile() || afterReadPath.isSymbolicLink() || afterReadPath.size > BigInt(MAX_FILE_BYTES) || !sameFileWithinStatSurface3(openedHandle, afterReadHandle) || !sameFileWithinStatSurface3(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces3(afterReadPath, afterReadHandle)) {
       throw new SearchLocalError("observation_invalid", "The search observation source changed while it was being read.");
     }
     return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(buffer.subarray(0, bytesRead)));
@@ -73366,7 +73651,7 @@ var MAX_CASE_BYTES = 64 * 1024;
 
 // packages/search-local/dist/policy-file-store.js
 import { constants as constants22 } from "node:fs";
-import { link as link3, lstat as lstat41, mkdir as mkdir17, open as open26, readdir as readdir18, realpath as realpath6, unlink as unlink4 } from "node:fs/promises";
+import { link as link3, lstat as lstat43, mkdir as mkdir17, open as open26, readdir as readdir18, realpath as realpath6, unlink as unlink4 } from "node:fs/promises";
 import { resolve as resolve58 } from "node:path";
 var import_yaml29 = __toESM(require_dist(), 1);
 var MAX_POLICY_BYTES = 64 * 1024;
@@ -73374,7 +73659,7 @@ async function policyDirectory(repositoryRoot, contract, create) {
   try {
     const root2 = await realpath6(repositoryRoot);
     const paths = resolveProjectPaths(root2);
-    const lervo = await lstat41(paths.lervoRoot);
+    const lervo = await lstat43(paths.lervoRoot);
     if (!lervo.isDirectory() || lervo.isSymbolicLink() || await realpath6(paths.lervoRoot) !== paths.lervoRoot) {
       throw new Error("unsafe lervo root");
     }
@@ -73386,14 +73671,14 @@ async function policyDirectory(repositoryRoot, contract, create) {
       });
     else {
       try {
-        await lstat41(directory);
+        await lstat43(directory);
       } catch (error) {
         if (error.code === "ENOENT")
           return null;
         throw error;
       }
     }
-    const stats = await lstat41(directory);
+    const stats = await lstat43(directory);
     if (!stats.isDirectory() || stats.isSymbolicLink() || await realpath6(directory) !== directory) {
       throw new Error("unsafe policy directory");
     }
@@ -73407,14 +73692,20 @@ async function policyDirectory(repositoryRoot, contract, create) {
 async function readPolicy(path, contract) {
   let handle;
   try {
-    const before = await lstat41(path, { bigint: true });
-    if (!before.isFile() || before.isSymbolicLink() || before.size > BigInt(MAX_POLICY_BYTES)) {
+    const beforePath = await lstat43(path, { bigint: true });
+    if (!beforePath.isFile() || beforePath.isSymbolicLink() || beforePath.size > BigInt(MAX_POLICY_BYTES)) {
       throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} is not a safe regular file.`);
     }
     handle = await open26(path, constants22.O_RDONLY | (constants22.O_NOFOLLOW ?? 0));
+    const openedHandle = await handle.stat({ bigint: true });
+    const afterOpenPath = await lstat43(path, { bigint: true });
+    if (!openedHandle.isFile() || openedHandle.size > BigInt(MAX_POLICY_BYTES) || !afterOpenPath.isFile() || afterOpenPath.isSymbolicLink() || afterOpenPath.size > BigInt(MAX_POLICY_BYTES) || !sameFileWithinStatSurface3(beforePath, afterOpenPath) || !sameFileAcrossStatSurfaces3(afterOpenPath, openedHandle)) {
+      throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} changed before it was read.`);
+    }
     const bytes = await handle.readFile();
-    const after = await handle.stat({ bigint: true });
-    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs) {
+    const afterReadHandle = await handle.stat({ bigint: true });
+    const afterReadPath = await lstat43(path, { bigint: true });
+    if (!afterReadHandle.isFile() || afterReadHandle.size > BigInt(MAX_POLICY_BYTES) || !afterReadPath.isFile() || afterReadPath.isSymbolicLink() || afterReadPath.size > BigInt(MAX_POLICY_BYTES) || !sameFileWithinStatSurface3(openedHandle, afterReadHandle) || !sameFileWithinStatSurface3(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces3(afterReadPath, afterReadHandle)) {
       throw new SearchLocalError(contract.errors.invalid, `The ${contract.label} changed while it was being read.`);
     }
     const value = (0, import_yaml29.parse)(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
@@ -75732,8 +76023,8 @@ function createCurrentWorkstreamSearchProjectionContext(workstream) {
   };
 }
 
-// apps/cli/src/terminal-durable-instruction.ts
-async function inspectTerminalInstructionCatalog(input) {
+// apps/cli/src/instruction-catalog.ts
+async function inspectInstructionCatalog(input) {
   const { policy, scan } = input.preparedKnowledge ?? await scanConfiguredRepositoryKnowledge(input.repositoryRoot, {
     supplementalSources: input.supplementalSources
   });
@@ -75782,7 +76073,7 @@ async function prepareTerminalPromptInputs(input) {
           () => ({ coverage: "unavailable", candidates: [] })
         )
       ]);
-      const instructionCatalog = await inspectTerminalInstructionCatalog({
+      const instructionCatalog = await inspectInstructionCatalog({
         repositoryRoot: input.root,
         supplementalSources,
         preparedKnowledge
@@ -75925,7 +76216,7 @@ async function prepareTerminalPromptContext(input) {
       "This search covers only registered knowledge in the current repository. An empty or failed result is not evidence that content is absent from another repository or any external or shared service. Inspect those surfaces through their available tools and configured authority independently.",
       "The following exact-hash publications were loaded and prepared for return through the provider hook. This proves hook-side preparation, not provider acceptance, managed delivery, understanding, or later use.",
       "Use current repository bytes as authority, follow AGENTS.md, and do not treat a recommendation as semantic truth.",
-      `durableInstructionStatus: ${durableInstruction.status}; ruleId: none; targetPath: none; reasons: ${durableInstruction.reasonIds.join(",")}. Direct prompt preparation never materializes a repository rule; use the repository's explicit instruction lifecycle for durable changes.`,
+      `durableInstructionStatus: ${durableInstruction.status}; ruleId: none; targetPath: none; reasons: ${durableInstruction.reasonIds.join(",")}. Direct prompt preparation never materializes a repository rule. When the user explicitly adds a repository-long instruction, perform agent bookkeeping through \`lervo knowledge instruction intake --provider ${input.provider} --stdin\` with the exact request in {schemaVersion:1,request}; inspect the returned Markdown and candidate hash, then use \`lervo knowledge instruction review\` with the exact apply or reject decision. Never infer durability or approval, and never ask the user to run these commands.`,
       formatTerminalAttentionContext(attention2),
       "If the final response explicitly relies on a supplied publication, append its exact Lervo evidence marker as a standalone Markdown HTML comment. Keep the marker out of prose and code. Markdown renderers hide the comment, while raw output retains verifiable evidence. A marker proves only an output reference, never understanding or internal use.",
       finalizationInstruction,

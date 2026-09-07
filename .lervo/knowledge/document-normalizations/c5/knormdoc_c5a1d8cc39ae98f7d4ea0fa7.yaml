@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_044d281704a0888df45f3f7a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_37d32eefca593f54e1925a14
+outputLanguage: en
+outputs:
+  - byteCount: 2337
+    contentHash: sha256:6cdcbd6c1b8c6651517efb95e2f423e188ce287241a8839ac42ccb07b141c6f8
+    path: docs/evidence/foundation/evidence-bound-agent-profile-candidates-v1.md
+    userRegionHash: sha256:6cdcbd6c1b8c6651517efb95e2f423e188ce287241a8839ac42ccb07b141c6f8
+profile: repository_document
+recordId: knormdoc_c5a1d8cc39ae98f7d4ea0fa7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9461f625a4e7995b847f66afada1dd0c183ea3a5a39ccc00d702cf2e3e53199e
+sourcePath: docs/evidence/foundation/evidence-bound-agent-profile-candidates-v1.md
+sourceUnitVersionIds:
+  - uv_088662c60556264d06d8d07b
+  - uv_747699eeefa276ea72536cbd
+  - uv_95b32ee87c55429b4ada491b
+  - uv_a1750b275c9d4e91fb3ea369
+  - uv_c1c057592c752fde96a83778

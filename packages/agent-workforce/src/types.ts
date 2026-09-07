@@ -72,7 +72,7 @@ export interface WorkforceAssignmentRoutineProvenance {
   templateVersion: string;
   templateHash: string;
   invocationId: string;
-  triggerKind: "manual";
+  triggerKind: "manual" | "authenticated_live";
   triggerDigest: string;
   nodeKey: string;
 }

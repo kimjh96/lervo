@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_044d281704a0888df45f3f7a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9b294099eaf73f0756160e5b
+outputLanguage: en
+outputs:
+  - byteCount: 6146
+    contentHash: sha256:37fb6a813848bf31932e20e9977fad541f4d97cba55b5867f3475dde70dd9467
+    path: docs/specifications/execution/authority-and-repository/authenticated-live-triggers.md
+    userRegionHash: sha256:37fb6a813848bf31932e20e9977fad541f4d97cba55b5867f3475dde70dd9467
+profile: specification_document
+recordId: knormdoc_ce2739e9c63d3d5f4648dae6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6fa68f556443cea26ad28aa276d34fa1dd54bb780f34f1df66263ea9bb886a0c
+sourcePath: docs/specifications/execution/authority-and-repository/authenticated-live-triggers.md
+sourceUnitVersionIds:
+  - uv_1844bdf9eed4845b218685f3
+  - uv_382f6f8b2e477c62700f785e
+  - uv_4017ec2a392f7c0e39e763de
+  - uv_64726d25540f98d8a6c45f81
+  - uv_7f27480f6ab92130f0fb4d31
+  - uv_85d10612429058bdb62a659f
+  - uv_d057b349bd6b46dac54190fd
+  - uv_ea5ce2ed569056c76a7163f9

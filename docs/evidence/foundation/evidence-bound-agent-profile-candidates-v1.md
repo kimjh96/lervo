@@ -6,9 +6,9 @@ Observed: 2026-09-06
 
 ## Outcome
 
-Lervo now exposes `role candidate propose|status|review|activate|rollback` over the existing immutable development-pattern lifecycle. Candidates require at least two independent managed role-activation and passed-verification pairs for one exact source role contract. Exact review and activation create or replace one deterministic user-owned repository-role source; explicit rollback deletes the created role or restores its exact predecessor.
+Lervo exposes `role candidate propose|status|review|activate|rollback` over the existing immutable development-pattern lifecycle. Candidates require at least two independent managed role-activation and passed-verification pairs for one exact source role contract. Exact review and activation create or replace one deterministic user-owned repository-role source. Explicit rollback deletes the created role or restores its exact predecessor.
 
-Effect observation reuses the existing baseline and treatment protocol. It retains `attribution=unestablished` and does not grant rollback authority.
+Effect observation reuses the existing baseline and treatment protocol, retains `attribution=unestablished`, and grants no rollback authority.
 
 Packed consumer witness: `run_5dcac598152945ee9823ac7a9b1b7b2e`. Each regression uses a fresh temporary repository; this run identifies the current observation, not a stable fixture coordinate.
 

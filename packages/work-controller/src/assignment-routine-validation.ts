@@ -133,14 +133,24 @@ export function validateAndOrderAssignmentRoutineRequest(
   const invalidNode = template.nodes.find((node) => !validNode(node));
   if (invalidNode !== undefined)
     throw new TypeError(`The assignment routine node ${invalidNode.nodeKey} is invalid.`);
-  if (
-    request.trigger.schemaVersion !== 1 ||
-    request.trigger.kind !== "manual" ||
-    !HASH.test(request.trigger.requestDigest) ||
-    !HASH.test(request.trigger.idempotencyKey) ||
-    !Number.isFinite(Date.parse(request.trigger.observedAt))
-  )
-    throw new TypeError("The assignment routine manual trigger is invalid.");
+  const trigger = request.trigger;
+  const commonTriggerValid =
+    trigger.schemaVersion === 1 &&
+    HASH.test(trigger.requestDigest) &&
+    HASH.test(trigger.idempotencyKey) &&
+    Number.isFinite(Date.parse(trigger.observedAt));
+  const authenticatedLiveValid =
+    trigger.kind === "authenticated_live" &&
+    ROUTINE_ID.test(trigger.adapterId) &&
+    trigger.adapterId.length <= 128 &&
+    VERSION.test(trigger.adapterVersion) &&
+    HASH.test(trigger.descriptorHash) &&
+    ROUTINE_ID.test(trigger.sourceId) &&
+    trigger.sourceId.length <= 128 &&
+    HASH.test(trigger.authorizationHash) &&
+    HASH.test(trigger.authenticationReceiptHash);
+  if (!commonTriggerValid || (trigger.kind !== "manual" && !authenticatedLiveValid))
+    throw new TypeError("The assignment routine trigger is invalid.");
   const keys = new Set(template.nodes.map((node) => node.nodeKey));
   if (
     keys.size !== template.nodes.length ||

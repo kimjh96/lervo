@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_044d281704a0888df45f3f7a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d6fd25637eeabc5b05aae647
+outputLanguage: en
+outputs:
+  - byteCount: 1671
+    contentHash: sha256:0a6ff28640991acd2ad0bbbf8cfa8ae246deac3ced924c950dc5f6a2b763cdc7
+    path: docs/evidence/foundation/authenticated-live-webhook-trigger-v1.md
+    userRegionHash: sha256:0a6ff28640991acd2ad0bbbf8cfa8ae246deac3ced924c950dc5f6a2b763cdc7
+profile: repository_document
+recordId: knormdoc_3c27db1c13334f33e377725e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:28aaea92df04b591c7e27e08e66d73379a4493e20db948cea30d534985bf1875
+sourcePath: docs/evidence/foundation/authenticated-live-webhook-trigger-v1.md
+sourceUnitVersionIds:
+  - uv_39f20df98bae4a69c87acc03
+  - uv_5b57eb8ed8757c3b2ee33e4a
+  - uv_7253e79743769314dd2d9cd5
+  - uv_9bc2b32118fd0f7c93066e33
+  - uv_f5020523179be7ce1d477cef

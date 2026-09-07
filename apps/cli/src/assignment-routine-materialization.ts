@@ -13,8 +13,10 @@ import {
 } from "@lervo/agent-workforce";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { resolveRoleContract } from "@lervo/roles";
+import type { LiveTriggerAdmissionPlanV1 } from "@lervo/live-trigger-contract";
 import { assignmentRoutineDigest, createAssignmentRoutinePlan } from "@lervo/work-controller";
 
+import { assertAssignmentRoutineAuthority } from "./assignment-routine-authority.js";
 import { recordWorkforceEvent } from "./workforce-events.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 
@@ -83,7 +85,12 @@ export async function materializeAssignmentRoutine(input: {
   repositoryRoot: string;
   request: AssignmentRoutineRequestV1;
   applyPlanId?: string;
+  liveTriggerPlan?: LiveTriggerAdmissionPlanV1;
 }): Promise<MaterializeAssignmentRoutineResult> {
+  assertAssignmentRoutineAuthority({
+    request: input.request,
+    ...(input.liveTriggerPlan === undefined ? {} : { liveTriggerPlan: input.liveTriggerPlan }),
+  });
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
     const inspected = await currentPlan(storage, input.request);

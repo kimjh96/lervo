@@ -35,11 +35,28 @@ export interface AssignmentRoutineManualTriggerV1 {
   observedAt: string;
 }
 
+export interface AssignmentRoutineAuthenticatedLiveTriggerV1 {
+  schemaVersion: 1;
+  kind: "authenticated_live";
+  requestDigest: string;
+  idempotencyKey: string;
+  observedAt: string;
+  adapterId: string;
+  adapterVersion: string;
+  descriptorHash: string;
+  sourceId: string;
+  authorizationHash: string;
+  authenticationReceiptHash: string;
+}
+
+export type AssignmentRoutineTriggerV1 =
+  AssignmentRoutineManualTriggerV1 | AssignmentRoutineAuthenticatedLiveTriggerV1;
+
 export interface AssignmentRoutineRequestV1 {
   schemaVersion: 1;
   workstreamId: string;
   template: AssignmentRoutineTemplateV1;
-  trigger: AssignmentRoutineManualTriggerV1;
+  trigger: AssignmentRoutineTriggerV1;
 }
 
 export interface AssignmentRoutineRoleContractV1 {
@@ -71,7 +88,7 @@ export interface AssignmentRoutineProvenanceV1 {
   templateVersion: string;
   templateHash: string;
   invocationId: string;
-  triggerKind: "manual";
+  triggerKind: AssignmentRoutineTriggerV1["kind"];
   triggerDigest: string;
   nodeKey: string;
 }

@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_044d281704a0888df45f3f7a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_23d30f4aed97a11bb3eb4809
+outputLanguage: en
+outputs:
+  - byteCount: 3073
+    contentHash: sha256:6cae857ae7fb60b2ef01ab28cecd552d1bf160e39bdee4acb19f9fe0181820fc
+    path: docs/decisions/execution/orchestration/0378-install-authenticated-live-webhook-triggers.md
+    userRegionHash: sha256:6cae857ae7fb60b2ef01ab28cecd552d1bf160e39bdee4acb19f9fe0181820fc
+profile: decision_record
+recordId: knormdoc_f5a56ced4b0e84b68c07dd1a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f92eaa5d6c62849a541cf56a5dc00eb4b2861232ba816c0c2042af82e3e2b62e
+sourcePath: docs/decisions/execution/orchestration/0378-install-authenticated-live-webhook-triggers.md
+sourceUnitVersionIds:
+  - uv_0629c69cc4541f837b0a7dc3
+  - uv_15a6f7d33239476f0b763ff5
+  - uv_70832014327c34e3f6cda5ec
+  - uv_c82c34afc191cb6289df18c9
+  - uv_cf9b7a8e9f6de17e3b79204e
+  - uv_e6e00f6721afd9e2ffeb27b9

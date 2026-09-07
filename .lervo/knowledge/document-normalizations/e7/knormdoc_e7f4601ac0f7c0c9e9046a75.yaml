@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_044d281704a0888df45f3f7a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_db7776cfa7aa569197ee5c6f
+outputLanguage: en
+outputs:
+  - byteCount: 401
+    contentHash: sha256:779cf9d20e3dd85448d816c59035d04f30aeea5a0c9257e2fd7abebb6abec3aa
+    path: docs/specifications/execution/authority-and-repository/entrypoints-and-language.md
+    userRegionHash: sha256:779cf9d20e3dd85448d816c59035d04f30aeea5a0c9257e2fd7abebb6abec3aa
+  - byteCount: 207
+    contentHash: sha256:f56d81f44c06cc9d5c0554dbed4a720d5fc8e03acbf162d094e6339e0c26b67f
+    path: docs/specifications/execution/authority-and-repository/entrypoints-and-language/initialization-and-state.md
+    userRegionHash: sha256:f56d81f44c06cc9d5c0554dbed4a720d5fc8e03acbf162d094e6339e0c26b67f
+  - byteCount: 351
+    contentHash: sha256:fb83dcb843d154d633f954af84b6780ce6b9e1959ee0fe1f3c926567f9ff439d
+    path: docs/specifications/execution/authority-and-repository/entrypoints-and-language/instruction-bridge-upgrades.md
+    userRegionHash: sha256:fb83dcb843d154d633f954af84b6780ce6b9e1959ee0fe1f3c926567f9ff439d
+  - byteCount: 525
+    contentHash: sha256:77a288235b05a86654e10d7c65ab9cc0c584d01daf4da2370565f229a06a3d1c
+    path: docs/specifications/execution/authority-and-repository/entrypoints-and-language/publication-language.md
+    userRegionHash: sha256:77a288235b05a86654e10d7c65ab9cc0c584d01daf4da2370565f229a06a3d1c
+profile: specification_document
+recordId: knormdoc_e7f4601ac0f7c0c9e9046a75
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:66dc5dab2a577fd60b500ecf187ad4e77f11408eda287769cc5a1629fc5dba3c
+sourcePath: docs/specifications/execution/authority-and-repository/entrypoints-and-language.md
+sourceUnitVersionIds:
+  - uv_78ff09289eccb05ff6d3b8a2

@@ -35,6 +35,8 @@ Preview with `lervo init --dry-run --name my-project`. Initialization completes 
 
 After installing a newer CLI, run `lervo upgrade`, review its exact reconciliation plan, then apply it. User and provider authority remain separate.
 
+An owner-authorized signed webhook can materialize a fixed assignment routine with `lervo trigger webhook serve --config <config.json>`. The listener is loopback-only; external payloads never become assignment instructions, and provider execution remains separate.
+
 ## Workflows
 
 - [Knowledge review, document ownership, and exchange](https://github.com/kimjh96/lervo/blob/main/docs/knowledge/repository/knowledge.md)

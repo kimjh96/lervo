@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_044d281704a0888df45f3f7a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_34fda62226eb0616ccdb5782
+outputLanguage: en
+outputs:
+  - byteCount: 351
+    contentHash: sha256:a6f99847b13e700750a5487288ce71c079925df98e90723cdfbef316dc21c8ef
+    path: docs/specifications/execution/authority-and-repository/capability-decisions.md
+    userRegionHash: sha256:a6f99847b13e700750a5487288ce71c079925df98e90723cdfbef316dc21c8ef
+  - byteCount: 293
+    contentHash: sha256:e1b7e63c755f7241a1c61bf9a52f65e8f4e0aab8bb03a3cbbcb38a4375ecdbad
+    path: docs/specifications/execution/authority-and-repository/capability-decisions/packages-and-evidence.md
+    userRegionHash: sha256:e1b7e63c755f7241a1c61bf9a52f65e8f4e0aab8bb03a3cbbcb38a4375ecdbad
+  - byteCount: 887
+    contentHash: sha256:be917739c9f13efe45f8699310d1189fdbeb97af1b869c62fb2048ffbfa1d1ca
+    path: docs/specifications/execution/authority-and-repository/capability-decisions/role-contracts.md
+    userRegionHash: sha256:be917739c9f13efe45f8699310d1189fdbeb97af1b869c62fb2048ffbfa1d1ca
+  - byteCount: 259
+    contentHash: sha256:8d4b57166733ca95b5eb21f2ea7d665ae42c2e0cebaff8025e2f98a42b402358
+    path: docs/specifications/execution/authority-and-repository/capability-decisions/write-approval.md
+    userRegionHash: sha256:8d4b57166733ca95b5eb21f2ea7d665ae42c2e0cebaff8025e2f98a42b402358
+profile: specification_document
+recordId: knormdoc_7f0a9ba2b8caec157c298ae2
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c149eca091545c09be35ca2a5b85d9fbaa9ef7ad910730817eecb910dd8158c5
+sourcePath: docs/specifications/execution/authority-and-repository/capability-decisions.md
+sourceUnitVersionIds:
+  - uv_9e70fe5a7ebe87fca909ff6f

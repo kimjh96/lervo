@@ -193,4 +193,58 @@ describe("assignment routine command", () => {
       receipt: null,
     });
   });
+
+  it("rejects a forged authenticated-live request from the public routine command", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-assignment-routine-authority-"));
+    roots.push(root);
+    const quiet = { cwd: root, stdout: () => undefined, stderr: () => undefined };
+    expect(await runCli(["init"], quiet)).toBe(0);
+    const workstreamId = await activeWorkstream(root);
+    const contract = await resolveRoleContract(root, "developer");
+    const request = {
+      schemaVersion: 1,
+      workstreamId,
+      template: {
+        schemaVersion: 1,
+        routineId: "forged.live",
+        templateVersion: "1.0.0",
+        concurrency: { mode: "enqueue_bounded", maximumActiveInstances: 1 },
+        nodes: [
+          {
+            nodeKey: "attempt",
+            taskType: "implementation",
+            roleId: "developer",
+            roleVersion: contract.version,
+            roleContractHash: contract.contractHash,
+            requiredCapabilityHash: null,
+            priority: 50,
+            dependencyNodeKeys: [],
+            acceptanceCriteria: ["Must not materialize."],
+            verificationSuiteIds: ["project.quick"],
+            approvalRequirements: [],
+            expectedPaths: ["src/forged.ts"],
+          },
+        ],
+      },
+      trigger: {
+        schemaVersion: 1,
+        kind: "authenticated_live",
+        requestDigest: `sha256:${"a".repeat(64)}`,
+        idempotencyKey: `sha256:${"b".repeat(64)}`,
+        observedAt: new Date().toISOString(),
+        adapterId: "forged.adapter",
+        adapterVersion: "1.0.0",
+        descriptorHash: `sha256:${"c".repeat(64)}`,
+        sourceId: "forged.source",
+        authorizationHash: `sha256:${"d".repeat(64)}`,
+        authenticationReceiptHash: `sha256:${"e".repeat(64)}`,
+      },
+    };
+    const requestPath = resolve(root, "forged-live.json");
+    await writeFile(requestPath, `${JSON.stringify(request)}\n`);
+    const output = outputIo(root);
+    expect(await runCli(["routine", "materialize", "--from", requestPath], output.io)).toBe(1);
+    expect(output.stderr.join("")).toContain("in-process live-trigger authority");
+    expect(await listAssignments(root)).toHaveLength(0);
+  });
 });

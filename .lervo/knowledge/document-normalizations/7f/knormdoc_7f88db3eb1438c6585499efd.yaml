@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_044d281704a0888df45f3f7a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f6eaaec79ec20130eb430ecc
+outputLanguage: en
+outputs:
+  - byteCount: 1387
+    contentHash: sha256:16ad413b8bc7d5fee7837f35548480275b9649213579dfc5c56d1cab7b7a7bbb
+    path: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/development-patterns/observation-and-transition.md
+    userRegionHash: sha256:16ad413b8bc7d5fee7837f35548480275b9649213579dfc5c56d1cab7b7a7bbb
+profile: specification_document
+recordId: knormdoc_7f88db3eb1438c6585499efd
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:99d8203d65f9b6ec4b1ac423aa23d37342a2d5ba80b2ec5b9dbee25fdfd81de2
+sourcePath: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/development-patterns/observation-and-transition.md
+sourceUnitVersionIds:
+  - uv_8b3cbff21fb1c677688a5fbc

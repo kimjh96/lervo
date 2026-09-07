@@ -13,6 +13,7 @@ export const foundationAdverseSuiteBindings = [
   { area: "recovery", path: "packages/capabilities/test/capabilities.test.ts" },
   { area: "recovery", path: "packages/sync/test/worker.test.ts" },
   { area: "recovery", path: "packages/remote-command/test/remote-command.test.ts" },
+  { area: "recovery", path: "packages/live-trigger-sqlite/test/live-trigger-store.test.ts" },
   {
     area: "recovery",
     path: "packages/organization-deployment-contract/test/organization-fleet.test.ts",
@@ -21,6 +22,7 @@ export const foundationAdverseSuiteBindings = [
   { area: "concurrency", path: "packages/agent-workforce/test/workspace-lifecycle.test.ts" },
   { area: "concurrency", path: "packages/orchestrator/test/workspace-assignment-claim.test.ts" },
   { area: "concurrency", path: "packages/event-store-sqlite/test/outbox.test.ts" },
+  { area: "concurrency", path: "apps/cli/test/live-trigger-command.test.ts" },
   { area: "security", path: "packages/event-contract/test/redaction.test.ts" },
   { area: "security", path: "packages/capabilities/test/capabilities.test.ts" },
   {
@@ -28,6 +30,7 @@ export const foundationAdverseSuiteBindings = [
     path: "packages/organization-credential-source-file/test/owner-only-file-source.test.ts",
   },
   { area: "security", path: "packages/remote-command-sqlite/test/replay-store.test.ts" },
+  { area: "security", path: "packages/adapter-webhook/test/adapter-webhook.test.ts" },
   { area: "compatibility", path: "packages/project/test/event-writer-activation.test.ts" },
   { area: "compatibility", path: "apps/cli/test/upgrade-command.test.ts" },
   { area: "compatibility", path: "packages/project/test/state-retention.test.ts" },

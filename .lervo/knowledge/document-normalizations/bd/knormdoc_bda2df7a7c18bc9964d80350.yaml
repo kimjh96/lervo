@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_044d281704a0888df45f3f7a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6a5267a26b594cd46c69adbc
+outputLanguage: en
+outputs:
+  - byteCount: 331
+    contentHash: sha256:638eb7aee8f49c8c4277eabc07b77af98f1ed16c3691ec577669e5f0ec722d8f
+    path: docs/specifications/execution/lifecycle-and-context/context-evidence.md
+    userRegionHash: sha256:638eb7aee8f49c8c4277eabc07b77af98f1ed16c3691ec577669e5f0ec722d8f
+  - byteCount: 895
+    contentHash: sha256:fda4acf825722b7a85eea597714480ce284d56cfb170c87dc7e7fbdf39a77875
+    path: docs/specifications/execution/lifecycle-and-context/context-evidence/coverage-and-summaries.md
+    userRegionHash: sha256:fda4acf825722b7a85eea597714480ce284d56cfb170c87dc7e7fbdf39a77875
+  - byteCount: 1459
+    contentHash: sha256:2d3a83ff9eda80071345178fa3483d4ea6adff1655117437aa6513b3e8db2cff
+    path: docs/specifications/execution/lifecycle-and-context/context-evidence/levels-and-eligibility.md
+    userRegionHash: sha256:2d3a83ff9eda80071345178fa3483d4ea6adff1655117437aa6513b3e8db2cff
+profile: specification_document
+recordId: knormdoc_bda2df7a7c18bc9964d80350
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bb56162c73f9a1641e0ac537b67fb3371db1caf695f9fb63b59c3aa14bfc8ac2
+sourcePath: docs/specifications/execution/lifecycle-and-context/context-evidence.md
+sourceUnitVersionIds:
+  - uv_b8ba08b0ad196ee4d8200130
+  - uv_cdaf0f79011c9d2768d88f16

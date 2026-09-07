@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_044d281704a0888df45f3f7a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b210483913bee2c9d7bba5bc
+outputLanguage: en
+outputs:
+  - byteCount: 1031
+    contentHash: sha256:c8a13ebe7680489f0192925c798a56946b1e371710e280515cc27e9eb9b7ac2f
+    path: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/development-patterns/evaluation-and-effect.md
+    userRegionHash: sha256:c8a13ebe7680489f0192925c798a56946b1e371710e280515cc27e9eb9b7ac2f
+profile: specification_document
+recordId: knormdoc_535407e555d5c3f12f595701
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:19d2846285f715b257b5420bc58317f528330b948744b3b2b0d06c41adeb3cb1
+sourcePath: docs/specifications/execution/events-and-privacy/knowledge-and-terminal-integration/development-patterns/evaluation-and-effect.md
+sourceUnitVersionIds:
+  - uv_380bda9740400e1e56a27d36

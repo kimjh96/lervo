@@ -4,7 +4,7 @@
 
 Plans bind state, expected paths, before and desired hashes, and verification. Apply rejects symlinks, escapes, changed targets, unapproved paths, and stale plans.
 
-Every managed-write provider turn receives the exact repository-relative target path and an instruction to change only that path, for both single-file and multi-file schedules. Write authorization and byte verification remain authoritative.
+Every managed-write provider turn receives the exact repository-relative target path and an instruction to change only that path, in both single-file and multi-file schedules. Write authorization and byte verification remain authoritative.
 
 Snapshots cover repository-authored source and tracked generated files. They exclude runtime data and state, dependencies, and conventional generated build or cache directories. User content changes only through explicit content-bound operations. Managed blocks preserve outside bytes. Generated files may change or be deleted only when recorded generation proves current-hash ownership.
 
