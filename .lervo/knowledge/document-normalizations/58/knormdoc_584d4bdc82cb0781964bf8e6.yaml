@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_809995a5788e0162bba58820
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e938edf206f04c90d5c97e9d
+outputLanguage: en
+outputs:
+  - byteCount: 2861
+    contentHash: sha256:6a4a3c68129c93798bd96ad45cbc2370e2731e4ed3d92de5d5e14b8cf50bb664
+    path: docs/decisions/coordination/remote-control/0145-authenticated-remote-command-http-delivery.md
+    userRegionHash: sha256:6a4a3c68129c93798bd96ad45cbc2370e2731e4ed3d92de5d5e14b8cf50bb664
+profile: decision_record
+recordId: knormdoc_584d4bdc82cb0781964bf8e6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5f4293fa069efe6080684f358736443bde313d1f169d71e7364ec4be38ea3dbc
+sourcePath: docs/decisions/coordination/remote-control/0145-authenticated-remote-command-http-delivery.md
+sourceUnitVersionIds:
+  - uv_0a113e7573e60c397efd825f
+  - uv_3589e2fd27a1a938dd09fe44
+  - uv_4619a30b862da841fa173a02
+  - uv_e39ffdcc1e32b44576135396
