@@ -19,20 +19,6 @@ shared control plane
   -> conversation adapters and external agent identities
 ```
 
-A role is a reusable contract; a hired agent is the durable expert; a provider executes one turn. A platform participant speaks for the agent. A Discord bot is the agent's one-to-one external principal for one deployment binding. Channel membership, employment, provider choice, and execution authority are separate state transitions.
-
-The `@lervo/agent-organization` domain projection replays repository events for team binding, exact hired-agent membership revisions, external-principal deployments, channel membership, and deliberation participation. It owns lifecycle invariants without depending on Discord, provider adapters, CLI parsing, or storage. The CLI owns the explicit binding mutation. The Node composition boundary hashes native Discord coordinates and validates the resulting runtime identity before opening ingress. These boundaries separate domain policy, mutation coordination, configuration parsing, and external integration.
-
-Raw external IDs and credentials do not enter organization history. Stable hashes bind the deployment; owner-only Node configuration retains native Discord coordinates. An organization-bound runtime fails closed if any repository, team, agent, role, provider-policy, bot, configuration, or channel coordinate differs. Standalone local operation remains available when no organization binding is configured.
-
-Agent context is keyed by agent ID and assembled from exact identity, work, conversation, and reviewed-expertise sources. Provider-native memory and generated summaries are projections, not authority. Agents remain continuous across Codex, Claude, and future providers without treating hidden model state as durable knowledge.
-
-`agent.context.promoted` records only an exact source, content hash, CAS summary, qualifying review event, and optional supersession. `agent.context.handoff.recorded` transfers only listed entries to an active successor. `@lervo/agent-organization` validates and projects these events; the CLI coordinates explicit mutations; Node materializes a bounded rebuildable document and injects it as required governance context. The materializer neither searches nor chooses provider behavior.
-
-The multi-team operating report is a read-only composition of repository-owned projections. The CEO policy evaluator is a pure decision boundary: it checks appointment, action and team allowlists, automation depth, budget observation, report integrity, and approval but never performs an effect. Discord administration and future Lervo UI actions remain adapters downstream of that decision.
-
-Ordinary agent conversation remains read-only unless an existing authority path creates or changes an assignment, workstream, approval, or external effect. Bounded discussions reuse Lervo deliberation for evidence, disagreement, decision rules, and termination; Discord supplies distinct visible speakers.
-
-Managed conversation runs carry the durable speaking agent ID as root work causality. Provider and model remain turn execution evidence. This prevents a shared role or identical message from collapsing two agents' response ownership.
+The organization contract covers [identity and deployment](agent-organization/identity-and-deployment.md), [reviewed agent context](agent-organization/reviewed-agent-context.md), and [coordination and authority](agent-organization/coordination-and-authority.md).
 
 See [ADR-0386](../../decisions/coordination/conversations/0386-organization-teams-and-agent-identities.md) and [ADR-0390](../../decisions/coordination/conversations/0390-project-reviewed-agent-context-and-headless-organization-control.md).

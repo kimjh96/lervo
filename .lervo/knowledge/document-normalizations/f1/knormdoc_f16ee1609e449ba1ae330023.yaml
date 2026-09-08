@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e833492b45e254b7477e8393
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0c0ff5aba16ca06551534513
+outputLanguage: en
+outputs:
+  - byteCount: 4569
+    contentHash: sha256:a65b8ef065ec353d4105be743e5b7aaa938e6a9c7d7701209ea62348b52b0736
+    path: docs/decisions/coordination/conversations/0390-project-reviewed-agent-context-and-headless-organization-control.md
+    userRegionHash: sha256:a65b8ef065ec353d4105be743e5b7aaa938e6a9c7d7701209ea62348b52b0736
+profile: decision_record
+recordId: knormdoc_f16ee1609e449ba1ae330023
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4b182d0ac20c9655af64c5f5244514d1e1a4bae02ee7a2af5a0426a8e15d1a8e
+sourcePath: docs/decisions/coordination/conversations/0390-project-reviewed-agent-context-and-headless-organization-control.md
+sourceUnitVersionIds:
+  - uv_9ebddd14a09522f76228c615
+  - uv_df1f24121d7965d0b67f76d5
+  - uv_e0cd225464c8b9a161fa0256
+  - uv_ea53bdd0f43dfa6ffdc1111d
+  - uv_ff24f6f508fc6d58627ceebe
