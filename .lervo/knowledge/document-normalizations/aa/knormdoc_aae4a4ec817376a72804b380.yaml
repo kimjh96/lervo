@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a7ca2fd9a4bcbc5e6d8128ee
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d51f39390bad5ed706369e66
+outputLanguage: en
+outputs:
+  - byteCount: 204
+    contentHash: sha256:c71ba22bc3ee2be2807f69ff797c7b31f034c4d566bf5c6dadbef41e0416998a
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/settings.md
+    userRegionHash: sha256:c71ba22bc3ee2be2807f69ff797c7b31f034c4d566bf5c6dadbef41e0416998a
+  - byteCount: 346
+    contentHash: sha256:6ed62cd1d624f084e326de4b3d71a8ccb0a6804c2b649cb5b79357788a934310
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/settings/completion.md
+    userRegionHash: sha256:6ed62cd1d624f084e326de4b3d71a8ccb0a6804c2b649cb5b79357788a934310
+  - byteCount: 1025
+    contentHash: sha256:2d9084f64717b043beb92cd508fe0608f1ec3268aca6fc1189c126bcdc190e46
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/settings/identity.md
+    userRegionHash: sha256:2d9084f64717b043beb92cd508fe0608f1ec3268aca6fc1189c126bcdc190e46
+  - byteCount: 1053
+    contentHash: sha256:f840311b699525d926ccaa48127b37022c025c15caa40ea059ef04af53955ebd
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/settings/responses.md
+    userRegionHash: sha256:f840311b699525d926ccaa48127b37022c025c15caa40ea059ef04af53955ebd
+profile: repository_document
+recordId: knormdoc_aae4a4ec817376a72804b380
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3c355c9eef27982d9af2de7373cdacefcd7a0545c233ab6af251840ba7f30520
+sourcePath: docs/distribution/node-runtime-distribution/discord-configuration/execution/settings.md
+sourceUnitVersionIds:
+  - uv_616c4467adfeda8a93862636
+  - uv_8677e72007b8d7936339ece0
+  - uv_a890dd930cc1e7f6d5ff3eb7
+  - uv_bf6f15bbe120f6dc13b36d39

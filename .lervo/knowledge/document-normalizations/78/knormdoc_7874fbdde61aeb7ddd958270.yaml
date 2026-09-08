@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a7ca2fd9a4bcbc5e6d8128ee
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_828e37bf5f6eeb1a030dd7d0
+outputLanguage: en
+outputs:
+  - byteCount: 7217
+    contentHash: sha256:93da39f06e0a205e04249b83825e3231df31436f831c4232ac37ed31e4e62ab5
+    path: docs/decisions/coordination/conversations/0388-realtime-conversation-effects-and-lifecycle.md
+    userRegionHash: sha256:93da39f06e0a205e04249b83825e3231df31436f831c4232ac37ed31e4e62ab5
+profile: decision_record
+recordId: knormdoc_7874fbdde61aeb7ddd958270
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e38e4eb29556559c9142b3e4f26534cfb421a7e85dc42f478e0d5c99565c2d90
+sourcePath: docs/decisions/coordination/conversations/0388-realtime-conversation-effects-and-lifecycle.md
+sourceUnitVersionIds:
+  - uv_1b5bca516b0aa5d124f1e60b
+  - uv_1e63a81858bc18aacacddc90
+  - uv_22ba5aff18f76e6720ca0442
+  - uv_35737f062b0122dfa2fb9ab0
+  - uv_60c8136f81afdd6cf0c14a3e
+  - uv_7a4b283334073882872cfbf1
+  - uv_9dea5c7d37c428c4e18feae8
+  - uv_c14ed99abe8f1b8858bbf462
+  - uv_cf2387de0cf6a68b66b1d08d
+  - uv_e93d1264feea34e49291accb
