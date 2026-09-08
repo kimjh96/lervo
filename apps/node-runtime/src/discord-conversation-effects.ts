@@ -33,6 +33,7 @@ export function createDiscordConversationEffects(input: {
         applicationId: input.config.applicationId,
         botToken: input.botToken,
         allowedGuildIds: input.config.allowedGuildIds,
+        allowedChannelIds: input.config.conversations.map((item) => item.conversationKey),
         ...(input.config.http?.requestTimeoutMs === undefined
           ? {}
           : { requestTimeoutMs: input.config.http.requestTimeoutMs }),

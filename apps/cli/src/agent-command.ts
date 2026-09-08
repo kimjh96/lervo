@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import {
+  changeAgentDisplayName,
   changeAgentStatus,
   listAgents,
   registerAgent,
@@ -17,8 +18,9 @@ import { mutateWorkforceState } from "./workforce-mutation.js";
 
 export const agentUsage = [
   "  lervo agent list [--root <path>] [--json]",
-  "  lervo agent hire --role <role> [--provider <codex|claude|any>] [--scope <path>] [--capability <package-id>] [--parent <agent-id>] --write [--root <path>] [--json]",
+  "  lervo agent hire --role <role> [--name <display-name>] [--provider <codex|claude|any>] [--scope <path>] [--capability <package-id>] [--parent <agent-id>] --write [--root <path>] [--json]",
   "  lervo agent status --agent <agent-id> --status <active|suspended|retired> --revision <n> --write [--root <path>] [--json]",
+  "  lervo agent rename --agent <agent-id> --name <display-name> --revision <n> --write [--root <path>] [--json]",
   agentLivenessUsage,
   agentContextUsage,
 ].join("\n");
@@ -57,6 +59,7 @@ export async function runAgentCommand(args: string[], io: CliIo): Promise<number
       write: { type: "boolean" },
       help: { type: "boolean", short: "h" },
       role: { type: "string" },
+      name: { type: "string" },
       provider: { type: "string" },
       scope: { type: "string", multiple: true },
       parent: { type: "string" },
@@ -85,7 +88,7 @@ export async function runAgentCommand(args: string[], io: CliIo): Promise<number
         : agents
             .map(
               (agent) =>
-                `${agent.agentId} · ${agent.roleId} · ${agent.status}${agent.parentAgentId === null ? "" : ` · parent ${agent.parentAgentId}`}`,
+                `${agent.displayName} · ${agent.agentId} · ${agent.roleId} · ${agent.status}${agent.parentAgentId === null ? "" : ` · parent ${agent.parentAgentId}`}`,
             )
             .join("\n"),
     );
@@ -102,6 +105,7 @@ export async function runAgentCommand(args: string[], io: CliIo): Promise<number
         repositoryRoot: root,
         roleId: role(parsed.values.role),
         provider: provider as WorkforceProvider,
+        ...(parsed.values.name === undefined ? {} : { displayName: parsed.values.name }),
         responsibilityPaths: parsed.values.scope ?? ["*"],
         ...(parsed.values.capability === undefined
           ? {}
@@ -114,7 +118,7 @@ export async function runAgentCommand(args: string[], io: CliIo): Promise<number
       io,
       agent,
       parsed.values.json,
-      `Agent ${agent.agentId} hired as ${agent.roleId}${agent.parentAgentId === null ? "" : ` under ${agent.parentAgentId}`}.`,
+      `${agent.displayName} (${agent.agentId}) hired as ${agent.roleId}${agent.parentAgentId === null ? "" : ` under ${agent.parentAgentId}`}.`,
     );
     return 0;
   }
@@ -140,6 +144,26 @@ export async function runAgentCommand(args: string[], io: CliIo): Promise<number
       parsed.values.json,
       `Agent ${agent.agentId} is ${agent.status} at revision ${agent.revision}.`,
     );
+    return 0;
+  }
+  if (action === "rename") {
+    if (
+      !parsed.values.write ||
+      parsed.values.agent === undefined ||
+      parsed.values.name === undefined
+    ) {
+      throw new Error("Agent rename requires exact identity, name, revision, and --write.");
+    }
+    const agent = await mutateWorkforceState(root, (recordEvent) =>
+      changeAgentDisplayName({
+        repositoryRoot: root,
+        agentId: parsed.values.agent!,
+        displayName: parsed.values.name!,
+        expectedRevision: revision(parsed.values.revision),
+        recordEvent,
+      }),
+    );
+    output(io, agent, parsed.values.json, `${agent.agentId} is now named ${agent.displayName}.`);
     return 0;
   }
   throw new Error("The agent action is invalid.");

@@ -151,7 +151,7 @@ describe("Node runtime configuration", () => {
       policy: {
         mode: "proactive",
         respondTo: ["human", "agent", "system"],
-        signalCodes: ["work.completed"],
+        signalCodes: ["work.completed", "deliberation.completed", "deliberation.attention"],
         maxResponseAttempts: 2,
       },
       repositorySignals: {
@@ -178,6 +178,8 @@ describe("Node runtime configuration", () => {
         leaseDurationMs: 300_000,
         maxRecords: 1_000,
         processTimeoutMs: 900_000,
+        notificationConversationIds: ["cnv_operator01"],
+        maximumReconciliationAttempts: 3,
       },
       command: {
         roleId: "developer",
@@ -214,7 +216,7 @@ describe("Node runtime configuration", () => {
         policy: {
           mode: "proactive",
           respondTo: ["agent", "human", "system"],
-          signalCodes: ["work.completed"],
+          signalCodes: ["deliberation.attention", "deliberation.completed", "work.completed"],
           maxResponseAttempts: 2,
         },
         repositorySignals: {
@@ -241,6 +243,8 @@ describe("Node runtime configuration", () => {
           leaseDurationMs: 300_000,
           maxRecords: 1_000,
           processTimeoutMs: 900_000,
+          notificationConversationIds: ["cnv_operator01"],
+          maximumReconciliationAttempts: 3,
         },
         command: { assignmentId: null, agentId: null },
       },

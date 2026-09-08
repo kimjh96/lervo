@@ -15,6 +15,7 @@ import type { ArtifactStore } from "@lervo/storage-contract";
 
 import { createConversationDeliberationCliExecutionPorts } from "./conversation-deliberation-cli-executor.js";
 import { ConversationDeliberationLoop } from "./conversation-deliberation-loop.js";
+import { ConversationDeliberationOutcomeCoordinator } from "./conversation-deliberation-outcomes.js";
 import type { NodeDiscordConversationConfig } from "./config-types.js";
 
 export class DiscordConversationDeliberationRuntime {
@@ -22,9 +23,11 @@ export class DiscordConversationDeliberationRuntime {
   readonly applicationOptions: NonNullable<ConversationApplicationOptions["deliberations"]>;
   private deliberations: ConversationDeliberationPort | null = null;
   private loop: ConversationDeliberationLoop | null = null;
+  private readonly outcomes: ConversationDeliberationOutcomeCoordinator;
 
   private constructor(
     config: NonNullable<NodeDiscordConversationConfig["deliberation"]>,
+    integrationId: string,
     projectId: string,
     repositoryRoot: string,
     artifactStore: ArtifactStore,
@@ -43,12 +46,20 @@ export class DiscordConversationDeliberationRuntime {
         ...principal,
       })),
       executor: execution.start,
+      reconciliationSource: execution.reconciliation,
       resumeExecutor: execution.resume,
       workerId: config.workerId,
       resumeWorkerId: `${config.workerId.slice(0, 120)}:resume`,
       ...(config.leaseDurationMs === undefined ? {} : { leaseDurationMs: config.leaseDurationMs }),
       ...(config.maxRecords === undefined ? {} : { maxRecords: config.maxRecords }),
     };
+    this.outcomes = new ConversationDeliberationOutcomeCoordinator({
+      projectId,
+      integrationId,
+      conversationIds: config.notificationConversationIds ?? [],
+      artifactStore,
+      maximumReconciliationAttempts: config.maximumReconciliationAttempts ?? 3,
+    });
     this.responder = {
       respond: (input) => {
         if (this.deliberations === null) {
@@ -65,6 +76,7 @@ export class DiscordConversationDeliberationRuntime {
 
   static async open(input: {
     config: NonNullable<NodeDiscordConversationConfig["deliberation"]>;
+    integrationId: string;
     projectId: string;
     repositoryRoot: string;
     artifactStore: ArtifactStore;
@@ -75,6 +87,7 @@ export class DiscordConversationDeliberationRuntime {
     await access(input.config.cliExecutable, constants.X_OK);
     return new DiscordConversationDeliberationRuntime(
       input.config,
+      input.integrationId,
       input.projectId,
       input.repositoryRoot,
       input.artifactStore,
@@ -89,8 +102,11 @@ export class DiscordConversationDeliberationRuntime {
     this.deliberations = application.deliberations;
     this.loop = new ConversationDeliberationLoop({
       runCycle: async () => {
-        await application.runDeliberationWorkerCycle();
-        await application.runDeliberationResumeWorkerCycle();
+        const start = await application.runDeliberationWorkerCycle();
+        await this.outcomes.observe(application, start);
+        const resume = await application.runDeliberationResumeWorkerCycle();
+        await this.outcomes.observe(application, resume);
+        await this.outcomes.reconcilePending(application);
       },
       onFailure: this.onFailure,
       intervalMs,

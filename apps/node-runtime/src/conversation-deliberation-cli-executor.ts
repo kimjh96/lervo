@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 
 import type {
@@ -6,6 +7,7 @@ import type {
   ConversationDeliberationResumeExecutionPort,
   ConversationDeliberationResumeJob,
   ConversationDeliberationSummary,
+  ConversationDeliberationReconciliationSourcePort,
 } from "@lervo/conversation-control";
 
 interface CliProcessRequest {
@@ -144,6 +146,79 @@ function execute(
     .then((result) => parseSummary(result, job.deliberationId));
 }
 
+function parseInspection(
+  result: CliProcessResult,
+  job: Parameters<ConversationDeliberationReconciliationSourcePort["inspect"]>[0]["job"],
+): Awaited<ReturnType<ConversationDeliberationReconciliationSourcePort["inspect"]>> {
+  if (result.exitCode !== 0 && result.exitCode !== 1) {
+    return { status: "not_confirmed", reason: "source_inconsistent" };
+  }
+  let value: unknown;
+  try {
+    value = JSON.parse(result.stdout);
+  } catch {
+    return { status: "not_confirmed", reason: "source_inconsistent" };
+  }
+  const report = value as Record<string, unknown>;
+  if (report.projectId !== job.projectId || report.deliberationId !== job.deliberationId) {
+    return { status: "not_confirmed", reason: "source_inconsistent" };
+  }
+  if (report.sourceStatus === "inconsistent") {
+    return { status: "not_confirmed", reason: "source_inconsistent" };
+  }
+  if (report.sourceStatus === "incomplete") {
+    return { status: "not_confirmed", reason: "history_incomplete" };
+  }
+  const artifactCount = report.artifactCount;
+  if (
+    !Number.isSafeInteger(artifactCount) ||
+    Number(artifactCount) < 0 ||
+    Number(artifactCount) > 10_000
+  ) {
+    return { status: "not_confirmed", reason: "source_inconsistent" };
+  }
+  const evidenceHash = `sha256:${createHash("sha256").update(result.stdout).digest("hex")}`;
+  if (
+    report.phase === "completed" &&
+    ["converged", "no_consensus", "failed"].includes(String(report.completionStatus))
+  ) {
+    return {
+      status: "confirmed",
+      sourceKind: "managed_deliberation_cli_v1",
+      evidenceHash,
+      summary: {
+        deliberationId: job.deliberationId,
+        status: report.completionStatus as "converged" | "no_consensus" | "failed",
+        artifactCount: artifactCount as number,
+        nextAction: "none",
+      },
+    };
+  }
+  if (
+    job.operation === "start" &&
+    report.phase === "interrupted_after_approval" &&
+    report.resume === "candidate" &&
+    report.checkpoint === "readable" &&
+    report.lease !== "active"
+  ) {
+    return {
+      status: "confirmed",
+      sourceKind: "managed_deliberation_cli_v1",
+      evidenceHash,
+      summary: {
+        deliberationId: job.deliberationId,
+        status: "interrupted",
+        artifactCount: artifactCount as number,
+        nextAction: "resume",
+      },
+    };
+  }
+  return {
+    status: "not_confirmed",
+    reason: report.lease === "active" ? "active_execution" : "history_incomplete",
+  };
+}
+
 export function createConversationDeliberationCliExecutionPorts(options: {
   executable: string;
   repositoryRoot: string;
@@ -152,9 +227,34 @@ export function createConversationDeliberationCliExecutionPorts(options: {
 }): {
   start: ConversationDeliberationExecutionPort;
   resume: ConversationDeliberationResumeExecutionPort;
+  reconciliation: ConversationDeliberationReconciliationSourcePort;
 } {
+  const process = options.process ?? systemProcess;
   return {
     start: { execute: (job) => execute(options, job) },
     resume: { execute: (job) => execute(options, job) },
+    reconciliation: {
+      async inspect(input) {
+        let result: CliProcessResult;
+        try {
+          result = await process.run({
+            executable: options.executable,
+            args: [
+              "deliberate",
+              "status",
+              input.job.deliberationId,
+              "--root",
+              options.repositoryRoot,
+              "--json",
+            ],
+            stdin: "",
+            timeoutMs: Math.min(options.processTimeoutMs ?? 900_000, 60_000),
+          });
+        } catch {
+          return { status: "not_confirmed", reason: "source_inconsistent" };
+        }
+        return parseInspection(result, input.job);
+      },
+    },
   };
 }

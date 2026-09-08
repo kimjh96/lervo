@@ -28,6 +28,8 @@ export function parseDiscordConversationDeliberation(
       "leaseDurationMs",
       "maxRecords",
       "processTimeoutMs",
+      "notificationConversationIds",
+      "maximumReconciliationAttempts",
     ],
     "discordConversation.deliberation",
   );
@@ -85,6 +87,26 @@ export function parseDiscordConversationDeliberation(
   const leaseDurationMs = integer("leaseDurationMs", 1_000, 3_600_000);
   const maxRecords = integer("maxRecords", 1, 1_000_000);
   const processTimeoutMs = integer("processTimeoutMs", 1_000, 3_600_000);
+  const maximumReconciliationAttempts = integer("maximumReconciliationAttempts", 1, 10);
+  const notificationConversationIds =
+    source.notificationConversationIds === undefined
+      ? undefined
+      : source.notificationConversationIds;
+  if (
+    notificationConversationIds !== undefined &&
+    (!Array.isArray(notificationConversationIds) ||
+      notificationConversationIds.length < 1 ||
+      notificationConversationIds.length > 64 ||
+      notificationConversationIds.some(
+        (item) => typeof item !== "string" || !/^cnv_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(item),
+      ) ||
+      new Set(notificationConversationIds).size !== notificationConversationIds.length)
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "Discord deliberation notification conversations are invalid.",
+    );
+  }
   return {
     cliExecutable: resolve(
       baseDirectory,
@@ -96,5 +118,9 @@ export function parseDiscordConversationDeliberation(
     ...(leaseDurationMs === undefined ? {} : { leaseDurationMs }),
     ...(maxRecords === undefined ? {} : { maxRecords }),
     ...(processTimeoutMs === undefined ? {} : { processTimeoutMs }),
+    ...(notificationConversationIds === undefined
+      ? {}
+      : { notificationConversationIds: [...notificationConversationIds].sort() as string[] }),
+    ...(maximumReconciliationAttempts === undefined ? {} : { maximumReconciliationAttempts }),
   };
 }

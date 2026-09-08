@@ -86,7 +86,9 @@ export interface NodeDiscordConversationConfig {
     roleId: string | null;
   }>;
   administration?: {
-    allowedActions: Array<"current_member.nickname.set">;
+    allowedActions: Array<
+      "current_member.nickname.set" | "guild_text_channel.create" | "public_thread.create"
+    >;
   };
   routing?: {
     readOnlyRoleId: string;
@@ -155,5 +157,7 @@ export interface NodeDiscordConversationConfig {
     leaseDurationMs?: number;
     maxRecords?: number;
     processTimeoutMs?: number;
+    notificationConversationIds?: string[];
+    maximumReconciliationAttempts?: number;
   };
 }

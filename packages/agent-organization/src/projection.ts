@@ -4,6 +4,7 @@ import type {
 } from "@lervo/schemas";
 
 import { organizationEvent } from "./event-validation.js";
+import { applyAgentIdentity } from "./agent-identity-projection.js";
 import {
   AgentOrganizationError,
   type AgentOrganizationEventEnvelope,
@@ -28,6 +29,9 @@ function sameTeam(
 
 function sameRole(
   left: {
+    agentDisplayName?: string;
+    agentDisplayNameSource?: string;
+    displayNameRevision?: number;
     roleId: string;
     roleVersion: string;
     roleContractHash: string;
@@ -37,6 +41,11 @@ function sameRole(
   right: typeof left,
 ): boolean {
   return (
+    (left.agentDisplayName === undefined ||
+      right.agentDisplayName === undefined ||
+      (left.agentDisplayName === right.agentDisplayName &&
+        left.agentDisplayNameSource === right.agentDisplayNameSource &&
+        left.displayNameRevision === right.displayNameRevision)) &&
     left.roleId === right.roleId &&
     left.roleVersion === right.roleVersion &&
     left.roleContractHash === right.roleContractHash &&
@@ -162,6 +171,7 @@ export function projectAgentOrganization(input: {
     schemaVersion: 1,
     projectId: input.projectId,
     team: null,
+    teamKindRevision: 0,
     memberships: [],
     deployments: [],
     channelMemberships: [],
@@ -189,10 +199,32 @@ export function projectAgentOrganization(input: {
           conflict("A repository can have only one immutable project-team binding.");
         }
         projection.team = structuredClone(payload);
+        projection.teamKindRevision = 1;
+        break;
+      }
+      case "organization.team.kind.changed": {
+        const payload = event.payload;
+        if (
+          projection.team === null ||
+          payload.organizationId !== projection.team.organizationId ||
+          payload.teamId !== projection.team.teamId ||
+          payload.projectId !== projection.team.projectId ||
+          payload.repositoryIdentityHash !== projection.team.repositoryIdentityHash ||
+          payload.previousTeamKind !== projection.team.teamKind ||
+          payload.teamKind === payload.previousTeamKind ||
+          payload.revision !== projection.teamKindRevision + 1
+        ) {
+          conflict("The team-kind transition is stale or changes immutable identity.");
+        }
+        projection.team = { ...projection.team, teamKind: payload.teamKind };
+        projection.teamKindRevision = payload.revision;
         break;
       }
       case "organization.agent.membership.changed":
         applyMembership(projection, event.payload);
+        break;
+      case "organization.agent.identity.changed":
+        applyAgentIdentity(projection, event.payload);
         break;
       case "organization.external_agent.deployment.bound": {
         const payload = event.payload;

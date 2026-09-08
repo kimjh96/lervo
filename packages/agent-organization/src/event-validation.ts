@@ -1,12 +1,14 @@
 import {
   validateSchema,
   type OrganizationAgentMembershipChangedEventPayload,
+  type OrganizationAgentIdentityChangedEventPayload,
   type OrganizationChannelMembershipChangedEventPayload,
   type OrganizationDeliberationParticipantBoundEventPayload,
   type OrganizationDeliberationParticipantReleasedEventPayload,
   type OrganizationExternalAgentDeploymentBoundEventPayload,
   type OrganizationExternalAgentDeploymentRetiredEventPayload,
   type OrganizationTeamBoundEventPayload,
+  type OrganizationTeamKindChangedEventPayload,
   type SchemaName,
 } from "@lervo/schemas";
 
@@ -15,7 +17,9 @@ import { AgentOrganizationError } from "./types.js";
 
 const schemaByType = {
   "organization.team.bound": "organizationTeamBoundEventPayload",
+  "organization.team.kind.changed": "organizationTeamKindChangedEventPayload",
   "organization.agent.membership.changed": "organizationAgentMembershipChangedEventPayload",
+  "organization.agent.identity.changed": "organizationAgentIdentityChangedEventPayload",
   "organization.external_agent.deployment.bound":
     "organizationExternalAgentDeploymentBoundEventPayload",
   "organization.external_agent.deployment.retired":
@@ -47,10 +51,20 @@ export function organizationEvent(
         type: envelope.type,
         payload: envelope.payload as OrganizationTeamBoundEventPayload,
       };
+    case "organization.team.kind.changed":
+      return {
+        type: envelope.type,
+        payload: envelope.payload as OrganizationTeamKindChangedEventPayload,
+      };
     case "organization.agent.membership.changed":
       return {
         type: envelope.type,
         payload: envelope.payload as OrganizationAgentMembershipChangedEventPayload,
+      };
+    case "organization.agent.identity.changed":
+      return {
+        type: envelope.type,
+        payload: envelope.payload as OrganizationAgentIdentityChangedEventPayload,
       };
     case "organization.external_agent.deployment.bound":
       return {

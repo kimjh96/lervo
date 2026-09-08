@@ -24,6 +24,8 @@ function agent(
     schemaVersion: 1,
     agentId,
     projectId,
+    displayName: `Agent-${agentId.slice(-4)}`,
+    displayNameSource: "generated",
     roleId,
     roleVersion: "1.0.0",
     roleContractHash: `sha256:${"a".repeat(64)}`,

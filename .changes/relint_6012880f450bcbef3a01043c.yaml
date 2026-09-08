@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6012880f450bcbef3a01043c"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add named agent identity, team reclassification, reconciled deliberation outcomes, and replay-safe organization Discord effects."

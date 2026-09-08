@@ -281,19 +281,23 @@ export interface ProductHostCapabilityReportV6 {
 
 export type ProductHostRouteIdV7 =
   | ProductHostRouteIdV6
+  | "workforce_agent.rename"
   | "organization_team.bind"
+  | "organization_team.reclassify"
   | "organization_portfolio.inspect"
   | "agent_context.inspect"
   | "agent_context.promote"
   | "agent_context.handoff"
-  | "organization_ceo.evaluate";
+  | "organization_ceo.evaluate"
+  | "organization_executive.execute";
 
 export type ProductHostResultContractV7 =
   | ProductHostResultContractV6
   | "agent_organization_projection"
   | "organization_operating_report"
   | "agent_context_projection"
-  | "ceo_command_decision";
+  | "ceo_command_decision"
+  | "organization_executive_execution_result";
 
 export interface ProductHostRouteV7 extends Omit<
   ProductHostRouteV1,
@@ -303,7 +307,11 @@ export interface ProductHostRouteV7 extends Omit<
   area: ProductHostRouteV1["area"] | "organization";
   contractVersion: 1 | 2;
   resultContract: ProductHostResultContractV7;
-  authority: ProductHostRouteV6["authority"] | "reviewed_context_promotion" | "bounded_ceo_policy";
+  authority:
+    | ProductHostRouteV6["authority"]
+    | "reviewed_context_promotion"
+    | "bounded_ceo_policy"
+    | "bounded_organization_executive_effect";
 }
 
 export interface ProductHostCapabilityReportV7 {

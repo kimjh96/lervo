@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_43ea5ae715c06d0234a9a444
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_02050c4d3c6f96c460df3343
+outputLanguage: en
+outputs:
+  - byteCount: 732
+    contentHash: sha256:9f6d2759aae295861857508d6aa9ab3a1b88c67960d0260c13a428c3117678bb
+    path: docs/roadmap/product-outcome-convergence/delivery-status.md
+    userRegionHash: sha256:9f6d2759aae295861857508d6aa9ab3a1b88c67960d0260c13a428c3117678bb
+  - byteCount: 561
+    contentHash: sha256:243a2d699ee349871f7f0d7c876909249850e870f3335f7dd5f458178e970365
+    path: docs/roadmap/product-outcome-convergence/delivery-status/completed-outcomes.md
+    userRegionHash: sha256:243a2d699ee349871f7f0d7c876909249850e870f3335f7dd5f458178e970365
+  - byteCount: 894
+    contentHash: sha256:d532b30580443e26a4c50f02ab25e3d2f61de7b9b48d6fa45f05fbcfcb909d28
+    path: docs/roadmap/product-outcome-convergence/delivery-status/discord-remote-continuation.md
+    userRegionHash: sha256:d532b30580443e26a4c50f02ab25e3d2f61de7b9b48d6fa45f05fbcfcb909d28
+  - byteCount: 1501
+    contentHash: sha256:80b42ac13616f1a37190ba9a3ca73de707a02ae234aa5e8d4f51262f2b7d705a
+    path: docs/roadmap/product-outcome-convergence/delivery-status/managed-execution.md
+    userRegionHash: sha256:80b42ac13616f1a37190ba9a3ca73de707a02ae234aa5e8d4f51262f2b7d705a
+  - byteCount: 864
+    contentHash: sha256:8c8d2696c45025b3f59b6bab31c201c05e4706e8fc95df3891d6fd91836a8eb0
+    path: docs/roadmap/product-outcome-convergence/delivery-status/organization-model.md
+    userRegionHash: sha256:8c8d2696c45025b3f59b6bab31c201c05e4706e8fc95df3891d6fd91836a8eb0
+profile: roadmap_document
+recordId: knormdoc_b6e6709366dc5dd36c871fb1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:007f566998bc6f556f5c6a24cc339ac49a86134b09a37b60d887684bbd6b9aef
+sourcePath: docs/roadmap/product-outcome-convergence/delivery-status.md
+sourceUnitVersionIds:
+  - uv_105658abfdc2b46f9206001a
+  - uv_1ec74e9923ca98ded748111e
+  - uv_41e6bbb0b8d76f16a7a5aae2
+  - uv_d8edbfcc31dd808585593e67
+  - uv_e3fda48499b4b08db912b901

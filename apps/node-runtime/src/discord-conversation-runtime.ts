@@ -145,6 +145,7 @@ export async function openNodeDiscordConversationRuntime(
       ? null
       : await DiscordConversationDeliberationRuntime.open({
           config: config.deliberation,
+          integrationId: config.integrationId,
           projectId: options.project.projectId,
           repositoryRoot: options.repositoryRoot,
           artifactStore: artifacts,

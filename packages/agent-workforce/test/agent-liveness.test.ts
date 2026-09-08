@@ -11,6 +11,8 @@ function agent(overrides: Partial<WorkforceAgent> = {}): WorkforceAgent {
     schemaVersion: 1,
     agentId: `agt_${"a".repeat(24)}`,
     projectId: "prj_agent_liveness",
+    displayName: "Tarin",
+    displayNameSource: "explicit",
     roleId: "developer",
     roleVersion: "1.0.0",
     roleContractHash: `sha256:${"b".repeat(64)}`,

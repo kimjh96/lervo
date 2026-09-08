@@ -80,6 +80,9 @@ importers:
       '@lervo/adapter-contract':
         specifier: workspace:*
         version: link:../../packages/adapter-contract
+      '@lervo/adapter-discord':
+        specifier: workspace:*
+        version: link:../../packages/adapter-discord
       '@lervo/adapter-slack':
         specifier: workspace:*
         version: link:../../packages/adapter-slack
@@ -594,12 +597,18 @@ importers:
 
   packages/adapter-discord:
     dependencies:
+      '@lervo/application-contract':
+        specifier: workspace:*
+        version: link:../application-contract
       '@lervo/conversation-contract':
         specifier: workspace:*
         version: link:../conversation-contract
       '@lervo/conversation-platform':
         specifier: workspace:*
         version: link:../conversation-platform
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas

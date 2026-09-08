@@ -73,6 +73,7 @@ describe("agent context document", () => {
           deployments: [],
           channelMemberships: [],
           deliberationParticipants: [],
+          teamKindRevision: 0,
           lastSequence: 42,
         },
         entries: selected.map((item) => ({

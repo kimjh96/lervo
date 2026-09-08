@@ -2,6 +2,7 @@ import {
   ConversationPlatformError,
   assertPlatformHttpLimits,
   patchPlatformJson,
+  postPlatformJson,
   platformApiUrl,
 } from "@lervo/conversation-platform";
 
@@ -11,6 +12,7 @@ export interface DiscordRestAdministrationOptions {
   applicationId: string;
   botToken: string;
   allowedGuildIds: readonly string[];
+  allowedChannelIds?: readonly string[];
   now?: () => Date;
   fetch?: typeof globalThis.fetch;
   apiBaseUrl?: string;
@@ -29,6 +31,7 @@ function object(value: unknown): Record<string, unknown> {
 export class DiscordRestAdministration implements DiscordAdministrationPort {
   private readonly apiBaseUrl: string;
   private readonly allowedGuildIds: ReadonlySet<string>;
+  private readonly allowedChannelIds: ReadonlySet<string>;
   private readonly now: () => Date;
 
   constructor(private readonly options: DiscordRestAdministrationOptions) {
@@ -38,7 +41,8 @@ export class DiscordRestAdministration implements DiscordAdministrationPort {
       options.botToken.length > 4_096 ||
       !/^[\x21-\x7e]+$/u.test(options.botToken) ||
       options.allowedGuildIds.length === 0 ||
-      options.allowedGuildIds.some((guildId) => !/^[0-9]{1,32}$/u.test(guildId))
+      options.allowedGuildIds.some((guildId) => !/^[0-9]{1,32}$/u.test(guildId)) ||
+      options.allowedChannelIds?.some((channelId) => !/^[0-9]{1,32}$/u.test(channelId)) === true
     ) {
       throw new ConversationPlatformError(
         "invalid_platform_configuration",
@@ -46,6 +50,7 @@ export class DiscordRestAdministration implements DiscordAdministrationPort {
       );
     }
     this.allowedGuildIds = new Set(options.allowedGuildIds);
+    this.allowedChannelIds = new Set(options.allowedChannelIds ?? []);
     this.apiBaseUrl = (options.apiBaseUrl ?? "https://discord.com/api/v10").replace(/\/$/u, "");
     platformApiUrl(this.apiBaseUrl, options.allowInsecureHttpForTests === true);
     assertPlatformHttpLimits(options);
@@ -96,6 +101,124 @@ export class DiscordRestAdministration implements DiscordAdministrationPort {
       guildId: input.guildId,
       applicationId: this.options.applicationId,
       nickname: response.nick,
+      observedAt: this.now().toISOString(),
+    };
+  }
+
+  async createGuildTextChannel(input: {
+    guildId: string;
+    name: string;
+    topic: string | null;
+    parentChannelId: string | null;
+  }) {
+    if (
+      !this.allowedGuildIds.has(input.guildId) ||
+      !/^[a-z0-9][a-z0-9_-]{0,99}$/u.test(input.name) ||
+      (input.topic !== null && ([...input.topic].length > 1_024 || input.topic.includes("\0"))) ||
+      (input.parentChannelId !== null && !/^[0-9]{1,32}$/u.test(input.parentChannelId))
+    ) {
+      throw new ConversationPlatformError(
+        "invalid_platform_configuration",
+        "The Discord channel creation request is outside the configured scope.",
+      );
+    }
+    const response = object(
+      await postPlatformJson({
+        url: `${this.apiBaseUrl}/guilds/${encodeURIComponent(input.guildId)}/channels`,
+        headers: { authorization: `Bot ${this.options.botToken}` },
+        body: {
+          name: input.name,
+          type: 0,
+          topic: input.topic,
+          parent_id: input.parentChannelId,
+        },
+        ...(this.options.fetch === undefined ? {} : { fetch: this.options.fetch }),
+        ...(this.options.requestTimeoutMs === undefined
+          ? {}
+          : { requestTimeoutMs: this.options.requestTimeoutMs }),
+        ...(this.options.maxResponseBytes === undefined
+          ? {}
+          : { maxResponseBytes: this.options.maxResponseBytes }),
+        allowInsecureHttpForTests: this.options.allowInsecureHttpForTests === true,
+      }),
+    );
+    if (
+      typeof response.id !== "string" ||
+      !/^[0-9]{1,32}$/u.test(response.id) ||
+      response.guild_id !== input.guildId ||
+      response.name !== input.name ||
+      response.type !== 0 ||
+      response.parent_id !== input.parentChannelId
+    ) {
+      throw new ConversationPlatformError(
+        "platform_delivery_failed",
+        "The Discord channel creation response could not be verified.",
+      );
+    }
+    return {
+      guildId: input.guildId,
+      channelId: response.id,
+      name: input.name,
+      observedAt: this.now().toISOString(),
+    };
+  }
+
+  async createPublicThread(input: {
+    guildId: string;
+    channelId: string;
+    name: string;
+    autoArchiveDuration: 60 | 1440 | 4320 | 10080;
+  }) {
+    if (
+      !this.allowedGuildIds.has(input.guildId) ||
+      !this.allowedChannelIds.has(input.channelId) ||
+      [...input.name].length < 1 ||
+      [...input.name].length > 100 ||
+      input.name.includes("\0") ||
+      ![60, 1440, 4320, 10080].includes(input.autoArchiveDuration)
+    ) {
+      throw new ConversationPlatformError(
+        "invalid_platform_configuration",
+        "The Discord thread creation request is outside the configured scope.",
+      );
+    }
+    const response = object(
+      await postPlatformJson({
+        url: `${this.apiBaseUrl}/channels/${encodeURIComponent(input.channelId)}/threads`,
+        headers: { authorization: `Bot ${this.options.botToken}` },
+        body: {
+          name: input.name,
+          type: 11,
+          auto_archive_duration: input.autoArchiveDuration,
+        },
+        ...(this.options.fetch === undefined ? {} : { fetch: this.options.fetch }),
+        ...(this.options.requestTimeoutMs === undefined
+          ? {}
+          : { requestTimeoutMs: this.options.requestTimeoutMs }),
+        ...(this.options.maxResponseBytes === undefined
+          ? {}
+          : { maxResponseBytes: this.options.maxResponseBytes }),
+        allowInsecureHttpForTests: this.options.allowInsecureHttpForTests === true,
+      }),
+    );
+    if (
+      typeof response.id !== "string" ||
+      !/^[0-9]{1,32}$/u.test(response.id) ||
+      response.guild_id !== input.guildId ||
+      response.parent_id !== input.channelId ||
+      response.name !== input.name ||
+      response.type !== 11
+    ) {
+      throw new ConversationPlatformError(
+        "platform_delivery_failed",
+        "The Discord thread creation response could not be verified.",
+      );
+    }
+    return {
+      guildId: input.guildId,
+      parentChannelId: input.channelId,
+      threadId: response.id,
+      name: input.name,
       observedAt: this.now().toISOString(),
     };
   }

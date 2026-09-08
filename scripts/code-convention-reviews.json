@@ -67,7 +67,7 @@
     },
     {
       "path": "packages/agent-workforce/src/store.ts",
-      "contentHash": "sha256:127a96e30afe074115ed346931a3e40fe036fff3139acae259c574ab3175b1a4",
+      "contentHash": "sha256:b8a735e3a821334b45087d7e47e91f2cbfe6255cf9461c49caf7607c1cbd9c11",
       "responsibility": "Durable repository workforce aggregate",
       "rationale": "Agent and assignment records, including scheduler claims, bounded routine, topology and message-trigger provenance, topology activation, and acknowledgment, share one project-bound persistence model, atomic transition, event rollback, and concurrency retry boundary. Pure topology planning, scheduler selection, trigger admission, DAG cancellation, completion validation, and workspace lifecycle effects remain in linked modules.",
       "disposition": "cohesive"
@@ -88,7 +88,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:202f042184f8547c94147fbd3a5598748dde5b13560e28ba88df87a480dc4ca3",
+      "contentHash": "sha256:d18d50107803318e7db0e311f9eb4cb8a880f3a1150411d7813a30fd9ca3c022",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
       "disposition": "cohesive"
@@ -305,7 +305,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:0e7684ed9e52aa2a10c05440a82dcbce3efb0a961b6c4d0f12fbc030d2d5a597",
+      "contentHash": "sha256:ef54a0f41913353c54f881cc5f283a8528bb227792d27cd4ca7c7832f4eb4d67",
       "responsibility": "Repository schema validator registry",
       "rationale": "The module declaratively registers and exposes validators for the versioned schema catalog; its length follows schema inventory and it owns no domain workflow or external effect.",
       "disposition": "cohesive"

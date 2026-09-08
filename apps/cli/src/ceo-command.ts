@@ -10,7 +10,7 @@ import { decideCeoCommand } from "@lervo/work-controller";
 
 import type { CliIo } from "./types.js";
 
-async function readJson(path: string, label: string): Promise<unknown> {
+export async function readOrganizationCommandJson(path: string, label: string): Promise<unknown> {
   const bytes = await readFile(path);
   if (bytes.byteLength > 256 * 1024) throw new Error(`${label} exceeds 256 KiB.`);
   try {
@@ -28,9 +28,9 @@ export async function runCeoEvaluationCommand(input: {
   json: boolean | undefined;
 }): Promise<number> {
   const [policy, request, organization] = await Promise.all([
-    readJson(resolve(input.io.cwd, input.policyPath), "The CEO policy"),
-    readJson(resolve(input.io.cwd, input.requestPath), "The CEO request"),
-    readJson(resolve(input.io.cwd, input.reportPath), "The organization report"),
+    readOrganizationCommandJson(resolve(input.io.cwd, input.policyPath), "The CEO policy"),
+    readOrganizationCommandJson(resolve(input.io.cwd, input.requestPath), "The CEO request"),
+    readOrganizationCommandJson(resolve(input.io.cwd, input.reportPath), "The organization report"),
   ]);
   const decision = decideCeoCommand({
     policy: policy as CeoPolicy,

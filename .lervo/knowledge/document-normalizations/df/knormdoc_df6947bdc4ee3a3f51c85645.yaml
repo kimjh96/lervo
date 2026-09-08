@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_43ea5ae715c06d0234a9a444
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7a0f9bb7ca3d9425169240b6
+outputLanguage: en
+outputs:
+  - byteCount: 711
+    contentHash: sha256:44c7d15900a6261a4676556d622f95351face21bf1221fe051f6e6c9dd403a87
+    path: docs/specifications/execution/product-host-protocol/routes.md
+    userRegionHash: sha256:44c7d15900a6261a4676556d622f95351face21bf1221fe051f6e6c9dd403a87
+  - byteCount: 1304
+    contentHash: sha256:e932a14b1083b42d3209b55a32ba2d7b2df116d9c0c8896322a8716657c31fe3
+    path: docs/specifications/execution/product-host-protocol/routes/collaboration.md
+    userRegionHash: sha256:e932a14b1083b42d3209b55a32ba2d7b2df116d9c0c8896322a8716657c31fe3
+  - byteCount: 2592
+    contentHash: sha256:dbba454cc4d3c987a52d7b5bd309a8ae6b6053f327d453ccd1e3c1c2bb2e2b46
+    path: docs/specifications/execution/product-host-protocol/routes/operating.md
+    userRegionHash: sha256:dbba454cc4d3c987a52d7b5bd309a8ae6b6053f327d453ccd1e3c1c2bb2e2b46
+  - byteCount: 1519
+    contentHash: sha256:e820e445f8b16bb451009dc704eb9d0de4927f873f92de7aac7ac28fe5cfb2c8
+    path: docs/specifications/execution/product-host-protocol/routes/organization.md
+    userRegionHash: sha256:e820e445f8b16bb451009dc704eb9d0de4927f873f92de7aac7ac28fe5cfb2c8
+  - byteCount: 855
+    contentHash: sha256:1c4ff3c218d3567e683afc14fb1a9daa2183d58d225fbbee73841626cb39bb8a
+    path: docs/specifications/execution/product-host-protocol/routes/workforce.md
+    userRegionHash: sha256:1c4ff3c218d3567e683afc14fb1a9daa2183d58d225fbbee73841626cb39bb8a
+profile: specification_document
+recordId: knormdoc_df6947bdc4ee3a3f51c85645
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:aec296d3b42699d1072ef267ab1e36700def2eeb824059580b84d519124e5f11
+sourcePath: docs/specifications/execution/product-host-protocol/routes.md
+sourceUnitVersionIds:
+  - uv_077103ea2f7a8082f192b669
+  - uv_70079f1ef2d066cd9c4ec3ff
+  - uv_76ed0a83ea10cae95b08c443
+  - uv_81a1fb314d1a98c3bf1a78d5
+  - uv_95ef4e3ed1023143448f7848

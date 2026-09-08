@@ -43,6 +43,7 @@
     "@lervo/adapter-contract": "workspace:*",
     "@lervo/adapter-claude": "workspace:*",
     "@lervo/adapter-codex": "workspace:*",
+    "@lervo/adapter-discord": "workspace:*",
     "@lervo/adapter-slack": "workspace:*",
     "@lervo/adapter-webhook": "workspace:*",
     "@lervo/context": "workspace:*",

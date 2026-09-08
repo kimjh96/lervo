@@ -22,6 +22,40 @@ afterEach(async () => {
 });
 
 describe("agent organization CLI", () => {
+  it("reclassifies an exact existing team with an auditable revision", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-team-kind-"));
+    roots.push(root);
+    expect(await runCli(["init", "--root", root, "--name", "team-kind"], io(root))).toBe(0);
+    const coordinates = [
+      "--organization",
+      "org_lervoowner01",
+      "--team",
+      "team_lervocore01",
+      "--root",
+      root,
+    ];
+    expect(
+      await runCli(
+        ["organization", "bind-team", ...coordinates, "--kind", "project", "--write"],
+        io(root),
+      ),
+    ).toBe(0);
+    expect(
+      await runCli(
+        ["organization", "set-team-kind", ...coordinates, "--kind", "central", "--write"],
+        io(root),
+      ),
+    ).toBe(0);
+    const output: string[] = [];
+    expect(
+      await runCli(["organization", "inspect", "--root", root, "--json"], io(root, output)),
+    ).toBe(0);
+    expect(JSON.parse(output.join(""))).toMatchObject({
+      team: { organizationId: "org_lervoowner01", teamKind: "central" },
+      teamKindRevision: 2,
+    });
+  });
+
   it("composes central and project repositories and evaluates a bounded CEO request", async () => {
     const central = await mkdtemp(resolve(tmpdir(), "lervo-central-organization-"));
     const project = await mkdtemp(resolve(tmpdir(), "lervo-project-organization-"));
@@ -162,6 +196,8 @@ describe("agent organization CLI", () => {
           "hire",
           "--role",
           "developer",
+          "--name",
+          "Nova",
           "--provider",
           "any",
           "--write",
@@ -267,11 +303,42 @@ describe("agent organization CLI", () => {
     expect(await runCli(bind, io(root, first))).toBe(0);
     expect(JSON.parse(first.join(""))).toMatchObject({
       team: { organizationId: "org_lervoowner01", teamId: "team_lervocore01" },
-      memberships: [{ agentId, status: "active" }],
-      deployments: [{ agentId, participantId: "ptc_lervoagent01", retiredAt: null }],
+      memberships: [{ agentId, agentDisplayName: "Nova", roleId: "developer", status: "active" }],
+      deployments: [
+        {
+          agentId,
+          agentDisplayName: "Nova",
+          participantId: "ptc_lervoagent01",
+          retiredAt: null,
+        },
+      ],
       channelMemberships: [{ conversationId: "cnv_lervogeneral01", status: "active" }],
     });
     expect(await runCli(bind, io(root))).toBe(0);
+    expect(
+      await runCli(
+        [
+          "agent",
+          "rename",
+          "--agent",
+          agentId,
+          "--name",
+          "Tarin",
+          "--revision",
+          "1",
+          "--write",
+          "--root",
+          root,
+        ],
+        io(root),
+      ),
+    ).toBe(0);
+    const synchronized: string[] = [];
+    expect(await runCli(bind, io(root, synchronized))).toBe(0);
+    expect(JSON.parse(synchronized.join(""))).toMatchObject({
+      memberships: [{ agentId, agentDisplayName: "Tarin", displayNameRevision: 2 }],
+      deployments: [{ agentId, agentDisplayName: "Tarin", displayNameRevision: 2 }],
+    });
     const storage = await openProjectStorage(root);
     try {
       const organizationEvents: ReturnType<typeof storage.events.list> = [];
@@ -289,6 +356,7 @@ describe("agent organization CLI", () => {
         "organization.agent.membership.changed",
         "organization.external_agent.deployment.bound",
         "organization.channel.membership.changed",
+        "organization.agent.identity.changed",
       ]);
       expect(JSON.stringify(organizationEvents)).not.toContain("999999999999999999");
       expect(JSON.stringify(organizationEvents)).not.toContain("222222222222222222");

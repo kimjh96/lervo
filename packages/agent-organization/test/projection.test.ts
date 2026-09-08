@@ -194,6 +194,7 @@ describe("agent organization projection", () => {
     });
 
     expect(projection.team).toMatchObject({ organizationId, teamId, projectId });
+    expect(projection.teamKindRevision).toBe(1);
     expect(projection.memberships).toEqual([
       expect.objectContaining({ membershipId, agentId, status: "ended", revision: 2 }),
     ]);
@@ -214,6 +215,97 @@ describe("agent organization projection", () => {
         outcomeStatus: "converged",
       }),
     ]);
+  });
+
+  it("reclassifies a team through explicit ordered history without changing its identity", () => {
+    const projection = projectAgentOrganization({
+      projectId,
+      events: [
+        team,
+        event(2, "organization.team.kind.changed", {
+          organizationId,
+          teamId,
+          projectId,
+          repositoryIdentityHash: hash("1"),
+          previousTeamKind: "project",
+          teamKind: "central",
+          revision: 2,
+          changedAt: "2026-09-08T00:01:00.000Z",
+        }),
+      ],
+    });
+    expect(projection.team).toMatchObject({ organizationId, teamId, teamKind: "central" });
+    expect(projection.teamKindRevision).toBe(2);
+  });
+
+  it("rejects stale team-kind history", () => {
+    expect(() =>
+      projectAgentOrganization({
+        projectId,
+        events: [
+          team,
+          event(2, "organization.team.kind.changed", {
+            organizationId,
+            teamId,
+            projectId,
+            repositoryIdentityHash: hash("1"),
+            previousTeamKind: "central",
+            teamKind: "project",
+            revision: 2,
+            changedAt: "2026-09-08T00:01:00.000Z",
+          }),
+        ],
+      }),
+    ).toThrowError(
+      expect.objectContaining<Partial<AgentOrganizationError>>({
+        code: "organization_state_conflict",
+      }),
+    );
+  });
+
+  it("updates an agent's visible identity without changing its role or deployment", () => {
+    const namedMembership = event(2, "organization.agent.membership.changed", {
+      ...(membership.payload as Record<string, unknown>),
+      agentDisplayName: "Nova",
+      agentDisplayNameSource: "explicit",
+      displayNameRevision: 1,
+    });
+    const namedDeployment = event(3, "organization.external_agent.deployment.bound", {
+      ...(deployment.payload as Record<string, unknown>),
+      agentDisplayName: "Nova",
+      agentDisplayNameSource: "explicit",
+      displayNameRevision: 1,
+    });
+    const projection = projectAgentOrganization({
+      projectId,
+      events: [
+        team,
+        namedMembership,
+        namedDeployment,
+        event(4, "organization.agent.identity.changed", {
+          membershipId,
+          organizationId,
+          teamId,
+          projectId,
+          agentId,
+          previousDisplayName: "Nova",
+          displayName: "Sol",
+          displayNameSource: "explicit",
+          revision: 2,
+          changedAt: "2026-09-08T00:03:00.000Z",
+        }),
+      ],
+    });
+    expect(projection.memberships[0]).toMatchObject({
+      agentDisplayName: "Sol",
+      displayNameRevision: 2,
+      roleId: "developer",
+    });
+    expect(projection.deployments[0]).toMatchObject({
+      agentDisplayName: "Sol",
+      displayNameRevision: 2,
+      deploymentId,
+    });
   });
 
   it("rejects a second active bot principal and retirement before channel departure", () => {

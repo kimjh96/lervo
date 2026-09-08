@@ -8,12 +8,14 @@ import {
 } from "./agent-context-event.js";
 import {
   organizationAgentMembershipChangedEventPayloadSchema,
+  organizationAgentIdentityChangedEventPayloadSchema,
   organizationChannelMembershipChangedEventPayloadSchema,
   organizationDeliberationParticipantBoundEventPayloadSchema,
   organizationDeliberationParticipantReleasedEventPayloadSchema,
   organizationExternalAgentDeploymentBoundEventPayloadSchema,
   organizationExternalAgentDeploymentRetiredEventPayloadSchema,
   organizationTeamBoundEventPayloadSchema,
+  organizationTeamKindChangedEventPayloadSchema,
 } from "./organization-agent-event.js";
 import {
   adapterProcessObservationSchema,
@@ -357,6 +359,12 @@ const validators = {
   roleEvaluationResult: ajv.compile(roleEvaluationResultSchema),
   roleProfileActivatedEventPayload: ajv.compile(roleProfileActivatedEventPayloadSchema),
   organizationTeamBoundEventPayload: ajv.compile(organizationTeamBoundEventPayloadSchema),
+  organizationTeamKindChangedEventPayload: ajv.compile(
+    organizationTeamKindChangedEventPayloadSchema,
+  ),
+  organizationAgentIdentityChangedEventPayload: ajv.compile(
+    organizationAgentIdentityChangedEventPayloadSchema,
+  ),
   organizationAgentMembershipChangedEventPayload: ajv.compile(
     organizationAgentMembershipChangedEventPayloadSchema,
   ),

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_43ea5ae715c06d0234a9a444
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_34b384027015d729afb3c937
+outputLanguage: en
+outputs:
+  - byteCount: 1092
+    contentHash: sha256:28f1f3d3b4524f44b786c894b3e16e4b705d02bc89481aafec465cd2c22d4562
+    path: docs/architecture/system/agent-organization/coordination-and-authority.md
+    userRegionHash: sha256:28f1f3d3b4524f44b786c894b3e16e4b705d02bc89481aafec465cd2c22d4562
+profile: architecture_document
+recordId: knormdoc_17e952f7ff24bdb634b9cbb1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9937a6e16764f96147074eb85b0d8d915e8a510148a2c6e8407453447bf1e9de
+sourcePath: docs/architecture/system/agent-organization/coordination-and-authority.md
+sourceUnitVersionIds:
+  - uv_8379aaad769d5b9e798881d8

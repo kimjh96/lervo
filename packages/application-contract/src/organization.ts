@@ -63,6 +63,7 @@ export interface CeoCommandRequest {
   automationDepth: number;
   budget: { status: "within" | "reached" | "unknown"; policyHash: string };
   approvalId: string | null;
+  effectHash?: string;
 }
 
 export interface CeoCommandDecision {
@@ -84,3 +85,66 @@ export interface CeoCommandDecision {
     | "operating_projection_conflict";
   decisionHash: string;
 }
+
+export interface OrganizationExecutiveEffect {
+  schemaVersion: 1;
+  effectId: string;
+  organizationId: string;
+  teamId: string | null;
+  action: OrganizationAction;
+  adapterId: string;
+  parameters: unknown;
+  parametersHash: string;
+}
+
+export interface OrganizationExecutiveEffectReceipt {
+  schemaVersion: 1;
+  effectId: string;
+  requestId: string;
+  decisionHash: string;
+  effectHash: string;
+  adapterId: string;
+  externalEffectId: string;
+  resultHash: string;
+  completedAt: string;
+}
+
+export type OrganizationExecutiveEffectReplayDecision =
+  | { status: "reserved" }
+  | { status: "completed"; receipt: OrganizationExecutiveEffectReceipt }
+  | { status: "unknown" | "rejected" | "conflict" };
+
+export interface OrganizationExecutiveEffectReplayPort {
+  begin(input: {
+    effectId: string;
+    requestId: string;
+    effectHash: string;
+    attemptedAt: string;
+  }): Promise<OrganizationExecutiveEffectReplayDecision>;
+  complete(receipt: OrganizationExecutiveEffectReceipt): Promise<void>;
+  markUnknown(input: { effectId: string; requestId: string; effectHash: string }): Promise<void>;
+  markRejected(input: { effectId: string; requestId: string; effectHash: string }): Promise<void>;
+}
+
+export interface OrganizationExecutiveEffectPort {
+  readonly adapterId: string;
+  readonly actions: readonly OrganizationAction[];
+  apply(effect: Readonly<OrganizationExecutiveEffect>): Promise<
+    | {
+        status: "completed";
+        externalEffectId: string;
+        resultHash: string;
+        completedAt: string;
+      }
+    | { status: "rejected"; reasonCode: string }
+  >;
+}
+
+export type OrganizationExecutiveExecutionResult =
+  | { status: "not_allowed"; decision: CeoCommandDecision }
+  | {
+      status: "completed" | "replayed";
+      decision: CeoCommandDecision;
+      receipt: OrganizationExecutiveEffectReceipt;
+    }
+  | { status: "uncertain" | "rejected"; decision: CeoCommandDecision; effectHash: string };

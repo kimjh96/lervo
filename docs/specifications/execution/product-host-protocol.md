@@ -20,7 +20,7 @@ Explicit versions add capabilities without changing earlier versions' discovery:
 - v4: reviewed direct-message triggering, explicit handoff acknowledgment, and its projection.
 - v5: bounded unattended assignment execution, removed from only v5's unsupported list.
 - v6: graph-v2 inspection and reviewed bounded topology changes, removed from only v6's unsupported list.
-- v7: agent context, multi-team operating projection, and bounded CEO decision routes.
+- v7: agent context, multi-team operating projection, team reclassification, bounded CEO decision, and exact organization-executive effect routes.
 
 ```bash
 lervo application capabilities --protocol 2 --json
@@ -50,6 +50,7 @@ Versions are compatibility and discovery contracts, not authority grants, reposi
 - [ADR-0379](../../decisions/execution/orchestration/governed-work/0379-install-bounded-unattended-assignment-scheduling.md)
 - [ADR-0380](../../decisions/execution/orchestration/governed-work/0380-install-bounded-dynamic-assignment-topology.md)
 - [ADR-0390](../../decisions/coordination/conversations/0390-project-reviewed-agent-context-and-headless-organization-control.md)
+- [ADR-0393](../../decisions/coordination/conversations/0393-named-agent-identity-and-installed-organization-effects.md)
 - [Operating attention](operating-attention.md)
 - [Operating liveness](operating-liveness.md)
 - [Operating goals](operating-goals.md)

@@ -59,6 +59,65 @@ export const organizationTeamBoundEventPayloadSchema = {
   additionalProperties: false,
 } as const;
 
+export const organizationTeamKindChangedEventPayloadSchema = {
+  type: "object",
+  properties: {
+    organizationId: organizationIdSchema,
+    teamId: teamIdSchema,
+    projectId: projectIdSchema,
+    repositoryIdentityHash: sha256Schema,
+    previousTeamKind: { type: "string", enum: ["central", "project"] },
+    teamKind: { type: "string", enum: ["central", "project"] },
+    revision: { type: "integer", minimum: 2 },
+    changedAt: timestampSchema,
+  },
+  required: [
+    "organizationId",
+    "teamId",
+    "projectId",
+    "repositoryIdentityHash",
+    "previousTeamKind",
+    "teamKind",
+    "revision",
+    "changedAt",
+  ],
+  additionalProperties: false,
+} as const;
+
+export const organizationAgentIdentityChangedEventPayloadSchema = {
+  type: "object",
+  properties: {
+    membershipId: agentMembershipIdSchema,
+    organizationId: organizationIdSchema,
+    teamId: teamIdSchema,
+    projectId: projectIdSchema,
+    agentId: workforceAgentIdSchema,
+    previousDisplayName: {
+      anyOf: [{ type: "string", minLength: 1, maxLength: 40 }, { type: "null" }],
+    },
+    displayName: { type: "string", minLength: 1, maxLength: 40 },
+    displayNameSource: {
+      type: "string",
+      enum: ["explicit", "generated", "legacy_derived"],
+    },
+    revision: { type: "integer", minimum: 1 },
+    changedAt: timestampSchema,
+  },
+  required: [
+    "membershipId",
+    "organizationId",
+    "teamId",
+    "projectId",
+    "agentId",
+    "previousDisplayName",
+    "displayName",
+    "displayNameSource",
+    "revision",
+    "changedAt",
+  ],
+  additionalProperties: false,
+} as const;
+
 export const organizationAgentMembershipChangedEventPayloadSchema = {
   type: "object",
   properties: {
@@ -67,6 +126,12 @@ export const organizationAgentMembershipChangedEventPayloadSchema = {
     teamId: teamIdSchema,
     projectId: projectIdSchema,
     agentId: workforceAgentIdSchema,
+    agentDisplayName: { type: "string", minLength: 1, maxLength: 40 },
+    agentDisplayNameSource: {
+      type: "string",
+      enum: ["explicit", "generated", "legacy_derived"],
+    },
+    displayNameRevision: { type: "integer", minimum: 1 },
     roleId: roleIdSchema,
     roleVersion: semverSchema,
     roleContractHash: sha256Schema,
@@ -107,6 +172,12 @@ export const organizationExternalAgentDeploymentBoundEventPayloadSchema = {
     projectId: projectIdSchema,
     membershipId: agentMembershipIdSchema,
     agentId: workforceAgentIdSchema,
+    agentDisplayName: { type: "string", minLength: 1, maxLength: 40 },
+    agentDisplayNameSource: {
+      type: "string",
+      enum: ["explicit", "generated", "legacy_derived"],
+    },
+    displayNameRevision: { type: "integer", minimum: 1 },
     participantId: conversationParticipantIdSchema,
     roleId: roleIdSchema,
     roleVersion: semverSchema,
@@ -296,6 +367,12 @@ export const organizationDeliberationParticipantReleasedEventPayloadSchema = {
 
 export type OrganizationTeamBoundEventPayload = FromSchema<
   typeof organizationTeamBoundEventPayloadSchema
+>;
+export type OrganizationTeamKindChangedEventPayload = FromSchema<
+  typeof organizationTeamKindChangedEventPayloadSchema
+>;
+export type OrganizationAgentIdentityChangedEventPayload = FromSchema<
+  typeof organizationAgentIdentityChangedEventPayloadSchema
 >;
 export type OrganizationAgentMembershipChangedEventPayload = FromSchema<
   typeof organizationAgentMembershipChangedEventPayloadSchema

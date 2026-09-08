@@ -90,6 +90,29 @@ export interface DiscordAdministrationPort {
     nickname: string | null;
     observedAt: string;
   }>;
+  createGuildTextChannel(input: {
+    guildId: string;
+    name: string;
+    topic: string | null;
+    parentChannelId: string | null;
+  }): Promise<{
+    guildId: string;
+    channelId: string;
+    name: string;
+    observedAt: string;
+  }>;
+  createPublicThread(input: {
+    guildId: string;
+    channelId: string;
+    name: string;
+    autoArchiveDuration: 60 | 1440 | 4320 | 10080;
+  }): Promise<{
+    guildId: string;
+    parentChannelId: string;
+    threadId: string;
+    name: string;
+    observedAt: string;
+  }>;
 }
 
 export interface DiscordResponseActivity {

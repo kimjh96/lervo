@@ -1,18 +1,28 @@
 import type {
   OrganizationAgentMembershipChangedEventPayload,
+  OrganizationAgentIdentityChangedEventPayload,
   OrganizationChannelMembershipChangedEventPayload,
   OrganizationDeliberationParticipantBoundEventPayload,
   OrganizationDeliberationParticipantReleasedEventPayload,
   OrganizationExternalAgentDeploymentBoundEventPayload,
   OrganizationExternalAgentDeploymentRetiredEventPayload,
   OrganizationTeamBoundEventPayload,
+  OrganizationTeamKindChangedEventPayload,
 } from "@lervo/schemas";
 
 export type AgentOrganizationEvent =
   | { type: "organization.team.bound"; payload: OrganizationTeamBoundEventPayload }
   | {
+      type: "organization.team.kind.changed";
+      payload: OrganizationTeamKindChangedEventPayload;
+    }
+  | {
       type: "organization.agent.membership.changed";
       payload: OrganizationAgentMembershipChangedEventPayload;
+    }
+  | {
+      type: "organization.agent.identity.changed";
+      payload: OrganizationAgentIdentityChangedEventPayload;
     }
   | {
       type: "organization.external_agent.deployment.bound";
@@ -57,6 +67,7 @@ export interface AgentOrganizationProjection {
   schemaVersion: 1;
   projectId: string;
   team: OrganizationTeamBoundEventPayload | null;
+  teamKindRevision: number;
   memberships: OrganizationAgentMembershipChangedEventPayload[];
   deployments: ExternalAgentDeployment[];
   channelMemberships: OrganizationChannelMembershipChangedEventPayload[];

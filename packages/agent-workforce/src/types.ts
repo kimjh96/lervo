@@ -7,6 +7,8 @@ export interface WorkforceAgent {
   schemaVersion: 1;
   agentId: string;
   projectId: string;
+  displayName: string;
+  displayNameSource: "explicit" | "generated" | "legacy_derived";
   roleId: string;
   roleVersion: string;
   roleContractHash: string;
@@ -122,6 +124,7 @@ export interface WorkforceAssignment {
 export interface WorkforceEvent {
   type:
     | "agent.registered"
+    | "agent.identity.changed"
     | "agent.status.changed"
     | "assignment.created"
     | "assignment.claimed"

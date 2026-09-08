@@ -113,6 +113,33 @@ function bindTeam(input: {
   }
 }
 
+function changeTeamKind(input: {
+  storage: ProjectStorage;
+  organizationId: string;
+  teamId: string;
+  teamKind: "central" | "project";
+}): void {
+  const current = projection(input.storage);
+  if (
+    current.team === null ||
+    current.team.organizationId !== input.organizationId ||
+    current.team.teamId !== input.teamId
+  ) {
+    throw new Error("The exact existing organization team must be bound before reclassification.");
+  }
+  if (current.team.teamKind === input.teamKind) return;
+  append(input.storage, "organization.team.kind.changed", {
+    organizationId: current.team.organizationId,
+    teamId: current.team.teamId,
+    projectId: current.team.projectId,
+    repositoryIdentityHash: current.team.repositoryIdentityHash,
+    previousTeamKind: current.team.teamKind,
+    teamKind: input.teamKind,
+    revision: current.teamKindRevision + 1,
+    changedAt: new Date().toISOString(),
+  });
+}
+
 function activeAgent(agents: readonly WorkforceAgent[], agentId: string): WorkforceAgent {
   const agent = agents.find((item) => item.agentId === agentId);
   if (agent === undefined || agent.status !== "active") {
@@ -147,6 +174,8 @@ function bindDeployment(input: {
 }): void {
   const providerPolicyHash = workforceProviderPolicyHash(input.agent.provider);
   const role = {
+    agentDisplayName: input.agent.displayName,
+    agentDisplayNameSource: input.agent.displayNameSource,
     roleId: input.agent.roleId,
     roleVersion: input.agent.roleVersion,
     roleContractHash: input.agent.roleContractHash,
@@ -169,16 +198,44 @@ function bindDeployment(input: {
       projectId: input.storage.manifest.projectId,
       agentId: input.agent.agentId,
       ...role,
+      displayNameRevision: 1,
       previousStatus: null,
       status: "active",
       revision: 1,
       changedAt: input.occurredAt,
     });
-  } else if (
-    currentMembership.status !== "active" ||
-    Object.entries(role).some(
-      ([key, value]) => currentMembership[key as keyof typeof currentMembership] !== value,
-    )
+  } else {
+    if (
+      currentMembership.status === "active" &&
+      (currentMembership.agentDisplayName !== input.agent.displayName ||
+        currentMembership.agentDisplayNameSource !== input.agent.displayNameSource)
+    ) {
+      append(input.storage, "organization.agent.identity.changed", {
+        membershipId,
+        organizationId: input.organizationId,
+        teamId: input.teamId,
+        projectId: input.storage.manifest.projectId,
+        agentId: input.agent.agentId,
+        previousDisplayName: currentMembership.agentDisplayName ?? null,
+        displayName: input.agent.displayName,
+        displayNameSource: input.agent.displayNameSource,
+        revision: (currentMembership.displayNameRevision ?? 0) + 1,
+        changedAt: input.occurredAt,
+      });
+    }
+  }
+  const synchronizedMembership = projection(input.storage).memberships.find(
+    (item) => item.membershipId === membershipId,
+  )!;
+  if (
+    synchronizedMembership.status !== "active" ||
+    synchronizedMembership.roleId !== role.roleId ||
+    synchronizedMembership.roleVersion !== role.roleVersion ||
+    synchronizedMembership.roleContractHash !== role.roleContractHash ||
+    synchronizedMembership.roleProfileHash !== role.roleProfileHash ||
+    synchronizedMembership.providerPolicyHash !== role.providerPolicyHash ||
+    synchronizedMembership.agentDisplayName !== role.agentDisplayName ||
+    synchronizedMembership.agentDisplayNameSource !== role.agentDisplayNameSource
   ) {
     throw new Error("The existing organization membership does not match the active agent role.");
   }
@@ -220,6 +277,7 @@ function bindDeployment(input: {
       agentId: input.agent.agentId,
       participantId: input.config.agentParticipantId,
       ...role,
+      displayNameRevision: synchronizedMembership.displayNameRevision ?? 1,
       platform: "discord",
       integrationId: input.config.integrationId,
       externalPrincipalHash,
@@ -281,11 +339,16 @@ export async function bindAgentOrganizationRuntime(input: {
   config: NodeRuntimeConfig;
 }): Promise<AgentOrganizationProjection> {
   return mutateAgentOrganization(input.root, async (storage) => {
+    const current = projection(storage);
     bindTeam({
       storage,
       organizationId: input.organizationId,
       teamId: input.teamId,
-      teamKind: "project",
+      teamKind:
+        current.team?.organizationId === input.organizationId &&
+        current.team.teamId === input.teamId
+          ? current.team.teamKind
+          : "project",
     });
     const agents = await listAgents(input.root);
     for (const deployment of configuredDiscordConversations(input.config)) {
@@ -301,6 +364,18 @@ export async function bindAgentOrganizationRuntime(input: {
         occurredAt: new Date().toISOString(),
       });
     }
+    return projection(storage);
+  });
+}
+
+export async function changeAgentOrganizationTeamKind(input: {
+  root: string;
+  organizationId: string;
+  teamId: string;
+  teamKind: "central" | "project";
+}): Promise<AgentOrganizationProjection> {
+  return mutateAgentOrganization(input.root, async (storage) => {
+    changeTeamKind({ storage, ...input });
     return projection(storage);
   });
 }

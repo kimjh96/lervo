@@ -117,10 +117,12 @@ export function parseDiscordConversationConfig(
       : (boundedUniqueText(
           administration.allowedActions,
           "discordConversation.administration.allowedActions",
-          /^current_member\.nickname\.set$/u,
+          /^(?:current_member\.nickname\.set|guild_text_channel\.create|public_thread\.create)$/u,
           1,
-          1,
-        ) as Array<"current_member.nickname.set">);
+          3,
+        ) as Array<
+          "current_member.nickname.set" | "guild_text_channel.create" | "public_thread.create"
+        >);
   const behavior = parseDiscordConversationBehavior({
     routing: source.routing,
     command: source.command,
@@ -135,6 +137,22 @@ export function parseDiscordConversationConfig(
     baseDirectory,
     participants.filter((item) => item.actorKind === "human").map((item) => item.participantId),
   );
+  if (
+    deliberation?.notificationConversationIds !== undefined &&
+    (deliberation.notificationConversationIds.some(
+      (conversationId) => !conversations.some((item) => item.conversationId === conversationId),
+    ) ||
+      behavior.policy?.mode !== "proactive" ||
+      !behavior.policy.respondTo?.includes("system") ||
+      !["deliberation.completed", "deliberation.attention"].every((signalCode) =>
+        behavior.policy!.signalCodes?.includes(signalCode),
+      ))
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "Discord deliberation notifications require configured conversations and exact proactive system signal subscriptions.",
+    );
+  }
   if (
     repositorySignals !== undefined &&
     (behavior.policy?.mode !== "proactive" ||

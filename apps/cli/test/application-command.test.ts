@@ -245,13 +245,16 @@ describe("application command", () => {
     ).toBe(0);
     const report = JSON.parse(output.stdout.join(""));
     expect(report.schemaVersion).toBe(7);
-    expect(report.routes.slice(-6).map((route: { routeId: string }) => route.routeId)).toEqual([
+    expect(report.routes.slice(-9).map((route: { routeId: string }) => route.routeId)).toEqual([
+      "workforce_agent.rename",
       "organization_team.bind",
+      "organization_team.reclassify",
       "organization_portfolio.inspect",
       "agent_context.inspect",
       "agent_context.promote",
       "agent_context.handoff",
       "organization_ceo.evaluate",
+      "organization_executive.execute",
     ]);
     expect(report.projections).toContain("agent_context");
     expect(report.projections).toContain("organization_operating_report");

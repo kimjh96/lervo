@@ -105,4 +105,89 @@ describe("conversation deliberation CLI executor", () => {
       }),
     ).rejects.toThrow("invalid evidence");
   });
+
+  it("reconciles uncertain execution only from matching canonical inspection", async () => {
+    const run = vi.fn<ConversationDeliberationCliProcess["run"]>(async () => ({
+      exitCode: 0,
+      stdout: JSON.stringify({
+        schemaVersion: 1,
+        projectId: "prj_control01",
+        deliberationId: "dlb_queue0001",
+        sourceStatus: "consistent",
+        phase: "completed",
+        completionStatus: "converged",
+        artifactCount: 4,
+        checkpoint: "readable",
+        lease: "missing",
+        resume: "completed",
+      }),
+      stderr: "",
+    }));
+    const ports = createConversationDeliberationCliExecutionPorts({
+      executable: "/opt/lervo/bin/lervo",
+      repositoryRoot: "/srv/project",
+      process: { run },
+    });
+    await expect(
+      ports.reconciliation.inspect({
+        inspectedAt: "2026-09-09T00:01:00.000Z",
+        job: {
+          operation: "start",
+          projectId: "prj_control01",
+          deliberationId: "dlb_queue0001",
+          requestHash: `sha256:${"b".repeat(64)}`,
+          state: "uncertain",
+          summary: null,
+        },
+      }),
+    ).resolves.toMatchObject({
+      status: "confirmed",
+      sourceKind: "managed_deliberation_cli_v1",
+      summary: { status: "converged", artifactCount: 4 },
+    });
+    expect(run).toHaveBeenCalledWith({
+      executable: "/opt/lervo/bin/lervo",
+      args: ["deliberate", "status", "dlb_queue0001", "--root", "/srv/project", "--json"],
+      stdin: "",
+      timeoutMs: 60_000,
+    });
+  });
+
+  it("does not convert incomplete canonical history into a terminal result", async () => {
+    const ports = createConversationDeliberationCliExecutionPorts({
+      executable: "/opt/lervo/bin/lervo",
+      repositoryRoot: "/srv/project",
+      process: {
+        run: async () => ({
+          exitCode: 1,
+          stdout: JSON.stringify({
+            schemaVersion: 1,
+            projectId: "prj_control01",
+            deliberationId: "dlb_queue0001",
+            sourceStatus: "incomplete",
+            phase: "rounds",
+            completionStatus: null,
+            artifactCount: 1,
+            checkpoint: "missing",
+            lease: "missing",
+            resume: "not_available",
+          }),
+          stderr: "",
+        }),
+      },
+    });
+    await expect(
+      ports.reconciliation.inspect({
+        inspectedAt: "2026-09-09T00:01:00.000Z",
+        job: {
+          operation: "start",
+          projectId: "prj_control01",
+          deliberationId: "dlb_queue0001",
+          requestHash: `sha256:${"b".repeat(64)}`,
+          state: "uncertain",
+          summary: null,
+        },
+      }),
+    ).resolves.toEqual({ status: "not_confirmed", reason: "history_incomplete" });
+  });
 });

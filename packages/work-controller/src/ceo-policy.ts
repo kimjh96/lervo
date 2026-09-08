@@ -81,7 +81,8 @@ function validRequest(request: CeoCommandRequest): boolean {
     ["within", "reached", "unknown"].includes(request.budget.status) &&
     HASH.test(request.budget.policyHash) &&
     (request.approvalId === null ||
-      /^apr_[A-Za-z0-9][A-Za-z0-9_-]{7,127}$/u.test(request.approvalId))
+      /^apr_[A-Za-z0-9][A-Za-z0-9_-]{7,127}$/u.test(request.approvalId)) &&
+    (request.effectHash === undefined || HASH.test(request.effectHash))
   );
 }
 

@@ -1,7 +1,7 @@
 # Corrected product claim boundaries
 
 - Completed natural-language terminal v1 verifies retrieval, workstream checkpoints, declarations, and lifecycle inspection. It provides neither automatic semantic outcome drafting nor proactive user attention.
-- Completed branch-safe lifecycle verifies typed candidate creation and exact review. ADR-0327 still forbids direct-hook effect grounding and mutation. The installed explicit durable-instruction command owns candidate creation and exact reviewed materialization outside the hook.
+- Completed branch-safe lifecycle verifies typed candidate creation and exact review. ADR-0327 forbids direct-hook effect grounding and mutation. The installed explicit durable-instruction command owns candidate creation and exact reviewed materialization outside the hook.
 - The completed governed-loop roadmap and subsequent installed extensions cover manual execution, read-only workstream goals, liveness, bounded unattended continuation, and reviewed additive dynamic topology. Native provider-session resume and independent nested-goal mutation remain outside those contracts.
 - The completed product-host protocol establishes a CLI compatibility boundary, not a Paperclip or Buzz product interface.
 - Retrieval selection proves only source selection for context. It does not prove a repeatable workflow, define a capability envelope, or authorize generated skill bytes. Skill candidacy starts with independently grouped workflow evidence.

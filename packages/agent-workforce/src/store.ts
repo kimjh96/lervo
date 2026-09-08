@@ -46,6 +46,11 @@ import {
   topologyAssignmentMatches,
   validWorkforceTopologyProvenance,
 } from "./assignment-topology-state.js";
+import {
+  generateAgentDisplayName,
+  validAgentDisplayName,
+  withAgentDisplayIdentity,
+} from "./agent-display-identity.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const ROLE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
@@ -135,6 +140,9 @@ function validAgent(agent: unknown, projectId: string): agent is WorkforceAgent 
     value.schemaVersion === 1 &&
     AGENT_ID.test(value.agentId) &&
     value.projectId === projectId &&
+    (value.displayName === undefined || validAgentDisplayName(value.displayName)) &&
+    (value.displayNameSource === undefined ||
+      ["explicit", "generated", "legacy_derived"].includes(value.displayNameSource)) &&
     ROLE_ID.test(value.roleId) &&
     value.roleId.length <= 100 &&
     (value.roleVersion === undefined || ROLE_VERSION.test(value.roleVersion)) &&
@@ -394,7 +402,7 @@ async function transition<T>(input: {
   }
 }
 
-async function normalizeAgent(root: string, agent: WorkforceAgent): Promise<WorkforceAgent> {
+async function normalizeAgentRole(root: string, agent: WorkforceAgent): Promise<WorkforceAgent> {
   const contract = await resolveRoleContract(root, agent.roleId);
   const currentProfileHash = roleProfileHash(contract.definition.profile);
   const legacyCapabilityHash = digest(stableJson(contract.definition.profile.capabilities));
@@ -461,6 +469,10 @@ async function normalizeAgent(root: string, agent: WorkforceAgent): Promise<Work
   if (agent.capabilityHash !== currentCapabilityHash)
     fail("agent_state_conflict", `Agent ${agent.agentId} capability binding is stale.`);
   return agent;
+}
+
+function normalizeAgent(root: string, agent: WorkforceAgent): Promise<WorkforceAgent> {
+  return normalizeAgentRole(root, withAgentDisplayIdentity(agent));
 }
 
 async function registry(root: string): Promise<{
@@ -570,7 +582,7 @@ async function readAssignment(root: string, assignmentId: string): Promise<Workf
 }
 
 export async function listAgents(root: string): Promise<WorkforceAgent[]> {
-  return structuredClone((await registry(root)).value.agents);
+  return structuredClone((await registry(root)).value.agents.map(withAgentDisplayIdentity));
 }
 
 async function registerAgentOnce(input: {
@@ -581,6 +593,7 @@ async function registerAgentOnce(input: {
   skillIds?: string[];
   capabilityPackageIds?: string[];
   parentAgentId?: string;
+  displayName?: string;
   now?: Date;
   recordEvent?: WorkforceEventRecorder;
 }): Promise<WorkforceAgent> {
@@ -638,10 +651,27 @@ async function registerAgentOnce(input: {
     fail("agent_state_conflict", "The repository agent limit was reached.");
   const roleHash = roleProfileHash(definition.profile);
   const createdAt = now.toISOString();
+  const agentId = id("agt", { projectId: current.projectId, nonce: randomUUID() });
+  if (input.displayName !== undefined && !validAgentDisplayName(input.displayName)) {
+    fail("agent_invalid", "The agent display name is invalid.");
+  }
+  const displayName = input.displayName ?? generateAgentDisplayName(agentId);
+  if (
+    current.value.agents.some(
+      (existing) =>
+        withAgentDisplayIdentity(existing).displayName.localeCompare(displayName, undefined, {
+          sensitivity: "accent",
+        }) === 0,
+    )
+  ) {
+    fail("agent_state_conflict", "The agent display name is already in use.");
+  }
   const agent: WorkforceAgent = {
     schemaVersion: 1,
-    agentId: id("agt", { projectId: current.projectId, nonce: randomUUID() }),
+    agentId,
     projectId: current.projectId,
+    displayName,
+    displayNameSource: input.displayName === undefined ? "generated" : "explicit",
     roleId: input.roleId,
     roleVersion: contract.version,
     roleContractHash: contract.contractHash,
@@ -693,6 +723,8 @@ async function registerAgentOnce(input: {
       actorAgentId: parent?.agentId ?? null,
       payload: {
         agentId: agent.agentId,
+        displayName: agent.displayName,
+        displayNameSource: agent.displayNameSource,
         roleId: agent.roleId,
         roleVersion: agent.roleVersion,
         roleContractHash: agent.roleContractHash,
@@ -714,6 +746,7 @@ export function registerAgent(input: {
   skillIds?: string[];
   capabilityPackageIds?: string[];
   parentAgentId?: string;
+  displayName?: string;
   now?: Date;
   recordEvent?: WorkforceEventRecorder;
 }): Promise<WorkforceAgent> {
@@ -766,6 +799,74 @@ export async function changeAgentStatus(input: {
         agentId: agent.agentId,
         previousStatus: existing.status,
         status: agent.status,
+        revision: agent.revision,
+      },
+    },
+  });
+}
+
+export async function changeAgentDisplayName(input: {
+  repositoryRoot: string;
+  agentId: string;
+  expectedRevision: number;
+  displayName: string;
+  actorAgentId?: string;
+  now?: Date;
+  recordEvent?: WorkforceEventRecorder;
+}): Promise<WorkforceAgent> {
+  if (!AGENT_ID.test(input.agentId) || !validAgentDisplayName(input.displayName)) {
+    fail("agent_invalid", "The agent display-name transition is invalid.");
+  }
+  const now = input.now ?? new Date();
+  const current = await registry(input.repositoryRoot);
+  const index = current.value.agents.findIndex((agent) => agent.agentId === input.agentId);
+  if (index < 0) fail("agent_not_found", "The agent does not exist.");
+  const existing = withAgentDisplayIdentity(current.value.agents[index]!);
+  if (
+    existing.revision !== input.expectedRevision ||
+    existing.status === "retired" ||
+    existing.displayName === input.displayName ||
+    current.value.agents.some(
+      (candidate) =>
+        candidate.agentId !== input.agentId &&
+        withAgentDisplayIdentity(candidate).displayName.localeCompare(
+          input.displayName,
+          undefined,
+          {
+            sensitivity: "accent",
+          },
+        ) === 0,
+    )
+  ) {
+    fail("agent_state_conflict", "The agent revision, lifecycle, or display name conflicts.");
+  }
+  const agent: WorkforceAgent = {
+    ...existing,
+    displayName: input.displayName,
+    displayNameSource: "explicit",
+    revision: existing.revision + 1,
+    updatedAt: now.toISOString(),
+  };
+  const agents = current.value.agents.map((candidate, candidateIndex) =>
+    candidateIndex === index ? agent : candidate,
+  );
+  return transition({
+    path: current.path,
+    lockPath: current.lockPath,
+    now,
+    content: `${JSON.stringify({ ...current.value, agents }, null, 2)}\n`,
+    result: structuredClone(agent),
+    ...(input.recordEvent === undefined ? {} : { recordEvent: input.recordEvent }),
+    expectedBefore: current.source,
+    event: {
+      type: "agent.identity.changed",
+      occurredAt: agent.updatedAt,
+      actorAgentId: input.actorAgentId ?? null,
+      payload: {
+        agentId: agent.agentId,
+        previousDisplayName: existing.displayName,
+        displayName: agent.displayName,
+        displayNameSource: agent.displayNameSource,
         revision: agent.revision,
       },
     },

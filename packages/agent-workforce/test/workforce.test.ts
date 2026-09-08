@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   cancelAssignment,
+  changeAgentDisplayName,
   claimAssignment,
   completeAssignment,
   createAssignment,
@@ -113,6 +114,45 @@ afterEach(async () =>
 );
 
 describe("repository agent workforce", () => {
+  it("keeps a unique agent display identity separate from its role and provider", async () => {
+    const root = await repository();
+    const named = await registerAgent({
+      repositoryRoot: root,
+      roleId: "developer",
+      provider: "claude",
+      displayName: "Nova",
+    });
+    const generated = await registerAgent({
+      repositoryRoot: root,
+      roleId: "developer",
+      provider: "codex",
+    });
+    expect(named).toMatchObject({
+      displayName: "Nova",
+      displayNameSource: "explicit",
+      roleId: "developer",
+      provider: "claude",
+    });
+    expect(generated.displayNameSource).toBe("generated");
+    expect(generated.displayName).not.toBe("developer");
+    const renamed = await changeAgentDisplayName({
+      repositoryRoot: root,
+      agentId: generated.agentId,
+      expectedRevision: 1,
+      displayName: "Sol",
+    });
+    expect(renamed).toMatchObject({
+      displayName: "Sol",
+      displayNameSource: "explicit",
+      roleId: "developer",
+      provider: "codex",
+      revision: 2,
+    });
+    await expect(
+      registerAgent({ repositoryRoot: root, roleId: "writer", displayName: "nova" }),
+    ).rejects.toMatchObject({ code: "agent_state_conflict" });
+  });
+
   it("shares one scheduler across sibling worktrees and rejects cross-worktree overlap", async () => {
     const root = await repository();
     await writeFile(resolve(root, "README.fixture.md"), "fixture\n");

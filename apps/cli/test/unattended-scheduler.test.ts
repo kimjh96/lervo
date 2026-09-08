@@ -14,6 +14,8 @@ function agent(): WorkforceAgent {
     schemaVersion: 1,
     agentId,
     projectId: "prj_fixture001",
+    displayName: "Tarin",
+    displayNameSource: "explicit",
     roleId: "developer",
     roleVersion: "1.0.0",
     roleContractHash: `sha256:${"a".repeat(64)}`,
