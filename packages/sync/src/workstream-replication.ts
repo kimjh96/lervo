@@ -55,6 +55,58 @@ function bodyOf(input: {
   }
 }
 
+async function readRemoteWorkstream(input: {
+  transport: AuthenticatedWorkstreamHubTransport;
+  registration: ProjectRegistrationRequest;
+  destinationId: string;
+  expectedPeerIdentityHash: string;
+}): Promise<WorkstreamReplicationReadResponse> {
+  let response: unknown;
+  try {
+    response = await input.transport.readWorkstream();
+  } catch (error) {
+    throw new WorkstreamReplicationCycleError(
+      "hub_unavailable",
+      "The Hub workstream query failed.",
+      { cause: error },
+    );
+  }
+  const body = bodyOf({
+    response,
+    destinationId: input.destinationId,
+    expectedPeerIdentityHash: input.expectedPeerIdentityHash,
+  });
+  if (!validateSchema("workstreamReplicationReadResponse", body).valid) {
+    throw new WorkstreamReplicationCycleError(
+      "invalid_hub_response",
+      "The Hub workstream query response is invalid.",
+    );
+  }
+  const remote = body as WorkstreamReplicationReadResponse;
+  if (
+    remote.projectId !== input.registration.project.projectId ||
+    remote.repositoryIdentityHash !== input.registration.projectIdentityHash
+  ) {
+    throw new WorkstreamReplicationCycleError(
+      "invalid_hub_response",
+      "The Hub workstream query response coordinates are invalid.",
+    );
+  }
+  return remote;
+}
+
+function unpublishedLocalRevisions(
+  revisions: LocalWorkstreamRevision[],
+  remote: WorkstreamReplicationReadResponse,
+): LocalWorkstreamRevision[] {
+  const disclosedHeads = new Set(remote.heads.map((head) => head.snapshotContentHash));
+  let matchedIndex = -1;
+  for (const [index, revision] of revisions.entries()) {
+    if (disclosedHeads.has(revision.snapshotContentHash)) matchedIndex = index;
+  }
+  return revisions.slice(matchedIndex + 1);
+}
+
 export async function runWorkstreamReplicationCycle(input: {
   local: WorkstreamReplicationLocalPort;
   transport: AuthenticatedWorkstreamHubTransport;
@@ -72,8 +124,10 @@ export async function runWorkstreamReplicationCycle(input: {
       { cause: error },
     );
   }
+  const initialRemote = await readRemoteWorkstream(input);
   let publishedCount = 0;
-  for (const revision of revisions) {
+  const unpublished = unpublishedLocalRevisions(revisions, initialRemote);
+  for (const revision of unpublished) {
     const request: WorkstreamReplicationPublishRequest = {
       schemaVersion: 1,
       registrationId: input.registration.registrationId,
@@ -117,37 +171,7 @@ export async function runWorkstreamReplicationCycle(input: {
     if (result.status !== "duplicate") publishedCount += 1;
   }
 
-  let readResponse: unknown;
-  try {
-    readResponse = await input.transport.readWorkstream();
-  } catch (error) {
-    throw new WorkstreamReplicationCycleError(
-      "hub_unavailable",
-      "The Hub workstream query failed.",
-      { cause: error },
-    );
-  }
-  const body = bodyOf({
-    response: readResponse,
-    destinationId: input.destinationId,
-    expectedPeerIdentityHash: input.expectedPeerIdentityHash,
-  });
-  if (!validateSchema("workstreamReplicationReadResponse", body).valid) {
-    throw new WorkstreamReplicationCycleError(
-      "invalid_hub_response",
-      "The Hub workstream query response is invalid.",
-    );
-  }
-  const remote = body as WorkstreamReplicationReadResponse;
-  if (
-    remote.projectId !== input.registration.project.projectId ||
-    remote.repositoryIdentityHash !== input.registration.projectIdentityHash
-  ) {
-    throw new WorkstreamReplicationCycleError(
-      "invalid_hub_response",
-      "The Hub workstream query response coordinates are invalid.",
-    );
-  }
+  const remote = unpublished.length === 0 ? initialRemote : await readRemoteWorkstream(input);
   if (remote.status === "not_found") {
     if (revisions.length !== 0) {
       throw new WorkstreamReplicationCycleError(

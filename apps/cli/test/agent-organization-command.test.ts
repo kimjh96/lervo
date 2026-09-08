@@ -100,6 +100,29 @@ describe("agent organization CLI", () => {
       }),
       { mode: 0o600 },
     );
+    const historicalStorage = await openProjectStorage(root);
+    try {
+      for (let index = 0; index < 1_001; index += 1) {
+        historicalStorage.events.append({
+          schemaVersion: 1,
+          eventId: `evt_org_history_${String(index).padStart(8, "0")}`,
+          projectId: historicalStorage.manifest.projectId,
+          runId: `run_org_history_${String(index).padStart(8, "0")}`,
+          sessionId: `ses_org_history_${String(index).padStart(8, "0")}`,
+          type: "run.requested",
+          occurredAt: new Date(Date.parse("2026-09-08T00:00:00.000Z") + index).toISOString(),
+          actor: { kind: "user" },
+          policyVersion: `sha256:${"a".repeat(64)}`,
+          payload: {
+            requestDigest: `sha256:${index.toString(16).padStart(64, "0")}`,
+            role: "developer",
+            risk: "low",
+          },
+        });
+      }
+    } finally {
+      await historicalStorage.close();
+    }
     const bind = [
       "organization",
       "bind-runtime",
@@ -125,9 +148,16 @@ describe("agent organization CLI", () => {
     expect(await runCli(bind, io(root))).toBe(0);
     const storage = await openProjectStorage(root);
     try {
-      const organizationEvents = storage.events
-        .list()
-        .filter((event) => event.type.startsWith("organization."));
+      const organizationEvents: ReturnType<typeof storage.events.list> = [];
+      let afterSeq = 0;
+      while (true) {
+        const page = storage.events.list({ afterSeq, limit: 1_000 });
+        for (const event of page) {
+          afterSeq = event.seq;
+          if (event.type.startsWith("organization.")) organizationEvents.push(event);
+        }
+        if (page.length < 1_000) break;
+      }
       expect(organizationEvents.map((event) => event.type)).toEqual([
         "organization.team.bound",
         "organization.agent.membership.changed",

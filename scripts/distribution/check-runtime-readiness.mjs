@@ -3,6 +3,8 @@ import { request as httpsRequest } from "node:https";
 import { lstat, readFile } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
 
+import { validNodeRuntimeHealthSnapshot } from "./runtime-readiness-contract.mjs";
+
 const MAXIMUM_HEALTH_BYTES = 4_096;
 const MAXIMUM_CA_BYTES = 64 * 1_024;
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/u;
@@ -140,20 +142,6 @@ function processAlive(processId, probe = process.kill) {
   }
 }
 
-function component(value) {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const keys = Object.keys(value);
-  if (value.status === "pending" || value.status === "ready" || value.status === "disabled") {
-    return keys.length === 1;
-  }
-  return (
-    value.status === "unavailable" &&
-    typeof value.failureCode === "string" &&
-    /^[a-z][a-z0-9_]{0,63}$/u.test(value.failureCode) &&
-    keys.length === 2
-  );
-}
-
 async function checkNode(input, options) {
   const bytes = await boundedRegularFile(input.snapshot, MAXIMUM_HEALTH_BYTES, true);
   let value;
@@ -162,30 +150,7 @@ async function checkNode(input, options) {
   } catch {
     fail("invalid_health_snapshot", "The Node readiness snapshot JSON is invalid.");
   }
-  const expectedKeys = [
-    "processId",
-    "remoteControl",
-    "schemaVersion",
-    "startedAt",
-    "status",
-    "sync",
-    "updatedAt",
-  ];
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    Array.isArray(value) ||
-    JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(expectedKeys) ||
-    value.schemaVersion !== 1 ||
-    !["starting", "ready", "degraded", "stopping"].includes(value.status) ||
-    !Number.isSafeInteger(value.processId) ||
-    value.processId < 1 ||
-    !Number.isFinite(Date.parse(value.startedAt)) ||
-    !Number.isFinite(Date.parse(value.updatedAt)) ||
-    Date.parse(value.updatedAt) < Date.parse(value.startedAt) ||
-    !component(value.sync) ||
-    !component(value.remoteControl)
-  ) {
+  if (!validNodeRuntimeHealthSnapshot(value)) {
     fail("invalid_health_snapshot", "The Node readiness snapshot contract is invalid.");
   }
   if (!processAlive(value.processId, options.processProbe)) {

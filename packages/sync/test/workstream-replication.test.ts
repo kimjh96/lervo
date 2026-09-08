@@ -67,6 +67,101 @@ function local(
 }
 
 describe("workstream replication cycle", () => {
+  it("finishes a current cycle with one read and no duplicate publications", async () => {
+    const registration = createProjectRegistrationRequest({
+      manifest,
+      destinationId,
+      requestedAt: "2026-08-24T00:00:00.000Z",
+    });
+    const first = snapshot(1);
+    const second = snapshot(2);
+    const state = local([
+      { snapshot: first, snapshotContentHash: firstHash, previousSnapshotContentHash: null },
+      { snapshot: second, snapshotContentHash: secondHash, previousSnapshotContentHash: firstHash },
+    ]);
+    const publishWorkstream = vi.fn<AuthenticatedWorkstreamHubTransport["publishWorkstream"]>();
+    const readWorkstream = vi.fn(async () =>
+      response({
+        schemaVersion: 1,
+        status: "current",
+        projectId: registration.project.projectId,
+        repositoryIdentityHash: registration.projectIdentityHash,
+        heads: [head(second, secondHash, firstHash)],
+        snapshot: second,
+      }),
+    );
+
+    await expect(
+      runWorkstreamReplicationCycle({
+        local: state,
+        transport: { publishWorkstream, readWorkstream },
+        registration,
+        destinationId,
+        expectedPeerIdentityHash: peerIdentityHash,
+      }),
+    ).resolves.toEqual({ status: "current", publishedCount: 0, imported: false, headCount: 1 });
+    expect(publishWorkstream).not.toHaveBeenCalled();
+    expect(readWorkstream).toHaveBeenCalledTimes(1);
+  });
+
+  it("publishes only the suffix after a disclosed local ancestor", async () => {
+    const registration = createProjectRegistrationRequest({
+      manifest,
+      destinationId,
+      requestedAt: "2026-08-24T00:00:00.000Z",
+    });
+    const first = snapshot(1);
+    const second = snapshot(2);
+    const state = local([
+      { snapshot: first, snapshotContentHash: firstHash, previousSnapshotContentHash: null },
+      { snapshot: second, snapshotContentHash: secondHash, previousSnapshotContentHash: firstHash },
+    ]);
+    const publishWorkstream = vi.fn(async (request: WorkstreamReplicationPublishRequest) =>
+      response({
+        schemaVersion: 1,
+        status: "fast_forwarded",
+        projectId: request.projectId,
+        repositoryIdentityHash: request.repositoryIdentityHash,
+        heads: [head(second, secondHash, firstHash)],
+      }),
+    );
+    const readWorkstream = vi
+      .fn()
+      .mockResolvedValueOnce(
+        response({
+          schemaVersion: 1,
+          status: "current",
+          projectId: registration.project.projectId,
+          repositoryIdentityHash: registration.projectIdentityHash,
+          heads: [head(first, firstHash, null)],
+          snapshot: first,
+        }),
+      )
+      .mockResolvedValueOnce(
+        response({
+          schemaVersion: 1,
+          status: "current",
+          projectId: registration.project.projectId,
+          repositoryIdentityHash: registration.projectIdentityHash,
+          heads: [head(second, secondHash, firstHash)],
+          snapshot: second,
+        }),
+      );
+
+    await expect(
+      runWorkstreamReplicationCycle({
+        local: state,
+        transport: { publishWorkstream, readWorkstream },
+        registration,
+        destinationId,
+        expectedPeerIdentityHash: peerIdentityHash,
+      }),
+    ).resolves.toEqual({ status: "published", publishedCount: 1, imported: false, headCount: 1 });
+    expect(publishWorkstream).toHaveBeenCalledTimes(1);
+    expect(publishWorkstream.mock.calls[0]?.[0].snapshotContentHash).toBe(secondHash);
+    expect(readWorkstream).toHaveBeenCalledTimes(2);
+  });
+
   it("imports a newer unique head after publishing local ancestry", async () => {
     const registration = createProjectRegistrationRequest({
       manifest,

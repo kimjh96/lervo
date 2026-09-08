@@ -3,7 +3,7 @@ import {
   externalAgentDeploymentConfigHash,
   externalAgentPrincipalHash,
   externalConversationKeyHash,
-  projectAgentOrganization,
+  projectAgentOrganizationFromEventSource,
   workforceProviderPolicyHash,
 } from "@lervo/agent-organization";
 import type { WorkforceAgent } from "@lervo/agent-workforce";
@@ -34,9 +34,9 @@ export async function validateDiscordAgentOrganization(input: {
   }));
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
-    const projection = projectAgentOrganization({
+    const projection = projectAgentOrganizationFromEventSource({
       projectId: storage.manifest.projectId,
-      events: storage.events.list(),
+      events: storage.events,
     });
     assertOrganizationRuntimeIdentity(projection, {
       ...input.config.organization,

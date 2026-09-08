@@ -3,7 +3,7 @@ import {
   externalAgentPrincipalHash,
   externalConversationKeyHash,
   organizationIdentityHash,
-  projectAgentOrganization,
+  projectAgentOrganizationFromEventSource,
   workforceProviderPolicyHash,
   type AgentOrganizationEvent,
   type AgentOrganizationProjection,
@@ -51,9 +51,9 @@ function eventCoordinates(type: string, payload: unknown) {
 }
 
 function projection(storage: ProjectStorage): AgentOrganizationProjection {
-  return projectAgentOrganization({
+  return projectAgentOrganizationFromEventSource({
     projectId: storage.manifest.projectId,
-    events: storage.events.list(),
+    events: storage.events,
   });
 }
 

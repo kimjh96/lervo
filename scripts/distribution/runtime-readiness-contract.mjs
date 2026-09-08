@@ -1,0 +1,119 @@
+const FAILURE_CODE_PATTERN = /^[a-z][a-z0-9_]{0,63}$/u;
+const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/u;
+const PROJECT_ID_PATTERN = /^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
+const DESTINATION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u;
+
+const baseKeys = [
+  "processId",
+  "remoteControl",
+  "schemaVersion",
+  "startedAt",
+  "status",
+  "sync",
+  "updatedAt",
+];
+const currentRequiredKeys = ["workstreamReplication", "workspaceCoordination"];
+const currentOptionalKeys = ["conversation", "eventReader", "eventReaderIdentity"];
+
+function exactKeys(value, expected) {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...expected].sort())
+  );
+}
+
+function component(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  if (value.status === "pending" || value.status === "ready" || value.status === "disabled") {
+    return exactKeys(value, ["status"]);
+  }
+  return (
+    value.status === "unavailable" &&
+    typeof value.failureCode === "string" &&
+    FAILURE_CODE_PATTERN.test(value.failureCode) &&
+    exactKeys(value, ["failureCode", "status"])
+  );
+}
+
+function eventReader(value) {
+  if (!exactKeys(value, ["capability", "readableEventSchemaVersions", "schemaVersion"])) {
+    return false;
+  }
+  const versions = value.readableEventSchemaVersions;
+  return (
+    value.schemaVersion === 1 &&
+    value.capability === "event_reader" &&
+    Array.isArray(versions) &&
+    versions.length >= 1 &&
+    versions.length <= 16 &&
+    versions.every(
+      (version, index) =>
+        Number.isInteger(version) &&
+        version >= 1 &&
+        version <= 255 &&
+        (index === 0 || versions[index - 1] < version),
+    )
+  );
+}
+
+function eventReaderIdentity(value) {
+  return (
+    exactKeys(value, ["destinationId", "projectId", "repositoryIdentityHash"]) &&
+    typeof value.projectId === "string" &&
+    PROJECT_ID_PATTERN.test(value.projectId) &&
+    typeof value.repositoryIdentityHash === "string" &&
+    HASH_PATTERN.test(value.repositoryIdentityHash) &&
+    typeof value.destinationId === "string" &&
+    DESTINATION_ID_PATTERN.test(value.destinationId)
+  );
+}
+
+function currentSnapshotKeys(value) {
+  const keys = Object.keys(value);
+  const required = [...baseKeys, ...currentRequiredKeys];
+  if (required.some((key) => !keys.includes(key))) return false;
+  const allowed = new Set([...required, ...currentOptionalKeys]);
+  return keys.every((key) => allowed.has(key));
+}
+
+function componentReady(value) {
+  return value.status === "ready" || value.status === "disabled";
+}
+
+function readyComponentsAgree(value, current) {
+  if (value.status !== "ready") return true;
+  if (value.sync.status !== "ready" || !componentReady(value.remoteControl)) return false;
+  return (
+    !current ||
+    (value.workstreamReplication.status === "ready" &&
+      componentReady(value.workspaceCoordination) &&
+      (value.conversation === undefined || componentReady(value.conversation)))
+  );
+}
+
+export function validNodeRuntimeHealthSnapshot(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const current = currentSnapshotKeys(value);
+  if (!current && !exactKeys(value, baseKeys)) return false;
+  return (
+    value.schemaVersion === 1 &&
+    ["starting", "ready", "degraded", "stopping"].includes(value.status) &&
+    Number.isSafeInteger(value.processId) &&
+    value.processId >= 1 &&
+    Number.isFinite(Date.parse(value.startedAt)) &&
+    Number.isFinite(Date.parse(value.updatedAt)) &&
+    Date.parse(value.updatedAt) >= Date.parse(value.startedAt) &&
+    component(value.sync) &&
+    component(value.remoteControl) &&
+    (!current ||
+      (component(value.workstreamReplication) &&
+        component(value.workspaceCoordination) &&
+        (value.conversation === undefined || component(value.conversation)) &&
+        (value.eventReader === undefined || eventReader(value.eventReader)) &&
+        (value.eventReaderIdentity === undefined ||
+          eventReaderIdentity(value.eventReaderIdentity)))) &&
+    readyComponentsAgree(value, current)
+  );
+}
