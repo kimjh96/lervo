@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e86fdb0898b010d7a6bc791b"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Rotate changed hired-agent deployments while preserving immutable identity history."
