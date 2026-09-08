@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_67e00a53dc0d24f67a897c92
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e8e51ec35fc25cb4f2176f06
+outputLanguage: en
+outputs:
+  - byteCount: 417
+    contentHash: sha256:dfb66402579f3eafa94de04321c4eaa0d369cd40d9ac0073722c10989e644c37
+    path: docs/architecture/system/conversation-routing/routing-and-authority.md
+    userRegionHash: sha256:dfb66402579f3eafa94de04321c4eaa0d369cd40d9ac0073722c10989e644c37
+  - byteCount: 770
+    contentHash: sha256:50dfa2d3174e5bceaf1c43d3e85a4fe793f9f573e9c9ce6c09c5631a7bae8a7c
+    path: docs/architecture/system/conversation-routing/routing-and-authority/identity-and-authority.md
+    userRegionHash: sha256:50dfa2d3174e5bceaf1c43d3e85a4fe793f9f573e9c9ce6c09c5631a7bae8a7c
+  - byteCount: 601
+    contentHash: sha256:606766edb128b790d02e0c704863635aeeaf1b9a0dc77f3a2581a46d3fe9539b
+    path: docs/architecture/system/conversation-routing/routing-and-authority/message-path.md
+    userRegionHash: sha256:606766edb128b790d02e0c704863635aeeaf1b9a0dc77f3a2581a46d3fe9539b
+  - byteCount: 744
+    contentHash: sha256:20e4e9a6de111c34c741e86248ed5afcca5d512802f664eeb4f90e5269af6e6d
+    path: docs/architecture/system/conversation-routing/routing-and-authority/provider-and-evidence.md
+    userRegionHash: sha256:20e4e9a6de111c34c741e86248ed5afcca5d512802f664eeb4f90e5269af6e6d
+profile: architecture_document
+recordId: knormdoc_969cc315358c7d2c001bb4cf
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:abb33b13507ff6ca393f453316e511b866e570e4333837cd3fd5de0664766908
+sourcePath: docs/architecture/system/conversation-routing/routing-and-authority.md
+sourceUnitVersionIds:
+  - uv_3d43641980369c32186e38b8
+  - uv_55222b4eed1becf554ac8421
+  - uv_5ae3b4d4f82138da4153d433
+  - uv_faeda0a65af64d3346bdacc9

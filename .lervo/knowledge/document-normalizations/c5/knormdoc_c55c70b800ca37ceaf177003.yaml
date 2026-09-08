@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_67e00a53dc0d24f67a897c92
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f0a1a77bcd71c53664a9ce7d
+outputLanguage: en
+outputs:
+  - byteCount: 4394
+    contentHash: sha256:25fea241cff229885d5803d39d7db060abc3cd95761d90b5dbdd9bc8fa43a1d1
+    path: docs/decisions/coordination/conversations/0387-terminal-conversation-response-failures.md
+    userRegionHash: sha256:25fea241cff229885d5803d39d7db060abc3cd95761d90b5dbdd9bc8fa43a1d1
+profile: decision_record
+recordId: knormdoc_c55c70b800ca37ceaf177003
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6ca2bb7af58bf05cf7e58685d9ed74a426884041d3423821458d5dc2d695dfb4
+sourcePath: docs/decisions/coordination/conversations/0387-terminal-conversation-response-failures.md
+sourceUnitVersionIds:
+  - uv_133e827691381f709cd60a5f
+  - uv_143a45e5116acd710fa3766e
+  - uv_193e74737c6b7b673420bb1d
+  - uv_350ecb47a4b093a3cd78ad86
+  - uv_5bfc7e79131d389017873954
+  - uv_e15306dc331c924deebec2e2
