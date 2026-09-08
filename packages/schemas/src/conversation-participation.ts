@@ -19,6 +19,7 @@ export const conversationParticipationReasons = [
   "not_relevant",
   "relevance_unavailable",
   "signal_not_subscribed",
+  "turn_not_owned",
   "cooldown",
   "rate_limited",
   "mentioned",

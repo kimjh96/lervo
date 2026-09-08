@@ -22,6 +22,7 @@ export interface DiscordPeerAgentBinding {
   roleId: string;
   agentBinding: ConversationAgentBinding;
   tenantKeys: string[];
+  conversationIds: string[];
 }
 
 export function createDiscordHubContinuation(

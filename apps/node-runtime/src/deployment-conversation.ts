@@ -91,6 +91,16 @@ export async function openDeploymentConversation(input: {
             tenantKeys: conversation.allowedGuildIds.filter((tenant) =>
               peer.allowedGuildIds.includes(tenant),
             ),
+            conversationIds: peer.conversations.flatMap((peerBinding) =>
+              conversation.conversations.some(
+                (binding) =>
+                  binding.tenantKey === peerBinding.tenantKey &&
+                  binding.conversationKey === peerBinding.conversationKey &&
+                  binding.conversationId === peerBinding.conversationId,
+              )
+                ? [peerBinding.conversationId]
+                : [],
+            ),
           },
         ];
       });

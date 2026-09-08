@@ -155,6 +155,9 @@ export class ConversationInteractionRuntime {
       ...(binding.relevanceEvaluator === undefined
         ? {}
         : { relevanceEvaluator: binding.relevanceEvaluator }),
+      ...(binding.turnOwnershipEvaluator === undefined
+        ? {}
+        : { turnOwnershipEvaluator: binding.turnOwnershipEvaluator }),
       ...(this.deployment.now === undefined ? {} : { clock: this.deployment.now }),
       ...(this.deployment.leaseDurationMs === undefined
         ? {}

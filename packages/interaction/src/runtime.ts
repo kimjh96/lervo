@@ -19,6 +19,7 @@ import type {
   ConversationRelevanceEvaluator,
   ConversationResponder,
   ConversationTerminalFailureResponder,
+  ConversationTurnOwnershipEvaluator,
   HandleConversationEventResult,
 } from "./types.js";
 
@@ -48,6 +49,7 @@ export async function handleConversationEvent(input: {
   terminalFailureResponder?: ConversationTerminalFailureResponder;
   terminalFailurePublicationVerifier?: ConversationPublicationVerifier;
   maximumResponseAttempts?: number;
+  turnOwnershipEvaluator?: ConversationTurnOwnershipEvaluator;
 }): Promise<HandleConversationEventResult> {
   const clock = input.clock ?? (() => new Date());
   const claimedAt = timestamp(clock);
@@ -97,6 +99,9 @@ export async function handleConversationEvent(input: {
   if (claim.status === "completed") {
     return { status: "duplicate", decision: claim.decision, outbound: claim.outbound };
   }
+  const ownsTurn =
+    input.turnOwnershipEvaluator === undefined ||
+    input.turnOwnershipEvaluator.owns({ event: input.event, policy: input.policy });
   return withInboundLeaseRenewal({
     store: input.store,
     event: input.event,
@@ -106,7 +111,7 @@ export async function handleConversationEvent(input: {
     clock,
     operation: async () => {
       let earlyActivity: { stop(): void } | null = null;
-      if (input.event.actor.kind === "human" && input.responseActivity !== undefined) {
+      if (ownsTurn && input.event.actor.kind === "human" && input.responseActivity !== undefined) {
         try {
           const started = input.responseActivity.start();
           let stopped = false;
@@ -146,6 +151,7 @@ export async function handleConversationEvent(input: {
             agentParticipantId: input.agentParticipantId,
             window,
             at: claimedAt,
+            ownsTurn,
           })
         ) {
           if (input.relevanceEvaluator === undefined) {
@@ -168,6 +174,7 @@ export async function handleConversationEvent(input: {
           relevance,
           window,
           decidedAt: claimedAt,
+          ownsTurn,
         });
         let outbound = null;
         let terminalFailure: ConversationTerminalFailureState | undefined;

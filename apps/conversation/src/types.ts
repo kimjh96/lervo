@@ -14,6 +14,7 @@ import type {
   ConversationRelevanceEvaluator,
   ConversationResponder,
   ConversationTerminalFailureResponder,
+  ConversationTurnOwnershipEvaluator,
 } from "@lervo/interaction";
 import type { ConversationParticipationPolicy } from "@lervo/schemas";
 import type {
@@ -69,6 +70,7 @@ export interface ConversationInteractionBinding {
   terminalFailureResponder?: ConversationTerminalFailureResponder;
   terminalFailurePublicationVerifier?: ConversationPublicationVerifier;
   relevanceEvaluator?: ConversationRelevanceEvaluator;
+  turnOwnershipEvaluator?: ConversationTurnOwnershipEvaluator;
 }
 
 export interface ConversationInteractionDeployment {

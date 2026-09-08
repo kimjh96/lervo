@@ -40,8 +40,10 @@ export function requiresConversationRelevance(input: {
   agentParticipantId?: string;
   window?: ParticipationWindow;
   at?: string;
+  ownsTurn?: boolean;
 }): boolean {
   if (
+    input.ownsTurn === false ||
     !input.policy.respondTo.includes(input.event.actor.kind) ||
     input.event.automationDepth + 1 > input.policy.maxAutomationDepth ||
     (input.window !== undefined &&
@@ -69,6 +71,7 @@ export function decideConversationParticipation(input: {
   agentParticipantId?: string;
   window: ParticipationWindow;
   decidedAt: string;
+  ownsTurn?: boolean;
 }): ConversationParticipationDecision {
   assertConversationParticipationScope({
     event: input.event,
@@ -98,6 +101,9 @@ export function decideConversationParticipation(input: {
     relevance = "not_checked";
   } else if (input.event.automationDepth + 1 > input.policy.maxAutomationDepth) {
     reason = "automation_depth_exceeded";
+    relevance = "not_checked";
+  } else if (input.ownsTurn === false) {
+    reason = "turn_not_owned";
     relevance = "not_checked";
   } else if (input.event.kind === "signal.raised") {
     if (

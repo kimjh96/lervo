@@ -115,6 +115,13 @@ export interface ConversationRelevanceEvaluator {
   }): Promise<"relevant" | "not_relevant" | "unknown">;
 }
 
+export interface ConversationTurnOwnershipEvaluator {
+  owns(input: {
+    event: ConversationInboundEvent;
+    policy: ConversationParticipationPolicy;
+  }): boolean;
+}
+
 export interface ConversationReplyCandidate {
   content: ConversationContentReference;
   publicationPermit: WritingPublicationPermit;

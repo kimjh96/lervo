@@ -168,6 +168,7 @@ describe("Discord conversation deployments configuration", () => {
             roleProfileHash: `sha256:${"d".repeat(64)}`,
           },
           tenantKeys: [guildId],
+          conversationIds: ["cnv_operator01"],
         },
       ],
     });

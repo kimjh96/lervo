@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_56b6d3542ccf884c10a96f54"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Assign one deterministic owner before multi-agent conversation provider work."

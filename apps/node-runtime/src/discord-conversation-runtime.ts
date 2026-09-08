@@ -46,6 +46,7 @@ import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
 import { ConversationInteractionRetryLoop } from "./conversation-interaction-retry-loop.js";
 import { NodeConversationResponseFailureClassifier } from "./conversation-response-failure-policy.js";
 import { createDiscordConversationEffects } from "./discord-conversation-effects.js";
+import { createDiscordConversationTurnOwnership } from "./discord-conversation-turn-ownership.js";
 
 export interface NodeDiscordConversationRuntime {
   readonly failed: Promise<void>;
@@ -113,6 +114,12 @@ export async function openNodeDiscordConversationRuntime(
       ? {}
       : { agentBinding: agentParticipation.agentBinding }),
     ...(options.peerAgents === undefined ? {} : { peerAgents: options.peerAgents }),
+  });
+  const turnOwnershipEvaluator = createDiscordConversationTurnOwnership({
+    participantId: config.agentParticipantId,
+    roleId: agentParticipation.roleId,
+    conversationIds: config.conversations.map((binding) => binding.conversationId),
+    peers: options.peerAgents ?? [],
   });
   const policy = createConversationParticipationPolicy({
     projectId: options.project.projectId,
@@ -316,6 +323,7 @@ export async function openNodeDiscordConversationRuntime(
             terminalFailureResponder,
             terminalFailurePublicationVerifier,
             ...(modeResponder === null ? {} : { relevanceEvaluator: modeResponder }),
+            turnOwnershipEvaluator,
           },
         ],
         workerId: config.workerId,

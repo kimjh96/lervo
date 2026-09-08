@@ -10,6 +10,7 @@ import {
   createConversationOutboundMessage,
   createConversationParticipationPolicy,
   hashConversationSourceEventKey,
+  resolveConversationTurnOwnership,
 } from "../src/index.js";
 
 const inboundContent = {
@@ -136,5 +137,55 @@ describe("conversation contract", () => {
         policy: participation,
       }),
     ).toThrow(/ID|permit/);
+  });
+
+  it("assigns one stable owner for an unaddressed turn across adapter identities", () => {
+    const source = event();
+    const candidates = [
+      { participantId: "ptc_agent001", roleId: "developer" },
+      { participantId: "ptc_agent002", roleId: "researcher" },
+    ];
+    const first = resolveConversationTurnOwnership({ event: source, candidates });
+    const { schemaVersion: _schemaVersion, eventId: _eventId, ...content } = source;
+    const second = resolveConversationTurnOwnership({
+      event: createConversationInboundEvent({
+        ...content,
+        target: { ...content.target, integrationId: "itg_discord02" },
+      }),
+      candidates: [...candidates].reverse(),
+    });
+
+    expect(first).toMatchObject({ basis: "unaddressed" });
+    expect(first.ownerParticipantIds).toHaveLength(1);
+    expect(second.ownerParticipantIds).toEqual(first.ownerParticipantIds);
+  });
+
+  it("honors exact participant mentions and selects one owner per mentioned role", () => {
+    const source = event();
+    const candidates = [
+      { participantId: "ptc_agent001", roleId: "developer" },
+      { participantId: "ptc_agent002", roleId: "researcher" },
+      { participantId: "ptc_agent003", roleId: "researcher" },
+    ];
+    const { schemaVersion: _schemaVersion, eventId: _eventId, ...content } = source;
+    const participantMention = createConversationInboundEvent({
+      ...content,
+      mentions: { roleIds: ["researcher"], participantIds: ["ptc_agent001"] },
+    });
+    const roleMention = createConversationInboundEvent({
+      ...content,
+      mentions: { roleIds: ["developer", "researcher"], participantIds: [] },
+    });
+
+    expect(
+      resolveConversationTurnOwnership({ event: participantMention, candidates }),
+    ).toMatchObject({
+      basis: "participant_mentions",
+      ownerParticipantIds: ["ptc_agent001"],
+    });
+    const roleOwners = resolveConversationTurnOwnership({ event: roleMention, candidates });
+    expect(roleOwners.basis).toBe("role_mentions");
+    expect(roleOwners.ownerParticipantIds).toContain("ptc_agent001");
+    expect(roleOwners.ownerParticipantIds).toHaveLength(2);
   });
 });

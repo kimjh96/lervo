@@ -141,6 +141,26 @@ describe("conversation participation", () => {
     });
   });
 
+  it("observes a turn owned by another agent without making a relevance claim", () => {
+    expect(
+      requiresConversationRelevance({ event: event(), policy: policy(), ownsTurn: false }),
+    ).toBe(false);
+    expect(
+      decideConversationParticipation({
+        event: event(),
+        policy: policy(),
+        relevance: "not_checked",
+        ownsTurn: false,
+        window: { latestResponseAt: null, responsesInLastHour: 0 },
+        decidedAt: "2026-08-20T00:00:10.000Z",
+      }),
+    ).toMatchObject({
+      action: "observe",
+      reason: "turn_not_owned",
+      relevance: "not_checked",
+    });
+  });
+
   it("responds only to subscribed proactive signals", () => {
     const subscribed = event({ kind: "signal.raised", signalCode: "review.requested" });
     const ignored = event({ kind: "signal.raised", signalCode: "build.completed" });

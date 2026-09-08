@@ -108,6 +108,61 @@ function participationPolicy(
 }
 
 describe("durable native chat interaction", () => {
+  it("records a non-owned turn without typing, relevance, or provider work", async () => {
+    const store = await SQLiteConversationInteractionStore.open({ path: await databasePath() });
+    const adapter = new NativeChatConversationAdapter({
+      integrationId: "itg_native001",
+      instanceIdentity: "native-instance",
+      delivery: {
+        send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:03.000Z" }),
+      },
+    });
+    const event = adapter.normalizeInbound({
+      sourceEventKey: "shared-non-owned-message",
+      target: {
+        projectId: "prj_project01",
+        conversationId: "cnv_general01",
+        threadId: null,
+      },
+      kind: "message.created",
+      actor: { kind: "human", participantId: "ptc_human001", roleId: null },
+      content: {
+        artifactId: "art_message01",
+        contentHash: `sha256:${"a".repeat(64)}`,
+        byteCount: 10,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      occurredAt: "2026-08-20T00:00:01.000Z",
+    });
+    const startActivity = vi.fn(() => ({ stop: vi.fn() }));
+    const relevance = vi.fn(async () => "relevant" as const);
+    const respond = vi.fn(async () => responseCandidate());
+
+    await expect(
+      handleConversationEvent({
+        event,
+        policy: participationPolicy(),
+        workerId: "interaction-worker",
+        agentParticipantId: "ptc_agent001",
+        store,
+        responder: { respond },
+        publicationVerifier: { verify: async () => undefined },
+        relevanceEvaluator: { evaluate: relevance },
+        turnOwnershipEvaluator: { owns: () => false },
+        responseActivity: { start: startActivity },
+        clock: () => new Date("2026-08-20T00:00:02.000Z"),
+      }),
+    ).resolves.toMatchObject({
+      status: "completed",
+      decision: { action: "observe", reason: "turn_not_owned" },
+      outbound: null,
+    });
+    expect(startActivity).not.toHaveBeenCalled();
+    expect(relevance).not.toHaveBeenCalled();
+    expect(respond).not.toHaveBeenCalled();
+    await store.close();
+  });
+
   it("recovers deduplication and delivery across restarts without storing raw platform data", async () => {
     const path = await databasePath();
     const rawSourceEventKey = "native/raw/message/private-42";

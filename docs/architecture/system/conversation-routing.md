@@ -9,6 +9,7 @@ The installed Node separates Discord transport, normalized identity, participati
 - [Deployment composition](conversation-routing/deployment-composition.md): configuration, runtime ownership, and multiple bot deployments.
 - [ADR-0388](../../decisions/coordination/conversations/0388-realtime-conversation-effects-and-lifecycle.md): realtime publication, scoped platform effects, lease ownership, and conversational status prose.
 - [ADR-0389](../../decisions/coordination/conversations/0389-single-managed-conversation-turn.md): one managed turn, shared repository retrieval, and surface-neutral effect declarations.
+- [ADR-0391](../../decisions/coordination/conversations/0391-deterministic-multi-agent-turn-ownership.md): deterministic participant and role ownership before typing or provider work.
 
 ## References
 

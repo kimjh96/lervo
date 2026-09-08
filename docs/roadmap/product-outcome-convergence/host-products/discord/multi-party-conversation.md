@@ -29,9 +29,9 @@ Selection must evaluate the hired agent's provider policy, exact role capabiliti
 
 The installed Node accepts a bounded collection of distinct Discord bot applications. Each bot binds one active hired agent, exact current role hashes, independent provider and model routing, owner-only credentials, storage, Gateway lifecycle, and delivery adapter. Every owned agent turn also loads that agent's reviewed context through the managed context coordinator used for repository search and evidence.
 
-Shared-guild peer author and mention aliases normalize to that peer's one workforce participant. Semantic resolution selects `relevant` or `not_relevant` for each unaddressed turn; exact participant and role mentions bypass that relevance claim. Agent-authored turns default toward silence unless the agent is addressed or has a distinct role-relevant contribution. Bounded recent context retains the speaker's participant, agent, and role identity. Aggregate readiness and failure remain fail-closed.
+Shared-guild peer author and mention aliases normalize to that peer's one workforce participant. Before semantic relevance, deterministic turn ownership gives exact participant mentions to their addressees, selects one participant per mentioned role, and selects one participant for an unaddressed message or signal. Non-owners record `turn_not_owned` without typing or provider work. An owning agent still needs explicit addressing or a distinct role-relevant contribution. Bounded recent context retains the speaker's participant, agent, and role identity. Aggregate readiness and failure remain fail-closed.
 
-Remaining work includes Discord application creation, token issuance, guild installation, proactive initiative sources, bounded group turn ownership, CEO administration effect wiring, and the required real two-agent discussion. Discord cannot create a separately authenticated application or grant its own installation; this external authority remains explicit rather than simulated.
+Remaining work includes Discord application creation, token issuance, guild installation, proactive initiative sources, CEO administration effect wiring, and the required real two-agent discussion. Discord cannot create a separately authenticated application or grant its own installation; this external authority remains explicit rather than simulated.
 
 ## Acceptance
 
@@ -43,4 +43,5 @@ One real channel with one person and at least two hired agents in distinct roles
 - [ADR-0385](../../../../decisions/coordination/conversations/0385-distinct-discord-agent-identities.md)
 - [ADR-0386](../../../../decisions/coordination/conversations/0386-organization-teams-and-agent-identities.md)
 - [ADR-0387](../../../../decisions/coordination/conversations/0387-terminal-conversation-response-failures.md)
+- [ADR-0391](../../../../decisions/coordination/conversations/0391-deterministic-multi-agent-turn-ownership.md)
 - [Cross-provider deliberation runtime](../../../../decisions/execution/providers/0029-cross-provider-deliberation-runtime.md)

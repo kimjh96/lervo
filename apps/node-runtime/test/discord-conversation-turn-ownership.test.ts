@@ -1,0 +1,124 @@
+import {
+  createConversationInboundEvent,
+  createConversationParticipationPolicy,
+  hashConversationSourceEventKey,
+} from "@lervo/conversation-contract";
+import { describe, expect, it } from "vitest";
+
+import { createDiscordConversationTurnOwnership } from "../src/discord-conversation-turn-ownership.js";
+
+const peer = {
+  applicationId: "999999999999999992",
+  participantId: "ptc_lervoagent02",
+  roleId: "researcher",
+  agentBinding: {
+    agentId: `agt_${"b".repeat(24)}`,
+    roleVersion: "1.0.0",
+    roleContractHash: `sha256:${"c".repeat(64)}`,
+    roleProfileHash: `sha256:${"d".repeat(64)}`,
+  },
+  tenantKeys: ["123456789012345678"],
+  conversationIds: ["cnv_operator01"],
+};
+
+function event(integrationId: string, participantIds: string[] = []) {
+  return createConversationInboundEvent({
+    sourceEventKeyHash: hashConversationSourceEventKey("discord-message-42"),
+    target: {
+      integrationId,
+      projectId: "prj_project01",
+      conversationId: "cnv_operator01",
+      threadId: null,
+    },
+    kind: "message.created",
+    actor: { kind: "human", participantId: "ptc_operator01", roleId: null },
+    content: {
+      artifactId: "art_message01",
+      contentHash: `sha256:${"a".repeat(64)}`,
+      byteCount: 12,
+      mediaType: "text/plain; charset=utf-8",
+    },
+    mentions: { roleIds: [], participantIds },
+    replyToEventId: null,
+    signalCode: null,
+    automationDepth: 0,
+    occurredAt: "2026-09-09T00:00:00.000Z",
+  });
+}
+
+function policy(roleId: string) {
+  return createConversationParticipationPolicy({
+    projectId: "prj_project01",
+    roleId,
+    conversationIds: ["cnv_operator01"],
+    mode: "relevant",
+    respondTo: ["human", "agent"],
+    signalCodes: [],
+    cooldownSeconds: 0,
+    maxResponsesPerHour: 8,
+    maxAutomationDepth: 2,
+    createdAt: "2026-09-08T00:00:00.000Z",
+  });
+}
+
+describe("Discord multi-agent turn ownership", () => {
+  it("selects exactly one bot for the same unaddressed Discord source message", () => {
+    const first = createDiscordConversationTurnOwnership({
+      participantId: "ptc_lervoagent01",
+      roleId: "developer",
+      conversationIds: ["cnv_operator01"],
+      peers: [peer],
+    });
+    const second = createDiscordConversationTurnOwnership({
+      participantId: peer.participantId,
+      roleId: peer.roleId,
+      conversationIds: ["cnv_operator01"],
+      peers: [
+        {
+          ...peer,
+          applicationId: "999999999999999991",
+          participantId: "ptc_lervoagent01",
+          roleId: "developer",
+        },
+      ],
+    });
+
+    expect(
+      [
+        first.owns({ event: event("itg_discord01"), policy: policy("developer") }),
+        second.owns({ event: event("itg_discord02"), policy: policy("researcher") }),
+      ].filter(Boolean),
+    ).toHaveLength(1);
+  });
+
+  it("gives an exact participant mention to that bot only", () => {
+    const first = createDiscordConversationTurnOwnership({
+      participantId: "ptc_lervoagent01",
+      roleId: "developer",
+      conversationIds: ["cnv_operator01"],
+      peers: [peer],
+    });
+    const second = createDiscordConversationTurnOwnership({
+      participantId: peer.participantId,
+      roleId: peer.roleId,
+      conversationIds: ["cnv_operator01"],
+      peers: [
+        {
+          ...peer,
+          applicationId: "999999999999999991",
+          participantId: "ptc_lervoagent01",
+          roleId: "developer",
+        },
+      ],
+    });
+    const addressed = event("itg_discord01", [peer.participantId]);
+    const { schemaVersion: _schemaVersion, eventId: _eventId, ...addressedContent } = addressed;
+    const peerAddressed = createConversationInboundEvent({
+      ...addressedContent,
+      target: { ...addressed.target, integrationId: "itg_discord02" },
+    });
+
+    expect(first.owns({ event: addressed, policy: policy("developer") })).toBe(false);
+    expect(second.owns({ event: peerAddressed, policy: policy("researcher") })).toBe(true);
+  });
+});
