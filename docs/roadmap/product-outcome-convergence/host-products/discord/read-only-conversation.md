@@ -33,6 +33,10 @@ A live failure on 2026-09-08 established the recovery requirement: three mapped 
 
 External acceptance completed on 2026-09-08. The installed Node recovered all three unmentioned messages as delivered interactions. Discord published bot messages `1546786104592572439`, `1546786264756527214`, and `1546786478796046408`. The service subsequently reported `conversation.status: ready`, with no current-policy interaction pending. Historical records bound to an older policy remain retained and cannot enter the current retry worker.
 
+A later live restart exposed a distinct pre-inbox gap: messages `1546795654943219712` and `1546795695900729415` arrived around a Node process restart and had neither platform correlations nor interaction records. Gateway Resume state was process-local, so Discord did not replay them to the new identified session. Restart recovery now reads after a durable per-channel platform cursor, re-enters the ordinary pipeline oldest-first, suppresses self replies, and withholds readiness on an unverified or over-bound gap.
+
+The observed `1546795085696471070` round trip took 56.9 seconds. Intent resolution used 13.0 seconds, the first managed response used 14.5 seconds, and a transient publication evaluator failure caused a second full 12.1-second response run before successful evaluation and delivery. The repaired responder durably reuses its validated CAS result artifact after evaluator-only failure, while a definitive writing-policy rejection permits regeneration. Establishing and enforcing a representative end-to-end latency budget remains required performance work; transport recovery and retry reuse do not claim conversational latency acceptance.
+
 ## Configuration
 
 The response path injects the exact current workstream so routine status questions do not need to rediscover it with provider tools. Intent, response, and independent publication evaluation have separate provider/model settings. Bounded reasoning effort is configurable for managed response and evaluation adapters.

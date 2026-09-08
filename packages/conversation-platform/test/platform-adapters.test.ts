@@ -382,6 +382,25 @@ describe("authenticated platform conversation adapters", () => {
       status: "accepted",
       event: { eventId: accepted.event.eventId },
     });
+    const historyBody = Buffer.from(
+      JSON.stringify({
+        id: "323456789012345679",
+        channel_id: "223456789012345678",
+        author: { id: "523456789012345678", bot: false },
+        content: rawText,
+        mentions: [],
+        timestamp: "2026-08-20T00:00:01.000Z",
+      }),
+    );
+    await expect(
+      adapter.receiveHistoryMessage(
+        { messageId: "323456789012345679", body: historyBody },
+        "123456789012345678",
+      ),
+    ).resolves.toMatchObject({
+      status: "accepted",
+      checkpoint: { tenantKey: "123456789012345678" },
+    });
     expect(verifyDispatch).toHaveBeenCalledWith(
       expect.objectContaining({
         applicationId: "999999999999999999",

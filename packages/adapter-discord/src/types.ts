@@ -26,6 +26,26 @@ export interface DiscordGatewayAuthenticationPort {
   }): Promise<{ authenticated: true } | { authenticated: false; reasonCode: string }>;
 }
 
+export interface DiscordHistoryMessage {
+  /** Credential-authenticated Discord REST message payload. */
+  messageId: string;
+  body: Uint8Array;
+}
+
+export interface DiscordHistoryPort {
+  list(input: {
+    channelId: string;
+    after: string | null;
+    limit: number;
+  }): Promise<readonly DiscordHistoryMessage[]>;
+}
+
+export interface DiscordIngressCheckpoint {
+  tenantKey: string;
+  channelId: string;
+  messageId: string;
+}
+
 export interface DiscordDeliveryRequest {
   outboundId: string;
   guildId: string | null;
@@ -82,10 +102,15 @@ export type DiscordIngressResult =
       status: "accepted";
       event: ConversationInboundEvent;
       responseActivity: DiscordResponseActivity | null;
+      checkpoint: DiscordIngressCheckpoint;
     }
-  | { status: "ignored"; reason: string };
+  | { status: "ignored"; reason: string; checkpoint: DiscordIngressCheckpoint | null };
 
 export interface DiscordConversationAdapterPort {
   receiveGatewayDispatch(input: DiscordGatewayDispatch): Promise<DiscordIngressResult>;
+  receiveHistoryMessage(
+    input: DiscordHistoryMessage,
+    expectedGuildId: string | null,
+  ): Promise<DiscordIngressResult>;
   deliver(message: ConversationOutboundMessage): Promise<ConversationDeliveryReceipt>;
 }

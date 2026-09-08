@@ -4,7 +4,52 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { ConversationPlatformSQLiteError } from "./errors.js";
 
-export const conversationPlatformSQLiteSchemaVersion = 2;
+export const conversationPlatformSQLiteSchemaVersion = 3;
+
+function createIngressCursorTable(database: DatabaseSync): void {
+  database.exec(`
+    CREATE TABLE ingress_cursors (
+      platform TEXT NOT NULL CHECK (
+        length(platform) BETWEEN 1 AND 64 AND platform GLOB '[a-z]*'
+        AND platform NOT GLOB '*[^a-z0-9_-]*'
+      ),
+      integration_id TEXT NOT NULL,
+      tenant_key TEXT NOT NULL,
+      conversation_key TEXT NOT NULL,
+      cursor TEXT NOT NULL,
+      PRIMARY KEY (platform, integration_id, tenant_key, conversation_key),
+      FOREIGN KEY (platform, integration_id, tenant_key, conversation_key)
+        REFERENCES conversation_bindings(platform, integration_id, tenant_key, conversation_key)
+    ) STRICT;
+  `);
+}
+
+function migrateConversationPlatformVersionTwo(database: DatabaseSync): void {
+  createIngressCursorTable(database);
+  database.exec(`
+    INSERT INTO ingress_cursors (
+      platform, integration_id, tenant_key, conversation_key, cursor
+    )
+    SELECT current.platform, current.integration_id, current.tenant_key,
+      current.conversation_key, current.external_message_key
+    FROM message_correlations current
+    WHERE current.platform = 'discord' AND NOT EXISTS (
+      SELECT 1 FROM message_correlations newer
+      WHERE newer.platform = current.platform
+        AND newer.integration_id = current.integration_id
+        AND newer.tenant_key = current.tenant_key
+        AND newer.conversation_key = current.conversation_key
+        AND (
+          length(newer.external_message_key) > length(current.external_message_key)
+          OR (
+            length(newer.external_message_key) = length(current.external_message_key)
+            AND newer.external_message_key > current.external_message_key
+          )
+        )
+    );
+    PRAGMA user_version = 3;
+  `);
+}
 
 export async function ensureConversationPlatformDatabasePath(path: string): Promise<string> {
   const absolute = resolve(path);
@@ -147,7 +192,12 @@ export function migrateConversationPlatformDatabase(database: DatabaseSync): voi
   database.exec("BEGIN IMMEDIATE;");
   try {
     const version = database.prepare("PRAGMA user_version;").get()?.user_version;
-    if (version !== 0 && version !== 1 && version !== conversationPlatformSQLiteSchemaVersion) {
+    if (
+      version !== 0 &&
+      version !== 1 &&
+      version !== 2 &&
+      version !== conversationPlatformSQLiteSchemaVersion
+    ) {
       throw new ConversationPlatformSQLiteError(
         "integrity_failed",
         "The conversation platform SQLite schema is unsupported.",
@@ -233,10 +283,15 @@ export function migrateConversationPlatformDatabase(database: DatabaseSync): voi
             OR OLD.outbound_id != NEW.outbound_id OR OLD.request_hash != NEW.request_hash
             OR OLD.status = 'delivered'
           BEGIN SELECT RAISE(ABORT, 'delivery replay identity is immutable'); END;
-        PRAGMA user_version = 2;
       `);
+      createIngressCursorTable(database);
+      database.exec("PRAGMA user_version = 3;");
     }
-    if (version === 1) migrateConversationPlatformVersionOne(database);
+    if (version === 1) {
+      migrateConversationPlatformVersionOne(database);
+      migrateConversationPlatformVersionTwo(database);
+    }
+    if (version === 2) migrateConversationPlatformVersionTwo(database);
     database.exec("COMMIT;");
   } catch (error) {
     database.exec("ROLLBACK;");

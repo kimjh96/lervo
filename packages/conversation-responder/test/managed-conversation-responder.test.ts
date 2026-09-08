@@ -17,6 +17,7 @@ import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { handleConversationEvent } from "@lervo/interaction";
 import { SQLiteConversationInteractionStore } from "@lervo/interaction-sqlite";
 import type { DocumentRegistry, RoleProfile, SharedContextPublication } from "@lervo/schemas";
+import type { WritingArtifactCoordinate } from "@lervo/writing";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { ManagedConversationResponder, VerifiedConversationPublication } from "../src/index.js";
@@ -231,6 +232,7 @@ describe("managed conversation responder", () => {
       planner: { id: "doc_planner_context", path: "docs/planner.md", content: plannerContent },
     } as const;
     const roles = { reviewer: role("reviewer"), planner: role("planner") };
+    const responseArtifacts = new Map<string, WritingArtifactCoordinate>();
     const adapters = {
       reviewer: new CodexAdapter({
         repositoryRoot: root,
@@ -257,6 +259,15 @@ describe("managed conversation responder", () => {
       policyVersion,
       events,
       artifactStore: artifacts,
+      responseArtifacts: {
+        get: async (requestDigest) => responseArtifacts.get(requestDigest) ?? null,
+        put: async ({ requestDigest, artifact }) => {
+          responseArtifacts.set(requestDigest, artifact);
+        },
+        remove: async (requestDigest) => {
+          responseArtifacts.delete(requestDigest);
+        },
+      },
       semanticEvaluator: {
         async evaluate(request) {
           return {
@@ -320,6 +331,11 @@ describe("managed conversation responder", () => {
       policy: policies.reviewer,
       decision: decisions.reviewer,
     });
+    const reviewerRetry = await responder.respond({
+      event,
+      policy: policies.reviewer,
+      decision: decisions.reviewer,
+    });
     const planner = await responder.respond({
       event,
       policy: policies.planner,
@@ -341,6 +357,8 @@ describe("managed conversation responder", () => {
     expect(codexClient.closed).toBe(true);
     expect(claudeClient.closed).toBe(true);
     expect(reviewer.publicationPermit.surface).toBe("chat");
+    expect(reviewerRetry.content).toEqual(reviewer.content);
+    expect(responseArtifacts.size).toBe(2);
     expect(planner.publicationPermit.surface).toBe("chat");
 
     const tampered = structuredClone(reviewer);

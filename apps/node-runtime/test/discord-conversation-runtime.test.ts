@@ -117,9 +117,15 @@ describe("installed Node Discord conversation runtime", () => {
         }),
     );
     const typingDelivery = vi.fn(async () => new Response(null, { status: 204 }));
-    const delivery = vi.fn(async (url: string | URL | Request, init?: RequestInit) =>
-      String(url).endsWith("/typing") ? typingDelivery() : messageDelivery(url, init),
-    );
+    const delivery = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      if (init?.method === "GET") {
+        return new Response("[]", {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return String(url).endsWith("/typing") ? typingDelivery() : messageDelivery(url, init);
+    });
     const gateway = new GatewayTransport();
     const gatewayErrors: Error[] = [];
     const intentResolver = vi.fn(async ({ message, priorTurns }) => ({

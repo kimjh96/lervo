@@ -136,8 +136,22 @@ describe("multi-bot Discord conversation deployment", () => {
         sendEventBatch: async () => ({}),
       }),
       discordConversations: {
-        itg_discord01: { gatewayTransport: firstGateway },
-        itg_discord02: { gatewayTransport: secondGateway },
+        itg_discord01: {
+          gatewayTransport: firstGateway,
+          fetch: async () =>
+            new Response("[]", {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            }),
+        },
+        itg_discord02: {
+          gatewayTransport: secondGateway,
+          fetch: async () =>
+            new Response("[]", {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            }),
+        },
       },
     });
     deployments.push(deployment);

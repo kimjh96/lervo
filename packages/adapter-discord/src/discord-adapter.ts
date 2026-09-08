@@ -18,10 +18,15 @@ import type {
   DiscordConversationAdapterOptions,
   DiscordConversationAdapterPort,
   DiscordGatewayDispatch,
+  DiscordHistoryMessage,
   DiscordIngressResult,
 } from "./types.js";
 import { deliverDiscordConversationMessage } from "./delivery.js";
-import { parseDiscordGatewayPayload } from "./payload.js";
+import {
+  parseDiscordGatewayPayload,
+  parseDiscordMessagePayload,
+  type ParsedDiscordMessage,
+} from "./payload.js";
 
 export class DiscordConversationAdapter implements DiscordConversationAdapterPort {
   readonly descriptor: ConversationAdapterDescriptor;
@@ -73,7 +78,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
       parseBoundedJson(input.body, this.maximumPayloadBytes),
     );
     if (parsed.kind === "not_dispatch") {
-      return { status: "ignored", reason: "not_a_dispatch" };
+      return { status: "ignored", reason: "not_a_dispatch", checkpoint: null };
     }
     const verifiedAt = this.now().toISOString();
     let authentication;
@@ -98,7 +103,37 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
         "The Discord Gateway dispatch does not belong to the authenticated session.",
       );
     }
-    if (parsed.kind === "ignored") return { status: "ignored", reason: parsed.reason };
+    if (parsed.kind === "ignored") {
+      return { status: "ignored", reason: parsed.reason, checkpoint: null };
+    }
+    return this.receiveAuthenticatedMessage(parsed);
+  }
+
+  async receiveHistoryMessage(
+    input: DiscordHistoryMessage,
+    expectedGuildId: string | null,
+  ): Promise<DiscordIngressResult> {
+    if (!this.descriptor.capabilities.includes("messages.receive")) {
+      throw new ConversationPlatformError(
+        "unsupported_platform_event",
+        "Discord message reception is disabled.",
+      );
+    }
+    const parsed = parseDiscordMessagePayload(
+      parseBoundedJson(input.body, this.maximumPayloadBytes),
+    );
+    if (parsed.guildId !== null && parsed.guildId !== expectedGuildId) {
+      throw new ConversationPlatformError(
+        "platform_authentication_failed",
+        "The Discord history message guild does not match its configured channel.",
+      );
+    }
+    return this.receiveAuthenticatedMessage({ ...parsed, guildId: expectedGuildId });
+  }
+
+  private async receiveAuthenticatedMessage(
+    parsed: ParsedDiscordMessage,
+  ): Promise<DiscordIngressResult> {
     if (
       (parsed.guildId === null && !this.options.allowDirectMessages) ||
       (parsed.guildId !== null && !this.guilds.has(parsed.guildId))
@@ -107,6 +142,14 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
         "platform_authentication_failed",
         "The Discord guild or DM scope does not match.",
       );
+    }
+    const checkpoint = {
+      tenantKey: parsed.guildId ?? "dm",
+      channelId: parsed.channelId,
+      messageId: parsed.messageId,
+    };
+    if (parsed.participantKey === `bot:${this.options.applicationId}`) {
+      return { status: "ignored", reason: "own_application_message", checkpoint };
     }
     let identity;
     try {
@@ -172,6 +215,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
     return {
       status: "accepted",
       event,
+      checkpoint,
       responseActivity:
         this.options.typing === undefined
           ? null

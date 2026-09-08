@@ -17,7 +17,7 @@ import type {
   WritingContract,
 } from "@lervo/schemas";
 import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
-import type { WritingSemanticEvaluator } from "@lervo/writing";
+import type { WritingArtifactCoordinate, WritingSemanticEvaluator } from "@lervo/writing";
 
 export interface ManagedConversationResponsePlan {
   adapter: ProviderAdapter;
@@ -57,6 +57,17 @@ export interface ManagedConversationResponderOptions {
   now?: () => Date;
   createEventId?: () => string;
   providerSessions?: ManagedConversationProviderSessionPort;
+  responseArtifacts?: ManagedConversationResponseArtifactPort;
+}
+
+export interface ManagedConversationResponseArtifactPort {
+  get(requestDigest: string): Promise<WritingArtifactCoordinate | null>;
+  put(input: {
+    requestDigest: string;
+    artifact: WritingArtifactCoordinate;
+    createdAt: string;
+  }): Promise<void>;
+  remove(requestDigest: string): Promise<void>;
 }
 
 export interface ManagedConversationProviderSessionPort {

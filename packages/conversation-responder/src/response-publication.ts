@@ -1,24 +1,24 @@
 import type { ConversationReplyCandidate } from "@lervo/interaction";
-import type { ManagedProviderRunResult } from "@lervo/execution-contract";
 import type { WritingContract } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import {
   evaluateWritingPublication,
   readPublishableWritingArtifact,
+  type WritingArtifactCoordinate,
   type WritingSemanticEvaluator,
 } from "@lervo/writing";
 
 import { ManagedConversationResponseError } from "./types.js";
 
 export async function publishConversationResponse(input: {
-  run: ManagedProviderRunResult;
+  artifact: WritingArtifactCoordinate;
   writingContract: WritingContract;
   artifactStore: ArtifactStore;
   semanticEvaluator: WritingSemanticEvaluator;
   maximumResponseCharacters?: number;
   now?: () => Date;
 }): Promise<ConversationReplyCandidate> {
-  if (input.run.resultArtifact.byteCount > 65_536) {
+  if (input.artifact.byteCount > 65_536) {
     throw new ManagedConversationResponseError(
       "writing_publication_blocked",
       "The conversation response exceeds the maximum publishable size.",
@@ -26,7 +26,7 @@ export async function publishConversationResponse(input: {
   }
   const publication = await evaluateWritingPublication(
     {
-      artifact: input.run.resultArtifact,
+      artifact: input.artifact,
       contract: input.writingContract,
       surface: "chat",
       artifactStore: input.artifactStore,
@@ -41,7 +41,7 @@ export async function publishConversationResponse(input: {
     );
   }
   const content = await readPublishableWritingArtifact({
-    artifact: input.run.resultArtifact,
+    artifact: input.artifact,
     evaluation: publication.evaluation,
     evaluationArtifact: publication.evaluationArtifact,
     permit: publication.permit,
@@ -57,14 +57,14 @@ export async function publishConversationResponse(input: {
   }
   return {
     content: {
-      artifactId: input.run.resultArtifact.artifactId,
-      contentHash: input.run.resultArtifact.contentHash,
-      byteCount: input.run.resultArtifact.byteCount,
-      mediaType: input.run.resultArtifact.mediaType,
+      artifactId: input.artifact.artifactId,
+      contentHash: input.artifact.contentHash,
+      byteCount: input.artifact.byteCount,
+      mediaType: input.artifact.mediaType,
     },
     publicationPermit: publication.permit,
     publicationEvidence: {
-      artifact: input.run.resultArtifact,
+      artifact: input.artifact,
       evaluation: publication.evaluation,
       evaluationArtifact: publication.evaluationArtifact,
     },

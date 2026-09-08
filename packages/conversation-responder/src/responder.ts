@@ -10,6 +10,7 @@ import {
 import { publishConversationResponse } from "./response-publication.js";
 import { validateConversationManagedRun } from "./run-validation.js";
 import type {
+  ManagedConversationResponsePlan,
   ManagedConversationResponseRequest,
   ManagedConversationResponderOptions,
   ManagedConversationResponderPort,
@@ -27,18 +28,54 @@ export class ManagedConversationResponder implements ManagedConversationResponde
   async respond(input: ManagedConversationResponseRequest) {
     const plan = await this.options.resolvePlan(input);
     validateConversationResponseRequest(this.options, input, plan);
+    const requestDigest = conversationResponseRequestDigest({ request: input, plan });
+    let artifact = await this.options.responseArtifacts?.get(requestDigest);
+    if (artifact === undefined || artifact === null) {
+      artifact = await this.generateArtifact({ request: input, plan, requestDigest });
+      await this.options.responseArtifacts?.put({
+        requestDigest,
+        artifact,
+        createdAt: (this.options.now?.() ?? new Date()).toISOString(),
+      });
+    }
+    try {
+      return await publishConversationResponse({
+        artifact,
+        writingContract: plan.writingContract,
+        artifactStore: this.options.artifactStore,
+        semanticEvaluator: this.options.semanticEvaluator,
+        ...(plan.maximumResponseCharacters === undefined
+          ? {}
+          : { maximumResponseCharacters: plan.maximumResponseCharacters }),
+        ...(this.options.now === undefined ? {} : { now: this.options.now }),
+      });
+    } catch (error) {
+      if (
+        error instanceof ManagedConversationResponseError &&
+        error.code === "writing_publication_blocked"
+      ) {
+        await this.options.responseArtifacts?.remove(requestDigest);
+      }
+      throw error;
+    }
+  }
+
+  private async generateArtifact(input: {
+    request: ManagedConversationResponseRequest;
+    plan: ManagedConversationResponsePlan;
+    requestDigest: string;
+  }) {
     const message = await readConversationMessage({
-      content: input.event.content,
+      content: input.request.event.content,
       artifactStore: this.options.artifactStore,
     });
-    const requestDigest = conversationResponseRequestDigest({ request: input, plan });
     const coordinator = new ManagedProviderRunCoordinator({
-      adapter: plan.adapter,
+      adapter: input.plan.adapter,
       coordinates: {
         projectId: this.options.projectId,
-        runId: plan.runId,
-        sessionId: plan.sessionId,
-        roleId: plan.role.roleId,
+        runId: input.plan.runId,
+        sessionId: input.plan.sessionId,
+        roleId: input.plan.role.roleId,
       },
       policyVersion: this.options.policyVersion,
       events: this.options.events,
@@ -50,36 +87,36 @@ export class ManagedConversationResponder implements ManagedConversationResponde
     });
     const run = await coordinator.run({
       repositoryRoot: this.options.repositoryRoot,
-      requestDigest,
+      requestDigest: input.requestDigest,
       risk: "low",
       instructions: conversationResponseInstructions(
-        input,
+        input.request,
         message,
-        plan.role.roleId,
-        plan.maximumResponseCharacters,
+        input.plan.role.roleId,
+        input.plan.maximumResponseCharacters,
       ),
-      targetTurnId: plan.targetTurnId,
+      targetTurnId: input.plan.targetTurnId,
       context: {
-        registry: plan.registry,
-        role: plan.role,
-        expectedPaths: [...(plan.expectedPaths ?? [])],
-        documentRules: plan.documentRules,
-        ...(plan.additionalCandidates === undefined
+        registry: input.plan.registry,
+        role: input.plan.role,
+        expectedPaths: [...(input.plan.expectedPaths ?? [])],
+        documentRules: input.plan.documentRules,
+        ...(input.plan.additionalCandidates === undefined
           ? {}
-          : { additionalCandidates: plan.additionalCandidates }),
-        publications: plan.publications,
-        handoffs: plan.handoffs,
+          : { additionalCandidates: input.plan.additionalCandidates }),
+        publications: input.plan.publications,
+        handoffs: input.plan.handoffs,
       },
-      writingPolicy: plan.writingPolicy,
-      resolvedSkills: plan.resolvedSkills,
+      writingPolicy: input.plan.writingPolicy,
+      resolvedSkills: input.plan.resolvedSkills,
     });
     validateConversationManagedRun({
       run,
       events: this.options.events,
-      requestDigest,
-      roleId: plan.role.roleId,
-      targetTurnId: plan.targetTurnId,
-      publications: plan.publications,
+      requestDigest: input.requestDigest,
+      roleId: input.plan.role.roleId,
+      targetTurnId: input.plan.targetTurnId,
+      publications: input.plan.publications,
     });
     let claimed: boolean;
     try {
@@ -100,15 +137,6 @@ export class ManagedConversationResponder implements ManagedConversationResponde
         "No independent provider session was assigned to the conversation response role.",
       );
     }
-    return publishConversationResponse({
-      run,
-      writingContract: plan.writingContract,
-      artifactStore: this.options.artifactStore,
-      semanticEvaluator: this.options.semanticEvaluator,
-      ...(plan.maximumResponseCharacters === undefined
-        ? {}
-        : { maximumResponseCharacters: plan.maximumResponseCharacters }),
-      ...(this.options.now === undefined ? {} : { now: this.options.now }),
-    });
+    return run.resultArtifact;
   }
 }

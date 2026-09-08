@@ -132,6 +132,12 @@ describe("Discord remote continuation application journey", () => {
       resolveWritingContract: async () => defaultEnglishWritingContract,
     });
     const fetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      if (init?.method === "GET") {
+        return new Response("[]", {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
       if (String(url).endsWith(`/channels/${channelId}/typing`)) {
         expect(init?.method).toBe("POST");
         return new Response(null, { status: 204 });
@@ -218,17 +224,17 @@ describe("Discord remote continuation application journey", () => {
       d: { session_id: "discord-app-session", resume_gateway_url: "wss://gateway.discord.gg" },
     });
     gateway.emit(gatewayMessage("523456789012345678"));
-    await settled(() => request.mock.calls.length === 1 && fetch.mock.calls.length === 2);
+    await settled(() => request.mock.calls.length === 1 && fetch.mock.calls.length === 3);
 
     expect(gatewayErrors).toEqual([]);
     expect(JSON.parse(gateway.sent[0]!)).toMatchObject({ op: 2, d: { intents: 37_377 } });
     expect(request).toHaveBeenCalledOnce();
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(3);
 
     gateway.emit(gatewayMessage("523456789012345678"));
     await settled();
     expect(request).toHaveBeenCalledOnce();
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(3);
     application.close();
   });
 
@@ -282,14 +288,20 @@ describe("Discord remote continuation application journey", () => {
       artifactStore: artifacts,
       resolveWritingContract: async () => defaultEnglishWritingContract,
     });
-    const fetch = vi.fn(async (url: string | URL | Request) =>
-      String(url).endsWith(`/channels/${channelId}/typing`)
+    const fetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      if (init?.method === "GET") {
+        return new Response("[]", {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return String(url).endsWith(`/channels/${channelId}/typing`)
         ? new Response(null, { status: 204 })
         : new Response(JSON.stringify({ id: "423456789012345678", channel_id: channelId }), {
             status: 200,
             headers: { "content-type": "application/json" },
-          }),
-    );
+          });
+    });
     const gateway = new GatewayTransport();
     const application = await openConversationApplication({
       dataDirectory: root,
@@ -357,7 +369,7 @@ describe("Discord remote continuation application journey", () => {
       results: [{ result: { status: "completed" } }],
     });
     expect(responder.respond).toHaveBeenCalledTimes(2);
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(3);
     application.close();
   });
 });

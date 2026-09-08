@@ -80,6 +80,28 @@ export interface ConversationPlatformDeliveryReplayPort {
 }
 
 /**
+ * Keeps an external ingress position beside reversible platform identifiers.
+ * Advancing is compare-and-set so concurrent receivers cannot silently skip or
+ * rewind external history.
+ */
+export interface ConversationPlatformIngressCursorPort {
+  readIngressCursor(input: {
+    platform: ConversationPlatformKind;
+    integrationId: string;
+    tenantKey: string;
+    conversationKey: string;
+  }): Promise<string | null>;
+  advanceIngressCursor(input: {
+    platform: ConversationPlatformKind;
+    integrationId: string;
+    tenantKey: string;
+    conversationKey: string;
+    expectedCursor: string | null;
+    cursor: string;
+  }): Promise<void>;
+}
+
+/**
  * Owns reversible platform identifiers outside the platform-neutral inbox.
  * recordInbound must durably bind the external address to the canonical event
  * before an accepted result is returned. recordOutbound has the same rule for
@@ -128,6 +150,7 @@ export class ConversationPlatformError extends Error {
       | "platform_authentication_failed"
       | "platform_activity_failed"
       | "platform_delivery_failed"
+      | "platform_ingress_failed"
       | "unsupported_platform_event",
     message: string,
     options?: ErrorOptions,

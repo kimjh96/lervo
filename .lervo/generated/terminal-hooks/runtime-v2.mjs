@@ -70408,6 +70408,26 @@ var fixedEnglishStatusWritingContract = {
     semanticEvaluationMode: "separate_pass"
   }
 };
+var adaptiveConversationWritingContract = {
+  ...defaultEnglishWritingContract,
+  writingPolicyId: "writing_mul-conversation",
+  locale: "mul",
+  surfaces: ["chat"],
+  prose: {
+    ...defaultEnglishWritingContract.prose,
+    register: "polite"
+  },
+  verification: {
+    ...defaultEnglishWritingContract.verification,
+    semanticChecks: [
+      {
+        checkId: "natural_conversation_prose",
+        requirement: "Write natural, direct conversational prose in the selected response language, preserving machine identifiers and clearly separating observed facts from proposed actions.",
+        required: true
+      }
+    ]
+  }
+};
 
 // packages/search/dist/integrity.js
 import { createHash as createHash15 } from "node:crypto";

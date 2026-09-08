@@ -1,4 +1,4 @@
-import { DiscordRestDelivery, DiscordRestTyping } from "@lervo/adapter-discord";
+import { DiscordRestDelivery, DiscordRestHistory, DiscordRestTyping } from "@lervo/adapter-discord";
 import { SlackWebApiDelivery } from "@lervo/adapter-slack";
 import type {
   ConversationPlatformDeliveryReplayPort,
@@ -155,6 +155,47 @@ describe("credential-backed platform delivery", () => {
     });
     await delivery.send(input);
     expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("retrieves bounded Discord history after the durable channel cursor", async () => {
+    const request = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      expect(String(url)).toBe(
+        "https://discord.com/api/v10/channels/223456789012345678/messages?limit=100&after=323456789012345678",
+      );
+      expect(init).toMatchObject({
+        method: "GET",
+        headers: { accept: "application/json", authorization: `Bot ${"d".repeat(40)}` },
+      });
+      return new Response(
+        JSON.stringify([
+          {
+            id: "423456789012345678",
+            channel_id: "223456789012345678",
+            guild_id: "123456789012345678",
+            author: { id: "523456789012345678", bot: false },
+            content: "Recover this message.",
+            timestamp: at,
+          },
+        ]),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    });
+    const history = new DiscordRestHistory({
+      botToken: "d".repeat(40),
+      fetch: request as typeof fetch,
+    });
+
+    const messages = await history.list({
+      channelId: "223456789012345678",
+      after: "323456789012345678",
+      limit: 100,
+    });
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toMatchObject({ messageId: "423456789012345678" });
+    expect(JSON.parse(Buffer.from(messages[0]!.body).toString("utf8"))).toMatchObject({
+      content: "Recover this message.",
+    });
   });
 
   it("refreshes Discord typing activity and stops without affecting message delivery", async () => {

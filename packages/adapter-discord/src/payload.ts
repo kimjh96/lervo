@@ -4,22 +4,22 @@ import {
   requiredString,
 } from "@lervo/conversation-platform";
 
+export interface ParsedDiscordMessage {
+  kind: "message";
+  messageId: string;
+  channelId: string;
+  guildId: string | null;
+  participantKey: string;
+  mentionedParticipantKeys: string[];
+  actorKindHint: "human" | "agent";
+  replyToMessageId: string | null;
+  content: string;
+  occurredAt: string;
+}
+
 export type ParsedDiscordGateway =
   | { kind: "ignored"; reason: string; sequence: number; eventName: string }
-  | {
-      kind: "message";
-      sequence: number;
-      eventName: "MESSAGE_CREATE";
-      messageId: string;
-      channelId: string;
-      guildId: string | null;
-      participantKey: string;
-      mentionedParticipantKeys: string[];
-      actorKindHint: "human" | "agent";
-      replyToMessageId: string | null;
-      content: string;
-      occurredAt: string;
-    };
+  | (ParsedDiscordMessage & { sequence: number; eventName: "MESSAGE_CREATE" });
 
 function snowflake(value: unknown, label: string): string {
   const result = requiredString(value, label, 32);
@@ -57,7 +57,11 @@ export function parseDiscordGatewayPayload(
   if (eventName !== "MESSAGE_CREATE") {
     return { kind: "ignored", reason: "unsupported_gateway_event", sequence, eventName };
   }
-  const message = objectValue(payload.d);
+  return { ...parseDiscordMessagePayload(payload.d), sequence, eventName };
+}
+
+export function parseDiscordMessagePayload(value: unknown): ParsedDiscordMessage {
+  const message = objectValue(value);
   const author = objectValue(message.author);
   const bot = author.bot === true;
   const mentionValues = Array.isArray(message.mentions) ? message.mentions : [];
@@ -67,8 +71,6 @@ export function parseDiscordGatewayPayload(
       : objectValue(message.message_reference);
   return {
     kind: "message",
-    sequence,
-    eventName,
     messageId: snowflake(message.id, "Discord message ID"),
     channelId: snowflake(message.channel_id, "Discord channel ID"),
     guildId: optionalSnowflake(message.guild_id, "Discord guild ID"),

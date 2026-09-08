@@ -19,6 +19,7 @@ import type { ArtifactStore } from "@lervo/storage-contract";
 
 import type { NodeDiscordConversationConfig } from "./config-types.js";
 import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
+import { SQLiteConversationResponseArtifactStore } from "./conversation-response-artifact-store.js";
 
 const WRITING_DOCUMENT_ID = "doc_node_conversation_writing_policy";
 
@@ -141,7 +142,11 @@ export async function openManagedConversationReadResponder(input: {
     projectId: input.projectId,
     writableEventSchemaVersion: writer.coordinate.selectedEventSchemaVersion,
   });
+  let responseArtifacts: SQLiteConversationResponseArtifactStore | null = null;
   try {
+    responseArtifacts = await SQLiteConversationResponseArtifactStore.open(
+      resolve(input.dataDirectory, "response-artifacts.sqlite"),
+    );
     const provisioned = await provisionWritingPolicy({
       repositoryRoot: input.repositoryRoot,
       dataDirectory: input.dataDirectory,
@@ -175,6 +180,7 @@ export async function openManagedConversationReadResponder(input: {
       ),
       events,
       artifactStore: input.artifactStore,
+      responseArtifacts,
       semanticEvaluator: createLocalProviderWritingEvaluator({
         provider:
           input.config.routing.evaluation?.provider ?? input.config.routing.response.provider,
@@ -250,8 +256,15 @@ export async function openManagedConversationReadResponder(input: {
         };
       },
     });
-    return { responder, close: () => events.close() };
+    return {
+      responder,
+      close: () => {
+        responseArtifacts?.close();
+        events.close();
+      },
+    };
   } catch (error) {
+    responseArtifacts?.close();
     events.close();
     throw error;
   }

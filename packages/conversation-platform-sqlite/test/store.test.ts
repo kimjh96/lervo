@@ -152,7 +152,7 @@ describe("SQLite conversation platform state", () => {
     });
     store.close();
     const migrated = new DatabaseSync(path, { readOnly: true });
-    expect(migrated.prepare("PRAGMA user_version").get()?.user_version).toBe(2);
+    expect(migrated.prepare("PRAGMA user_version").get()?.user_version).toBe(3);
     expect(
       migrated.prepare("SELECT COUNT(*) AS count FROM conversation_bindings").get()?.count,
     ).toBe(1);
@@ -213,6 +213,50 @@ describe("SQLite conversation platform state", () => {
       projectId: "prj_platform01",
       conversationId: "cnv_platform01",
     });
+    store.close();
+  });
+
+  it("persists and compare-and-set advances an ingress cursor across restart", async () => {
+    const path = await databasePath();
+    const discordOptions = {
+      path,
+      conversations: [
+        {
+          platform: "discord" as const,
+          integrationId,
+          tenantKey: "123456789012345678",
+          conversationKey: "223456789012345678",
+          projectId: "prj_platform01",
+          conversationId: "cnv_platform01",
+        },
+      ],
+      participants: [],
+    };
+    let store = await SQLiteConversationPlatformStore.open(discordOptions);
+    const address = {
+      platform: "discord" as const,
+      integrationId,
+      tenantKey: "123456789012345678",
+      conversationKey: "223456789012345678",
+    };
+    await expect(store.readIngressCursor(address)).resolves.toBeNull();
+    await store.advanceIngressCursor({
+      ...address,
+      expectedCursor: null,
+      cursor: "323456789012345678",
+    });
+    store.close();
+
+    store = await SQLiteConversationPlatformStore.open(discordOptions);
+    await expect(store.readIngressCursor(address)).resolves.toBe("323456789012345678");
+    await expect(
+      store.advanceIngressCursor({
+        ...address,
+        expectedCursor: "different-cursor",
+        cursor: "423456789012345678",
+      }),
+    ).rejects.toMatchObject({ code: "conflicting_binding" });
+    await expect(store.readIngressCursor(address)).resolves.toBe("323456789012345678");
     store.close();
   });
 

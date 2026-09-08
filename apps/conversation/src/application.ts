@@ -22,7 +22,7 @@ import {
 import { SQLiteConversationPlatformStore } from "@lervo/conversation-platform-sqlite";
 
 import { configuredConversationIntegrations } from "./built-in-integrations.js";
-import { ConversationDiscordGatewayRuntime } from "./discord-runtime.js";
+import { ConversationDiscordDeploymentRuntime } from "./discord-deployment-runtime.js";
 import { ConversationInteractionRuntime } from "./interaction-runtime.js";
 import type { ConversationApplication, ConversationApplicationOptions } from "./types.js";
 
@@ -62,22 +62,7 @@ export async function openConversationApplication(
 ): Promise<ConversationApplication> {
   let interactions: ConversationInteractionRuntime | null = null;
   let adapters = new Map<string, ConversationAdapter>();
-  const discordRuntime = new ConversationDiscordGatewayRuntime(
-    options.discord ?? [],
-    async (integrationId, dispatch) => {
-      const adapter = adapters.get(integrationId);
-      if (!(adapter instanceof DiscordConversationAdapter) || interactions === null) {
-        throw new Error("The Discord interaction runtime is not ready.");
-      }
-      const ingress = await adapter.receiveGatewayDispatch(dispatch);
-      if (ingress.status === "ignored") return;
-      await interactions.handle(
-        ingress.event,
-        ingress.responseActivity === null ? undefined : ingress.responseActivity,
-      );
-      await interactions.runDeliveryCycle(adapter);
-    },
-  );
+  const discordRuntime = new ConversationDiscordDeploymentRuntime(options);
   if (discordRuntime.gateways.size > 0 && options.interactions === undefined) {
     throw new Error("A managed Discord Gateway requires a conversation interaction deployment.");
   }
@@ -185,6 +170,9 @@ export async function openConversationApplication(
           entry[1] instanceof DiscordConversationAdapter,
       ),
     );
+    if (interactions !== null) {
+      discordRuntime.attach({ adapters: discordAdapters, interactions, store });
+    }
     discordRuntime.start();
     return {
       adapters,

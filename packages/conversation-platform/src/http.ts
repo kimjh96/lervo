@@ -14,6 +14,8 @@ export interface PlatformJsonRequestOptions {
   allowInsecureHttpForTests?: boolean;
 }
 
+export type PlatformJsonReadOptions = Omit<PlatformJsonRequestOptions, "body">;
+
 export function assertPlatformHttpLimits(input: {
   maxResponseBytes?: number;
   requestTimeoutMs?: number;
@@ -35,13 +37,17 @@ export function assertPlatformHttpLimits(input: {
   }
 }
 
-export function platformApiUrl(value: string, allowInsecureHttpForTests = false): URL {
+export function platformApiUrl(
+  value: string,
+  allowInsecureHttpForTests = false,
+  allowQuery = false,
+): URL {
   const url = new URL(value);
   if (
     (url.protocol !== "https:" && !(allowInsecureHttpForTests && url.protocol === "http:")) ||
     url.username !== "" ||
     url.password !== "" ||
-    url.search !== "" ||
+    (!allowQuery && url.search !== "") ||
     url.hash !== ""
   ) {
     throw new ConversationPlatformError(
@@ -50,6 +56,73 @@ export function platformApiUrl(value: string, allowInsecureHttpForTests = false)
     );
   }
   return url;
+}
+
+async function readJsonResponse(input: { response: Response; maximum: number }): Promise<unknown> {
+  if (!input.response.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
+    await input.response.body?.cancel();
+    throw new Error("Platform API response content type mismatch");
+  }
+  const declared = input.response.headers.get("content-length");
+  if (
+    declared !== null &&
+    (!/^(0|[1-9][0-9]*)$/.test(declared) || Number(declared) > input.maximum)
+  ) {
+    await input.response.body?.cancel();
+    throw new Error("Platform API response size mismatch");
+  }
+  if (input.response.body === null) throw new Error("Platform API response body missing");
+  const reader = input.response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let byteCount = 0;
+  while (true) {
+    const chunk = await reader.read();
+    if (chunk.done) break;
+    byteCount += chunk.value.byteLength;
+    if (byteCount > input.maximum) {
+      await reader.cancel();
+      throw new Error("Platform API response too large");
+    }
+    chunks.push(chunk.value);
+  }
+  const bytes = new Uint8Array(byteCount);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) as unknown;
+}
+
+export async function getPlatformJson(options: PlatformJsonReadOptions): Promise<unknown> {
+  const maximum = options.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
+  const timeoutMs = options.requestTimeoutMs ?? DEFAULT_TIMEOUT_MS;
+  assertPlatformHttpLimits(options);
+  const url = platformApiUrl(options.url, options.allowInsecureHttpForTests, true);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await (options.fetch ?? globalThis.fetch)(url, {
+      method: "GET",
+      headers: { accept: "application/json", ...options.headers },
+      redirect: "error",
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw new Error("Platform API rejected history retrieval");
+    }
+    return await readJsonResponse({ response, maximum });
+  } catch (error) {
+    if (error instanceof ConversationPlatformError) throw error;
+    throw new ConversationPlatformError(
+      "platform_ingress_failed",
+      "The platform history response could not be verified safely.",
+      { cause: error instanceof Error ? error : undefined },
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function postPlatformJson(options: PlatformJsonRequestOptions): Promise<unknown> {
@@ -75,37 +148,7 @@ export async function postPlatformJson(options: PlatformJsonRequestOptions): Pro
       await response.body?.cancel();
       throw new PlatformDeliveryRejectedError();
     }
-    if (!response.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
-      await response.body?.cancel();
-      throw new Error("Platform API response content type mismatch");
-    }
-    const declared = response.headers.get("content-length");
-    if (declared !== null && (!/^(0|[1-9][0-9]*)$/.test(declared) || Number(declared) > maximum)) {
-      await response.body?.cancel();
-      throw new Error("Platform API response size mismatch");
-    }
-    if (response.body === null) throw new Error("Platform API response body missing");
-    const reader = response.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let byteCount = 0;
-    while (true) {
-      const chunk = await reader.read();
-      if (chunk.done) break;
-      byteCount += chunk.value.byteLength;
-      if (byteCount > maximum) {
-        await reader.cancel();
-        throw new Error("Platform API response too large");
-      }
-      chunks.push(chunk.value);
-    }
-    const bytes = new Uint8Array(byteCount);
-    let offset = 0;
-    for (const chunk of chunks) {
-      bytes.set(chunk, offset);
-      offset += chunk.byteLength;
-    }
-    const value: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-    return value;
+    return await readJsonResponse({ response, maximum });
   } catch (error) {
     if (error instanceof PlatformDeliveryRejectedError) throw error;
     throw new ConversationPlatformError(

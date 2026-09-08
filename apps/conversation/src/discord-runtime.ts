@@ -1,7 +1,9 @@
 import type {
   DiscordGatewayAuthenticationPort,
   DiscordGatewayDispatch,
+  DiscordHistoryPort,
 } from "@lervo/adapter-discord";
+import { DiscordRestHistory } from "@lervo/adapter-discord";
 import {
   AuthenticatedDiscordGatewayDriver,
   includesDiscordGatewayIntents,
@@ -13,13 +15,17 @@ import type { DiscordConversationDeployment } from "./types.js";
 export class ConversationDiscordGatewayRuntime {
   readonly authentications: ReadonlyMap<string, DiscordGatewayAuthenticationPort>;
   readonly gateways: ReadonlyMap<string, AuthenticatedDiscordGatewayDriver>;
+  readonly histories: ReadonlyMap<string, DiscordHistoryPort>;
 
   constructor(
     deployments: readonly DiscordConversationDeployment[],
     onDispatch: (integrationId: string, dispatch: DiscordGatewayDispatch) => Promise<void>,
+    onReady: (integrationId: string) => Promise<void>,
+    fetch?: typeof globalThis.fetch,
   ) {
     const authentications = new Map<string, DiscordGatewayAuthenticationPort>();
     const gateways = new Map<string, AuthenticatedDiscordGatewayDriver>();
+    const histories = new Map<string, DiscordHistoryPort>();
     for (const deployment of deployments) {
       if ((deployment.gateway === undefined) === (deployment.gatewayAuthentication === undefined)) {
         throw new Error(
@@ -49,12 +55,30 @@ export class ConversationDiscordGatewayRuntime {
         applicationId: deployment.applicationId,
         botToken: deployment.botToken,
         onDispatch: (dispatch) => onDispatch(deployment.integrationId, dispatch),
+        onReady: async () => {
+          await onReady(deployment.integrationId);
+          await gatewayOptions.onReady?.();
+        },
       });
+      histories.set(
+        deployment.integrationId,
+        new DiscordRestHistory({
+          botToken: deployment.botToken,
+          ...(deployment.requestTimeoutMs === undefined
+            ? {}
+            : { requestTimeoutMs: deployment.requestTimeoutMs }),
+          ...(deployment.maxResponseBytes === undefined
+            ? {}
+            : { maxResponseBytes: deployment.maxResponseBytes }),
+          ...(fetch === undefined ? {} : { fetch }),
+        }),
+      );
       authentications.set(deployment.integrationId, gateway);
       gateways.set(deployment.integrationId, gateway);
     }
     this.authentications = authentications;
     this.gateways = gateways;
+    this.histories = histories;
   }
 
   start(): void {
