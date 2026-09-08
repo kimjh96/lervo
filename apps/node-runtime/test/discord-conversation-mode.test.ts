@@ -60,6 +60,19 @@ describe("natural-language Discord conversation mode", () => {
       resultDigest: `sha256:${"e".repeat(64)}`,
     }));
     const resolver: ConversationIntentResolver = { resolve: resolveIntent };
+    const resolutions = new Map<
+      string,
+      Awaited<ReturnType<ConversationIntentResolver["resolve"]>>
+    >();
+    const resolutionStore = {
+      read: async (event: { eventId: string }) => resolutions.get(event.eventId) ?? null,
+      record: async (input: {
+        event: { eventId: string };
+        resolution: Awaited<ReturnType<ConversationIntentResolver["resolve"]>>;
+      }) => {
+        resolutions.set(input.event.eventId, input.resolution);
+      },
+    };
     const responder = new NaturalLanguageDiscordConversationResponder({
       applicationId,
       repositoryRoot: process.cwd(),
@@ -70,7 +83,7 @@ describe("natural-language Discord conversation mode", () => {
           { role: "assistant", text: "The active work is ready to continue." },
         ],
       },
-      resolutionStore: { record: async () => undefined },
+      resolutionStore,
       intentResolver: resolver,
       readOnly: readOnly as ConversationResponder,
       continuation: continuation as ConversationResponder,
@@ -104,7 +117,8 @@ describe("natural-language Discord conversation mode", () => {
       } as Parameters<ConversationResponder["respond"]>[0];
     };
 
-    await responder.respond(await input("cevt_test0001"));
+    const first = await input("cevt_test0001");
+    await responder.respond(first);
     expect(readOnly.respond).toHaveBeenCalledOnce();
     expect(resolveIntent.mock.calls[0]![0]).toMatchObject({ mentioned: false, message });
 
@@ -119,6 +133,20 @@ describe("natural-language Discord conversation mode", () => {
       message: "Finish it.",
     });
     expect(resolveIntent.mock.calls[1]![0].priorTurns).toHaveLength(2);
+
+    const restarted = new NaturalLanguageDiscordConversationResponder({
+      applicationId,
+      repositoryRoot: process.cwd(),
+      artifactStore,
+      history: { recent: async () => [] },
+      resolutionStore,
+      intentResolver: resolver,
+      readOnly: readOnly as ConversationResponder,
+      continuation: continuation as ConversationResponder,
+    });
+    await restarted.respond(first);
+    expect(resolveIntent).toHaveBeenCalledTimes(2);
+    expect(readOnly.respond).toHaveBeenCalledTimes(2);
   });
 });
 

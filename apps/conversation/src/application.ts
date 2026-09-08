@@ -203,6 +203,18 @@ export async function openConversationApplication(
               }
               return interactions!.runDeliveryCycle(adapter);
             },
+      runInteractionRetryCycle:
+        interactions === null
+          ? null
+          : async (integrationId) => {
+              const adapter = adapters.get(integrationId);
+              if (adapter === undefined) {
+                throw new Error("The conversation retry integration is not deployed.");
+              }
+              const result = await interactions!.runRetryCycle(integrationId);
+              await interactions!.runDeliveryCycle(adapter);
+              return result;
+            },
       runDeliberationWorkerCycle: async () => {
         if (deliberationOptions === undefined || deliberationStore === null) {
           return { status: "idle" };

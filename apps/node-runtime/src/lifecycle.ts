@@ -54,7 +54,7 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
     private readonly conversation: {
       failed: Promise<void>;
       stopIngress?(): void;
-      close(): void;
+      close(): void | Promise<void>;
     } | null,
     private readonly reloadBearerTokenSnapshot: () => Promise<void>,
     private readonly reloadRuntimeMaterialSnapshot: () => Promise<void>,
@@ -220,7 +220,7 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
       shutdownErrors.push(error);
     }
     try {
-      this.conversation?.close();
+      await this.conversation?.close();
     } catch (error) {
       shutdownErrors.push(error);
     }
@@ -252,7 +252,7 @@ export function createNodeRuntimeDeployment(
   conversation: {
     failed: Promise<void>;
     stopIngress?(): void;
-    close(): void;
+    close(): void | Promise<void>;
   } | null = null,
   reloadBearerToken: () => Promise<void> = async () => undefined,
   reloadRuntimeMaterials: () => Promise<void> = reloadBearerToken,

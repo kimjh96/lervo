@@ -15,6 +15,14 @@ function closeEveryRuntime(
   if (errors.length > 0) throw new AggregateError(errors);
 }
 
+async function closeEveryRuntimeAsync(runtimes: NodeDiscordConversationRuntime[]): Promise<void> {
+  const results = await Promise.allSettled(
+    runtimes.map((runtime) => Promise.resolve().then(() => runtime.close())),
+  );
+  const errors = results.flatMap((result) => (result.status === "rejected" ? [result.reason] : []));
+  if (errors.length > 0) throw new AggregateError(errors);
+}
+
 export function groupDiscordConversationRuntimes(
   runtimes: NodeDiscordConversationRuntime[],
 ): NodeDiscordConversationRuntime {
@@ -34,8 +42,8 @@ export function groupDiscordConversationRuntimes(
     stopIngress() {
       closeEveryRuntime(runtimes, (runtime) => runtime.stopIngress());
     },
-    close() {
-      closeEveryRuntime(runtimes, (runtime) => runtime.close());
+    async close() {
+      await closeEveryRuntimeAsync(runtimes);
     },
   };
 }

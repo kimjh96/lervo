@@ -211,12 +211,14 @@ describe("local provider writing evaluator", () => {
   it("uses a read-only isolated provider session and removes its temporary root", async () => {
     const adapter = new EvaluatorAdapter();
     let evaluatorRoot = "";
+    let structuredOutputSchema: Record<string, unknown> | undefined;
     let sequence = 0;
     const evaluator = createLocalProviderWritingEvaluator({
       provider: "codex",
       projectId: "prj_01234567",
       createAdapter: (input) => {
         evaluatorRoot = input.repositoryRoot;
+        structuredOutputSchema = input.structuredOutputSchema;
         return adapter;
       },
       createId: (prefix) => `${prefix}_evaluator_${++sequence}`,
@@ -256,6 +258,28 @@ describe("local provider writing evaluator", () => {
     expect(adapter.instructions).toContain('"audience":"mixed"');
     expect(adapter.instructions).toContain('"register":"plain_spec"');
     expect(adapter.stopped).toBe(true);
+    expect(structuredOutputSchema).toEqual({
+      type: "object",
+      additionalProperties: false,
+      required: ["checks"],
+      properties: {
+        checks: {
+          type: "array",
+          minItems: 1,
+          maxItems: 1,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["checkId", "status", "violationCount"],
+            properties: {
+              checkId: { type: "string", enum: ["natural_en_prose"] },
+              status: { type: "string", enum: ["passed", "failed"] },
+              violationCount: { type: "integer", minimum: 0 },
+            },
+          },
+        },
+      },
+    });
     await expect(access(evaluatorRoot)).rejects.toThrow();
   });
 });

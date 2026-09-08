@@ -7,6 +7,7 @@ import type { ConversationInboundEvent } from "@lervo/schemas";
 import type { ConversationIntentResolution } from "./conversation-intent-resolver.js";
 
 export interface ConversationIntentResolutionStore {
+  read(event: ConversationInboundEvent): Promise<ConversationIntentResolution | null>;
   record(input: {
     event: ConversationInboundEvent;
     resolution: ConversationIntentResolution;
@@ -110,6 +111,44 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
     ) {
       throw new Error("The conversation intent resolution conflicts with its recorded evidence.");
     }
+  }
+
+  async read(event: ConversationInboundEvent): Promise<ConversationIntentResolution | null> {
+    const current = this.database
+      .prepare(
+        `SELECT event_id, message_hash, provider_id, model, adapter_version, intent, confidence,
+          result_digest, resolved_at FROM conversation_intent_resolutions WHERE event_id = ?`,
+      )
+      .get(event.eventId) as Record<string, unknown> | undefined;
+    if (current === undefined) return null;
+    const model = current.model;
+    if (
+      current.event_id !== event.eventId ||
+      current.message_hash !== event.content.contentHash ||
+      typeof current.provider_id !== "string" ||
+      !/^[a-z][a-z0-9._-]{0,63}$/u.test(current.provider_id) ||
+      (model !== null &&
+        (typeof model !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u.test(model))) ||
+      current.adapter_version !== "1" ||
+      !["answer", "continue_work", "clarify"].includes(current.intent as string) ||
+      !["high", "medium", "low"].includes(current.confidence as string) ||
+      typeof current.result_digest !== "string" ||
+      !/^sha256:[a-f0-9]{64}$/u.test(current.result_digest) ||
+      typeof current.resolved_at !== "string" ||
+      !Number.isFinite(Date.parse(current.resolved_at))
+    ) {
+      throw new Error("The stored conversation intent resolution is invalid.");
+    }
+    return {
+      intent: current.intent as ConversationIntentResolution["intent"],
+      confidence: current.confidence as ConversationIntentResolution["confidence"],
+      provider: {
+        providerId: current.provider_id,
+        model,
+        adapterVersion: "1",
+      },
+      resultDigest: current.result_digest,
+    };
   }
 
   close(): void {

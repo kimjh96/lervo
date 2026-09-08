@@ -128,7 +128,7 @@ export async function openDeploymentConversation(input: {
   } catch (error) {
     if (runtimes.length > 0) {
       try {
-        groupDiscordConversationRuntimes(runtimes).close();
+        await groupDiscordConversationRuntimes(runtimes).close();
       } catch (cleanupError) {
         throw new NodeRuntimeError(
           "startup_failed",

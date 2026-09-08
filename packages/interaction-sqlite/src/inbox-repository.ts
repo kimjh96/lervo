@@ -19,6 +19,12 @@ export interface SQLiteInboxCoordinate {
   status: "pending" | "leased" | "completed";
 }
 
+export interface SQLiteReadyInbound {
+  event: ConversationInboundEvent;
+  policyId: string;
+  roleId: string;
+}
+
 function milliseconds(value: string, label: string): number {
   const result = Date.parse(value);
   if (!Number.isSafeInteger(result) || result < 0) {
@@ -286,6 +292,52 @@ export class ConversationInboxSQLiteRepository {
         "The conversation inbox retry lease differs.",
       );
     }
+  }
+
+  ready(input: {
+    integrationId: string;
+    policyId: string;
+    roleId: string;
+    at: string;
+    limit: number;
+  }): SQLiteReadyInbound[] {
+    const atMs = milliseconds(input.at, "Conversation retry query");
+    policyId(input.policyId);
+    roleId(input.roleId);
+    if (
+      input.integrationId.length < 1 ||
+      input.integrationId.length > 128 ||
+      !Number.isSafeInteger(input.limit) ||
+      input.limit < 1 ||
+      input.limit > 100
+    ) {
+      throw new InteractionSQLiteError(
+        "integrity_failed",
+        "The conversation retry query limit is invalid.",
+      );
+    }
+    return this.database
+      .prepare(
+        `
+      SELECT * FROM conversation_inbox
+      WHERE integration_id = ? AND policy_id = ? AND role_id = ? AND (
+        (status = 'pending' AND available_at_ms <= ?)
+        OR (status = 'leased' AND lease_expires_at_ms <= ?)
+      )
+      ORDER BY available_at_ms, event_id, role_id
+      LIMIT ?
+    `,
+      )
+      .all(input.integrationId, input.policyId, input.roleId, atMs, atMs, input.limit)
+      .map((row) => {
+        policyId(text(row, "policy_id"));
+        roleId(text(row, "role_id"));
+        return {
+          event: inbound(row),
+          policyId: text(row, "policy_id"),
+          roleId: text(row, "role_id"),
+        };
+      });
   }
 
   auditAll(): SQLiteInboxCoordinate[] {

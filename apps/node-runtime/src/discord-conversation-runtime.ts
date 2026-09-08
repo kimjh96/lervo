@@ -39,6 +39,7 @@ import { resolveDiscordAgentParticipation } from "./discord-agent-participation.
 import type { DiscordAgentParticipation } from "./discord-agent-participation.js";
 import { loadDiscordBotToken } from "./discord-credentials.js";
 import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
+import { ConversationInteractionRetryLoop } from "./conversation-interaction-retry-loop.js";
 
 export interface NodeDiscordConversationRuntime {
   readonly failed: Promise<void>;
@@ -48,7 +49,7 @@ export interface NodeDiscordConversationRuntime {
   }): Promise<"ready" | "duplicate" | "ignored">;
   runResultDeliveryCycle(): Promise<void>;
   stopIngress(): void;
-  close(): void;
+  close(): void | Promise<void>;
 }
 
 export interface NodeDiscordConversationRuntimeOptions {
@@ -124,6 +125,7 @@ export async function openNodeDiscordConversationRuntime(
   let resultRuntime: ConversationResultRuntime | null = null;
   let readRuntime: Awaited<ReturnType<typeof openManagedConversationReadResponder>> | null = null;
   let intentStore: SQLiteConversationIntentResolutionStore | null = null;
+  let interactionRetryLoop: ConversationInteractionRetryLoop | null = null;
   const continuation: ConversationRemoteContinuationPort = {
     request: async (input) => {
       const queued = await upstreamContinuation.request(input);
@@ -301,14 +303,25 @@ export async function openNodeDiscordConversationRuntime(
       }),
       source: new RepositoryConversationResultSource(options.repositoryRoot),
     });
+    interactionRetryLoop = new ConversationInteractionRetryLoop({
+      runCycle: async () => {
+        await openedApplication.runInteractionRetryCycle?.(config.integrationId);
+      },
+      onFailure: () => fail("interaction_retry_failed"),
+    });
+    interactionRetryLoop.start();
     return {
       failed: failure,
       observeRemoteAcknowledgement: (input) => resultRuntime!.observe(input),
       runResultDeliveryCycle: async () => {
         await resultRuntime!.runCycle();
       },
-      stopIngress: () => openedApplication.stopIngress(),
-      close: () => {
+      stopIngress: () => {
+        void interactionRetryLoop!.stop();
+        openedApplication.stopIngress();
+      },
+      close: async () => {
+        await interactionRetryLoop!.stop();
         openedApplication.close();
         resultRuntime!.close();
         readRuntime?.close();
@@ -316,6 +329,7 @@ export async function openNodeDiscordConversationRuntime(
       },
     };
   } catch (error) {
+    await interactionRetryLoop?.stop();
     application?.close();
     resultRuntime?.close();
     readRuntime?.close();

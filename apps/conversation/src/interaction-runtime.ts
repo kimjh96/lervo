@@ -18,6 +18,12 @@ export interface ConversationInteractionResult {
   result: HandleConversationEventResult;
 }
 
+export interface ConversationInteractionRetryCycleResult {
+  status: "idle" | "processed";
+  attemptedCount: number;
+  results: ConversationInteractionResult[];
+}
+
 function validateBindings(bindings: readonly ConversationInteractionBinding[]): void {
   const policyIds = bindings.map((binding) => binding.policy.policyId);
   if (bindings.length === 0 || new Set(policyIds).size !== policyIds.length) {
@@ -65,33 +71,77 @@ export class ConversationInteractionRuntime {
     );
     const results: ConversationInteractionResult[] = [];
     for (const binding of bindings) {
-      const result = await handleConversationEvent({
-        event,
-        policy: binding.policy,
-        workerId: this.deployment.workerId,
-        agentParticipantId: binding.agentParticipantId,
-        store: this.store,
-        responder: binding.responder,
-        publicationVerifier: binding.publicationVerifier,
-        ...(binding.relevanceEvaluator === undefined
-          ? {}
-          : { relevanceEvaluator: binding.relevanceEvaluator }),
-        ...(this.deployment.now === undefined ? {} : { clock: this.deployment.now }),
-        ...(this.deployment.leaseDurationMs === undefined
-          ? {}
-          : { leaseDurationMs: this.deployment.leaseDurationMs }),
-        ...(this.deployment.retryDelayMs === undefined
-          ? {}
-          : { retryDelayMs: this.deployment.retryDelayMs }),
-        ...(responseActivity === undefined ? {} : { responseActivity }),
-      });
-      results.push({
-        policyId: binding.policy.policyId,
-        roleId: binding.policy.roleId,
-        result,
-      });
+      results.push(await this.handleBinding(event, binding, responseActivity));
     }
     return results;
+  }
+
+  async runRetryCycle(
+    integrationId: string,
+    limit = 1,
+  ): Promise<ConversationInteractionRetryCycleResult> {
+    const at = (this.deployment.now?.() ?? new Date()).toISOString();
+    const ready = this.deployment.bindings
+      .flatMap((binding) =>
+        this.store.readyInbound({
+          integrationId,
+          policyId: binding.policy.policyId,
+          roleId: binding.policy.roleId,
+          at,
+          limit,
+        }),
+      )
+      .toSorted((left, right) => {
+        const occurred = left.event.occurredAt.localeCompare(right.event.occurredAt);
+        return occurred === 0 ? left.event.eventId.localeCompare(right.event.eventId) : occurred;
+      })
+      .slice(0, limit);
+    const results: ConversationInteractionResult[] = [];
+    for (const candidate of ready) {
+      const binding = this.deployment.bindings.find(
+        (item) =>
+          item.policy.policyId === candidate.policyId && item.policy.roleId === candidate.roleId,
+      );
+      if (binding === undefined) continue;
+      results.push(await this.handleBinding(candidate.event, binding));
+    }
+    return {
+      status: results.length === 0 ? "idle" : "processed",
+      attemptedCount: results.length,
+      results,
+    };
+  }
+
+  private async handleBinding(
+    event: ConversationInboundEvent,
+    binding: ConversationInteractionBinding,
+    responseActivity?: ConversationResponseActivity,
+  ): Promise<ConversationInteractionResult> {
+    const result = await handleConversationEvent({
+      event,
+      policy: binding.policy,
+      workerId: this.deployment.workerId,
+      agentParticipantId: binding.agentParticipantId,
+      store: this.store,
+      responder: binding.responder,
+      publicationVerifier: binding.publicationVerifier,
+      ...(binding.relevanceEvaluator === undefined
+        ? {}
+        : { relevanceEvaluator: binding.relevanceEvaluator }),
+      ...(this.deployment.now === undefined ? {} : { clock: this.deployment.now }),
+      ...(this.deployment.leaseDurationMs === undefined
+        ? {}
+        : { leaseDurationMs: this.deployment.leaseDurationMs }),
+      ...(this.deployment.retryDelayMs === undefined
+        ? {}
+        : { retryDelayMs: this.deployment.retryDelayMs }),
+      ...(responseActivity === undefined ? {} : { responseActivity }),
+    });
+    return {
+      policyId: binding.policy.policyId,
+      roleId: binding.policy.roleId,
+      result,
+    };
   }
 
   runDeliveryCycle(

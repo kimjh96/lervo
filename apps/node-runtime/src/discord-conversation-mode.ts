@@ -56,6 +56,11 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
   }
 
   private async resolveMode(event: ConversationInboundEvent): Promise<DiscordConversationMode> {
+    const stored = await this.options.resolutionStore.read(event);
+    if (stored !== null) {
+      const storedMode = modeFor(stored);
+      return storedMode === "continuation" && event.actor.kind !== "human" ? "clarify" : storedMode;
+    }
     const message = withoutLeadingBotMention(
       await readConversationControlMessage({ artifactStore: this.options.artifactStore, event }),
       this.options.applicationId,

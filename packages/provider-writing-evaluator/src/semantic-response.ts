@@ -3,6 +3,33 @@ import type {
   SemanticWritingEvaluationResponse,
 } from "@lervo/writing";
 
+export function providerSemanticEvaluationSchema(
+  request: SemanticWritingEvaluationRequest,
+): Record<string, unknown> {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: ["checks"],
+    properties: {
+      checks: {
+        type: "array",
+        minItems: request.checks.length,
+        maxItems: request.checks.length,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["checkId", "status", "violationCount"],
+          properties: {
+            checkId: { type: "string", enum: request.checks.map((check) => check.checkId) },
+            status: { type: "string", enum: ["passed", "failed"] },
+            violationCount: { type: "integer", minimum: 0 },
+          },
+        },
+      },
+    },
+  };
+}
+
 export function parseProviderSemanticEvaluation(
   content: string,
   request: SemanticWritingEvaluationRequest,

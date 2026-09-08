@@ -188,6 +188,17 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
     this.transaction.write(() => this.inbox.reschedule(input));
   }
 
+  readyInbound(input: {
+    integrationId: string;
+    policyId: string;
+    roleId: string;
+    at: string;
+    limit: number;
+  }) {
+    this.assertOpen();
+    return this.inbox.ready(input);
+  }
+
   async claimOutbound(input: {
     integrationId: string;
     workerId: string;

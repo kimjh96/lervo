@@ -348,7 +348,7 @@ export async function openNodeRuntime(
   } catch (error) {
     const cleanupErrors: unknown[] = [];
     try {
-      conversation?.close();
+      await conversation?.close();
     } catch (cleanupError) {
       cleanupErrors.push(cleanupError);
     }

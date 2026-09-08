@@ -32,7 +32,7 @@ describe("Discord conversation runtime group", () => {
     ).resolves.toBe("ready");
   });
 
-  it("attempts every close and reports the collected failures", () => {
+  it("attempts every close and reports the collected failures", async () => {
     const first = vi.fn(() => {
       throw new Error("first close failed");
     });
@@ -41,7 +41,7 @@ describe("Discord conversation runtime group", () => {
       runtime("ignored", first),
       runtime("ignored", second),
     ]);
-    expect(() => group.close()).toThrow(AggregateError);
+    await expect(group.close()).rejects.toThrow(AggregateError);
     expect(first).toHaveBeenCalledOnce();
     expect(second).toHaveBeenCalledOnce();
   });

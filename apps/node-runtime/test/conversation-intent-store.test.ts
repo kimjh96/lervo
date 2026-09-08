@@ -32,6 +32,13 @@ describe("conversation intent resolution evidence", () => {
     };
     await store.record(input);
     await store.record(input);
+    await expect(store.read(event)).resolves.toEqual(input.resolution);
+    await expect(
+      store.read({
+        ...event,
+        content: { ...event.content, contentHash: `sha256:${"c".repeat(64)}` },
+      }),
+    ).rejects.toThrow("stored conversation intent resolution is invalid");
     store.close();
 
     const database = new DatabaseSync(path, { readOnly: true });

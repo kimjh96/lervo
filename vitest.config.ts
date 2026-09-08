@@ -74,6 +74,9 @@ export default defineConfig({
       "@lervo/policy-sqlite": fromRoot("./packages/policy-sqlite/src/index.ts"),
       "@lervo/project": fromRoot("./packages/project/src/index.ts"),
       "@lervo/project-storage": fromRoot("./packages/project-storage/src/index.ts"),
+      "@lervo/provider-writing-evaluator": fromRoot(
+        "./packages/provider-writing-evaluator/src/index.ts",
+      ),
       "@lervo/remote-command": fromRoot("./packages/remote-command/src/index.ts"),
       "@lervo/remote-command-contract": fromRoot("./packages/remote-command-contract/src/index.ts"),
       "@lervo/remote-command-sqlite": fromRoot("./packages/remote-command-sqlite/src/index.ts"),

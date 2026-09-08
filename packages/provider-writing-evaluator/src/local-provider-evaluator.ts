@@ -17,7 +17,10 @@ import type {
 } from "@lervo/schemas";
 import type { SemanticWritingEvaluationRequest, WritingSemanticEvaluator } from "@lervo/writing";
 
-import { parseProviderSemanticEvaluation } from "./semantic-response.js";
+import {
+  parseProviderSemanticEvaluation,
+  providerSemanticEvaluationSchema,
+} from "./semantic-response.js";
 
 const EVALUATION_TIMEOUT_MS = 120_000;
 const EVALUATOR_ROLE_ID = "writing-evaluator";
@@ -105,6 +108,7 @@ export interface LocalProviderWritingEvaluatorOptions {
     provider: "codex" | "claude";
     repositoryRoot: string;
     resolveArtifact: (uri: string) => Promise<Uint8Array>;
+    structuredOutputSchema: Record<string, unknown>;
   }): ProviderAdapter;
   createId(prefix: "run" | "ses" | "envelope" | "turn"): string;
   now(): Date;
@@ -126,6 +130,7 @@ export function createLocalProviderWritingEvaluator(
         resolveArtifact: async () => {
           throw new Error("The writing evaluator does not accept CAS context documents.");
         },
+        structuredOutputSchema: providerSemanticEvaluationSchema(request),
       });
       let session: AdapterSession | undefined;
       let stopReason: AdapterStopRequest["reason"] = "failed";

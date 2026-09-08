@@ -32,6 +32,7 @@ import type {
 
 import type { ConversationIntegrationDeployment } from "./integration.js";
 import type { ConversationInteractionResult } from "./interaction-runtime.js";
+import type { ConversationInteractionRetryCycleResult } from "./interaction-runtime.js";
 
 interface PlatformCredentialTransportOptions {
   requestTimeoutMs?: number;
@@ -113,6 +114,8 @@ export interface ConversationApplication {
         integrationId: string,
       ) => Promise<import("@lervo/interaction").ConversationDeliveryCycleResult>)
     | null;
+  runInteractionRetryCycle:
+    ((integrationId: string) => Promise<ConversationInteractionRetryCycleResult>) | null;
   runDeliberationWorkerCycle(): Promise<ConversationDeliberationWorkerCycleResult>;
   runDeliberationResumeWorkerCycle(): Promise<ConversationDeliberationResumeWorkerCycleResult>;
   reconcileDeliberation:

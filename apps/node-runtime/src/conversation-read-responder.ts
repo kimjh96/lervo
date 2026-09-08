@@ -181,20 +181,11 @@ export async function openManagedConversationReadResponder(input: {
         projectId: input.projectId,
         createAdapter: (adapterInput) =>
           createNodeProviderAdapter({
-            provider:
-              input.config.routing.evaluation?.provider ?? input.config.routing.response.provider,
-            repositoryRoot: adapterInput.repositoryRoot,
-            resolveArtifact: adapterInput.resolveArtifact,
-            ...(input.providerExecutables?.[
-              input.config.routing.evaluation?.provider ?? input.config.routing.response.provider
-            ] === undefined
+            ...adapterInput,
+            ...(input.providerExecutables?.[adapterInput.provider] === undefined
               ? {}
               : {
-                  executable:
-                    input.providerExecutables[
-                      input.config.routing.evaluation?.provider ??
-                        input.config.routing.response.provider
-                    ],
+                  executable: input.providerExecutables[adapterInput.provider],
                 }),
             ...(input.config.routing.evaluation?.model === undefined
               ? {}

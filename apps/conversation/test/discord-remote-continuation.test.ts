@@ -231,4 +231,133 @@ describe("Discord remote continuation application journey", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
     application.close();
   });
+
+  it("retries a persisted response failure without another Discord message", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-discord-retry-app-"));
+    roots.push(root);
+    const artifacts = await FileSystemCas.open(resolve(root, "artifacts"));
+    const current = { value: new Date("2026-09-07T09:00:00.000Z") };
+    const policy = createConversationParticipationPolicy({
+      projectId: "prj_remote001",
+      roleId: "developer",
+      conversationIds: ["cnv_remote001"],
+      mode: "mention_only",
+      respondTo: ["human"],
+      signalCodes: [],
+      cooldownSeconds: 0,
+      maxResponsesPerHour: 8,
+      maxAutomationDepth: 2,
+      createdAt: "2026-09-07T08:00:00.000Z",
+    });
+    const successfulResponder = new ConversationRemoteContinuationResponder({
+      artifactStore: artifacts,
+      continuation: {
+        request: async () => ({
+          status: "queued",
+          deliveryId: `rcd_${"a".repeat(64)}`,
+          commandId: `rcm_${"c".repeat(64)}`,
+          provider: "codex",
+          roleId: "developer",
+          workstreamId: `wks_${"b".repeat(24)}`,
+          workstreamRevision: 12,
+          workstreamSnapshotContentHash: `sha256:${"d".repeat(64)}`,
+          assignmentId: null,
+          agentId: null,
+          queuedAt: current.value.toISOString(),
+        }),
+      },
+      writingContract: defaultEnglishWritingContract,
+      semanticEvaluator: evaluator(),
+      now: () => current.value,
+    });
+    let attempts = 0;
+    const responder = {
+      respond: vi.fn(async (input: Parameters<typeof successfulResponder.respond>[0]) => {
+        attempts += 1;
+        if (attempts === 1) throw new Error("transient provider failure");
+        return successfulResponder.respond(input);
+      }),
+    };
+    const publicationVerifier = new VerifiedConversationPublication({
+      artifactStore: artifacts,
+      resolveWritingContract: async () => defaultEnglishWritingContract,
+    });
+    const fetch = vi.fn(async (url: string | URL | Request) =>
+      String(url).endsWith(`/channels/${channelId}/typing`)
+        ? new Response(null, { status: 204 })
+        : new Response(JSON.stringify({ id: "423456789012345678", channel_id: channelId }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+    );
+    const gateway = new GatewayTransport();
+    const application = await openConversationApplication({
+      dataDirectory: root,
+      conversations: [
+        {
+          platform: "discord",
+          integrationId,
+          tenantKey: guildId,
+          conversationKey: channelId,
+          projectId: "prj_remote001",
+          conversationId: "cnv_remote001",
+        },
+      ],
+      participants: [
+        {
+          platform: "discord",
+          integrationId,
+          tenantKey: guildId,
+          participantKey: `user:${humanId}`,
+          actor: { kind: "human", participantId: "ptc_operator01", roleId: null },
+        },
+        {
+          platform: "discord",
+          integrationId,
+          tenantKey: guildId,
+          participantKey: `user:${applicationId}`,
+          actor: { kind: "agent", participantId: "ptc_lervoagent", roleId: "developer" },
+        },
+      ],
+      discord: [
+        {
+          integrationId,
+          applicationId,
+          allowedGuildIds: [guildId],
+          allowDirectMessages: false,
+          botToken: `discord.${"t".repeat(40)}`,
+          gateway: { intents: 37_377, transport: gateway },
+        },
+      ],
+      interactions: {
+        bindings: [
+          { policy, agentParticipantId: "ptc_lervoagent", responder, publicationVerifier },
+        ],
+        workerId: "discord-retry-worker",
+        retryDelayMs: 5_000,
+        now: () => current.value,
+      },
+      now: () => current.value,
+      fetch,
+    });
+    gateway.emit({ op: 10, d: { heartbeat_interval: 45_000 } });
+    gateway.emit({
+      op: 0,
+      s: 41,
+      t: "READY",
+      d: { session_id: "discord-retry-session", resume_gateway_url: "wss://gateway.discord.gg" },
+    });
+    gateway.emit(gatewayMessage("523456789012345679"));
+    await settled(() => responder.respond.mock.calls.length === 1);
+
+    current.value = new Date("2026-09-07T09:00:06.000Z");
+    await expect(application.runInteractionRetryCycle?.(integrationId)).resolves.toMatchObject({
+      status: "processed",
+      attemptedCount: 1,
+      results: [{ result: { status: "completed" } }],
+    });
+    expect(responder.respond).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    application.close();
+  });
 });

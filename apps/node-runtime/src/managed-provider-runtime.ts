@@ -24,6 +24,7 @@ export function createNodeProviderAdapter(input: {
   executable?: string;
   model?: string;
   reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
+  structuredOutputSchema?: Record<string, unknown>;
 }): ProviderAdapter {
   return input.provider === "codex"
     ? new CodexAdapter({
@@ -32,6 +33,9 @@ export function createNodeProviderAdapter(input: {
         ...(input.executable === undefined ? {} : { executable: input.executable }),
         ...(input.model === undefined ? {} : { model: input.model }),
         ...(input.reasoningEffort === undefined ? {} : { reasoningEffort: input.reasoningEffort }),
+        ...(input.structuredOutputSchema === undefined
+          ? {}
+          : { structuredOutputSchema: input.structuredOutputSchema }),
       })
     : new ClaudeAdapter({
         repositoryRoot: input.repositoryRoot,
@@ -39,6 +43,9 @@ export function createNodeProviderAdapter(input: {
         ...(input.executable === undefined ? {} : { executable: input.executable }),
         ...(input.model === undefined ? {} : { model: input.model }),
         ...(input.reasoningEffort === undefined ? {} : { reasoningEffort: input.reasoningEffort }),
+        ...(input.structuredOutputSchema === undefined
+          ? {}
+          : { structuredOutputSchema: input.structuredOutputSchema }),
       });
 }
 

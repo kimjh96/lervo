@@ -405,4 +405,72 @@ describe("durable native chat interaction", () => {
     ).toThrow(/immutable/);
     database.close();
   });
+
+  it("selects retryable input only for the exact current policy and role", async () => {
+    const store = await SQLiteConversationInteractionStore.open({ path: await databasePath() });
+    const adapter = new NativeChatConversationAdapter({
+      integrationId: "itg_native001",
+      instanceIdentity: "native-instance",
+      delivery: {
+        send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:03.000Z" }),
+      },
+    });
+    const normalize = (sourceEventKey: string, artifactId: string) =>
+      adapter.normalizeInbound({
+        sourceEventKey,
+        target: {
+          projectId: "prj_project01",
+          conversationId: "cnv_general01",
+          threadId: null,
+        },
+        kind: "message.created",
+        actor: { kind: "human", participantId: "ptc_human001", roleId: null },
+        content: {
+          artifactId,
+          contentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          byteCount: 10,
+          mediaType: "text/plain; charset=utf-8",
+        },
+        occurredAt: "2026-08-20T00:00:01.000Z",
+      });
+    const currentPolicy = participationPolicy();
+    const oldPolicy = participationPolicy(["cnv_general01"], "role_reviewer", 30);
+    const currentEvent = normalize("current-source", "art_current01");
+    const oldEvent = normalize("old-source", "art_old00001");
+    for (const [event, policy] of [
+      [currentEvent, currentPolicy],
+      [oldEvent, oldPolicy],
+    ] as const) {
+      const claim = await store.claimInbound({
+        event,
+        policy,
+        workerId: "retry-worker",
+        claimedAt: "2026-08-20T00:00:02.000Z",
+        leaseDurationMs: 30_000,
+      });
+      if (claim.status !== "claimed") throw new Error("Expected a new durable inbox claim.");
+      await store.rescheduleInbound({
+        eventId: event.eventId,
+        policyId: policy.policyId,
+        roleId: policy.roleId,
+        leaseId: claim.leaseId,
+        failedAt: "2026-08-20T00:00:02.000Z",
+        availableAt: "2026-08-20T00:00:03.000Z",
+        failureCode: "response_generation_failed",
+      });
+    }
+
+    expect(
+      store.readyInbound({
+        integrationId: "itg_native001",
+        policyId: currentPolicy.policyId,
+        roleId: currentPolicy.roleId,
+        at: "2026-08-20T00:00:04.000Z",
+        limit: 10,
+      }),
+    ).toEqual([
+      { event: currentEvent, policyId: currentPolicy.policyId, roleId: currentPolicy.roleId },
+    ]);
+    await store.close();
+  });
 });
