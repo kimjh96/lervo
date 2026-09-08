@@ -21,6 +21,7 @@ describe("conversation intent resolution evidence", () => {
       resolution: {
         intent: "answer" as const,
         confidence: "high" as const,
+        effect: { kind: "none" as const },
         provider: {
           providerId: "claude",
           model: "claude-sonnet-4-6",

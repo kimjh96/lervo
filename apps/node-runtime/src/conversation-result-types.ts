@@ -20,6 +20,7 @@ export interface ConversationResultOrigin {
   workstreamSnapshotContentHash: string;
   assignmentId: string | null;
   agentId: string | null;
+  responseLanguage?: "en" | "ko";
   queuedAt: string;
 }
 

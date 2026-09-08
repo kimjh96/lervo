@@ -18,6 +18,12 @@ function timestamp(now: () => Date): string {
   return value.toISOString();
 }
 
+function continuationAcknowledgement(request: string): string {
+  return /\p{Script=Hangul}/u.test(request)
+    ? "요청을 접수했습니다. 실행 노드가 작업을 시작하면 진행 상태를 이어서 알리고, 완료 후 실제 변경과 검증 결과를 이 대화에 남기겠습니다."
+    : "I received the request. I will continue here with progress once an execution node starts it, then report the verified changes and result when it finishes.";
+}
+
 export class ConversationRemoteContinuationResponder {
   private readonly now: () => Date;
 
@@ -45,9 +51,8 @@ export class ConversationRemoteContinuationResponder {
         "The remote continuation request is empty or exceeds the bounded text limit.",
       );
     }
-    let queued;
     try {
-      queued = await this.options.continuation.request({
+      await this.options.continuation.request({
         projectId: input.event.target.projectId,
         conversationId: input.event.target.conversationId,
         threadId: input.event.target.threadId,
@@ -70,7 +75,7 @@ export class ConversationRemoteContinuationResponder {
       ...(this.options.semanticEvaluator === undefined
         ? {}
         : { semanticEvaluator: this.options.semanticEvaluator }),
-      content: `Remote execution request ${queued.deliveryId} for workstream ${queued.workstreamId} revision ${queued.workstreamRevision} was ${queued.status}. The selected provider is ${queued.provider} and the role is ${queued.roleId}. This confirms queueing only; execution and repository changes remain separately verified.`,
+      content: continuationAcknowledgement(request),
       now: this.now,
     });
   }

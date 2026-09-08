@@ -1,7 +1,7 @@
 byteOwnership:
   owner: reviewer
   rewritePolicy: reviewed_exact
-candidateId: knorm_f7b62a6cd66089d153455f3a
+candidateId: knorm_fbdf422d19e4e2d8135e122d
 compiler:
   compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
   compilerId: lervo.codex.document-normalizer
@@ -9,22 +9,22 @@ compiler:
   isolation: external_no_capabilities
   provider: codex
 formatVersion: lervo.document.v1
-operationId: knormop_9efb11ea611213da69f23d90
+operationId: knormop_2d940adb71ce6665a4b51b30
 outputLanguage: en
 outputs:
-  - byteCount: 5531
-    contentHash: sha256:e6fcaa26daff86c1bf357025718fed496e9cc23ac1f2cfb26f964890256ce765
+  - byteCount: 5650
+    contentHash: sha256:7e0229f7cec567d6af12ce847abc590533efef8dd6fb3e045af25ab83503bbd2
     path: docs/decisions/coordination/conversations/0381-discord-first-remote-continuation-intake.md
-    userRegionHash: sha256:e6fcaa26daff86c1bf357025718fed496e9cc23ac1f2cfb26f964890256ce765
+    userRegionHash: sha256:7e0229f7cec567d6af12ce847abc590533efef8dd6fb3e045af25ab83503bbd2
 profile: decision_record
-recordId: knormdoc_e073c5df000395de015ac4f3
+recordId: knormdoc_0cb2494ec410fbd763da608c
 resourceBindings: []
 schemaVersion: 2
-sourceContentHash: sha256:896cd7151e82d2b5192e42786deb20ea732755bcb72a53b62291800d67f0e349
+sourceContentHash: sha256:74df35bc8dc3ed7dfd81a9949a95baf88f89e35d359451ca601b10dbf5cd23d2
 sourcePath: docs/decisions/coordination/conversations/0381-discord-first-remote-continuation-intake.md
 sourceUnitVersionIds:
-  - uv_0916e60b86f262cc96d42c1d
-  - uv_242a208cfb9e8e1f6391c291
-  - uv_437aee8062154169fc9ff95f
-  - uv_4a65b9e41e53a28ab984709a
-  - uv_b823813dd26ef3541bc08c46
+  - uv_258df7d2a3f30a1dbcf2179e
+  - uv_4f5350bab36264816b0c2582
+  - uv_5158b21749de5e9e9e848173
+  - uv_64a5246ed9271e627e939870
+  - uv_d6ae92c3512b069932920afb

@@ -10,6 +10,7 @@ import {
   lintDeterministicWriting,
   writingContractForLanguage,
   fixedEnglishStatusWritingContract,
+  realtimeConversationWritingContract,
 } from "../src/index.js";
 
 const artifactId = "art_01234567";
@@ -63,6 +64,19 @@ describe("provider-neutral writing verification", () => {
     expect(adaptiveConversationWritingContract).toMatchObject({
       locale: "mul",
       surfaces: ["chat"],
+    });
+  });
+
+  it("keeps the realtime conversation policy deterministic and separately identifiable", () => {
+    expect(validateSchema("writingContract", realtimeConversationWritingContract)).toEqual({
+      valid: true,
+      errors: [],
+    });
+    expect(realtimeConversationWritingContract).toMatchObject({
+      writingPolicyId: "writing_mul-realtime-conversation",
+      locale: "mul",
+      surfaces: ["chat"],
+      verification: { semanticChecks: [] },
     });
   });
 

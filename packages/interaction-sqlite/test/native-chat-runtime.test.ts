@@ -580,4 +580,68 @@ describe("durable native chat interaction", () => {
     });
     database.close();
   });
+
+  it("renews an active inbox lease without incrementing the response attempt", async () => {
+    const store = await SQLiteConversationInteractionStore.open({ path: await databasePath() });
+    const adapter = new NativeChatConversationAdapter({
+      integrationId: "itg_native001",
+      instanceIdentity: "native-instance",
+      delivery: {
+        send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:03.000Z" }),
+      },
+    });
+    const event = adapter.normalizeInbound({
+      sourceEventKey: "renewed-source",
+      target: {
+        projectId: "prj_project01",
+        conversationId: "cnv_general01",
+        threadId: null,
+      },
+      kind: "message.created",
+      actor: { kind: "human", participantId: "ptc_human001", roleId: null },
+      content: {
+        artifactId: "art_renewed01",
+        contentHash: `sha256:${"a".repeat(64)}`,
+        byteCount: 10,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      occurredAt: "2026-08-20T00:00:00.000Z",
+    });
+    const policy = participationPolicy();
+    const claim = await store.claimInbound({
+      event,
+      policy,
+      workerId: "lease-worker-1",
+      claimedAt: "2026-08-20T00:00:01.000Z",
+      leaseDurationMs: 1_000,
+    });
+    if (claim.status !== "claimed") throw new Error("Expected the initial inbox lease.");
+    await store.renewInbound({
+      eventId: event.eventId,
+      policyId: policy.policyId,
+      roleId: policy.roleId,
+      leaseId: claim.leaseId,
+      renewedAt: "2026-08-20T00:00:01.800Z",
+      leaseDurationMs: 1_000,
+    });
+    await expect(
+      store.claimInbound({
+        event,
+        policy,
+        workerId: "lease-worker-2",
+        claimedAt: "2026-08-20T00:00:02.200Z",
+        leaseDurationMs: 1_000,
+      }),
+    ).resolves.toEqual({ status: "busy" });
+    await expect(
+      store.claimInbound({
+        event,
+        policy,
+        workerId: "lease-worker-2",
+        claimedAt: "2026-08-20T00:00:03.000Z",
+        leaseDurationMs: 1_000,
+      }),
+    ).resolves.toMatchObject({ status: "claimed", attemptCount: 2 });
+    await store.close();
+  });
 });

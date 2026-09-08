@@ -143,7 +143,7 @@ describe("Discord remote continuation application journey", () => {
         return new Response(null, { status: 204 });
       }
       const body = JSON.parse(String(init?.body)) as { content: string; allowed_mentions: unknown };
-      expect(body.content).toContain("queueing only");
+      expect(body.content).toContain("I received the request.");
       expect(body.allowed_mentions).toEqual({ parse: [], replied_user: false });
       return new Response(JSON.stringify({ id: "423456789012345678", channel_id: channelId }), {
         status: 200,

@@ -8,6 +8,7 @@ const turn = {
   mentioned: false,
   priorTurns: [{ role: "assistant" as const, text: "현재 작업을 확인했습니다." }],
   currentWorkstream: { title: "Conversation", objective: "Complete it", status: "active" },
+  availableEffects: ["none", "repository_work"] as const,
 };
 
 describe("conversation intent provider contract", () => {
@@ -19,12 +20,17 @@ describe("conversation intent provider contract", () => {
         model: `${provider}-model`,
         resolve: async (value) => {
           request = value;
-          return { intent: "continue_work", confidence: "high" };
+          return {
+            intent: "continue_work",
+            confidence: "high",
+            effect: { kind: "repository_work", nickname: null },
+          };
         },
       });
       await expect(resolver.resolve(turn)).resolves.toEqual({
         intent: "continue_work",
         confidence: "high",
+        effect: { kind: "repository_work" },
         provider: {
           providerId: provider,
           model: `${provider}-model`,
@@ -40,7 +46,11 @@ describe("conversation intent provider contract", () => {
     const resolver = createConversationIntentResolver({
       providerId: "codex",
       model: null,
-      resolve: async () => ({ intent: "mutate_everything", confidence: "high" }),
+      resolve: async () => ({
+        intent: "mutate_everything",
+        confidence: "high",
+        effect: { kind: "none", nickname: null },
+      }),
     });
     await expect(resolver.resolve(turn)).rejects.toThrow("intent result is invalid");
   });

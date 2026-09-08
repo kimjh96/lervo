@@ -1,5 +1,4 @@
 # Gateway control
 
-Discord Gateway control frames and application dispatch use separate ordered queues. Sequence, heartbeat acknowledgement, reconnect, and resume handling never wait for intent resolution or provider execution. Authenticated application dispatch stays ordered and retains its bounded session proof across reconnect. A long response therefore cannot create a false missed-heartbeat window that discards a following message.
-
-Gateway resume coordinates intentionally remain process-local. On READY or RESUMED, a Discord REST history adapter reads after the platform SQLite channel cursor before readiness is published. A conversation-owned ingress processor orders recovered messages, reuses normal adapter and interaction handling, and advances the cursor with compare-and-set only after processing. First installation records a current baseline instead of importing prior channel history; existing databases seed from their newest Discord correlation. A 1,000-message startup bound fails closed rather than hiding an unbounded gap.
+- [Control and dispatch ordering](gateway-control/ordering.md)
+- [Reconnect and history reconciliation](gateway-control/history-reconciliation.md)

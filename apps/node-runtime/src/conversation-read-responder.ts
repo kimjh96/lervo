@@ -2,7 +2,10 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 
-import { adaptiveConversationWritingContract } from "@lervo/core";
+import {
+  adaptiveConversationWritingContract,
+  realtimeConversationWritingContract,
+} from "@lervo/core";
 import { ManagedConversationResponder } from "@lervo/conversation-responder";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import type { ConversationResponder } from "@lervo/interaction";
@@ -14,7 +17,12 @@ import {
 import { createLocalProviderWritingEvaluator } from "@lervo/provider-writing-evaluator";
 import { documentIdForPath } from "@lervo/context";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
-import { type DocumentRegistry, type RoleProfile, validateSchema } from "@lervo/schemas";
+import {
+  type DocumentRegistry,
+  type RoleProfile,
+  type WritingContract,
+  validateSchema,
+} from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import type { NodeDiscordConversationConfig } from "./config-types.js";
@@ -31,7 +39,7 @@ function id(prefix: string): string {
   return `${prefix}_${randomUUID().replaceAll("-", "")}`;
 }
 
-function readOnlyRole(roleId: string): RoleProfile {
+function readOnlyRole(roleId: string, writingContract: WritingContract): RoleProfile {
   const role: RoleProfile = {
     schemaVersion: 1,
     roleId,
@@ -62,7 +70,7 @@ function readOnlyRole(roleId: string): RoleProfile {
       presentation: {
         audience: "human",
         locale: "en",
-        writingPolicyId: adaptiveConversationWritingContract.writingPolicyId,
+        writingPolicyId: writingContract.writingPolicyId,
       },
     },
     verification: { suiteIds: ["conversation.reply"], failureDisposition: "fail_run" },
@@ -79,12 +87,13 @@ async function provisionWritingPolicy(input: {
   dataDirectory: string;
   registry: DocumentRegistry;
   verifiedAt: string;
+  writingContract: WritingContract;
 }): Promise<{ registry: DocumentRegistry; path: string; contentHash: string }> {
-  const content = `${JSON.stringify(adaptiveConversationWritingContract, null, 2)}\n`;
+  const content = `${JSON.stringify(input.writingContract, null, 2)}\n`;
   const contentHash = digest(content);
   const absolutePath = resolve(
     input.dataDirectory,
-    `managed-read-${adaptiveConversationWritingContract.writingPolicyId}.json`,
+    `managed-read-${input.writingContract.writingPolicyId}.json`,
   );
   const path = relative(input.repositoryRoot, absolutePath).split(sep).join("/");
   if (path.startsWith("../") || path === "..") {
@@ -117,7 +126,7 @@ async function provisionWritingPolicy(input: {
       mode: "lervo_generated",
       userContentAllowed: false,
       manifestPath: path,
-      inputs: [{ sourceId: "lervo:writing_en-human", contentHash }],
+      inputs: [{ sourceId: `lervo:${input.writingContract.writingPolicyId}`, contentHash }],
     },
   };
   return { registry, path, contentHash };
@@ -147,13 +156,18 @@ export async function openManagedConversationReadResponder(input: {
     responseArtifacts = await SQLiteConversationResponseArtifactStore.open(
       resolve(input.dataDirectory, "response-artifacts.sqlite"),
     );
+    const writingContract =
+      input.config.routing.evaluation === undefined
+        ? realtimeConversationWritingContract
+        : adaptiveConversationWritingContract;
     const provisioned = await provisionWritingPolicy({
       repositoryRoot: input.repositoryRoot,
       dataDirectory: input.dataDirectory,
       registry: await loadDocumentRegistry(input.repositoryRoot),
       verifiedAt: input.projectCreatedAt,
+      writingContract,
     });
-    const baseRole = readOnlyRole(input.config.routing.readOnlyRoleId);
+    const baseRole = readOnlyRole(input.config.routing.readOnlyRoleId, writingContract);
     const createAdapter = (adapterInput: {
       repositoryRoot: string;
       resolveArtifact: (uri: string) => Promise<Uint8Array>;
@@ -176,33 +190,40 @@ export async function openManagedConversationReadResponder(input: {
       repositoryRoot: input.repositoryRoot,
       projectId: input.projectId,
       policyVersion: digest(
-        JSON.stringify({ role: baseRole, writingPolicy: adaptiveConversationWritingContract }),
+        JSON.stringify({
+          role: baseRole,
+          writingPolicy: writingContract,
+          responseProvider: input.config.routing.response,
+        }),
       ),
       events,
       artifactStore: input.artifactStore,
       responseArtifacts,
-      semanticEvaluator: createLocalProviderWritingEvaluator({
-        provider:
-          input.config.routing.evaluation?.provider ?? input.config.routing.response.provider,
-        projectId: input.projectId,
-        createAdapter: (adapterInput) =>
-          createNodeProviderAdapter({
-            ...adapterInput,
-            ...(input.providerExecutables?.[adapterInput.provider] === undefined
-              ? {}
-              : {
-                  executable: input.providerExecutables[adapterInput.provider],
+      ...(input.config.routing.evaluation === undefined
+        ? {}
+        : {
+            semanticEvaluator: createLocalProviderWritingEvaluator({
+              provider: input.config.routing.evaluation.provider,
+              projectId: input.projectId,
+              createAdapter: (adapterInput) =>
+                createNodeProviderAdapter({
+                  ...adapterInput,
+                  ...(input.providerExecutables?.[adapterInput.provider] === undefined
+                    ? {}
+                    : {
+                        executable: input.providerExecutables[adapterInput.provider],
+                      }),
+                  ...(input.config.routing.evaluation?.model === undefined
+                    ? {}
+                    : { model: input.config.routing.evaluation.model }),
+                  ...(input.config.routing.evaluation?.reasoningEffort === undefined
+                    ? {}
+                    : { reasoningEffort: input.config.routing.evaluation.reasoningEffort }),
                 }),
-            ...(input.config.routing.evaluation?.model === undefined
-              ? {}
-              : { model: input.config.routing.evaluation.model }),
-            ...(input.config.routing.evaluation?.reasoningEffort === undefined
-              ? {}
-              : { reasoningEffort: input.config.routing.evaluation.reasoningEffort }),
+              createId: (prefix) => id(prefix),
+              now: () => new Date(),
+            }),
           }),
-        createId: (prefix) => id(prefix),
-        now: () => new Date(),
-      }),
       createEventId: () => id("evt"),
       resolvePlan: async () => {
         const currentWorkstream = await readCurrentWorkstreamState(input.repositoryRoot);
@@ -247,11 +268,11 @@ export async function openManagedConversationReadResponder(input: {
           publications: [],
           handoffs: [],
           writingPolicy: {
-            writingPolicyId: adaptiveConversationWritingContract.writingPolicyId,
+            writingPolicyId: writingContract.writingPolicyId,
             documentId: WRITING_DOCUMENT_ID,
             contentHash: provisioned.contentHash,
           },
-          writingContract: adaptiveConversationWritingContract,
+          writingContract,
           resolvedSkills: [],
         };
       },

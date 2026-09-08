@@ -140,6 +140,18 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
     return this.decisions.window(input);
   }
 
+  async renewInbound(input: {
+    eventId: string;
+    policyId: string;
+    roleId: string;
+    leaseId: string;
+    renewedAt: string;
+    leaseDurationMs: number;
+  }): Promise<void> {
+    this.assertOpen();
+    this.transaction.write(() => this.inbox.renew(input));
+  }
+
   async completeInbound(input: {
     eventId: string;
     policyId: string;

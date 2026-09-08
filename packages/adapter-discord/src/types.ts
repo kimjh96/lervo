@@ -78,6 +78,20 @@ export interface DiscordTypingPort {
   start(input: { channelId: string }): DiscordTypingLease;
 }
 
+export interface DiscordCurrentMemberUpdate {
+  guildId: string;
+  nickname: string | null;
+}
+
+export interface DiscordAdministrationPort {
+  setCurrentMemberNickname(input: DiscordCurrentMemberUpdate): Promise<{
+    guildId: string;
+    applicationId: string;
+    nickname: string | null;
+    observedAt: string;
+  }>;
+}
+
 export interface DiscordResponseActivity {
   start(): DiscordTypingLease;
 }

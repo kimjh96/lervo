@@ -11,6 +11,7 @@ import { SQLiteConversationInteractionStore } from "@lervo/interaction-sqlite";
 import type { ConversationInboundEvent } from "@lervo/schemas";
 
 import type { ConversationInteractionBinding, ConversationInteractionDeployment } from "./types.js";
+import { ConversationResponseActivityRegistry } from "./response-activity.js";
 
 export interface ConversationInteractionResult {
   policyId: string;
@@ -41,6 +42,8 @@ function validateBindings(bindings: readonly ConversationInteractionBinding[]): 
 }
 
 export class ConversationInteractionRuntime {
+  private readonly responseActivities = new ConversationResponseActivityRegistry();
+
   private constructor(
     private readonly deployment: ConversationInteractionDeployment,
     private readonly store: SQLiteConversationInteractionStore,
@@ -70,8 +73,23 @@ export class ConversationInteractionRuntime {
         binding.policy.conversationIds.includes(event.target.conversationId),
     );
     const results: ConversationInteractionResult[] = [];
-    for (const binding of bindings) {
-      results.push(await this.handleBinding(event, binding, responseActivity));
+    const trackedActivity = this.responseActivities.bind(
+      event.eventId,
+      bindings.map((binding) => ({
+        policyId: binding.policy.policyId,
+        roleId: binding.policy.roleId,
+      })),
+      responseActivity,
+    );
+    try {
+      for (const binding of bindings) {
+        const result = await this.handleBinding(event, binding, trackedActivity);
+        results.push(result);
+        this.responseActivities.settle(event.eventId, result, result.result);
+      }
+    } catch (error) {
+      this.responseActivities.abort(event.eventId);
+      throw error;
     }
     return results;
   }
@@ -103,7 +121,15 @@ export class ConversationInteractionRuntime {
           item.policy.policyId === candidate.policyId && item.policy.roleId === candidate.roleId,
       );
       if (binding === undefined) continue;
-      results.push(await this.handleBinding(candidate.event, binding));
+      const trackedActivity = this.responseActivities.bind(candidate.event.eventId, [], undefined);
+      try {
+        const result = await this.handleBinding(candidate.event, binding, trackedActivity);
+        results.push(result);
+        this.responseActivities.settle(candidate.event.eventId, result, result.result);
+      } catch (error) {
+        this.responseActivities.abort(candidate.event.eventId);
+        throw error;
+      }
     }
     return {
       status: results.length === 0 ? "idle" : "processed",
@@ -180,6 +206,7 @@ export class ConversationInteractionRuntime {
   }
 
   close(): void {
+    this.responseActivities.close();
     this.store.close();
   }
 }

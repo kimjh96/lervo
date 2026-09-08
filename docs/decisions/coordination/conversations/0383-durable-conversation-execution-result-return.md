@@ -5,7 +5,7 @@
 
 ## Context
 
-Discord remote continuation acknowledged only that the Hub queued a command. A later managed execution receipt named the run or a bounded failure, but had no durable relation to the originating conversation. A one-shot completion callback would lose results on Node restart or loss of the Hub acknowledgement response.
+Discord remote continuation acknowledged only that the Hub queued a command. A later managed execution receipt named the run or a bounded failure but had no durable relation to the originating conversation. A one-shot completion callback would lose results on Node restart or loss of the Hub acknowledgement response.
 
 A provider result does not authorize publication. Result return must verify immutable run evidence, original continuation coordinates, the result artifact, the writing contract, and the target platform limit without exposing the request, credentials, raw provider errors, or unrestricted artifact locations.
 
@@ -13,7 +13,7 @@ A provider result does not authorize publication. Result return must verify immu
 
 ### Durable origin and acknowledgement
 
-Before returning the queue acknowledgement, the Node stores a bounded conversation-result record. Its origin contains delivery and command IDs, canonical conversation target and source event, policy and agent participant IDs, provider and role, exact workstream ID, revision, snapshot hash, nullable assignment and agent IDs, and queue time. It contains no message text, external Discord identifier, credential, or provider configuration. The store accepts at most 1,024 immutable origins.
+Before returning the queue acknowledgement, Node stores a bounded conversation-result record. Its origin contains delivery and command IDs, canonical conversation target and source event, policy and agent participant IDs, provider and role, exact workstream ID, revision, snapshot hash, nullable assignment and agent IDs, coarse `en` or `ko` response language, and queue time. It contains no message text, external Discord identifier, credential, or provider configuration. The store accepts at most 1,024 immutable origins.
 
 The remote-command reconnect worker invokes an optional acknowledgement observer after producing a contract-valid terminal acknowledgement and before sending it to the Hub. Observer failure returns `acknowledgement_observer_failed`, leaves the Hub lease unacknowledged, and permits a later lease to replay the persisted execution receipt without rerunning the provider. Lease ID and acknowledgement time may change on transport retries; delivery, command, command hash, disposition, and execution receipt must remain identical.
 
@@ -31,11 +31,11 @@ Successful result publication collects at most 2,000 immutable events for the re
 - Passed verification.
 - A CAS artifact whose digest matches `run.completed`.
 
-A separate provider session evaluates the composed Discord result against the English chat writing contract and a required privacy check. Every delivery attempt rereads the evaluation artifact and exact permit.
+A separate provider session evaluates the composed Discord result against the multilingual chat writing contract and a required privacy check. Every delivery attempt rereads the evaluation artifact and exact permit.
 
-The Discord body names delivery, run, workstream revision and snapshot hash, assignment, and agent before the verified provider result. The entire body must fit Discord's 2,000-character limit.
+The Discord body states the verified completion in the request language before the provider result. Delivery, run, workstream revision and snapshot hash, assignment, and agent remain in the internal origin and managed-run evidence and are omitted from normal conversation prose. The entire body must fit Discord's 2,000-character limit.
 
-Rejection and execution failure publish only fixed bounded status and enumerated codes. Evidence mismatch, privacy or writing failure, evaluator failure, or an oversized result publishes a fixed blocked-publication status with the same coordinates and no provider output. Raw prompts, provider errors, credentials, external IDs, and CAS URIs are never copied into result state or status text.
+Rejection and execution failure publish only fixed bounded natural status. Evidence mismatch, privacy or writing failure, evaluator failure, or an oversized result publishes a fixed blocked-publication status with no internal coordinates or provider output. Enumerated codes remain in durable result and command records for inspection. Raw prompts, provider errors, credentials, external IDs, and CAS URIs are never copied into result state or status text.
 
 ### Canonical evidence and shutdown
 

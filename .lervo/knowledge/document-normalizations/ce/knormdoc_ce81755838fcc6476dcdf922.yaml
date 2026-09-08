@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_fbdf422d19e4e2d8135e122d
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3911db2602d4be189a4e769a
+outputLanguage: en
+outputs:
+  - byteCount: 370
+    contentHash: sha256:6fa53359696ca93417e9594bf7dcfef3398de7f931933555273790e19aa55a4f
+    path: docs/architecture/system/conversation-routing/transport-and-recovery.md
+    userRegionHash: sha256:6fa53359696ca93417e9594bf7dcfef3398de7f931933555273790e19aa55a4f
+profile: architecture_document
+recordId: knormdoc_ce81755838fcc6476dcdf922
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6fa53359696ca93417e9594bf7dcfef3398de7f931933555273790e19aa55a4f
+sourcePath: docs/architecture/system/conversation-routing/transport-and-recovery.md
+sourceUnitVersionIds:
+  - uv_cbc17790257b19ccd95f1a15

@@ -62,6 +62,9 @@ function syncHealth(result: SyncCycleResult): NodeRuntimeComponentHealth {
 }
 
 function remoteControlHealth(result: RemoteControlCycleResult): NodeRuntimeComponentHealth {
+  if (result.status === "policy_rejected") {
+    return { status: "unavailable", failureCode: result.failureCode };
+  }
   if (result.status === "policy_unavailable") {
     return { status: "unavailable", failureCode: result.policy.failureCode };
   }

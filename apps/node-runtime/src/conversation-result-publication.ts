@@ -5,7 +5,7 @@ import {
 import { createVerifiedConversationControlReply } from "@lervo/conversation-control";
 import {
   adaptiveConversationWritingContract,
-  fixedEnglishStatusWritingContract,
+  fixedConversationStatusWritingContract,
 } from "@lervo/core";
 import type { ConversationReplyCandidate } from "@lervo/interaction";
 import { type ConversationOutboundMessage, type WritingContract } from "@lervo/schemas";
@@ -38,28 +38,16 @@ const resultWritingContract = {
   },
 } as const satisfies WritingContract;
 
-function coordinates(origin: ConversationResultOrigin, runId: string | null): string[] {
-  return [
-    `Delivery: ${origin.deliveryId}`,
-    `Run: ${runId ?? "none"}`,
-    `Workstream: ${origin.workstreamId} revision ${origin.workstreamRevision}`,
-    `Workstream snapshot: ${origin.workstreamSnapshotContentHash}`,
-    `Assignment: ${origin.assignmentId ?? "none"}`,
-    `Agent: ${origin.agentId ?? "none"}`,
-  ];
-}
-
 async function fixedReply(input: {
   artifacts: ArtifactStore;
   origin: ConversationResultOrigin;
-  runId: string | null;
-  status: string;
+  status: { en: string; ko: string };
   now: () => Date;
 }): Promise<ConversationReplyCandidate> {
   return createVerifiedConversationControlReply({
     artifactStore: input.artifacts,
-    writingContract: fixedEnglishStatusWritingContract,
-    content: [...coordinates(input.origin, input.runId), `Status: ${input.status}`].join("\n"),
+    writingContract: fixedConversationStatusWritingContract,
+    content: input.status[input.origin.responseLanguage ?? "en"],
     now: input.now,
   });
 }
@@ -76,16 +64,20 @@ export async function createConversationResultCandidate(input: {
     return fixedReply({
       ...input,
       origin: input.lease.origin,
-      runId: null,
-      status: `The remote command was rejected with code ${acknowledgement.rejectionCode}.`,
+      status: {
+        en: "I could not start that work because its authority or execution conditions were not accepted. The internal reason remains recorded for review.",
+        ko: "요청의 권한이나 실행 조건이 승인되지 않아 작업을 시작하지 않았습니다. 내부 사유는 검토할 수 있도록 기록해 두었습니다.",
+      },
     });
   }
   if (acknowledgement.receipt.outcome === "failed") {
     return fixedReply({
       ...input,
       origin: input.lease.origin,
-      runId: null,
-      status: `Managed execution failed with code ${acknowledgement.receipt.failureCode}. No provider error or output was published.`,
+      status: {
+        en: "The work did not complete. I recorded the failure without exposing private provider output and will not claim that the requested change was made.",
+        ko: "작업을 완료하지 못했습니다. 비공개 제공자 출력은 노출하지 않고 실패를 기록했으며, 요청한 변경이 반영됐다고 주장하지 않겠습니다.",
+      },
     });
   }
   let managed: { runId: string; content: string };
@@ -95,10 +87,10 @@ export async function createConversationResultCandidate(input: {
       runId: acknowledgement.receipt.runId,
     });
     const content = [
-      ...coordinates(input.lease.origin, managed.runId),
-      "Status: Managed execution completed and passed its required verification.",
+      input.lease.origin.responseLanguage === "ko"
+        ? "작업을 완료했고 필요한 검증을 통과했습니다."
+        : "The work is complete and passed its required verification.",
       "",
-      "Result:",
       managed.content,
     ].join("\n");
     if ([...content].length > MAXIMUM_DISCORD_CHARACTERS) {
@@ -115,9 +107,10 @@ export async function createConversationResultCandidate(input: {
     return fixedReply({
       ...input,
       origin: input.lease.origin,
-      runId: acknowledgement.receipt.runId,
-      status:
-        "Managed execution completed, but result publication was blocked by the bounded evidence, privacy, writing, or channel-size contract.",
+      status: {
+        en: "The work completed, but I could not publish its result because the evidence, privacy, writing, or message-size checks did not pass.",
+        ko: "작업은 완료됐지만 증거, 개인정보, 문장 품질 또는 메시지 크기 검증을 통과하지 못해 결과를 게시하지 않았습니다.",
+      },
     });
   }
 }
@@ -155,7 +148,7 @@ export async function verifyConversationResultCandidate(input: {
   const contract =
     input.candidate.publicationPermit.writingPolicyId === resultWritingContract.writingPolicyId
       ? resultWritingContract
-      : fixedEnglishStatusWritingContract;
+      : fixedConversationStatusWritingContract;
   await readPublishableWritingArtifact({
     artifact: evidence.artifact,
     evaluation: evidence.evaluation,

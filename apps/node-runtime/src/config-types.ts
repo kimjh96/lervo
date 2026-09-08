@@ -81,6 +81,9 @@ export interface NodeDiscordConversationConfig {
     actorKind: "human" | "agent";
     roleId: string | null;
   }>;
+  administration?: {
+    allowedActions: Array<"current_member.nickname.set">;
+  };
   routing?: {
     readOnlyRoleId: string;
     intent: {

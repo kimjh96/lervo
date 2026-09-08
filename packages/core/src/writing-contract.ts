@@ -111,6 +111,15 @@ export const adaptiveConversationWritingContract = {
   },
 } as const satisfies WritingContract;
 
+export const realtimeConversationWritingContract = {
+  ...adaptiveConversationWritingContract,
+  writingPolicyId: "writing_mul-realtime-conversation",
+  verification: {
+    ...adaptiveConversationWritingContract.verification,
+    semanticChecks: [],
+  },
+} as const satisfies WritingContract;
+
 export const fixedConversationStatusWritingContract = {
   ...fixedEnglishStatusWritingContract,
   writingPolicyId: "writing_mul-fixed-conversation-status",

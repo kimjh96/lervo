@@ -47,11 +47,17 @@ export function validateConversationResponseRequest(
 export function conversationResponseRequestDigest(input: {
   request: ManagedConversationResponseRequest;
   plan: ManagedConversationResponsePlan;
+  policyVersion: string;
 }): string {
   const value = JSON.stringify({
     eventId: input.request.event.eventId,
     policyId: input.request.policy.policyId,
-    decisionId: input.request.decision.decisionId,
+    policyVersion: input.policyVersion,
+    decision: {
+      action: input.request.decision.action,
+      reason: input.request.decision.reason,
+      relevance: input.request.decision.relevance,
+    },
     roleId: input.plan.role.roleId,
     participationRoleId: input.plan.participationRoleId ?? input.plan.role.roleId,
     maximumResponseCharacters: input.plan.maximumResponseCharacters ?? 65_536,

@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { FileSystemCas } from "@lervo/cas";
 import type { ConversationRemoteContinuationPort } from "@lervo/conversation-control";
 import { createVerifiedConversationControlReply } from "@lervo/conversation-control";
-import { adaptiveConversationWritingContract } from "@lervo/core";
+import { realtimeConversationWritingContract } from "@lervo/core";
 import type {
   DiscordGatewayConnectionObserver,
   DiscordGatewayTransport,
@@ -82,6 +82,7 @@ describe("installed Node Discord conversation runtime", () => {
         { tenantKey: guildId, conversationKey: channelId, conversationId: "cnv_operator01" },
       ],
       participants: [{ tenantKey: guildId, userId: humanId, participantId: "ptc_operator01" }],
+      administration: { allowedActions: ["current_member.nickname.set"] },
       routing: {
         readOnlyRoleId: "conversation-reader",
         intent: { provider: "codex" },
@@ -117,6 +118,13 @@ describe("installed Node Discord conversation runtime", () => {
         }),
     );
     const typingDelivery = vi.fn(async () => new Response(null, { status: 204 }));
+    const administrationDelivery = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ nick: "Lervo", user: { id: applicationId } }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
     const delivery = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
       if (init?.method === "GET") {
         return new Response("[]", {
@@ -124,6 +132,7 @@ describe("installed Node Discord conversation runtime", () => {
           headers: { "content-type": "application/json" },
         });
       }
+      if (String(url).endsWith("/members/@me")) return administrationDelivery();
       return String(url).endsWith("/typing") ? typingDelivery() : messageDelivery(url, init);
     });
     const gateway = new GatewayTransport();
@@ -131,6 +140,11 @@ describe("installed Node Discord conversation runtime", () => {
     const intentResolver = vi.fn(async ({ message, priorTurns }) => ({
       intent: message.startsWith("What") ? ("answer" as const) : ("continue_work" as const),
       confidence: "high" as const,
+      effect: message.startsWith("What")
+        ? ({ kind: "none" } as const)
+        : message.startsWith("Change")
+          ? ({ kind: "discord_current_member_nickname_set", nickname: "Lervo" } as const)
+          : ({ kind: "repository_work" } as const),
       provider: { providerId: "codex", model: null, adapterVersion: "1" as const },
       resultDigest: `sha256:${createHash("sha256")
         .update(JSON.stringify({ message, priorTurns }))
@@ -142,17 +156,7 @@ describe("installed Node Discord conversation runtime", () => {
       );
       return createVerifiedConversationControlReply({
         artifactStore: artifacts,
-        writingContract: adaptiveConversationWritingContract,
-        semanticEvaluator: {
-          evaluate: async (evaluation) => ({
-            evaluator: { kind: "model", evaluatorId: "fixture.discord-read" },
-            checks: evaluation.checks.map((check) => ({
-              checkId: check.checkId,
-              status: "passed" as const,
-              violationCount: 0,
-            })),
-          }),
-        },
+        writingContract: realtimeConversationWritingContract,
         content: "The current workstream is active and the repository was not changed.",
       });
     });
@@ -243,12 +247,35 @@ describe("installed Node Discord conversation runtime", () => {
           .join("|")} health=${health}`,
       );
     }
+    gateway.emit({
+      op: 0,
+      s: 4,
+      t: "MESSAGE_CREATE",
+      d: {
+        id: "723456789012345678",
+        channel_id: channelId,
+        guild_id: guildId,
+        author: { id: humanId, bot: false },
+        content: "Change your server nickname to Lervo.",
+        mentions: [],
+        timestamp: "2026-09-07T08:00:02.000Z",
+      },
+    });
+    await settled(
+      () =>
+        administrationDelivery.mock.calls.length === 1 && messageDelivery.mock.calls.length === 3,
+    );
     expect(request).toHaveBeenCalledOnce();
     expect(readOnlyResponse).toHaveBeenCalledOnce();
-    expect(messageDelivery).toHaveBeenCalledTimes(2);
-    expect(typingDelivery).toHaveBeenCalledTimes(2);
+    expect(messageDelivery).toHaveBeenCalledTimes(3);
+    expect(administrationDelivery).toHaveBeenCalledOnce();
+    expect(typingDelivery).toHaveBeenCalledTimes(3);
     expect(intentResolver.mock.calls[0]![0]).toMatchObject({ mentioned: false, priorTurns: [] });
     expect(intentResolver.mock.calls[1]![0].priorTurns).toHaveLength(2);
+    expect(intentResolver.mock.calls[2]![0]).toMatchObject({
+      mentioned: false,
+      availableEffects: expect.arrayContaining(["discord_current_member_nickname_set"]),
+    });
     expect(JSON.parse(gateway.sent[0]!)).toMatchObject({ op: 2, d: { intents: 37_377 } });
     expect(
       await readFile(

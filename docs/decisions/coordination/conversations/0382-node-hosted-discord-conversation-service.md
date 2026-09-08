@@ -5,7 +5,7 @@
 
 ## Context
 
-Discord remote continuation had application composition but no installed service owner. A second daemon would duplicate per-repository configuration, Hub credential rotation, shutdown, readiness, restart, and service-manager authority already owned by `lervo-node`.
+Discord remote continuation had application composition but no installed service owner. A second daemon would duplicate the per-repository configuration, Hub credential rotation, shutdown, readiness, restart, and service-manager authority already owned by `lervo-node`.
 
 The fixed queue acknowledgement is code-owned status text. Provider-model review would add cost and availability coupling and falsely imply that every fixed reply needs semantic generation.
 
@@ -17,7 +17,7 @@ The optional `discordConversation` section of strict Node runtime configuration 
 
 ### Credentials
 
-Hub bearer and Discord bot tokens stay in separate owner-only regular files; configuration stores only their paths. The bot token is read at startup, stays in process memory, and is never written to health, repository events, source documentation, or conversation storage. Hub requests read the current reloadable bearer-token snapshot at request time.
+Hub bearer and Discord bot tokens stay in separate owner-only regular files; configuration stores only their paths. The bot token is read at startup, remains in process memory, and is never written to health, repository events, source documentation, or conversation storage. Hub requests read the current reloadable bearer-token snapshot at request time.
 
 ### Configuration binding and fail-closed validation
 
@@ -29,21 +29,25 @@ Unknown fields, duplicate bindings, unsupported participant roles, out-of-scope 
 
 Node health adds an optional `conversation` component with states `disabled`, `pending`, `ready`, and `unavailable`. `ready` means the configured Gateway emitted authenticated READY or RESUMED state. `unavailable` contains only a bounded failure code.
 
-Authentication rejection, invalid runtime configuration, or authenticated dispatch failure resolves the conversation supervisor failure, closes intake before repository storage, and terminates the Node runtime with `conversation_runtime_failed`. The existing user service manager may then apply its bounded restart policy.
+Authentication rejection, invalid runtime configuration, or authenticated dispatch failure resolves the conversation supervisor failure, closes intake before repository storage, and terminates Node with `conversation_runtime_failed`. The existing user service manager may then apply its bounded restart policy.
 
 ### Queues and typing activity
 
-Gateway control traffic and authenticated application dispatch have separate ordered queues. Provider latency cannot delay heartbeat acknowledgement or session sequence advancement. When participation chooses a response, the Discord REST activity port starts a best-effort typing lease and refreshes it before Discord's ten-second expiry. The lease ends on success, retry, or failure. Typing failure reports `platform_activity_failed`, creates no durable receipt, and never blocks the response.
+Gateway control traffic and authenticated application dispatch use separate ordered queues. Provider latency cannot delay heartbeat acknowledgement or session sequence advancement.
 
-Accepted interactions are durable before response work. Generation and publication failures remain pending with an availability time. A conversation-owned worker retries one ready interaction at a time, including an expired lease after process interruption, without another platform event. Selection binds the exact current integration, participation policy, and role so historical pending records cannot gain new policy meaning or block current work. Retry provider work stays outside the Gateway control queue.
+When participation chooses a response, the Discord REST activity port starts a best-effort typing lease and refreshes it before Discord's ten-second expiry. Conversation composition retains one lease across response retry and ends it on success, terminal failure, abort, or a bounded safety timeout. Typing failure reports `platform_activity_failed`, creates no durable receipt, and never blocks the response.
+
+Accepted interactions are durable before response work. Generation and publication failures remain pending with an availability time. Active work renews its inbox lease; the managed-provider deployment starts with a five-minute bounded lease to prevent ordinary model latency from causing concurrent duplicate execution.
+
+A conversation-owned worker retries one ready interaction at a time, including an expired lease after process interruption, without another platform event. Selection binds the exact current integration, participation policy, and role so historical pending records cannot gain new policy meaning or block current work. Retry provider work stays outside the Gateway control queue.
 
 Durable-inbox inspection or advancement failure reports the privacy-bounded `interaction_retry_failed` health code and terminates the supervised Node; provider and message content are excluded.
 
-Semantic writing evaluators pass an exact JSON schema through the common provider-adapter construction boundary. Provider-specific structured-output mechanics stay inside Codex and Claude adapters. The common evaluator still validates exact check order, identifiers, states, and violation counts before publication.
+Semantic writing evaluators pass an exact JSON schema through the common provider-adapter construction boundary. Provider-specific structured-output mechanics remain inside Codex and Claude adapters. The common evaluator still validates exact check order, identifiers, states, and violation counts before publication.
 
 ### Writing contracts and evidence
 
-Queue acknowledgements use `writing_en-fixed-status`, a versioned English contract with deterministic checks and no semantic checks. Natural conversation replies use `writing_mul-conversation`, which requires answers in the message language and separate semantic writing evaluation.
+Queue acknowledgements use `writing_mul-fixed-conversation-status`, a versioned multilingual contract with deterministic checks and no semantic checks. Natural conversation replies use `writing_mul-realtime-conversation` when no independent evaluator is configured, or `writing_mul-conversation` when `routing.evaluation` enables the separate fail-closed semantic pass.
 
 The writing gate requires a separate model or human evaluator only when the contract declares semantic checks. Publication still requires content-bound evaluation evidence and a permit; fixed acknowledgements emit no semantic-review claim.
 

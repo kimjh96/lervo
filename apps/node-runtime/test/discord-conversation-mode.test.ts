@@ -20,11 +20,23 @@ describe("natural-language Discord conversation mode", () => {
   it("accepts ordinary and mentioned messages while routing by semantic intent", async () => {
     let message = "What remains in the current workstream?";
     let intent: ConversationIntent = "answer";
+    let effect = { kind: "none" as const } as
+      | { kind: "none" }
+      | { kind: "repository_work" }
+      | { kind: "discord_current_member_nickname_set"; nickname: string };
     const readOnly = {
       respond: vi.fn<ConversationResponder["respond"]>(async () => candidate("Read-only answer.")),
     };
     const continuation = {
       respond: vi.fn<ConversationResponder["respond"]>(async () => candidate("Work was queued.")),
+    };
+    const platformAction = {
+      availableEffects: [
+        "none" as const,
+        "repository_work" as const,
+        "discord_current_member_nickname_set" as const,
+      ],
+      respond: vi.fn(async () => candidate("Display name changed.")),
     };
     const stored = new Map<string, Uint8Array>();
     const put: ArtifactStore["put"] = async (content) => {
@@ -56,6 +68,7 @@ describe("natural-language Discord conversation mode", () => {
     const resolveIntent = vi.fn<ConversationIntentResolver["resolve"]>(async () => ({
       intent,
       confidence: "high" as const,
+      effect,
       provider: { providerId: "codex", model: null, adapterVersion: "1" as const },
       resultDigest: `sha256:${"e".repeat(64)}`,
     }));
@@ -87,6 +100,7 @@ describe("natural-language Discord conversation mode", () => {
       intentResolver: resolver,
       readOnly: readOnly as ConversationResponder,
       continuation: continuation as ConversationResponder,
+      platformAction,
     });
     const input = async (eventId: string) => {
       const bytes = new TextEncoder().encode(message);
@@ -123,6 +137,7 @@ describe("natural-language Discord conversation mode", () => {
     expect(resolveIntent.mock.calls[0]![0]).toMatchObject({ mentioned: false, message });
 
     intent = "continue_work";
+    effect = { kind: "repository_work" };
     message = `<@${applicationId}> Finish it.`;
     const second = await input("cevt_test0002");
     second.event.mentions.participantIds.push("ptc_lervoagent");
@@ -135,6 +150,15 @@ describe("natural-language Discord conversation mode", () => {
     expect(resolveIntent.mock.calls[1]![0].priorTurns).toHaveLength(2);
     expect(continuation.respond.mock.calls[0]![0].context?.priorTurns).toHaveLength(2);
 
+    effect = { kind: "discord_current_member_nickname_set", nickname: "Lervo" };
+    message = "Change your server nickname to Lervo.";
+    const third = await input("cevt_test0003");
+    await responder.respond(third);
+    expect(platformAction.respond).toHaveBeenCalledWith(
+      expect.objectContaining({ context: { priorTurns: expect.any(Array) } }),
+      { kind: "discord_current_member_nickname_set", nickname: "Lervo" },
+    );
+
     const restarted = new NaturalLanguageDiscordConversationResponder({
       applicationId,
       repositoryRoot: process.cwd(),
@@ -144,9 +168,13 @@ describe("natural-language Discord conversation mode", () => {
       intentResolver: resolver,
       readOnly: readOnly as ConversationResponder,
       continuation: continuation as ConversationResponder,
+      platformAction: {
+        availableEffects: ["none", "repository_work"],
+        respond: vi.fn(),
+      },
     });
     await restarted.respond(first);
-    expect(resolveIntent).toHaveBeenCalledTimes(2);
+    expect(resolveIntent).toHaveBeenCalledTimes(3);
     expect(readOnly.respond).toHaveBeenCalledTimes(2);
   });
 });

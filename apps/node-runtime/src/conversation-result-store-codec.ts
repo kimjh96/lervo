@@ -44,6 +44,7 @@ export function assertConversationResultOrigin(origin: ConversationResultOrigin)
     !/^ptc_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(origin.agentParticipantId) ||
     !/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u.test(origin.roleId) ||
     !["codex", "claude"].includes(origin.provider) ||
+    (origin.responseLanguage !== undefined && !["en", "ko"].includes(origin.responseLanguage)) ||
     !isRemoteContinuationCoordinate(continuation) ||
     !Number.isFinite(Date.parse(origin.queuedAt))
   ) {

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { PolicyRuntimeError } from "@lervo/policy";
 
 import { runRemoteControlLoop } from "../src/index.js";
 
@@ -31,6 +32,38 @@ describe("Node remote control loop", () => {
         status: "policy_unavailable",
         policy: { failureCode: "transport_authentication_failed" },
       },
+    });
+    expect(results).toHaveLength(1);
+    expect(runCommandCycle).not.toHaveBeenCalled();
+  });
+
+  it("keeps the Node alive while rejecting an invalid command policy", async () => {
+    const abort = new AbortController();
+    const runCommandCycle = vi.fn();
+    const results: unknown[] = [];
+    const result = await runRemoteControlLoop({
+      signal: abort.signal,
+      runPolicyCycle: async () => {
+        throw new PolicyRuntimeError(
+          "invalid_policy_bundle",
+          "The fixture policy is outside its validity period.",
+        );
+      },
+      runCommandCycle,
+      wait: {
+        wait: async () => {
+          abort.abort();
+        },
+      },
+      onCycle: (cycle) => {
+        results.push(cycle);
+      },
+    });
+
+    expect(result).toMatchObject({
+      status: "stopped",
+      cycleCount: 1,
+      lastCycle: { status: "policy_rejected", failureCode: "invalid_policy_bundle" },
     });
     expect(results).toHaveLength(1);
     expect(runCommandCycle).not.toHaveBeenCalled();

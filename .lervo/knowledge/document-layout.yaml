@@ -319,7 +319,11 @@ documentPolicy:
     maxDocumentBearingChildDirectories: 32
     maxRepositoryDocuments: 4096
     maxNormalizedFamilyOutputs: 12
-    overrides: []
+    overrides:
+      - scopePath: docs/knowledge/documentation
+        role: catalog
+        maxDirectDocuments: 128
+        maxDocumentBearingChildDirectories: 32
   roles:
     - roleId: public_overview
       scopePath: .

@@ -47,6 +47,15 @@ export interface ConversationInteractionStore {
     leaseDurationMs: number;
   }): Promise<ConversationInboundClaim>;
 
+  renewInbound?(input: {
+    eventId: string;
+    policyId: string;
+    roleId: string;
+    leaseId: string;
+    renewedAt: string;
+    leaseDurationMs: number;
+  }): Promise<void>;
+
   getParticipationWindow(input: {
     policyId: string;
     conversationId: string;

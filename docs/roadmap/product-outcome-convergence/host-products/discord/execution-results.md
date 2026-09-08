@@ -4,11 +4,11 @@ Part of [Discord remote continuation](../discord.md).
 
 State: `delivery required`.
 
-Return managed execution completion, failure, and a publication-approved result to the originating Discord thread with exact delivery, run, workstream, and assignment coordinates.
+Return managed execution completion, failure, and a publication-approved result to the originating Discord thread. Keep exact delivery, run, workstream, and assignment coordinates in durable internal evidence, outside the conversational body.
 
-The current acknowledgement proves queueing only. Hub receipts contain verified run identity and completion status but intentionally exclude provider output.
+Acknowledgement proves request receipt only. Hub receipts contain verified run identity and completion status but exclude provider output. Human-visible acknowledgement and result framing use natural prose without internal identifiers.
 
-The bounded implementation now:
+The bounded implementation:
 
 - Persists origin correlation before the Discord queue acknowledgement.
 - Observes terminal receipts before acknowledging their lease.

@@ -53,7 +53,7 @@ export interface ManagedConversationResponderOptions {
   policyVersion: string;
   events: EventStore;
   artifactStore: ArtifactStore;
-  semanticEvaluator: WritingSemanticEvaluator;
+  semanticEvaluator?: WritingSemanticEvaluator;
   resolvePlan(
     input: ManagedConversationResponseRequest,
   ): Promise<ManagedConversationResponsePlan> | ManagedConversationResponsePlan;

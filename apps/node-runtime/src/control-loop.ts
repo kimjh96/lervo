@@ -2,7 +2,11 @@ import {
   type RemoteCommandReconnectCycleResult,
   type RemoteCommandPollingWaitPort,
 } from "@lervo/remote-command";
-import { type runPolicySyncCycle } from "@lervo/policy";
+import {
+  PolicyRuntimeError,
+  type PolicyRuntimeErrorCode,
+  type runPolicySyncCycle,
+} from "@lervo/policy";
 
 import { NodeRuntimeError } from "./errors.js";
 
@@ -12,6 +16,10 @@ export type RemoteControlCycleResult =
   | {
       status: "policy_unavailable";
       policy: Extract<PolicySyncCycleResult, { status: "offline" }>;
+    }
+  | {
+      status: "policy_rejected";
+      failureCode: PolicyRuntimeErrorCode;
     }
   | {
       status: "command_checked";
@@ -83,7 +91,17 @@ export async function runRemoteControlLoop(
   let cycleCount = 0;
   let lastCycle: RemoteControlCycleResult | null = null;
   while (!options.signal.aborted) {
-    const policy = await options.runPolicyCycle();
+    let policy: PolicySyncCycleResult;
+    try {
+      policy = await options.runPolicyCycle();
+    } catch (error) {
+      if (!(error instanceof PolicyRuntimeError)) throw error;
+      lastCycle = { status: "policy_rejected", failureCode: error.code };
+      cycleCount += 1;
+      await options.onCycle?.(structuredClone(lastCycle));
+      if (!options.signal.aborted) await wait.wait(retryDelayMs, options.signal);
+      continue;
+    }
     if (options.signal.aborted) break;
     if (policy.status === "offline") {
       lastCycle = { status: "policy_unavailable", policy };

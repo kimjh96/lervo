@@ -1,4 +1,5 @@
 import { ManagedProviderRunCoordinator } from "@lervo/orchestrator";
+import type { ConversationReplyCandidate } from "@lervo/interaction";
 
 import { readConversationMessage } from "./message-artifact.js";
 import { MemoryConversationProviderSessionRegistry } from "./provider-session.js";
@@ -19,6 +20,7 @@ import { ManagedConversationResponseError } from "./types.js";
 
 export class ManagedConversationResponder implements ManagedConversationResponderPort {
   private readonly providerSessions;
+  private readonly inFlight = new Map<string, Promise<ConversationReplyCandidate>>();
 
   constructor(private readonly options: ManagedConversationResponderOptions) {
     this.providerSessions =
@@ -28,7 +30,27 @@ export class ManagedConversationResponder implements ManagedConversationResponde
   async respond(input: ManagedConversationResponseRequest) {
     const plan = await this.options.resolvePlan(input);
     validateConversationResponseRequest(this.options, input, plan);
-    const requestDigest = conversationResponseRequestDigest({ request: input, plan });
+    const requestDigest = conversationResponseRequestDigest({
+      request: input,
+      plan,
+      policyVersion: this.options.policyVersion,
+    });
+    const existing = this.inFlight.get(requestDigest);
+    if (existing !== undefined) return existing;
+    const response = this.respondOnce(input, plan, requestDigest);
+    this.inFlight.set(requestDigest, response);
+    try {
+      return await response;
+    } finally {
+      if (this.inFlight.get(requestDigest) === response) this.inFlight.delete(requestDigest);
+    }
+  }
+
+  private async respondOnce(
+    input: ManagedConversationResponseRequest,
+    plan: ManagedConversationResponsePlan,
+    requestDigest: string,
+  ): Promise<ConversationReplyCandidate> {
     let artifact = await this.options.responseArtifacts?.get(requestDigest);
     if (artifact === undefined || artifact === null) {
       artifact = await this.generateArtifact({ request: input, plan, requestDigest });
@@ -43,7 +65,9 @@ export class ManagedConversationResponder implements ManagedConversationResponde
         artifact,
         writingContract: plan.writingContract,
         artifactStore: this.options.artifactStore,
-        semanticEvaluator: this.options.semanticEvaluator,
+        ...(this.options.semanticEvaluator === undefined
+          ? {}
+          : { semanticEvaluator: this.options.semanticEvaluator }),
         ...(plan.maximumResponseCharacters === undefined
           ? {}
           : { maximumResponseCharacters: plan.maximumResponseCharacters }),

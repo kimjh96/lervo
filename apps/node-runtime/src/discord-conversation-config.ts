@@ -57,6 +57,7 @@ export function parseDiscordConversationConfig(
       "agentId",
       "conversations",
       "participants",
+      "administration",
       "routing",
       "command",
       "gateway",
@@ -97,6 +98,23 @@ export function parseDiscordConversationConfig(
   );
   const conversations = parseDiscordConversationBindings(source.conversations);
   const participants = parseDiscordParticipantBindings(source.participants);
+  const administration =
+    source.administration === undefined
+      ? undefined
+      : configRecord(source.administration, "discordConversation.administration");
+  if (administration !== undefined) {
+    exactConfigKeys(administration, ["allowedActions"], "discordConversation.administration");
+  }
+  const allowedActions =
+    administration === undefined
+      ? undefined
+      : (boundedUniqueText(
+          administration.allowedActions,
+          "discordConversation.administration.allowedActions",
+          /^current_member\.nickname\.set$/u,
+          1,
+          1,
+        ) as Array<"current_member.nickname.set">);
   const behavior = parseDiscordConversationBehavior({
     routing: source.routing,
     command: source.command,
@@ -179,6 +197,7 @@ export function parseDiscordConversationConfig(
     ...(agentId === undefined ? {} : { agentId }),
     conversations,
     participants,
+    ...(allowedActions === undefined ? {} : { administration: { allowedActions } }),
     ...behavior,
     ...(gateway === undefined
       ? {}

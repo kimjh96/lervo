@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_fbdf422d19e4e2d8135e122d
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3ff2c554e4d1be047ed0e224
+outputLanguage: en
+outputs:
+  - byteCount: 605
+    contentHash: sha256:ca412e7056e9d4d01721115e7ca7dbf1dcd70362c4ae50c33b22848d16a29829
+    path: docs/architecture/system/conversation-routing/transport-and-recovery/typing-indicator.md
+    userRegionHash: sha256:ca412e7056e9d4d01721115e7ca7dbf1dcd70362c4ae50c33b22848d16a29829
+profile: architecture_document
+recordId: knormdoc_5bf4b83ced095151123c2a21
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:aa186ea77a6e2455c908ec89096f57b1004bf6f84524b635c77941f1c3749e5f
+sourcePath: docs/architecture/system/conversation-routing/transport-and-recovery/typing-indicator.md
+sourceUnitVersionIds:
+  - uv_d634035e5933101237b2475e

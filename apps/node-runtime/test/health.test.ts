@@ -115,6 +115,15 @@ describe("Node runtime readiness snapshot", () => {
     });
 
     await publisher.observeRemoteControl({
+      status: "policy_rejected",
+      failureCode: "invalid_policy_bundle",
+    });
+    expect(await snapshot(publisher.path)).toMatchObject({
+      status: "degraded",
+      remoteControl: { status: "unavailable", failureCode: "invalid_policy_bundle" },
+    });
+
+    await publisher.observeRemoteControl({
       status: "command_checked",
       policy: { status: "unchanged", snapshotId: null },
       command: { status: "idle", leasedCount: 0, acknowledgedCount: 0 },

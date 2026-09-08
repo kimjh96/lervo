@@ -6,6 +6,22 @@ import type { ConversationInboundEvent } from "@lervo/schemas";
 
 import type { ConversationIntentResolution } from "./conversation-intent-resolver.js";
 
+function validEffect(value: unknown): value is ConversationIntentResolution["effect"] {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const effect = value as Record<string, unknown>;
+  if (effect.kind === "none" || effect.kind === "repository_work") {
+    return Object.keys(effect).length === 1;
+  }
+  return (
+    effect.kind === "discord_current_member_nickname_set" &&
+    Object.keys(effect).length === 2 &&
+    typeof effect.nickname === "string" &&
+    [...effect.nickname].length >= 1 &&
+    [...effect.nickname].length <= 32 &&
+    !effect.nickname.includes("\0")
+  );
+}
+
 export interface ConversationIntentResolutionStore {
   read(event: ConversationInboundEvent): Promise<ConversationIntentResolution | null>;
   record(input: {
@@ -49,6 +65,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
           adapter_version TEXT NOT NULL,
           intent TEXT NOT NULL CHECK (intent IN ('answer', 'continue_work', 'clarify')),
           confidence TEXT NOT NULL CHECK (confidence IN ('high', 'medium', 'low')),
+          effect_json TEXT,
           result_digest TEXT NOT NULL,
           resolved_at TEXT NOT NULL
         ) STRICT;
@@ -59,6 +76,15 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
           BEFORE DELETE ON conversation_intent_resolutions
           BEGIN SELECT RAISE(ABORT, 'conversation intent resolution cannot be deleted'); END;
       `);
+      const columns = new Set(
+        database
+          .prepare("PRAGMA table_info(conversation_intent_resolutions)")
+          .all()
+          .map((column) => column.name),
+      );
+      if (!columns.has("effect_json")) {
+        database.exec("ALTER TABLE conversation_intent_resolutions ADD COLUMN effect_json TEXT;");
+      }
       await chmod(absolute, 0o600);
       return new SQLiteConversationIntentResolutionStore(database);
     } catch (error) {
@@ -77,6 +103,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       !/^[a-z][a-z0-9._-]{0,63}$/u.test(input.resolution.provider.providerId) ||
       (input.resolution.provider.model !== null &&
         !/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u.test(input.resolution.provider.model)) ||
+      !validEffect(input.resolution.effect) ||
       !/^sha256:[a-f0-9]{64}$/u.test(input.resolution.resultDigest)
     ) {
       throw new Error("The conversation intent resolution evidence is invalid.");
@@ -89,6 +116,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       input.resolution.provider.adapterVersion,
       input.resolution.intent,
       input.resolution.confidence,
+      JSON.stringify(input.resolution.effect),
       input.resolution.resultDigest,
       input.resolvedAt,
     ] as const;
@@ -96,13 +124,13 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       .prepare(
         `INSERT OR IGNORE INTO conversation_intent_resolutions
           (event_id, message_hash, provider_id, model, adapter_version, intent, confidence,
-            result_digest, resolved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            effect_json, result_digest, resolved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(...values);
     const current = this.database
       .prepare(
         `SELECT event_id, message_hash, provider_id, model, adapter_version, intent, confidence,
-          result_digest, resolved_at FROM conversation_intent_resolutions WHERE event_id = ?`,
+          effect_json, result_digest, resolved_at FROM conversation_intent_resolutions WHERE event_id = ?`,
       )
       .get(input.event.eventId) as Record<string, unknown> | undefined;
     if (
@@ -117,11 +145,21 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
     const current = this.database
       .prepare(
         `SELECT event_id, message_hash, provider_id, model, adapter_version, intent, confidence,
-          result_digest, resolved_at FROM conversation_intent_resolutions WHERE event_id = ?`,
+          effect_json, result_digest, resolved_at FROM conversation_intent_resolutions WHERE event_id = ?`,
       )
       .get(event.eventId) as Record<string, unknown> | undefined;
     if (current === undefined) return null;
     const model = current.model;
+    let effect: ConversationIntentResolution["effect"];
+    if (current.effect_json === null) {
+      effect = current.intent === "continue_work" ? { kind: "repository_work" } : { kind: "none" };
+    } else {
+      try {
+        effect = JSON.parse(String(current.effect_json)) as ConversationIntentResolution["effect"];
+      } catch {
+        throw new Error("The stored conversation intent effect is invalid.");
+      }
+    }
     if (
       current.event_id !== event.eventId ||
       current.message_hash !== event.content.contentHash ||
@@ -132,6 +170,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       current.adapter_version !== "1" ||
       !["answer", "continue_work", "clarify"].includes(current.intent as string) ||
       !["high", "medium", "low"].includes(current.confidence as string) ||
+      !validEffect(effect) ||
       typeof current.result_digest !== "string" ||
       !/^sha256:[a-f0-9]{64}$/u.test(current.result_digest) ||
       typeof current.resolved_at !== "string" ||
@@ -142,6 +181,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
     return {
       intent: current.intent as ConversationIntentResolution["intent"],
       confidence: current.confidence as ConversationIntentResolution["confidence"],
+      effect,
       provider: {
         providerId: current.provider_id,
         model,

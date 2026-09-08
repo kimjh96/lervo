@@ -178,10 +178,11 @@ describe("conversation execution result runtime", () => {
       `lervo-cas://sha256/${outbound.content.contentHash.slice("sha256:".length)}`,
     );
     const content = new TextDecoder().decode(bytes);
-    expect(content).toContain(origin.deliveryId);
-    expect(content).toContain("run_result_runtime_01");
-    expect(content).toContain(origin.assignmentId);
+    expect(content).toContain("The work is complete and passed its required verification.");
     expect(content).toContain("The requested change is complete.");
+    expect(content).not.toContain(origin.deliveryId);
+    expect(content).not.toContain("run_result_runtime_01");
+    expect(content).not.toContain(origin.assignmentId);
     await expect(
       runtime.observe({ lease: commandLease("d"), acknowledgement: acknowledgement("d") }),
     ).resolves.toBe("duplicate");

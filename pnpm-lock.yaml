@@ -413,6 +413,9 @@ importers:
       '@lervo/adapter-contract':
         specifier: workspace:*
         version: link:../../packages/adapter-contract
+      '@lervo/adapter-discord':
+        specifier: workspace:*
+        version: link:../../packages/adapter-discord
       '@lervo/agent-workforce':
         specifier: workspace:*
         version: link:../../packages/agent-workforce

@@ -326,27 +326,24 @@ describe("managed conversation responder", () => {
       resolveWritingContract: () => defaultEnglishWritingContract,
     });
 
-    const reviewer = await responder.respond({
+    const reviewerRequest = {
       event,
       policy: policies.reviewer,
       decision: decisions.reviewer,
       context: {
         priorTurns: [
-          { role: "user", text: "Please remember that evidence comes first." },
-          { role: "assistant", text: "I will keep that review priority." },
+          { role: "user" as const, text: "Please remember that evidence comes first." },
+          { role: "assistant" as const, text: "I will keep that review priority." },
         ],
       },
-    });
+    };
+    const [reviewer, reviewerConcurrentRetry] = await Promise.all([
+      responder.respond(reviewerRequest),
+      responder.respond(reviewerRequest),
+    ]);
     const reviewerRetry = await responder.respond({
-      event,
-      policy: policies.reviewer,
-      decision: decisions.reviewer,
-      context: {
-        priorTurns: [
-          { role: "user", text: "Please remember that evidence comes first." },
-          { role: "assistant", text: "I will keep that review priority." },
-        ],
-      },
+      ...reviewerRequest,
+      decision: { ...decisions.reviewer, decisionId: `cpd_${"f".repeat(64)}` },
     });
     const planner = await responder.respond({
       event,
@@ -370,6 +367,7 @@ describe("managed conversation responder", () => {
     expect(codexClient.closed).toBe(true);
     expect(claudeClient.closed).toBe(true);
     expect(reviewer.publicationPermit.surface).toBe("chat");
+    expect(reviewerConcurrentRetry.content).toEqual(reviewer.content);
     expect(reviewerRetry.content).toEqual(reviewer.content);
     expect(responseArtifacts.size).toBe(2);
     expect(planner.publicationPermit.surface).toBe("chat");

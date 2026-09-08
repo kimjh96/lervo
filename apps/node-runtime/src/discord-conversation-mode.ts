@@ -7,11 +7,20 @@ import type { ArtifactStore } from "@lervo/storage-contract";
 import type {
   ConversationIntentResolution,
   ConversationIntentResolver,
+  ConversationRequestedEffect,
 } from "./conversation-intent-resolver.js";
 import type { ConversationHistoryPort } from "./conversation-history.js";
 import type { ConversationIntentResolutionStore } from "./conversation-intent-store.js";
 
-export type DiscordConversationMode = "read_only" | "continuation" | "clarify";
+export type DiscordConversationMode = "read_only" | "continuation" | "platform_action" | "clarify";
+
+export interface DiscordPlatformActionResponder {
+  readonly availableEffects: readonly ConversationRequestedEffect["kind"][];
+  respond(
+    input: Parameters<ConversationResponder["respond"]>[0],
+    effect: Exclude<ConversationRequestedEffect, { kind: "none" | "repository_work" }>,
+  ): ReturnType<ConversationResponder["respond"]>;
+}
 
 function withoutLeadingBotMention(message: string, applicationId: string): string {
   return message
@@ -22,7 +31,9 @@ function withoutLeadingBotMention(message: string, applicationId: string): strin
 
 function modeFor(resolution: ConversationIntentResolution): DiscordConversationMode {
   return resolution.intent === "continue_work" && resolution.confidence !== "low"
-    ? "continuation"
+    ? resolution.effect.kind === "repository_work"
+      ? "continuation"
+      : "platform_action"
     : resolution.intent === "clarify" || resolution.confidence === "low"
       ? "clarify"
       : "read_only";
@@ -33,6 +44,7 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
     string,
     Promise<{
       mode: DiscordConversationMode;
+      resolution: ConversationIntentResolution;
       priorTurns: Array<{ role: "user" | "assistant"; text: string }>;
     }>
   >();
@@ -47,6 +59,7 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
       intentResolver: ConversationIntentResolver;
       readOnly: ConversationResponder;
       continuation: ConversationResponder;
+      platformAction: DiscordPlatformActionResponder;
     },
   ) {}
 
@@ -67,6 +80,7 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
 
   private async resolveMode(event: ConversationInboundEvent): Promise<{
     mode: DiscordConversationMode;
+    resolution: ConversationIntentResolution;
     priorTurns: Array<{ role: "user" | "assistant"; text: string }>;
   }> {
     const priorTurns = await this.options.history.recent(event);
@@ -75,7 +89,10 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
       const storedMode = modeFor(stored);
       return {
         mode:
-          storedMode === "continuation" && event.actor.kind !== "human" ? "clarify" : storedMode,
+          ["continuation", "platform_action"].includes(storedMode) && event.actor.kind !== "human"
+            ? "clarify"
+            : storedMode,
+        resolution: stored,
         priorTurns,
       };
     }
@@ -93,6 +110,7 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
         current === null
           ? null
           : { title: current.title, objective: current.objective, status: current.status },
+      availableEffects: this.options.platformAction.availableEffects,
     });
     await this.options.resolutionStore.record({
       event,
@@ -101,15 +119,26 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
     });
     const mode = modeFor(resolution);
     return {
-      mode: mode === "continuation" && event.actor.kind !== "human" ? "clarify" : mode,
+      mode:
+        ["continuation", "platform_action"].includes(mode) && event.actor.kind !== "human"
+          ? "clarify"
+          : mode,
+      resolution,
       priorTurns,
     };
   }
 
   async respond(input: Parameters<ConversationResponder["respond"]>[0]) {
     const resolution = await this.resolution(input.event);
+    const request = { ...input, context: { priorTurns: resolution.priorTurns } };
+    if (
+      resolution.mode === "platform_action" &&
+      resolution.resolution.effect.kind === "discord_current_member_nickname_set"
+    ) {
+      return this.options.platformAction.respond(request, resolution.resolution.effect);
+    }
     return (
       resolution.mode === "continuation" ? this.options.continuation : this.options.readOnly
-    ).respond({ ...input, context: { priorTurns: resolution.priorTurns } });
+    ).respond(request);
   }
 }

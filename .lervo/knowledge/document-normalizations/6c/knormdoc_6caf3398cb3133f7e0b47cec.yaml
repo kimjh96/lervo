@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_fbdf422d19e4e2d8135e122d
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f68bcad8b4287d39cbc9c875
+outputLanguage: en
+outputs:
+  - byteCount: 417
+    contentHash: sha256:dfb66402579f3eafa94de04321c4eaa0d369cd40d9ac0073722c10989e644c37
+    path: docs/architecture/system/conversation-routing/routing-and-authority.md
+    userRegionHash: sha256:dfb66402579f3eafa94de04321c4eaa0d369cd40d9ac0073722c10989e644c37
+profile: architecture_document
+recordId: knormdoc_6caf3398cb3133f7e0b47cec
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:dfb66402579f3eafa94de04321c4eaa0d369cd40d9ac0073722c10989e644c37
+sourcePath: docs/architecture/system/conversation-routing/routing-and-authority.md
+sourceUnitVersionIds:
+  - uv_375d283a2cd9af7e9c3a0be3

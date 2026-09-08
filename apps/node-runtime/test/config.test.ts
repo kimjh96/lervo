@@ -132,6 +132,7 @@ describe("Node runtime configuration", () => {
           participantId: "ptc_operator01",
         },
       ],
+      administration: { allowedActions: ["current_member.nickname.set"] },
       routing: {
         readOnlyRoleId: "conversation-reader",
         intent: { provider: "codex", model: "gpt-5.6-sol", timeoutMs: 45_000 },
@@ -169,6 +170,7 @@ describe("Node runtime configuration", () => {
           },
         },
         participants: [{ actorKind: "human", roleId: null }],
+        administration: { allowedActions: ["current_member.nickname.set"] },
         policy: { respondTo: ["agent", "human"], maxResponseAttempts: 2 },
         command: { assignmentId: null, agentId: null },
       },

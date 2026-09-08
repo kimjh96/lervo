@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 import { openConversationApplication } from "@lervo/conversation-app";
 import { FileSystemCas } from "@lervo/cas";
+import { DiscordRestAdministration } from "@lervo/adapter-discord";
 import { createConversationParticipationPolicy } from "@lervo/conversation-contract";
 import {
   ConversationRemoteContinuationResponder,
@@ -15,7 +16,7 @@ import {
 import {
   adaptiveConversationWritingContract,
   fixedConversationStatusWritingContract,
-  fixedEnglishStatusWritingContract,
+  realtimeConversationWritingContract,
 } from "@lervo/core";
 import type { DiscordGatewayTransport } from "@lervo/discord-gateway";
 import type { ConversationResponder } from "@lervo/interaction";
@@ -45,6 +46,7 @@ import { loadDiscordBotToken } from "./discord-credentials.js";
 import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
 import { ConversationInteractionRetryLoop } from "./conversation-interaction-retry-loop.js";
 import { NodeConversationResponseFailureClassifier } from "./conversation-response-failure-policy.js";
+import { DiscordConversationAdministrationResponder } from "./discord-platform-action-responder.js";
 
 export interface NodeDiscordConversationRuntime {
   readonly failed: Promise<void>;
@@ -159,6 +161,7 @@ export async function openNodeDiscordConversationRuntime(
         workstreamSnapshotContentHash: queued.workstreamSnapshotContentHash,
         assignmentId: queued.assignmentId,
         agentId: queued.agentId,
+        responseLanguage: /\p{Script=Hangul}/u.test(input.request) ? "ko" : "en",
         queuedAt: queued.queuedAt,
       });
       return queued;
@@ -167,7 +170,7 @@ export async function openNodeDiscordConversationRuntime(
   const continuationResponder = new ConversationRemoteContinuationResponder({
     artifactStore: artifacts,
     continuation,
-    writingContract: fixedEnglishStatusWritingContract,
+    writingContract: fixedConversationStatusWritingContract,
   });
   let modeResponder: NaturalLanguageDiscordConversationResponder | null = null;
   let responder: ConversationResponder = continuationResponder;
@@ -203,6 +206,27 @@ export async function openNodeDiscordConversationRuntime(
     intentStore = await SQLiteConversationIntentResolutionStore.open(
       resolve(options.dataDirectory, "intent-resolutions.sqlite"),
     );
+    const platformAction = new DiscordConversationAdministrationResponder({
+      artifactStore: artifacts,
+      administration: new DiscordRestAdministration({
+        applicationId: config.applicationId,
+        botToken: token,
+        allowedGuildIds: config.allowedGuildIds,
+        ...(config.http?.requestTimeoutMs === undefined
+          ? {}
+          : { requestTimeoutMs: config.http.requestTimeoutMs }),
+        ...(config.http?.maxResponseBytes === undefined
+          ? {}
+          : { maxResponseBytes: config.http.maxResponseBytes }),
+        ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
+      }),
+      conversations: config.conversations.map((binding) => ({
+        conversationId: binding.conversationId,
+        guildId: binding.tenantKey,
+      })),
+      allowNicknameUpdate:
+        config.administration?.allowedActions.includes("current_member.nickname.set") === true,
+    });
     modeResponder = new NaturalLanguageDiscordConversationResponder({
       applicationId: config.applicationId,
       repositoryRoot: options.repositoryRoot,
@@ -215,15 +239,18 @@ export async function openNodeDiscordConversationRuntime(
       intentResolver,
       readOnly,
       continuation: continuationResponder,
+      platformAction,
     });
     responder = modeResponder;
   }
   const publicationVerifier = new VerifiedConversationPublication({
     artifactStore: artifacts,
     resolveWritingContract: async ({ event }) =>
-      modeResponder !== null && (await modeResponder.mode(event)) !== "continuation"
-        ? adaptiveConversationWritingContract
-        : fixedEnglishStatusWritingContract,
+      modeResponder !== null && ["read_only", "clarify"].includes(await modeResponder.mode(event))
+        ? config.routing?.evaluation === undefined
+          ? realtimeConversationWritingContract
+          : adaptiveConversationWritingContract
+        : fixedConversationStatusWritingContract,
   });
   const terminalFailureResponder = new FixedConversationTerminalFailureResponder({
     artifactStore: artifacts,
@@ -292,6 +319,7 @@ export async function openNodeDiscordConversationRuntime(
           },
         ],
         workerId: config.workerId,
+        leaseDurationMs: 300_000,
         maximumResponseAttempts: config.policy?.maxResponseAttempts ?? 3,
       },
       ...(options.fetch === undefined ? {} : { fetch: options.fetch }),

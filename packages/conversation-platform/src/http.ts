@@ -14,6 +14,10 @@ export interface PlatformJsonRequestOptions {
   allowInsecureHttpForTests?: boolean;
 }
 
+export interface PlatformJsonMutationOptions extends PlatformJsonRequestOptions {
+  method: "POST" | "PATCH";
+}
+
 export type PlatformJsonReadOptions = Omit<PlatformJsonRequestOptions, "body">;
 
 export function assertPlatformHttpLimits(input: {
@@ -125,7 +129,7 @@ export async function getPlatformJson(options: PlatformJsonReadOptions): Promise
   }
 }
 
-export async function postPlatformJson(options: PlatformJsonRequestOptions): Promise<unknown> {
+export async function mutatePlatformJson(options: PlatformJsonMutationOptions): Promise<unknown> {
   const maximum = options.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
   const timeoutMs = options.requestTimeoutMs ?? DEFAULT_TIMEOUT_MS;
   assertPlatformHttpLimits(options);
@@ -134,7 +138,7 @@ export async function postPlatformJson(options: PlatformJsonRequestOptions): Pro
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await (options.fetch ?? globalThis.fetch)(url, {
-      method: "POST",
+      method: options.method,
       headers: {
         accept: "application/json",
         "content-type": "application/json; charset=utf-8",
@@ -159,4 +163,12 @@ export async function postPlatformJson(options: PlatformJsonRequestOptions): Pro
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export function postPlatformJson(options: PlatformJsonRequestOptions): Promise<unknown> {
+  return mutatePlatformJson({ ...options, method: "POST" });
+}
+
+export function patchPlatformJson(options: PlatformJsonRequestOptions): Promise<unknown> {
+  return mutatePlatformJson({ ...options, method: "PATCH" });
 }

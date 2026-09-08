@@ -6,6 +6,7 @@ import type { ConversationInboundEvent } from "@lervo/schemas";
 
 import { inbound, text } from "./codec.js";
 import { InteractionSQLiteError } from "./errors.js";
+import { renewConversationInboxLease } from "./inbox-lease.js";
 
 export type SQLiteInboxClaim =
   | { status: "claimed"; leaseId: string; attemptCount: number }
@@ -226,6 +227,17 @@ export class ConversationInboxSQLiteRepository {
       throw new InteractionSQLiteError("lease_mismatch", "The conversation inbox lease differs.");
     }
     return inbound(row);
+  }
+
+  renew(input: {
+    eventId: string;
+    policyId: string;
+    roleId: string;
+    leaseId: string;
+    renewedAt: string;
+    leaseDurationMs: number;
+  }): void {
+    renewConversationInboxLease(this.database, input);
   }
 
   complete(input: {

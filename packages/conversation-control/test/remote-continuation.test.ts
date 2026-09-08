@@ -92,7 +92,7 @@ async function fixture(actorKind: "human" | "agent" = "human") {
 }
 
 describe("conversation remote continuation responder", () => {
-  it("queues exact human message evidence and returns a publication-verified receipt message", async () => {
+  it("queues exact human message evidence and returns a natural publication-verified acknowledgement", async () => {
     const { artifacts, request, event, policy, decision } = await fixture();
     const submit = vi.fn(async () => ({
       status: "queued" as const,
@@ -133,9 +133,60 @@ describe("conversation remote continuation responder", () => {
         `lervo-cas://sha256/${candidate.content.contentHash.slice("sha256:".length)}`,
       ),
     ).toString("utf8");
-    expect(reply).toContain(`rcd_${"a".repeat(64)}`);
-    expect(reply).toContain("queueing only");
+    expect(reply).toContain("I received the request.");
+    expect(reply).toContain("report the verified changes and result");
+    expect(reply).not.toContain(`rcd_${"a".repeat(64)}`);
+    expect(reply).not.toContain(`wks_${"b".repeat(24)}`);
     expect(reply).not.toContain(request);
+  });
+
+  it("acknowledges a Korean continuation in the same language without leaking queue internals", async () => {
+    const fixtureValue = await fixture();
+    const KoreanRequest = "현재 작업을 계속 진행하고 검증해줘.";
+    const stored = await fixtureValue.artifacts.put(KoreanRequest);
+    const event = {
+      ...fixtureValue.event,
+      content: {
+        ...fixtureValue.event.content,
+        contentHash: stored.contentHash,
+        byteCount: stored.byteCount,
+      },
+    };
+    const responder = new ConversationRemoteContinuationResponder({
+      artifactStore: fixtureValue.artifacts,
+      continuation: {
+        request: async () => ({
+          status: "queued",
+          deliveryId: `rcd_${"a".repeat(64)}`,
+          commandId: `rcm_${"c".repeat(64)}`,
+          provider: "claude",
+          roleId: "developer",
+          workstreamId: `wks_${"b".repeat(24)}`,
+          workstreamRevision: 12,
+          workstreamSnapshotContentHash: `sha256:${"d".repeat(64)}`,
+          assignmentId: null,
+          agentId: null,
+          queuedAt: now.toISOString(),
+        }),
+      },
+      writingContract: defaultEnglishWritingContract,
+      semanticEvaluator: evaluator(),
+      now: () => now,
+    });
+
+    const candidate = await responder.respond({
+      event,
+      policy: fixtureValue.policy,
+      decision: { ...fixtureValue.decision, eventId: event.eventId },
+    });
+    const reply = Buffer.from(
+      await fixtureValue.artifacts.get(
+        `lervo-cas://sha256/${candidate.content.contentHash.slice("sha256:".length)}`,
+      ),
+    ).toString("utf8");
+    expect(reply).toContain("요청을 접수했습니다.");
+    expect(reply).toContain("실제 변경과 검증 결과");
+    expect(reply).not.toContain("rcd_");
   });
 
   it("rejects an agent-authored message before crossing the remote execution port", async () => {
