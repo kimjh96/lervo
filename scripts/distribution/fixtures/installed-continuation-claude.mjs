@@ -61,16 +61,16 @@ function requestHook(event, toolInput, toolUseId, continuation) {
 
 function semanticEvaluation(instructions) {
   const request = JSON.parse(instructions.slice(instructions.lastIndexOf("\n") + 1));
-  return JSON.stringify({
+  return {
     checks: request.checks.map(({ checkId }) => ({
       checkId,
       status: "passed",
       violationCount: 0,
     })),
-  });
+  };
 }
 
-function result(message, content) {
+function result(message, content, structuredOutput) {
   send({
     type: "result",
     subtype: "success",
@@ -79,6 +79,7 @@ function result(message, content) {
     is_error: false,
     num_turns: 1,
     result: content,
+    ...(structuredOutput === undefined ? {} : { structured_output: structuredOutput }),
     stop_reason: "end_turn",
     total_cost_usd: 0,
     usage: {
@@ -183,7 +184,8 @@ async function handle(line) {
   if (message.shouldQuery === false) return;
   const instructions = message.message?.content?.[0]?.text ?? "";
   if (instructions.includes("Evaluate the JSON request below")) {
-    result(message, semanticEvaluation(instructions));
+    const evaluation = semanticEvaluation(instructions);
+    result(message, JSON.stringify(evaluation), evaluation);
     return;
   }
   await mainTurn(message, instructions);
