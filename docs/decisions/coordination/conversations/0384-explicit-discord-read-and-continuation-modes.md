@@ -5,7 +5,7 @@
 
 ## Context
 
-The first installed Discord composition treated every accepted mention as write-capable remote continuation. Repository questions entered the signed managed-write path and correctly failed when the provider produced no verified file change. A later draft separated read and write paths with `ask` and `continue` prefixes. It preserved authority boundaries but violated the requirement for ordinary conversation with or without a bot mention.
+The first installed Discord composition treated every accepted mention as write-capable remote continuation. Repository questions entered the signed managed-write path and correctly failed when the provider produced no verified file change. A later draft used `ask` and `continue` prefixes to separate read and write paths. This preserved authority boundaries but violated the requirement for ordinary conversation with or without a bot mention.
 
 Lervo already separates provider-neutral contracts for read-only managed answers, signed remote continuation, conversation participation, bounded automation depth, and cross-provider deliberation. Natural-language routing composes these contracts without making Discord syntax a task authority.
 
@@ -29,7 +29,7 @@ It returns exactly one transient intent (`answer`, `continue_work`, or `clarify`
 
 `answer` delegates to `ManagedConversationResponder`. `continue_work` delegates to the signed exact-workstream Hub command path only at medium or high confidence and only for a mapped human. `clarify`, low confidence, and agent-authored mutation requests stay with the read-only responder to answer or clarify without mutation. Resolver failure produces the existing retryable `response_generation_failed` interaction outcome.
 
-An immutable local intent-resolution record binds the source event and message hash to intent, confidence, adapter version, provider, configured model, result digest, and resolution time. It contains no raw message. Restart recovery verifies and reuses this record without rerunning classification or rewriting its timestamp. Managed-run events and remote-command records independently retain the provider and model selected for read and write execution.
+An immutable local intent-resolution record binds the source event and message hash to intent, confidence, adapter version, provider, configured model, result digest, and resolution time. It contains no raw message. Restart recovery verifies and reuses the record without rerunning classification or rewriting its timestamp. Managed-run events and remote-command records independently retain the provider and model selected for read and write execution.
 
 ### Execution roles and language
 
@@ -55,11 +55,11 @@ Transient typing starts only after participation chooses `respond`; it does not 
 
 The measured pre-change read-response baseline was 19.6–51.4 seconds across seven recent managed runs. A later live message took 56.9 seconds: intent used 13.0 seconds, the first managed response used 14.5 seconds, and a transient evaluator failure caused another complete 12.1-second response run before evaluation and delivery.
 
-The installed read responder now stores the verified managed result artifact against the exact response request digest before independent evaluation. A retry after evaluator transport or response-contract failure reuses that immutable CAS artifact instead of invoking the response provider again. A definitive writing-policy rejection removes the cached coordinate so a later attempt may generate a corrected answer. The owner-only SQLite mapping contains only the request digest, artifact coordinate, and creation time, retains at most 1,024 records, and rejects conflicting bindings. It copies no message or response body and adds no event. Invalid or conflicting cache state fails response generation rather than selecting unverified bytes.
+The installed read responder stores the verified managed result artifact against the exact response request digest before independent evaluation. A retry after evaluator transport or response-contract failure reuses that immutable CAS artifact instead of invoking the response provider again. A definitive writing-policy rejection removes the cached coordinate so a later attempt may generate a corrected answer. The owner-only SQLite mapping contains only the request digest, artifact coordinate, and creation time, retains at most 1,024 records, and rejects conflicting bindings. It copies no message or response body and adds no event. Invalid or conflicting cache state fails response generation rather than selecting unverified bytes.
 
 The installed configuration uses a no-capability low-effort Claude Haiku intent pass, a low-effort GPT-5.6 Sol read response, a separate low-effort Claude Haiku publication evaluation, and high-effort Claude Sonnet 4.6 for mutation. The user selected this provider split; authenticated local CLI smoke calls established pinned response and mutation model compatibility.
 
-This deployment profile is not a core default. Each hired-agent bot may replace it independently, and live round-trip evidence owns any latency claim. Artifact reuse removes duplicated provider work on retry; it does not remove the three sequential intent, initial response, and independent evaluation stages. A representative end-to-end latency budget therefore remains open.
+This deployment profile is not a core default; each hired-agent bot may replace it independently. Live round-trip evidence owns any latency claim. Artifact reuse removes duplicated provider work on retry, but the three sequential intent, initial response, and independent evaluation stages remain. A representative end-to-end latency budget remains open.
 
 ### Data boundaries
 

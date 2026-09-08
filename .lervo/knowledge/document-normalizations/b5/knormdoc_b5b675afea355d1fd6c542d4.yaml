@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f7b62a6cd66089d153455f3a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0b01336da809c4cb319d821f
+outputLanguage: en
+outputs:
+  - byteCount: 1115
+    contentHash: sha256:cd32320a722189f56c3414d0d2395ddd59d69f8177c9bff9d8d2fb00b8f9c5f8
+    path: docs/architecture/system/conversation-routing.md
+    userRegionHash: sha256:cd32320a722189f56c3414d0d2395ddd59d69f8177c9bff9d8d2fb00b8f9c5f8
+  - byteCount: 1295
+    contentHash: sha256:13523368b30c86d2e72557d7e42656e44453515ee2cc4fb1321a5666f4bfb4d2
+    path: docs/architecture/system/conversation-routing/deployment-composition.md
+    userRegionHash: sha256:13523368b30c86d2e72557d7e42656e44453515ee2cc4fb1321a5666f4bfb4d2
+  - byteCount: 2155
+    contentHash: sha256:abb33b13507ff6ca393f453316e511b866e570e4333837cd3fd5de0664766908
+    path: docs/architecture/system/conversation-routing/routing-and-authority.md
+    userRegionHash: sha256:abb33b13507ff6ca393f453316e511b866e570e4333837cd3fd5de0664766908
+  - byteCount: 3285
+    contentHash: sha256:c882edfe5581142b105411c3b72289940b0ec388fa373929c633f8e5c9b37ed4
+    path: docs/architecture/system/conversation-routing/transport-and-recovery.md
+    userRegionHash: sha256:c882edfe5581142b105411c3b72289940b0ec388fa373929c633f8e5c9b37ed4
+profile: architecture_document
+recordId: knormdoc_b5b675afea355d1fd6c542d4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a8002be72fa17b9c41d242164bb15ab144dbcee98053c7324e563f12329cbb3c
+sourcePath: docs/architecture/system/conversation-routing.md
+sourceUnitVersionIds:
+  - uv_090376f5a08c2147a138bcd9
+  - uv_210f710f08451b62473129f8
+  - uv_4d2b401a53446d6aec3dca0b
+  - uv_560353a2a91a11c85003e177
+  - uv_8b5fa6f3135547cffce51784
+  - uv_b60e8813e7f89bd7af5107b3
+  - uv_c94e28966ee39b401245d06e
+  - uv_d5b20a6b8eee56295d6dab87
+  - uv_f6fb97b65a1846b9b2da6781

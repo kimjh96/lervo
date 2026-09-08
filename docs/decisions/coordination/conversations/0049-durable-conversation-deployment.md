@@ -9,19 +9,42 @@ Adapter ports alone cannot reconnect external replies to canonical events after 
 
 ## Decision
 
+### Identity and storage
+
 - `ConversationPlatformIdentityPort` persists the external message address to canonical event mapping before accepting inbound. Outbound correlation binds integration, tenant, conversation, external message, outbound ID, source event, and automation depth without overwriting conflicts.
 - An agent participant without Lervo outbound correlation receives depth 8, preventing automatic conversations with external bots.
 - `@lervo/conversation-platform-sqlite` stores conversation, participant, and thread bindings, correlations, and delivery replay in a separate `0600` database because reversible external IDs are required. Thread IDs derive deterministically from the first external address.
 - The same platform database stores one compare-and-set ingress cursor per external conversation. A fresh Discord deployment establishes the latest visible message as its baseline without replaying pre-install history. Schema migration seeds existing Discord cursors from the newest durable message correlation.
+
+### Delivery
+
 - Before an API call, persist platform, integration, outbound ID, request hash, `sending`, and attempt time. Mark `delivered` only after verifying an external message ID.
 - Explicit rejection becomes `rejected`; an unknown response becomes `unknown`; leftover `sending` after restart also becomes unknown. None auto-retry, preventing duplicate delivery at the cost of operator reconciliation.
 - Slack transport uses bearer OAuth, escaped plain text, and disabled mrkdwn. Discord uses a bot token, empty allowed mentions, disabled reply mention, and an outbound-derived enforced nonce. Bound time, size, content type, and response message ID. Never expose credentials in errors.
+
+### Composition and ingress recovery
+
 - `apps/conversation` composes CAS, stores, adapters, and delivery per integration. A separate driver owns Discord WebSocket Identify, Resume, heartbeat, and reconnect; the application entrypoint does not claim it.
-- After Discord READY or RESUMED, the application retrieves messages after the durable channel cursor through the bot-authenticated REST history adapter. It processes at most 1,000 messages oldest-first through the same identity, interaction, publication, and delivery path as Gateway intake. It advances the cursor only after each message settles, including ignored self messages; address drift, cursor conflict, an invalid response, or an exceeded bound fails startup reconciliation.
+- After Discord READY or RESUMED, the application retrieves messages after the durable channel cursor through the bot-authenticated REST history adapter. It processes at most 1,000 messages oldest-first through the same identity, interaction, publication, and delivery path as Gateway intake. It advances the cursor only after each message settles, including ignored self messages. Address drift, cursor conflict, an invalid response, or an exceeded bound fails startup reconciliation.
 
-Raw external IDs exist only in mapping SQLite, never in normalized, interaction, or global events. Credentials and Gateway handles are not persisted. Mapping conflicts preserve old values and fail with `identity_mapping_failed`. Credential, response, and unknown replay failures use `platform_delivery_failed` and produce no receipt. `platform_ingress_failed` means authenticated history could not be retrieved or validated; it produces no cursor advance and prevents readiness. The ingress cursor is platform-local recovery state with no message body. Add no event.
+### Privacy and failures
 
-Fixtures prove restart recovery for threads, replies, depth, receipts, and ingress cursors; conflict preservation; Slack and Discord credential request constraints; one API call on successful replay; no resend after an unknown outcome; oldest-first Discord history recovery; safe first-install baselining; and reconnection of a Slack reply to its canonical event after restart.
+Raw external IDs exist only in mapping SQLite, never in normalized, interaction, or global events. Credentials and Gateway handles are not persisted. Mapping conflicts preserve old values and fail with `identity_mapping_failed`. Credential, response, and unknown replay failures use `platform_delivery_failed` and produce no receipt.
+
+`platform_ingress_failed` means authenticated history could not be retrieved or validated; it produces no cursor advance and prevents readiness. The ingress cursor is platform-local recovery state with no message body. Add no event.
+
+### Validation
+
+Fixtures prove:
+
+- Restart recovery for threads, replies, depth, receipts, and ingress cursors.
+- Conflict preservation.
+- Slack and Discord credential request constraints.
+- One API call on successful replay.
+- No resend after an unknown outcome.
+- Oldest-first Discord history recovery.
+- Safe first-install baselining.
+- Reconnection of a Slack reply to its canonical event after restart.
 
 ## Consequences
 
