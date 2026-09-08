@@ -134,10 +134,10 @@ describe("Node runtime configuration", () => {
       ],
       routing: {
         readOnlyRoleId: "conversation-reader",
-        intent: { provider: "codex", model: "gpt-5.3-codex", timeoutMs: 45_000 },
+        intent: { provider: "codex", model: "gpt-5.6-sol", timeoutMs: 45_000 },
         response: {
           provider: "codex",
-          model: "gpt-5.3-codex",
+          model: "gpt-5.6-sol",
           reasoningEffort: "low",
         },
         evaluation: { provider: "claude", model: "claude-haiku-4-5", reasoningEffort: "low" },
@@ -156,10 +156,10 @@ describe("Node runtime configuration", () => {
         botTokenFile: `${root}/discord.token`,
         routing: {
           readOnlyRoleId: "conversation-reader",
-          intent: { provider: "codex", model: "gpt-5.3-codex", timeoutMs: 45_000 },
+          intent: { provider: "codex", model: "gpt-5.6-sol", timeoutMs: 45_000 },
           response: {
             provider: "codex",
-            model: "gpt-5.3-codex",
+            model: "gpt-5.6-sol",
             reasoningEffort: "low",
           },
           evaluation: {
@@ -225,7 +225,7 @@ describe("Node runtime configuration", () => {
       routing: {
         readOnlyRoleId: "conversation-reader",
         intent: { provider: "claude", model: "claude-haiku-4-5" },
-        response: { provider: "codex", model: "gpt-5.3-codex" },
+        response: { provider: "codex", model: "gpt-5.6-sol" },
       },
       command: {
         roleId: "developer",

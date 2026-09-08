@@ -4,7 +4,7 @@ import { createNodeProviderAdapter } from "../src/managed-provider-runtime.js";
 
 describe("Node conversation provider selection", () => {
   for (const input of [
-    { provider: "codex" as const, model: "gpt-5.3-codex" },
+    { provider: "codex" as const, model: "gpt-5.6-sol" },
     { provider: "claude" as const, model: "claude-sonnet-4-6" },
   ]) {
     it(`records the configured ${input.provider} model in the common adapter descriptor`, () => {

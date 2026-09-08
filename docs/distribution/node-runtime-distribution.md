@@ -4,28 +4,30 @@ Platform-specific distribution that runs without an npm registry or Lervo source
 
 - Entry point: `dist/bin.js`
 - Runtime: Node.js 22.13 or later
-- Version: owning Lervo product release from the public `@lervo/cli` manifest
+- Version: owning Lervo product release from public `@lervo/cli` manifest
 - Excludes: configuration, bearer tokens, trust keys, CA certificates, and repositories
 - Verify included files and dependency closure against `lervo-node-distribution.manifest.json` and `sbom.cdx.json`
 - Successful installation does not prove Hub connectivity, provider authentication, service activation, or readiness
 
 ## Installation and preflight
 
-Obtain the archive SHA-256 through a separate trusted channel and compare it with the platform SHA-256 tool. Extract into a new, previously absent directory, then run:
+Obtain the archive SHA-256 through a separate trusted channel and compare it with the platform SHA-256 tool. Extract into a new directory, then run:
 
 ```sh
 node dist/bin.js --config <config.json>
 ```
 
-Before activation, run the owner-only configuration and credential preflight. It performs no network or repository work:
+Before activation, run the owner-only configuration and credential preflight:
 
 ```sh
 node dist/bin.js --check-config <config.json>
 ```
 
+Preflight performs no network or repository work.
+
 ## Discord configuration
 
-An optional `discordConversation` object enables Discord-first remote continuation in the same Node service. Keep `hub.bearerTokenFile`, `discordConversation.botTokenFile`, and the configuration itself as separate mode-0600 regular files.
+An optional `discordConversation` object enables Discord-first remote continuation in the same Node service. Keep `hub.bearerTokenFile`, `discordConversation.botTokenFile`, and the configuration as separate mode-0600 regular files.
 
 The object binds one integration and worker, the bot application and allowed guild or DM scope, explicit channel and participant mappings, one agent participant, and the bounded managed-command policy. Optional `routing` adds no-capability natural-language intent resolution with a distinct read-only execution role. The [Discord service decision](../decisions/coordination/conversations/0382-node-hosted-discord-conversation-service.md) and [routing decision](../decisions/coordination/conversations/0384-explicit-discord-read-and-continuation-modes.md) define the fields and failure behavior.
 
@@ -68,7 +70,7 @@ Replace every identifier and path with reviewed deployment coordinates; the toke
       },
       "response": {
         "provider": "codex",
-        "model": "gpt-5.3-codex",
+        "model": "gpt-5.6-sol",
         "reasoningEffort": "low"
       },
       "evaluation": {
