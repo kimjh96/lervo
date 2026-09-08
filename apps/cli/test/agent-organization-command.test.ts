@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -339,6 +339,29 @@ describe("agent organization CLI", () => {
       memberships: [{ agentId, agentDisplayName: "Tarin", displayNameRevision: 2 }],
       deployments: [{ agentId, agentDisplayName: "Tarin", displayNameRevision: 2 }],
     });
+    const changedConfig = JSON.parse(await readFile(configPath, "utf8"));
+    changedConfig.discordConversation.routing.response.model = "gpt-faster-response";
+    await writeFile(configPath, JSON.stringify(changedConfig), { mode: 0o600 });
+    const rotated: string[] = [];
+    expect(await runCli(bind, io(root, rotated))).toBe(0);
+    const rotatedProjection = JSON.parse(rotated.join(""));
+    expect(rotatedProjection.deployments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ retiredAt: expect.any(String) }),
+        expect.objectContaining({
+          agentId,
+          agentDisplayName: "Tarin",
+          retiredAt: null,
+        }),
+      ]),
+    );
+    expect(rotatedProjection.channelMemberships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "ended", revision: 2 }),
+        expect.objectContaining({ status: "active", revision: 1 }),
+      ]),
+    );
+    expect(await runCli(bind, io(root))).toBe(0);
     const storage = await openProjectStorage(root);
     try {
       const organizationEvents: ReturnType<typeof storage.events.list> = [];
@@ -357,6 +380,10 @@ describe("agent organization CLI", () => {
         "organization.external_agent.deployment.bound",
         "organization.channel.membership.changed",
         "organization.agent.identity.changed",
+        "organization.channel.membership.changed",
+        "organization.external_agent.deployment.retired",
+        "organization.external_agent.deployment.bound",
+        "organization.channel.membership.changed",
       ]);
       expect(JSON.stringify(organizationEvents)).not.toContain("999999999999999999");
       expect(JSON.stringify(organizationEvents)).not.toContain("222222222222222222");
