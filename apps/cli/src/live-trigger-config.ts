@@ -6,6 +6,8 @@ import {
 } from "@lervo/live-trigger-contract";
 import { readOwnerOnlyText } from "@lervo/runtime-security";
 
+import { isDirectLervoAuthorizationJson } from "./live-trigger-authorization-path.js";
+
 export interface LiveWebhookServerConfigV1 {
   schemaVersion: 1;
   repositoryRoot: string;
@@ -86,7 +88,7 @@ function parseConfig(value: unknown, configPath: string): LiveWebhookServerConfi
   if (
     relativeAuthorization.startsWith("..") ||
     isAbsolute(relativeAuthorization) ||
-    !/^\.lervo\/[A-Za-z0-9._-]+\.json$/u.test(relativeAuthorization)
+    !isDirectLervoAuthorizationJson(relativeAuthorization)
   )
     throw new Error(
       "The live webhook authorization must be a direct JSON child of the repository .lervo directory.",

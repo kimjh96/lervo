@@ -24,32 +24,44 @@ async function serveOnce(input) {
     { cwd: input.root, env: { ...process.env, LERVO_INSTALLED_WEBHOOK_SECRET: input.secret } },
   );
   const errors = [];
-  child.stderr.on("data", (chunk) => errors.push(chunk));
+  child.stderr.on("data", (chunk) => {
+    if (Buffer.concat(errors).byteLength < 16_384) errors.push(chunk);
+  });
+  const closed = new Promise((resolveExit, rejectExit) => {
+    child.once("error", rejectExit);
+    child.once("close", resolveExit);
+  });
   let output = "";
-  const ready = await new Promise((resolveReady, rejectReady) => {
-    const timeout = setTimeout(
-      () => rejectReady(new Error("Installed webhook did not become ready.")),
-      15_000,
-    );
-    child.once("error", rejectReady);
+  let timeout;
+  const readyOutput = new Promise((resolveReady) => {
     child.stdout.on("data", (chunk) => {
       output += chunk.toString("utf8");
       const newline = output.indexOf("\n");
       if (newline < 0) return;
-      clearTimeout(timeout);
       resolveReady(JSON.parse(output.slice(0, newline)));
     });
   });
+  const ready = await Promise.race([
+    readyOutput,
+    closed.then((exitCode) => {
+      throw new Error(
+        `Installed webhook exited before readiness (${String(exitCode)}): ${Buffer.concat(errors).toString("utf8").trim()}`,
+      );
+    }),
+    new Promise((_, rejectReady) => {
+      timeout = setTimeout(() => {
+        child.kill();
+        rejectReady(new Error("Installed webhook did not become ready within 30 seconds."));
+      }, 30_000);
+    }),
+  ]).finally(() => clearTimeout(timeout));
   const response = await fetch(`http://${ready.host}:${ready.port}${ready.path}`, {
     method: "POST",
     headers: input.headers,
     body: input.body,
   });
   const body = await response.json();
-  const exitCode = await new Promise((resolveExit, rejectExit) => {
-    child.once("error", rejectExit);
-    child.once("close", resolveExit);
-  });
+  const exitCode = await closed;
   assert.equal(exitCode, 0, Buffer.concat(errors).toString("utf8"));
   return { statusCode: response.status, body };
 }
