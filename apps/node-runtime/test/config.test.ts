@@ -148,7 +148,37 @@ describe("Node runtime configuration", () => {
         },
         evaluation: { provider: "claude", model: "claude-haiku-4-5", reasoningEffort: "low" },
       },
-      policy: { respondTo: ["human", "agent"], maxResponseAttempts: 2 },
+      policy: {
+        mode: "proactive",
+        respondTo: ["human", "agent", "system"],
+        signalCodes: ["work.completed"],
+        maxResponseAttempts: 2,
+      },
+      repositorySignals: {
+        pollIntervalMs: 1_000,
+        mappings: [
+          {
+            eventType: "run.completed",
+            signalCode: "work.completed",
+            conversationIds: ["cnv_operator01"],
+          },
+        ],
+      },
+      deliberation: {
+        cliExecutable: "bin/lervo",
+        workerId: "discord-deliberation",
+        principals: [
+          {
+            participantId: "ptc_operator01",
+            principalId: "owner:jonghyeok",
+            permissions: ["deliberation.start", "deliberation.resume", "deliberation.read"],
+          },
+        ],
+        pollIntervalMs: 1_000,
+        leaseDurationMs: 300_000,
+        maxRecords: 1_000,
+        processTimeoutMs: 900_000,
+      },
       command: {
         roleId: "developer",
         provider: "codex",
@@ -181,7 +211,37 @@ describe("Node runtime configuration", () => {
         },
         participants: [{ actorKind: "human", roleId: null }],
         administration: { allowedActions: ["current_member.nickname.set"] },
-        policy: { respondTo: ["agent", "human"], maxResponseAttempts: 2 },
+        policy: {
+          mode: "proactive",
+          respondTo: ["agent", "human", "system"],
+          signalCodes: ["work.completed"],
+          maxResponseAttempts: 2,
+        },
+        repositorySignals: {
+          pollIntervalMs: 1_000,
+          mappings: [
+            {
+              eventType: "run.completed",
+              signalCode: "work.completed",
+              conversationIds: ["cnv_operator01"],
+            },
+          ],
+        },
+        deliberation: {
+          cliExecutable: `${root}/bin/lervo`,
+          workerId: "discord-deliberation",
+          principals: [
+            {
+              participantId: "ptc_operator01",
+              principalId: "owner:jonghyeok",
+              permissions: ["deliberation.read", "deliberation.resume", "deliberation.start"],
+            },
+          ],
+          pollIntervalMs: 1_000,
+          leaseDurationMs: 300_000,
+          maxRecords: 1_000,
+          processTimeoutMs: 900_000,
+        },
         command: { assignmentId: null, agentId: null },
       },
     });
@@ -210,6 +270,15 @@ describe("Node runtime configuration", () => {
       invalidOrganization.discordConversation as { organization: Record<string, unknown> }
     ).organization.teamId = "wrong";
     expect(() => parseNodeRuntimeConfig(invalidOrganization, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
+    const unsubscribedSignal = structuredClone(configured);
+    (
+      unsubscribedSignal.discordConversation as {
+        policy: { signalCodes: string[] };
+      }
+    ).policy.signalCodes = ["review.requested"];
+    expect(() => parseNodeRuntimeConfig(unsubscribedSignal, root)).toThrow(
       expect.objectContaining({ code: "invalid_config" }),
     );
   });

@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_aa8039029b06317c1dd45c2c
+compiler:
+  compilerBuildId: sha256:4f92888a5656d8d79ac0a6f29d9b072e48c3f140262b685293095149f491293b
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_39073b22869be477d7f11c26
+outputLanguage: en
+outputs:
+  - byteCount: 5265
+    contentHash: sha256:26a8b92ff8164a1ebf85ae3e4757101f1ae3930760e8eb8e565ed8cc85223c36
+    path: docs/decisions/coordination/conversations/0392-installed-proactive-signals-and-deliberation.md
+    userRegionHash: sha256:26a8b92ff8164a1ebf85ae3e4757101f1ae3930760e8eb8e565ed8cc85223c36
+profile: decision_record
+recordId: knormdoc_2f18148fab9fdea0285cfe8e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3c6d19258bfc09ca4d8d25f75c329a8ee38c6438561c91b2a46699d7c0d683f6
+sourcePath: docs/decisions/coordination/conversations/0392-installed-proactive-signals-and-deliberation.md
+sourceUnitVersionIds:
+  - uv_16330c3c42e6e4ec9e4023e7
+  - uv_66ce5b6bc1bd88c52ee9f917
+  - uv_a95885c6a563805c17d58efd
+  - uv_bb572560951924969ea2682e
+  - uv_c2d00eea64ae4ce85086c2d9

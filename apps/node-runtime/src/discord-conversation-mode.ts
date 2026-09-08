@@ -1,4 +1,7 @@
-import { readConversationControlMessage } from "@lervo/conversation-control";
+import {
+  parseConversationControlCommand,
+  readConversationControlMessage,
+} from "@lervo/conversation-control";
 import type { ConversationReplyCandidate, ConversationResponder } from "@lervo/interaction";
 import type { ConversationRelevanceEvaluator } from "@lervo/interaction";
 import type {
@@ -17,7 +20,8 @@ import type {
 import type { ConversationHistoryPort } from "./conversation-history.js";
 import type { ConversationIntentResolutionStore } from "./conversation-intent-store.js";
 
-export type DiscordConversationMode = "read_only" | "continuation" | "platform_action" | "clarify";
+export type DiscordConversationMode =
+  "read_only" | "continuation" | "platform_action" | "clarify" | "control";
 
 export interface DiscordPlatformActionResponder {
   readonly availableEffects: readonly ConversationRequestedEffect["kind"][];
@@ -72,6 +76,7 @@ export class NaturalLanguageDiscordConversationResponder
       readOnly: ConversationResponder;
       continuation: ConversationResponder;
       platformAction: DiscordPlatformActionResponder;
+      explicitControl?: ConversationResponder;
     },
   ) {}
 
@@ -96,6 +101,28 @@ export class NaturalLanguageDiscordConversationResponder
     priorTurns: Awaited<ReturnType<ConversationHistoryPort["recent"]>>;
     replyCandidate: ConversationReplyCandidate | null;
   }> {
+    if (this.options.explicitControl !== undefined) {
+      const message = withoutLeadingBotMention(
+        await readConversationControlMessage({ artifactStore: this.options.artifactStore, event }),
+        this.options.applicationId,
+      );
+      const control = parseConversationControlCommand(message);
+      if (control !== null && !("deliveryId" in control)) {
+        return {
+          mode: "control",
+          resolution: {
+            intent: "answer",
+            confidence: "high",
+            participation: "relevant",
+            effect: { kind: "none" },
+            provider: { providerId: "lervo_control", model: null, adapterVersion: "2" },
+            resultDigest: event.content.contentHash,
+          },
+          priorTurns: [],
+          replyCandidate: null,
+        };
+      }
+    }
     const priorTurns = await this.options.history.recent(event);
     if (this.options.managedTurnResolver !== undefined) {
       const managed = await this.options.managedTurnResolver.resolve({
@@ -192,6 +219,7 @@ export class NaturalLanguageDiscordConversationResponder
   async respond(input: Parameters<ConversationResponder["respond"]>[0]) {
     const resolution = await this.resolution(input.event);
     const request = { ...input, context: { priorTurns: resolution.priorTurns } };
+    if (resolution.mode === "control") return this.options.explicitControl!.respond(request);
     if (
       resolution.mode === "platform_action" &&
       resolution.resolution.effect.kind === "discord_current_member_nickname_set"

@@ -14,6 +14,7 @@ import {
 } from "./config-values.js";
 import { NodeRuntimeError } from "./errors.js";
 import { parseDiscordAgentOrganization } from "./discord-agent-organization-config.js";
+import { parseDiscordConversationDeliberation } from "./discord-conversation-deliberation-config.js";
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
 const INTEGRATION_ID = /^itg_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
@@ -65,6 +66,8 @@ export function parseDiscordConversationConfig(
       "gateway",
       "http",
       "policy",
+      "repositorySignals",
+      "deliberation",
     ],
     "discordConversation",
   );
@@ -123,6 +126,28 @@ export function parseDiscordConversationConfig(
     command: source.command,
     policy: source.policy,
   });
+  const repositorySignals = parseDiscordRepositorySignals(
+    source.repositorySignals,
+    conversations.map((item) => item.conversationId),
+  );
+  const deliberation = parseDiscordConversationDeliberation(
+    source.deliberation,
+    baseDirectory,
+    participants.filter((item) => item.actorKind === "human").map((item) => item.participantId),
+  );
+  if (
+    repositorySignals !== undefined &&
+    (behavior.policy?.mode !== "proactive" ||
+      !behavior.policy.respondTo?.includes("system") ||
+      repositorySignals.mappings.some(
+        (mapping) => !behavior.policy!.signalCodes?.includes(mapping.signalCode),
+      ))
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "Discord repository signals require proactive mode and exact system signal subscriptions.",
+    );
+  }
   const conversationTenants = new Set(conversations.map((item) => item.tenantKey));
   if (
     conversations.some((item) =>
@@ -203,6 +228,8 @@ export function parseDiscordConversationConfig(
     participants,
     ...(allowedActions === undefined ? {} : { administration: { allowedActions } }),
     ...behavior,
+    ...(repositorySignals === undefined ? {} : { repositorySignals }),
+    ...(deliberation === undefined ? {} : { deliberation }),
     ...(gateway === undefined
       ? {}
       : {
@@ -221,5 +248,81 @@ export function parseDiscordConversationConfig(
             ...(maxResponseBytes === undefined ? {} : { maxResponseBytes }),
           },
         }),
+  };
+}
+
+function parseDiscordRepositorySignals(
+  value: unknown,
+  configuredConversationIds: readonly string[],
+): NodeDiscordConversationConfig["repositorySignals"] {
+  if (value === undefined) return undefined;
+  const source = configRecord(value, "discordConversation.repositorySignals");
+  exactConfigKeys(source, ["pollIntervalMs", "mappings"], "discordConversation.repositorySignals");
+  const pollIntervalMs = optionalConfigInteger(
+    source,
+    "pollIntervalMs",
+    100,
+    60_000,
+    "discordConversation.repositorySignals",
+  );
+  if (
+    !Array.isArray(source.mappings) ||
+    source.mappings.length < 1 ||
+    source.mappings.length > 64
+  ) {
+    throw new NodeRuntimeError("invalid_config", "Discord repository signal mappings are invalid.");
+  }
+  const mappings = source.mappings.map((value, index) => {
+    const mapping = configRecord(value, `repositorySignals.mappings[${index}]`);
+    exactConfigKeys(
+      mapping,
+      ["eventType", "signalCode", "conversationIds"],
+      `repositorySignals.mappings[${index}]`,
+    );
+    const eventType = configText(
+      mapping.eventType,
+      `repositorySignals.mappings[${index}].eventType`,
+    );
+    const signalCode = configText(
+      mapping.signalCode,
+      `repositorySignals.mappings[${index}].signalCode`,
+    );
+    const conversationIds =
+      mapping.conversationIds === undefined
+        ? undefined
+        : boundedUniqueText(
+            mapping.conversationIds,
+            `repositorySignals.mappings[${index}].conversationIds`,
+            /^cnv_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u,
+            1,
+            64,
+          );
+    if (
+      !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(eventType) ||
+      !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(signalCode) ||
+      conversationIds?.some((conversationId) => !configuredConversationIds.includes(conversationId))
+    ) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "Discord repository signal mappings are invalid.",
+      );
+    }
+    return {
+      eventType,
+      signalCode,
+      ...(conversationIds === undefined ? {} : { conversationIds }),
+    };
+  });
+  if (
+    new Set(mappings.map((item) => `${item.eventType}:${item.signalCode}`)).size !== mappings.length
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "Discord repository signal mappings must be unique.",
+    );
+  }
+  return {
+    mappings,
+    ...(pollIntervalMs === undefined ? {} : { pollIntervalMs }),
   };
 }

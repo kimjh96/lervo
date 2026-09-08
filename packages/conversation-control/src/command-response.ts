@@ -136,7 +136,21 @@ export async function createConversationControlResponse(input: {
     });
     return renderHubControl(controlled, input.command.operation === "approval_review");
   }
-  if (input.options.deliberations === undefined) {
+  return createConversationDeliberationResponse({
+    deliberations: input.options.deliberations,
+    event: input.event,
+    command: input.command,
+    at: input.at,
+  });
+}
+
+export async function createConversationDeliberationResponse(input: {
+  deliberations: ConversationControlResponderOptions["deliberations"];
+  event: ConversationInboundEvent;
+  command: Exclude<ParsedConversationControlCommand, { deliveryId: string }>;
+  at: string;
+}): Promise<string> {
+  if (input.deliberations === undefined) {
     throw new ConversationControlError(
       "deliberation_source_failed",
       "No deliberation service is connected to this deployment.",
@@ -145,19 +159,19 @@ export async function createConversationControlResponse(input: {
   try {
     const summary =
       input.command.operation === "deliberation_start"
-        ? await input.options.deliberations.start({
+        ? await input.deliberations.start({
             event: input.event,
             policyId: input.command.policyId,
             topic: input.command.topic,
             requestedAt: input.at,
           })
         : input.command.operation === "deliberation_resume"
-          ? await input.options.deliberations.resume({
+          ? await input.deliberations.resume({
               event: input.event,
               deliberationId: input.command.deliberationId,
               requestedAt: input.at,
             })
-          : await input.options.deliberations.inspect({
+          : await input.deliberations.inspect({
               event: input.event,
               deliberationId: input.command.deliberationId,
               inspectedAt: input.at,

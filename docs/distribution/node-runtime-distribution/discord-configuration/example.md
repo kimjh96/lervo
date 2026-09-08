@@ -1,6 +1,6 @@
 # Example Discord configuration
 
-Replace every identifier and path with reviewed deployment coordinates. Store the secret in the token file, not this JSON.
+Replace every identifier and path with reviewed deployment coordinates. Store the secret in the token file, not in this JSON.
 
 ```json
 {
@@ -50,8 +50,38 @@ Replace every identifier and path with reviewed deployment coordinates. Store th
       "lifetimeMs": 120000
     },
     "policy": {
-      "respondTo": ["human"],
+      "mode": "proactive",
+      "respondTo": ["human", "agent", "system"],
+      "signalCodes": ["work.completed"],
       "maxResponseAttempts": 3
+    },
+    "repositorySignals": {
+      "pollIntervalMs": 2000,
+      "mappings": [
+        {
+          "eventType": "run.completed",
+          "signalCode": "work.completed",
+          "conversationIds": ["cnv_operator01"]
+        }
+      ]
+    },
+    "deliberation": {
+      "cliExecutable": "/absolute/bin/lervo",
+      "workerId": "discord-deliberation",
+      "principals": [
+        {
+          "participantId": "ptc_operator01",
+          "principalId": "owner:operator",
+          "permissions": [
+            "deliberation.start",
+            "deliberation.resume",
+            "deliberation.read"
+          ]
+        }
+      ],
+      "pollIntervalMs": 2000,
+      "leaseDurationMs": 300000,
+      "processTimeoutMs": 900000
     }
   }
 }

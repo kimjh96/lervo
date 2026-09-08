@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { chmod, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { FileSystemCas } from "@lervo/cas";
@@ -68,6 +68,16 @@ describe("installed Node Discord conversation runtime", () => {
     const root = await temporaryRoot();
     const fixture = await nodeRuntimeFixture(root, await availablePort());
     await ownerFile(resolve(root, "discord.token"), `discord.${"t".repeat(40)}\n`);
+    const deliberationCli = resolve(root, "deliberation-cli-fixture");
+    await ownerFile(
+      deliberationCli,
+      `#!/usr/bin/env node
+const id = process.argv[process.argv.indexOf("--deliberation-id") + 1];
+process.stdin.resume();
+process.stdin.on("end", () => process.stdout.write(JSON.stringify({schemaVersion:1, deliberationId:id, status:"converged", artifactCount:4}) + "\\n"));
+`,
+    );
+    await chmod(deliberationCli, 0o700);
     const configured = structuredClone(fixture.value);
     configured.discordConversation = {
       integrationId: "itg_discord01",
@@ -87,6 +97,18 @@ describe("installed Node Discord conversation runtime", () => {
         readOnlyRoleId: "conversation-reader",
         intent: { provider: "codex" },
         response: { provider: "codex" },
+      },
+      deliberation: {
+        cliExecutable: deliberationCli,
+        workerId: "discord-deliberation",
+        principals: [
+          {
+            participantId: "ptc_operator01",
+            principalId: "owner:operator",
+            permissions: ["deliberation.start", "deliberation.resume", "deliberation.read"],
+          },
+        ],
+        pollIntervalMs: 100,
       },
       command: {
         roleId: "developer",
@@ -266,11 +288,28 @@ describe("installed Node Discord conversation runtime", () => {
       () =>
         administrationDelivery.mock.calls.length === 1 && messageDelivery.mock.calls.length === 3,
     );
+    gateway.emit({
+      op: 0,
+      s: 5,
+      t: "MESSAGE_CREATE",
+      d: {
+        id: "823456789012345678",
+        channel_id: channelId,
+        guild_id: guildId,
+        author: { id: humanId, bot: false },
+        content:
+          "/lervo deliberate start deliberation_product-review -- Review the deployment boundary.",
+        mentions: [],
+        timestamp: "2026-09-07T08:00:03.000Z",
+      },
+    });
+    await settled(() => messageDelivery.mock.calls.length === 4);
     expect(request).toHaveBeenCalledOnce();
     expect(readOnlyResponse).toHaveBeenCalledOnce();
-    expect(messageDelivery).toHaveBeenCalledTimes(3);
+    expect(messageDelivery).toHaveBeenCalledTimes(4);
     expect(administrationDelivery).toHaveBeenCalledOnce();
-    expect(typingDelivery).toHaveBeenCalledTimes(3);
+    expect(typingDelivery).toHaveBeenCalledTimes(4);
+    expect(intentResolver).toHaveBeenCalledTimes(3);
     expect(intentResolver.mock.calls[0]![0]).toMatchObject({ mentioned: false, priorTurns: [] });
     expect(intentResolver.mock.calls[1]![0].priorTurns).toHaveLength(2);
     expect(intentResolver.mock.calls[2]![0]).toMatchObject({

@@ -58,6 +58,13 @@ export interface ConversationControlResponderOptions {
   now?: () => Date;
 }
 
+export interface ConversationDeliberationResponderOptions {
+  artifactStore: ArtifactStore;
+  deliberations: ConversationDeliberationPort;
+  writingContract: WritingContract;
+  now?: () => Date;
+}
+
 export interface ConversationRemoteContinuationPort {
   request(input: {
     projectId: string;

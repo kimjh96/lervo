@@ -18,6 +18,76 @@ export const deliberateUsage =
   "  lervo deliberate artifact --content-hash <sha256> [--root <path>] [--json]\n" +
   "  lervo deliberate status <deliberation-id> [--root <path>] [--json]";
 
+async function runAssignedDeliberationWorkerCommand(
+  args: string[],
+  io: CliIo,
+  services: CliServices,
+): Promise<number> {
+  try {
+    const parsed = parseArgs({
+      args,
+      strict: true,
+      allowPositionals: false,
+      options: {
+        "deliberation-id": { type: "string" },
+        "project-id": { type: "string" },
+        root: { type: "string" },
+        stdin: { type: "boolean" },
+      },
+    });
+    if (parsed.values.stdin !== true || io.stdin === undefined) {
+      throw new Error("Assigned deliberation input must be supplied through stdin.");
+    }
+    const deliberationId = parsed.values["deliberation-id"];
+    const expectedProjectId = parsed.values["project-id"];
+    if (
+      deliberationId === undefined ||
+      expectedProjectId === undefined ||
+      !/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(deliberationId) ||
+      !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(expectedProjectId)
+    ) {
+      throw new Error("Assigned deliberation coordinates are invalid.");
+    }
+    const payload = JSON.parse(await io.stdin()) as {
+      operation?: unknown;
+      policyId?: unknown;
+      topic?: unknown;
+    };
+    const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    const request =
+      payload.operation === "resume"
+        ? ({ repositoryRoot, resumeDeliberationId: deliberationId } as const)
+        : payload.operation === "start" &&
+            typeof payload.policyId === "string" &&
+            typeof payload.topic === "string"
+          ? ({ repositoryRoot, policyId: payload.policyId, topic: payload.topic } as const)
+          : null;
+    if (request === null) throw new Error("Assigned deliberation payload is invalid.");
+    const outcome = await services.executeAssignedManagedDeliberation({
+      deliberationId,
+      expectedProjectId,
+      request,
+    });
+    io.stdout(
+      `${JSON.stringify({
+        schemaVersion: 1,
+        deliberationId: outcome.deliberationId,
+        status: outcome.status,
+        artifactCount: outcome.artifactCount,
+      })}\n`,
+    );
+    return outcome.status === "converged" ? 0 : 2;
+  } catch (error) {
+    io.stderr(
+      `${JSON.stringify({
+        code: errorCode(error),
+        message: error instanceof Error ? error.message : "Could not run assigned deliberation.",
+      })}\n`,
+    );
+    return 1;
+  }
+}
+
 async function runDeliberationArtifactCommand(
   args: string[],
   io: CliIo,
@@ -152,6 +222,9 @@ export async function runDeliberateCommand(
   io: CliIo,
   services: CliServices,
 ): Promise<number> {
+  if (args[0] === "assigned-worker") {
+    return runAssignedDeliberationWorkerCommand(args.slice(1), io, services);
+  }
   if (args[0] === "artifact") {
     return runDeliberationArtifactCommand(args.slice(1), io, services);
   }

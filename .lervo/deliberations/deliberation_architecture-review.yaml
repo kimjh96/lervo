@@ -1,0 +1,21 @@
+schemaVersion: 1
+policyId: deliberation_architecture-review
+maxRounds: 2
+requiredVerificationSuiteIds:
+  - repository.default
+participants:
+  - roleId: architecture-proposer
+    name: Architecture proposer
+    description: Proposes the smallest design that satisfies the product outcome and preserves explicit dependency boundaries.
+    provider: codex
+    responsibilities: [proposer, decision_owner]
+  - roleId: maintainability-reviewer
+    name: Maintainability reviewer
+    description: Independently reviews responsibility separation, extensibility, failure semantics, and operational cost.
+    provider: claude
+    responsibilities: [reviewer]
+  - roleId: repository-verifier
+    name: Repository verifier
+    description: Verifies the proposal against canonical repository state and the configured repository verification suite.
+    provider: codex
+    responsibilities: [verifier]

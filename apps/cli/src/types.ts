@@ -8,7 +8,10 @@ import type {
 } from "@lervo/application-contract";
 
 import type { ExecuteManagedRun } from "./managed-run.js";
-import type { ExecuteManagedDeliberation } from "./managed-deliberation.js";
+import type {
+  ExecuteAssignedManagedDeliberation,
+  ExecuteManagedDeliberation,
+} from "./managed-deliberation.js";
 import type { GroundProductionRequest } from "./semantic-grounding.js";
 import type { CreateTerminalStageObservation } from "./terminal-stage-observation.js";
 import type { FinalizeGovernedAssignment } from "./governed-assignment-finalization.js";
@@ -36,6 +39,7 @@ export interface CliIo {
 export interface CliServices {
   executeManagedRun: ExecuteManagedRun;
   executeManagedDeliberation: ExecuteManagedDeliberation;
+  executeAssignedManagedDeliberation: ExecuteAssignedManagedDeliberation;
   executeUnattendedScheduler: ExecuteUnattendedScheduler;
   openProjectStorage(root: string): Promise<ProjectStorage>;
   inspectDoctorEnvironment(input: {

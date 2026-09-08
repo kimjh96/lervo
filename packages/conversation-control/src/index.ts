@@ -14,4 +14,5 @@ export {
   readConversationControlMessage,
 } from "./response-artifacts.js";
 export * from "./responder.js";
+export * from "./deliberation-responder.js";
 export * from "./types.js";

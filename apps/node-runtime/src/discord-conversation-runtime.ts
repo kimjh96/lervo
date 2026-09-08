@@ -1,9 +1,7 @@
-import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 
 import { openConversationApplication } from "@lervo/conversation-app";
 import { FileSystemCas } from "@lervo/cas";
-import { createConversationParticipationPolicy } from "@lervo/conversation-contract";
 import {
   ConversationRemoteContinuationResponder,
   type ConversationRemoteContinuationPort,
@@ -19,8 +17,8 @@ import {
 } from "@lervo/core";
 import type { DiscordGatewayTransport } from "@lervo/discord-gateway";
 import type { ConversationResponder } from "@lervo/interaction";
+import type { EventStore } from "@lervo/storage-contract";
 import type { RemoteCommandDeliveryAcknowledgement, RemoteCommandLease } from "@lervo/schemas";
-import { createLocalProviderWritingEvaluator } from "@lervo/provider-writing-evaluator";
 
 import {
   createProviderConversationIntentResolver,
@@ -34,7 +32,6 @@ import {
 } from "./discord-conversation-composition.js";
 import type { DiscordPeerAgentBinding } from "./discord-conversation-composition.js";
 import { ConversationResultRuntime } from "./conversation-result-runtime.js";
-import { RepositoryConversationResultSource } from "./conversation-result-source.js";
 import { SQLiteConversationResultStore } from "./conversation-result-store.js";
 import { openManagedConversationReadResponder } from "./conversation-read-responder.js";
 import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
@@ -42,11 +39,16 @@ import { NaturalLanguageDiscordConversationResponder } from "./discord-conversat
 import { resolveDiscordAgentParticipation } from "./discord-agent-participation.js";
 import type { DiscordAgentParticipation } from "./discord-agent-participation.js";
 import { loadDiscordBotToken } from "./discord-credentials.js";
-import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
 import { ConversationInteractionRetryLoop } from "./conversation-interaction-retry-loop.js";
 import { NodeConversationResponseFailureClassifier } from "./conversation-response-failure-policy.js";
 import { createDiscordConversationEffects } from "./discord-conversation-effects.js";
 import { createDiscordConversationTurnOwnership } from "./discord-conversation-turn-ownership.js";
+import { createDiscordConversationParticipationPolicy } from "./discord-conversation-participation-policy.js";
+import { ConversationRepositorySignalLoop } from "./conversation-repository-signal-loop.js";
+import { DiscordConversationDeliberationRuntime } from "./discord-conversation-deliberation-runtime.js";
+import { startDiscordConversationRepositorySignals } from "./discord-conversation-repository-signals.js";
+import { createDiscordConversationResultRuntime } from "./discord-conversation-result-composition.js";
+import { createDiscordConversationContinuation } from "./discord-conversation-continuation.js";
 
 export interface NodeDiscordConversationRuntime {
   readonly failed: Promise<void>;
@@ -77,6 +79,7 @@ export interface NodeDiscordConversationRuntimeOptions {
   agentParticipation?: DiscordAgentParticipation;
   peerAgents?: DiscordPeerAgentBinding[];
   gatewayTransport?: DiscordGatewayTransport;
+  repositoryEvents?: Pick<EventStore, "latest" | "list">;
   fetch?: typeof globalThis.fetch;
   onError?(error: Error): void;
   onReady(): void | Promise<void>;
@@ -121,17 +124,11 @@ export async function openNodeDiscordConversationRuntime(
     conversationIds: config.conversations.map((binding) => binding.conversationId),
     peers: options.peerAgents ?? [],
   });
-  const policy = createConversationParticipationPolicy({
+  const policy = createDiscordConversationParticipationPolicy({
+    config,
     projectId: options.project.projectId,
-    roleId: agentParticipation.roleId,
-    conversationIds: config.conversations.map((binding) => binding.conversationId),
-    mode: config.routing === undefined ? "mention_only" : "relevant",
-    respondTo: config.policy?.respondTo ?? ["human"],
-    signalCodes: [],
-    cooldownSeconds: config.policy?.cooldownSeconds ?? 0,
-    maxResponsesPerHour: config.policy?.maxResponsesPerHour ?? 8,
-    maxAutomationDepth: config.policy?.maxAutomationDepth ?? 2,
-    createdAt: options.project.createdAt,
+    projectCreatedAt: options.project.createdAt,
+    agentParticipation,
   });
   const artifacts = await FileSystemCas.open(resolve(options.dataDirectory, "artifacts"));
   const resultStore = await SQLiteConversationResultStore.open(
@@ -142,37 +139,23 @@ export async function openNodeDiscordConversationRuntime(
   let readRuntime: Awaited<ReturnType<typeof openManagedConversationReadResponder>> | null = null;
   let intentStore: SQLiteConversationIntentResolutionStore | null = null;
   let interactionRetryLoop: ConversationInteractionRetryLoop | null = null;
-  const continuation: ConversationRemoteContinuationPort = {
-    request: async (input) => {
-      const queued = await upstreamContinuation.request(input);
-      if (queued.provider !== config.command.provider || queued.roleId !== config.command.roleId) {
-        throw new Error("The queued command differs from the Discord result policy.");
-      }
-      await resultStore.register({
-        deliveryId: queued.deliveryId,
-        commandId: queued.commandId,
-        sourceEventId: input.eventId,
-        target: {
-          integrationId: config.integrationId,
-          projectId: input.projectId,
-          conversationId: input.conversationId,
-          threadId: input.threadId,
-        },
-        policyId: policy.policyId,
-        agentParticipantId: config.agentParticipantId,
-        roleId: queued.roleId,
-        provider: config.command.provider,
-        workstreamId: queued.workstreamId,
-        workstreamRevision: queued.workstreamRevision,
-        workstreamSnapshotContentHash: queued.workstreamSnapshotContentHash,
-        assignmentId: queued.assignmentId,
-        agentId: queued.agentId,
-        responseLanguage: /\p{Script=Hangul}/u.test(input.request) ? "ko" : "en",
-        queuedAt: queued.queuedAt,
-      });
-      return queued;
-    },
-  };
+  let repositorySignalLoop: ConversationRepositorySignalLoop | null = null;
+  const deliberationRuntime =
+    config.deliberation === undefined
+      ? null
+      : await DiscordConversationDeliberationRuntime.open({
+          config: config.deliberation,
+          projectId: options.project.projectId,
+          repositoryRoot: options.repositoryRoot,
+          artifactStore: artifacts,
+          onFailure: () => fail("deliberation_worker_failed"),
+        });
+  const continuation = createDiscordConversationContinuation({
+    config,
+    policy,
+    resultStore,
+    upstream: upstreamContinuation,
+  });
   const continuationResponder = new ConversationRemoteContinuationResponder({
     artifactStore: artifacts,
     continuation,
@@ -249,6 +232,7 @@ export async function openNodeDiscordConversationRuntime(
       readOnly,
       continuation: continuationResponder,
       platformAction,
+      ...(deliberationRuntime === null ? {} : { explicitControl: deliberationRuntime.responder }),
     });
     responder = modeResponder;
   }
@@ -330,36 +314,24 @@ export async function openNodeDiscordConversationRuntime(
         leaseDurationMs: 300_000,
         maximumResponseAttempts: config.policy?.maxResponseAttempts ?? 3,
       },
+      ...(deliberationRuntime === null
+        ? {}
+        : { deliberations: deliberationRuntime.applicationOptions }),
       ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
     });
     const openedApplication = application;
     const adapter = openedApplication.discordAdapters.get(config.integrationId);
     if (adapter === undefined) throw new Error("The Discord result adapter is unavailable.");
-    resultRuntime = new ConversationResultRuntime({
-      workerId: `${config.workerId}:result`,
+    resultRuntime = createDiscordConversationResultRuntime({
+      config,
+      projectId: options.project.projectId,
+      repositoryRoot: options.repositoryRoot,
+      ...(options.providerExecutables === undefined
+        ? {}
+        : { providerExecutables: options.providerExecutables }),
       store: resultStore,
       artifacts,
       adapter,
-      semanticEvaluator: createLocalProviderWritingEvaluator({
-        provider: config.routing?.evaluation?.provider ?? config.command.provider,
-        projectId: options.project.projectId,
-        createAdapter: (adapterInput) =>
-          createNodeProviderAdapter({
-            ...adapterInput,
-            ...(options.providerExecutables?.[adapterInput.provider] === undefined
-              ? {}
-              : { executable: options.providerExecutables[adapterInput.provider] }),
-            ...(config.routing?.evaluation?.model === undefined
-              ? {}
-              : { model: config.routing.evaluation.model }),
-            ...(config.routing?.evaluation?.reasoningEffort === undefined
-              ? {}
-              : { reasoningEffort: config.routing.evaluation.reasoningEffort }),
-          }),
-        createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
-        now: () => new Date(),
-      }),
-      source: new RepositoryConversationResultSource(options.repositoryRoot),
     });
     interactionRetryLoop = new ConversationInteractionRetryLoop({
       runCycle: async () => {
@@ -368,6 +340,22 @@ export async function openNodeDiscordConversationRuntime(
       onFailure: () => fail("interaction_retry_failed"),
     });
     interactionRetryLoop.start();
+    deliberationRuntime?.attach(application, config.deliberation!.pollIntervalMs ?? 2_000);
+    if (config.repositorySignals !== undefined && options.repositoryEvents === undefined) {
+      throw new Error("Repository signals require the Node repository event reader.");
+    }
+    repositorySignalLoop =
+      options.repositoryEvents === undefined
+        ? null
+        : startDiscordConversationRepositorySignals({
+            config,
+            projectId: options.project.projectId,
+            dataDirectory: options.dataDirectory,
+            events: options.repositoryEvents,
+            artifacts,
+            application: openedApplication,
+            onFailure: () => fail("repository_signal_failed"),
+          });
     return {
       failed: failure,
       observeRemoteAcknowledgement: (input) => resultRuntime!.observe(input),
@@ -376,10 +364,14 @@ export async function openNodeDiscordConversationRuntime(
       },
       stopIngress: () => {
         void interactionRetryLoop!.stop();
+        void repositorySignalLoop?.stop();
+        void deliberationRuntime?.stop();
         openedApplication.stopIngress();
       },
       close: async () => {
         await interactionRetryLoop!.stop();
+        await repositorySignalLoop?.stop();
+        await deliberationRuntime?.stop();
         openedApplication.close();
         resultRuntime!.close();
         readRuntime?.close();
@@ -388,6 +380,8 @@ export async function openNodeDiscordConversationRuntime(
     };
   } catch (error) {
     await interactionRetryLoop?.stop();
+    await repositorySignalLoop?.stop();
+    await deliberationRuntime?.stop();
     application?.close();
     resultRuntime?.close();
     readRuntime?.close();

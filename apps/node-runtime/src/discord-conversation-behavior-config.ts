@@ -156,6 +156,8 @@ export function parseDiscordConversationBehavior(input: {
       policy,
       [
         "respondTo",
+        "mode",
+        "signalCodes",
         "cooldownSeconds",
         "maxResponsesPerHour",
         "maxAutomationDepth",
@@ -170,14 +172,31 @@ export function parseDiscordConversationBehavior(input: {
       : optionalConfigInteger(policy, key, minimum, maximum, "policy");
   const respondTo =
     policy?.respondTo === undefined
-      ? (["human"] as Array<"human" | "agent">)
+      ? (["human"] as Array<"human" | "agent" | "system">)
       : (boundedUniqueText(
           policy.respondTo,
           "discordConversation.policy.respondTo",
-          /^(?:human|agent)$/u,
+          /^(?:human|agent|system)$/u,
           1,
-          2,
-        ).sort() as Array<"human" | "agent">);
+          3,
+        ).sort() as Array<"human" | "agent" | "system">);
+  const mode =
+    policy?.mode === undefined
+      ? undefined
+      : configText(policy.mode, "discordConversation.policy.mode");
+  const signalCodes =
+    policy?.signalCodes === undefined
+      ? undefined
+      : boundedUniqueText(
+          policy.signalCodes,
+          "discordConversation.policy.signalCodes",
+          /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u,
+          1,
+          64,
+        ).sort();
+  if (mode !== undefined && !["mention_only", "relevant", "proactive", "silent"].includes(mode)) {
+    throw new NodeRuntimeError("invalid_config", "discordConversation.policy.mode is invalid.");
+  }
   const timeoutMs =
     intent === undefined
       ? undefined
@@ -236,6 +255,10 @@ export function parseDiscordConversationBehavior(input: {
       : {
           policy: {
             respondTo,
+            ...(mode === undefined
+              ? {}
+              : { mode: mode as "mention_only" | "relevant" | "proactive" | "silent" }),
+            ...(signalCodes === undefined ? {} : { signalCodes }),
             ...(cooldownSeconds === undefined ? {} : { cooldownSeconds }),
             ...(maxResponsesPerHour === undefined ? {} : { maxResponsesPerHour }),
             ...(maxAutomationDepth === undefined ? {} : { maxAutomationDepth }),

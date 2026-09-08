@@ -228,6 +228,7 @@ export async function openNodeRuntime(
       repositoryRoot: paths.repositoryRoot,
       dataDirectory: paths.data,
       bearerToken: () => bearerToken.current(),
+      repositoryEvents: store,
       legacyPorts: ports.discordConversation,
       deploymentPorts: ports.discordConversations,
       onReady: () => health.observeConversationReady(),

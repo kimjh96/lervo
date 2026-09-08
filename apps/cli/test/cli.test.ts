@@ -1868,6 +1868,63 @@ describe("lervo deliberate CLI", () => {
     });
   });
 
+  it("runs an assigned queue deliberation with exact IDs and stdin-only topic bytes", async () => {
+    let assignment: unknown;
+    let output = "";
+    const exitCode = await runCli(
+      [
+        "deliberate",
+        "assigned-worker",
+        "--deliberation-id",
+        "dlb_queue0001",
+        "--project-id",
+        "prj_control01",
+        "--root",
+        "/work/repository",
+        "--stdin",
+      ],
+      {
+        cwd: "/ignored",
+        stdout: (message) => {
+          output += message;
+        },
+        stderr: () => undefined,
+        stdin: async () =>
+          JSON.stringify({
+            operation: "start",
+            policyId: "deliberation_product-review",
+            topic: "Review the deployment boundary.",
+          }),
+      },
+      {
+        executeAssignedManagedDeliberation: async (input) => {
+          assignment = input;
+          return {
+            deliberationId: input.deliberationId,
+            status: "converged",
+            artifactCount: 4,
+          } as ManagedDeliberationOutcome;
+        },
+      },
+    );
+    expect(exitCode).toBe(0);
+    expect(assignment).toEqual({
+      deliberationId: "dlb_queue0001",
+      expectedProjectId: "prj_control01",
+      request: {
+        repositoryRoot: "/work/repository",
+        policyId: "deliberation_product-review",
+        topic: "Review the deployment boundary.",
+      },
+    });
+    expect(JSON.parse(output)).toEqual({
+      schemaVersion: 1,
+      deliberationId: "dlb_queue0001",
+      status: "converged",
+      artifactCount: 4,
+    });
+  });
+
   it("does not mix a stored policy with inline providers", async () => {
     let called = false;
     const exitCode = await runCli(

@@ -127,10 +127,33 @@ export interface NodeDiscordConversationConfig {
     maxResponseBytes?: number;
   };
   policy?: {
-    respondTo?: Array<"human" | "agent">;
+    mode?: "mention_only" | "relevant" | "proactive" | "silent";
+    respondTo?: Array<"human" | "agent" | "system">;
+    signalCodes?: string[];
     cooldownSeconds?: number;
     maxResponsesPerHour?: number;
     maxAutomationDepth?: number;
     maxResponseAttempts?: number;
+  };
+  repositorySignals?: {
+    pollIntervalMs?: number;
+    mappings: Array<{
+      eventType: string;
+      signalCode: string;
+      conversationIds?: string[];
+    }>;
+  };
+  deliberation?: {
+    cliExecutable: string;
+    workerId: string;
+    principals: Array<{
+      participantId: string;
+      principalId: string;
+      permissions: Array<"deliberation.start" | "deliberation.resume" | "deliberation.read">;
+    }>;
+    pollIntervalMs?: number;
+    leaseDurationMs?: number;
+    maxRecords?: number;
+    processTimeoutMs?: number;
   };
 }
