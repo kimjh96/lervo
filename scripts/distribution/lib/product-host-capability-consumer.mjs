@@ -48,12 +48,15 @@ const versionSixRouteIds = [
 
 const versionSevenRouteIds = [
   ...versionSixRouteIds,
+  "workforce_agent.rename",
   "organization_team.bind",
+  "organization_team.reclassify",
   "organization_portfolio.inspect",
   "agent_context.inspect",
   "agent_context.promote",
   "agent_context.handoff",
   "organization_ceo.evaluate",
+  "organization_executive.execute",
 ];
 
 function parsed(result) {
@@ -321,6 +324,53 @@ export async function verifyPackedProductHostCapabilities(runCli) {
   assert.deepEqual(
     versionSeven.routes.map((route) => route.routeId),
     versionSevenRouteIds,
+  );
+  assert.deepEqual(
+    versionSeven.routes.filter((route) =>
+      [
+        "workforce_agent.rename",
+        "organization_team.reclassify",
+        "organization_executive.execute",
+      ].includes(route.routeId),
+    ),
+    [
+      {
+        routeId: "workforce_agent.rename",
+        area: "workforce",
+        operation: "command",
+        contractVersion: 1,
+        resultContract: "workforce_agent",
+        command: ["agent", "rename", "--write"],
+        output: "json",
+        effect: "repository_write",
+        authority: "explicit_write",
+        availability: "available",
+      },
+      {
+        routeId: "organization_team.reclassify",
+        area: "organization",
+        operation: "command",
+        contractVersion: 1,
+        resultContract: "agent_organization_projection",
+        command: ["organization", "set-team-kind", "--write"],
+        output: "json",
+        effect: "repository_write",
+        authority: "explicit_write",
+        availability: "available",
+      },
+      {
+        routeId: "organization_executive.execute",
+        area: "organization",
+        operation: "command",
+        contractVersion: 1,
+        resultContract: "organization_executive_execution_result",
+        command: ["organization", "executive-execute", "--write", "--json"],
+        output: "json",
+        effect: "external_delivery",
+        authority: "bounded_organization_executive_effect",
+        availability: "available",
+      },
+    ],
   );
   assert.deepEqual(
     versionSeven.routes.slice(-6).map((route) => route.area),
