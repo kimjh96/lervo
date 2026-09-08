@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_108da14b115ecb2ad78e9ff1"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Run Discord remote continuation intake inside the installed repository Node service."

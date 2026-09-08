@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_639160fc7df2953659177936"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Prevent Discord message loss during long replies and show bounded typing activity."

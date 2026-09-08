@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_791fe441b8e2ea8f8da39001"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add role-bound Discord participants, configurable Codex and Claude routing, and managed continuation completion checks."

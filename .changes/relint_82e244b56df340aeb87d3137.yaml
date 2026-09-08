@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_82e244b56df340aeb87d3137"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Run Discord intent, participation, repository retrieval, and natural replies in one managed provider turn."

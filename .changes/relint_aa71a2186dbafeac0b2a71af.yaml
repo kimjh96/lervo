@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_aa71a2186dbafeac0b2a71af"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add an explicit reviewed lifecycle for durable repository instruction intake."

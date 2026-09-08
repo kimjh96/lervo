@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_bd8d4f1df57e616933349961"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Recover Discord replies after provider publication failures without requiring another message."

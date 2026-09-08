@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d515b397cc0dd4cccc179e8b"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Make Discord conversations realtime with stable response ownership, natural status replies, and scoped platform actions."

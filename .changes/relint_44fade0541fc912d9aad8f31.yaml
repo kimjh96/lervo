@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_44fade0541fc912d9aad8f31"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add Discord-first authenticated remote continuation with exact workstream admission."

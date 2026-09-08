@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d41b69e0e322a96fef885292"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Preserve hired-agent identity and recent context in Discord conversations and terminate failed replies visibly after bounded retries."

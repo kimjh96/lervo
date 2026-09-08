@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a79c3e449ebbda708b54422e"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add authenticated live webhook triggers with bounded authority, replay, budget, and recovery."

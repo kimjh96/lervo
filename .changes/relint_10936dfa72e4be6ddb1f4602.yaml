@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_10936dfa72e4be6ddb1f4602"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Bind durable agent organizations and selective multi-agent conversation context to Discord runtimes."

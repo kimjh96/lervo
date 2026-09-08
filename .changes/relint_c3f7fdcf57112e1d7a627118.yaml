@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c3f7fdcf57112e1d7a627118"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add evidence-bound agent-profile candidate activation and rollback."
