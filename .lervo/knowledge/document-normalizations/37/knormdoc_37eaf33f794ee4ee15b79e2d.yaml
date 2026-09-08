@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_61c3819c8bc6d957828a01b0
+compiler:
+  compilerBuildId: sha256:94c169212651303766eabdc3bbf2e11498aea403e3c709a969f0310e7cf9c233
+  compilerId: lervo.claude.document-normalizer
+  compilerVersion: 1+2.1.236 (Claude Code)
+  isolation: external_no_capabilities
+  provider: claude
+formatVersion: lervo.document.v1
+operationId: knormop_a06ad09cc808722ac860e6ed
+outputLanguage: en
+outputs:
+  - byteCount: 3635
+    contentHash: sha256:c759d0a6e67915b03329ead80e6d6d05caa399a4eb13c7b13bd12483e419a61e
+    path: docs/decisions/coordination/conversations/0385-distinct-discord-agent-identities.md
+    userRegionHash: sha256:c759d0a6e67915b03329ead80e6d6d05caa399a4eb13c7b13bd12483e419a61e
+profile: decision_record
+recordId: knormdoc_37eaf33f794ee4ee15b79e2d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5beceacc066ba8625a09750a42ba7977f28aa873ebfacaff5b0212eb60d91692
+sourcePath: docs/decisions/coordination/conversations/0385-distinct-discord-agent-identities.md
+sourceUnitVersionIds:
+  - uv_3798db786aadb333964a281b
+  - uv_9ba82706605c823788ac1678
+  - uv_dab07c7254a9f8f27338947d
+  - uv_dbde1f70e05ef1bd06319f87
+  - uv_e45c716bd86d03c5ed1874a3

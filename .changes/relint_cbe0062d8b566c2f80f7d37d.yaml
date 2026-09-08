@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_cbe0062d8b566c2f80f7d37d"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Host distinct Discord bot identities for multiple role-bound hired agents."

@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6a3c20e3c3cc061ab077b6cf
+compiler:
+  compilerBuildId: sha256:94c169212651303766eabdc3bbf2e11498aea403e3c709a969f0310e7cf9c233
+  compilerId: lervo.claude.document-normalizer
+  compilerVersion: 1+2.1.236 (Claude Code)
+  isolation: external_no_capabilities
+  provider: claude
+formatVersion: lervo.document.v1
+operationId: knormop_073211f041daf37fc793defc
+outputLanguage: en
+outputs:
+  - byteCount: 8659
+    contentHash: sha256:a37912b1fd69dcfff62904ac21fce0867a86a6fd3a0b7ef98e812442b7112306
+    path: docs/roadmap/product-outcome-convergence.md
+    userRegionHash: sha256:a37912b1fd69dcfff62904ac21fce0867a86a6fd3a0b7ef98e812442b7112306
+profile: roadmap_document
+recordId: knormdoc_4c17bb8f2a5a0660c2cf5bb9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a37912b1fd69dcfff62904ac21fce0867a86a6fd3a0b7ef98e812442b7112306
+sourcePath: docs/roadmap/product-outcome-convergence.md
+sourceUnitVersionIds:
+  - uv_3ea70d8784cb598d3e1730a2
+  - uv_535a94b533572a8cdfb7c1ca
+  - uv_5b19d6648d48b127a87d0496
+  - uv_a06552ead6f0979cd133aa9b
+  - uv_ceacdf0ad7c522ae56a653f6
+  - uv_e7892cb189a717df8b7db703

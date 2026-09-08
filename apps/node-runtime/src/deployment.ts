@@ -30,6 +30,7 @@ import { createNodeRuntimeHealthPublisher } from "./health.js";
 import { createNodeRuntimeDeployment, type NodeRuntimeDeployment } from "./lifecycle.js";
 import { createNodeOrganizationCredentialDelivery } from "./organization-credential-delivery.js";
 import { openDeploymentConversation } from "./deployment-conversation.js";
+import { configuredDiscordConversations } from "./discord-conversation-deployments-config.js";
 import type { NodeDiscordConversationRuntime } from "./discord-conversation-runtime.js";
 import { openNodeRemoteControlRuntime, type NodeRemoteControlRuntime } from "./control-runtime.js";
 import type { NodeRuntimeOpenPorts } from "./open-ports.js";
@@ -82,7 +83,7 @@ export async function openNodeRuntime(
         repositoryIdentityHash: calculateProjectIdentityHash(manifest),
         destinationId: validated.hub.destinationId,
       },
-      validated.discordConversation !== undefined,
+      configuredDiscordConversations(validated).length > 0,
     );
     store = await SQLiteEventStore.open({
       path: paths.eventDatabase,
@@ -227,7 +228,8 @@ export async function openNodeRuntime(
       repositoryRoot: paths.repositoryRoot,
       dataDirectory: paths.data,
       bearerToken: () => bearerToken.current(),
-      ports: ports.discordConversation,
+      legacyPorts: ports.discordConversation,
+      deploymentPorts: ports.discordConversations,
       onReady: () => health.observeConversationReady(),
       onFailure: (code) => health.observeConversationFailure(code),
     });

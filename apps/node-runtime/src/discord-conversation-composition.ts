@@ -15,6 +15,13 @@ interface DiscordCompositionOptions {
   bearerToken(): string;
 }
 
+export interface DiscordPeerAgentBinding {
+  applicationId: string;
+  participantId: string;
+  roleId: string;
+  tenantKeys: string[];
+}
+
 export function createDiscordHubContinuation(
   options: DiscordCompositionOptions,
 ): ConversationRemoteContinuationPort {
@@ -72,6 +79,7 @@ export function createDiscordPlatformBindings(input: {
   config: NodeDiscordConversationConfig;
   projectId: string;
   agentRoleId: string;
+  peerAgents?: DiscordPeerAgentBinding[];
 }) {
   const { config } = input;
   const tenantKeys = [...new Set(config.conversations.map((binding) => binding.tenantKey))];
@@ -107,6 +115,23 @@ export function createDiscordPlatformBindings(input: {
           roleId: input.agentRoleId,
         },
       })),
+      ...(input.peerAgents ?? []).flatMap((peer) =>
+        tenantKeys.flatMap((tenantKey) =>
+          peer.tenantKeys.includes(tenantKey)
+            ? (["bot", "user"] as const).map((keyKind) => ({
+                platform: "discord" as const,
+                integrationId: config.integrationId,
+                tenantKey,
+                participantKey: `${keyKind}:${peer.applicationId}`,
+                actor: {
+                  kind: "agent" as const,
+                  participantId: peer.participantId,
+                  roleId: peer.roleId,
+                },
+              }))
+            : [],
+        ),
+      ),
     ],
   };
 }

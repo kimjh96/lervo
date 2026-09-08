@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6a3c20e3c3cc061ab077b6cf
+compiler:
+  compilerBuildId: sha256:94c169212651303766eabdc3bbf2e11498aea403e3c709a969f0310e7cf9c233
+  compilerId: lervo.claude.document-normalizer
+  compilerVersion: 1+2.1.236 (Claude Code)
+  isolation: external_no_capabilities
+  provider: claude
+formatVersion: lervo.document.v1
+operationId: knormop_4cc5857265f899456277da6c
+outputLanguage: en
+outputs:
+  - byteCount: 7668
+    contentHash: sha256:2b65c206d0c85b7063c806eaa70a2054620d5e94488b51d8c39113920874b3ad
+    path: docs/distribution/node-runtime-distribution.md
+    userRegionHash: sha256:2b65c206d0c85b7063c806eaa70a2054620d5e94488b51d8c39113920874b3ad
+profile: repository_document
+recordId: knormdoc_4fce9e8a8858d5d537f1330a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e898995bb36e1aef58906a8168a0b18550222fcb6b224be5bde171853807212b
+sourcePath: docs/distribution/node-runtime-distribution.md
+sourceUnitVersionIds:
+  - uv_8ca604c0b0907ab6fe44b58c
+  - uv_8ff4879b9a4cb50a54f8e6bf
+  - uv_9830e7087550fa1008708e16
+  - uv_9f0561bd84d59d91218cb941
+  - uv_d3b0c2129eec0c43789410c3

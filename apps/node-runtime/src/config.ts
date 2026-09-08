@@ -11,7 +11,10 @@ import {
 } from "./config-values.js";
 import { NodeRuntimeError } from "./errors.js";
 import { parseRemoteCommandConfig } from "./remote-command-config.js";
-import { parseDiscordConversationConfig } from "./discord-conversation-config.js";
+import {
+  configuredDiscordConversations,
+  parseDiscordConversationDeployments,
+} from "./discord-conversation-deployments-config.js";
 
 const MAX_CONFIG_BYTES = 1_048_576;
 const DESTINATION_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u;
@@ -57,6 +60,7 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
       "workspaceCoordination",
       "remoteCommands",
       "discordConversation",
+      "discordConversations",
     ],
     "Node runtime config",
   );
@@ -102,11 +106,13 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
     source.remoteCommands === undefined
       ? undefined
       : parseRemoteCommandConfig(source.remoteCommands, baseDirectory);
-  const discordConversation =
-    source.discordConversation === undefined
-      ? undefined
-      : parseDiscordConversationConfig(source.discordConversation, baseDirectory);
-  if (discordConversation?.routing !== undefined) {
+  const discordDeployments = parseDiscordConversationDeployments({
+    legacy: source.discordConversation,
+    deployments: source.discordConversations,
+    baseDirectory,
+  });
+  for (const discordConversation of configuredDiscordConversations(discordDeployments)) {
+    if (discordConversation.routing === undefined) continue;
     const hosted = remoteCommands?.providerHost;
     const conversationProviders = [
       discordConversation.routing.intent.provider,
@@ -198,7 +204,7 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
           },
         }),
     ...(remoteCommands === undefined ? {} : { remoteCommands }),
-    ...(discordConversation === undefined ? {} : { discordConversation }),
+    ...discordDeployments,
   };
 }
 

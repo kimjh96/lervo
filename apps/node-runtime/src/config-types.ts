@@ -25,6 +25,7 @@ export interface NodeRuntimeConfig {
     nodeId: string;
   };
   discordConversation?: NodeDiscordConversationConfig;
+  discordConversations?: NodeDiscordConversationConfig[];
   remoteCommands?: {
     nodeId: string;
     trustFile?: string;

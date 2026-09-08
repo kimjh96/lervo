@@ -47,7 +47,7 @@ Detailed acceptance records:
 
 ## Delivery status and remaining boundaries
 
-The Discord-first remote continuation family remains `delivery required`. Authenticated Gateway-to-Hub intake, exact-workstream managed-host admission, installed Node service composition, and durable publication-verified execution-result return are implemented. A real external Discord round trip on the always-on host and explicit Mac-offline source handoff remain open and separately tracked. Simulated delivery and completed queue intake do not establish installed external acceptance or source replication.
+The Discord-first remote continuation family remains `delivery required`. Authenticated Gateway-to-Hub intake, exact-workstream managed-host admission, installed Node service composition, durable publication-verified execution-result return, and bounded hosting for distinct role-agent bot identities are implemented. A second Discord application and guild installation, a real bounded two-agent discussion, addressed group turn ownership, an always-on-host external round trip, and explicit Mac-offline source handoff remain open and separately tracked. Simulated delivery and completed queue intake do not establish installed external acceptance or source replication.
 
 Managed provider execution enforces exact total, input, cached-input, output, reasoning-output, and per-run stage-duration budgets without estimating unmanaged whole-request usage. See [managed execution resource budgets v1](../evidence/foundation/managed-execution-resource-budgets-v1.md).
 

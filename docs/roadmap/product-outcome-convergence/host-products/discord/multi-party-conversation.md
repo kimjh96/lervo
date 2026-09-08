@@ -25,7 +25,7 @@ Selection must evaluate the hired agent's provider policy, exact role capabiliti
 
 ## Current scope
 
-The installed single-participant prerequisite now accepts a responding `agentId`, verifies its active workforce record and exact current role hashes at Node startup, enforces its fixed-or-any provider policy for read responses, and keeps the participation role separate from the mutation command role. Addressed multi-agent selection, bounded group turn ownership, and the required two-agent discussion remain in this outcome.
+The installed Node now accepts a bounded collection of distinct Discord bot applications. Each bot binds one active hired agent, exact current role hashes, independent provider and model routing, owner-only credentials, storage, Gateway lifecycle, and delivery adapter. Shared-guild peer author and mention aliases normalize to that peer's one workforce participant, while aggregate readiness and failure remain fail-closed. Discord application creation, token issuance, guild installation, addressed multi-agent selection, bounded group turn ownership, and the required real two-agent discussion remain in this outcome.
 
 ## Acceptance
 
@@ -34,4 +34,5 @@ One real channel with one person and at least two hired agents in distinct roles
 ## References
 
 - [ADR-0384](../../../../decisions/coordination/conversations/0384-explicit-discord-read-and-continuation-modes.md)
+- [ADR-0385](../../../../decisions/coordination/conversations/0385-distinct-discord-agent-identities.md)
 - [Cross-provider deliberation runtime](../../../../decisions/execution/providers/0029-cross-provider-deliberation-runtime.md)

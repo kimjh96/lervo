@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6a3c20e3c3cc061ab077b6cf
+compiler:
+  compilerBuildId: sha256:94c169212651303766eabdc3bbf2e11498aea403e3c709a969f0310e7cf9c233
+  compilerId: lervo.claude.document-normalizer
+  compilerVersion: 1+2.1.236 (Claude Code)
+  isolation: external_no_capabilities
+  provider: claude
+formatVersion: lervo.document.v1
+operationId: knormop_4a680c6346926e0c95879a6c
+outputLanguage: en
+outputs:
+  - byteCount: 5385
+    contentHash: sha256:0b5ebe58494584ef6d82bd97ceb9cce16d03eafad3a55251e74d3ff542b9ecd7
+    path: docs/decisions/coordination/conversations/0382-node-hosted-discord-conversation-service.md
+    userRegionHash: sha256:0b5ebe58494584ef6d82bd97ceb9cce16d03eafad3a55251e74d3ff542b9ecd7
+profile: decision_record
+recordId: knormdoc_6238b768b8b5b734526c21c4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:36d8da502188f435b3b1f7ddf13865e4a524b368a9cf7dffe29f286b54651fe2
+sourcePath: docs/decisions/coordination/conversations/0382-node-hosted-discord-conversation-service.md
+sourceUnitVersionIds:
+  - uv_0bd78934f57ac6bcadae5d30
+  - uv_2dacd4d89dbded7d65391acf
+  - uv_7ff6f5782a345430c5b6c7a8
+  - uv_af43bbf21fa3a0a1162eda46
+  - uv_e01229b66e82487de20d63d3

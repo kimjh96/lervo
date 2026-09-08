@@ -28,6 +28,7 @@ import {
   createDiscordHubContinuation,
   createDiscordPlatformBindings,
 } from "./discord-conversation-composition.js";
+import type { DiscordPeerAgentBinding } from "./discord-conversation-composition.js";
 import { ConversationResultRuntime } from "./conversation-result-runtime.js";
 import { RepositoryConversationResultSource } from "./conversation-result-source.js";
 import { SQLiteConversationResultStore } from "./conversation-result-store.js";
@@ -35,6 +36,7 @@ import { openManagedConversationReadResponder } from "./conversation-read-respon
 import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
 import { NaturalLanguageDiscordConversationResponder } from "./discord-conversation-mode.js";
 import { resolveDiscordAgentParticipation } from "./discord-agent-participation.js";
+import type { DiscordAgentParticipation } from "./discord-agent-participation.js";
 import { loadDiscordBotToken } from "./discord-credentials.js";
 import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
 
@@ -44,7 +46,7 @@ export interface NodeDiscordConversationRuntime {
     lease: RemoteCommandLease;
     acknowledgement: RemoteCommandDeliveryAcknowledgement;
   }): Promise<"ready" | "duplicate" | "ignored">;
-  runResultDeliveryCycle(): ReturnType<ConversationResultRuntime["runCycle"]>;
+  runResultDeliveryCycle(): Promise<void>;
   stopIngress(): void;
   close(): void;
 }
@@ -64,6 +66,8 @@ export interface NodeDiscordConversationRuntimeOptions {
   readOnlyResponder?: ConversationResponder;
   intentResolver?: ConversationIntentResolver;
   providerExecutables?: Partial<Record<"codex" | "claude", string>>;
+  agentParticipation?: DiscordAgentParticipation;
+  peerAgents?: DiscordPeerAgentBinding[];
   gatewayTransport?: DiscordGatewayTransport;
   fetch?: typeof globalThis.fetch;
   onError?(error: Error): void;
@@ -76,10 +80,12 @@ export async function openNodeDiscordConversationRuntime(
 ): Promise<NodeDiscordConversationRuntime> {
   const config = options.config;
   const token = await loadDiscordBotToken(config.botTokenFile);
-  const agentParticipation = await resolveDiscordAgentParticipation({
-    repositoryRoot: options.repositoryRoot,
-    config,
-  });
+  const agentParticipation =
+    options.agentParticipation ??
+    (await resolveDiscordAgentParticipation({
+      repositoryRoot: options.repositoryRoot,
+      config,
+    }));
   let resolveFailure!: () => void;
   let failed = false;
   const failure = new Promise<void>((resolvePromise) => {
@@ -96,6 +102,7 @@ export async function openNodeDiscordConversationRuntime(
     config,
     projectId: options.project.projectId,
     agentRoleId: agentParticipation.roleId,
+    ...(options.peerAgents === undefined ? {} : { peerAgents: options.peerAgents }),
   });
   const policy = createConversationParticipationPolicy({
     projectId: options.project.projectId,
@@ -297,7 +304,9 @@ export async function openNodeDiscordConversationRuntime(
     return {
       failed: failure,
       observeRemoteAcknowledgement: (input) => resultRuntime!.observe(input),
-      runResultDeliveryCycle: () => resultRuntime!.runCycle(),
+      runResultDeliveryCycle: async () => {
+        await resultRuntime!.runCycle();
+      },
       stopIngress: () => openedApplication.stopIngress(),
       close: () => {
         openedApplication.close();
