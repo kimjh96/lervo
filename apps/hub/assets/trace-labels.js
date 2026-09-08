@@ -74,6 +74,13 @@ const eventLabels = {
   "work.causality.recorded": "Work causality recorded",
   "resource.usage.recorded": "Resource usage recorded",
   "execution.stages.observed": "Execution stages observed",
+  "organization.team.bound": "Organization team bound",
+  "organization.agent.membership.changed": "Organization agent membership changed",
+  "organization.external_agent.deployment.bound": "External agent deployment bound",
+  "organization.external_agent.deployment.retired": "External agent deployment retired",
+  "organization.channel.membership.changed": "Organization channel membership changed",
+  "organization.deliberation.participant.bound": "Deliberation participant bound",
+  "organization.deliberation.participant.released": "Deliberation participant released",
 };
 
 const fieldLabels = {

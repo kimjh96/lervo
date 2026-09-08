@@ -140,12 +140,13 @@ describe("installed Node Discord conversation runtime", () => {
     const intentResolver = vi.fn(async ({ message, priorTurns }) => ({
       intent: message.startsWith("What") ? ("answer" as const) : ("continue_work" as const),
       confidence: "high" as const,
+      participation: "relevant" as const,
       effect: message.startsWith("What")
         ? ({ kind: "none" } as const)
         : message.startsWith("Change")
           ? ({ kind: "discord_current_member_nickname_set", nickname: "Lervo" } as const)
           : ({ kind: "repository_work" } as const),
-      provider: { providerId: "codex", model: null, adapterVersion: "1" as const },
+      provider: { providerId: "codex", model: null, adapterVersion: "2" as const },
       resultDigest: `sha256:${createHash("sha256")
         .update(JSON.stringify({ message, priorTurns }))
         .digest("hex")}`,

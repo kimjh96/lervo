@@ -4,6 +4,7 @@ import type { ConversationAgentBinding } from "@lervo/schemas";
 
 import type { NodeDiscordConversationConfig } from "./config-types.js";
 import { NodeRuntimeError } from "./errors.js";
+import { validateDiscordAgentOrganization } from "./discord-agent-organization.js";
 
 export interface DiscordAgentParticipation {
   agentId: string | null;
@@ -66,6 +67,19 @@ export async function resolveDiscordAgentParticipation(input: {
         "The managed command agent differs from its configured role or provider.",
       );
     }
+  }
+  if (input.config.organization !== undefined) {
+    if (participantAgent === null) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "An organization-bound Discord participant requires a hired agent.",
+      );
+    }
+    await validateDiscordAgentOrganization({
+      repositoryRoot: input.repositoryRoot,
+      config: input.config,
+      agent: participantAgent,
+    });
   }
   return {
     agentId: participantAgent?.agentId ?? null,

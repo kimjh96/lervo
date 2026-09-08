@@ -21,11 +21,12 @@ describe("conversation intent resolution evidence", () => {
       resolution: {
         intent: "answer" as const,
         confidence: "high" as const,
+        participation: "not_relevant" as const,
         effect: { kind: "none" as const },
         provider: {
           providerId: "claude",
           model: "claude-sonnet-4-6",
-          adapterVersion: "1" as const,
+          adapterVersion: "2" as const,
         },
         resultDigest: `sha256:${"b".repeat(64)}`,
       },
@@ -50,6 +51,7 @@ describe("conversation intent resolution evidence", () => {
       provider_id: "claude",
       model: "claude-sonnet-4-6",
       intent: "answer",
+      participation: "not_relevant",
     });
     expect(JSON.stringify(row)).not.toContain("message text");
     await removeTemporaryRoots();

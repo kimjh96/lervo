@@ -34,6 +34,12 @@ export function validateConversationResponseRequest(
       (!Number.isSafeInteger(plan.maximumResponseCharacters) ||
         plan.maximumResponseCharacters < 1 ||
         plan.maximumResponseCharacters > 65_536)) ||
+    (plan.executionIdentity.agentId !== null &&
+      !/^agt_[a-f0-9]{24}$/u.test(plan.executionIdentity.agentId)) ||
+    !/^[a-z][a-z0-9_-]{0,63}$/u.test(plan.executionIdentity.provider) ||
+    plan.executionIdentity.provider !== plan.adapter.descriptor.provider ||
+    (plan.executionIdentity.model !== null &&
+      (plan.executionIdentity.model.length < 1 || plan.executionIdentity.model.length > 128)) ||
     !validateSchema("role", plan.role).valid ||
     !validateSchema("writingContract", plan.writingContract).valid
   ) {
@@ -59,6 +65,7 @@ export function conversationResponseRequestDigest(input: {
       relevance: input.request.decision.relevance,
     },
     roleId: input.plan.role.roleId,
+    executionIdentity: input.plan.executionIdentity,
     participationRoleId: input.plan.participationRoleId ?? input.plan.role.roleId,
     maximumResponseCharacters: input.plan.maximumResponseCharacters ?? 65_536,
     messageHash: input.request.event.content.contentHash,
@@ -70,6 +77,7 @@ export function conversationResponseRequestDigest(input: {
 export function conversationResponseInstructions(
   input: ManagedConversationResponseRequest,
   message: string,
+  executionIdentity: ManagedConversationResponsePlan["executionIdentity"],
   executionRoleId = input.policy.roleId,
   maximumResponseCharacters = 65_536,
 ): string {
@@ -77,6 +85,7 @@ export function conversationResponseInstructions(
     task: "conversation_response",
     participationRoleId: input.policy.roleId,
     executionRoleId,
+    executionIdentity,
     conversationId: input.event.target.conversationId,
     threadId: input.event.target.threadId,
     participationReason: input.decision.reason,
@@ -84,6 +93,7 @@ export function conversationResponseInstructions(
       "Respond using the injected shared context and the conversation source below.",
       "Respond in the primary language of the message unless the message requests another language.",
       "Do not claim to have seen documents that were neither loaded nor injected.",
+      "When asked about your agent, provider, or model identity, answer only from executionIdentity and distinguish the durable agent from this turn's provider and model.",
       "Write only the response body; do not send directly to an external platform.",
       `Keep the response at or below ${maximumResponseCharacters} Unicode characters.`,
     ],

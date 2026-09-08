@@ -1,5 +1,9 @@
 import { openProjectStorage } from "@lervo/project-storage";
 
+import {
+  agentOrganizationUsage,
+  runAgentOrganizationCommand,
+} from "./agent-organization-command.js";
 import { applicationUsage, runApplicationCommand } from "./application-command.js";
 import { doctorUsage, runDoctorCommand } from "./doctor-command.js";
 import { capabilityUsage, runCapabilityCommand } from "./capability-command.js";
@@ -88,6 +92,7 @@ ${terminalUsage}
 ${workstreamUsage}
 ${workspaceUsage}
 ${workforceUsage}
+${agentOrganizationUsage}
 ${assignmentCommunicationUsage}
 ${assignmentMessageTriggerUsage}
 ${assignmentConnectorUsage}
@@ -176,6 +181,7 @@ export async function runCli(
   if (command === "routine") return runAssignmentRoutineCommand(args.slice(1), io);
   if (command === "workforce" || command === "agent" || command === "assignment")
     return runWorkforceCommand(command, args.slice(1), io, services);
+  if (command === "organization") return runAgentOrganizationCommand(args.slice(1), io);
   if (command === "role") return runRoleCommand(args.slice(1), io);
   if (command === "readme") return runReadmeCommand(args.slice(1), io);
   io.stderr(`Unknown command: ${command}\n${usage}`);

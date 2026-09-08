@@ -32,6 +32,7 @@
     "@lervo/adapter-claude": "workspace:*",
     "@lervo/adapter-codex": "workspace:*",
     "@lervo/agent-workforce": "workspace:*",
+    "@lervo/agent-organization": "workspace:*",
     "@lervo/event-store-sqlite": "workspace:*",
     "@lervo/event-contract": "workspace:*",
     "@lervo/execution-contract": "workspace:*",

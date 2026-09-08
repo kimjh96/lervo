@@ -7,6 +7,7 @@ export * from "./config-preflight.js";
 export * from "./conversation-intent-resolver.js";
 export * from "./credentials.js";
 export * from "./discord-conversation-config.js";
+export * from "./discord-agent-organization.js";
 export * from "./discord-conversation-deployments-config.js";
 export * from "./discord-conversation-group-runtime.js";
 export * from "./discord-conversation-runtime.js";

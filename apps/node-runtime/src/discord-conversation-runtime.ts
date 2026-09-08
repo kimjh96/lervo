@@ -181,6 +181,7 @@ export async function openNodeDiscordConversationRuntime(
         config: { ...config, routing: config.routing },
         projectId: options.project.projectId,
         projectCreatedAt: options.project.createdAt,
+        agentId: agentParticipation.agentId,
         participationRoleId: agentParticipation.roleId,
         repositoryRoot: options.repositoryRoot,
         dataDirectory: options.dataDirectory,
@@ -229,6 +230,10 @@ export async function openNodeDiscordConversationRuntime(
     });
     modeResponder = new NaturalLanguageDiscordConversationResponder({
       applicationId: config.applicationId,
+      respondingAgent: {
+        agentId: agentParticipation.agentId,
+        roleId: agentParticipation.roleId,
+      },
       repositoryRoot: options.repositoryRoot,
       artifactStore: artifacts,
       history: new SQLiteConversationHistory(
@@ -313,9 +318,7 @@ export async function openNodeDiscordConversationRuntime(
             responseFailureClassifier: new NodeConversationResponseFailureClassifier(),
             terminalFailureResponder,
             terminalFailurePublicationVerifier,
-            ...(config.routing === undefined
-              ? {}
-              : { relevanceEvaluator: { evaluate: async () => "relevant" as const } }),
+            ...(modeResponder === null ? {} : { relevanceEvaluator: modeResponder }),
           },
         ],
         workerId: config.workerId,

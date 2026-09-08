@@ -69,6 +69,10 @@ export interface NodeDiscordConversationConfig {
   workerId: string;
   agentParticipantId: string;
   agentId?: string;
+  organization?: {
+    organizationId: string;
+    teamId: string;
+  };
   conversations: Array<{
     tenantKey: string;
     conversationKey: string;

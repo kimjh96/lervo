@@ -12,6 +12,7 @@ export function validateConversationManagedRun(input: {
   run: ManagedProviderRunResult;
   events: EventStore;
   requestDigest: string;
+  agentId: string | null;
   roleId: string;
   targetTurnId: string;
   publications: readonly SharedContextPublication[];
@@ -44,14 +45,18 @@ export function validateConversationManagedRun(input: {
     );
   }
   const requested = runEvents.filter((event) => event.type === "run.requested");
+  const causality = runEvents.filter((event) => event.type === "work.causality.recorded");
   if (
     requested.length !== 1 ||
     requested[0]!.payload.requestDigest !== input.requestDigest ||
-    requested[0]!.payload.role !== input.roleId
+    requested[0]!.payload.role !== input.roleId ||
+    causality.length !== 1 ||
+    causality[0]!.payload.relationship !== "root" ||
+    causality[0]!.payload.agentId !== input.agentId
   ) {
     throw new ManagedConversationResponseError(
       "managed_run_invalid",
-      "The conversation source hash is not linked to the managed run request source.",
+      "The conversation source hash or hired-agent identity is not linked to the managed run.",
     );
   }
   try {

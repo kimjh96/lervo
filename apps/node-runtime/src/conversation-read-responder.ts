@@ -138,6 +138,7 @@ export async function openManagedConversationReadResponder(input: {
   };
   projectId: string;
   projectCreatedAt: string;
+  agentId: string | null;
   participationRoleId: string;
   repositoryRoot: string;
   dataDirectory: string;
@@ -238,6 +239,11 @@ export async function openManagedConversationReadResponder(input: {
             repositoryRoot: input.repositoryRoot,
             resolveArtifact: (uri) => input.artifactStore.get(uri),
           }),
+          executionIdentity: {
+            agentId: input.agentId,
+            provider: input.config.routing.response.provider,
+            model: input.config.routing.response.model ?? null,
+          },
           participationRoleId: input.participationRoleId,
           maximumResponseCharacters: 2_000,
           runId: id("run"),

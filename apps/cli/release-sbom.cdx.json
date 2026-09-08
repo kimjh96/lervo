@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:a48f3c6b-ff41-5e42-baf1-cb66e0349898",
+  "serialNumber": "urn:uuid:35545df8-f4b3-5f22-8ff6-92a799a64c08",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "15d5f37959f0907e7a53072c5e86efee542c9abb3a2caa14f6e975b71d680aaa"
+          "content": "b177f98895e85cd1b7164d8f7b66680de7fbf249927dd0a43c549415f2346f98"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:459957e6248ae82bd71ed678d9d3e1a67f06a4b6bc29867bf55406b20efe5ce0"
+          "value": "sha256:b190777fabddf5ad0d4dc359557cf6cbeefbc1028a50e27db5bfa4e4dce4dfdb"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:893bc062b05da08abbe6337e3642fa66f7f2774ce6e085dd55b85742d3792143"
+          "value": "sha256:038f9fcb000c769f7202b1c087ba334faeb6e8eac10c065d4eae673e3ea47d8b"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -415,6 +415,21 @@
       "name": "adapter-webhook",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/adapter-webhook@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/agent-organization@0.1.0",
+      "group": "@lervo",
+      "name": "agent-organization",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/agent-organization@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -4271,6 +4286,7 @@
         "pkg:npm/%40lervo/adapter-discord@0.1.0",
         "pkg:npm/%40lervo/adapter-slack@0.1.0",
         "pkg:npm/%40lervo/adapter-webhook@0.1.0",
+        "pkg:npm/%40lervo/agent-organization@0.1.0",
         "pkg:npm/%40lervo/agent-workforce@0.1.0",
         "pkg:npm/%40lervo/application-contract@0.1.0",
         "pkg:npm/%40lervo/capabilities@0.1.0",

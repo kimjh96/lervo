@@ -116,6 +116,7 @@ export class ManagedConversationResponder implements ManagedConversationResponde
       instructions: conversationResponseInstructions(
         input.request,
         message,
+        input.plan.executionIdentity,
         input.plan.role.roleId,
         input.plan.maximumResponseCharacters,
       ),
@@ -133,11 +134,16 @@ export class ManagedConversationResponder implements ManagedConversationResponde
       },
       writingPolicy: input.plan.writingPolicy,
       resolvedSkills: input.plan.resolvedSkills,
+      workCausality: {
+        relationship: "root",
+        agentId: input.plan.executionIdentity.agentId,
+      },
     });
     validateConversationManagedRun({
       run,
       events: this.options.events,
       requestDigest: input.requestDigest,
+      agentId: input.plan.executionIdentity.agentId,
       roleId: input.plan.role.roleId,
       targetTurnId: input.plan.targetTurnId,
       publications: input.plan.publications,

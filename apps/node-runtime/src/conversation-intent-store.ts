@@ -65,6 +65,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
           adapter_version TEXT NOT NULL,
           intent TEXT NOT NULL CHECK (intent IN ('answer', 'continue_work', 'clarify')),
           confidence TEXT NOT NULL CHECK (confidence IN ('high', 'medium', 'low')),
+          participation TEXT NOT NULL CHECK (participation IN ('relevant', 'not_relevant')),
           effect_json TEXT,
           result_digest TEXT NOT NULL,
           resolved_at TEXT NOT NULL
@@ -84,6 +85,11 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       );
       if (!columns.has("effect_json")) {
         database.exec("ALTER TABLE conversation_intent_resolutions ADD COLUMN effect_json TEXT;");
+      }
+      if (!columns.has("participation")) {
+        database.exec(
+          "ALTER TABLE conversation_intent_resolutions ADD COLUMN participation TEXT CHECK (participation IN ('relevant', 'not_relevant'));",
+        );
       }
       await chmod(absolute, 0o600);
       return new SQLiteConversationIntentResolutionStore(database);
@@ -116,6 +122,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       input.resolution.provider.adapterVersion,
       input.resolution.intent,
       input.resolution.confidence,
+      input.resolution.participation,
       JSON.stringify(input.resolution.effect),
       input.resolution.resultDigest,
       input.resolvedAt,
@@ -124,13 +131,15 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       .prepare(
         `INSERT OR IGNORE INTO conversation_intent_resolutions
           (event_id, message_hash, provider_id, model, adapter_version, intent, confidence,
-            effect_json, result_digest, resolved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            participation, effect_json, result_digest, resolved_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(...values);
     const current = this.database
       .prepare(
         `SELECT event_id, message_hash, provider_id, model, adapter_version, intent, confidence,
-          effect_json, result_digest, resolved_at FROM conversation_intent_resolutions WHERE event_id = ?`,
+          participation, effect_json, result_digest, resolved_at
+          FROM conversation_intent_resolutions WHERE event_id = ?`,
       )
       .get(input.event.eventId) as Record<string, unknown> | undefined;
     if (
@@ -145,7 +154,8 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
     const current = this.database
       .prepare(
         `SELECT event_id, message_hash, provider_id, model, adapter_version, intent, confidence,
-          effect_json, result_digest, resolved_at FROM conversation_intent_resolutions WHERE event_id = ?`,
+          participation, effect_json, result_digest, resolved_at
+          FROM conversation_intent_resolutions WHERE event_id = ?`,
       )
       .get(event.eventId) as Record<string, unknown> | undefined;
     if (current === undefined) return null;
@@ -167,9 +177,10 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       !/^[a-z][a-z0-9._-]{0,63}$/u.test(current.provider_id) ||
       (model !== null &&
         (typeof model !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u.test(model))) ||
-      current.adapter_version !== "1" ||
+      !["1", "2"].includes(current.adapter_version as string) ||
       !["answer", "continue_work", "clarify"].includes(current.intent as string) ||
       !["high", "medium", "low"].includes(current.confidence as string) ||
+      ![null, "relevant", "not_relevant"].includes(current.participation as string | null) ||
       !validEffect(effect) ||
       typeof current.result_digest !== "string" ||
       !/^sha256:[a-f0-9]{64}$/u.test(current.result_digest) ||
@@ -181,11 +192,15 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
     return {
       intent: current.intent as ConversationIntentResolution["intent"],
       confidence: current.confidence as ConversationIntentResolution["confidence"],
+      participation:
+        current.participation === null
+          ? "relevant"
+          : (current.participation as ConversationIntentResolution["participation"]),
       effect,
       provider: {
         providerId: current.provider_id,
         model,
-        adapterVersion: "1",
+        adapterVersion: current.adapter_version as "1" | "2",
       },
       resultDigest: current.result_digest,
     };

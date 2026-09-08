@@ -1,6 +1,6 @@
 # Example Discord configuration
 
-Replace every identifier and path with reviewed deployment coordinates. The token file contains the secret, not this JSON:
+Replace every identifier and path with reviewed deployment coordinates. Store the secret in the token file, not this JSON.
 
 ```json
 {

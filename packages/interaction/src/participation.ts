@@ -37,6 +37,7 @@ export function assertConversationParticipationScope(input: {
 export function requiresConversationRelevance(input: {
   event: ConversationInboundEvent;
   policy: ConversationParticipationPolicy;
+  agentParticipantId?: string;
   window?: ParticipationWindow;
   at?: string;
 }): boolean {
@@ -55,6 +56,8 @@ export function requiresConversationRelevance(input: {
   return (
     input.event.kind === "message.created" &&
     !input.event.mentions.roleIds.includes(input.policy.roleId) &&
+    (input.agentParticipantId === undefined ||
+      !input.event.mentions.participantIds.includes(input.agentParticipantId)) &&
     (input.policy.mode === "relevant" || input.policy.mode === "proactive")
   );
 }
@@ -63,6 +66,7 @@ export function decideConversationParticipation(input: {
   event: ConversationInboundEvent;
   policy: ConversationParticipationPolicy;
   relevance: ConversationParticipationDecision["relevance"];
+  agentParticipantId?: string;
   window: ParticipationWindow;
   decidedAt: string;
 }): ConversationParticipationDecision {
@@ -107,7 +111,11 @@ export function decideConversationParticipation(input: {
       reason = "signal_not_subscribed";
       relevance = "not_checked";
     }
-  } else if (input.event.mentions.roleIds.includes(input.policy.roleId)) {
+  } else if (
+    input.event.mentions.roleIds.includes(input.policy.roleId) ||
+    (input.agentParticipantId !== undefined &&
+      input.event.mentions.participantIds.includes(input.agentParticipantId))
+  ) {
     reason = "mentioned";
     relevance = "not_checked";
   } else if (input.policy.mode === "mention_only") {

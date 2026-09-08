@@ -1,5 +1,6 @@
 import { readConversationControlMessage } from "@lervo/conversation-control";
 import type { ConversationResponder } from "@lervo/interaction";
+import type { ConversationRelevanceEvaluator } from "@lervo/interaction";
 import { readCurrentWorkstream } from "@lervo/repository-knowledge/workstream";
 import type { ConversationInboundEvent } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
@@ -39,19 +40,22 @@ function modeFor(resolution: ConversationIntentResolution): DiscordConversationM
       : "read_only";
 }
 
-export class NaturalLanguageDiscordConversationResponder implements ConversationResponder {
+export class NaturalLanguageDiscordConversationResponder
+  implements ConversationResponder, ConversationRelevanceEvaluator
+{
   private readonly resolutions = new Map<
     string,
     Promise<{
       mode: DiscordConversationMode;
       resolution: ConversationIntentResolution;
-      priorTurns: Array<{ role: "user" | "assistant"; text: string }>;
+      priorTurns: Awaited<ReturnType<ConversationHistoryPort["recent"]>>;
     }>
   >();
 
   constructor(
     private readonly options: {
       applicationId: string;
+      respondingAgent: { agentId: string | null; roleId: string };
       repositoryRoot: string;
       artifactStore: ArtifactStore;
       history: ConversationHistoryPort;
@@ -81,7 +85,7 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
   private async resolveMode(event: ConversationInboundEvent): Promise<{
     mode: DiscordConversationMode;
     resolution: ConversationIntentResolution;
-    priorTurns: Array<{ role: "user" | "assistant"; text: string }>;
+    priorTurns: Awaited<ReturnType<ConversationHistoryPort["recent"]>>;
   }> {
     const priorTurns = await this.options.history.recent(event);
     const stored = await this.options.resolutionStore.read(event);
@@ -105,6 +109,7 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
       message,
       actorKind: event.actor.kind,
       mentioned: event.mentions.participantIds.length > 0 || event.mentions.roleIds.length > 0,
+      respondingAgent: this.options.respondingAgent,
       priorTurns,
       currentWorkstream:
         current === null
@@ -140,5 +145,9 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
     return (
       resolution.mode === "continuation" ? this.options.continuation : this.options.readOnly
     ).respond(request);
+  }
+
+  async evaluate(input: Parameters<ConversationRelevanceEvaluator["evaluate"]>[0]) {
+    return (await this.resolution(input.event)).resolution.participation;
   }
 }

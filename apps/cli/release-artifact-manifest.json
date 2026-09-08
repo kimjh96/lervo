@@ -41,6 +41,7 @@
       "@lervo/adapter-discord@0.1.0",
       "@lervo/adapter-slack@0.1.0",
       "@lervo/adapter-webhook@0.1.0",
+      "@lervo/agent-organization@0.1.0",
       "@lervo/agent-workforce@0.1.0",
       "@lervo/application-contract@0.1.0",
       "@lervo/capabilities@0.1.0",
@@ -156,7 +157,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:893bc062b05da08abbe6337e3642fa66f7f2774ce6e085dd55b85742d3792143"
+    "bundleDigest": "sha256:038f9fcb000c769f7202b1c087ba334faeb6e8eac10c065d4eae673e3ea47d8b"
   },
   "archive": {
     "rootFiles": [
@@ -170,22 +171,22 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 5742542,
-        "sha256": "sha256:15d5f37959f0907e7a53072c5e86efee542c9abb3a2caa14f6e975b71d680aaa"
+        "size": 5785961,
+        "sha256": "sha256:b177f98895e85cd1b7164d8f7b66680de7fbf249927dd0a43c549415f2346f98"
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 3596657,
-        "sha256": "sha256:ee4012524dc92fb465a997ab20c7c08fba7bab2af5f849b7e4e2c26054ce955a"
+        "size": 3632291,
+        "sha256": "sha256:10e18f71f871e7c61690d3b8dc31e1fe80e116e2592f5dddecd21bcf7865d26b"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 2863735,
-        "sha256": "sha256:b77a98a48ee8b9155a687fdd4a83802fa2dd88aa62c5f33edf62a65208ab3324"
+        "size": 2874968,
+        "sha256": "sha256:d7f87f38b0c59e30f45a31d141ebc16ee78aefe4d1a328a12b9da58979d6d84e"
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:4e055a5e68aaff1b1c9f3316e7b4248e13136e92b63ea273b384ce2b81368a1d"
+    "contentDigest": "sha256:b673bdbcb99c5b5f6ebb75ff9811ca25abfa57d53da86f36d0ce443b2f9f1ddc"
   },
   "dependencies": {
     "portable": [
@@ -298,5 +299,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:459957e6248ae82bd71ed678d9d3e1a67f06a4b6bc29867bf55406b20efe5ce0"
+  "artifactDigest": "sha256:b190777fabddf5ad0d4dc359557cf6cbeefbc1028a50e27db5bfa4e4dce4dfdb"
 }

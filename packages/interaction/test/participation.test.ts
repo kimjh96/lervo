@@ -11,6 +11,7 @@ import { decideConversationParticipation, requiresConversationRelevance } from "
 function event(
   input: {
     mentioned?: boolean;
+    mentionedParticipant?: boolean;
     kind?: "message.created" | "signal.raised";
     signalCode?: string | null;
     actorKind?: "human" | "agent" | "system";
@@ -40,7 +41,7 @@ function event(
     },
     mentions: {
       roleIds: input.mentioned ? ["role_reviewer"] : [],
-      participantIds: [],
+      participantIds: input.mentionedParticipant ? ["ptc_agent001"] : [],
     },
     replyToEventId: null,
     signalCode: input.signalCode ?? null,
@@ -78,10 +79,14 @@ function decide(input: {
   relevance?: "not_checked" | "relevant" | "not_relevant" | "unknown";
   latestResponseAt?: string | null;
   responsesInLastHour?: number;
+  agentParticipantId?: string;
 }) {
   return decideConversationParticipation({
     event: input.event ?? event(),
     policy: input.policy ?? policy(),
+    ...(input.agentParticipantId === undefined
+      ? {}
+      : { agentParticipantId: input.agentParticipantId }),
     relevance: input.relevance ?? "not_checked",
     window: {
       latestResponseAt: input.latestResponseAt ?? null,
@@ -104,6 +109,24 @@ describe("conversation participation", () => {
       reason: "mentioned",
       relevance: "not_checked",
     });
+  });
+
+  it("treats the exact agent participant mention as addressed without semantic relevance", () => {
+    const addressed = event({ mentionedParticipant: true });
+    expect(
+      requiresConversationRelevance({
+        event: addressed,
+        policy: policy(),
+        agentParticipantId: "ptc_agent001",
+      }),
+    ).toBe(false);
+    expect(
+      decide({
+        event: addressed,
+        agentParticipantId: "ptc_agent001",
+        relevance: "unknown",
+      }),
+    ).toMatchObject({ action: "respond", reason: "mentioned", relevance: "not_checked" });
   });
 
   it("responds to a relevant unmentioned message and observes unknown relevance", () => {

@@ -3,6 +3,43 @@ import { describe, expect, it } from "vitest";
 import { RedactionError, sanitizeEventPayload } from "../src/index.js";
 
 describe("event payload privacy boundary", () => {
+  it("keeps organization identity coordinates while removing external identifiers", () => {
+    const payload = {
+      deploymentId: "adep_lervoagent01",
+      organizationId: "org_lervo0001",
+      teamId: "team_lervo0001",
+      projectId: "prj_organization01",
+      membershipId: "amem_lervoagent01",
+      agentId: `agt_${"a".repeat(24)}`,
+      participantId: "ptc_lervoagent01",
+      roleId: "developer",
+      roleVersion: "1.0.0",
+      roleContractHash: `sha256:${"b".repeat(64)}`,
+      roleProfileHash: `sha256:${"c".repeat(64)}`,
+      providerPolicyHash: `sha256:${"d".repeat(64)}`,
+      platform: "discord",
+      integrationId: "itg_discord01",
+      externalPrincipalHash: `sha256:${"e".repeat(64)}`,
+      deploymentConfigHash: `sha256:${"f".repeat(64)}`,
+      boundAt: "2026-09-08T00:00:00.000Z",
+    };
+    const result = sanitizeEventPayload("organization.external_agent.deployment.bound", {
+      ...payload,
+      applicationId: "private-discord-id",
+      botToken: "private-token",
+      displayName: "private-name",
+    });
+    expect(result.payload).toEqual(payload);
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+    expect(result.redactions).toEqual(
+      expect.arrayContaining([
+        { path: "$.applicationId", reason: "not_allowlisted" },
+        { path: "$.botToken", reason: "not_allowlisted" },
+        { path: "$.displayName", reason: "not_allowlisted" },
+      ]),
+    );
+  });
+
   it("retains the bounded replacement coordinate for pattern supersession", () => {
     const payload = {
       transitionId: `dptr_${"a".repeat(24)}`,

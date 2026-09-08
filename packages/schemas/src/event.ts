@@ -80,6 +80,13 @@ export const eventTypesV1 = [
   "project.identity.migrated",
   "unmanaged_change.detected",
   "sync.acknowledged",
+  "organization.team.bound",
+  "organization.agent.membership.changed",
+  "organization.external_agent.deployment.bound",
+  "organization.external_agent.deployment.retired",
+  "organization.channel.membership.changed",
+  "organization.deliberation.participant.bound",
+  "organization.deliberation.participant.released",
 ] as const;
 
 export const eventTypesV2 = [

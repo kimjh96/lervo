@@ -21,6 +21,11 @@ import type { WritingArtifactCoordinate, WritingSemanticEvaluator } from "@lervo
 
 export interface ManagedConversationResponsePlan {
   adapter: ProviderAdapter;
+  executionIdentity: {
+    agentId: string | null;
+    provider: string;
+    model: string | null;
+  };
   participationRoleId?: string;
   maximumResponseCharacters?: number;
   runId: string;
@@ -38,12 +43,23 @@ export interface ManagedConversationResponsePlan {
   resolvedSkills: readonly ManagedResolvedSkill[];
 }
 
+export interface ConversationContextTurn {
+  role: "user" | "assistant";
+  text: string;
+  speaker: {
+    kind: "human" | "agent" | "system";
+    participantId: string;
+    agentId: string | null;
+    roleId: string | null;
+  };
+}
+
 export interface ManagedConversationResponseRequest {
   event: ConversationInboundEvent;
   policy: ConversationParticipationPolicy;
   decision: ConversationParticipationDecision;
   context?: {
-    priorTurns: ReadonlyArray<{ role: "user" | "assistant"; text: string }>;
+    priorTurns: ReadonlyArray<ConversationContextTurn>;
   };
 }
 

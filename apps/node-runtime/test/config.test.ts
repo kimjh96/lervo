@@ -118,6 +118,10 @@ describe("Node runtime configuration", () => {
       workerId: "discord-operator",
       agentParticipantId: "ptc_lervoagent",
       agentId: undefined,
+      organization: {
+        organizationId: "org_lervoowner01",
+        teamId: "team_lervocore01",
+      },
       conversations: [
         {
           tenantKey: "123456789012345678",
@@ -155,6 +159,10 @@ describe("Node runtime configuration", () => {
     expect(parseNodeRuntimeConfig(configured, root)).toMatchObject({
       discordConversation: {
         botTokenFile: `${root}/discord.token`,
+        organization: {
+          organizationId: "org_lervoowner01",
+          teamId: "team_lervocore01",
+        },
         routing: {
           readOnlyRoleId: "conversation-reader",
           intent: { provider: "codex", model: "gpt-5.6-sol", timeoutMs: 45_000 },
@@ -185,6 +193,13 @@ describe("Node runtime configuration", () => {
       invalidAgent.discordConversation as { participants: Array<Record<string, unknown>> }
     ).participants[0]!.actorKind = "agent";
     expect(() => parseNodeRuntimeConfig(invalidAgent, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
+    const invalidOrganization = structuredClone(configured);
+    (
+      invalidOrganization.discordConversation as { organization: Record<string, unknown> }
+    ).organization.teamId = "wrong";
+    expect(() => parseNodeRuntimeConfig(invalidOrganization, root)).toThrow(
       expect.objectContaining({ code: "invalid_config" }),
     );
   });
@@ -250,6 +265,20 @@ describe("Node runtime configuration", () => {
         roleProfileHash: agent.roleProfileHash,
       },
     });
+
+    const unboundOrganization = {
+      ...parsed,
+      organization: {
+        organizationId: "org_lervoowner01",
+        teamId: "team_lervocore01",
+      },
+    };
+    await expect(
+      resolveDiscordAgentParticipation({
+        repositoryRoot: fixture.repositoryRoot,
+        config: unboundOrganization,
+      }),
+    ).rejects.toMatchObject({ code: "invalid_config" });
 
     const incompatible = structuredClone(parsed);
     delete incompatible.routing;

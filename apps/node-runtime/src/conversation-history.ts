@@ -3,11 +3,10 @@ import { DatabaseSync } from "node:sqlite";
 
 import { validateSchema, type ConversationInboundEvent } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
+import type { ConversationContextTurn } from "@lervo/conversation-responder";
 
 export interface ConversationHistoryPort {
-  recent(
-    event: ConversationInboundEvent,
-  ): Promise<Array<{ role: "user" | "assistant"; text: string }>>;
+  recent(event: ConversationInboundEvent): Promise<ConversationContextTurn[]>;
 }
 
 interface StoredTurn {
@@ -15,6 +14,7 @@ interface StoredTurn {
   occurredAt: string;
   content: { contentHash: string; byteCount: number };
   target: ConversationInboundEvent["target"];
+  speaker: ConversationContextTurn["speaker"];
 }
 
 function decodeTurn(value: string, role: StoredTurn["role"]): StoredTurn {
@@ -28,6 +28,13 @@ function decodeTurn(value: string, role: StoredTurn["role"]): StoredTurn {
     occurredAt: (role === "user" ? record.occurredAt : record.createdAt) as string,
     content: record.content as StoredTurn["content"],
     target: record.target as ConversationInboundEvent["target"],
+    speaker: {
+      kind: (record.actor as { kind: ConversationContextTurn["speaker"]["kind"] }).kind,
+      participantId: (record.actor as { participantId: string }).participantId,
+      agentId:
+        (record.actor as { agentBinding?: { agentId?: string } }).agentBinding?.agentId ?? null,
+      roleId: (record.actor as { roleId: string | null }).roleId,
+    },
   };
 }
 
@@ -47,9 +54,7 @@ export class SQLiteConversationHistory implements ConversationHistoryPort {
     private readonly artifacts: ArtifactStore,
   ) {}
 
-  async recent(
-    event: ConversationInboundEvent,
-  ): Promise<Array<{ role: "user" | "assistant"; text: string }>> {
+  async recent(event: ConversationInboundEvent): Promise<ConversationContextTurn[]> {
     const database = new DatabaseSync(this.path, { readOnly: true, allowExtension: false });
     try {
       const rows = database
@@ -84,6 +89,7 @@ export class SQLiteConversationHistory implements ConversationHistoryPort {
         turns.map(async (turn) => ({
           role: turn.role,
           text: await verifiedText(this.artifacts, turn),
+          speaker: turn.speaker,
         })),
       );
     } finally {

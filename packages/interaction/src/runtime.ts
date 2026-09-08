@@ -126,6 +126,7 @@ export async function handleConversationEvent(input: {
         requiresConversationRelevance({
           event: input.event,
           policy: input.policy,
+          agentParticipantId: input.agentParticipantId,
           window,
           at: claimedAt,
         })
@@ -146,6 +147,7 @@ export async function handleConversationEvent(input: {
       const decision = decideConversationParticipation({
         event: input.event,
         policy: input.policy,
+        agentParticipantId: input.agentParticipantId,
         relevance,
         window,
         decidedAt: claimedAt,

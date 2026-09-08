@@ -3,6 +3,15 @@ import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.
 import { adapterContractMessageSchema } from "./adapter.js";
 import { agentLivenessObservedEventPayloadSchema } from "./agent-liveness-event.js";
 import {
+  organizationAgentMembershipChangedEventPayloadSchema,
+  organizationChannelMembershipChangedEventPayloadSchema,
+  organizationDeliberationParticipantBoundEventPayloadSchema,
+  organizationDeliberationParticipantReleasedEventPayloadSchema,
+  organizationExternalAgentDeploymentBoundEventPayloadSchema,
+  organizationExternalAgentDeploymentRetiredEventPayloadSchema,
+  organizationTeamBoundEventPayloadSchema,
+} from "./organization-agent-event.js";
+import {
   adapterProcessObservationSchema,
   providerProcessObservedEventPayloadSchema,
 } from "./adapter-process-observation.js";
@@ -339,6 +348,25 @@ const validators = {
   roleEvaluationBundle: ajv.compile(roleEvaluationBundleSchema),
   roleEvaluationResult: ajv.compile(roleEvaluationResultSchema),
   roleProfileActivatedEventPayload: ajv.compile(roleProfileActivatedEventPayloadSchema),
+  organizationTeamBoundEventPayload: ajv.compile(organizationTeamBoundEventPayloadSchema),
+  organizationAgentMembershipChangedEventPayload: ajv.compile(
+    organizationAgentMembershipChangedEventPayloadSchema,
+  ),
+  organizationExternalAgentDeploymentBoundEventPayload: ajv.compile(
+    organizationExternalAgentDeploymentBoundEventPayloadSchema,
+  ),
+  organizationExternalAgentDeploymentRetiredEventPayload: ajv.compile(
+    organizationExternalAgentDeploymentRetiredEventPayloadSchema,
+  ),
+  organizationChannelMembershipChangedEventPayload: ajv.compile(
+    organizationChannelMembershipChangedEventPayloadSchema,
+  ),
+  organizationDeliberationParticipantBoundEventPayload: ajv.compile(
+    organizationDeliberationParticipantBoundEventPayloadSchema,
+  ),
+  organizationDeliberationParticipantReleasedEventPayload: ajv.compile(
+    organizationDeliberationParticipantReleasedEventPayloadSchema,
+  ),
   highRiskRoleWorkflow: ajv.compile(highRiskRoleWorkflowSchema),
   runCompletedEventPayload: ajv.compile(runCompletedEventPayloadSchema),
   assignmentCompletionPreparedEventPayload: ajv.compile(

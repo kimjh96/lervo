@@ -86,6 +86,9 @@ importers:
       '@lervo/adapter-webhook':
         specifier: workspace:*
         version: link:../../packages/adapter-webhook
+      '@lervo/agent-organization':
+        specifier: workspace:*
+        version: link:../../packages/agent-organization
       '@lervo/agent-workforce':
         specifier: workspace:*
         version: link:../../packages/agent-workforce
@@ -416,6 +419,9 @@ importers:
       '@lervo/adapter-discord':
         specifier: workspace:*
         version: link:../../packages/adapter-discord
+      '@lervo/agent-organization':
+        specifier: workspace:*
+        version: link:../../packages/agent-organization
       '@lervo/agent-workforce':
         specifier: workspace:*
         version: link:../../packages/agent-workforce
@@ -640,6 +646,12 @@ importers:
       '@lervo/live-trigger-contract':
         specifier: workspace:*
         version: link:../live-trigger-contract
+
+  packages/agent-organization:
+    dependencies:
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
 
   packages/agent-workforce:
     dependencies:

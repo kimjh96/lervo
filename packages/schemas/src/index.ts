@@ -39,6 +39,7 @@ export * from "./knowledge-context.js";
 export * from "./knowledge-event.js";
 export * from "./knowledge-lifecycle.js";
 export * from "./organization-deployment.js";
+export * from "./organization-agent-event.js";
 export * from "./organization-fleet.js";
 export * from "./organization-rollout-execution.js";
 export * from "./organization-rollout-delivery.js";

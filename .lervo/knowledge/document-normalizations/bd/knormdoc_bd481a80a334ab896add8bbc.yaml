@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_21111122f3c927f17e0b44e0
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_570a59ad046e6c4ebb1e7f0b
+outputLanguage: en
+outputs:
+  - byteCount: 1638
+    contentHash: sha256:7846092f564d26fe7060c8959f1ebbedc367f0a2e7ee97e0e5825ca057110299
+    path: docs/distribution/node-runtime-distribution/discord-configuration/example.md
+    userRegionHash: sha256:7846092f564d26fe7060c8959f1ebbedc367f0a2e7ee97e0e5825ca057110299
+profile: repository_document
+recordId: knormdoc_bd481a80a334ab896add8bbc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bd29aea7ea27f560dd5f4f5ae8f8e03677dc1d0da59b8ab6c40f73490b3f56c9
+sourcePath: docs/distribution/node-runtime-distribution/discord-configuration/example.md
+sourceUnitVersionIds:
+  - uv_a91b2fab0018c35b7bd339b2

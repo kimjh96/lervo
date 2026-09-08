@@ -36,6 +36,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@lervo/agent-organization": "workspace:*",
     "@lervo/agent-workforce": "workspace:*",
     "@lervo/application-contract": "workspace:*",
     "@lervo/capabilities": "workspace:*",

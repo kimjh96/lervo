@@ -68,8 +68,9 @@ describe("natural-language Discord conversation mode", () => {
     const resolveIntent = vi.fn<ConversationIntentResolver["resolve"]>(async () => ({
       intent,
       confidence: "high" as const,
+      participation: "relevant" as const,
       effect,
-      provider: { providerId: "codex", model: null, adapterVersion: "1" as const },
+      provider: { providerId: "codex", model: null, adapterVersion: "2" as const },
       resultDigest: `sha256:${"e".repeat(64)}`,
     }));
     const resolver: ConversationIntentResolver = { resolve: resolveIntent };
@@ -88,12 +89,31 @@ describe("natural-language Discord conversation mode", () => {
     };
     const responder = new NaturalLanguageDiscordConversationResponder({
       applicationId,
+      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "developer" },
       repositoryRoot: process.cwd(),
       artifactStore,
       history: {
         recent: async () => [
-          { role: "user", text: "Please inspect the active work." },
-          { role: "assistant", text: "The active work is ready to continue." },
+          {
+            role: "user",
+            text: "Please inspect the active work.",
+            speaker: {
+              kind: "human",
+              participantId: "ptc_test0001",
+              agentId: null,
+              roleId: null,
+            },
+          },
+          {
+            role: "assistant",
+            text: "The active work is ready to continue.",
+            speaker: {
+              kind: "agent",
+              participantId: "ptc_lervoagent",
+              agentId: `agt_${"a".repeat(24)}`,
+              roleId: "developer",
+            },
+          },
         ],
       },
       resolutionStore,
@@ -135,6 +155,8 @@ describe("natural-language Discord conversation mode", () => {
     await responder.respond(first);
     expect(readOnly.respond).toHaveBeenCalledOnce();
     expect(resolveIntent.mock.calls[0]![0]).toMatchObject({ mentioned: false, message });
+    await expect(responder.evaluate(first)).resolves.toBe("relevant");
+    expect(resolveIntent).toHaveBeenCalledTimes(1);
 
     intent = "continue_work";
     effect = { kind: "repository_work" };
@@ -161,6 +183,7 @@ describe("natural-language Discord conversation mode", () => {
 
     const restarted = new NaturalLanguageDiscordConversationResponder({
       applicationId,
+      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "developer" },
       repositoryRoot: process.cwd(),
       artifactStore,
       history: { recent: async () => [] },

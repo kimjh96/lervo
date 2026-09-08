@@ -294,6 +294,14 @@ describe("managed conversation responder", () => {
         };
         return {
           adapter: adapters[roleId],
+          executionIdentity: {
+            agentId:
+              roleId === "reviewer"
+                ? "agt_111111111111111111111111"
+                : "agt_222222222222222222222222",
+            provider: roleId === "reviewer" ? "codex" : "claude",
+            model: roleId === "reviewer" ? "gpt-review" : "claude-plan",
+          },
           runId: `run_conversation_${roleId}`,
           sessionId: `ses_conversation_${roleId}`,
           targetTurnId: `target-conversation-${roleId}`,
@@ -332,8 +340,26 @@ describe("managed conversation responder", () => {
       decision: decisions.reviewer,
       context: {
         priorTurns: [
-          { role: "user" as const, text: "Please remember that evidence comes first." },
-          { role: "assistant" as const, text: "I will keep that review priority." },
+          {
+            role: "user" as const,
+            text: "Please remember that evidence comes first.",
+            speaker: {
+              kind: "human" as const,
+              participantId: "ptc_requester01",
+              agentId: null,
+              roleId: null,
+            },
+          },
+          {
+            role: "assistant" as const,
+            text: "I will keep that review priority.",
+            speaker: {
+              kind: "agent" as const,
+              participantId: "ptc_reviewer01",
+              agentId: "agt_111111111111111111111111",
+              roleId: "reviewer",
+            },
+          },
         ],
       },
     };
@@ -361,9 +387,14 @@ describe("managed conversation responder", () => {
     expect(JSON.stringify(codexClient.injectedItems)).not.toContain(plannerContent.trim());
     expect(claudeClient.appendedContexts.join("\n")).toContain(plannerContent.trim());
     expect(claudeClient.appendedContexts.join("\n")).not.toContain(reviewerContent.trim());
-    expect(codexClient.instructions).toContain(rawMessage);
+    const codexInstructions = codexClient.instructions.replaceAll('\\"', '"');
+    expect(codexInstructions).toContain(rawMessage);
+    expect(codexInstructions).toContain('"provider":"codex"');
+    expect(codexInstructions).toContain('"model":"gpt-review"');
     expect(codexClient.instructions).toContain("Please remember that evidence comes first.");
     expect(claudeClient.instructions).toContain(rawMessage);
+    expect(claudeClient.instructions).toContain('"provider":"claude"');
+    expect(claudeClient.instructions).toContain('"model":"claude-plan"');
     expect(codexClient.closed).toBe(true);
     expect(claudeClient.closed).toBe(true);
     expect(reviewer.publicationPermit.surface).toBe("chat");
@@ -399,6 +430,12 @@ describe("managed conversation responder", () => {
     const runEvents = events.list();
     expect(runEvents.filter((item) => item.type === "run.completed")).toHaveLength(2);
     expect(runEvents.filter((item) => item.type === "work.causality.recorded")).toHaveLength(2);
+    expect(
+      runEvents
+        .filter((item) => item.type === "work.causality.recorded")
+        .map((item) => item.payload.agentId)
+        .sort(),
+    ).toEqual(["agt_111111111111111111111111", "agt_222222222222222222222222"]);
     expect(runEvents.filter((item) => item.type === "context.injected")).toHaveLength(2);
     expect(JSON.stringify(runEvents)).not.toContain(rawMessage);
     expect(events.verifyIntegrity().valid).toBe(true);

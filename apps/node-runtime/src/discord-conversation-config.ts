@@ -13,6 +13,7 @@ import {
   optionalConfigInteger,
 } from "./config-values.js";
 import { NodeRuntimeError } from "./errors.js";
+import { parseDiscordAgentOrganization } from "./discord-agent-organization-config.js";
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
 const INTEGRATION_ID = /^itg_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
@@ -55,6 +56,7 @@ export function parseDiscordConversationConfig(
       "workerId",
       "agentParticipantId",
       "agentId",
+      "organization",
       "conversations",
       "participants",
       "administration",
@@ -77,6 +79,7 @@ export function parseDiscordConversationConfig(
     source.agentId === undefined
       ? undefined
       : configText(source.agentId, "discordConversation.agentId");
+  const organization = parseDiscordAgentOrganization(source.organization);
   if (
     !INTEGRATION_ID.test(integrationId) ||
     !SNOWFLAKE.test(applicationId) ||
@@ -195,6 +198,7 @@ export function parseDiscordConversationConfig(
     workerId,
     agentParticipantId,
     ...(agentId === undefined ? {} : { agentId }),
+    ...(organization === undefined ? {} : { organization }),
     conversations,
     participants,
     ...(allowedActions === undefined ? {} : { administration: { allowedActions } }),
