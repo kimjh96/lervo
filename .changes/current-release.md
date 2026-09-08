@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.16.1" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.16.2" schema="1" -->
 
 ## What's changed
 
-- Rotate changed hired-agent deployments while preserving immutable identity history.
+- Accept direct live-webhook authorization paths on Windows and expose startup failures.
