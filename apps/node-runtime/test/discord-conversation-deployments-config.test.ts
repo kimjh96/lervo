@@ -161,6 +161,12 @@ describe("Discord conversation deployments configuration", () => {
           applicationId: "999999999999999992",
           participantId: "ptc_lervoagent02",
           roleId: "researcher",
+          agentBinding: {
+            agentId: `agt_${"b".repeat(24)}`,
+            roleVersion: "1.0.0",
+            roleContractHash: `sha256:${"c".repeat(64)}`,
+            roleProfileHash: `sha256:${"d".repeat(64)}`,
+          },
           tenantKeys: [guildId],
         },
       ],
@@ -173,6 +179,12 @@ describe("Discord conversation deployments configuration", () => {
             kind: "agent",
             participantId: "ptc_lervoagent02",
             roleId: "researcher",
+            agentBinding: {
+              agentId: `agt_${"b".repeat(24)}`,
+              roleVersion: "1.0.0",
+              roleContractHash: `sha256:${"c".repeat(64)}`,
+              roleProfileHash: `sha256:${"d".repeat(64)}`,
+            },
           },
         }),
         expect.objectContaining({
@@ -181,6 +193,12 @@ describe("Discord conversation deployments configuration", () => {
             kind: "agent",
             participantId: "ptc_lervoagent02",
             roleId: "researcher",
+            agentBinding: {
+              agentId: `agt_${"b".repeat(24)}`,
+              roleVersion: "1.0.0",
+              roleContractHash: `sha256:${"c".repeat(64)}`,
+              roleProfileHash: `sha256:${"d".repeat(64)}`,
+            },
           },
         }),
       ]),

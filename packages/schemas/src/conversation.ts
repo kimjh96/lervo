@@ -8,7 +8,24 @@ import {
   projectIdSchema,
   schemaVersionSchema,
   sha256Schema,
+  workforceAgentIdSchema,
 } from "./common.js";
+
+export const conversationAgentBindingSchema = {
+  type: "object",
+  properties: {
+    agentId: workforceAgentIdSchema,
+    roleVersion: {
+      type: "string",
+      pattern: "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$",
+      maxLength: 100,
+    },
+    roleContractHash: sha256Schema,
+    roleProfileHash: sha256Schema,
+  },
+  required: ["agentId", "roleVersion", "roleContractHash", "roleProfileHash"],
+  additionalProperties: false,
+} as const;
 
 export const conversationContentReferenceSchema = {
   type: "object",
@@ -83,6 +100,7 @@ export const conversationAdapterDescriptorSchema = {
 } as const;
 
 export type ConversationContentReference = FromSchema<typeof conversationContentReferenceSchema>;
+export type ConversationAgentBinding = FromSchema<typeof conversationAgentBindingSchema>;
 export type ConversationTarget = FromSchema<typeof conversationTargetSchema>;
 export type ConversationAdapterCapability = (typeof conversationAdapterCapabilities)[number];
 export type ConversationAdapterDescriptor = FromSchema<typeof conversationAdapterDescriptorSchema>;

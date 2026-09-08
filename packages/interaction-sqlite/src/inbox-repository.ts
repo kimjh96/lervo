@@ -228,17 +228,38 @@ export class ConversationInboxSQLiteRepository {
     return inbound(row);
   }
 
-  complete(input: { eventId: string; policyId: string; roleId: string; leaseId: string }): void {
+  complete(input: {
+    eventId: string;
+    policyId: string;
+    roleId: string;
+    leaseId: string;
+    terminalFailure?: { failureCode: string; failedAt: string };
+  }): void {
+    const terminalFailureCode = input.terminalFailure?.failureCode ?? null;
+    const terminalFailedAtMs =
+      input.terminalFailure === undefined
+        ? null
+        : milliseconds(input.terminalFailure.failedAt, "Conversation terminal failure");
+    if (terminalFailureCode !== null) failureCode(terminalFailureCode);
     const updated = this.database
       .prepare(
         `
       UPDATE conversation_inbox SET status = 'completed',
-        lease_id = NULL, lease_owner = NULL, lease_expires_at_ms = NULL
+        lease_id = NULL, lease_owner = NULL, lease_expires_at_ms = NULL,
+        last_failure_code = COALESCE(?, last_failure_code),
+        last_failed_at_ms = COALESCE(?, last_failed_at_ms)
       WHERE event_id = ? AND role_id = ? AND policy_id = ?
         AND lease_id = ? AND status = 'leased'
     `,
       )
-      .run(input.eventId, input.roleId, input.policyId, input.leaseId);
+      .run(
+        terminalFailureCode,
+        terminalFailedAtMs,
+        input.eventId,
+        input.roleId,
+        input.policyId,
+        input.leaseId,
+      );
     if (updated.changes !== 1) {
       throw new InteractionSQLiteError(
         "lease_mismatch",

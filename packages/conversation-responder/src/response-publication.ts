@@ -14,7 +14,7 @@ export async function publishConversationResponse(input: {
   artifact: WritingArtifactCoordinate;
   writingContract: WritingContract;
   artifactStore: ArtifactStore;
-  semanticEvaluator: WritingSemanticEvaluator;
+  semanticEvaluator?: WritingSemanticEvaluator;
   maximumResponseCharacters?: number;
   now?: () => Date;
 }): Promise<ConversationReplyCandidate> {
@@ -30,11 +30,22 @@ export async function publishConversationResponse(input: {
       contract: input.writingContract,
       surface: "chat",
       artifactStore: input.artifactStore,
-      semanticEvaluator: input.semanticEvaluator,
+      ...(input.semanticEvaluator === undefined
+        ? {}
+        : { semanticEvaluator: input.semanticEvaluator }),
     },
     input.now === undefined ? {} : { now: input.now },
   );
   if (publication.status !== "allowed") {
+    if (
+      input.writingContract.verification.semanticChecks.some((check) => check.required) &&
+      publication.semanticEvaluationStatus !== "completed"
+    ) {
+      throw new ManagedConversationResponseError(
+        "writing_evaluation_unavailable",
+        "The conversation response semantic writing evaluation was unavailable or invalid.",
+      );
+    }
     throw new ManagedConversationResponseError(
       "writing_publication_blocked",
       "A provider result that fails writing verification cannot be published to a conversation.",

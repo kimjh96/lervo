@@ -123,5 +123,6 @@ export interface NodeDiscordConversationConfig {
     cooldownSeconds?: number;
     maxResponsesPerHour?: number;
     maxAutomationDepth?: number;
+    maxResponseAttempts?: number;
   };
 }

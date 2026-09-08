@@ -60,6 +60,10 @@ export interface ConversationInteractionStore {
     leaseId: string;
     decision: ConversationParticipationDecision;
     outbound: ConversationOutboundMessage | null;
+    terminalFailure?: {
+      failureCode: ConversationResponseFailureCode;
+      failedAt: string;
+    };
   }): Promise<void>;
 
   rescheduleInbound(input: {
@@ -117,6 +121,36 @@ export interface ConversationResponder {
     event: ConversationInboundEvent;
     policy: ConversationParticipationPolicy;
     decision: ConversationParticipationDecision;
+    context?: {
+      priorTurns: ReadonlyArray<{ role: "user" | "assistant"; text: string }>;
+    };
+  }): Promise<ConversationReplyCandidate>;
+}
+
+export type ConversationResponseFailureCode =
+  | "response_generation_failed"
+  | "response_writing_blocked"
+  | "response_evaluation_unavailable"
+  | "response_execution_invalid"
+  | "response_contract_invalid"
+  | "publication_verification_failed";
+
+export interface ConversationResponseFailure {
+  failureCode: ConversationResponseFailureCode;
+  retryable: boolean;
+}
+
+export interface ConversationResponseFailureClassifier {
+  classify(error: unknown): ConversationResponseFailure;
+}
+
+export interface ConversationTerminalFailureResponder {
+  respond(input: {
+    event: ConversationInboundEvent;
+    policy: ConversationParticipationPolicy;
+    decision: ConversationParticipationDecision;
+    failureCode: ConversationResponseFailureCode;
+    attemptCount: number;
   }): Promise<ConversationReplyCandidate>;
 }
 
@@ -141,8 +175,15 @@ export type HandleConversationEventResult =
   | { status: "busy" }
   | {
       status: "retry_scheduled";
-      failureCode: "response_generation_failed" | "publication_verification_failed";
+      failureCode: ConversationResponseFailureCode;
       nextAttemptAt: string;
+    }
+  | {
+      status: "failed_terminal";
+      decision: ConversationParticipationDecision;
+      outbound: ConversationOutboundMessage;
+      failureCode: ConversationResponseFailureCode;
+      attemptCount: number;
     };
 
 export interface ConversationDeliveryCycleResult {

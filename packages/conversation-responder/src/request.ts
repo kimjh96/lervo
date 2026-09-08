@@ -56,6 +56,7 @@ export function conversationResponseRequestDigest(input: {
     participationRoleId: input.plan.participationRoleId ?? input.plan.role.roleId,
     maximumResponseCharacters: input.plan.maximumResponseCharacters ?? 65_536,
     messageHash: input.request.event.content.contentHash,
+    priorTurns: input.request.context?.priorTurns ?? [],
   });
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
@@ -80,6 +81,7 @@ export function conversationResponseInstructions(
       "Write only the response body; do not send directly to an external platform.",
       `Keep the response at or below ${maximumResponseCharacters} Unicode characters.`,
     ],
+    priorTurns: input.context?.priorTurns ?? [],
     message,
   });
 }

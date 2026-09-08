@@ -473,4 +473,111 @@ describe("durable native chat interaction", () => {
     ]);
     await store.close();
   });
+
+  it("ends a poisoned response with one verified user-visible failure after the attempt bound", async () => {
+    const path = await databasePath();
+    const store = await SQLiteConversationInteractionStore.open({ path });
+    const adapter = new NativeChatConversationAdapter({
+      integrationId: "itg_native001",
+      instanceIdentity: "native-instance",
+      delivery: {
+        send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:05.000Z" }),
+      },
+    });
+    const event = adapter.normalizeInbound({
+      sourceEventKey: "poisoned-response",
+      target: {
+        projectId: "prj_project01",
+        conversationId: "cnv_general01",
+        threadId: null,
+      },
+      kind: "message.created",
+      actor: { kind: "human", participantId: "ptc_human001", roleId: null },
+      content: {
+        artifactId: "art_message01",
+        contentHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        byteCount: 10,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      occurredAt: "2026-08-20T00:00:01.000Z",
+    });
+    const responder = vi.fn(async () => {
+      throw Object.assign(new Error("quarantined provider prose"), {
+        code: "writing_publication_blocked",
+      });
+    });
+    const terminalResponder = vi.fn(async () => responseCandidate());
+    const terminalVerifier = vi.fn(async () => undefined);
+    const common = {
+      event,
+      policy: participationPolicy(),
+      workerId: "bounded-retry-worker",
+      agentParticipantId: "ptc_agent001",
+      agentBinding: {
+        agentId: `agt_${"a".repeat(24)}`,
+        roleVersion: "1.2.3",
+        roleContractHash: `sha256:${"b".repeat(64)}`,
+        roleProfileHash: `sha256:${"c".repeat(64)}`,
+      },
+      store,
+      responder: { respond: responder },
+      publicationVerifier: { verify: vi.fn(async () => undefined) },
+      relevanceEvaluator: { evaluate: async () => "relevant" as const },
+      responseFailureClassifier: {
+        classify: () => ({ failureCode: "response_writing_blocked" as const, retryable: true }),
+      },
+      terminalFailureResponder: { respond: terminalResponder },
+      terminalFailurePublicationVerifier: { verify: terminalVerifier },
+      maximumResponseAttempts: 2,
+      retryDelayMs: 1_000,
+    };
+
+    await expect(
+      handleConversationEvent({
+        ...common,
+        clock: () => new Date("2026-08-20T00:00:02.000Z"),
+      }),
+    ).resolves.toMatchObject({
+      status: "retry_scheduled",
+      failureCode: "response_writing_blocked",
+    });
+    await expect(
+      handleConversationEvent({
+        ...common,
+        clock: () => new Date("2026-08-20T00:00:04.000Z"),
+      }),
+    ).resolves.toMatchObject({
+      status: "failed_terminal",
+      failureCode: "response_writing_blocked",
+      attemptCount: 2,
+      outbound: {
+        sourceEventId: event.eventId,
+        actor: {
+          agentBinding: {
+            agentId: `agt_${"a".repeat(24)}`,
+            roleVersion: "1.2.3",
+          },
+        },
+      },
+    });
+    expect(responder).toHaveBeenCalledTimes(2);
+    expect(terminalResponder).toHaveBeenCalledTimes(1);
+    expect(terminalVerifier).toHaveBeenCalledTimes(1);
+    expect(store.auditIntegrity()).toMatchObject({ inboxCount: 1, outboxCount: 1 });
+    await store.close();
+
+    const database = new DatabaseSync(path, { readOnly: true });
+    expect(
+      database
+        .prepare(
+          "SELECT status, attempt_count, last_failure_code FROM conversation_inbox WHERE event_id = ?",
+        )
+        .get(event.eventId),
+    ).toEqual({
+      status: "completed",
+      attempt_count: 2,
+      last_failure_code: "response_writing_blocked",
+    });
+    database.close();
+  });
 });

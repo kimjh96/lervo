@@ -8,9 +8,13 @@ import {
   ConversationRemoteContinuationResponder,
   type ConversationRemoteContinuationPort,
 } from "@lervo/conversation-control";
-import { VerifiedConversationPublication } from "@lervo/conversation-responder";
+import {
+  FixedConversationTerminalFailureResponder,
+  VerifiedConversationPublication,
+} from "@lervo/conversation-responder";
 import {
   adaptiveConversationWritingContract,
+  fixedConversationStatusWritingContract,
   fixedEnglishStatusWritingContract,
 } from "@lervo/core";
 import type { DiscordGatewayTransport } from "@lervo/discord-gateway";
@@ -40,6 +44,7 @@ import type { DiscordAgentParticipation } from "./discord-agent-participation.js
 import { loadDiscordBotToken } from "./discord-credentials.js";
 import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
 import { ConversationInteractionRetryLoop } from "./conversation-interaction-retry-loop.js";
+import { NodeConversationResponseFailureClassifier } from "./conversation-response-failure-policy.js";
 
 export interface NodeDiscordConversationRuntime {
   readonly failed: Promise<void>;
@@ -103,6 +108,9 @@ export async function openNodeDiscordConversationRuntime(
     config,
     projectId: options.project.projectId,
     agentRoleId: agentParticipation.roleId,
+    ...(agentParticipation.agentBinding === undefined
+      ? {}
+      : { agentBinding: agentParticipation.agentBinding }),
     ...(options.peerAgents === undefined ? {} : { peerAgents: options.peerAgents }),
   });
   const policy = createConversationParticipationPolicy({
@@ -217,6 +225,13 @@ export async function openNodeDiscordConversationRuntime(
         ? adaptiveConversationWritingContract
         : fixedEnglishStatusWritingContract,
   });
+  const terminalFailureResponder = new FixedConversationTerminalFailureResponder({
+    artifactStore: artifacts,
+  });
+  const terminalFailurePublicationVerifier = new VerifiedConversationPublication({
+    artifactStore: artifacts,
+    resolveWritingContract: () => fixedConversationStatusWritingContract,
+  });
   let application: Awaited<ReturnType<typeof openConversationApplication>> | undefined;
   try {
     application = await openConversationApplication({
@@ -263,14 +278,21 @@ export async function openNodeDiscordConversationRuntime(
           {
             policy,
             agentParticipantId: config.agentParticipantId,
+            ...(agentParticipation.agentBinding === undefined
+              ? {}
+              : { agentBinding: agentParticipation.agentBinding }),
             responder,
             publicationVerifier,
+            responseFailureClassifier: new NodeConversationResponseFailureClassifier(),
+            terminalFailureResponder,
+            terminalFailurePublicationVerifier,
             ...(config.routing === undefined
               ? {}
               : { relevanceEvaluator: { evaluate: async () => "relevant" as const } }),
           },
         ],
         workerId: config.workerId,
+        maximumResponseAttempts: config.policy?.maxResponseAttempts ?? 3,
       },
       ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
     });

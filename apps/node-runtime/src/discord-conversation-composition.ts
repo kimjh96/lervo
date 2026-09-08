@@ -3,6 +3,7 @@ import {
   HubWorkstreamContinuationResolver,
 } from "@lervo/conversation-app";
 import type { ConversationRemoteContinuationPort } from "@lervo/conversation-control";
+import type { ConversationAgentBinding } from "@lervo/schemas";
 import { AuthenticatedRemoteCommandHttpSubmission } from "@lervo/remote-command";
 import { AuthenticatedHubHttpTransport } from "@lervo/sync";
 
@@ -19,6 +20,7 @@ export interface DiscordPeerAgentBinding {
   applicationId: string;
   participantId: string;
   roleId: string;
+  agentBinding: ConversationAgentBinding;
   tenantKeys: string[];
 }
 
@@ -79,6 +81,7 @@ export function createDiscordPlatformBindings(input: {
   config: NodeDiscordConversationConfig;
   projectId: string;
   agentRoleId: string;
+  agentBinding?: ConversationAgentBinding;
   peerAgents?: DiscordPeerAgentBinding[];
 }) {
   const { config } = input;
@@ -113,6 +116,7 @@ export function createDiscordPlatformBindings(input: {
           kind: "agent" as const,
           participantId: config.agentParticipantId,
           roleId: input.agentRoleId,
+          ...(input.agentBinding === undefined ? {} : { agentBinding: input.agentBinding }),
         },
       })),
       ...(input.peerAgents ?? []).flatMap((peer) =>
@@ -127,6 +131,7 @@ export function createDiscordPlatformBindings(input: {
                   kind: "agent" as const,
                   participantId: peer.participantId,
                   roleId: peer.roleId,
+                  agentBinding: peer.agentBinding,
                 },
               }))
             : [],

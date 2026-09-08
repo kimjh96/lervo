@@ -4,7 +4,45 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { ConversationPlatformSQLiteError } from "./errors.js";
 
-export const conversationPlatformSQLiteSchemaVersion = 3;
+export const conversationPlatformSQLiteSchemaVersion = 4;
+
+function migrateConversationPlatformVersionThree(database: DatabaseSync): void {
+  database.exec(`
+    CREATE TABLE participant_bindings_v4 (
+      platform TEXT NOT NULL CHECK (
+        length(platform) BETWEEN 1 AND 64 AND platform GLOB '[a-z]*'
+        AND platform NOT GLOB '*[^a-z0-9_-]*'
+      ),
+      integration_id TEXT NOT NULL,
+      tenant_key TEXT NOT NULL,
+      participant_key TEXT NOT NULL,
+      actor_kind TEXT NOT NULL CHECK (actor_kind IN ('human', 'agent', 'system')),
+      participant_id TEXT NOT NULL,
+      role_id TEXT,
+      agent_id TEXT,
+      role_version TEXT,
+      role_contract_hash TEXT,
+      role_profile_hash TEXT,
+      PRIMARY KEY (platform, integration_id, tenant_key, participant_key),
+      CHECK ((actor_kind = 'agent' AND role_id IS NOT NULL)
+        OR (actor_kind != 'agent' AND role_id IS NULL)),
+      CHECK (
+        (agent_id IS NULL AND role_version IS NULL
+          AND role_contract_hash IS NULL AND role_profile_hash IS NULL)
+        OR (actor_kind = 'agent' AND agent_id IS NOT NULL AND role_version IS NOT NULL
+          AND role_contract_hash IS NOT NULL AND role_profile_hash IS NOT NULL)
+      )
+    ) STRICT;
+    INSERT INTO participant_bindings_v4 (
+      platform, integration_id, tenant_key, participant_key, actor_kind, participant_id, role_id,
+      agent_id, role_version, role_contract_hash, role_profile_hash
+    ) SELECT platform, integration_id, tenant_key, participant_key, actor_kind, participant_id,
+      role_id, NULL, NULL, NULL, NULL FROM participant_bindings;
+    DROP TABLE participant_bindings;
+    ALTER TABLE participant_bindings_v4 RENAME TO participant_bindings;
+    PRAGMA user_version = 4;
+  `);
+}
 
 function createIngressCursorTable(database: DatabaseSync): void {
   database.exec(`
@@ -196,6 +234,7 @@ export function migrateConversationPlatformDatabase(database: DatabaseSync): voi
       version !== 0 &&
       version !== 1 &&
       version !== 2 &&
+      version !== 3 &&
       version !== conversationPlatformSQLiteSchemaVersion
     ) {
       throw new ConversationPlatformSQLiteError(
@@ -229,9 +268,19 @@ export function migrateConversationPlatformDatabase(database: DatabaseSync): voi
           actor_kind TEXT NOT NULL CHECK (actor_kind IN ('human', 'agent', 'system')),
           participant_id TEXT NOT NULL,
           role_id TEXT,
+          agent_id TEXT,
+          role_version TEXT,
+          role_contract_hash TEXT,
+          role_profile_hash TEXT,
           PRIMARY KEY (platform, integration_id, tenant_key, participant_key),
           CHECK ((actor_kind = 'agent' AND role_id IS NOT NULL)
-            OR (actor_kind != 'agent' AND role_id IS NULL))
+            OR (actor_kind != 'agent' AND role_id IS NULL)),
+          CHECK (
+            (agent_id IS NULL AND role_version IS NULL
+              AND role_contract_hash IS NULL AND role_profile_hash IS NULL)
+            OR (actor_kind = 'agent' AND agent_id IS NOT NULL AND role_version IS NOT NULL
+              AND role_contract_hash IS NOT NULL AND role_profile_hash IS NOT NULL)
+          )
         ) STRICT;
         CREATE TABLE thread_bindings (
           platform TEXT NOT NULL,
@@ -285,13 +334,18 @@ export function migrateConversationPlatformDatabase(database: DatabaseSync): voi
           BEGIN SELECT RAISE(ABORT, 'delivery replay identity is immutable'); END;
       `);
       createIngressCursorTable(database);
-      database.exec("PRAGMA user_version = 3;");
+      database.exec("PRAGMA user_version = 4;");
     }
     if (version === 1) {
       migrateConversationPlatformVersionOne(database);
       migrateConversationPlatformVersionTwo(database);
+      migrateConversationPlatformVersionThree(database);
     }
-    if (version === 2) migrateConversationPlatformVersionTwo(database);
+    if (version === 2) {
+      migrateConversationPlatformVersionTwo(database);
+      migrateConversationPlatformVersionThree(database);
+    }
+    if (version === 3) migrateConversationPlatformVersionThree(database);
     database.exec("COMMIT;");
   } catch (error) {
     database.exec("ROLLBACK;");

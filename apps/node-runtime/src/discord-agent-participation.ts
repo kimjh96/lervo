@@ -1,5 +1,6 @@
 import { listAgents, type WorkforceAgent } from "@lervo/agent-workforce";
 import { resolveRoleContract, roleProfileHash } from "@lervo/roles";
+import type { ConversationAgentBinding } from "@lervo/schemas";
 
 import type { NodeDiscordConversationConfig } from "./config-types.js";
 import { NodeRuntimeError } from "./errors.js";
@@ -7,6 +8,7 @@ import { NodeRuntimeError } from "./errors.js";
 export interface DiscordAgentParticipation {
   agentId: string | null;
   roleId: string;
+  agentBinding?: ConversationAgentBinding;
 }
 
 function acceptsProvider(agent: WorkforceAgent, provider: "codex" | "claude"): boolean {
@@ -68,5 +70,15 @@ export async function resolveDiscordAgentParticipation(input: {
   return {
     agentId: participantAgent?.agentId ?? null,
     roleId: participantAgent?.roleId ?? input.config.command.roleId,
+    ...(participantAgent === null
+      ? {}
+      : {
+          agentBinding: {
+            agentId: participantAgent.agentId,
+            roleVersion: participantAgent.roleVersion,
+            roleContractHash: participantAgent.roleContractHash,
+            roleProfileHash: participantAgent.roleProfileHash,
+          },
+        }),
   };
 }

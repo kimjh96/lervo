@@ -45,7 +45,17 @@ const options = (path: string) => ({
       integrationId,
       tenantKey: "T123",
       participantKey: "bot:B123",
-      actor: { kind: "agent" as const, participantId: "ptc_platform02", roleId: "reviewer" },
+      actor: {
+        kind: "agent" as const,
+        participantId: "ptc_platform02",
+        roleId: "reviewer",
+        agentBinding: {
+          agentId: `agt_${"a".repeat(24)}`,
+          roleVersion: "1.2.3",
+          roleContractHash: `sha256:${"b".repeat(64)}`,
+          roleProfileHash: `sha256:${"c".repeat(64)}`,
+        },
+      },
     },
   ],
 });
@@ -152,7 +162,7 @@ describe("SQLite conversation platform state", () => {
     });
     store.close();
     const migrated = new DatabaseSync(path, { readOnly: true });
-    expect(migrated.prepare("PRAGMA user_version").get()?.user_version).toBe(3);
+    expect(migrated.prepare("PRAGMA user_version").get()?.user_version).toBe(4);
     expect(
       migrated.prepare("SELECT COUNT(*) AS count FROM conversation_bindings").get()?.count,
     ).toBe(1);
@@ -284,6 +294,32 @@ describe("SQLite conversation platform state", () => {
       automationDepth: 0,
     });
     expect(first.threadId).toMatch(/^thd_[a-f0-9]{64}$/);
+    await expect(
+      store.mapInbound({
+        platform: "slack",
+        integrationId,
+        tenantKey: "T123",
+        conversationKey: "C123",
+        threadKey: null,
+        sourceMessageKey: "agent-message-1",
+        replyToMessageKey: null,
+        participantKey: "bot:B123",
+        mentionedParticipantKeys: [],
+        actorKindHint: "agent",
+      }),
+    ).resolves.toMatchObject({
+      actor: {
+        kind: "agent",
+        participantId: "ptc_platform02",
+        roleId: "reviewer",
+        agentBinding: {
+          agentId: `agt_${"a".repeat(24)}`,
+          roleVersion: "1.2.3",
+          roleContractHash: `sha256:${"b".repeat(64)}`,
+          roleProfileHash: `sha256:${"c".repeat(64)}`,
+        },
+      },
+    });
     await store.recordInbound({
       platform: "slack",
       integrationId,

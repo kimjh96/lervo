@@ -25,6 +25,28 @@ interface ActorRow {
   actor_kind: "human" | "agent" | "system";
   participant_id: string;
   role_id: string | null;
+  agent_id: string | null;
+  role_version: string | null;
+  role_contract_hash: string | null;
+  role_profile_hash: string | null;
+}
+
+function validateAgentBinding(
+  binding: NonNullable<ConversationOutboundMessage["actor"]["agentBinding"]>,
+): void {
+  if (
+    !/^agt_[a-f0-9]{24}$/u.test(binding.agentId) ||
+    !/^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$/u.test(
+      binding.roleVersion,
+    ) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(binding.roleContractHash) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(binding.roleProfileHash)
+  ) {
+    throw new ConversationPlatformSQLiteError(
+      "conflicting_binding",
+      "The conversation agent binding is invalid.",
+    );
+  }
 }
 
 export class ConversationPlatformBindingRepository {
@@ -106,6 +128,37 @@ export class ConversationPlatformBindingRepository {
       if (binding.actor.roleId === null) throw this.conflict("agent role");
       assertIdentifier(binding.actor.roleId, "roleId");
     } else if (binding.actor.roleId !== null) throw this.conflict("non-agent role");
+    if (binding.actor.agentBinding !== undefined && binding.actor.agentBinding !== null) {
+      if (binding.actor.kind !== "agent") throw this.conflict("non-agent workforce binding");
+      validateAgentBinding(binding.actor.agentBinding);
+    }
+    const agentBinding = binding.actor.agentBinding ?? null;
+    if (agentBinding !== null) {
+      this.database
+        .prepare(
+          `
+            UPDATE participant_bindings SET agent_id = ?, role_version = ?,
+              role_contract_hash = ?, role_profile_hash = ?
+            WHERE platform = ? AND integration_id = ? AND tenant_key = ? AND participant_key = ?
+              AND actor_kind = ? AND participant_id = ? AND role_id = ?
+              AND agent_id IS NULL AND role_version IS NULL
+              AND role_contract_hash IS NULL AND role_profile_hash IS NULL
+          `,
+        )
+        .run(
+          agentBinding.agentId,
+          agentBinding.roleVersion,
+          agentBinding.roleContractHash,
+          agentBinding.roleProfileHash,
+          binding.platform,
+          binding.integrationId,
+          binding.tenantKey,
+          binding.participantKey,
+          binding.actor.kind,
+          binding.actor.participantId,
+          binding.actor.roleId,
+        );
+    }
     this.insertIdempotent({
       table: "participant_bindings",
       columns: [
@@ -116,6 +169,10 @@ export class ConversationPlatformBindingRepository {
         "actor_kind",
         "participant_id",
         "role_id",
+        "agent_id",
+        "role_version",
+        "role_contract_hash",
+        "role_profile_hash",
       ],
       keyColumns: ["platform", "integration_id", "tenant_key", "participant_key"],
       values: [
@@ -126,6 +183,10 @@ export class ConversationPlatformBindingRepository {
         binding.actor.kind,
         binding.actor.participantId,
         binding.actor.roleId,
+        agentBinding?.agentId ?? null,
+        agentBinding?.roleVersion ?? null,
+        agentBinding?.roleContractHash ?? null,
+        agentBinding?.roleProfileHash ?? null,
       ],
     });
   }
@@ -221,7 +282,21 @@ export class ConversationPlatformBindingRepository {
       projectId: conversation.project_id,
       conversationId: conversation.conversation_id,
       threadId: input.threadKey === null ? null : this.resolveThread(input),
-      actor: { kind: actor.actor_kind, participantId: actor.participant_id, roleId: actor.role_id },
+      actor: {
+        kind: actor.actor_kind,
+        participantId: actor.participant_id,
+        roleId: actor.role_id,
+        ...(actor.agent_id === null
+          ? {}
+          : {
+              agentBinding: {
+                agentId: actor.agent_id,
+                roleVersion: actor.role_version!,
+                roleContractHash: actor.role_contract_hash!,
+                roleProfileHash: actor.role_profile_hash!,
+              },
+            }),
+      },
       mentions: {
         roleIds: [
           ...new Set(mentions.flatMap((value) => (value.role_id === null ? [] : [value.role_id]))),
@@ -352,7 +427,8 @@ export class ConversationPlatformBindingRepository {
       (this.database
         .prepare(
           `
-      SELECT actor_kind, participant_id, role_id FROM participant_bindings
+      SELECT actor_kind, participant_id, role_id, agent_id, role_version,
+        role_contract_hash, role_profile_hash FROM participant_bindings
       WHERE platform = ? AND integration_id = ? AND tenant_key = ? AND participant_key = ?
     `,
         )

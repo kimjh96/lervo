@@ -133,6 +133,7 @@ describe("natural-language Discord conversation mode", () => {
       message: "Finish it.",
     });
     expect(resolveIntent.mock.calls[1]![0].priorTurns).toHaveLength(2);
+    expect(continuation.respond.mock.calls[0]![0].context?.priorTurns).toHaveLength(2);
 
     const restarted = new NaturalLanguageDiscordConversationResponder({
       applicationId,

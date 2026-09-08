@@ -11,7 +11,11 @@ import {
   sha256Schema,
   timestampSchema,
 } from "./common.js";
-import { conversationContentReferenceSchema, conversationTargetSchema } from "./conversation.js";
+import {
+  conversationAgentBindingSchema,
+  conversationContentReferenceSchema,
+  conversationTargetSchema,
+} from "./conversation.js";
 import { writingPublicationPermitValueSchema } from "./writing-publication.js";
 
 export const conversationOutboundMessageSchema = {
@@ -31,6 +35,7 @@ export const conversationOutboundMessageSchema = {
         kind: { const: "agent" },
         participantId: conversationParticipantIdSchema,
         roleId: roleIdSchema,
+        agentBinding: { anyOf: [conversationAgentBindingSchema, { type: "null" }] },
       },
       required: ["kind", "participantId", "roleId"],
       additionalProperties: false,

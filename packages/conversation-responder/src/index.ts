@@ -6,3 +6,4 @@ export * from "./responder.js";
 export * from "./response-publication.js";
 export * from "./run-validation.js";
 export * from "./types.js";
+export * from "./terminal-failure-responder.js";

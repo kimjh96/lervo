@@ -33,6 +33,7 @@ export function createConversationOutboundMessage(input: {
   event: ConversationInboundEvent;
   policy: ConversationParticipationPolicy;
   participantId: string;
+  agentBinding?: ConversationOutboundMessage["actor"]["agentBinding"];
   content: ConversationOutboundMessage["content"];
   publicationPermit: ConversationOutboundMessage["publicationPermit"];
   createdAt: string;
@@ -46,6 +47,7 @@ export function createConversationOutboundMessage(input: {
       kind: "agent",
       participantId: input.participantId,
       roleId: input.policy.roleId,
+      ...(input.agentBinding === undefined ? {} : { agentBinding: clone(input.agentBinding) }),
     },
     content: clone(input.content),
     publicationPermit: clone(input.publicationPermit),

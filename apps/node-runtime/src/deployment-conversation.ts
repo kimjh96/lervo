@@ -87,6 +87,7 @@ export async function openDeploymentConversation(input: {
             applicationId: peer.applicationId,
             participantId: peer.agentParticipantId,
             roleId: participations[peerIndex]!.roleId,
+            agentBinding: participations[peerIndex]!.agentBinding!,
             tenantKeys: conversation.allowedGuildIds.filter((tenant) =>
               peer.allowedGuildIds.includes(tenant),
             ),

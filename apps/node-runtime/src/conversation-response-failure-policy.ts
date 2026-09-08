@@ -1,0 +1,41 @@
+import type {
+  ConversationResponseFailure,
+  ConversationResponseFailureClassifier,
+} from "@lervo/interaction";
+
+const terminalContractFailures = new Set([
+  "control_access_denied",
+  "control_command_invalid",
+  "invalid_response_request",
+  "managed_run_invalid",
+  "message_artifact_invalid",
+  "remote_continuation_denied",
+]);
+
+export class NodeConversationResponseFailureClassifier implements ConversationResponseFailureClassifier {
+  classify(error: unknown): ConversationResponseFailure {
+    const code =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      typeof error.code === "string"
+        ? error.code
+        : null;
+    if (code === "writing_publication_blocked") {
+      return { failureCode: "response_writing_blocked", retryable: true };
+    }
+    if (code === "writing_evaluation_unavailable") {
+      return { failureCode: "response_evaluation_unavailable", retryable: true };
+    }
+    if (code !== null && terminalContractFailures.has(code)) {
+      return {
+        failureCode:
+          code === "managed_run_invalid"
+            ? "response_execution_invalid"
+            : "response_contract_invalid",
+        retryable: false,
+      };
+    }
+    return { failureCode: "response_generation_failed", retryable: true };
+  }
+}

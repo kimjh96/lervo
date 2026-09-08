@@ -20,11 +20,14 @@ Lervo makes AI-assisted repository work durable, inspectable, and portable witho
 
 Lervo supports developers, researchers, designers, product operators, marketers, and other repository-based roles. Role profiles may differ while sharing one lifecycle for context, capability decisions, evidence, review, and handoff.
 
+One Lervo organization may coordinate several repository-backed project teams. Hired agents remain durable expert identities rather than disposable provider sessions. A policy-bound central leadership agent may coordinate teams without replacing the human owner or weakening repository authority.
+
 ## Core concepts
 
 - [Managed execution and evidence](vision/execution.md): adapters, direct terminals, evidence states, and revisioned continuation.
 - [Repository knowledge and lifecycle](vision/repository.md): discovery, reviewed migration, document routing, skills, and upgrades.
 - [Coordination and governed continuation](vision/coordination.md): optional Hub coordination, headless application contracts, and bounded scheduling.
+- [Agent organization architecture](../architecture/system/agent-organization.md): project teams, hired experts, central leadership, external identities, and provider-neutral context.
 
 ## Non-goals for v0
 

@@ -68,7 +68,8 @@ Replace every identifier and path with reviewed deployment coordinates. The toke
       "lifetimeMs": 120000
     },
     "policy": {
-      "respondTo": ["human"]
+      "respondTo": ["human"],
+      "maxResponseAttempts": 3
     }
   }
 }
@@ -84,12 +85,15 @@ Replace every identifier and path with reviewed deployment coordinates. The toke
 - A separate Claude evaluator verifies publication writing without changing response provider identity. It requests schema-constrained output through the selected provider adapter, then validates the exact common evaluation contract.
 - Each selected provider and configured model is retained at its own execution, configuration, or intent-resolution boundary.
 - Discord shows a best-effort typing indicator refreshed during long provider work; indicator failure does not block the answer.
+- Bounded recent turns from this bot deployment are supplied to its responder, preserving agent-specific conversational continuity without relying on provider-native session memory.
 - Gateway heartbeat and resume handling remain independent of provider work.
-- Persisted response failures retry one at a time without a second Discord message. An unsafe retry-store failure marks conversation health unavailable as `interaction_retry_failed`.
+- Persisted response failures retain a provider-neutral code and retry only through `maxResponseAttempts`. Exhaustion queues one fixed verified explanation instead of leaving the message silent. An unsafe retry-store failure marks conversation health unavailable as `interaction_retry_failed`.
 
 ## Participants and execution settings
 
 Participant bindings default to `actorKind: human` and `roleId: null` when omitted. `agentId` binds the responding bot participant to an active workforce agent and derives its exact current role independently of the command role. A mapped external Discord bot can use `actorKind: agent` with an explicit role.
+
+For a hired-agent deployment, normalized inbound and outbound records retain the agent ID and exact role version, contract hash, and profile hash. `maxResponseAttempts` accepts 1 through 10 and defaults to 3. It bounds response generation and publication attempts, not Discord REST delivery attempts, which retain their separate durable outbox policy.
 
 Add `agent` to `policy.respondTo` only for a bounded agent conversation or deliberation deployment. Automation depth and hourly response limits remain mandatory loop controls.
 

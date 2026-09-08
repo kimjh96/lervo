@@ -10,4 +10,6 @@ The installed Node separates Discord transport, normalized identity, participati
 
 ## References
 
-See [ADR-0384](../../decisions/coordination/conversations/0384-explicit-discord-read-and-continuation-modes.md), [ADR-0385](../../decisions/coordination/conversations/0385-distinct-discord-agent-identities.md), and [Node runtime distribution](../../distribution/node-runtime-distribution.md).
+- [ADR-0384](../../decisions/coordination/conversations/0384-explicit-discord-read-and-continuation-modes.md)
+- [ADR-0385](../../decisions/coordination/conversations/0385-distinct-discord-agent-identities.md)
+- [Node runtime distribution](../../distribution/node-runtime-distribution.md)

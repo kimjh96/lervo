@@ -3,6 +3,7 @@
 Part of [Product outcome convergence](../product-outcome-convergence.md); its baseline, acceptance-state definitions, and claim boundaries apply.
 
 - [Unified operating view](host-products/operating-view.md): `external product`.
+- [Multi-team agent organization](host-products/agent-organization.md): `delivery required`.
 - [Reviewed local repeatable triggers](host-products/triggers/reviewed-local.md): `implemented`.
 - [Authenticated live trigger adapters](host-products/triggers/authenticated-live.md): `implemented`.
 - [Governed Slack delivery](host-products/slack.md): `implemented`.

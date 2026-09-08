@@ -111,6 +111,13 @@ export const adaptiveConversationWritingContract = {
   },
 } as const satisfies WritingContract;
 
+export const fixedConversationStatusWritingContract = {
+  ...fixedEnglishStatusWritingContract,
+  writingPolicyId: "writing_mul-fixed-conversation-status",
+  locale: "mul",
+  surfaces: ["chat"],
+} as const satisfies WritingContract;
+
 const writingContracts = {
   en: defaultEnglishWritingContract,
 } as const satisfies Record<SupportedWritingLanguage, WritingContract>;

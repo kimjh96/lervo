@@ -145,7 +145,13 @@ export function parseDiscordConversationBehavior(input: {
   if (policy !== undefined) {
     exactConfigKeys(
       policy,
-      ["respondTo", "cooldownSeconds", "maxResponsesPerHour", "maxAutomationDepth"],
+      [
+        "respondTo",
+        "cooldownSeconds",
+        "maxResponsesPerHour",
+        "maxAutomationDepth",
+        "maxResponseAttempts",
+      ],
       "discordConversation.policy",
     );
   }
@@ -170,6 +176,7 @@ export function parseDiscordConversationBehavior(input: {
   const cooldownSeconds = optionalPolicy("cooldownSeconds", 0, 86_400);
   const maxResponsesPerHour = optionalPolicy("maxResponsesPerHour", 1, 10_000);
   const maxAutomationDepth = optionalPolicy("maxAutomationDepth", 0, 32);
+  const maxResponseAttempts = optionalPolicy("maxResponseAttempts", 1, 10);
   return {
     ...(routing === undefined
       ? {}
@@ -218,6 +225,7 @@ export function parseDiscordConversationBehavior(input: {
             ...(cooldownSeconds === undefined ? {} : { cooldownSeconds }),
             ...(maxResponsesPerHour === undefined ? {} : { maxResponsesPerHour }),
             ...(maxAutomationDepth === undefined ? {} : { maxAutomationDepth }),
+            ...(maxResponseAttempts === undefined ? {} : { maxResponseAttempts }),
           },
         }),
   };

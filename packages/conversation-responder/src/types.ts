@@ -42,6 +42,9 @@ export interface ManagedConversationResponseRequest {
   event: ConversationInboundEvent;
   policy: ConversationParticipationPolicy;
   decision: ConversationParticipationDecision;
+  context?: {
+    priorTurns: ReadonlyArray<{ role: "user" | "assistant"; text: string }>;
+  };
 }
 
 export interface ManagedConversationResponderOptions {
@@ -92,6 +95,7 @@ export class ManagedConversationResponseError extends Error {
       | "invalid_response_request"
       | "message_artifact_invalid"
       | "managed_run_invalid"
+      | "writing_evaluation_unavailable"
       | "writing_publication_blocked",
     message: string,
     options?: ErrorOptions,

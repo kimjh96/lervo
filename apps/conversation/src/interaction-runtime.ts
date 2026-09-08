@@ -122,6 +122,7 @@ export class ConversationInteractionRuntime {
       policy: binding.policy,
       workerId: this.deployment.workerId,
       agentParticipantId: binding.agentParticipantId,
+      ...(binding.agentBinding === undefined ? {} : { agentBinding: binding.agentBinding }),
       store: this.store,
       responder: binding.responder,
       publicationVerifier: binding.publicationVerifier,
@@ -135,6 +136,20 @@ export class ConversationInteractionRuntime {
       ...(this.deployment.retryDelayMs === undefined
         ? {}
         : { retryDelayMs: this.deployment.retryDelayMs }),
+      ...(this.deployment.maximumResponseAttempts === undefined
+        ? {}
+        : { maximumResponseAttempts: this.deployment.maximumResponseAttempts }),
+      ...(binding.responseFailureClassifier === undefined
+        ? {}
+        : { responseFailureClassifier: binding.responseFailureClassifier }),
+      ...(binding.terminalFailureResponder === undefined
+        ? {}
+        : { terminalFailureResponder: binding.terminalFailureResponder }),
+      ...(binding.terminalFailurePublicationVerifier === undefined
+        ? {}
+        : {
+            terminalFailurePublicationVerifier: binding.terminalFailurePublicationVerifier,
+          }),
       ...(responseActivity === undefined ? {} : { responseActivity }),
     });
     return {

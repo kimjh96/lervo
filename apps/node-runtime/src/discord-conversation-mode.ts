@@ -29,7 +29,13 @@ function modeFor(resolution: ConversationIntentResolution): DiscordConversationM
 }
 
 export class NaturalLanguageDiscordConversationResponder implements ConversationResponder {
-  private readonly resolutions = new Map<string, Promise<DiscordConversationMode>>();
+  private readonly resolutions = new Map<
+    string,
+    Promise<{
+      mode: DiscordConversationMode;
+      priorTurns: Array<{ role: "user" | "assistant"; text: string }>;
+    }>
+  >();
 
   constructor(
     private readonly options: {
@@ -45,6 +51,10 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
   ) {}
 
   async mode(event: ConversationInboundEvent): Promise<DiscordConversationMode> {
+    return (await this.resolution(event)).mode;
+  }
+
+  private resolution(event: ConversationInboundEvent) {
     const existing = this.resolutions.get(event.eventId);
     if (existing !== undefined) return existing;
     const resolution = this.resolveMode(event);
@@ -55,11 +65,19 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
     return resolution;
   }
 
-  private async resolveMode(event: ConversationInboundEvent): Promise<DiscordConversationMode> {
+  private async resolveMode(event: ConversationInboundEvent): Promise<{
+    mode: DiscordConversationMode;
+    priorTurns: Array<{ role: "user" | "assistant"; text: string }>;
+  }> {
+    const priorTurns = await this.options.history.recent(event);
     const stored = await this.options.resolutionStore.read(event);
     if (stored !== null) {
       const storedMode = modeFor(stored);
-      return storedMode === "continuation" && event.actor.kind !== "human" ? "clarify" : storedMode;
+      return {
+        mode:
+          storedMode === "continuation" && event.actor.kind !== "human" ? "clarify" : storedMode,
+        priorTurns,
+      };
     }
     const message = withoutLeadingBotMention(
       await readConversationControlMessage({ artifactStore: this.options.artifactStore, event }),
@@ -70,7 +88,7 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
       message,
       actorKind: event.actor.kind,
       mentioned: event.mentions.participantIds.length > 0 || event.mentions.roleIds.length > 0,
-      priorTurns: await this.options.history.recent(event),
+      priorTurns,
       currentWorkstream:
         current === null
           ? null
@@ -82,13 +100,16 @@ export class NaturalLanguageDiscordConversationResponder implements Conversation
       resolvedAt: new Date().toISOString(),
     });
     const mode = modeFor(resolution);
-    return mode === "continuation" && event.actor.kind !== "human" ? "clarify" : mode;
+    return {
+      mode: mode === "continuation" && event.actor.kind !== "human" ? "clarify" : mode,
+      priorTurns,
+    };
   }
 
   async respond(input: Parameters<ConversationResponder["respond"]>[0]) {
-    const mode = await this.mode(input.event);
-    return (mode === "continuation" ? this.options.continuation : this.options.readOnly).respond(
-      input,
-    );
+    const resolution = await this.resolution(input.event);
+    return (
+      resolution.mode === "continuation" ? this.options.continuation : this.options.readOnly
+    ).respond({ ...input, context: { priorTurns: resolution.priorTurns } });
   }
 }

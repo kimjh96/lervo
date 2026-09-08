@@ -81,6 +81,11 @@ export const conversationParticipantIdSchema = {
   pattern: "^ptc_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$",
 } as const;
 
+export const workforceAgentIdSchema = {
+  type: "string",
+  pattern: "^agt_[a-f0-9]{24}$",
+} as const;
+
 export const conversationEventIdSchema = {
   type: "string",
   pattern: "^cve_[a-f0-9]{64}$",

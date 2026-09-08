@@ -147,6 +147,10 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
     leaseId: string;
     decision: ConversationParticipationDecision;
     outbound: ConversationOutboundMessage | null;
+    terminalFailure?: {
+      failureCode: import("@lervo/interaction").ConversationResponseFailureCode;
+      failedAt: string;
+    };
   }): Promise<void> {
     this.assertOpen();
     this.transaction.write(() => {

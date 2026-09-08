@@ -8,7 +8,11 @@ import {
   sha256Schema,
   timestampSchema,
 } from "./common.js";
-import { conversationContentReferenceSchema, conversationTargetSchema } from "./conversation.js";
+import {
+  conversationAgentBindingSchema,
+  conversationContentReferenceSchema,
+  conversationTargetSchema,
+} from "./conversation.js";
 
 export const conversationInboundEventSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -27,6 +31,7 @@ export const conversationInboundEventSchema = {
         kind: { type: "string", enum: ["human", "agent", "system"] },
         participantId: conversationParticipantIdSchema,
         roleId: { anyOf: [roleIdSchema, { type: "null" }] },
+        agentBinding: { anyOf: [conversationAgentBindingSchema, { type: "null" }] },
       },
       required: ["kind", "participantId", "roleId"],
       additionalProperties: false,
@@ -99,7 +104,13 @@ export const conversationInboundEventSchema = {
       },
       then: {
         properties: {
-          actor: { type: "object", properties: { roleId: roleIdSchema } },
+          actor: {
+            type: "object",
+            properties: {
+              roleId: roleIdSchema,
+              agentBinding: { anyOf: [conversationAgentBindingSchema, { type: "null" }] },
+            },
+          },
         },
       },
     },
@@ -114,7 +125,10 @@ export const conversationInboundEventSchema = {
       },
       then: {
         properties: {
-          actor: { type: "object", properties: { roleId: { type: "null" } } },
+          actor: {
+            type: "object",
+            properties: { roleId: { type: "null" }, agentBinding: { type: "null" } },
+          },
         },
       },
     },

@@ -330,11 +330,23 @@ describe("managed conversation responder", () => {
       event,
       policy: policies.reviewer,
       decision: decisions.reviewer,
+      context: {
+        priorTurns: [
+          { role: "user", text: "Please remember that evidence comes first." },
+          { role: "assistant", text: "I will keep that review priority." },
+        ],
+      },
     });
     const reviewerRetry = await responder.respond({
       event,
       policy: policies.reviewer,
       decision: decisions.reviewer,
+      context: {
+        priorTurns: [
+          { role: "user", text: "Please remember that evidence comes first." },
+          { role: "assistant", text: "I will keep that review priority." },
+        ],
+      },
     });
     const planner = await responder.respond({
       event,
@@ -353,6 +365,7 @@ describe("managed conversation responder", () => {
     expect(claudeClient.appendedContexts.join("\n")).toContain(plannerContent.trim());
     expect(claudeClient.appendedContexts.join("\n")).not.toContain(reviewerContent.trim());
     expect(codexClient.instructions).toContain(rawMessage);
+    expect(codexClient.instructions).toContain("Please remember that evidence comes first.");
     expect(claudeClient.instructions).toContain(rawMessage);
     expect(codexClient.closed).toBe(true);
     expect(claudeClient.closed).toBe(true);

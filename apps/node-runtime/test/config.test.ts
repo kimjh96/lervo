@@ -142,7 +142,7 @@ describe("Node runtime configuration", () => {
         },
         evaluation: { provider: "claude", model: "claude-haiku-4-5", reasoningEffort: "low" },
       },
-      policy: { respondTo: ["human", "agent"] },
+      policy: { respondTo: ["human", "agent"], maxResponseAttempts: 2 },
       command: {
         roleId: "developer",
         provider: "codex",
@@ -169,7 +169,7 @@ describe("Node runtime configuration", () => {
           },
         },
         participants: [{ actorKind: "human", roleId: null }],
-        policy: { respondTo: ["agent", "human"] },
+        policy: { respondTo: ["agent", "human"], maxResponseAttempts: 2 },
         command: { assignmentId: null, agentId: null },
       },
     });
@@ -238,7 +238,16 @@ describe("Node runtime configuration", () => {
     const parsed = parseNodeRuntimeConfig(configured, root).discordConversation!;
     await expect(
       resolveDiscordAgentParticipation({ repositoryRoot: fixture.repositoryRoot, config: parsed }),
-    ).resolves.toEqual({ agentId: agent.agentId, roleId: "researcher" });
+    ).resolves.toMatchObject({
+      agentId: agent.agentId,
+      roleId: "researcher",
+      agentBinding: {
+        agentId: agent.agentId,
+        roleVersion: agent.roleVersion,
+        roleContractHash: agent.roleContractHash,
+        roleProfileHash: agent.roleProfileHash,
+      },
+    });
 
     const incompatible = structuredClone(parsed);
     delete incompatible.routing;

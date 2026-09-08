@@ -10,8 +10,10 @@ import type {
 } from "@lervo/discord-gateway";
 import type {
   ConversationPublicationVerifier,
+  ConversationResponseFailureClassifier,
   ConversationRelevanceEvaluator,
   ConversationResponder,
+  ConversationTerminalFailureResponder,
 } from "@lervo/interaction";
 import type { ConversationParticipationPolicy } from "@lervo/schemas";
 import type {
@@ -60,8 +62,12 @@ export interface DiscordConversationDeployment extends PlatformCredentialTranspo
 export interface ConversationInteractionBinding {
   policy: ConversationParticipationPolicy;
   agentParticipantId: string;
+  agentBinding?: import("@lervo/schemas").ConversationAgentBinding;
   responder: ConversationResponder;
   publicationVerifier: ConversationPublicationVerifier;
+  responseFailureClassifier?: ConversationResponseFailureClassifier;
+  terminalFailureResponder?: ConversationTerminalFailureResponder;
+  terminalFailurePublicationVerifier?: ConversationPublicationVerifier;
   relevanceEvaluator?: ConversationRelevanceEvaluator;
 }
 
@@ -70,6 +76,7 @@ export interface ConversationInteractionDeployment {
   workerId: string;
   leaseDurationMs?: number;
   retryDelayMs?: number;
+  maximumResponseAttempts?: number;
   deliveryLimit?: number;
   maxRecords?: number;
   now?: () => Date;
