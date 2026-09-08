@@ -81,6 +81,8 @@ const eventLabels = {
   "organization.channel.membership.changed": "Organization channel membership changed",
   "organization.deliberation.participant.bound": "Deliberation participant bound",
   "organization.deliberation.participant.released": "Deliberation participant released",
+  "agent.context.promoted": "Agent context promoted",
+  "agent.context.handoff.recorded": "Agent context handoff recorded",
 };
 
 const fieldLabels = {

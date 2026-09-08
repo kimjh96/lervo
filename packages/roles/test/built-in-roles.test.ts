@@ -10,6 +10,7 @@ describe("built-in multi-discipline roles", () => {
   it("defines the complete initial workforce as distinct executable contracts", () => {
     const definitions = listBuiltInRoleDefinitions();
     expect(definitions.map((definition) => definition.profile.roleId)).toEqual([
+      "ceo",
       "developer",
       "designer",
       "ideation",
@@ -21,11 +22,13 @@ describe("built-in multi-discipline roles", () => {
       expect(() => assertRoleDefinition(definition)).not.toThrow();
 
     const researcher = getBuiltInRoleDefinition("researcher");
+    const ceo = getBuiltInRoleDefinition("ceo");
     const marketer = getBuiltInRoleDefinition("marketer");
     const designer = getBuiltInRoleDefinition("designer");
     expect(researcher.profile.capabilities["network.access"]).toBe("require_approval");
     expect(marketer.profile.capabilities["external.message"]).toBe("require_approval");
     expect(designer.profile.capabilities["filesystem.write"]).toBe("require_approval");
+    expect(ceo.profile.capabilities["external.message"]).toBe("require_approval");
     expect(researcher.evaluation.checks.map((check) => check.category)).toEqual([
       "artifact_schema",
       "citation_integrity",

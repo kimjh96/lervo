@@ -19,5 +19,7 @@ export * from "./managed-execution-budget.js";
 export * from "./managed-resource-projection.js";
 export * from "./managed-stage-projection.js";
 export * from "./operating-goal-projection.js";
+export * from "./organization-operating-report.js";
+export * from "./ceo-policy.js";
 export * from "./report.js";
 export * from "./unattended-scheduler-selection.js";

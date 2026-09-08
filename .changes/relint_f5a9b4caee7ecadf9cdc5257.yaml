@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f5a9b4caee7ecadf9cdc5257"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add reviewed agent context and headless organization control for managed conversations."

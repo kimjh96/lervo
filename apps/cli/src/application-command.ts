@@ -11,7 +11,7 @@ import { createProductHostCapabilityReport } from "./product-host-capabilities.j
 import type { CliIo, CliServices } from "./types.js";
 
 export const applicationUsage = [
-  "  lervo application capabilities [--protocol <1|2|3|4|5|6>] [--json]",
+  "  lervo application capabilities [--protocol <1|2|3|4|5|6|7>] [--json]",
   "  lervo application attention [--root <path>] [--json]",
   "  lervo application liveness [--stale-after-ms <ms>] [--root <path>] [--json]",
 ].join("\n");
@@ -114,9 +114,11 @@ export async function runApplicationCommand(
                 ? 5
                 : parsed.values.protocol === "6"
                   ? 6
-                  : (() => {
-                      throw new Error("--protocol must be 1, 2, 3, 4, 5, or 6.");
-                    })();
+                  : parsed.values.protocol === "7"
+                    ? 7
+                    : (() => {
+                        throw new Error("--protocol must be 1, 2, 3, 4, 5, 6, or 7.");
+                      })();
     const report = createProductHostCapabilityReport(protocolVersion);
     io.stdout(
       parsed.values.json

@@ -22,7 +22,7 @@ export interface ContextDocumentCandidate {
   documentId: string;
   path: string;
   connectedPaths: readonly string[];
-  source: "instruction" | "registry" | "knowledge" | "workstream";
+  source: "instruction" | "registry" | "knowledge" | "workstream" | "agent_context";
   documentRole: AdapterContextDocumentRole;
   referenceEligible: boolean;
   knowledgeContext?: KnowledgeContextMetadata;

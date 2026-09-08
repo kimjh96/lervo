@@ -84,6 +84,35 @@ function append(
   );
 }
 
+function bindTeam(input: {
+  storage: ProjectStorage;
+  organizationId: string;
+  teamId: string;
+  teamKind: "central" | "project";
+}): void {
+  const current = projection(input.storage);
+  if (current.team === null) {
+    append(input.storage, "organization.team.bound", {
+      organizationId: input.organizationId,
+      teamId: input.teamId,
+      projectId: input.storage.manifest.projectId,
+      repositoryIdentityHash: calculateProjectIdentityHash(input.storage.manifest),
+      organizationPolicyHash,
+      teamPolicyHash: teamPolicyHash(input.storage.manifest.projectId),
+      teamKind: input.teamKind,
+      boundAt: new Date().toISOString(),
+    });
+    return;
+  }
+  if (
+    current.team.organizationId !== input.organizationId ||
+    current.team.teamId !== input.teamId ||
+    current.team.teamKind !== input.teamKind
+  ) {
+    throw new Error("The repository is already bound to another organization team.");
+  }
+}
+
 function activeAgent(agents: readonly WorkforceAgent[], agentId: string): WorkforceAgent {
   const agent = agents.find((item) => item.agentId === agentId);
   if (agent === undefined || agent.status !== "active") {
@@ -252,24 +281,12 @@ export async function bindAgentOrganizationRuntime(input: {
   config: NodeRuntimeConfig;
 }): Promise<AgentOrganizationProjection> {
   return mutateAgentOrganization(input.root, async (storage) => {
-    const current = projection(storage);
-    if (current.team === null) {
-      append(storage, "organization.team.bound", {
-        organizationId: input.organizationId,
-        teamId: input.teamId,
-        projectId: storage.manifest.projectId,
-        repositoryIdentityHash: calculateProjectIdentityHash(storage.manifest),
-        organizationPolicyHash,
-        teamPolicyHash: teamPolicyHash(storage.manifest.projectId),
-        teamKind: "project",
-        boundAt: new Date().toISOString(),
-      });
-    } else if (
-      current.team.organizationId !== input.organizationId ||
-      current.team.teamId !== input.teamId
-    ) {
-      throw new Error("The repository is already bound to another organization team.");
-    }
+    bindTeam({
+      storage,
+      organizationId: input.organizationId,
+      teamId: input.teamId,
+      teamKind: "project",
+    });
     const agents = await listAgents(input.root);
     for (const deployment of configuredDiscordConversations(input.config)) {
       if (deployment.agentId === undefined) {
@@ -284,6 +301,23 @@ export async function bindAgentOrganizationRuntime(input: {
         occurredAt: new Date().toISOString(),
       });
     }
+    return projection(storage);
+  });
+}
+
+export async function bindAgentOrganizationTeam(input: {
+  root: string;
+  organizationId: string;
+  teamId: string;
+  teamKind: "central" | "project";
+}): Promise<AgentOrganizationProjection> {
+  return mutateAgentOrganization(input.root, async (storage) => {
+    bindTeam({
+      storage,
+      organizationId: input.organizationId,
+      teamId: input.teamId,
+      teamKind: input.teamKind,
+    });
     return projection(storage);
   });
 }

@@ -9,6 +9,7 @@ import type {
 import { upgradeProductHostCapabilityReportV4 } from "./product-host-capabilities-v4.js";
 import { upgradeProductHostCapabilityReportV5 } from "./product-host-capabilities-v5.js";
 import { upgradeProductHostCapabilityReportV6 } from "./product-host-capabilities-v6.js";
+import { upgradeProductHostCapabilityReportV7 } from "./product-host-capabilities-v7.js";
 
 function createProductHostCapabilityReportV1(): ProductHostCapabilityReportV1 {
   return {
@@ -379,7 +380,7 @@ function createProductHostCapabilityReportV3(): ProductHostCapabilityReportV3 {
 }
 
 export function createProductHostCapabilityReport(
-  protocolVersion: 1 | 2 | 3 | 4 | 5 | 6 = 1,
+  protocolVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 = 1,
 ): ProductHostCapabilityReport {
   if (protocolVersion === 1) return createProductHostCapabilityReportV1();
   if (protocolVersion === 2) return createProductHostCapabilityReportV2();
@@ -389,5 +390,7 @@ export function createProductHostCapabilityReport(
   );
   if (protocolVersion === 4) return versionFour;
   const versionFive = upgradeProductHostCapabilityReportV5(versionFour);
-  return protocolVersion === 5 ? versionFive : upgradeProductHostCapabilityReportV6(versionFive);
+  if (protocolVersion === 5) return versionFive;
+  const versionSix = upgradeProductHostCapabilityReportV6(versionFive);
+  return protocolVersion === 6 ? versionSix : upgradeProductHostCapabilityReportV7(versionSix);
 }

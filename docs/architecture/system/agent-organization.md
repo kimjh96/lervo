@@ -27,8 +27,12 @@ Raw external IDs and credentials do not enter organization history. Stable hashe
 
 Agent context is keyed by agent ID and assembled from exact identity, work, conversation, and reviewed-expertise sources. Provider-native memory and generated summaries are projections, not authority. Agents remain continuous across Codex, Claude, and future providers without treating hidden model state as durable knowledge.
 
+`agent.context.promoted` records only an exact source, content hash, CAS summary, qualifying review event, and optional supersession. `agent.context.handoff.recorded` transfers only listed entries to an active successor. `@lervo/agent-organization` validates and projects these events; the CLI coordinates explicit mutations; Node materializes a bounded rebuildable document and injects it as required governance context. The materializer neither searches nor chooses provider behavior.
+
+The multi-team operating report is a read-only composition of repository-owned projections. The CEO policy evaluator is a pure decision boundary: it checks appointment, action and team allowlists, automation depth, budget observation, report integrity, and approval but never performs an effect. Discord administration and future Lervo UI actions remain adapters downstream of that decision.
+
 Ordinary agent conversation remains read-only unless an existing authority path creates or changes an assignment, workstream, approval, or external effect. Bounded discussions reuse Lervo deliberation for evidence, disagreement, decision rules, and termination; Discord supplies distinct visible speakers.
 
 Managed conversation runs carry the durable speaking agent ID as root work causality. Provider and model remain turn execution evidence. This prevents a shared role or identical message from collapsing two agents' response ownership.
 
-See [ADR-0386](../../decisions/coordination/conversations/0386-organization-teams-and-agent-identities.md).
+See [ADR-0386](../../decisions/coordination/conversations/0386-organization-teams-and-agent-identities.md) and [ADR-0390](../../decisions/coordination/conversations/0390-project-reviewed-agent-context-and-headless-organization-control.md).

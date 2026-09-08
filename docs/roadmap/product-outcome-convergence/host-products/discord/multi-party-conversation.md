@@ -27,11 +27,11 @@ Selection must evaluate the hired agent's provider policy, exact role capabiliti
 
 ## Current scope
 
-The installed Node accepts a bounded collection of distinct Discord bot applications. Each bot binds one active hired agent, exact current role hashes, independent provider and model routing, owner-only credentials, storage, Gateway lifecycle, and delivery adapter.
+The installed Node accepts a bounded collection of distinct Discord bot applications. Each bot binds one active hired agent, exact current role hashes, independent provider and model routing, owner-only credentials, storage, Gateway lifecycle, and delivery adapter. Every owned agent turn also loads that agent's reviewed context through the same managed context coordinator used for repository search and evidence.
 
 Shared-guild peer author and mention aliases normalize to that peer's one workforce participant. Semantic resolution selects `relevant` or `not_relevant` for each unaddressed turn; exact participant and role mentions bypass that relevance claim. Agent-authored turns default toward silence unless the agent is addressed or has a distinct role-relevant contribution. Bounded recent context retains the speaker's participant, agent, and role identity. Aggregate readiness and failure remain fail-closed.
 
-Remaining work includes Discord application creation, token issuance, guild installation, proactive initiative sources, bounded group turn ownership, and the required real two-agent discussion.
+Remaining work includes Discord application creation, token issuance, guild installation, proactive initiative sources, bounded group turn ownership, CEO administration effect wiring, and the required real two-agent discussion. Discord cannot create a separately authenticated application or grant its own installation; this external authority remains explicit rather than simulated.
 
 ## Acceptance
 

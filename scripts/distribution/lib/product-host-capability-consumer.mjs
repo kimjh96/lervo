@@ -46,6 +46,16 @@ const versionSixRouteIds = [
   "assignment_topology.change",
 ];
 
+const versionSevenRouteIds = [
+  ...versionSixRouteIds,
+  "organization_team.bind",
+  "organization_portfolio.inspect",
+  "agent_context.inspect",
+  "agent_context.promote",
+  "agent_context.handoff",
+  "organization_ceo.evaluate",
+];
+
 function parsed(result) {
   assert.equal(result.stderr, "");
   return JSON.parse(result.stdout);
@@ -298,5 +308,32 @@ export async function verifyPackedProductHostCapabilities(runCli) {
   ]);
   assert.equal(versionSix.projections.includes("assignment_graph_v2"), true);
   assert.equal(versionSix.unsupported.includes("dynamic_graph_mutation"), false);
-  return versionSix;
+  const versionSeven = parsed(
+    await runCli(["application", "capabilities", "--protocol", "7", "--json"]),
+  );
+  assert.equal(versionSeven.schemaVersion, 7);
+  assert.deepEqual(versionSeven.protocol, {
+    transport: "local_cli",
+    version: 7,
+    discoveryCommand: ["application", "capabilities", "--protocol", "7", "--json"],
+    requiresHub: false,
+  });
+  assert.deepEqual(
+    versionSeven.routes.map((route) => route.routeId),
+    versionSevenRouteIds,
+  );
+  assert.deepEqual(
+    versionSeven.routes.slice(-6).map((route) => route.area),
+    [
+      "organization",
+      "organization",
+      "organization",
+      "organization",
+      "organization",
+      "organization",
+    ],
+  );
+  assert.equal(versionSeven.projections.includes("agent_context"), true);
+  assert.equal(versionSeven.projections.includes("organization_operating_report"), true);
+  return versionSeven;
 }

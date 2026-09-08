@@ -8,4 +8,6 @@ Managed-run events separately record the actual response or command provider. Co
 
 Managed turns retain product-default search and repository-knowledge recommendations, context selection and injection, CAS, run events, provider-session identity, deterministic writing evidence, stage timing, and observed provider token and cache telemetry. Omitting `routing.evaluation` selects the realtime deterministic publication profile; configuring it adds the independent semantic model pass.
 
+For an owned hired-agent deployment, the same plan also requires a bounded agent-context projection. Node rebuilds it from exact reviewed promotion and handoff events, verifies every CAS summary hash and byte count, and submits it to the same context coordinator beside repository-search candidates. Missing or damaged agent context fails the managed response closed. Discord transport cannot substitute its recent-message store for repository knowledge or bypass search, relation recommendations, context evidence, provider budgets, or run events.
+
 Repository continuation retains managed-host workstream advancement and knowledge-current completion checks. Platform administration does not invoke repository finalization.

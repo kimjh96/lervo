@@ -237,6 +237,27 @@ describe("application command", () => {
     expect(report.unsupported).not.toContain("dynamic_graph_mutation");
   });
 
+  it("discovers surface-neutral organization and agent-context routes through protocol 7", async () => {
+    const output = io();
+
+    expect(
+      await runApplicationCommand(["capabilities", "--protocol", "7", "--json"], output.value),
+    ).toBe(0);
+    const report = JSON.parse(output.stdout.join(""));
+    expect(report.schemaVersion).toBe(7);
+    expect(report.routes.slice(-6).map((route: { routeId: string }) => route.routeId)).toEqual([
+      "organization_team.bind",
+      "organization_portfolio.inspect",
+      "agent_context.inspect",
+      "agent_context.promote",
+      "agent_context.handoff",
+      "organization_ceo.evaluate",
+    ]);
+    expect(report.projections).toContain("agent_context");
+    expect(report.projections).toContain("organization_operating_report");
+    expect(report.protocol.requiresHub).toBe(false);
+  });
+
   it("renders the injected read-only attention report", async () => {
     const output = io();
     const report = {

@@ -87,6 +87,8 @@ export const eventTypesV1 = [
   "organization.channel.membership.changed",
   "organization.deliberation.participant.bound",
   "organization.deliberation.participant.released",
+  "agent.context.promoted",
+  "agent.context.handoff.recorded",
 ] as const;
 
 export const eventTypesV2 = [

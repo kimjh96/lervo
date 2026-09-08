@@ -4,14 +4,20 @@ import { parseArgs } from "node:util";
 import { loadNodeRuntimeConfig } from "@lervo/node-runtime";
 
 import {
+  bindAgentOrganizationTeam,
   bindAgentOrganizationRuntime,
   inspectAgentOrganization,
 } from "./agent-organization-runtime-binding.js";
+import { runCeoEvaluationCommand } from "./ceo-command.js";
+import { runOrganizationPortfolioCommand } from "./organization-portfolio-command.js";
 import type { CliIo } from "./types.js";
 
 export const agentOrganizationUsage = [
   "  lervo organization inspect [--root <path>] [--json]",
+  "  lervo organization bind-team --organization <id> --team <id> --kind <central|project> --write [--root <path>] [--json]",
   "  lervo organization bind-runtime --organization <id> --team <id> --config <node-config> --write [--root <path>] [--json]",
+  "  lervo organization portfolio --organization <id> --team-root <path> [--team-root <path>...] [--json]",
+  "  lervo organization ceo-evaluate --policy <file> --request <file> --report <file> [--json]",
 ].join("\n");
 
 function identifier(value: string | undefined, kind: "organization" | "team"): string {
@@ -37,7 +43,12 @@ export async function runAgentOrganizationCommand(args: string[], io: CliIo): Pr
       help: { type: "boolean", short: "h" },
       organization: { type: "string" },
       team: { type: "string" },
+      kind: { type: "string" },
       config: { type: "string" },
+      "team-root": { type: "string", multiple: true },
+      policy: { type: "string" },
+      request: { type: "string" },
+      report: { type: "string" },
     },
   });
   if (parsed.values.help) {
@@ -46,6 +57,34 @@ export async function runAgentOrganizationCommand(args: string[], io: CliIo): Pr
   }
   if (parsed.positionals.length !== 1) throw new Error("The organization action is invalid.");
   const action = parsed.positionals[0];
+  if (action === "portfolio") {
+    if (parsed.values.write) throw new Error("Organization portfolio inspection is read-only.");
+    return runOrganizationPortfolioCommand({
+      io,
+      organizationId: identifier(parsed.values.organization, "organization"),
+      teamRoots: parsed.values["team-root"] ?? [],
+      json: parsed.values.json,
+    });
+  }
+  if (action === "ceo-evaluate") {
+    if (
+      parsed.values.write ||
+      parsed.values.policy === undefined ||
+      parsed.values.request === undefined ||
+      parsed.values.report === undefined
+    ) {
+      throw new Error(
+        "CEO evaluation is read-only and requires policy, request, and report files.",
+      );
+    }
+    return runCeoEvaluationCommand({
+      io,
+      policyPath: parsed.values.policy,
+      requestPath: parsed.values.request,
+      reportPath: parsed.values.report,
+      json: parsed.values.json,
+    });
+  }
   const root = resolve(io.cwd, parsed.values.root ?? ".");
   if (action === "inspect") {
     if (parsed.values.write) throw new Error("Organization inspection is read-only.");
@@ -54,6 +93,23 @@ export async function runAgentOrganizationCommand(args: string[], io: CliIo): Pr
       parsed.values.json
         ? `${JSON.stringify(current, null, 2)}\n`
         : `${current.team === null ? "No organization team binding." : `${current.team.organizationId} · ${current.team.teamId} · ${current.memberships.length} agents · ${current.deployments.length} deployments`}\n`,
+    );
+    return 0;
+  }
+  if (action === "bind-team") {
+    if (!parsed.values.write || !["central", "project"].includes(parsed.values.kind ?? "")) {
+      throw new Error("Organization team binding requires exact IDs, kind, and --write.");
+    }
+    const result = await bindAgentOrganizationTeam({
+      root,
+      organizationId: identifier(parsed.values.organization, "organization"),
+      teamId: identifier(parsed.values.team, "team"),
+      teamKind: parsed.values.kind as "central" | "project",
+    });
+    io.stdout(
+      parsed.values.json
+        ? `${JSON.stringify(result, null, 2)}\n`
+        : `Bound ${result.team!.organizationId}/${result.team!.teamId} as ${result.team!.teamKind}.\n`,
     );
     return 0;
   }

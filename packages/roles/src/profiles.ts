@@ -1,4 +1,5 @@
 import type { RoleDefinition } from "./types.js";
+import { ceoRoleDefinition } from "./profiles/ceo.js";
 import { developerRoleDefinition } from "./profiles/developer.js";
 import { designerRoleDefinition } from "./profiles/designer.js";
 import { ideationRoleDefinition } from "./profiles/ideation.js";
@@ -7,6 +8,7 @@ import { researcherRoleDefinition } from "./profiles/researcher.js";
 import { writerRoleDefinition } from "./profiles/writer.js";
 
 const factories = {
+  ceo: ceoRoleDefinition,
   developer: developerRoleDefinition,
   designer: designerRoleDefinition,
   ideation: ideationRoleDefinition,

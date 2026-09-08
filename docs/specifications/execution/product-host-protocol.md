@@ -1,7 +1,7 @@
 # Product-host protocol
 
 Status: `active`
-As of: 2026-09-07
+As of: 2026-09-09
 
 ## Purpose and discovery
 
@@ -20,6 +20,7 @@ Explicit versions add capabilities without changing earlier versions' discovery:
 - v4: reviewed direct-message triggering, explicit handoff acknowledgment, and its projection.
 - v5: bounded unattended assignment execution, removed from only v5's unsupported list.
 - v6: graph-v2 inspection and reviewed bounded topology changes, removed from only v6's unsupported list.
+- v7: agent context, multi-team operating projection, and bounded CEO decision routes.
 
 ```bash
 lervo application capabilities --protocol 2 --json
@@ -27,6 +28,7 @@ lervo application capabilities --protocol 3 --json
 lervo application capabilities --protocol 4 --json
 lervo application capabilities --protocol 5 --json
 lervo application capabilities --protocol 6 --json
+lervo application capabilities --protocol 7 --json
 ```
 
 Versions are compatibility and discovery contracts, not authority grants, repository snapshots, or assertions that route prerequisites are satisfied.
@@ -97,6 +99,19 @@ Protocol v5 adds a bounded foreground scheduler requiring explicit `--write`, fi
 
 Protocol v6 adds graph-v2 inspection and additive topology change. Planning binds the exact current graph and role contracts; apply requires the exact plan, approval hash, reviewer, and explicit write flag. The route can create only a bounded acyclic node set and cannot edit or delete an existing assignment. See [bounded dynamic assignment topology](dynamic-assignment-topology.md).
 
+### Organization
+
+| Route | CLI prefix | Authority |
+| --- | --- | --- |
+| `organization_team.bind` (v7) | `organization bind-team` | explicit write |
+| `organization_portfolio.inspect` (v7) | `organization portfolio` | read-only |
+| `agent_context.inspect` (v7) | `agent context inspect` | read-only |
+| `agent_context.promote` (v7) | `agent context promote` | reviewed context promotion |
+| `agent_context.handoff` (v7) | `agent context handoff` | explicit write |
+| `organization_ceo.evaluate` (v7) | `organization ceo-evaluate` | bounded CEO policy |
+
+Protocol v7 composes repository-owned team snapshots without creating central state authority. Context promotion requires an exact source, CAS summary, and qualifying review; handoff names exact source-owned entries. CEO evaluation verifies the content-addressed operating report, appointment, action and team allowlists, automation depth, observed budget policy, and approval, then returns a decision without performing the effect.
+
 ### Collaboration
 
 | Route | CLI prefix | Authority |
@@ -116,7 +131,7 @@ Each route remains owned by its existing domain or adapter; the capability comma
 
 ## Authority and state
 
-Repository state, workstreams, assignments, leases, events, verification, and artifacts remain canonical. Assignment graphs, topology history, operating goals, governed decisions, operating boards, threads, inboxes, observed budgets, operating liveness, and acknowledgment views are rebuildable projections. Products may cache presentation state but must not turn it into assignment, topology, approval, completion, delivery, acknowledgment, liveness, or verification authority.
+Repository state, workstreams, assignments, leases, events, verification, and artifacts remain canonical. Assignment graphs, topology history, operating goals, governed decisions, operating boards, threads, inboxes, observed budgets, operating liveness, acknowledgments, agent context, and organization reports are rebuildable projections. Products may cache presentation state but must not turn it into assignment, topology, approval, completion, delivery, acknowledgment, liveness, context, or verification authority.
 
 An `available` route can still reject missing roles, workstreams, assignments, leases, approvals, verification, resources, or repository state. Products must preserve its exit status and typed result rather than convert an unavailable or invalid result into an empty success.
 
@@ -134,11 +149,13 @@ Protocol v5 does not install a daemon, preempt an in-flight provider, apply canc
 
 Protocol v6 does not start a provider, modify existing dependencies, delete nodes, permit cycles, create an independent graph store, or make topology review implicit.
 
+Protocol v7 does not make generated summaries canonical, infer context inheritance, perform a CEO-approved effect, create Discord applications, install bots, expose credentials, or merge project-team authority.
+
 ## External-consumer acceptance
 
 `pnpm smoke:packed-cli` builds the real tarball, installs it into an empty temporary consumer, and runs the protocol without workspace imports. The fixture verifies:
 
-- Default 21-route v1 and explicit 23-route v2, 24-route v3, 26-route v4, 27-route v5, and 29-route v6 reports.
+- Default 21-route v1 and explicit 23-route v2, 24-route v3, 26-route v4, 27-route v5, 29-route v6, and 35-route v7 reports.
 - The exact connector limitation and unsupported capabilities.
 - Absence of workspace coordinates and private Lervo package installation.
 
@@ -166,6 +183,7 @@ Acceptance uses no Hub, provider, network route, or connector effect. Cross-plat
 - [ADR-0375](../../decisions/execution/orchestration/governed-work/0375-route-reviewed-direct-messages-and-record-explicit-handoff-acknowledgment.md)
 - [ADR-0379](../../decisions/execution/orchestration/governed-work/0379-install-bounded-unattended-assignment-scheduling.md)
 - [ADR-0380](../../decisions/execution/orchestration/governed-work/0380-install-bounded-dynamic-assignment-topology.md)
+- [ADR-0390](../../decisions/coordination/conversations/0390-project-reviewed-agent-context-and-headless-organization-control.md)
 - [Operating attention](operating-attention.md)
 - [Operating liveness](operating-liveness.md)
 - [Operating goals](operating-goals.md)

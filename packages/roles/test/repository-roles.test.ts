@@ -27,10 +27,11 @@ afterEach(async () =>
 );
 
 describe("repository role contracts", () => {
-  it("keeps six built-in templates including researcher versioned and hash-bound", async () => {
+  it("keeps seven built-in templates including CEO and researcher versioned and hash-bound", async () => {
     const root = await repository();
     const contracts = await listRoleContracts(root);
     expect(contracts.map((contract) => contract.roleId)).toEqual([
+      "ceo",
       "designer",
       "developer",
       "ideation",

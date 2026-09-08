@@ -279,10 +279,57 @@ export interface ProductHostCapabilityReportV6 {
   ];
 }
 
+export type ProductHostRouteIdV7 =
+  | ProductHostRouteIdV6
+  | "organization_team.bind"
+  | "organization_portfolio.inspect"
+  | "agent_context.inspect"
+  | "agent_context.promote"
+  | "agent_context.handoff"
+  | "organization_ceo.evaluate";
+
+export type ProductHostResultContractV7 =
+  | ProductHostResultContractV6
+  | "agent_organization_projection"
+  | "organization_operating_report"
+  | "agent_context_projection"
+  | "ceo_command_decision";
+
+export interface ProductHostRouteV7 extends Omit<
+  ProductHostRouteV1,
+  "routeId" | "resultContract" | "contractVersion" | "authority" | "area"
+> {
+  routeId: ProductHostRouteIdV7;
+  area: ProductHostRouteV1["area"] | "organization";
+  contractVersion: 1 | 2;
+  resultContract: ProductHostResultContractV7;
+  authority: ProductHostRouteV6["authority"] | "reviewed_context_promotion" | "bounded_ceo_policy";
+}
+
+export interface ProductHostCapabilityReportV7 {
+  schemaVersion: 7;
+  kind: "product_host.capabilities";
+  protocol: {
+    transport: "local_cli";
+    version: 7;
+    discoveryCommand: ["application", "capabilities", "--protocol", "7", "--json"];
+    requiresHub: false;
+  };
+  canonicalAuthorities: ProductHostCapabilityReportV1["canonicalAuthorities"];
+  projections: [
+    ...ProductHostCapabilityReportV6["projections"],
+    "agent_context",
+    "organization_operating_report",
+  ];
+  routes: ProductHostRouteV7[];
+  unsupported: ProductHostCapabilityReportV6["unsupported"];
+}
+
 export type ProductHostCapabilityReport =
   | ProductHostCapabilityReportV1
   | ProductHostCapabilityReportV2
   | ProductHostCapabilityReportV3
   | ProductHostCapabilityReportV4
   | ProductHostCapabilityReportV5
-  | ProductHostCapabilityReportV6;
+  | ProductHostCapabilityReportV6
+  | ProductHostCapabilityReportV7;

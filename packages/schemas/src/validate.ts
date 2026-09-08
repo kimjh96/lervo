@@ -3,6 +3,10 @@ import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.
 import { adapterContractMessageSchema } from "./adapter.js";
 import { agentLivenessObservedEventPayloadSchema } from "./agent-liveness-event.js";
 import {
+  agentContextHandoffRecordedEventPayloadSchema,
+  agentContextPromotedEventPayloadSchema,
+} from "./agent-context-event.js";
+import {
   organizationAgentMembershipChangedEventPayloadSchema,
   organizationChannelMembershipChangedEventPayloadSchema,
   organizationDeliberationParticipantBoundEventPayloadSchema,
@@ -265,6 +269,10 @@ ajv.addSchema(organizationNodeRollbackDeliveryReceiptSchema);
 ajv.addSchema(organizationNodeRollbackRecoveryReceiptSchema);
 
 const validators = {
+  agentContextPromotedEventPayload: ajv.compile(agentContextPromotedEventPayloadSchema),
+  agentContextHandoffRecordedEventPayload: ajv.compile(
+    agentContextHandoffRecordedEventPayloadSchema,
+  ),
   agentLivenessObservedEventPayload: ajv.compile(agentLivenessObservedEventPayloadSchema),
   adapterProcessObservation: ajv.compile(adapterProcessObservationSchema),
   providerProcessObservedEventPayload: ajv.compile(providerProcessObservedEventPayloadSchema),

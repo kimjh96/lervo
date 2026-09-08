@@ -40,6 +40,38 @@ describe("event payload privacy boundary", () => {
     );
   });
 
+  it("keeps reviewed agent-context coordinates and rejects mismatched CAS identities", () => {
+    const payload = {
+      contextEntryId: `actx_${"a".repeat(24)}`,
+      agentId: `agt_${"b".repeat(24)}`,
+      layer: "expertise",
+      source: {
+        kind: "artifact",
+        sourceId: `art_${"c".repeat(64)}`,
+        contentHash: `sha256:${"c".repeat(64)}`,
+      },
+      summaryArtifactId: `art_${"d".repeat(64)}`,
+      summaryContentHash: `sha256:${"d".repeat(64)}`,
+      summaryByteCount: 24,
+      reviewEventId: `evt_${"e".repeat(32)}`,
+      reviewEventHash: `sha256:${"f".repeat(64)}`,
+      supersedesContextEntryId: null,
+      promotedAt: "2026-09-09T00:00:00.000Z",
+    };
+    const sanitized = sanitizeEventPayload("agent.context.promoted", {
+      ...payload,
+      prompt: "private prompt",
+    });
+    expect(sanitized.payload).toEqual(payload);
+    expect(sanitized.redactions).toEqual([{ path: "$.prompt", reason: "not_allowlisted" }]);
+    expect(() =>
+      sanitizeEventPayload("agent.context.promoted", {
+        ...payload,
+        summaryArtifactId: `art_${"0".repeat(64)}`,
+      }),
+    ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+  });
+
   it("retains the bounded replacement coordinate for pattern supersession", () => {
     const payload = {
       transitionId: `dptr_${"a".repeat(24)}`,

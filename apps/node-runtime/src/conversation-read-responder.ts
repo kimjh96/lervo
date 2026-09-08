@@ -6,6 +6,7 @@ import {
   adaptiveConversationWritingContract,
   realtimeConversationWritingContract,
 } from "@lervo/core";
+import { FileSystemCas } from "@lervo/cas";
 import {
   ManagedConversationResponder,
   ManagedConversationTurnResolver,
@@ -28,6 +29,7 @@ import {
 } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
+import { AgentContextMaterializer } from "./agent-context-materialization.js";
 import type { NodeDiscordConversationConfig } from "./config-types.js";
 import { prepareConversationRepositoryContext } from "./conversation-repository-context.js";
 import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
@@ -166,6 +168,7 @@ export async function openManagedConversationReadResponder(input: {
     responseArtifacts = await SQLiteConversationResponseArtifactStore.open(
       resolve(input.dataDirectory, "response-artifacts.sqlite"),
     );
+    const projectArtifacts = await FileSystemCas.open(paths.cas);
     const writingContract =
       input.config.routing.evaluation === undefined
         ? realtimeConversationWritingContract
@@ -178,6 +181,13 @@ export async function openManagedConversationReadResponder(input: {
       writingContract,
     });
     const baseRole = readOnlyRole(input.config.routing.readOnlyRoleId, writingContract);
+    const agentContextMaterializer = new AgentContextMaterializer({
+      repositoryRoot: input.repositoryRoot,
+      projectId: input.projectId,
+      dataDirectory: input.dataDirectory,
+      events,
+      artifacts: projectArtifacts,
+    });
     const createAdapter = (adapterInput: {
       repositoryRoot: string;
       resolveArtifact: (uri: string) => Promise<Uint8Array>;
@@ -208,6 +218,7 @@ export async function openManagedConversationReadResponder(input: {
         responseProvider: input.config.routing.response,
         surfaceEffects: input.surfaceEffects,
         conversationTurnContract: 1,
+        agentContextContract: 1,
       }),
     );
     const semanticEvaluator =
@@ -246,6 +257,16 @@ export async function openManagedConversationReadResponder(input: {
         registry: provisioned.registry,
         baseRole,
       });
+      const agentContext =
+        input.agentId === null ? null : await agentContextMaterializer.materialize(input.agentId);
+      if (agentContext !== null) {
+        repositoryContext.role.contextPolicy.requiredDocumentRuleIds.push("agent.context");
+        repositoryContext.documentRules["agent.context"] = [agentContext.documentId];
+        repositoryContext.additionalCandidates.push(agentContext);
+        repositoryContext.additionalCandidates.sort((left, right) =>
+          left.path.localeCompare(right.path),
+        );
+      }
       return {
         adapter: createAdapter({
           repositoryRoot: input.repositoryRoot,

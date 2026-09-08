@@ -1,5 +1,7 @@
 import {
   validateSchema,
+  type AgentContextHandoffRecordedEventPayload,
+  type AgentContextPromotedEventPayload,
   type AssignmentCompletionPreparedEventPayload,
   type AssignmentCompletionReconciledEventPayload,
   type DeliberationArtifactRecordedEventPayload,
@@ -575,6 +577,29 @@ export const eventPayloadAllowlists = {
     "status",
     "releasedAt",
   ],
+  "agent.context.promoted": [
+    "contextEntryId",
+    "agentId",
+    "layer",
+    "source",
+    "summaryArtifactId",
+    "summaryContentHash",
+    "summaryByteCount",
+    "reviewEventId",
+    "reviewEventHash",
+    "supersedesContextEntryId",
+    "promotedAt",
+  ],
+  "agent.context.handoff.recorded": [
+    "contextHandoffId",
+    "fromAgentId",
+    "toAgentId",
+    "contextEntryIds",
+    "manifestArtifactId",
+    "manifestContentHash",
+    "manifestByteCount",
+    "recordedAt",
+  ],
   "knowledge.candidate.created": [
     "candidateId",
     "claimDigest",
@@ -1059,6 +1084,16 @@ export function sanitizeEventPayload(
     !invalidSchema &&
     type === "resource.usage.recorded" &&
     !resourceUsageCoordinateMatches(sanitized as unknown as ResourceUsageRecordedEventPayload);
+  const invalidAgentContextCoordinate =
+    !invalidSchema &&
+    ((type === "agent.context.promoted" &&
+      !agentContextPromotionCoordinateMatches(
+        sanitized as unknown as AgentContextPromotedEventPayload,
+      )) ||
+      (type === "agent.context.handoff.recorded" &&
+        !agentContextHandoffCoordinateMatches(
+          sanitized as unknown as AgentContextHandoffRecordedEventPayload,
+        )));
   if (
     invalidSchema ||
     invalidArtifactCoordinate ||
@@ -1069,7 +1104,8 @@ export function sanitizeEventPayload(
     invalidCompletionPreparedCoordinate ||
     invalidCompletionReconciledCoordinate ||
     invalidWorkstreamCoordinate ||
-    invalidResourceUsageCoordinate
+    invalidResourceUsageCoordinate ||
+    invalidAgentContextCoordinate
   ) {
     throw new RedactionError(
       "invalid_payload",
@@ -1082,6 +1118,8 @@ export function sanitizeEventPayload(
 }
 
 const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
+  "agent.context.promoted": "agentContextPromotedEventPayload",
+  "agent.context.handoff.recorded": "agentContextHandoffRecordedEventPayload",
   "agent.liveness.observed": "agentLivenessObservedEventPayload",
   "provider.process.observed": "providerProcessObservedEventPayload",
   "capability.activated": "capabilityActivatedEventPayload",
@@ -1135,6 +1173,24 @@ function deliberationArtifactCoordinateMatches(
   payload: DeliberationArtifactRecordedEventPayload,
 ): boolean {
   return payload.artifactId === `art_${payload.contentHash.slice("sha256:".length)}`;
+}
+
+function agentContextPromotionCoordinateMatches(
+  payload: AgentContextPromotedEventPayload,
+): boolean {
+  return (
+    payload.summaryArtifactId === `art_${payload.summaryContentHash.slice("sha256:".length)}` &&
+    (payload.source.kind !== "artifact" ||
+      payload.source.sourceId === `art_${payload.source.contentHash.slice("sha256:".length)}`)
+  );
+}
+
+function agentContextHandoffCoordinateMatches(
+  payload: AgentContextHandoffRecordedEventPayload,
+): boolean {
+  return (
+    payload.manifestArtifactId === `art_${payload.manifestContentHash.slice("sha256:".length)}`
+  );
 }
 
 function knowledgeCandidateCoordinateMatches(
