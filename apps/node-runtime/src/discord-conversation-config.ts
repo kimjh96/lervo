@@ -54,6 +54,7 @@ export function parseDiscordConversationConfig(
       "allowDirectMessages",
       "workerId",
       "agentParticipantId",
+      "agentId",
       "conversations",
       "participants",
       "routing",
@@ -71,11 +72,16 @@ export function parseDiscordConversationConfig(
     source.agentParticipantId,
     "discordConversation.agentParticipantId",
   );
+  const agentId =
+    source.agentId === undefined
+      ? undefined
+      : configText(source.agentId, "discordConversation.agentId");
   if (
     !INTEGRATION_ID.test(integrationId) ||
     !SNOWFLAKE.test(applicationId) ||
     !IDENTIFIER.test(workerId) ||
     !PARTICIPANT_ID.test(agentParticipantId) ||
+    (agentId !== undefined && !/^agt_[a-f0-9]{24}$/u.test(agentId)) ||
     !Number.isSafeInteger(source.intents) ||
     (source.intents as number) < 1 ||
     (source.intents as number) > 2 ** 31 - 1 ||
@@ -170,6 +176,7 @@ export function parseDiscordConversationConfig(
     allowDirectMessages: source.allowDirectMessages,
     workerId,
     agentParticipantId,
+    ...(agentId === undefined ? {} : { agentId }),
     conversations,
     participants,
     ...behavior,

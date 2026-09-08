@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_be48f79f940d732080810091
+compiler:
+  compilerBuildId: sha256:88d091758b702818330162b76bf7a3ea7168b2f675e78f0569234d8e8556e811
+  compilerId: lervo.claude.document-normalizer
+  compilerVersion: 1+2.1.236 (Claude Code)
+  isolation: external_no_capabilities
+  provider: claude
+formatVersion: lervo.document.v1
+operationId: knormop_e5466b2f51393b6035e12507
+outputLanguage: en
+outputs:
+  - byteCount: 3391
+    contentHash: sha256:0d126c18e5a82cf85e1871a57fd612f3a582276609aa9288f64bfbfda27cbe4b
+    path: docs/decisions/coordination/conversations/0048-authenticated-platform-conversation-adapters.md
+    userRegionHash: sha256:0d126c18e5a82cf85e1871a57fd612f3a582276609aa9288f64bfbfda27cbe4b
+profile: decision_record
+recordId: knormdoc_1a021bc075d7b77a6ba70339
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7f4fbc066689b0ca5d51c46760c5c26f12fe9b4d089a28ea34265f043af486b8
+sourcePath: docs/decisions/coordination/conversations/0048-authenticated-platform-conversation-adapters.md
+sourceUnitVersionIds:
+  - uv_55139febdfe73ed23bba8438
+  - uv_a465a77872ee24ec5f0bf08c
+  - uv_b0c0a09463b09900225f5f12
+  - uv_f81954be6feadf191405d977

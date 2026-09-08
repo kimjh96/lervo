@@ -64,6 +64,9 @@ export class ManagedConversationResponder implements ManagedConversationResponde
         role: plan.role,
         expectedPaths: [...(plan.expectedPaths ?? [])],
         documentRules: plan.documentRules,
+        ...(plan.additionalCandidates === undefined
+          ? {}
+          : { additionalCandidates: plan.additionalCandidates }),
         publications: plan.publications,
         handoffs: plan.handoffs,
       },

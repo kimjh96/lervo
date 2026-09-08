@@ -42,6 +42,10 @@ export interface NodeRuntimeConfig {
       roles: string[];
       developerSkills: string[];
       executables?: Partial<Record<"codex" | "claude", string>>;
+      models?: Partial<Record<"codex" | "claude", string>>;
+      reasoningEfforts?: Partial<
+        Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">
+      >;
     };
     idlePollIntervalMs?: number;
     leaseDurationMs?: number;
@@ -63,6 +67,7 @@ export interface NodeDiscordConversationConfig {
   allowDirectMessages: boolean;
   workerId: string;
   agentParticipantId: string;
+  agentId?: string;
   conversations: Array<{
     tenantKey: string;
     conversationKey: string;
@@ -85,6 +90,12 @@ export interface NodeDiscordConversationConfig {
     response: {
       provider: "codex" | "claude";
       model?: string;
+      reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
+    };
+    evaluation?: {
+      provider: "codex" | "claude";
+      model?: string;
+      reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
     };
   };
   command: {

@@ -291,6 +291,11 @@ describe("managed remote provider host", () => {
       assignmentId: `asn_${"e".repeat(24)}`,
       agentId: `agt_${"f".repeat(24)}`,
     };
+    await mkdir(resolve(fixture.root, ".lervo/state/workstreams"), { recursive: true });
+    await writeFile(
+      resolve(fixture.root, ".lervo/state/workstreams/current.json"),
+      `${JSON.stringify({ workstreamId: continuation.workstreamId, revision: 11 })}\n`,
+    );
     const command = createRemoteCommand({
       idempotencyKey: "idk_managed_provider_host_01",
       nonce: Buffer.alloc(32, 7).toString("base64url"),
@@ -335,6 +340,10 @@ describe("managed remote provider host", () => {
       createId: ids(),
       verifyContinuation: vi.fn(async (input) => {
         expect(input).toEqual({ repositoryRoot: fixture.root, continuation });
+      }),
+      verifyCompletion: vi.fn(async ({ continuation: observed, run }) => {
+        expect(observed).toEqual(continuation);
+        expect(run.managedChanges).toHaveLength(1);
       }),
       adapterFactory: {
         create: ({ repositoryRoot, resolveArtifact }) =>
@@ -435,6 +444,7 @@ describe("managed remote provider host", () => {
       roleRegistry,
       approvalVerifier: { verify },
       createId: ids(),
+      verifyCompletion: vi.fn(async () => undefined),
       adapterFactory: {
         create: ({ repositoryRoot, resolveArtifact }) =>
           new CodexAdapter({

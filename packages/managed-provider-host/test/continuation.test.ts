@@ -5,7 +5,11 @@ import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { verifyManagedProviderContinuation } from "../src/index.js";
+import {
+  createRemoteDeveloperRole,
+  managedProviderContinuationContext,
+  verifyManagedProviderContinuation,
+} from "../src/index.js";
 
 const roots: string[] = [];
 
@@ -53,6 +57,20 @@ async function fixture(status: "active" | "completed" = "active") {
 }
 
 describe("managed provider continuation verification", () => {
+  it("prepares the exact workstream as required governance context", () => {
+    const prepared = managedProviderContinuationContext(createRemoteDeveloperRole(["repo.check"]));
+    expect(prepared.role.contextPolicy.requiredDocumentRuleIds).toContain("repository.workstream");
+    expect(prepared.documentRules).toEqual({
+      "repository.workstream": [prepared.additionalCandidates[0]!.documentId],
+    });
+    expect(prepared.additionalCandidates[0]).toMatchObject({
+      path: ".lervo/state/workstreams/current.json",
+      source: "workstream",
+      documentRole: "governance_context",
+      referenceEligible: false,
+    });
+  });
+
   it("accepts only the exact active local workstream snapshot", async () => {
     const { root, coordinate } = await fixture();
 

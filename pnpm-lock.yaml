@@ -413,9 +413,15 @@ importers:
       '@lervo/adapter-contract':
         specifier: workspace:*
         version: link:../../packages/adapter-contract
+      '@lervo/agent-workforce':
+        specifier: workspace:*
+        version: link:../../packages/agent-workforce
       '@lervo/cas':
         specifier: workspace:*
         version: link:../../packages/cas
+      '@lervo/context':
+        specifier: workspace:*
+        version: link:../../packages/context
       '@lervo/conversation-app':
         specifier: workspace:*
         version: link:../conversation
@@ -482,6 +488,9 @@ importers:
       '@lervo/repository-knowledge-compiler':
         specifier: workspace:*
         version: link:../../packages/repository-knowledge-compiler
+      '@lervo/roles':
+        specifier: workspace:*
+        version: link:../../packages/roles
       '@lervo/runtime-security':
         specifier: workspace:*
         version: link:../../packages/runtime-security
@@ -1304,6 +1313,9 @@ importers:
       '@lervo/context':
         specifier: workspace:*
         version: link:../context
+      '@lervo/execution-contract':
+        specifier: workspace:*
+        version: link:../execution-contract
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../orchestrator

@@ -5,7 +5,7 @@ Decision date: 2026-08-20
 
 ## Context
 
-Native chat did not exercise platform authentication or external identity boundaries. Slack signs Events API requests, while ordinary Discord messages arrive through an authenticated Gateway session rather than an interaction webhook. Treating both as webhooks would falsely claim Discord conversation support.
+Native chat did not exercise platform authentication or external identity boundaries. Slack signs Events API requests; Discord messages arrive through an authenticated Gateway session, not an interaction webhook. Treating both as webhooks would falsely claim Discord conversation support.
 
 ## Decision
 

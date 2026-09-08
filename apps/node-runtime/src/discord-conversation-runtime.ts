@@ -34,6 +34,7 @@ import { SQLiteConversationResultStore } from "./conversation-result-store.js";
 import { openManagedConversationReadResponder } from "./conversation-read-responder.js";
 import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
 import { NaturalLanguageDiscordConversationResponder } from "./discord-conversation-mode.js";
+import { resolveDiscordAgentParticipation } from "./discord-agent-participation.js";
 import { loadDiscordBotToken } from "./discord-credentials.js";
 import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
 
@@ -75,6 +76,10 @@ export async function openNodeDiscordConversationRuntime(
 ): Promise<NodeDiscordConversationRuntime> {
   const config = options.config;
   const token = await loadDiscordBotToken(config.botTokenFile);
+  const agentParticipation = await resolveDiscordAgentParticipation({
+    repositoryRoot: options.repositoryRoot,
+    config,
+  });
   let resolveFailure!: () => void;
   let failed = false;
   const failure = new Promise<void>((resolvePromise) => {
@@ -90,10 +95,11 @@ export async function openNodeDiscordConversationRuntime(
   const bindings = createDiscordPlatformBindings({
     config,
     projectId: options.project.projectId,
+    agentRoleId: agentParticipation.roleId,
   });
   const policy = createConversationParticipationPolicy({
     projectId: options.project.projectId,
-    roleId: config.command.roleId,
+    roleId: agentParticipation.roleId,
     conversationIds: config.conversations.map((binding) => binding.conversationId),
     mode: config.routing === undefined ? "mention_only" : "relevant",
     respondTo: config.policy?.respondTo ?? ["human"],
@@ -155,14 +161,13 @@ export async function openNodeDiscordConversationRuntime(
         config: { ...config, routing: config.routing },
         projectId: options.project.projectId,
         projectCreatedAt: options.project.createdAt,
+        participationRoleId: agentParticipation.roleId,
         repositoryRoot: options.repositoryRoot,
         dataDirectory: options.dataDirectory,
         artifactStore: artifacts,
-        ...(options.providerExecutables?.[config.routing.response.provider] === undefined
+        ...(options.providerExecutables === undefined
           ? {}
-          : {
-              providerExecutable: options.providerExecutables[config.routing.response.provider],
-            }),
+          : { providerExecutables: options.providerExecutables }),
       })).responder;
     const intentResolver =
       options.intentResolver ??
@@ -269,7 +274,7 @@ export async function openNodeDiscordConversationRuntime(
       artifacts,
       adapter,
       semanticEvaluator: createLocalProviderWritingEvaluator({
-        provider: config.command.provider,
+        provider: config.routing?.evaluation?.provider ?? config.command.provider,
         projectId: options.project.projectId,
         createAdapter: (adapterInput) =>
           createNodeProviderAdapter({
@@ -277,6 +282,12 @@ export async function openNodeDiscordConversationRuntime(
             ...(options.providerExecutables?.[adapterInput.provider] === undefined
               ? {}
               : { executable: options.providerExecutables[adapterInput.provider] }),
+            ...(config.routing?.evaluation?.model === undefined
+              ? {}
+              : { model: config.routing.evaluation.model }),
+            ...(config.routing?.evaluation?.reasoningEffort === undefined
+              ? {}
+              : { reasoningEffort: config.routing.evaluation.reasoningEffort }),
           }),
         createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
         now: () => new Date(),

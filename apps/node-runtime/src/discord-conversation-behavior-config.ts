@@ -44,7 +44,7 @@ export function parseDiscordConversationBehavior(input: {
   if (routing !== undefined) {
     exactConfigKeys(
       routing,
-      ["readOnlyRoleId", "intent", "response"],
+      ["readOnlyRoleId", "intent", "response", "evaluation"],
       "discordConversation.routing",
     );
   }
@@ -62,15 +62,41 @@ export function parseDiscordConversationBehavior(input: {
   const intent = routing === undefined ? undefined : configRecord(routing.intent, "routing.intent");
   const response =
     routing === undefined ? undefined : configRecord(routing.response, "routing.response");
+  const evaluation =
+    routing?.evaluation === undefined
+      ? undefined
+      : configRecord(routing.evaluation, "routing.evaluation");
   if (intent !== undefined)
     exactConfigKeys(intent, ["provider", "model", "timeoutMs"], "routing.intent");
-  if (response !== undefined) exactConfigKeys(response, ["provider", "model"], "routing.response");
+  if (response !== undefined)
+    exactConfigKeys(response, ["provider", "model", "reasoningEffort"], "routing.response");
+  if (evaluation !== undefined)
+    exactConfigKeys(evaluation, ["provider", "model", "reasoningEffort"], "routing.evaluation");
   const intentModel =
     intent?.model === undefined ? undefined : configText(intent.model, "routing.intent.model");
   const responseModel =
     response?.model === undefined
       ? undefined
       : configText(response.model, "routing.response.model");
+  const evaluationModel =
+    evaluation?.model === undefined
+      ? undefined
+      : configText(evaluation.model, "routing.evaluation.model");
+  const parseReasoningEffort = (value: unknown, label: string) => {
+    if (value === undefined) return undefined;
+    if (!["low", "medium", "high", "xhigh", "max"].includes(value as string)) {
+      throw new NodeRuntimeError("invalid_config", `${label} is invalid.`);
+    }
+    return value as "low" | "medium" | "high" | "xhigh" | "max";
+  };
+  const responseReasoningEffort = parseReasoningEffort(
+    response?.reasoningEffort,
+    "routing.response.reasoningEffort",
+  );
+  const evaluationReasoningEffort = parseReasoningEffort(
+    evaluation?.reasoningEffort,
+    "routing.evaluation.reasoningEffort",
+  );
   if (
     !IDENTIFIER.test(roleId) ||
     !["codex", "claude"].includes(command.provider as string) ||
@@ -88,8 +114,10 @@ export function parseDiscordConversationBehavior(input: {
       readOnlyRoleId === roleId ||
       !["codex", "claude"].includes(intent?.provider as string) ||
       !["codex", "claude"].includes(response?.provider as string) ||
+      (evaluation !== undefined && !["codex", "claude"].includes(evaluation.provider as string)) ||
       (intentModel !== undefined && !IDENTIFIER.test(intentModel)) ||
-      (responseModel !== undefined && !IDENTIFIER.test(responseModel)))
+      (responseModel !== undefined && !IDENTIFIER.test(responseModel)) ||
+      (evaluationModel !== undefined && !IDENTIFIER.test(evaluationModel)))
   ) {
     throw new NodeRuntimeError(
       "invalid_config",
@@ -156,7 +184,21 @@ export function parseDiscordConversationBehavior(input: {
             response: {
               provider: response!.provider as "codex" | "claude",
               ...(responseModel === undefined ? {} : { model: responseModel }),
+              ...(responseReasoningEffort === undefined
+                ? {}
+                : { reasoningEffort: responseReasoningEffort }),
             },
+            ...(evaluation === undefined
+              ? {}
+              : {
+                  evaluation: {
+                    provider: evaluation.provider as "codex" | "claude",
+                    ...(evaluationModel === undefined ? {} : { model: evaluationModel }),
+                    ...(evaluationReasoningEffort === undefined
+                      ? {}
+                      : { reasoningEffort: evaluationReasoningEffort }),
+                  },
+                }),
           },
         }),
     command: {

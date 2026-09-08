@@ -111,6 +111,9 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
     const conversationProviders = [
       discordConversation.routing.intent.provider,
       discordConversation.routing.response.provider,
+      ...(discordConversation.routing.evaluation === undefined
+        ? []
+        : [discordConversation.routing.evaluation.provider]),
       discordConversation.command.provider,
     ];
     if (

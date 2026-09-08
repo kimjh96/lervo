@@ -15,6 +15,8 @@ import {
   removeTemporaryRoots,
   temporaryRoot,
 } from "./fixture.js";
+import { registerAgent } from "@lervo/agent-workforce";
+import { resolveDiscordAgentParticipation } from "../src/discord-agent-participation.js";
 
 afterEach(removeTemporaryRoots);
 
@@ -115,6 +117,7 @@ describe("Node runtime configuration", () => {
       allowDirectMessages: false,
       workerId: "discord-operator",
       agentParticipantId: "ptc_lervoagent",
+      agentId: undefined,
       conversations: [
         {
           tenantKey: "123456789012345678",
@@ -132,7 +135,12 @@ describe("Node runtime configuration", () => {
       routing: {
         readOnlyRoleId: "conversation-reader",
         intent: { provider: "codex", model: "gpt-5.3-codex", timeoutMs: 45_000 },
-        response: { provider: "codex", model: "gpt-5.3-codex" },
+        response: {
+          provider: "codex",
+          model: "gpt-5.3-codex",
+          reasoningEffort: "low",
+        },
+        evaluation: { provider: "claude", model: "claude-haiku-4-5", reasoningEffort: "low" },
       },
       policy: { respondTo: ["human", "agent"] },
       command: {
@@ -149,7 +157,16 @@ describe("Node runtime configuration", () => {
         routing: {
           readOnlyRoleId: "conversation-reader",
           intent: { provider: "codex", model: "gpt-5.3-codex", timeoutMs: 45_000 },
-          response: { provider: "codex", model: "gpt-5.3-codex" },
+          response: {
+            provider: "codex",
+            model: "gpt-5.3-codex",
+            reasoningEffort: "low",
+          },
+          evaluation: {
+            provider: "claude",
+            model: "claude-haiku-4-5",
+            reasoningEffort: "low",
+          },
         },
         participants: [{ actorKind: "human", roleId: null }],
         policy: { respondTo: ["agent", "human"] },
@@ -168,6 +185,78 @@ describe("Node runtime configuration", () => {
     expect(() => parseNodeRuntimeConfig(invalidAgent, root)).toThrow(
       expect.objectContaining({ code: "invalid_config" }),
     );
+  });
+
+  it("binds Discord participation to one current hired-agent role and provider policy", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, await availablePort());
+    const agent = await registerAgent({
+      repositoryRoot: fixture.repositoryRoot,
+      roleId: "researcher",
+      provider: "any",
+      responsibilityPaths: ["."],
+      recordEvent: () => undefined,
+    });
+    const configured = structuredClone(fixture.value);
+    configured.discordConversation = {
+      integrationId: "itg_discord01",
+      applicationId: "999999999999999999",
+      botTokenFile: "discord.token",
+      intents: 37_377,
+      allowedGuildIds: ["123456789012345678"],
+      allowDirectMessages: false,
+      workerId: "discord-operator",
+      agentParticipantId: "ptc_lervoagent",
+      agentId: agent.agentId,
+      conversations: [
+        {
+          tenantKey: "123456789012345678",
+          conversationKey: "223456789012345678",
+          conversationId: "cnv_operator01",
+        },
+      ],
+      participants: [
+        {
+          tenantKey: "123456789012345678",
+          userId: "323456789012345678",
+          participantId: "ptc_operator01",
+        },
+      ],
+      routing: {
+        readOnlyRoleId: "conversation-reader",
+        intent: { provider: "claude", model: "claude-haiku-4-5" },
+        response: { provider: "codex", model: "gpt-5.3-codex" },
+      },
+      command: {
+        roleId: "developer",
+        provider: "claude",
+        risk: "medium",
+        verificationSuiteIds: ["repo.check"],
+        lifetimeMs: 120_000,
+      },
+    };
+    const parsed = parseNodeRuntimeConfig(configured, root).discordConversation!;
+    await expect(
+      resolveDiscordAgentParticipation({ repositoryRoot: fixture.repositoryRoot, config: parsed }),
+    ).resolves.toEqual({ agentId: agent.agentId, roleId: "researcher" });
+
+    const incompatible = structuredClone(parsed);
+    delete incompatible.routing;
+    incompatible.command.provider = "codex";
+    const fixedClaudeAgent = await registerAgent({
+      repositoryRoot: fixture.repositoryRoot,
+      roleId: "researcher",
+      provider: "claude",
+      responsibilityPaths: ["."],
+      recordEvent: () => undefined,
+    });
+    incompatible.agentId = fixedClaudeAgent.agentId;
+    await expect(
+      resolveDiscordAgentParticipation({
+        repositoryRoot: fixture.repositoryRoot,
+        config: incompatible,
+      }),
+    ).rejects.toMatchObject({ code: "invalid_config" });
   });
 
   it("binds organization credential delivery to one explicit organization Node identity", async () => {
@@ -228,6 +317,8 @@ describe("Node runtime configuration", () => {
       roles: ["developer"],
       developerSkills: [],
       executables: { codex: "/opt/lervo/bin/codex" },
+      models: { claude: "claude-sonnet-4-6" },
+      reasoningEfforts: { claude: "high" },
     };
     expect(parseNodeRuntimeConfig(hosted, root)).toMatchObject({
       remoteCommands: {
@@ -236,6 +327,8 @@ describe("Node runtime configuration", () => {
           roles: ["developer"],
           developerSkills: [],
           executables: { codex: "/opt/lervo/bin/codex" },
+          models: { claude: "claude-sonnet-4-6" },
+          reasoningEfforts: { claude: "high" },
         },
       },
     });

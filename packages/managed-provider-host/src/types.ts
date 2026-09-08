@@ -1,5 +1,6 @@
 import type { ProviderAdapter } from "@lervo/adapter-contract";
 import type { ManagedCapabilityApprovalVerifier } from "@lervo/orchestrator";
+import type { ManagedProviderRunResult } from "@lervo/execution-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { RemoteCommandExecutor } from "@lervo/remote-command";
 import type {
@@ -44,6 +45,11 @@ export interface ManagedProviderHostOptions {
     repositoryRoot: string;
     continuation: RemoteContinuationCoordinate;
   }) => Promise<void>;
+  verifyCompletion?: (input: {
+    repositoryRoot: string;
+    continuation: RemoteContinuationCoordinate | undefined;
+    run: ManagedProviderRunResult;
+  }) => Promise<void>;
 }
 
 export interface ManagedProviderHost extends RemoteCommandExecutor {}
@@ -54,6 +60,7 @@ export type ManagedProviderHostErrorCode =
   | "managed_approval_scope_invalid"
   | "managed_project_mismatch"
   | "managed_continuation_mismatch"
+  | "managed_completion_invalid"
   | "managed_execution_failed"
   | "managed_cleanup_failed";
 

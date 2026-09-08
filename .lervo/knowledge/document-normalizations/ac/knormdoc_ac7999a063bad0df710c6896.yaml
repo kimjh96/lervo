@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_be48f79f940d732080810091
+compiler:
+  compilerBuildId: sha256:88d091758b702818330162b76bf7a3ea7168b2f675e78f0569234d8e8556e811
+  compilerId: lervo.claude.document-normalizer
+  compilerVersion: 1+2.1.236 (Claude Code)
+  isolation: external_no_capabilities
+  provider: claude
+formatVersion: lervo.document.v1
+operationId: knormop_0dc7563059c6bee3eb99d580
+outputLanguage: en
+outputs:
+  - byteCount: 4108
+    contentHash: sha256:498c70a7635e65f8e1c41c0d6811326d4d4c124e452bac0c729dd877eb37eaa8
+    path: docs/decisions/execution/providers/0153-managed-provider-node-host.md
+    userRegionHash: sha256:498c70a7635e65f8e1c41c0d6811326d4d4c124e452bac0c729dd877eb37eaa8
+profile: decision_record
+recordId: knormdoc_ac7999a063bad0df710c6896
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:fdb56cbb73d604ad74dccbd493fa39e8c9cab80438a702edabc4e2f160dafbd7
+sourcePath: docs/decisions/execution/providers/0153-managed-provider-node-host.md
+sourceUnitVersionIds:
+  - uv_2e637b68e2475c9fb74cfb5f
+  - uv_3884266e78ca688cecd3cafb
+  - uv_7aa29171e860eb5bb46a9eb6
+  - uv_be47cbec156ae75a8834b315

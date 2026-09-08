@@ -23,6 +23,7 @@ export function createNodeProviderAdapter(input: {
   resolveArtifact: (uri: string) => Promise<Uint8Array>;
   executable?: string;
   model?: string;
+  reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
 }): ProviderAdapter {
   return input.provider === "codex"
     ? new CodexAdapter({
@@ -30,12 +31,14 @@ export function createNodeProviderAdapter(input: {
         resolveArtifact: input.resolveArtifact,
         ...(input.executable === undefined ? {} : { executable: input.executable }),
         ...(input.model === undefined ? {} : { model: input.model }),
+        ...(input.reasoningEffort === undefined ? {} : { reasoningEffort: input.reasoningEffort }),
       })
     : new ClaudeAdapter({
         repositoryRoot: input.repositoryRoot,
         resolveArtifact: input.resolveArtifact,
         ...(input.executable === undefined ? {} : { executable: input.executable }),
         ...(input.model === undefined ? {} : { model: input.model }),
+        ...(input.reasoningEffort === undefined ? {} : { reasoningEffort: input.reasoningEffort }),
       });
 }
 
@@ -103,6 +106,14 @@ export function createManagedProviderRemoteCommandPorts(
                 ? {}
                 : {
                     executable: providerHost.executables[provider as "codex" | "claude"],
+                  }),
+              ...(providerHost.models?.[provider as "codex" | "claude"] === undefined
+                ? {}
+                : { model: providerHost.models[provider as "codex" | "claude"] }),
+              ...(providerHost.reasoningEfforts?.[provider as "codex" | "claude"] === undefined
+                ? {}
+                : {
+                    reasoningEffort: providerHost.reasoningEfforts[provider as "codex" | "claude"],
                   }),
             });
           },

@@ -49,6 +49,58 @@ function providerExecutables(
   return executables;
 }
 
+function providerModels(
+  value: unknown,
+  providers: readonly ("codex" | "claude")[],
+): Partial<Record<"codex" | "claude", string>> | undefined {
+  if (value === undefined) return undefined;
+  const source = configRecord(value, "remoteCommands.providerHost.models");
+  const keys = Object.keys(source) as Array<"codex" | "claude">;
+  if (
+    keys.length < 1 ||
+    keys.length > 2 ||
+    keys.some((provider) => !["codex", "claude"].includes(provider)) ||
+    keys.some((provider) => !providers.includes(provider))
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "remoteCommands.providerHost.models must name only allowlisted providers.",
+    );
+  }
+  return Object.fromEntries(
+    keys.map((provider) => [
+      provider,
+      configText(source[provider], `remoteCommands.providerHost.models.${provider}`),
+    ]),
+  );
+}
+
+function providerReasoningEfforts(
+  value: unknown,
+  providers: readonly ("codex" | "claude")[],
+): Partial<Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">> | undefined {
+  if (value === undefined) return undefined;
+  const source = configRecord(value, "remoteCommands.providerHost.reasoningEfforts");
+  const keys = Object.keys(source) as Array<"codex" | "claude">;
+  if (
+    keys.length < 1 ||
+    keys.length > 2 ||
+    keys.some((provider) => !["codex", "claude"].includes(provider)) ||
+    keys.some((provider) => !providers.includes(provider)) ||
+    keys.some(
+      (provider) => !["low", "medium", "high", "xhigh", "max"].includes(source[provider] as string),
+    )
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "remoteCommands.providerHost.reasoningEfforts must name valid efforts for allowlisted providers.",
+    );
+  }
+  return { ...source } as Partial<
+    Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">
+  >;
+}
+
 function baseTrustKeys(
   value: unknown,
   baseDirectory: string,
@@ -209,7 +261,7 @@ export function parseRemoteCommandConfig(
     const host = configRecord(source.providerHost, "remoteCommands.providerHost");
     exactConfigKeys(
       host,
-      ["providers", "roles", "developerSkills", "executables"],
+      ["providers", "roles", "developerSkills", "executables", "models", "reasoningEfforts"],
       "remoteCommands.providerHost",
     );
     if (
@@ -254,11 +306,15 @@ export function parseRemoteCommandConfig(
     }
     const providers = [...host.providers] as Array<"codex" | "claude">;
     const executables = providerExecutables(host.executables, providers);
+    const models = providerModels(host.models, providers);
+    const reasoningEfforts = providerReasoningEfforts(host.reasoningEfforts, providers);
     providerHost = {
       providers,
       roles: [...host.roles] as string[],
       developerSkills: [...host.developerSkills] as string[],
       ...(executables === undefined ? {} : { executables }),
+      ...(models === undefined ? {} : { models }),
+      ...(reasoningEfforts === undefined ? {} : { reasoningEfforts }),
     };
   }
   return {

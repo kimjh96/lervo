@@ -13,7 +13,11 @@ import {
 } from "./types.js";
 import { prepareManagedProviderHostVerification } from "./verification.js";
 import { resolveManagedProviderHostSkills } from "./skills.js";
-import { verifyManagedProviderContinuation } from "./continuation.js";
+import {
+  managedProviderContinuationContext,
+  verifyManagedProviderContinuation,
+} from "./continuation.js";
+import { verifyManagedProviderHostCompletion } from "./completion.js";
 
 const PROVIDER_PATTERN = /^[a-z][a-z0-9_-]{0,63}$/u;
 
@@ -48,6 +52,7 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
   private readonly verifyContinuation: NonNullable<
     ManagedProviderHostOptions["verifyContinuation"]
   >;
+  private readonly verifyCompletion: NonNullable<ManagedProviderHostOptions["verifyCompletion"]>;
   private running = false;
 
   constructor(private readonly options: ManagedProviderHostOptions) {
@@ -76,6 +81,7 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
     this.prepareVerification =
       options.prepareVerification ?? prepareManagedProviderHostVerification;
     this.verifyContinuation = options.verifyContinuation ?? verifyManagedProviderContinuation;
+    this.verifyCompletion = options.verifyCompletion ?? verifyManagedProviderHostCompletion;
   }
 
   async execute(input: Parameters<ManagedProviderHost["execute"]>[0]) {
@@ -108,16 +114,21 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
         "The remote command is outside this managed provider host's execution scope.",
       );
     }
-    const role = this.options.roleRegistry.resolve(
+    const resolvedRole = this.options.roleRegistry.resolve(
       command.action.roleId,
       command.action.verificationSuiteIds,
     );
-    if (role === null) {
+    if (resolvedRole === null) {
       throw new ManagedProviderHostError(
         "managed_command_unsupported",
         "The remote command role differs from the registered verification contract.",
       );
     }
+    const continuationContext =
+      command.action.continuation === undefined
+        ? null
+        : managedProviderContinuationContext(resolvedRole);
+    const role = continuationContext?.role ?? resolvedRole;
     let expectedPaths: string[];
     try {
       if (input.approvedRepositoryPaths.length < 1 || input.approvedRepositoryPaths.length > 16)
@@ -211,7 +222,7 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
         projectVerifier: verification.verifier,
         now: this.now,
       });
-      await coordinator.run({
+      const run = await coordinator.run({
         repositoryRoot: storage.paths.repositoryRoot,
         requestDigest: command.action.request.contentHash,
         risk: command.action.risk,
@@ -221,7 +232,10 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
           registry,
           role,
           expectedPaths,
-          documentRules: {},
+          documentRules: continuationContext?.documentRules ?? {},
+          ...(continuationContext === null
+            ? {}
+            : { additionalCandidates: continuationContext.additionalCandidates }),
           publications: [],
           handoffs: [],
           recommendationBatches: [],
@@ -244,6 +258,11 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
                 agentId: command.action.continuation.agentId,
               },
             }),
+      });
+      await this.verifyCompletion({
+        repositoryRoot: storage.paths.repositoryRoot,
+        continuation: command.action.continuation,
+        run,
       });
       const completedAt = this.now().toISOString();
       if (!Number.isFinite(Date.parse(completedAt))) throw new Error("invalid host clock");

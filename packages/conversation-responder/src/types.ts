@@ -1,5 +1,9 @@
 import type { ProviderAdapter } from "@lervo/adapter-contract";
-import type { ContextHandoffInput, DocumentRuleMap } from "@lervo/context";
+import type {
+  ContextDocumentCandidate,
+  ContextHandoffInput,
+  DocumentRuleMap,
+} from "@lervo/context";
 import type { ResolvedWritingPolicy } from "@lervo/context-delivery";
 import type { ConversationReplyCandidate, ConversationResponder } from "@lervo/interaction";
 import type { ManagedResolvedSkill } from "@lervo/orchestrator";
@@ -26,6 +30,7 @@ export interface ManagedConversationResponsePlan {
   registry: DocumentRegistry;
   expectedPaths?: readonly string[];
   documentRules: DocumentRuleMap;
+  additionalCandidates?: readonly ContextDocumentCandidate[];
   publications: readonly SharedContextPublication[];
   handoffs: readonly ContextHandoffInput[];
   writingPolicy: ResolvedWritingPolicy;

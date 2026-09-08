@@ -71,6 +71,7 @@ export function createDiscordHubContinuation(
 export function createDiscordPlatformBindings(input: {
   config: NodeDiscordConversationConfig;
   projectId: string;
+  agentRoleId: string;
 }) {
   const { config } = input;
   const tenantKeys = [...new Set(config.conversations.map((binding) => binding.tenantKey))];
@@ -103,7 +104,7 @@ export function createDiscordPlatformBindings(input: {
         actor: {
           kind: "agent" as const,
           participantId: config.agentParticipantId,
-          roleId: config.command.roleId,
+          roleId: input.agentRoleId,
         },
       })),
     ],

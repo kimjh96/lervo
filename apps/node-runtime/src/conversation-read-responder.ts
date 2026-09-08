@@ -12,6 +12,8 @@ import {
   resolveProjectPaths,
 } from "@lervo/project";
 import { createLocalProviderWritingEvaluator } from "@lervo/provider-writing-evaluator";
+import { documentIdForPath } from "@lervo/context";
+import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
 import { type DocumentRegistry, type RoleProfile, validateSchema } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
@@ -126,10 +128,11 @@ export async function openManagedConversationReadResponder(input: {
   };
   projectId: string;
   projectCreatedAt: string;
+  participationRoleId: string;
   repositoryRoot: string;
   dataDirectory: string;
   artifactStore: ArtifactStore;
-  providerExecutable?: string;
+  providerExecutables?: Partial<Record<"codex" | "claude", string>>;
 }): Promise<{ responder: ConversationResponder; close(): void }> {
   const paths = resolveProjectPaths(input.repositoryRoot);
   const writer = await inspectEventWriterCoordinate(input.repositoryRoot);
@@ -145,7 +148,7 @@ export async function openManagedConversationReadResponder(input: {
       registry: await loadDocumentRegistry(input.repositoryRoot),
       verifiedAt: input.projectCreatedAt,
     });
-    const role = readOnlyRole(input.config.routing.readOnlyRoleId);
+    const baseRole = readOnlyRole(input.config.routing.readOnlyRoleId);
     const createAdapter = (adapterInput: {
       repositoryRoot: string;
       resolveArtifact: (uri: string) => Promise<Uint8Array>;
@@ -154,50 +157,107 @@ export async function openManagedConversationReadResponder(input: {
         provider: input.config.routing.response.provider,
         repositoryRoot: adapterInput.repositoryRoot,
         resolveArtifact: adapterInput.resolveArtifact,
-        ...(input.providerExecutable === undefined ? {} : { executable: input.providerExecutable }),
+        ...(input.providerExecutables?.[input.config.routing.response.provider] === undefined
+          ? {}
+          : { executable: input.providerExecutables[input.config.routing.response.provider] }),
         ...(input.config.routing.response.model === undefined
           ? {}
           : { model: input.config.routing.response.model }),
+        ...(input.config.routing.response.reasoningEffort === undefined
+          ? {}
+          : { reasoningEffort: input.config.routing.response.reasoningEffort }),
       });
     const responder = new ManagedConversationResponder({
       repositoryRoot: input.repositoryRoot,
       projectId: input.projectId,
       policyVersion: digest(
-        JSON.stringify({ role, writingPolicy: adaptiveConversationWritingContract }),
+        JSON.stringify({ role: baseRole, writingPolicy: adaptiveConversationWritingContract }),
       ),
       events,
       artifactStore: input.artifactStore,
       semanticEvaluator: createLocalProviderWritingEvaluator({
-        provider: input.config.routing.response.provider,
+        provider:
+          input.config.routing.evaluation?.provider ?? input.config.routing.response.provider,
         projectId: input.projectId,
-        createAdapter: (adapterInput) => createAdapter(adapterInput),
+        createAdapter: (adapterInput) =>
+          createNodeProviderAdapter({
+            provider:
+              input.config.routing.evaluation?.provider ?? input.config.routing.response.provider,
+            repositoryRoot: adapterInput.repositoryRoot,
+            resolveArtifact: adapterInput.resolveArtifact,
+            ...(input.providerExecutables?.[
+              input.config.routing.evaluation?.provider ?? input.config.routing.response.provider
+            ] === undefined
+              ? {}
+              : {
+                  executable:
+                    input.providerExecutables[
+                      input.config.routing.evaluation?.provider ??
+                        input.config.routing.response.provider
+                    ],
+                }),
+            ...(input.config.routing.evaluation?.model === undefined
+              ? {}
+              : { model: input.config.routing.evaluation.model }),
+            ...(input.config.routing.evaluation?.reasoningEffort === undefined
+              ? {}
+              : { reasoningEffort: input.config.routing.evaluation.reasoningEffort }),
+          }),
         createId: (prefix) => id(prefix),
         now: () => new Date(),
       }),
       createEventId: () => id("evt"),
-      resolvePlan: () => ({
-        adapter: createAdapter({
-          repositoryRoot: input.repositoryRoot,
-          resolveArtifact: (uri) => input.artifactStore.get(uri),
-        }),
-        participationRoleId: input.config.command.roleId,
-        maximumResponseCharacters: 2_000,
-        runId: id("run"),
-        sessionId: id("ses"),
-        targetTurnId: id("turn"),
-        role,
-        registry: provisioned.registry,
-        documentRules: { "writing.policy": [WRITING_DOCUMENT_ID] },
-        publications: [],
-        handoffs: [],
-        writingPolicy: {
-          writingPolicyId: adaptiveConversationWritingContract.writingPolicyId,
-          documentId: WRITING_DOCUMENT_ID,
-          contentHash: provisioned.contentHash,
-        },
-        writingContract: adaptiveConversationWritingContract,
-        resolvedSkills: [],
-      }),
+      resolvePlan: async () => {
+        const currentWorkstream = await readCurrentWorkstreamState(input.repositoryRoot);
+        const workstreamPath = ".lervo/state/workstreams/current.json";
+        const workstreamDocumentId = documentIdForPath(workstreamPath);
+        const role = structuredClone(baseRole);
+        if (currentWorkstream !== null) {
+          role.contextPolicy.requiredDocumentRuleIds.push("repository.workstream");
+        }
+        return {
+          adapter: createAdapter({
+            repositoryRoot: input.repositoryRoot,
+            resolveArtifact: (uri) => input.artifactStore.get(uri),
+          }),
+          participationRoleId: input.participationRoleId,
+          maximumResponseCharacters: 2_000,
+          runId: id("run"),
+          sessionId: id("ses"),
+          targetTurnId: id("turn"),
+          role,
+          registry: provisioned.registry,
+          documentRules: {
+            "writing.policy": [WRITING_DOCUMENT_ID],
+            ...(currentWorkstream === null
+              ? {}
+              : { "repository.workstream": [workstreamDocumentId] }),
+          },
+          ...(currentWorkstream === null
+            ? {}
+            : {
+                additionalCandidates: [
+                  {
+                    documentId: workstreamDocumentId,
+                    path: workstreamPath,
+                    connectedPaths: [],
+                    source: "workstream" as const,
+                    documentRole: "governance_context" as const,
+                    referenceEligible: false,
+                  },
+                ],
+              }),
+          publications: [],
+          handoffs: [],
+          writingPolicy: {
+            writingPolicyId: adaptiveConversationWritingContract.writingPolicyId,
+            documentId: WRITING_DOCUMENT_ID,
+            contentHash: provisioned.contentHash,
+          },
+          writingContract: adaptiveConversationWritingContract,
+          resolvedSkills: [],
+        };
+      },
     });
     return { responder, close: () => events.close() };
   } catch (error) {

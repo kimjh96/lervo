@@ -131,7 +131,11 @@ describe("Discord remote continuation application journey", () => {
       artifactStore: artifacts,
       resolveWritingContract: async () => defaultEnglishWritingContract,
     });
-    const fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+    const fetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      if (String(url).endsWith(`/channels/${channelId}/typing`)) {
+        expect(init?.method).toBe("POST");
+        return new Response(null, { status: 204 });
+      }
       const body = JSON.parse(String(init?.body)) as { content: string; allowed_mentions: unknown };
       expect(body.content).toContain("queueing only");
       expect(body.allowed_mentions).toEqual({ parse: [], replied_user: false });
@@ -214,17 +218,17 @@ describe("Discord remote continuation application journey", () => {
       d: { session_id: "discord-app-session", resume_gateway_url: "wss://gateway.discord.gg" },
     });
     gateway.emit(gatewayMessage("523456789012345678"));
-    await settled(() => request.mock.calls.length === 1 && fetch.mock.calls.length === 1);
+    await settled(() => request.mock.calls.length === 1 && fetch.mock.calls.length === 2);
 
     expect(gatewayErrors).toEqual([]);
     expect(JSON.parse(gateway.sent[0]!)).toMatchObject({ op: 2, d: { intents: 37_377 } });
     expect(request).toHaveBeenCalledOnce();
-    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledTimes(2);
 
     gateway.emit(gatewayMessage("523456789012345678"));
     await settled();
     expect(request).toHaveBeenCalledOnce();
-    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledTimes(2);
     application.close();
   });
 });
