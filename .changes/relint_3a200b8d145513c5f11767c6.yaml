@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_3a200b8d145513c5f11767c6"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Enable bounded repository signal participation and assigned managed deliberation in installed conversation nodes."

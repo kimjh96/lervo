@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:7ce16444-0a0d-55c2-b616-cefadd956cc2",
+  "serialNumber": "urn:uuid:037a4202-bfc5-50f5-b12b-5357e3fc71d2",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -21,15 +21,15 @@
     },
     "component": {
       "type": "application",
-      "bom-ref": "pkg:npm/%40lervo/cli@0.14.0",
+      "bom-ref": "pkg:npm/%40lervo/cli@0.15.0",
       "group": "@lervo",
       "name": "cli",
-      "version": "0.14.0",
-      "purl": "pkg:npm/%40lervo/cli@0.14.0",
+      "version": "0.15.0",
+      "purl": "pkg:npm/%40lervo/cli@0.15.0",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "e93d7f4138cc1b2d9320dd781241d413cd58c89283826af32fc1f415ede0135c"
+          "content": "d15faea939c2bc4c07cc96dd539e6c08cb3855ad99ac7ad6f8d2693b7c7b4665"
         }
       ],
       "licenses": [
@@ -42,7 +42,7 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:21a431b675bc4de532a7d3575a597f4c3b01d03ef0448c8e4eb5301dc575204d"
+          "value": "sha256:28912833de3cfde1d2f9c3cce316bf03f532a6971b824846aafed644f8f42e8c"
         },
         {
           "name": "lervo:release:bundle-digest",
@@ -4290,7 +4290,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40lervo/cli@0.14.0",
+      "ref": "pkg:npm/%40lervo/cli@0.15.0",
       "dependsOn": [
         "pkg:npm/%40anthropic-ai/claude-agent-sdk@0.3.226",
         "pkg:npm/%40anthropic-ai/sdk@0.117.1",
