@@ -144,6 +144,7 @@ describe("Node runtime configuration", () => {
           provider: "codex",
           model: "gpt-5.6-sol",
           reasoningEffort: "low",
+          timeoutMs: 60_000,
         },
         evaluation: { provider: "claude", model: "claude-haiku-4-5", reasoningEffort: "low" },
       },
@@ -170,6 +171,7 @@ describe("Node runtime configuration", () => {
             provider: "codex",
             model: "gpt-5.6-sol",
             reasoningEffort: "low",
+            timeoutMs: 60_000,
           },
           evaluation: {
             provider: "claude",
@@ -182,6 +184,14 @@ describe("Node runtime configuration", () => {
         policy: { respondTo: ["agent", "human"], maxResponseAttempts: 2 },
         command: { assignmentId: null, agentId: null },
       },
+    });
+    const managedTurnOnly = structuredClone(configured);
+    delete (managedTurnOnly.discordConversation as { routing: { intent?: unknown } }).routing
+      .intent;
+    expect(
+      parseNodeRuntimeConfig(managedTurnOnly, root).discordConversation?.routing,
+    ).toMatchObject({
+      response: { provider: "codex", timeoutMs: 60_000 },
     });
     const unscoped = structuredClone(configured);
     (unscoped.discordConversation as { allowedGuildIds: string[] }).allowedGuildIds = [];

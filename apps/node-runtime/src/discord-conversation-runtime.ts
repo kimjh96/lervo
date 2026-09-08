@@ -3,7 +3,6 @@ import { resolve } from "node:path";
 
 import { openConversationApplication } from "@lervo/conversation-app";
 import { FileSystemCas } from "@lervo/cas";
-import { DiscordRestAdministration } from "@lervo/adapter-discord";
 import { createConversationParticipationPolicy } from "@lervo/conversation-contract";
 import {
   ConversationRemoteContinuationResponder,
@@ -46,7 +45,7 @@ import { loadDiscordBotToken } from "./discord-credentials.js";
 import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
 import { ConversationInteractionRetryLoop } from "./conversation-interaction-retry-loop.js";
 import { NodeConversationResponseFailureClassifier } from "./conversation-response-failure-policy.js";
-import { DiscordConversationAdministrationResponder } from "./discord-platform-action-responder.js";
+import { createDiscordConversationEffects } from "./discord-conversation-effects.js";
 
 export interface NodeDiscordConversationRuntime {
   readonly failed: Promise<void>;
@@ -175,6 +174,12 @@ export async function openNodeDiscordConversationRuntime(
   let modeResponder: NaturalLanguageDiscordConversationResponder | null = null;
   let responder: ConversationResponder = continuationResponder;
   if (config.routing !== undefined) {
+    const { surfaceEffects, platformAction } = createDiscordConversationEffects({
+      config,
+      botToken: token,
+      artifactStore: artifacts,
+      ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
+    });
     const readOnly =
       options.readOnlyResponder ??
       (readRuntime = await openManagedConversationReadResponder({
@@ -186,48 +191,35 @@ export async function openNodeDiscordConversationRuntime(
         repositoryRoot: options.repositoryRoot,
         dataDirectory: options.dataDirectory,
         artifactStore: artifacts,
+        surfaceEffects,
         ...(options.providerExecutables === undefined
           ? {}
           : { providerExecutables: options.providerExecutables }),
       })).responder;
     const intentResolver =
       options.intentResolver ??
-      (await createProviderConversationIntentResolver({
-        provider: config.routing.intent.provider,
-        ...(options.providerExecutables?.[config.routing.intent.provider] === undefined
-          ? {}
-          : { executable: options.providerExecutables[config.routing.intent.provider] }),
-        ...(config.routing.intent.model === undefined
-          ? {}
-          : { model: config.routing.intent.model }),
-        ...(config.routing.intent.timeoutMs === undefined
-          ? {}
-          : { timeoutMs: config.routing.intent.timeoutMs }),
-      }));
+      (readRuntime === null && config.routing.intent !== undefined
+        ? await createProviderConversationIntentResolver({
+            provider: config.routing.intent.provider,
+            ...(options.providerExecutables?.[config.routing.intent.provider] === undefined
+              ? {}
+              : { executable: options.providerExecutables[config.routing.intent.provider] }),
+            ...(config.routing.intent.model === undefined
+              ? {}
+              : { model: config.routing.intent.model }),
+            ...(config.routing.intent.timeoutMs === undefined
+              ? {}
+              : { timeoutMs: config.routing.intent.timeoutMs }),
+          })
+        : undefined);
+    if (readRuntime === null && intentResolver === undefined) {
+      throw new Error(
+        "A custom read-only responder requires either a custom intent resolver or legacy routing.intent configuration.",
+      );
+    }
     intentStore = await SQLiteConversationIntentResolutionStore.open(
       resolve(options.dataDirectory, "intent-resolutions.sqlite"),
     );
-    const platformAction = new DiscordConversationAdministrationResponder({
-      artifactStore: artifacts,
-      administration: new DiscordRestAdministration({
-        applicationId: config.applicationId,
-        botToken: token,
-        allowedGuildIds: config.allowedGuildIds,
-        ...(config.http?.requestTimeoutMs === undefined
-          ? {}
-          : { requestTimeoutMs: config.http.requestTimeoutMs }),
-        ...(config.http?.maxResponseBytes === undefined
-          ? {}
-          : { maxResponseBytes: config.http.maxResponseBytes }),
-        ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
-      }),
-      conversations: config.conversations.map((binding) => ({
-        conversationId: binding.conversationId,
-        guildId: binding.tenantKey,
-      })),
-      allowNicknameUpdate:
-        config.administration?.allowedActions.includes("current_member.nickname.set") === true,
-    });
     modeResponder = new NaturalLanguageDiscordConversationResponder({
       applicationId: config.applicationId,
       respondingAgent: {
@@ -241,7 +233,12 @@ export async function openNodeDiscordConversationRuntime(
         artifacts,
       ),
       resolutionStore: intentStore,
-      intentResolver,
+      ...(intentResolver === undefined ? {} : { intentResolver }),
+      ...(readRuntime === null || options.intentResolver !== undefined
+        ? {}
+        : { managedTurnResolver: readRuntime.turnResolver }),
+      surfaceEffects,
+      participationPolicy: policy,
       readOnly,
       continuation: continuationResponder,
       platformAction,

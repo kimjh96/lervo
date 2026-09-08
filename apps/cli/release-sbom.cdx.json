@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:35545df8-f4b3-5f22-8ff6-92a799a64c08",
+  "serialNumber": "urn:uuid:079b1751-97ae-56d9-b6c9-439d3a28ae82",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "b177f98895e85cd1b7164d8f7b66680de7fbf249927dd0a43c549415f2346f98"
+          "content": "3975a66b4032b7c9087715eb56b8baf706ab186d52da49d148d474d0a368879d"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:b190777fabddf5ad0d4dc359557cf6cbeefbc1028a50e27db5bfa4e4dce4dfdb"
+          "value": "sha256:26402c541ff8a811e6f2c5053419dce79cf3be9c76fdbe548cae7a4d6b05671a"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:038f9fcb000c769f7202b1c087ba334faeb6e8eac10c065d4eae673e3ea47d8b"
+          "value": "sha256:b5ef6a2af1e9c077e2991574b92de50b8df0ff2ea15b66a1a4aa693611171b7d"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -1180,6 +1180,21 @@
       "name": "remote-command",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/remote-command@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/repository-context@0.1.0",
+      "group": "@lervo",
+      "name": "repository-context",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/repository-context@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -4337,6 +4352,7 @@
         "pkg:npm/%40lervo/remote-command-contract@0.1.0",
         "pkg:npm/%40lervo/remote-command-sqlite@0.1.0",
         "pkg:npm/%40lervo/remote-command@0.1.0",
+        "pkg:npm/%40lervo/repository-context@0.1.0",
         "pkg:npm/%40lervo/repository-knowledge-compiler@0.1.0",
         "pkg:npm/%40lervo/repository-knowledge@0.1.0",
         "pkg:npm/%40lervo/repository-registry@0.1.0",

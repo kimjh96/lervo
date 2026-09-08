@@ -45,7 +45,7 @@ import {
   prepareManagedSearchContext,
   summarizeManagedSearchContext,
   type ManagedSearchContextSummary,
-} from "./managed-search-context.js";
+} from "./repository-context.js";
 import { resolveRunSkills, type ResolvedRunSkill } from "./run-skills.js";
 import { resolveRunCapabilities } from "./run-capabilities.js";
 import type { ResolvedCapability } from "@lervo/capabilities";

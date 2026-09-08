@@ -6,7 +6,11 @@ import type {
 } from "@lervo/context";
 import type { ResolvedWritingPolicy } from "@lervo/context-delivery";
 import type { ConversationReplyCandidate, ConversationResponder } from "@lervo/interaction";
-import type { ManagedResolvedSkill } from "@lervo/orchestrator";
+import type {
+  ManagedPrepareContextInput,
+  ManagedProviderRunDeadlines,
+  ManagedResolvedSkill,
+} from "@lervo/orchestrator";
 import type {
   ConversationInboundEvent,
   ConversationParticipationDecision,
@@ -36,6 +40,8 @@ export interface ManagedConversationResponsePlan {
   expectedPaths?: readonly string[];
   documentRules: DocumentRuleMap;
   additionalCandidates?: readonly ContextDocumentCandidate[];
+  recommendationBatches?: ManagedPrepareContextInput["recommendationBatches"];
+  graphRecommendations?: ManagedPrepareContextInput["graphRecommendations"];
   publications: readonly SharedContextPublication[];
   handoffs: readonly ContextHandoffInput[];
   writingPolicy: ResolvedWritingPolicy;
@@ -63,6 +69,44 @@ export interface ManagedConversationResponseRequest {
   };
 }
 
+export interface ManagedConversationSurfaceEffect {
+  effectId: string;
+  description: string;
+  argumentDescription: string | null;
+  maximumArgumentCharacters?: number;
+}
+
+export interface ManagedConversationTurnRequest {
+  event: ConversationInboundEvent;
+  policy: ConversationParticipationPolicy;
+  respondingAgent: { agentId: string | null; roleId: string };
+  mentioned: boolean;
+  surfaceEffects: readonly ManagedConversationSurfaceEffect[];
+  context?: { priorTurns: ReadonlyArray<ConversationContextTurn> };
+}
+
+export interface ManagedConversationTurnResolution {
+  intent: "answer" | "continue_work" | "clarify";
+  confidence: "high" | "medium" | "low";
+  participation: "relevant" | "not_relevant";
+  effect: { kind: "none" | "repository_work" | string; argument: string | null };
+  provider: { providerId: string; model: string | null; adapterVersion: "3" };
+  resultDigest: string;
+  replyCandidate: ConversationReplyCandidate | null;
+}
+
+export interface ManagedConversationTurnResolverOptions extends ManagedConversationArtifactRunnerOptions {
+  semanticEvaluator?: WritingSemanticEvaluator;
+  responseArtifacts?: ManagedConversationResponseArtifactPort;
+  resolvePlan(
+    input: ManagedConversationTurnRequest,
+  ): Promise<ManagedConversationResponsePlan> | ManagedConversationResponsePlan;
+}
+
+export interface ManagedConversationTurnResolverPort {
+  resolve(input: ManagedConversationTurnRequest): Promise<ManagedConversationTurnResolution>;
+}
+
 export interface ManagedConversationResponderOptions {
   repositoryRoot: string;
   projectId: string;
@@ -77,6 +121,19 @@ export interface ManagedConversationResponderOptions {
   createEventId?: () => string;
   providerSessions?: ManagedConversationProviderSessionPort;
   responseArtifacts?: ManagedConversationResponseArtifactPort;
+  deadlines?: Partial<ManagedProviderRunDeadlines>;
+}
+
+export interface ManagedConversationArtifactRunnerOptions {
+  repositoryRoot: string;
+  projectId: string;
+  policyVersion: string;
+  events: EventStore;
+  artifactStore: ArtifactStore;
+  now?: () => Date;
+  createEventId?: () => string;
+  providerSessions?: ManagedConversationProviderSessionPort;
+  deadlines?: Partial<ManagedProviderRunDeadlines>;
 }
 
 export interface ManagedConversationResponseArtifactPort {

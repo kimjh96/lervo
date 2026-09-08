@@ -115,7 +115,9 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
     if (discordConversation.routing === undefined) continue;
     const hosted = remoteCommands?.providerHost;
     const conversationProviders = [
-      discordConversation.routing.intent.provider,
+      ...(discordConversation.routing.intent === undefined
+        ? []
+        : [discordConversation.routing.intent.provider]),
       discordConversation.routing.response.provider,
       ...(discordConversation.routing.evaluation === undefined
         ? []

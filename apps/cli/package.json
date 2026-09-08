@@ -73,6 +73,7 @@
     "@lervo/repository-registry": "workspace:*",
     "@lervo/repository-knowledge": "workspace:*",
     "@lervo/repository-knowledge-compiler": "workspace:*",
+    "@lervo/repository-context": "workspace:*",
     "@lervo/request-grounding": "workspace:*",
     "@lervo/roles": "workspace:*",
     "@lervo/search": "workspace:*",

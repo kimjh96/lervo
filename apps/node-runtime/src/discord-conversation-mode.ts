@@ -1,6 +1,10 @@
 import { readConversationControlMessage } from "@lervo/conversation-control";
-import type { ConversationResponder } from "@lervo/interaction";
+import type { ConversationReplyCandidate, ConversationResponder } from "@lervo/interaction";
 import type { ConversationRelevanceEvaluator } from "@lervo/interaction";
+import type {
+  ManagedConversationSurfaceEffect,
+  ManagedConversationTurnResolverPort,
+} from "@lervo/conversation-responder";
 import { readCurrentWorkstream } from "@lervo/repository-knowledge/workstream";
 import type { ConversationInboundEvent } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
@@ -49,6 +53,7 @@ export class NaturalLanguageDiscordConversationResponder
       mode: DiscordConversationMode;
       resolution: ConversationIntentResolution;
       priorTurns: Awaited<ReturnType<ConversationHistoryPort["recent"]>>;
+      replyCandidate: ConversationReplyCandidate | null;
     }>
   >();
 
@@ -60,7 +65,10 @@ export class NaturalLanguageDiscordConversationResponder
       artifactStore: ArtifactStore;
       history: ConversationHistoryPort;
       resolutionStore: ConversationIntentResolutionStore;
-      intentResolver: ConversationIntentResolver;
+      intentResolver?: ConversationIntentResolver;
+      managedTurnResolver?: ManagedConversationTurnResolverPort;
+      surfaceEffects?: readonly ManagedConversationSurfaceEffect[];
+      participationPolicy: Parameters<ConversationRelevanceEvaluator["evaluate"]>[0]["policy"];
       readOnly: ConversationResponder;
       continuation: ConversationResponder;
       platformAction: DiscordPlatformActionResponder;
@@ -86,8 +94,51 @@ export class NaturalLanguageDiscordConversationResponder
     mode: DiscordConversationMode;
     resolution: ConversationIntentResolution;
     priorTurns: Awaited<ReturnType<ConversationHistoryPort["recent"]>>;
+    replyCandidate: ConversationReplyCandidate | null;
   }> {
     const priorTurns = await this.options.history.recent(event);
+    if (this.options.managedTurnResolver !== undefined) {
+      const managed = await this.options.managedTurnResolver.resolve({
+        event,
+        policy: this.options.participationPolicy,
+        respondingAgent: this.options.respondingAgent,
+        mentioned: event.mentions.participantIds.length > 0 || event.mentions.roleIds.length > 0,
+        surfaceEffects: this.options.surfaceEffects ?? [],
+        context: { priorTurns },
+      });
+      const effect: ConversationRequestedEffect =
+        managed.effect.kind === "discord_current_member_nickname_set"
+          ? {
+              kind: "discord_current_member_nickname_set",
+              nickname: managed.effect.argument!,
+            }
+          : managed.effect.kind === "repository_work"
+            ? { kind: "repository_work" }
+            : { kind: "none" };
+      const resolution: ConversationIntentResolution = {
+        intent: managed.intent,
+        confidence: managed.confidence,
+        participation: managed.participation,
+        effect,
+        provider: managed.provider,
+        resultDigest: managed.resultDigest,
+      };
+      await this.options.resolutionStore.record({
+        event,
+        resolution,
+        resolvedAt: new Date().toISOString(),
+      });
+      const mode = modeFor(resolution);
+      return {
+        mode:
+          ["continuation", "platform_action"].includes(mode) && event.actor.kind !== "human"
+            ? "clarify"
+            : mode,
+        resolution,
+        priorTurns,
+        replyCandidate: managed.replyCandidate,
+      };
+    }
     const stored = await this.options.resolutionStore.read(event);
     if (stored !== null) {
       const storedMode = modeFor(stored);
@@ -98,6 +149,7 @@ export class NaturalLanguageDiscordConversationResponder
             : storedMode,
         resolution: stored,
         priorTurns,
+        replyCandidate: null,
       };
     }
     const message = withoutLeadingBotMention(
@@ -105,6 +157,9 @@ export class NaturalLanguageDiscordConversationResponder
       this.options.applicationId,
     );
     const current = await readCurrentWorkstream(this.options.repositoryRoot);
+    if (this.options.intentResolver === undefined) {
+      throw new TypeError("No managed or legacy conversation turn resolver is configured.");
+    }
     const resolution = await this.options.intentResolver.resolve({
       message,
       actorKind: event.actor.kind,
@@ -130,6 +185,7 @@ export class NaturalLanguageDiscordConversationResponder
           : mode,
       resolution,
       priorTurns,
+      replyCandidate: null,
     };
   }
 
@@ -141,6 +197,9 @@ export class NaturalLanguageDiscordConversationResponder
       resolution.resolution.effect.kind === "discord_current_member_nickname_set"
     ) {
       return this.options.platformAction.respond(request, resolution.resolution.effect);
+    }
+    if (["read_only", "clarify"].includes(resolution.mode) && resolution.replyCandidate !== null) {
+      return resolution.replyCandidate;
     }
     return (
       resolution.mode === "continuation" ? this.options.continuation : this.options.readOnly

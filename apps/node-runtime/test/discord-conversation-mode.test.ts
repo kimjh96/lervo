@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import {
   createConversationInboundEvent,
+  createConversationParticipationPolicy,
   hashConversationSourceEventKey,
 } from "@lervo/conversation-contract";
 import type { ConversationResponder } from "@lervo/interaction";
@@ -18,6 +19,18 @@ const applicationId = "999999999999999999";
 
 describe("natural-language Discord conversation mode", () => {
   it("accepts ordinary and mentioned messages while routing by semantic intent", async () => {
+    const participationPolicy = createConversationParticipationPolicy({
+      projectId: "prj_test0001",
+      roleId: "developer",
+      conversationIds: ["cnv_test0001"],
+      mode: "relevant",
+      respondTo: ["human"],
+      signalCodes: [],
+      cooldownSeconds: 0,
+      maxResponsesPerHour: 8,
+      maxAutomationDepth: 2,
+      createdAt: "2026-09-07T07:00:00.000Z",
+    });
     let message = "What remains in the current workstream?";
     let intent: ConversationIntent = "answer";
     let effect = { kind: "none" as const } as
@@ -118,6 +131,7 @@ describe("natural-language Discord conversation mode", () => {
       },
       resolutionStore,
       intentResolver: resolver,
+      participationPolicy,
       readOnly: readOnly as ConversationResponder,
       continuation: continuation as ConversationResponder,
       platformAction,
@@ -189,6 +203,7 @@ describe("natural-language Discord conversation mode", () => {
       history: { recent: async () => [] },
       resolutionStore,
       intentResolver: resolver,
+      participationPolicy,
       readOnly: readOnly as ConversationResponder,
       continuation: continuation as ConversationResponder,
       platformAction: {
@@ -199,6 +214,41 @@ describe("natural-language Discord conversation mode", () => {
     await restarted.respond(first);
     expect(resolveIntent).toHaveBeenCalledTimes(3);
     expect(readOnly.respond).toHaveBeenCalledTimes(2);
+
+    const managedReply = await candidate("One managed turn resolved and answered this message.");
+    const managedResolve = vi.fn(async () => ({
+      intent: "answer" as const,
+      confidence: "high" as const,
+      participation: "relevant" as const,
+      effect: { kind: "none" as const, argument: null },
+      provider: { providerId: "codex", model: "gpt-managed", adapterVersion: "3" as const },
+      resultDigest: `sha256:${"f".repeat(64)}`,
+      replyCandidate: managedReply,
+    }));
+    const managedMode = new NaturalLanguageDiscordConversationResponder({
+      applicationId,
+      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "developer" },
+      repositoryRoot: process.cwd(),
+      artifactStore,
+      history: { recent: async () => [] },
+      resolutionStore: {
+        read: async () => null,
+        record: async () => undefined,
+      },
+      managedTurnResolver: { resolve: managedResolve },
+      surfaceEffects: [],
+      participationPolicy,
+      readOnly: {
+        respond: vi.fn(async () => candidate("Legacy read path must not run.")),
+      },
+      continuation: continuation as ConversationResponder,
+      platformAction,
+    });
+    message = "Which model is answering me?";
+    const fourth = await input("cevt_test0004");
+    await expect(managedMode.evaluate(fourth)).resolves.toBe("relevant");
+    await expect(managedMode.respond(fourth)).resolves.toEqual(managedReply);
+    expect(managedResolve).toHaveBeenCalledTimes(1);
   });
 });
 

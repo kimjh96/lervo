@@ -3,6 +3,8 @@
 - Status: accepted
 - Decision date: 2026-09-08
 
+[ADR-0389](0389-single-managed-conversation-turn.md) replaced the separate intent-then-response sequencing with a single managed turn. Effect authority, retry ownership, terminal failure, writing profiles, and privacy boundaries remain in force.
+
 ## Context
 
 The first natural-language Discord deployment delivered messages but did not behave like a persistent colleague. A bot guild-nickname change request entered the repository continuation queue and exposed delivery, workstream, provider, and role identifiers in an English receipt. Seven observed turns took 28 to 102 seconds. A 30-second inbox lease expired during provider work, allowing concurrent retry of the same response. The retry's new participation decision ID missed the response artifact cache, duplicated provider work, and interrupted typing.
@@ -27,7 +29,7 @@ Intent resolution returns `answer`, `continue_work`, or `clarify` and binds one 
 | `repository_work` | kind | Use the signed exact-workstream Hub continuation path |
 | `discord_current_member_nickname_set` | kind, nickname | Change only this authenticated bot member's nickname in the mapped guild |
 
-The resolver receives available effect kinds. An unavailable effect becomes clarification and never falls through to repository work. The immutable intent record binds effect JSON alongside its existing event, message hash, provider, model, confidence, digest, and time. The nickname is a bounded 1 to 32 character platform argument and may repeat that small source value; the full message remains only in CAS.
+The resolver receives available effect kinds. An unavailable effect becomes clarification and never falls through to repository work. The immutable intent record binds effect JSON alongside event, message hash, provider, model, confidence, digest, and time. The nickname is a bounded 1 to 32 character platform argument and may repeat that small source value; the full message remains only in CAS.
 
 `discordConversation.administration.allowedActions` grants explicit platform authority. The first action is `current_member.nickname.set`. The Discord adapter accepts only configured guild IDs, uses the current bot member endpoint, verifies the returned application ID and nickname, and never accepts a target user ID. Only a mapped human may request this action. API rejection or response mismatch is a response failure and cannot be reported as success.
 

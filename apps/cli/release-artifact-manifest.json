@@ -92,6 +92,7 @@
       "@lervo/remote-command-contract@0.1.0",
       "@lervo/remote-command-sqlite@0.1.0",
       "@lervo/remote-command@0.1.0",
+      "@lervo/repository-context@0.1.0",
       "@lervo/repository-knowledge-compiler@0.1.0",
       "@lervo/repository-knowledge@0.1.0",
       "@lervo/repository-registry@0.1.0",
@@ -157,7 +158,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:038f9fcb000c769f7202b1c087ba334faeb6e8eac10c065d4eae673e3ea47d8b"
+    "bundleDigest": "sha256:b5ef6a2af1e9c077e2991574b92de50b8df0ff2ea15b66a1a4aa693611171b7d"
   },
   "archive": {
     "rootFiles": [
@@ -171,22 +172,22 @@
       },
       {
         "path": "dist/bin.js",
-        "size": 5785961,
-        "sha256": "sha256:b177f98895e85cd1b7164d8f7b66680de7fbf249927dd0a43c549415f2346f98"
+        "size": 5787111,
+        "sha256": "sha256:3975a66b4032b7c9087715eb56b8baf706ab186d52da49d148d474d0a368879d"
       },
       {
         "path": "dist/node-runtime.js",
-        "size": 3632291,
-        "sha256": "sha256:10e18f71f871e7c61690d3b8dc31e1fe80e116e2592f5dddecd21bcf7865d26b"
+        "size": 3890416,
+        "sha256": "sha256:521735d8aaf73154df93cf7ec5ef0197c7e20ffbc6010be8b1287dd946741faf"
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 2874968,
-        "sha256": "sha256:d7f87f38b0c59e30f45a31d141ebc16ee78aefe4d1a328a12b9da58979d6d84e"
+        "size": 2875124,
+        "sha256": "sha256:87e6b2c35cc39ee1cdfb060b9766b5d20824f5e9cf33f3aa082450135c0d9623"
       }
     ],
     "fileCount": 5,
-    "contentDigest": "sha256:b673bdbcb99c5b5f6ebb75ff9811ca25abfa57d53da86f36d0ce443b2f9f1ddc"
+    "contentDigest": "sha256:bf102ba4380746455b9d84148cc3dfb59e4045456973ecba1e2c70cdc197b2c9"
   },
   "dependencies": {
     "portable": [
@@ -299,5 +300,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:b190777fabddf5ad0d4dc359557cf6cbeefbc1028a50e27db5bfa4e4dce4dfdb"
+  "artifactDigest": "sha256:26402c541ff8a811e6f2c5053419dce79cf3be9c76fdbe548cae7a4d6b05671a"
 }

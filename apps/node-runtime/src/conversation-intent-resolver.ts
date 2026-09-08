@@ -18,7 +18,7 @@ export interface ConversationIntentResolution {
   provider: {
     providerId: string;
     model: string | null;
-    adapterVersion: "1" | "2";
+    adapterVersion: "1" | "2" | "3";
   };
   resultDigest: string;
 }

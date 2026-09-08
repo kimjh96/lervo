@@ -20,7 +20,7 @@ export class FixedConversationTerminalFailureResponder implements ConversationTe
   ): Promise<ConversationReplyCandidate> {
     const content =
       `요청에 대한 응답을 완료하지 못해 ${input.attemptCount}회 시도 후 종료했습니다. ` +
-      `새 메시지는 계속 처리됩니다. 참조 ID: ${input.event.eventId}`;
+      "새 메시지는 계속 처리됩니다. 잠시 후 다시 말씀해 주세요.";
     const stored = await this.options.artifactStore.put(Buffer.from(content, "utf8"));
     const artifact = {
       artifactId: `art_${stored.contentHash.slice("sha256:".length)}`,

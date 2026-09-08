@@ -142,13 +142,16 @@ describe("durable native chat interaction", () => {
       occurredAt: "2026-08-20T00:00:01.000Z",
     });
     const policy = participationPolicy();
-    const relevance = vi.fn(async () => "relevant" as const);
+    const stopActivity = vi.fn();
+    const startActivity = vi.fn(() => ({ stop: stopActivity }));
+    const relevance = vi.fn(async () => {
+      expect(startActivity).toHaveBeenCalledOnce();
+      return "relevant" as const;
+    });
     const responder = vi.fn(async () => responseCandidate());
     const verify = vi.fn(async ({ candidate }) => {
       expect(candidate.publicationPermit.surface).toBe("chat");
     });
-    const stopActivity = vi.fn();
-    const startActivity = vi.fn(() => ({ stop: stopActivity }));
 
     const first = await SQLiteConversationInteractionStore.open({ path });
     await expect(

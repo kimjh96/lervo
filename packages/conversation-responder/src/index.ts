@@ -1,4 +1,7 @@
 export * from "./message-artifact.js";
+export * from "./managed-artifact-runner.js";
+export * from "./managed-turn.js";
+export { managedConversationTurnOutputSchema } from "./managed-turn-contract.js";
 export * from "./publication-verifier.js";
 export * from "./provider-session.js";
 export * from "./request.js";

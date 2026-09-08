@@ -14,15 +14,30 @@ export function validateConversationResponseRequest(
   input: ManagedConversationResponseRequest,
   plan: ManagedConversationResponsePlan,
 ): void {
-  const presentation = plan.role.outputContract.presentation;
   if (
     input.decision.action !== "respond" ||
     input.event.eventId !== input.decision.eventId ||
-    input.event.target.projectId !== options.projectId ||
-    input.policy.projectId !== options.projectId ||
     input.decision.projectId !== options.projectId ||
     input.policy.policyId !== input.decision.policyId ||
-    input.policy.roleId !== input.decision.roleId ||
+    input.policy.roleId !== input.decision.roleId
+  ) {
+    throw new ManagedConversationResponseError(
+      "invalid_response_request",
+      "The conversation response decision is inconsistent with its event and policy.",
+    );
+  }
+  validateConversationResponsePlan(options, input, plan);
+}
+
+export function validateConversationResponsePlan(
+  options: Pick<ManagedConversationResponderOptions, "projectId">,
+  input: Pick<ManagedConversationResponseRequest, "event" | "policy">,
+  plan: ManagedConversationResponsePlan,
+): void {
+  const presentation = plan.role.outputContract.presentation;
+  if (
+    input.event.target.projectId !== options.projectId ||
+    input.policy.projectId !== options.projectId ||
     (plan.participationRoleId ?? plan.role.roleId) !== input.policy.roleId ||
     plan.role.capabilities["filesystem.write"] !== "deny" ||
     plan.role.capabilities["external.message"] !== "deny" ||

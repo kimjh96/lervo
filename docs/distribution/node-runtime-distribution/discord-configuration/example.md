@@ -35,15 +35,11 @@ Replace every identifier and path with reviewed deployment coordinates. Store th
     },
     "routing": {
       "readOnlyRoleId": "conversation-reader",
-      "intent": {
-        "provider": "claude",
-        "model": "claude-haiku-4-5",
-        "timeoutMs": 120000
-      },
       "response": {
         "provider": "codex",
         "model": "gpt-5.6-sol",
-        "reasoningEffort": "low"
+        "reasoningEffort": "low",
+        "timeoutMs": 60000
       }
     },
     "command": {

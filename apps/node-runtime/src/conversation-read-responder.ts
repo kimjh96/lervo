@@ -6,7 +6,12 @@ import {
   adaptiveConversationWritingContract,
   realtimeConversationWritingContract,
 } from "@lervo/core";
-import { ManagedConversationResponder } from "@lervo/conversation-responder";
+import {
+  ManagedConversationResponder,
+  ManagedConversationTurnResolver,
+  managedConversationTurnOutputSchema,
+  type ManagedConversationSurfaceEffect,
+} from "@lervo/conversation-responder";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import type { ConversationResponder } from "@lervo/interaction";
 import {
@@ -15,8 +20,6 @@ import {
   resolveProjectPaths,
 } from "@lervo/project";
 import { createLocalProviderWritingEvaluator } from "@lervo/provider-writing-evaluator";
-import { documentIdForPath } from "@lervo/context";
-import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
 import {
   type DocumentRegistry,
   type RoleProfile,
@@ -26,6 +29,7 @@ import {
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import type { NodeDiscordConversationConfig } from "./config-types.js";
+import { prepareConversationRepositoryContext } from "./conversation-repository-context.js";
 import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
 import { SQLiteConversationResponseArtifactStore } from "./conversation-response-artifact-store.js";
 
@@ -143,8 +147,13 @@ export async function openManagedConversationReadResponder(input: {
   repositoryRoot: string;
   dataDirectory: string;
   artifactStore: ArtifactStore;
+  surfaceEffects: readonly ManagedConversationSurfaceEffect[];
   providerExecutables?: Partial<Record<"codex" | "claude", string>>;
-}): Promise<{ responder: ConversationResponder; close(): void }> {
+}): Promise<{
+  responder: ConversationResponder;
+  turnResolver: ManagedConversationTurnResolver;
+  close(): void;
+}> {
   const paths = resolveProjectPaths(input.repositoryRoot);
   const writer = await inspectEventWriterCoordinate(input.repositoryRoot);
   const events = await SQLiteEventStore.open({
@@ -172,6 +181,7 @@ export async function openManagedConversationReadResponder(input: {
     const createAdapter = (adapterInput: {
       repositoryRoot: string;
       resolveArtifact: (uri: string) => Promise<Uint8Array>;
+      structuredOutputSchema?: Record<string, unknown>;
     }) =>
       createNodeProviderAdapter({
         provider: input.config.routing.response.provider,
@@ -186,105 +196,120 @@ export async function openManagedConversationReadResponder(input: {
         ...(input.config.routing.response.reasoningEffort === undefined
           ? {}
           : { reasoningEffort: input.config.routing.response.reasoningEffort }),
+        requestTimeoutMs: input.config.routing.response.timeoutMs ?? 60_000,
+        ...(adapterInput.structuredOutputSchema === undefined
+          ? {}
+          : { structuredOutputSchema: adapterInput.structuredOutputSchema }),
       });
+    const policyVersion = digest(
+      JSON.stringify({
+        role: baseRole,
+        writingPolicy: writingContract,
+        responseProvider: input.config.routing.response,
+        surfaceEffects: input.surfaceEffects,
+        conversationTurnContract: 1,
+      }),
+    );
+    const semanticEvaluator =
+      input.config.routing.evaluation === undefined
+        ? undefined
+        : createLocalProviderWritingEvaluator({
+            provider: input.config.routing.evaluation.provider,
+            projectId: input.projectId,
+            createAdapter: (adapterInput) =>
+              createNodeProviderAdapter({
+                ...adapterInput,
+                ...(input.providerExecutables?.[adapterInput.provider] === undefined
+                  ? {}
+                  : { executable: input.providerExecutables[adapterInput.provider] }),
+                ...(input.config.routing.evaluation?.model === undefined
+                  ? {}
+                  : { model: input.config.routing.evaluation.model }),
+                ...(input.config.routing.evaluation?.reasoningEffort === undefined
+                  ? {}
+                  : { reasoningEffort: input.config.routing.evaluation.reasoningEffort }),
+              }),
+            createId: (prefix) => id(prefix),
+            now: () => new Date(),
+          });
+    const resolvePlan = async (
+      request: { event: Parameters<typeof prepareConversationRepositoryContext>[0]["event"] },
+      structuredOutputSchema?: Record<string, unknown>,
+    ) => {
+      const runId = id("run");
+      const repositoryContext = await prepareConversationRepositoryContext({
+        repositoryRoot: input.repositoryRoot,
+        projectId: input.projectId,
+        event: request.event,
+        runId,
+        artifactStore: input.artifactStore,
+        registry: provisioned.registry,
+        baseRole,
+      });
+      return {
+        adapter: createAdapter({
+          repositoryRoot: input.repositoryRoot,
+          resolveArtifact: (uri) => input.artifactStore.get(uri),
+          ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
+        }),
+        executionIdentity: {
+          agentId: input.agentId,
+          provider: input.config.routing.response.provider,
+          model: input.config.routing.response.model ?? null,
+        },
+        participationRoleId: input.participationRoleId,
+        maximumResponseCharacters: 2_000,
+        runId,
+        sessionId: id("ses"),
+        targetTurnId: id("turn"),
+        role: repositoryContext.role,
+        registry: provisioned.registry,
+        documentRules: {
+          "writing.policy": [WRITING_DOCUMENT_ID],
+          ...repositoryContext.documentRules,
+        },
+        additionalCandidates: repositoryContext.additionalCandidates,
+        recommendationBatches: repositoryContext.recommendationBatches,
+        graphRecommendations: repositoryContext.graphRecommendations,
+        publications: [],
+        handoffs: [],
+        writingPolicy: {
+          writingPolicyId: writingContract.writingPolicyId,
+          documentId: WRITING_DOCUMENT_ID,
+          contentHash: provisioned.contentHash,
+        },
+        writingContract,
+        resolvedSkills: [],
+      };
+    };
     const responder = new ManagedConversationResponder({
       repositoryRoot: input.repositoryRoot,
       projectId: input.projectId,
-      policyVersion: digest(
-        JSON.stringify({
-          role: baseRole,
-          writingPolicy: writingContract,
-          responseProvider: input.config.routing.response,
-        }),
-      ),
+      policyVersion,
       events,
       artifactStore: input.artifactStore,
       responseArtifacts,
-      ...(input.config.routing.evaluation === undefined
-        ? {}
-        : {
-            semanticEvaluator: createLocalProviderWritingEvaluator({
-              provider: input.config.routing.evaluation.provider,
-              projectId: input.projectId,
-              createAdapter: (adapterInput) =>
-                createNodeProviderAdapter({
-                  ...adapterInput,
-                  ...(input.providerExecutables?.[adapterInput.provider] === undefined
-                    ? {}
-                    : {
-                        executable: input.providerExecutables[adapterInput.provider],
-                      }),
-                  ...(input.config.routing.evaluation?.model === undefined
-                    ? {}
-                    : { model: input.config.routing.evaluation.model }),
-                  ...(input.config.routing.evaluation?.reasoningEffort === undefined
-                    ? {}
-                    : { reasoningEffort: input.config.routing.evaluation.reasoningEffort }),
-                }),
-              createId: (prefix) => id(prefix),
-              now: () => new Date(),
-            }),
-          }),
+      deadlines: { providerTurnMs: input.config.routing.response.timeoutMs ?? 60_000 },
+      ...(semanticEvaluator === undefined ? {} : { semanticEvaluator }),
       createEventId: () => id("evt"),
-      resolvePlan: async () => {
-        const currentWorkstream = await readCurrentWorkstreamState(input.repositoryRoot);
-        const workstreamPath = ".lervo/state/workstreams/current.json";
-        const workstreamDocumentId = documentIdForPath(workstreamPath);
-        const role = structuredClone(baseRole);
-        if (currentWorkstream !== null) {
-          role.contextPolicy.requiredDocumentRuleIds.push("repository.workstream");
-        }
-        return {
-          adapter: createAdapter({
-            repositoryRoot: input.repositoryRoot,
-            resolveArtifact: (uri) => input.artifactStore.get(uri),
-          }),
-          executionIdentity: {
-            agentId: input.agentId,
-            provider: input.config.routing.response.provider,
-            model: input.config.routing.response.model ?? null,
-          },
-          participationRoleId: input.participationRoleId,
-          maximumResponseCharacters: 2_000,
-          runId: id("run"),
-          sessionId: id("ses"),
-          targetTurnId: id("turn"),
-          role,
-          registry: provisioned.registry,
-          documentRules: {
-            "writing.policy": [WRITING_DOCUMENT_ID],
-            ...(currentWorkstream === null
-              ? {}
-              : { "repository.workstream": [workstreamDocumentId] }),
-          },
-          ...(currentWorkstream === null
-            ? {}
-            : {
-                additionalCandidates: [
-                  {
-                    documentId: workstreamDocumentId,
-                    path: workstreamPath,
-                    connectedPaths: [],
-                    source: "workstream" as const,
-                    documentRole: "governance_context" as const,
-                    referenceEligible: false,
-                  },
-                ],
-              }),
-          publications: [],
-          handoffs: [],
-          writingPolicy: {
-            writingPolicyId: writingContract.writingPolicyId,
-            documentId: WRITING_DOCUMENT_ID,
-            contentHash: provisioned.contentHash,
-          },
-          writingContract,
-          resolvedSkills: [],
-        };
-      },
+      resolvePlan: (request) => resolvePlan(request),
+    });
+    const turnResolver = new ManagedConversationTurnResolver({
+      repositoryRoot: input.repositoryRoot,
+      projectId: input.projectId,
+      policyVersion,
+      events,
+      artifactStore: input.artifactStore,
+      responseArtifacts,
+      deadlines: { providerTurnMs: input.config.routing.response.timeoutMs ?? 60_000 },
+      ...(semanticEvaluator === undefined ? {} : { semanticEvaluator }),
+      createEventId: () => id("evt"),
+      resolvePlan: (request) =>
+        resolvePlan(request, managedConversationTurnOutputSchema(input.surfaceEffects, 2_000)),
     });
     return {
       responder,
+      turnResolver,
       close: () => {
         responseArtifacts?.close();
         events.close();

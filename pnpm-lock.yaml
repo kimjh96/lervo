@@ -170,6 +170,9 @@ importers:
       '@lervo/provider-writing-evaluator':
         specifier: workspace:*
         version: link:../../packages/provider-writing-evaluator
+      '@lervo/repository-context':
+        specifier: workspace:*
+        version: link:../../packages/repository-context
       '@lervo/repository-knowledge':
         specifier: workspace:*
         version: link:../../packages/repository-knowledge
@@ -491,6 +494,9 @@ importers:
       '@lervo/remote-command-sqlite':
         specifier: workspace:*
         version: link:../../packages/remote-command-sqlite
+      '@lervo/repository-context':
+        specifier: workspace:*
+        version: link:../../packages/repository-context
       '@lervo/repository-knowledge':
         specifier: workspace:*
         version: link:../../packages/repository-knowledge
@@ -1565,6 +1571,36 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+
+  packages/repository-context:
+    dependencies:
+      '@lervo/context':
+        specifier: workspace:*
+        version: link:../context
+      '@lervo/project-storage':
+        specifier: workspace:*
+        version: link:../project-storage
+      '@lervo/repository-knowledge':
+        specifier: workspace:*
+        version: link:../repository-knowledge
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@lervo/search':
+        specifier: workspace:*
+        version: link:../search
+      '@lervo/search-adapter-bm25f':
+        specifier: workspace:*
+        version: link:../search-adapter-bm25f
+      '@lervo/search-adapter-lexical-v2':
+        specifier: workspace:*
+        version: link:../search-adapter-lexical-v2
+      '@lervo/search-local':
+        specifier: workspace:*
+        version: link:../search-local
+      '@lervo/verification':
+        specifier: workspace:*
+        version: link:../verification
 
   packages/repository-knowledge:
     dependencies:

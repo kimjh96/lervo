@@ -20,7 +20,12 @@ import type { DocumentRegistry, RoleProfile, SharedContextPublication } from "@l
 import type { WritingArtifactCoordinate } from "@lervo/writing";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { ManagedConversationResponder, VerifiedConversationPublication } from "../src/index.js";
+import {
+  ManagedConversationResponder,
+  ManagedConversationTurnResolver,
+  VerifiedConversationPublication,
+  managedConversationTurnOutputSchema,
+} from "../src/index.js";
 import { ConversationClaudeClient, ConversationCodexClient } from "./provider-clients.js";
 
 const projectId = "prj_conversation_bridge";
@@ -403,6 +408,136 @@ describe("managed conversation responder", () => {
     expect(responseArtifacts.size).toBe(2);
     expect(planner.publicationPermit.surface).toBe("chat");
 
+    const surfaceEffects = [
+      {
+        effectId: "discord_current_member_nickname_set",
+        description: "Change this agent's nickname in the current Discord server.",
+        argumentDescription: "The intended nickname.",
+        maximumArgumentCharacters: 32,
+      },
+    ];
+    const managedTurnBody = JSON.stringify({
+      schemaVersion: 1,
+      intent: "answer",
+      confidence: "high",
+      participation: "relevant",
+      effect: { kind: "none", argument: null },
+      reply: "I am the reviewer agent, and this turn is running through Codex.",
+    });
+    const turnClient = new ConversationCodexClient(
+      "codex-managed-turn-thread",
+      "codex-managed-turn",
+      managedTurnBody,
+    );
+    const turnAdapter = new CodexAdapter({
+      repositoryRoot: root,
+      clientFactory: async () => turnClient,
+      resolveArtifact: (uri) => artifacts.get(uri),
+      structuredOutputSchema: managedConversationTurnOutputSchema(surfaceEffects),
+      now,
+      createEventId: sequence("evt_codex_turn"),
+      createReceiptId: sequence("ctx_codex_turn"),
+    });
+    const turnResolver = new ManagedConversationTurnResolver({
+      repositoryRoot: root,
+      projectId,
+      policyVersion,
+      events,
+      artifactStore: artifacts,
+      responseArtifacts: {
+        get: async (requestDigest) => responseArtifacts.get(requestDigest) ?? null,
+        put: async ({ requestDigest, artifact }) => {
+          responseArtifacts.set(requestDigest, artifact);
+        },
+        remove: async (requestDigest) => {
+          responseArtifacts.delete(requestDigest);
+        },
+      },
+      semanticEvaluator: {
+        async evaluate(request) {
+          return {
+            evaluator: { kind: "model", evaluatorId: "fixture.managed-turn" },
+            checks: request.checks.map((check) => ({
+              checkId: check.checkId,
+              status: "passed" as const,
+              violationCount: 0,
+            })),
+          };
+        },
+      },
+      now,
+      createEventId: sequence("evt_managed_turn"),
+      resolvePlan() {
+        const roleDocument = roleDocuments.reviewer;
+        return {
+          adapter: turnAdapter,
+          executionIdentity: {
+            agentId: "agt_111111111111111111111111",
+            provider: "codex",
+            model: "gpt-review",
+          },
+          runId: "run_conversation_managed_turn",
+          sessionId: "ses_conversation_managed_turn",
+          targetTurnId: "target-conversation-managed-turn",
+          role: roles.reviewer,
+          registry: {
+            schemaVersion: 1,
+            documents: {
+              doc_writing_policy: record(writingPath),
+              [roleDocument.id]: record(roleDocument.path),
+            },
+          },
+          documentRules: {
+            "writing.policy": ["doc_writing_policy"],
+            "role.context": [roleDocument.id],
+          },
+          publications: [
+            publication({
+              roleId: "reviewer",
+              documentId: roleDocument.id,
+              contentHash: hash(roleDocument.content),
+            }),
+          ],
+          handoffs: [],
+          writingPolicy: {
+            writingPolicyId: defaultEnglishWritingContract.writingPolicyId,
+            documentId: "doc_writing_policy",
+            contentHash: hash(writingContent),
+          },
+          writingContract: defaultEnglishWritingContract,
+          resolvedSkills: [],
+        };
+      },
+    });
+    const managedTurnRequest = {
+      event,
+      policy: policies.reviewer,
+      respondingAgent: {
+        agentId: "agt_111111111111111111111111",
+        roleId: "reviewer",
+      },
+      mentioned: false,
+      surfaceEffects,
+      context: reviewerRequest.context,
+    };
+    const [managedTurn, managedTurnConcurrent] = await Promise.all([
+      turnResolver.resolve(managedTurnRequest),
+      turnResolver.resolve(managedTurnRequest),
+    ]);
+    expect(managedTurn).toMatchObject({
+      intent: "answer",
+      participation: "relevant",
+      effect: { kind: "none", argument: null },
+      provider: { providerId: "codex", model: "gpt-review", adapterVersion: "3" },
+    });
+    expect(managedTurn.replyCandidate?.content).toEqual(
+      managedTurnConcurrent.replyCandidate?.content,
+    );
+    expect(turnClient.instructions).toContain("managed_conversation_turn");
+    expect(turnClient.instructions).toContain("executionIdentity");
+    expect(turnClient.closed).toBe(true);
+    expect(responseArtifacts.size).toBe(3);
+
     const tampered = structuredClone(reviewer);
     tampered.publicationEvidence.evaluationArtifact.contentHash = `sha256:${"f".repeat(64)}`;
     const interactionStore = await SQLiteConversationInteractionStore.open({
@@ -428,15 +563,19 @@ describe("managed conversation responder", () => {
     await interactionStore.close();
 
     const runEvents = events.list();
-    expect(runEvents.filter((item) => item.type === "run.completed")).toHaveLength(2);
-    expect(runEvents.filter((item) => item.type === "work.causality.recorded")).toHaveLength(2);
+    expect(runEvents.filter((item) => item.type === "run.completed")).toHaveLength(3);
+    expect(runEvents.filter((item) => item.type === "work.causality.recorded")).toHaveLength(3);
     expect(
       runEvents
         .filter((item) => item.type === "work.causality.recorded")
         .map((item) => item.payload.agentId)
         .sort(),
-    ).toEqual(["agt_111111111111111111111111", "agt_222222222222222222222222"]);
-    expect(runEvents.filter((item) => item.type === "context.injected")).toHaveLength(2);
+    ).toEqual([
+      "agt_111111111111111111111111",
+      "agt_111111111111111111111111",
+      "agt_222222222222222222222222",
+    ]);
+    expect(runEvents.filter((item) => item.type === "context.injected")).toHaveLength(3);
     expect(JSON.stringify(runEvents)).not.toContain(rawMessage);
     expect(events.verifyIntegrity().valid).toBe(true);
     events.close();

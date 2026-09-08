@@ -59,7 +59,8 @@ export function parseDiscordConversationBehavior(input: {
     routing === undefined
       ? undefined
       : configText(routing.readOnlyRoleId, "discordConversation.routing.readOnlyRoleId");
-  const intent = routing === undefined ? undefined : configRecord(routing.intent, "routing.intent");
+  const intent =
+    routing?.intent === undefined ? undefined : configRecord(routing.intent, "routing.intent");
   const response =
     routing === undefined ? undefined : configRecord(routing.response, "routing.response");
   const evaluation =
@@ -69,7 +70,11 @@ export function parseDiscordConversationBehavior(input: {
   if (intent !== undefined)
     exactConfigKeys(intent, ["provider", "model", "timeoutMs"], "routing.intent");
   if (response !== undefined)
-    exactConfigKeys(response, ["provider", "model", "reasoningEffort"], "routing.response");
+    exactConfigKeys(
+      response,
+      ["provider", "model", "reasoningEffort", "timeoutMs"],
+      "routing.response",
+    );
   if (evaluation !== undefined)
     exactConfigKeys(evaluation, ["provider", "model", "reasoningEffort"], "routing.evaluation");
   const intentModel =
@@ -93,6 +98,10 @@ export function parseDiscordConversationBehavior(input: {
     response?.reasoningEffort,
     "routing.response.reasoningEffort",
   );
+  const responseTimeoutMs =
+    response === undefined
+      ? undefined
+      : optionalConfigInteger(response, "timeoutMs", 1_000, 300_000, "routing.response");
   const evaluationReasoningEffort = parseReasoningEffort(
     evaluation?.reasoningEffort,
     "routing.evaluation.reasoningEffort",
@@ -112,8 +121,8 @@ export function parseDiscordConversationBehavior(input: {
     (readOnlyRoleId === undefined ||
       !IDENTIFIER.test(readOnlyRoleId) ||
       readOnlyRoleId === roleId ||
-      !["codex", "claude"].includes(intent?.provider as string) ||
       !["codex", "claude"].includes(response?.provider as string) ||
+      (intent !== undefined && !["codex", "claude"].includes(intent.provider as string)) ||
       (evaluation !== undefined && !["codex", "claude"].includes(evaluation.provider as string)) ||
       (intentModel !== undefined && !IDENTIFIER.test(intentModel)) ||
       (responseModel !== undefined && !IDENTIFIER.test(responseModel)) ||
@@ -183,17 +192,22 @@ export function parseDiscordConversationBehavior(input: {
       : {
           routing: {
             readOnlyRoleId: readOnlyRoleId!,
-            intent: {
-              provider: intent!.provider as "codex" | "claude",
-              ...(intentModel === undefined ? {} : { model: intentModel }),
-              ...(timeoutMs === undefined ? {} : { timeoutMs }),
-            },
+            ...(intent === undefined
+              ? {}
+              : {
+                  intent: {
+                    provider: intent.provider as "codex" | "claude",
+                    ...(intentModel === undefined ? {} : { model: intentModel }),
+                    ...(timeoutMs === undefined ? {} : { timeoutMs }),
+                  },
+                }),
             response: {
               provider: response!.provider as "codex" | "claude",
               ...(responseModel === undefined ? {} : { model: responseModel }),
               ...(responseReasoningEffort === undefined
                 ? {}
                 : { reasoningEffort: responseReasoningEffort }),
+              ...(responseTimeoutMs === undefined ? {} : { timeoutMs: responseTimeoutMs }),
             },
             ...(evaluation === undefined
               ? {}

@@ -47,6 +47,7 @@
     "@lervo/provider-writing-evaluator": "workspace:*",
     "@lervo/repository-knowledge": "workspace:*",
     "@lervo/repository-knowledge-compiler": "workspace:*",
+    "@lervo/repository-context": "workspace:*",
     "@lervo/remote-command": "workspace:*",
     "@lervo/remote-command-sqlite": "workspace:*",
     "@lervo/roles": "workspace:*",

@@ -5,7 +5,7 @@ import { loadProjectManifest } from "@lervo/project";
 import { createSearchEvaluationCase, identifySearchQuery, type SearchAttempt } from "@lervo/search";
 import { LocalSearchObservationStore, recordSearchEvaluationCase } from "@lervo/search-local";
 
-import { managedSearchQuery } from "./managed-search-context.js";
+import { managedSearchQuery } from "./repository-context.js";
 import { searchArgumentError, searchErrorCode, searchUsage } from "./search-command-common.js";
 import { formatSearchEvaluationCase } from "./search-evaluation-format.js";
 import type { CliIo } from "./types.js";

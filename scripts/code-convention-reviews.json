@@ -32,7 +32,7 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:55c5c42b6abfca3a1c967b86107fba4e3453dfe114710010627da23d66f5b747",
+      "contentHash": "sha256:a6539720c3d4b4df2b8ab0dfda730b8eb360ffb1caf5b23f0df55151767e6020",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The module composes one managed provider-run boundary; provider differences remain injected dependencies, causal validation and assignment finalization are extracted, and single-or-multiple expected-path normalization is isolated in a focused module rather than adding parsing policy here.",
       "disposition": "cohesive"

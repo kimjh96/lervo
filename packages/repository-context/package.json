@@ -1,0 +1,28 @@
+{
+  "name": "@lervo/repository-context",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@lervo/context": "workspace:*",
+    "@lervo/project-storage": "workspace:*",
+    "@lervo/repository-knowledge": "workspace:*",
+    "@lervo/search": "workspace:*",
+    "@lervo/search-adapter-bm25f": "workspace:*",
+    "@lervo/search-adapter-lexical-v2": "workspace:*",
+    "@lervo/search-local": "workspace:*",
+    "@lervo/schemas": "workspace:*",
+    "@lervo/verification": "workspace:*"
+  }
+}

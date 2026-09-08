@@ -8,6 +8,7 @@ The installed Node separates Discord transport, normalized identity, participati
 - [Transport and recovery](conversation-routing/transport-and-recovery.md): Gateway control, history reconciliation, typing, and durable response retries.
 - [Deployment composition](conversation-routing/deployment-composition.md): configuration, runtime ownership, and multiple bot deployments.
 - [ADR-0388](../../decisions/coordination/conversations/0388-realtime-conversation-effects-and-lifecycle.md): realtime publication, scoped platform effects, lease ownership, and conversational status prose.
+- [ADR-0389](../../decisions/coordination/conversations/0389-single-managed-conversation-turn.md): one managed turn, shared repository retrieval, and surface-neutral effect declarations.
 
 ## References
 

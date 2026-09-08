@@ -90,7 +90,7 @@ export interface NodeDiscordConversationConfig {
   };
   routing?: {
     readOnlyRoleId: string;
-    intent: {
+    intent?: {
       provider: "codex" | "claude";
       model?: string;
       timeoutMs?: number;
@@ -99,6 +99,7 @@ export interface NodeDiscordConversationConfig {
       provider: "codex" | "claude";
       model?: string;
       reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
+      timeoutMs?: number;
     };
     evaluation?: {
       provider: "codex" | "claude";
