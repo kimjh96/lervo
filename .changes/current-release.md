@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.16.2" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.16.3" schema="1" -->
 
 ## What's changed
 
-- Accept direct live-webhook authorization paths on Windows and expose startup failures.
+- Guarantee bounded replies for eligible Discord human messages and align typing with actual response selection.

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e361af3fc3e994957824add6"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Guarantee bounded replies for eligible Discord human messages and align typing with actual response selection."
