@@ -6,6 +6,7 @@ import type { NodeDiscordConversationConfig } from "../src/config-types.js";
 
 const participation: DiscordAgentParticipation = {
   agentId: `agt_${"a".repeat(24)}`,
+  displayName: "Tarin",
   roleId: "developer",
 };
 

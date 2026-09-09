@@ -15,6 +15,7 @@ import {
 import { NodeRuntimeError } from "./errors.js";
 import { parseDiscordAgentOrganization } from "./discord-agent-organization-config.js";
 import { parseDiscordConversationDeliberation } from "./discord-conversation-deliberation-config.js";
+import { parseDiscordConversationSpeaker } from "./discord-conversation-speaker-config.js";
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
 const INTEGRATION_ID = /^itg_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
@@ -57,6 +58,7 @@ export function parseDiscordConversationConfig(
       "workerId",
       "agentParticipantId",
       "agentId",
+      "speaker",
       "organization",
       "conversations",
       "participants",
@@ -104,12 +106,30 @@ export function parseDiscordConversationConfig(
   );
   const conversations = parseDiscordConversationBindings(source.conversations);
   const participants = parseDiscordParticipantBindings(source.participants);
+  const speaker = parseDiscordConversationSpeaker(
+    source.speaker,
+    baseDirectory,
+    conversations.map((conversation) => conversation.conversationKey),
+  );
+  if (
+    speaker?.kind === "webhook" &&
+    (agentId === undefined || conversations.some((conversation) => conversation.tenantKey === "dm"))
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "A Discord webhook speaker requires one active hired agent and guild-only conversations.",
+    );
+  }
   const administration =
     source.administration === undefined
       ? undefined
       : configRecord(source.administration, "discordConversation.administration");
   if (administration !== undefined) {
-    exactConfigKeys(administration, ["allowedActions"], "discordConversation.administration");
+    exactConfigKeys(
+      administration,
+      ["allowedActions", "webhookCredentialDirectory"],
+      "discordConversation.administration",
+    );
   }
   const allowedActions =
     administration === undefined
@@ -117,12 +137,34 @@ export function parseDiscordConversationConfig(
       : (boundedUniqueText(
           administration.allowedActions,
           "discordConversation.administration.allowedActions",
-          /^(?:current_member\.nickname\.set|guild_text_channel\.create|public_thread\.create)$/u,
+          /^(?:current_member\.nickname\.set|guild_text_channel\.create|public_thread\.create|incoming_webhook\.create)$/u,
           1,
-          3,
+          4,
         ) as Array<
-          "current_member.nickname.set" | "guild_text_channel.create" | "public_thread.create"
+          | "current_member.nickname.set"
+          | "guild_text_channel.create"
+          | "public_thread.create"
+          | "incoming_webhook.create"
         >);
+  const webhookCredentialDirectory =
+    administration?.webhookCredentialDirectory === undefined
+      ? undefined
+      : resolve(
+          baseDirectory,
+          configText(
+            administration.webhookCredentialDirectory,
+            "discordConversation.administration.webhookCredentialDirectory",
+          ),
+        );
+  if (
+    allowedActions?.includes("incoming_webhook.create") === true &&
+    webhookCredentialDirectory === undefined
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "Discord webhook creation requires an owner-only credential directory.",
+    );
+  }
   const behavior = parseDiscordConversationBehavior({
     routing: source.routing,
     command: source.command,
@@ -241,10 +283,18 @@ export function parseDiscordConversationConfig(
     workerId,
     agentParticipantId,
     ...(agentId === undefined ? {} : { agentId }),
+    ...(speaker === undefined ? {} : { speaker }),
     ...(organization === undefined ? {} : { organization }),
     conversations,
     participants,
-    ...(allowedActions === undefined ? {} : { administration: { allowedActions } }),
+    ...(allowedActions === undefined
+      ? {}
+      : {
+          administration: {
+            allowedActions,
+            ...(webhookCredentialDirectory === undefined ? {} : { webhookCredentialDirectory }),
+          },
+        }),
     ...behavior,
     ...(repositorySignals === undefined ? {} : { repositorySignals }),
     ...(deliberation === undefined ? {} : { deliberation }),

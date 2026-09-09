@@ -11,6 +11,7 @@ The installed Node separates Discord transport, normalized identity, participati
 - [ADR-0389](../../decisions/coordination/conversations/0389-single-managed-conversation-turn.md): one managed turn, shared repository retrieval, and surface-neutral effect declarations.
 - [ADR-0391](../../decisions/coordination/conversations/0391-deterministic-multi-agent-turn-ownership.md): deterministic participant and role ownership before typing or provider work.
 - [ADR-0392](../../decisions/coordination/conversations/0392-installed-proactive-signals-and-deliberation.md): bounded repository-event wake-ups and installed managed deliberation.
+- [ADR-0394](../../decisions/coordination/conversations/0394-webhook-backed-discord-agent-identities.md): shared Gateway transport and distinct webhook-backed hired-agent identities.
 
 ## References
 

@@ -11,6 +11,7 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { calculateProjectIdentityHash } from "@lervo/sync-contract";
 
 import type { NodeDiscordConversationConfig } from "./config-types.js";
+import { discordSpeakerPrincipalId } from "./discord-conversation-speaker.js";
 import { NodeRuntimeError } from "./errors.js";
 
 export async function validateDiscordAgentOrganization(input: {
@@ -51,7 +52,10 @@ export async function validateDiscordAgentOrganization(input: {
       providerPolicyHash: workforceProviderPolicyHash(input.agent.provider),
       platform: "discord",
       integrationId: input.config.integrationId,
-      externalPrincipalHash: externalAgentPrincipalHash("discord", input.config.applicationId),
+      externalPrincipalHash: externalAgentPrincipalHash(
+        "discord",
+        discordSpeakerPrincipalId(input.config),
+      ),
       deploymentConfigHash: externalAgentDeploymentConfigHash({
         platform: "discord",
         integrationId: input.config.integrationId,

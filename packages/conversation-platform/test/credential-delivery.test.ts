@@ -1,4 +1,9 @@
-import { DiscordRestDelivery, DiscordRestHistory, DiscordRestTyping } from "@lervo/adapter-discord";
+import {
+  DiscordRestDelivery,
+  DiscordRestHistory,
+  DiscordRestTyping,
+  DiscordRestWebhookDelivery,
+} from "@lervo/adapter-discord";
 import { SlackWebApiDelivery } from "@lervo/adapter-slack";
 import type {
   ConversationPlatformDeliveryReplayPort,
@@ -155,6 +160,94 @@ describe("credential-backed platform delivery", () => {
     });
     await delivery.send(input);
     expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("sends as a named Discord webhook identity without exposing its credential", async () => {
+    const replay = new MemoryReplay();
+    const webhookToken = "w".repeat(40);
+    const request = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      expect(String(url)).toBe(
+        `https://discord.com/api/v10/webhooks/523456789012345678/${webhookToken}?wait=true`,
+      );
+      expect(init?.headers).not.toHaveProperty("authorization");
+      expect(JSON.parse(String(init?.body))).toEqual({
+        content: "Review complete.",
+        username: "Arac Reviewer",
+        avatar_url: "https://example.com/arac.png",
+        allowed_mentions: { parse: [], replied_user: false },
+      });
+      return new Response(
+        JSON.stringify({
+          id: "423456789012345678",
+          channel_id: "223456789012345678",
+          webhook_id: "523456789012345678",
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    });
+    const delivery = new DiscordRestWebhookDelivery({
+      integrationId: "itg_discord02",
+      webhookId: "523456789012345678",
+      webhookToken,
+      parentChannelId: "223456789012345678",
+      username: "Arac Reviewer",
+      avatarUrl: "https://example.com/arac.png",
+      replay,
+      fetch: request as typeof fetch,
+      now: () => new Date(at),
+    });
+    const input = {
+      outboundId,
+      guildId: "123456789012345678",
+      channelId: "223456789012345678",
+      replyToMessageId: "323456789012345678",
+      content: "Review complete.",
+      automationDepth: 1,
+      allowedMentions: "none" as const,
+      enforceIdempotency: true as const,
+    };
+    await expect(delivery.send(input)).resolves.toEqual({
+      messageId: "423456789012345678",
+      deliveredAt: at,
+    });
+    await delivery.send(input);
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("redacts a Discord webhook token from an ambiguous transport failure", async () => {
+    const replay = new MemoryReplay();
+    const webhookToken = "secret-webhook-token-".padEnd(40, "w");
+    const delivery = new DiscordRestWebhookDelivery({
+      integrationId: "itg_discord03",
+      webhookId: "523456789012345678",
+      webhookToken,
+      parentChannelId: "223456789012345678",
+      username: "Shiflo Designer",
+      replay,
+      fetch: async (url) => {
+        throw new Error(`connection failed for ${String(url)}`);
+      },
+      now: () => new Date(at),
+    });
+    const input = {
+      outboundId,
+      guildId: "123456789012345678",
+      channelId: "223456789012345678",
+      replyToMessageId: null,
+      content: "Draft ready.",
+      automationDepth: 1,
+      allowedMentions: "none" as const,
+      enforceIdempotency: true as const,
+    };
+
+    let observed = "";
+    try {
+      await delivery.send(input);
+    } catch (error) {
+      observed = String(error);
+    }
+    expect(observed).not.toContain(webhookToken);
+    await expect(delivery.send(input)).rejects.toThrow("Operator review is required");
   });
 
   it("retrieves bounded Discord history after the durable channel cursor", async () => {

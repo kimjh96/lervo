@@ -2,6 +2,7 @@ export * from "./discord-adapter.js";
 export * from "./delivery.js";
 export * from "./payload.js";
 export * from "./rest-delivery.js";
+export * from "./rest-webhook-delivery.js";
 export * from "./rest-history.js";
 export * from "./rest-administration.js";
 export * from "./organization-executive-effects.js";

@@ -483,4 +483,58 @@ describe("authenticated platform conversation adapters", () => {
     expect(verifyDispatch).toHaveBeenCalledOnce();
     expect(identity.inbound).not.toHaveBeenCalled();
   });
+
+  it("maps peer webhook authors as agents and suppresses only the current webhook identity", async () => {
+    const artifactStore = await artifacts();
+    const identity = identityPort();
+    const adapter = new DiscordConversationAdapter({
+      integrationId: "itg_discord02",
+      applicationId: "999999999999999999",
+      allowedGuildIds: ["123456789012345678"],
+      allowDirectMessages: false,
+      gatewayAuthentication: { verifyDispatch: async () => ({ authenticated: true }) },
+      identity: identity.port,
+      artifactStore,
+      delivery: { send: async () => ({ messageId: "1", deliveredAt: now.toISOString() }) },
+      ignoredParticipantKeys: ["webhook:723456789012345678"],
+      now: () => now,
+    });
+    const payload = (webhookId: string, messageId: string) =>
+      Buffer.from(
+        JSON.stringify({
+          op: 0,
+          s: Number(messageId.slice(-2)),
+          t: "MESSAGE_CREATE",
+          d: {
+            id: messageId,
+            channel_id: "223456789012345678",
+            guild_id: "123456789012345678",
+            webhook_id: webhookId,
+            author: { id: webhookId, bot: true },
+            content: "Agent update",
+            mentions: [],
+            timestamp: "2026-08-20T00:00:00.000Z",
+          },
+        }),
+      );
+
+    await expect(
+      adapter.receiveGatewayDispatch({
+        sessionHandle: "authenticated-session",
+        body: payload("723456789012345678", "823456789012345678"),
+      }),
+    ).resolves.toMatchObject({ status: "ignored", reason: "own_participant_message" });
+    await expect(
+      adapter.receiveGatewayDispatch({
+        sessionHandle: "authenticated-session",
+        body: payload("623456789012345678", "823456789012345679"),
+      }),
+    ).resolves.toMatchObject({ status: "accepted", event: { actor: { kind: "agent" } } });
+    expect(identity.inbound).toHaveBeenCalledWith(
+      expect.objectContaining({
+        participantKey: "webhook:623456789012345678",
+        actorKindHint: "agent",
+      }),
+    );
+  });
 });

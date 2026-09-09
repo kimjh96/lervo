@@ -9,6 +9,14 @@ import { PlatformDeliveryRejectedError } from "@lervo/conversation-platform";
 
 import type { DiscordAdministrationPort } from "./types.js";
 
+export interface DiscordWebhookCredentialSink {
+  store(input: {
+    effectId: string;
+    webhookId: string;
+    token: string;
+  }): Promise<{ credentialReferenceHash: string }>;
+}
+
 function record(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new TypeError("The Discord organization effect parameters are invalid.");
@@ -38,9 +46,18 @@ function nullableString(parameters: Record<string, unknown>, key: string): strin
 
 export class DiscordOrganizationExecutiveEffectAdapter implements OrganizationExecutiveEffectPort {
   readonly adapterId = "discord_administration_v1";
-  readonly actions = ["conversation.channel.create", "conversation.thread.create"] as const;
+  readonly actions: readonly OrganizationExecutiveEffect["action"][];
 
-  constructor(private readonly administration: DiscordAdministrationPort) {}
+  constructor(
+    private readonly administration: DiscordAdministrationPort,
+    private readonly webhookCredentials?: DiscordWebhookCredentialSink,
+  ) {
+    this.actions = [
+      "conversation.channel.create",
+      "conversation.thread.create",
+      ...(webhookCredentials === undefined ? [] : (["agent.deployment.prepare"] as const)),
+    ];
+  }
 
   async apply(effect: Readonly<OrganizationExecutiveEffect>) {
     try {
@@ -70,6 +87,36 @@ export class DiscordOrganizationExecutiveEffectAdapter implements OrganizationEx
           status: "completed" as const,
           externalEffectId: result.threadId,
           resultHash: resultHash(result),
+          completedAt: result.observedAt,
+        };
+      }
+      if (effect.action === "agent.deployment.prepare" && this.webhookCredentials !== undefined) {
+        const agentId = requiredString(parameters, "agentId");
+        if (!/^agt_[a-f0-9]{24}$/u.test(agentId)) {
+          throw new TypeError("The Discord organization effect agentId parameter is invalid.");
+        }
+        const result = await this.administration.createIncomingWebhook({
+          guildId: requiredString(parameters, "guildId"),
+          channelId: requiredString(parameters, "channelId"),
+          name: requiredString(parameters, "name"),
+        });
+        const stored = await this.webhookCredentials.store({
+          effectId: effect.effectId,
+          webhookId: result.webhookId,
+          token: result.token,
+        });
+        return {
+          status: "completed" as const,
+          externalEffectId: result.webhookId,
+          resultHash: resultHash({
+            agentId,
+            guildId: result.guildId,
+            channelId: result.channelId,
+            webhookId: result.webhookId,
+            name: result.name,
+            credentialReferenceHash: stored.credentialReferenceHash,
+            observedAt: result.observedAt,
+          }),
           completedAt: result.observedAt,
         };
       }

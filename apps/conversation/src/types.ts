@@ -56,6 +56,18 @@ export interface DiscordConversationDeployment extends PlatformCredentialTranspo
   allowedGuildIds: readonly string[];
   allowDirectMessages: boolean;
   botToken: string;
+  delivery?:
+    | { kind: "bot" }
+    | {
+        kind: "webhook";
+        webhooks: readonly {
+          webhookId: string;
+          webhookToken: string;
+          parentChannelId: string;
+        }[];
+        username: string;
+        avatarUrl?: string;
+      };
   gatewayAuthentication?: DiscordGatewayAuthenticationPort;
   gateway?: Omit<DiscordGatewayDriverOptions, "applicationId" | "botToken" | "onDispatch">;
 }

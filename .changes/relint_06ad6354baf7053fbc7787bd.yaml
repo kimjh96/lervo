@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_06ad6354baf7053fbc7787bd"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add webhook-backed Discord agent identities with scoped provisioning and durable deployment bindings."

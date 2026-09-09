@@ -33,6 +33,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
   private readonly guilds: Set<string>;
   private readonly now: () => Date;
   private readonly maximumPayloadBytes: number;
+  private readonly ignoredParticipantKeys: ReadonlySet<string>;
 
   constructor(private readonly options: DiscordConversationAdapterOptions) {
     if (
@@ -43,7 +44,14 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
       (options.maximumGatewayPayloadBytes !== undefined &&
         (!Number.isSafeInteger(options.maximumGatewayPayloadBytes) ||
           options.maximumGatewayPayloadBytes < 1 ||
-          options.maximumGatewayPayloadBytes > 4 * 1024 * 1024))
+          options.maximumGatewayPayloadBytes > 4 * 1024 * 1024)) ||
+      (options.deliveryIdentity !== undefined &&
+        (options.deliveryIdentity.length < 1 || options.deliveryIdentity.length > 512)) ||
+      (options.ignoredParticipantKeys !== undefined &&
+        (new Set(options.ignoredParticipantKeys).size !== options.ignoredParticipantKeys.length ||
+          options.ignoredParticipantKeys.some(
+            (key) => !/^(?:bot|webhook):[0-9]{1,32}$/u.test(key),
+          )))
     ) {
       throw new ConversationPlatformError(
         "invalid_platform_configuration",
@@ -53,10 +61,13 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
     this.guilds = new Set(options.allowedGuildIds);
     this.now = options.now ?? (() => new Date());
     this.maximumPayloadBytes = options.maximumGatewayPayloadBytes ?? 256 * 1024;
+    this.ignoredParticipantKeys = new Set(
+      options.ignoredParticipantKeys ?? [`bot:${options.applicationId}`],
+    );
     this.descriptor = createPlatformConversationDescriptor({
       integrationId: options.integrationId,
       platform: "discord",
-      instanceIdentity: `${options.applicationId}:${[...options.allowedGuildIds].sort().join(",")}:${options.allowDirectMessages}`,
+      instanceIdentity: `${options.applicationId}:${options.deliveryIdentity ?? options.applicationId}:${[...options.allowedGuildIds].sort().join(",")}:${options.allowDirectMessages}`,
       supportedCapabilities: [
         "messages.receive",
         "messages.send",
@@ -148,8 +159,8 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
       channelId: parsed.channelId,
       messageId: parsed.messageId,
     };
-    if (parsed.participantKey === `bot:${this.options.applicationId}`) {
-      return { status: "ignored", reason: "own_application_message", checkpoint };
+    if (this.ignoredParticipantKeys.has(parsed.participantKey)) {
+      return { status: "ignored", reason: "own_participant_message", checkpoint };
     }
     let identity;
     try {

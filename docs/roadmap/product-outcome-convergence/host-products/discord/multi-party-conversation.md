@@ -8,7 +8,7 @@ State: `delivery required`.
 
 Each hired agent instance is a conversation participant; its role template is not. Its unique display name is separate from its role: `CEO`, `developer`, or any other role label is never synthesized as its name. Channel membership binds its durable participant ID, agent ID, exact role ID and version or hash, repository scope, active lifecycle state, and provider policy. The workforce contract permits fixed `codex` or `claude` providers or `any` for policy-driven selection. Each turn records its selected provider and model, preserving responsibility when agents share a role or an agent is replaced or retired.
 
-A Discord bot is the hired agent's one-to-one external identity for an immutable deployment binding. Hiring, guild installation, channel membership, provider selection, and execution authority are separate transitions. Each deployment retains durable agent-specific conversation history. Broader accumulated expertise follows the source-bound context lifecycle in [ADR-0386](../../../../decisions/coordination/conversations/0386-organization-teams-and-agent-identities.md).
+A Discord speaker principal is the hired agent's one-to-one external identity for an immutable deployment binding. It may be a bot user or an exact channel-to-webhook set. Hiring, Gateway installation, webhook preparation, channel membership, provider selection, and execution authority are separate transitions. Each deployment retains durable agent-specific conversation history. Broader accumulated expertise follows the source-bound context lifecycle in [ADR-0386](../../../../decisions/coordination/conversations/0386-organization-teams-and-agent-identities.md).
 
 ## Channel composition
 
@@ -30,7 +30,7 @@ Selection must evaluate the hired agent's provider policy, exact role capabiliti
 
 ## Current scope
 
-The installed Node accepts a bounded collection of distinct Discord bot applications. Each bot binds one active hired agent, exact current role hashes, independent provider and model routing, owner-only credentials, storage, Gateway lifecycle, and delivery adapter. Every owned agent turn loads that agent's reviewed context through the managed context coordinator used for repository search and evidence.
+The installed Node accepts a bounded collection of distinct Discord agent deployments. Bot speakers use one application each. Webhook speakers may share one exact Gateway application and bot credential while retaining distinct webhook IDs, owner-only webhook tokens, hired-agent bindings, current role hashes, provider and model routing, storage, response ownership, and delivery adapters. Every owned agent turn loads that agent's reviewed context through the managed context coordinator used for repository search and evidence.
 
 Shared-guild peer author and mention aliases normalize to that peer's single workforce participant. Before semantic relevance, deterministic turn ownership assigns exact participant mentions to their addressees, selects one participant per mentioned role, and selects one participant for an unaddressed message or signal. Non-owners record `turn_not_owned` without typing or provider work. An owning agent still needs explicit addressing or a distinct role-relevant contribution. Bounded recent context retains the speaker's participant, agent, and role identity. Aggregate readiness and failure remain fail-closed.
 
@@ -38,7 +38,7 @@ Installed Node deployments can map bounded canonical repository event types to p
 
 The installed executive boundary executes hash-bound, allowlisted Discord text-channel and public-thread effects with durable replay and fail-closed uncertainty. The installed deliberation worker reconciles uncertain outcomes from canonical CLI evidence and publishes a bounded visible result through the managed conversation path.
 
-Remaining work includes a second Discord application, token issuance, guild installation, broader natural addressed groups, and the required real two-agent discussion. Discord cannot create a separately authenticated application or grant its own installation; this external authority remains explicit rather than simulated.
+Webhook-backed delivery, peer-author normalization, shared-Gateway validation, and replay-safe executive webhook preparation are implemented. Remaining work includes invoking the preparation and runtime-binding flow from natural CEO conversation, provisioning the real channel webhooks, broader natural addressed groups, and the required real two-agent discussion. Separate applications remain optional for native Discord member presence and mentions.
 
 ## Acceptance
 
@@ -53,4 +53,5 @@ One real channel with one person and at least two hired agents in distinct roles
 - [ADR-0391](../../../../decisions/coordination/conversations/0391-deterministic-multi-agent-turn-ownership.md)
 - [ADR-0392](../../../../decisions/coordination/conversations/0392-installed-proactive-signals-and-deliberation.md)
 - [ADR-0393](../../../../decisions/coordination/conversations/0393-named-agent-identity-and-installed-organization-effects.md)
+- [ADR-0394](../../../../decisions/coordination/conversations/0394-webhook-backed-discord-agent-identities.md)
 - [Cross-provider deliberation runtime](../../../../decisions/execution/providers/0029-cross-provider-deliberation-runtime.md)

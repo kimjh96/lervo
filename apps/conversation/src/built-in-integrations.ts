@@ -1,7 +1,9 @@
 import {
   DiscordConversationAdapter,
   DiscordRestDelivery,
+  DiscordRestWebhookDelivery,
   DiscordRestTyping,
+  type DiscordDeliveryPort,
 } from "@lervo/adapter-discord";
 import { SlackConversationAdapter, SlackWebApiDelivery } from "@lervo/adapter-slack";
 
@@ -61,23 +63,46 @@ function discordIntegration(
     integrationId: deployment.integrationId,
     platform: "discord",
     create: (context: ConversationIntegrationContext) => {
-      const delivery = new DiscordRestDelivery({
+      const transportOptions = {
         integrationId: deployment.integrationId,
-        botToken: deployment.botToken,
         replay: context.deliveryReplay,
         ...(context.now === undefined ? {} : { now: context.now }),
         ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
         ...(deployment.requestTimeoutMs === undefined
           ? {}
-          : {
-              requestTimeoutMs: deployment.requestTimeoutMs,
-            }),
+          : { requestTimeoutMs: deployment.requestTimeoutMs }),
         ...(deployment.maxResponseBytes === undefined
           ? {}
-          : {
-              maxResponseBytes: deployment.maxResponseBytes,
+          : { maxResponseBytes: deployment.maxResponseBytes }),
+      };
+      let delivery: DiscordDeliveryPort;
+      if (deployment.delivery?.kind === "webhook") {
+        const webhookDelivery = deployment.delivery;
+        const deliveries = new Map(
+          webhookDelivery.webhooks.map((webhook) => [
+            webhook.parentChannelId,
+            new DiscordRestWebhookDelivery({
+              ...transportOptions,
+              ...webhook,
+              username: webhookDelivery.username,
+              ...(webhookDelivery.avatarUrl === undefined
+                ? {}
+                : { avatarUrl: webhookDelivery.avatarUrl }),
             }),
-      });
+          ]),
+        );
+        delivery = {
+          send(input) {
+            const target = deliveries.get(input.channelId);
+            if (target === undefined) {
+              throw new Error("No Discord webhook is bound to the outbound channel.");
+            }
+            return target.send(input);
+          },
+        };
+      } else {
+        delivery = new DiscordRestDelivery({ ...transportOptions, botToken: deployment.botToken });
+      }
       const typing = new DiscordRestTyping({
         botToken: deployment.botToken,
         ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
@@ -94,6 +119,17 @@ function discordIntegration(
         identity: context.identity,
         artifactStore: context.artifactStore,
         delivery,
+        deliveryIdentity:
+          deployment.delivery?.kind === "webhook"
+            ? `webhooks:${deployment.delivery.webhooks
+                .map((webhook) => webhook.webhookId)
+                .sort()
+                .join(",")}`
+            : deployment.applicationId,
+        ignoredParticipantKeys:
+          deployment.delivery?.kind === "webhook"
+            ? deployment.delivery.webhooks.map((webhook) => `webhook:${webhook.webhookId}`)
+            : [`bot:${deployment.applicationId}`],
         typing,
         ...(context.now === undefined ? {} : { now: context.now }),
       });

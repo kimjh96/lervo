@@ -222,4 +222,58 @@ export class DiscordRestAdministration implements DiscordAdministrationPort {
       observedAt: this.now().toISOString(),
     };
   }
+
+  async createIncomingWebhook(input: { guildId: string; channelId: string; name: string }) {
+    if (
+      !this.allowedGuildIds.has(input.guildId) ||
+      !this.allowedChannelIds.has(input.channelId) ||
+      [...input.name].length < 1 ||
+      [...input.name].length > 80 ||
+      input.name.includes("\0")
+    ) {
+      throw new ConversationPlatformError(
+        "invalid_platform_configuration",
+        "The Discord webhook creation request is outside the configured scope.",
+      );
+    }
+    const response = object(
+      await postPlatformJson({
+        url: `${this.apiBaseUrl}/channels/${encodeURIComponent(input.channelId)}/webhooks`,
+        headers: { authorization: `Bot ${this.options.botToken}` },
+        body: { name: input.name },
+        ...(this.options.fetch === undefined ? {} : { fetch: this.options.fetch }),
+        ...(this.options.requestTimeoutMs === undefined
+          ? {}
+          : { requestTimeoutMs: this.options.requestTimeoutMs }),
+        ...(this.options.maxResponseBytes === undefined
+          ? {}
+          : { maxResponseBytes: this.options.maxResponseBytes }),
+        allowInsecureHttpForTests: this.options.allowInsecureHttpForTests === true,
+      }),
+    );
+    if (
+      typeof response.id !== "string" ||
+      !/^[0-9]{1,32}$/u.test(response.id) ||
+      response.guild_id !== input.guildId ||
+      response.channel_id !== input.channelId ||
+      response.name !== input.name ||
+      typeof response.token !== "string" ||
+      response.token.length < 20 ||
+      response.token.length > 4_096 ||
+      !/^[\x21-\x7e]+$/u.test(response.token)
+    ) {
+      throw new ConversationPlatformError(
+        "platform_delivery_failed",
+        "The Discord webhook creation response could not be verified.",
+      );
+    }
+    return {
+      guildId: input.guildId,
+      channelId: input.channelId,
+      webhookId: response.id,
+      name: input.name,
+      token: response.token,
+      observedAt: this.now().toISOString(),
+    };
+  }
 }

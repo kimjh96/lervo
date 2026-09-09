@@ -17,7 +17,7 @@ Lervo distinguishes these identities:
 - A hired agent is a durable expert instance with one agent ID, team membership, exact role binding, reporting relationships, provider policy, lifecycle, and accumulated context.
 - A provider and model execute an agent's turn. Switching Codex, Claude, or a future provider does not replace the agent or transfer its authority.
 - A conversation participant is one agent's platform-neutral speaking identity in a bounded conversation deployment.
-- A Discord bot is the external principal for exactly one active hired agent during one immutable deployment binding. Each distinct visible agent requires a distinct Discord application, token, guild installation, participant, and integration. Rebinding requires a new deployment identity; historical messages retain the prior agent and role hashes.
+- A Discord speaker principal represents exactly one active hired agent during one immutable deployment binding. It is either one bot user or an exact set of channel-specific incoming webhooks under [ADR-0394](0394-webhook-backed-discord-agent-identities.md). Rebinding requires a new deployment identity; historical messages retain the prior agent and role hashes.
 - Channel membership is explicit and separate from hiring. Hiring implies neither Discord installation nor admission; removing membership does not retire the agent.
 
 The organization may hire a central CEO agent. The human owner or board defines its policy, budget, risk limits, appointment, and removal. Within those limits, the CEO may observe teams, propose or create teams, design roles, hire and assign agents, convene discussions, route cross-team work, and use allowlisted Discord administration capabilities such as channel and thread management. Credentials, owner-only approval, security policy, unbounded spending, and high-risk external effects remain separate authorities. A powerful role neither exposes bearer tokens nor makes a model the human owner.
@@ -61,7 +61,7 @@ Raw Discord application, guild, and channel IDs remain deployment configuration.
 
 ## Consequences
 
-Agents can appear as stable expert colleagues rather than temporary model invocations. One-to-one bot identity makes Discord authorship honest; provider-neutral context supports execution-provider changes. Central leadership can coordinate teams without weakening repository-local authority. The durable repository-local identity projection is implemented; central administration and real two-agent acceptance still require a second Discord application, token, installation, and bounded discussion.
+Agents can appear as stable expert colleagues rather than temporary model invocations. One-to-one speaker identity makes Discord authorship honest; provider-neutral context supports execution-provider changes. Central leadership can coordinate teams without weakening repository-local authority. The durable repository-local identity projection and webhook-backed delivery are implemented; installed webhook provisioning, configuration binding, and a bounded real two-agent discussion remain external acceptance work.
 
 ## References
 

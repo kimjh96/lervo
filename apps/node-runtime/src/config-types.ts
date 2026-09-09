@@ -69,6 +69,17 @@ export interface NodeDiscordConversationConfig {
   workerId: string;
   agentParticipantId: string;
   agentId?: string;
+  speaker?:
+    | { kind: "bot" }
+    | {
+        kind: "webhook";
+        webhooks: Array<{
+          channelId: string;
+          webhookId: string;
+          tokenFile: string;
+        }>;
+        avatarUrl?: string;
+      };
   organization?: {
     organizationId: string;
     teamId: string;
@@ -87,8 +98,12 @@ export interface NodeDiscordConversationConfig {
   }>;
   administration?: {
     allowedActions: Array<
-      "current_member.nickname.set" | "guild_text_channel.create" | "public_thread.create"
+      | "current_member.nickname.set"
+      | "guild_text_channel.create"
+      | "public_thread.create"
+      | "incoming_webhook.create"
     >;
+    webhookCredentialDirectory?: string;
   };
   routing?: {
     readOnlyRoleId: string;

@@ -1,6 +1,6 @@
 # Organization model
 
-The accepted model distinguishes organizations, repository-backed project teams, role contracts, durable hired expert agents, provider turns, one-to-one external bot identities, channel membership, and bounded discussions.
+The accepted model distinguishes organizations, repository-backed project teams, role contracts, durable hired expert agents, provider turns, one-to-one external speaker identities, channel membership, and bounded discussions. Discord speakers may use bot users or exact webhook sets over a shared authenticated Gateway.
 
 Conversation records preserve exact hired-agent and role hashes. Unique display identity remains separate from role and provider. Agent-specific recent turns feed managed responses; response failure retries terminate visibly.
 

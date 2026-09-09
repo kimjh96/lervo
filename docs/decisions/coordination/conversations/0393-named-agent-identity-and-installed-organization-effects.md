@@ -55,7 +55,7 @@ These signals exclude deliberation, workstream, request, and platform IDs from m
 
 Product surfaces can render a stable named expert while separately showing role and provider evidence. Renaming cannot silently expand authority. A future first-party Lervo interface can invoke the same product-host organization routes and normalized conversation application without importing Discord behavior.
 
-Discord cannot create a separately authenticated bot application, issue its token, or authorize its installation on the owner's behalf. One named agent can be fully deployed with the current credential; externally accepting two simultaneously visible agent identities remains conditional on a second application credential and guild installation.
+Discord cannot create a separately authenticated bot application, issue its token, or authorize its installation on the owner's behalf. Under [ADR-0394](0394-webhook-backed-discord-agent-identities.md), that limitation no longer blocks multiple named Lervo speakers: an installed bot with allowlisted `MANAGE_WEBHOOKS` authority can prepare separate incoming-webhook identities while the resulting tokens remain in owner-only runtime storage. Distinct guild-member bot identities still require separate applications.
 
 Lervo may claim better task performance than direct Codex CLI or Claude Code only for installed paired scenarios whose evidence shows the improvement. Repository grounding, authority checks, verification, retry stability, and durable context are the intended advantages; provider intelligence is not relabeled as a Lervo result.
 

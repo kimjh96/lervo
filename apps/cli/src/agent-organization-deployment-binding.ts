@@ -7,6 +7,7 @@ import {
 import type { WorkforceAgent } from "@lervo/agent-workforce";
 import type { NodeDiscordConversationConfig } from "@lervo/node-runtime";
 import type { ProjectStorage } from "@lervo/project-storage";
+import { discordSpeakerPrincipalId } from "@lervo/node-runtime";
 
 import {
   appendOrganizationEvent,
@@ -201,24 +202,43 @@ export function bindDiscordAgentDeployment(input: {
     },
     conversations,
   });
-  const externalPrincipalHash = externalAgentPrincipalHash("discord", input.config.applicationId);
-  const activeDeployment = projectOrganization(input.storage).deployments.find(
+  const externalPrincipalHash = externalAgentPrincipalHash(
+    "discord",
+    discordSpeakerPrincipalId(input.config),
+  );
+  const currentDeployments = projectOrganization(input.storage).deployments;
+  const principalDeployment = currentDeployments.find(
     (item) =>
       item.retiredAt === null &&
       item.platform === "discord" &&
       item.externalPrincipalHash === externalPrincipalHash,
   );
   if (
-    activeDeployment !== undefined &&
-    (activeDeployment.agentId !== input.agent.agentId ||
-      activeDeployment.membershipId !== membership.membershipId ||
-      activeDeployment.participantId !== input.config.agentParticipantId)
+    principalDeployment !== undefined &&
+    (principalDeployment.agentId !== input.agent.agentId ||
+      principalDeployment.membershipId !== membership.membershipId ||
+      principalDeployment.participantId !== input.config.agentParticipantId)
   ) {
     throw new Error("The Discord principal is already bound to another active agent.");
   }
+  const participantDeployment = currentDeployments.find(
+    (item) =>
+      item.retiredAt === null &&
+      item.platform === "discord" &&
+      item.participantId === input.config.agentParticipantId,
+  );
+  if (
+    participantDeployment !== undefined &&
+    (participantDeployment.agentId !== input.agent.agentId ||
+      participantDeployment.membershipId !== membership.membershipId)
+  ) {
+    throw new Error("The Discord participant is already bound to another active agent.");
+  }
+  const activeDeployment = principalDeployment ?? participantDeployment;
   if (
     activeDeployment !== undefined &&
-    activeDeployment.deploymentConfigHash !== deploymentConfigHash
+    (activeDeployment.externalPrincipalHash !== externalPrincipalHash ||
+      activeDeployment.deploymentConfigHash !== deploymentConfigHash)
   ) {
     retireReplacedDeployment({
       storage: input.storage,

@@ -2,10 +2,7 @@ import { resolve } from "node:path";
 
 import { openConversationApplication } from "@lervo/conversation-app";
 import { FileSystemCas } from "@lervo/cas";
-import {
-  ConversationRemoteContinuationResponder,
-  type ConversationRemoteContinuationPort,
-} from "@lervo/conversation-control";
+import { ConversationRemoteContinuationResponder } from "@lervo/conversation-control";
 import {
   FixedConversationTerminalFailureResponder,
   VerifiedConversationPublication,
@@ -15,33 +12,20 @@ import {
   fixedConversationStatusWritingContract,
   realtimeConversationWritingContract,
 } from "@lervo/core";
-import type { DiscordGatewayTransport } from "@lervo/discord-gateway";
 import type { ConversationResponder } from "@lervo/interaction";
-import type { EventStore } from "@lervo/storage-contract";
-import type { RemoteCommandDeliveryAcknowledgement, RemoteCommandLease } from "@lervo/schemas";
 
-import {
-  createProviderConversationIntentResolver,
-  type ConversationIntentResolver,
-} from "./conversation-intent-resolver.js";
+import { createProviderConversationIntentResolver } from "./conversation-intent-resolver.js";
 import { SQLiteConversationHistory } from "./conversation-history.js";
 import { SQLiteConversationIntentResolutionStore } from "./conversation-intent-store.js";
 import {
   createDiscordHubContinuation,
   createDiscordPlatformBindings,
 } from "./discord-conversation-composition.js";
-import type { DiscordPeerAgentBinding } from "./discord-conversation-composition.js";
 import { ConversationResultRuntime } from "./conversation-result-runtime.js";
 import { SQLiteConversationResultStore } from "./conversation-result-store.js";
-import {
-  openManagedConversationReadResponder,
-  type ManagedConversationRepositoryResources,
-} from "./conversation-read-responder.js";
-import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
+import { openManagedConversationReadResponder } from "./conversation-read-responder.js";
 import { NaturalLanguageDiscordConversationResponder } from "./discord-conversation-mode.js";
 import { resolveDiscordAgentParticipation } from "./discord-agent-participation.js";
-import type { DiscordAgentParticipation } from "./discord-agent-participation.js";
-import { loadDiscordBotToken } from "./discord-credentials.js";
 import { ConversationInteractionRetryLoop } from "./conversation-interaction-retry-loop.js";
 import { NodeConversationResponseFailureClassifier } from "./conversation-response-failure-policy.js";
 import { createDiscordConversationEffects } from "./discord-conversation-effects.js";
@@ -52,55 +36,32 @@ import { DiscordConversationDeliberationRuntime } from "./discord-conversation-d
 import { startDiscordConversationRepositorySignals } from "./discord-conversation-repository-signals.js";
 import { createDiscordConversationResultRuntime } from "./discord-conversation-result-composition.js";
 import { createDiscordConversationContinuation } from "./discord-conversation-continuation.js";
+import { loadDiscordConversationDeliveryCredentials } from "./discord-conversation-webhook-delivery.js";
+import type {
+  NodeDiscordConversationRuntime,
+  NodeDiscordConversationRuntimeOptions,
+} from "./discord-conversation-runtime-types.js";
 
-export interface NodeDiscordConversationRuntime {
-  readonly failed: Promise<void>;
-  observeRemoteAcknowledgement(input: {
-    lease: RemoteCommandLease;
-    acknowledgement: RemoteCommandDeliveryAcknowledgement;
-  }): Promise<"ready" | "duplicate" | "ignored">;
-  runResultDeliveryCycle(): Promise<void>;
-  stopIngress(): void;
-  close(): void | Promise<void>;
-}
-
-export interface NodeDiscordConversationRuntimeOptions {
-  config: NodeDiscordConversationConfig;
-  hub: NodeRuntimeConfig["hub"];
-  project: {
-    projectId: string;
-    projectIdentityHash: string;
-    createdAt: string;
-  };
-  repositoryRoot: string;
-  dataDirectory: string;
-  bearerToken(): string;
-  continuation?: ConversationRemoteContinuationPort;
-  readOnlyResponder?: ConversationResponder;
-  intentResolver?: ConversationIntentResolver;
-  providerExecutables?: Partial<Record<"codex" | "claude", string>>;
-  managedRepositoryResources?: ManagedConversationRepositoryResources;
-  agentParticipation?: DiscordAgentParticipation;
-  peerAgents?: DiscordPeerAgentBinding[];
-  gatewayTransport?: DiscordGatewayTransport;
-  repositoryEvents?: Pick<EventStore, "latest" | "list">;
-  fetch?: typeof globalThis.fetch;
-  onError?(error: Error): void;
-  onReady(): void | Promise<void>;
-  onFailure(code: string): void | Promise<void>;
-}
+export type {
+  NodeDiscordConversationRuntime,
+  NodeDiscordConversationRuntimeOptions,
+} from "./discord-conversation-runtime-types.js";
 
 export async function openNodeDiscordConversationRuntime(
   options: NodeDiscordConversationRuntimeOptions,
 ): Promise<NodeDiscordConversationRuntime> {
   const config = options.config;
-  const token = await loadDiscordBotToken(config.botTokenFile);
   const agentParticipation =
     options.agentParticipation ??
     (await resolveDiscordAgentParticipation({
       repositoryRoot: options.repositoryRoot,
       config,
     }));
+  const { botToken: token, delivery: webhookDelivery } =
+    await loadDiscordConversationDeliveryCredentials({
+      config,
+      agentDisplayName: agentParticipation.displayName,
+    });
   let resolveFailure!: () => void;
   let failed = false;
   const failure = new Promise<void>((resolvePromise) => {
@@ -270,6 +231,7 @@ export async function openNodeDiscordConversationRuntime(
           allowedGuildIds: config.allowedGuildIds,
           allowDirectMessages: config.allowDirectMessages,
           botToken: token,
+          ...(webhookDelivery === undefined ? {} : { delivery: webhookDelivery }),
           gateway: {
             intents: config.intents,
             ...(config.gateway?.url === undefined ? {} : { gatewayUrl: config.gateway.url }),

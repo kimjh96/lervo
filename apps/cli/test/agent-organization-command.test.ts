@@ -361,6 +361,30 @@ describe("agent organization CLI", () => {
         expect.objectContaining({ status: "active", revision: 1 }),
       ]),
     );
+    changedConfig.discordConversation.speaker = {
+      kind: "webhook",
+      webhooks: [
+        {
+          channelId: "222222222222222222",
+          webhookId: "444444444444444444",
+          tokenFile: "/private/discord-webhook.token",
+        },
+      ],
+    };
+    await writeFile(configPath, JSON.stringify(changedConfig), { mode: 0o600 });
+    const webhookRotation: string[] = [];
+    expect(await runCli(bind, io(root, webhookRotation))).toBe(0);
+    const webhookProjection = JSON.parse(webhookRotation.join(""));
+    expect(
+      webhookProjection.deployments.filter(
+        (item: { retiredAt: string | null }) => item.retiredAt === null,
+      ),
+    ).toHaveLength(1);
+    expect(
+      webhookProjection.deployments.filter(
+        (item: { retiredAt: string | null }) => item.retiredAt !== null,
+      ),
+    ).toHaveLength(2);
     expect(await runCli(bind, io(root))).toBe(0);
     expect(
       await runCli(
@@ -459,12 +483,17 @@ describe("agent organization CLI", () => {
         "organization.channel.membership.changed",
         "organization.channel.membership.changed",
         "organization.external_agent.deployment.retired",
+        "organization.external_agent.deployment.bound",
+        "organization.channel.membership.changed",
+        "organization.channel.membership.changed",
+        "organization.external_agent.deployment.retired",
         "organization.agent.membership.changed",
         "organization.external_agent.deployment.bound",
         "organization.channel.membership.changed",
       ]);
       expect(JSON.stringify(organizationEvents)).not.toContain("999999999999999999");
       expect(JSON.stringify(organizationEvents)).not.toContain("222222222222222222");
+      expect(JSON.stringify(organizationEvents)).not.toContain("444444444444444444");
     } finally {
       await storage.close();
     }

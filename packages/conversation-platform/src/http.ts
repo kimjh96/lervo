@@ -12,6 +12,7 @@ export interface PlatformJsonRequestOptions {
   maxResponseBytes?: number;
   requestTimeoutMs?: number;
   allowInsecureHttpForTests?: boolean;
+  allowQuery?: boolean;
 }
 
 export interface PlatformJsonMutationOptions extends PlatformJsonRequestOptions {
@@ -133,7 +134,11 @@ export async function mutatePlatformJson(options: PlatformJsonMutationOptions): 
   const maximum = options.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
   const timeoutMs = options.requestTimeoutMs ?? DEFAULT_TIMEOUT_MS;
   assertPlatformHttpLimits(options);
-  const url = platformApiUrl(options.url, options.allowInsecureHttpForTests);
+  const url = platformApiUrl(
+    options.url,
+    options.allowInsecureHttpForTests,
+    options.allowQuery === true,
+  );
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {

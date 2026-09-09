@@ -41,7 +41,7 @@ The participation role is independent of `command.roleId`: a researcher may conv
 
 Future `@agent`, `@role`, and deliberation-group routing can resolve eligible participants without changing the normalized event or natural-language intent port. Deliberation identity, turn ownership, automation depth, hourly limits, self-message suppression, and explicit effect authority must prevent uncontrolled agent loops. Write-capable remote continuation remains human-only.
 
-A `discordConversations` deployment requires one distinct active hired agent per distinct Discord application and automatically maps peer author and mention identities as specified by ADR-0385.
+A `discordConversations` deployment requires one distinct active hired agent per speaker deployment. It automatically maps peer bot or webhook authors and bot mention identities as specified by [ADR-0394](0394-webhook-backed-discord-agent-identities.md).
 
 ### Platform activity and queues
 

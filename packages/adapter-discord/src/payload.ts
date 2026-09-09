@@ -64,6 +64,7 @@ export function parseDiscordMessagePayload(value: unknown): ParsedDiscordMessage
   const message = objectValue(value);
   const author = objectValue(message.author);
   const bot = author.bot === true;
+  const webhookId = optionalSnowflake(message.webhook_id, "Discord webhook ID");
   const mentionValues = Array.isArray(message.mentions) ? message.mentions : [];
   const reference =
     message.message_reference === undefined || message.message_reference === null
@@ -74,11 +75,14 @@ export function parseDiscordMessagePayload(value: unknown): ParsedDiscordMessage
     messageId: snowflake(message.id, "Discord message ID"),
     channelId: snowflake(message.channel_id, "Discord channel ID"),
     guildId: optionalSnowflake(message.guild_id, "Discord guild ID"),
-    participantKey: `${bot ? "bot" : "user"}:${snowflake(author.id, "Discord author ID")}`,
+    participantKey:
+      webhookId === null
+        ? `${bot ? "bot" : "user"}:${snowflake(author.id, "Discord author ID")}`
+        : `webhook:${webhookId}`,
     mentionedParticipantKeys: mentionValues.map(
       (item) => `user:${snowflake(objectValue(item).id, "Discord mentioned user ID")}`,
     ),
-    actorKindHint: bot ? "agent" : "human",
+    actorKindHint: bot || webhookId !== null ? "agent" : "human",
     replyToMessageId:
       reference === null
         ? null

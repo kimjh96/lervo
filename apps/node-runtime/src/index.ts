@@ -9,6 +9,7 @@ export * from "./credentials.js";
 export * from "./discord-conversation-config.js";
 export * from "./discord-agent-organization.js";
 export * from "./discord-conversation-deployments-config.js";
+export * from "./discord-conversation-speaker.js";
 export * from "./discord-conversation-group-runtime.js";
 export * from "./discord-conversation-runtime.js";
 export * from "./discord-credentials.js";

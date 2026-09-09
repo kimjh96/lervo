@@ -14,6 +14,7 @@ import { resolveDiscordAgentParticipation } from "./discord-agent-participation.
 import { NodeRuntimeError } from "./errors.js";
 import type { NodeDiscordConversationOpenPorts, NodeRuntimeOpenPorts } from "./open-ports.js";
 import { createManagedConversationRepositoryResources } from "./conversation-read-responder.js";
+import { discordSpeakerParticipantKeys } from "./discord-conversation-speaker.js";
 
 function selectPorts(
   configs: NodeDiscordConversationConfig[],
@@ -88,7 +89,7 @@ export async function openDeploymentConversation(input: {
         if (peerIndex === index) return [];
         return [
           {
-            applicationId: peer.applicationId,
+            participantKeys: discordSpeakerParticipantKeys(peer),
             participantId: peer.agentParticipantId,
             roleId: participations[peerIndex]!.roleId,
             agentBinding: participations[peerIndex]!.agentBinding!,

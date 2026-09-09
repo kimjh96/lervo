@@ -1,6 +1,10 @@
 import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
 import { parseDiscordConversationConfig } from "./discord-conversation-config.js";
 import { NodeRuntimeError } from "./errors.js";
+import {
+  discordSpeakerParticipantKeys,
+  discordSpeakerPrincipalId,
+} from "./discord-conversation-speaker.js";
 
 const MAX_DISCORD_CONVERSATIONS = 8;
 
@@ -11,10 +15,9 @@ function unique(values: string[]): boolean {
 function validateDistinctIdentities(configs: NodeDiscordConversationConfig[]): void {
   const identitySets = [
     configs.map((config) => config.integrationId),
-    configs.map((config) => config.applicationId),
-    configs.map((config) => config.botTokenFile),
     configs.map((config) => config.workerId),
     configs.map((config) => config.agentParticipantId),
+    configs.map(discordSpeakerPrincipalId),
   ];
   const agentIds = configs.flatMap((config) =>
     config.agentId === undefined ? [] : [config.agentId],
@@ -22,7 +25,7 @@ function validateDistinctIdentities(configs: NodeDiscordConversationConfig[]): v
   if (identitySets.some((values) => !unique(values)) || !unique(agentIds)) {
     throw new NodeRuntimeError(
       "invalid_config",
-      "Discord conversation deployments must use distinct integration, application, credential, worker, participant, and agent identities.",
+      "Discord conversation deployments must use distinct integration, speaker, worker, participant, and agent identities.",
     );
   }
   if (configs.length > 1 && configs.some((config) => config.agentId === undefined)) {
@@ -31,15 +34,52 @@ function validateDistinctIdentities(configs: NodeDiscordConversationConfig[]): v
       "Every multi-bot Discord deployment must bind one active hired agent.",
     );
   }
-  const applicationIds = new Set(configs.map((config) => config.applicationId));
+  const applicationCredentials = new Map<string, string>();
+  const credentialApplications = new Map<string, string>();
+  for (const config of configs) {
+    const credential = applicationCredentials.get(config.applicationId);
+    const application = credentialApplications.get(config.botTokenFile);
+    if (
+      (credential !== undefined && credential !== config.botTokenFile) ||
+      (application !== undefined && application !== config.applicationId)
+    ) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "A shared Discord Gateway application must use one exact bot credential.",
+      );
+    }
+    applicationCredentials.set(config.applicationId, config.botTokenFile);
+    credentialApplications.set(config.botTokenFile, config.applicationId);
+  }
+  const webhookTokenFiles = configs.flatMap((config) =>
+    config.speaker?.kind === "webhook"
+      ? config.speaker.webhooks.map((webhook) => webhook.tokenFile)
+      : [],
+  );
+  const webhookIds = configs.flatMap((config) =>
+    config.speaker?.kind === "webhook"
+      ? config.speaker.webhooks.map((webhook) => webhook.webhookId)
+      : [],
+  );
+  if (!unique(webhookTokenFiles) || !unique(webhookIds)) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "Discord webhook speakers must use distinct webhook IDs and owner-only credential files.",
+    );
+  }
+  const configuredParticipantIds = new Set(
+    configs.flatMap((config) =>
+      discordSpeakerParticipantKeys(config).map((key) => key.slice(key.indexOf(":") + 1)),
+    ),
+  );
   if (
     configs.some((config) =>
-      config.participants.some((participant) => applicationIds.has(participant.userId)),
+      config.participants.some((participant) => configuredParticipantIds.has(participant.userId)),
     )
   ) {
     throw new NodeRuntimeError(
       "invalid_config",
-      "Configured Discord bot applications are bound automatically and cannot be repeated as manual participants.",
+      "Configured Discord speaker identities are bound automatically and cannot be repeated as manual participants.",
     );
   }
 }

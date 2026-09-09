@@ -1,6 +1,6 @@
 # ADR-0385: Distinct Discord identities for hired agents
 
-- Status: accepted
+- Status: superseded by [ADR-0394](0394-webhook-backed-discord-agent-identities.md)
 - Decision date: 2026-09-08
 
 ## Context

@@ -8,6 +8,7 @@ import { AuthenticatedRemoteCommandHttpSubmission } from "@lervo/remote-command"
 import { AuthenticatedHubHttpTransport } from "@lervo/sync";
 
 import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
+import { discordSpeakerParticipantKeys } from "./discord-conversation-speaker.js";
 
 interface DiscordCompositionOptions {
   config: NodeDiscordConversationConfig;
@@ -17,7 +18,7 @@ interface DiscordCompositionOptions {
 }
 
 export interface DiscordPeerAgentBinding {
-  applicationId: string;
+  participantKeys: string[];
   participantId: string;
   roleId: string;
   agentBinding: ConversationAgentBinding;
@@ -108,26 +109,28 @@ export function createDiscordPlatformBindings(input: {
           roleId: binding.roleId,
         },
       })),
-      ...tenantKeys.map((tenantKey) => ({
-        platform: "discord" as const,
-        integrationId: config.integrationId,
-        tenantKey,
-        participantKey: `user:${config.applicationId}`,
-        actor: {
-          kind: "agent" as const,
-          participantId: config.agentParticipantId,
-          roleId: input.agentRoleId,
-          ...(input.agentBinding === undefined ? {} : { agentBinding: input.agentBinding }),
-        },
-      })),
+      ...tenantKeys.flatMap((tenantKey) =>
+        discordSpeakerParticipantKeys(config).map((participantKey) => ({
+          platform: "discord" as const,
+          integrationId: config.integrationId,
+          tenantKey,
+          participantKey,
+          actor: {
+            kind: "agent" as const,
+            participantId: config.agentParticipantId,
+            roleId: input.agentRoleId,
+            ...(input.agentBinding === undefined ? {} : { agentBinding: input.agentBinding }),
+          },
+        })),
+      ),
       ...(input.peerAgents ?? []).flatMap((peer) =>
         tenantKeys.flatMap((tenantKey) =>
           peer.tenantKeys.includes(tenantKey)
-            ? (["bot", "user"] as const).map((keyKind) => ({
+            ? peer.participantKeys.map((participantKey) => ({
                 platform: "discord" as const,
                 integrationId: config.integrationId,
                 tenantKey,
-                participantKey: `${keyKind}:${peer.applicationId}`,
+                participantKey,
                 actor: {
                   kind: "agent" as const,
                   participantId: peer.participantId,

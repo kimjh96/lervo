@@ -21,4 +21,4 @@ shared control plane
 
 The organization contract covers [identity and deployment](agent-organization/identity-and-deployment.md), [reviewed agent context](agent-organization/reviewed-agent-context.md), and [coordination and authority](agent-organization/coordination-and-authority.md).
 
-See [ADR-0386](../../decisions/coordination/conversations/0386-organization-teams-and-agent-identities.md), [ADR-0390](../../decisions/coordination/conversations/0390-project-reviewed-agent-context-and-headless-organization-control.md), and [ADR-0393](../../decisions/coordination/conversations/0393-named-agent-identity-and-installed-organization-effects.md).
+See [ADR-0386](../../decisions/coordination/conversations/0386-organization-teams-and-agent-identities.md), [ADR-0390](../../decisions/coordination/conversations/0390-project-reviewed-agent-context-and-headless-organization-control.md), [ADR-0393](../../decisions/coordination/conversations/0393-named-agent-identity-and-installed-organization-effects.md), and [ADR-0394](../../decisions/coordination/conversations/0394-webhook-backed-discord-agent-identities.md).

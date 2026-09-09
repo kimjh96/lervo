@@ -86,3 +86,27 @@ Replace every identifier and path with reviewed deployment coordinates. Store th
   }
 }
 ```
+
+To present a hired agent through a channel webhook while reusing the installed Gateway bot, add the following fields. Every configured conversation channel requires one webhook binding.
+
+```json
+{
+  "speaker": {
+    "kind": "webhook",
+    "webhooks": [
+      {
+        "channelId": "223456789012345678",
+        "webhookId": "423456789012345678",
+        "tokenFile": "/absolute/private/discord-webhooks/ceoe_webhook01.token"
+      }
+    ],
+    "avatarUrl": "https://assets.example.com/agents/arac.png"
+  },
+  "administration": {
+    "allowedActions": ["incoming_webhook.create"],
+    "webhookCredentialDirectory": "/absolute/private/discord-webhooks"
+  }
+}
+```
+
+The runtime uses the hired agent's durable display name as the webhook username. The avatar is optional and must use HTTPS without URL credentials.

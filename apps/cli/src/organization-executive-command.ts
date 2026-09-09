@@ -21,6 +21,7 @@ import { readOrganizationCommandJson } from "./ceo-command.js";
 import { inspectOrganizationPortfolio } from "./organization-portfolio-command.js";
 import { SQLiteOrganizationExecutiveEffectReplay } from "./organization-executive-replay.js";
 import type { CliIo } from "./types.js";
+import { DiscordWebhookCredentialFileSink } from "./discord-webhook-credential-sink.js";
 
 function record(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -64,7 +65,9 @@ export async function runOrganizationExecutiveCommand(input: {
       ? "guild_text_channel.create"
       : typedEffect.action === "conversation.thread.create"
         ? "public_thread.create"
-        : null;
+        : typedEffect.action === "agent.deployment.prepare"
+          ? "incoming_webhook.create"
+          : null;
   if (
     requiredAction === null ||
     !deployment.administration?.allowedActions.includes(requiredAction)
@@ -85,6 +88,9 @@ export async function runOrganizationExecutiveCommand(input: {
         ? {}
         : { maxResponseBytes: deployment.http.maxResponseBytes }),
     }),
+    deployment.administration?.webhookCredentialDirectory === undefined
+      ? undefined
+      : new DiscordWebhookCredentialFileSink(deployment.administration.webhookCredentialDirectory),
   );
   const storage = await openProjectStorage(input.root);
   const replayPath = resolve(storage.paths.state, "organization-executive-effects.sqlite");

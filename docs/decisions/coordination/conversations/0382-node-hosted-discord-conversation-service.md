@@ -13,11 +13,11 @@ The fixed queue acknowledgement is code-owned status text. Provider-model review
 
 ### Ownership and composition
 
-The optional `discordConversation` section of strict Node runtime configuration enables one repository-scoped Discord integration. The mutually exclusive, bounded `discordConversations` collection composes distinct hired-agent bot identities under ADR-0385. `lervo-node` remains the single owner-only, always-on service. Discord configuration parsing, credential loading, application composition, per-bot runtime behavior, and aggregate Node lifecycle supervision remain separate modules.
+The optional `discordConversation` section of strict Node runtime configuration enables one repository-scoped Discord integration. The mutually exclusive, bounded `discordConversations` collection composes distinct hired-agent speaker identities under ADR-0385 as superseded by [ADR-0394](0394-webhook-backed-discord-agent-identities.md). `lervo-node` remains the single owner-only, always-on service. Discord configuration parsing, credential loading, application composition, per-agent runtime behavior, and aggregate Node lifecycle supervision remain separate modules.
 
 ### Credentials
 
-Hub bearer and Discord bot tokens stay in separate owner-only regular files; configuration stores only their paths. The bot token is read at startup, remains in process memory, and is never written to health, repository events, source documentation, or conversation storage. Hub requests read the current reloadable bearer-token snapshot at request time.
+Hub bearer, Discord bot tokens, and optional incoming-webhook tokens stay in owner-only regular files; configuration stores only their paths. Tokens are read at startup, remain in process memory, and are never written to health, repository events, source documentation, or conversation storage. Hub requests read the current reloadable bearer-token snapshot at request time.
 
 ### Configuration binding and fail-closed validation
 

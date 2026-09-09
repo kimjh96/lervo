@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import { createDiscordConversationTurnOwnership } from "../src/discord-conversation-turn-ownership.js";
 
 const peer = {
-  applicationId: "999999999999999992",
+  participantKeys: ["bot:999999999999999992", "user:999999999999999992"],
   participantId: "ptc_lervoagent02",
   roleId: "researcher",
   agentBinding: {
@@ -76,7 +76,7 @@ describe("Discord multi-agent turn ownership", () => {
       peers: [
         {
           ...peer,
-          applicationId: "999999999999999991",
+          participantKeys: ["bot:999999999999999991", "user:999999999999999991"],
           participantId: "ptc_lervoagent01",
           roleId: "developer",
         },
@@ -105,7 +105,7 @@ describe("Discord multi-agent turn ownership", () => {
       peers: [
         {
           ...peer,
-          applicationId: "999999999999999991",
+          participantKeys: ["bot:999999999999999991", "user:999999999999999991"],
           participantId: "ptc_lervoagent01",
           roleId: "developer",
         },

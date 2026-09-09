@@ -8,6 +8,7 @@ import { validateDiscordAgentOrganization } from "./discord-agent-organization.j
 
 export interface DiscordAgentParticipation {
   agentId: string | null;
+  displayName: string | null;
   roleId: string;
   agentBinding?: ConversationAgentBinding;
 }
@@ -83,6 +84,7 @@ export async function resolveDiscordAgentParticipation(input: {
   }
   return {
     agentId: participantAgent?.agentId ?? null,
+    displayName: participantAgent?.displayName ?? null,
     roleId: participantAgent?.roleId ?? input.config.command.roleId,
     ...(participantAgent === null
       ? {}

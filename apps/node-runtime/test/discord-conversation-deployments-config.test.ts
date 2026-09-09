@@ -135,6 +135,87 @@ describe("Discord conversation deployments configuration", () => {
     ).toThrow(expect.objectContaining({ code: "invalid_config" }));
   });
 
+  it("allows distinct webhook speakers to share one authenticated Gateway application", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, 30_003);
+    const first = deployment({
+      suffix: "01",
+      applicationId: "999999999999999991",
+      agentId: `agt_${"a".repeat(24)}`,
+      participantId: "ptc_lervoagent01",
+      provider: "codex",
+    });
+    const second = deployment({
+      suffix: "02",
+      applicationId: first.applicationId,
+      agentId: `agt_${"b".repeat(24)}`,
+      participantId: "ptc_lervoagent02",
+      provider: "claude",
+    });
+    second.botTokenFile = first.botTokenFile;
+    const firstWebhook = {
+      kind: "webhook" as const,
+      webhooks: [
+        {
+          channelId,
+          webhookId: "899999999999999991",
+          tokenFile: "discord-webhook-01.token",
+        },
+      ],
+    };
+    const secondWebhook = {
+      kind: "webhook" as const,
+      webhooks: [
+        {
+          channelId,
+          webhookId: "899999999999999992",
+          tokenFile: "discord-webhook-02.token",
+        },
+      ],
+    };
+
+    const parsed = parseNodeRuntimeConfig(
+      {
+        ...fixture.value,
+        discordConversations: [
+          {
+            ...first,
+            speaker: firstWebhook,
+            administration: {
+              allowedActions: ["incoming_webhook.create"],
+              webhookCredentialDirectory: "discord-webhooks",
+            },
+          },
+          { ...second, speaker: secondWebhook },
+        ],
+      },
+      root,
+    );
+
+    expect(parsed.discordConversations).toMatchObject([
+      {
+        applicationId: first.applicationId,
+        botTokenFile: `${root}/discord-01.token`,
+        speaker: {
+          kind: "webhook",
+          webhooks: [{ webhookId: "899999999999999991" }],
+        },
+        administration: {
+          allowedActions: ["incoming_webhook.create"],
+          webhookCredentialDirectory: `${root}/discord-webhooks`,
+        },
+      },
+      {
+        applicationId: first.applicationId,
+        botTokenFile: `${root}/discord-01.token`,
+        speaker: {
+          kind: "webhook",
+          webhooks: [{ webhookId: "899999999999999992" }],
+        },
+      },
+    ]);
+  });
+
   it("maps peer bot authors and mention aliases to the same hired-agent participant", () => {
     const config = deployment({
       suffix: "01",
@@ -158,7 +239,7 @@ describe("Discord conversation deployments configuration", () => {
       agentRoleId: "developer",
       peerAgents: [
         {
-          applicationId: "999999999999999992",
+          participantKeys: ["bot:999999999999999992", "user:999999999999999992"],
           participantId: "ptc_lervoagent02",
           roleId: "researcher",
           agentBinding: {
@@ -203,6 +284,55 @@ describe("Discord conversation deployments configuration", () => {
           },
         }),
       ]),
+    );
+  });
+
+  it("maps a peer webhook author to its durable hired-agent participant", () => {
+    const config = deployment({
+      suffix: "01",
+      applicationId: "999999999999999991",
+      agentId: `agt_${"a".repeat(24)}`,
+      participantId: "ptc_lervoagent01",
+      provider: "codex",
+    });
+    const bindings = createDiscordPlatformBindings({
+      config: {
+        ...config,
+        participants: config.participants.map((participant) => ({
+          ...participant,
+          actorKind: "human" as const,
+          roleId: null,
+        })),
+        policy: { respondTo: ["human", "agent"] },
+        command: { ...config.command, assignmentId: null, agentId: null },
+      },
+      projectId: "prj_discord01",
+      agentRoleId: "developer",
+      peerAgents: [
+        {
+          participantKeys: ["webhook:899999999999999992"],
+          participantId: "ptc_lervoagent02",
+          roleId: "researcher",
+          agentBinding: {
+            agentId: `agt_${"b".repeat(24)}`,
+            roleVersion: "1.0.0",
+            roleContractHash: `sha256:${"c".repeat(64)}`,
+            roleProfileHash: `sha256:${"d".repeat(64)}`,
+          },
+          tenantKeys: [guildId],
+          conversationIds: ["cnv_operator01"],
+        },
+      ],
+    });
+
+    expect(bindings.participants).toContainEqual(
+      expect.objectContaining({
+        participantKey: "webhook:899999999999999992",
+        actor: expect.objectContaining({
+          participantId: "ptc_lervoagent02",
+          agentBinding: expect.objectContaining({ agentId: `agt_${"b".repeat(24)}` }),
+        }),
+      }),
     );
   });
 });

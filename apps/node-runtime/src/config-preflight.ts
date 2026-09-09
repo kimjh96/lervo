@@ -9,5 +9,12 @@ export async function preflightNodeRuntimeCredentials(config: NodeRuntimeConfig)
     ...configuredDiscordConversations(config).map((conversation) =>
       loadDiscordBotToken(conversation.botTokenFile).then(() => undefined),
     ),
+    ...configuredDiscordConversations(config).flatMap((conversation) =>
+      conversation.speaker?.kind === "webhook"
+        ? conversation.speaker.webhooks.map((webhook) =>
+            loadDiscordBotToken(webhook.tokenFile).then(() => undefined),
+          )
+        : [],
+    ),
   ]);
 }

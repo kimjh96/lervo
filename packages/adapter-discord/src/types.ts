@@ -113,6 +113,14 @@ export interface DiscordAdministrationPort {
     name: string;
     observedAt: string;
   }>;
+  createIncomingWebhook(input: { guildId: string; channelId: string; name: string }): Promise<{
+    guildId: string;
+    channelId: string;
+    webhookId: string;
+    name: string;
+    token: string;
+    observedAt: string;
+  }>;
 }
 
 export interface DiscordResponseActivity {
@@ -128,6 +136,8 @@ export interface DiscordConversationAdapterOptions {
   identity: ConversationPlatformIdentityPort;
   artifactStore: ArtifactStore;
   delivery: DiscordDeliveryPort;
+  deliveryIdentity?: string;
+  ignoredParticipantKeys?: readonly string[];
   typing?: DiscordTypingPort;
   capabilities?: readonly ConversationAdapterCapability[];
   now?: () => Date;
