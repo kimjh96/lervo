@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f4a9ae6329e9b73eaecb354f
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_276888939b2083329cfb79ab
+outputLanguage: en
+outputs:
+  - byteCount: 674
+    contentHash: sha256:cabb8d1646926f90e267be65712c5154150ecb2f90e1b3d22b89b7ed0310fb1b
+    path: docs/specifications/execution/operations-and-recovery/failure-categories.md
+    userRegionHash: sha256:cabb8d1646926f90e267be65712c5154150ecb2f90e1b3d22b89b7ed0310fb1b
+profile: specification_document
+recordId: knormdoc_882818c46f959d1accfc0f28
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:cabb8d1646926f90e267be65712c5154150ecb2f90e1b3d22b89b7ed0310fb1b
+sourcePath: docs/specifications/execution/operations-and-recovery/failure-categories.md
+sourceUnitVersionIds:
+  - uv_c529bf42845fa37dd7547e51

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f4a9ae6329e9b73eaecb354f
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0a4d10b69d61690c686f1e87
+outputLanguage: en
+outputs:
+  - byteCount: 827
+    contentHash: sha256:e98e93695576e7b9f3a94fef3a8c168e1a72e1f7da64206c132895580c07ba65
+    path: docs/specifications/execution/operations-and-recovery/durable-apply-and-recovery.md
+    userRegionHash: sha256:e98e93695576e7b9f3a94fef3a8c168e1a72e1f7da64206c132895580c07ba65
+profile: specification_document
+recordId: knormdoc_3c5b072d6df2e5edb3169b08
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e98e93695576e7b9f3a94fef3a8c168e1a72e1f7da64206c132895580c07ba65
+sourcePath: docs/specifications/execution/operations-and-recovery/durable-apply-and-recovery.md
+sourceUnitVersionIds:
+  - uv_7801d94798ed21f9f12bc9cf
