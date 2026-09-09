@@ -5,7 +5,10 @@ import { DatabaseSync } from "node:sqlite";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { SQLiteConversationPlatformStore } from "../src/index.js";
+import {
+  SQLiteConversationPlatformStore,
+  type SQLiteConversationPlatformStoreOptions,
+} from "../src/index.js";
 
 const roots: string[] = [];
 const integrationId = "itg_platform01";
@@ -319,6 +322,7 @@ describe("SQLite conversation platform state", () => {
           roleProfileHash: `sha256:${"c".repeat(64)}`,
         },
       },
+      automationDepth: 8,
     });
     await store.recordInbound({
       platform: "slack",
@@ -410,6 +414,45 @@ describe("SQLite conversation platform state", () => {
       }),
     ).rejects.toMatchObject({ code: "mapping_not_found" });
     store.close();
+  });
+
+  it("allows only an explicitly bound agent to start an automation chain", async () => {
+    const path = await databasePath();
+    const base = options(path);
+    const configured: SQLiteConversationPlatformStoreOptions = {
+      ...base,
+      participants: base.participants.map((participant, index) =>
+        index === 1 ? { ...participant, startsAutomationChain: true } : participant,
+      ),
+    };
+    const store = await SQLiteConversationPlatformStore.open(configured);
+    await expect(
+      store.mapInbound({
+        platform: "slack",
+        integrationId,
+        tenantKey: "T123",
+        conversationKey: "C123",
+        threadKey: null,
+        sourceMessageKey: "trusted-agent-message-1",
+        replyToMessageKey: null,
+        participantKey: "bot:B123",
+        mentionedParticipantKeys: [],
+        actorKindHint: "agent",
+      }),
+    ).resolves.toMatchObject({ automationDepth: 0 });
+    store.close();
+
+    const invalidPath = await databasePath();
+    const invalidBase = options(invalidPath);
+    const invalid: SQLiteConversationPlatformStoreOptions = {
+      ...invalidBase,
+      participants: invalidBase.participants.map((participant, index) =>
+        index === 0 ? { ...participant, startsAutomationChain: true } : participant,
+      ),
+    };
+    await expect(SQLiteConversationPlatformStore.open(invalid)).rejects.toMatchObject({
+      code: "conflicting_binding",
+    });
   });
 
   it("keeps uncertain sends blocked and successful receipts replayable across restart", async () => {

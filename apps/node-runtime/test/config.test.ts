@@ -267,6 +267,39 @@ describe("Node runtime configuration", () => {
     expect(
       parseNodeRuntimeConfig(selectiveHumanParticipation, root).discordConversation?.policy,
     ).toMatchObject({ unaddressedHumanMessages: "evaluate" });
+    const trustedAgentInitiator = structuredClone(configured);
+    (
+      trustedAgentInitiator.discordConversation as {
+        participants: Array<Record<string, unknown>>;
+      }
+    ).participants.push({
+      tenantKey: "123456789012345678",
+      userId: "423456789012345678",
+      participantId: "ptc_ceoagent01",
+      actorKind: "agent",
+      roleId: "ceo",
+      startsAutomationChain: true,
+    });
+    expect(
+      parseNodeRuntimeConfig(trustedAgentInitiator, root).discordConversation?.participants,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actorKind: "agent",
+          roleId: "ceo",
+          startsAutomationChain: true,
+        }),
+      ]),
+    );
+    const invalidHumanInitiator = structuredClone(configured);
+    (
+      invalidHumanInitiator.discordConversation as {
+        participants: Array<Record<string, unknown>>;
+      }
+    ).participants[0]!.startsAutomationChain = true;
+    expect(() => parseNodeRuntimeConfig(invalidHumanInitiator, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
     const invalidHumanParticipation = structuredClone(configured);
     (
       invalidHumanParticipation.discordConversation as {

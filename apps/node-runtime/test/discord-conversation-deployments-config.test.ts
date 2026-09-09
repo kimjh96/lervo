@@ -287,6 +287,41 @@ describe("Discord conversation deployments configuration", () => {
     );
   });
 
+  it("preserves an explicit automation-chain starter on a manual agent binding", () => {
+    const config = deployment({
+      suffix: "01",
+      applicationId: "999999999999999991",
+      agentId: `agt_${"a".repeat(24)}`,
+      participantId: "ptc_lervoagent01",
+      provider: "codex",
+    });
+    const bindings = createDiscordPlatformBindings({
+      config: {
+        ...config,
+        participants: [
+          {
+            tenantKey: guildId,
+            userId: "799999999999999991",
+            participantId: "ptc_ceoagent01",
+            actorKind: "agent",
+            roleId: "ceo",
+            startsAutomationChain: true,
+          },
+        ],
+        policy: { respondTo: ["human", "agent"] },
+        command: { ...config.command, assignmentId: null, agentId: null },
+      },
+      projectId: "prj_discord01",
+      agentRoleId: "developer",
+    });
+    expect(bindings.participants).toContainEqual(
+      expect.objectContaining({
+        participantKey: "bot:799999999999999991",
+        startsAutomationChain: true,
+      }),
+    );
+  });
+
   it("maps a peer webhook author to its durable hired-agent participant", () => {
     const config = deployment({
       suffix: "01",

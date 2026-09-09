@@ -16,6 +16,7 @@ export interface ConversationPlatformParticipantBinding {
   tenantKey: string;
   participantKey: string;
   actor: ConversationInboundEvent["actor"];
+  startsAutomationChain?: boolean;
 }
 
 export interface ConversationPlatformThreadBinding {

@@ -53,6 +53,7 @@ export class ConversationPlatformBindingRepository {
   private activeConversations = new Set<string>();
   private activeOutboundConversations = new Set<string>();
   private activeParticipants = new Set<string>();
+  private activeAutomationChainStarters = new Set<string>();
 
   constructor(private readonly database: DatabaseSync) {}
 
@@ -82,6 +83,11 @@ export class ConversationPlatformBindingRepository {
       );
       this.activeParticipants = new Set(
         input.participants.map((binding) => this.participantKey(binding)),
+      );
+      this.activeAutomationChainStarters = new Set(
+        input.participants
+          .filter((binding) => binding.startsAutomationChain === true)
+          .map((binding) => this.participantKey(binding)),
       );
     } catch (error) {
       this.database.exec("ROLLBACK;");
@@ -128,6 +134,9 @@ export class ConversationPlatformBindingRepository {
       if (binding.actor.roleId === null) throw this.conflict("agent role");
       assertIdentifier(binding.actor.roleId, "roleId");
     } else if (binding.actor.roleId !== null) throw this.conflict("non-agent role");
+    if (binding.startsAutomationChain === true && binding.actor.kind !== "agent") {
+      throw this.conflict("automation chain starter");
+    }
     if (binding.actor.agentBinding !== undefined && binding.actor.agentBinding !== null) {
       if (binding.actor.kind !== "agent") throw this.conflict("non-agent workforce binding");
       validateAgentBinding(binding.actor.agentBinding);
@@ -317,7 +326,12 @@ export class ConversationPlatformBindingRepository {
         participantIds: [...new Set(mentions.map((value) => value.participant_id))].sort(),
       },
       replyToEventId: reply?.reply_event_id ?? null,
-      automationDepth: source?.automation_depth ?? (actor.actor_kind === "agent" ? 8 : 0),
+      automationDepth:
+        source?.automation_depth ??
+        (actor.actor_kind === "agent" &&
+        !this.activeAutomationChainStarters.has(this.participantKey(input))
+          ? 8
+          : 0),
     };
   }
 

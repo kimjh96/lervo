@@ -4,4 +4,6 @@ Participant identity, read-only execution role, and mutation command role are di
 
 Agent-authored discussion is disabled by default. When enabled, deterministic turn ownership runs before relevance: one participant responds to unaddressed messages, while exact participant mentions and one owner per mentioned role remain addressable. Participation rate and automation depth impose separate bounds. A non-owner records `turn_not_owned` without typing or provider work. Agent-authored discussion cannot request repository mutation through conversation routing.
 
+An uncorrelated agent message starts at the maximum automation depth unless the current participant binding explicitly marks that exact identity as an automation-chain starter. A reviewed starter begins at depth zero but gains no repository, organization, or platform-effect authority from that designation. This keeps ordinary bot-loop suppression as the default while allowing an appointed coordinating agent to initiate a bounded conversation through a replaceable surface.
+
 Workforce provider authority may be fixed to Codex or Claude or remain policy-selectable. A future automatic selector must bind the exact model, policy version, reason, and availability, capability, cost, and latency checks. It must fail closed when no candidate qualifies.

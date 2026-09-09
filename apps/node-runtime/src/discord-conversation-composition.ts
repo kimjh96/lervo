@@ -108,6 +108,7 @@ export function createDiscordPlatformBindings(input: {
           participantId: binding.participantId,
           roleId: binding.roleId,
         },
+        ...(binding.startsAutomationChain === true ? { startsAutomationChain: true } : {}),
       })),
       ...tenantKeys.flatMap((tenantKey) =>
         discordSpeakerParticipantKeys(config).map((participantKey) => ({

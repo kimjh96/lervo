@@ -52,7 +52,7 @@ export function parseDiscordParticipantBindings(
     const source = configRecord(item, `discordConversation.participants[${index}]`);
     exactConfigKeys(
       source,
-      ["tenantKey", "userId", "participantId", "actorKind", "roleId"],
+      ["tenantKey", "userId", "participantId", "actorKind", "roleId", "startsAutomationChain"],
       `discordConversation.participants[${index}]`,
     );
     const tenantKey = configText(source.tenantKey, "participant tenantKey");
@@ -63,17 +63,27 @@ export function parseDiscordParticipantBindings(
       source.roleId === undefined || source.roleId === null
         ? null
         : configText(source.roleId, "participant roleId");
+    const startsAutomationChain = source.startsAutomationChain;
     if (
       !(tenantKey === "dm" || SNOWFLAKE.test(tenantKey)) ||
       !SNOWFLAKE.test(userId) ||
       !PARTICIPANT_ID.test(participantId) ||
       !["human", "agent"].includes(actorKind as string) ||
       (actorKind === "human" ? roleId !== null : roleId === null) ||
-      (roleId !== null && !IDENTIFIER.test(roleId))
+      (roleId !== null && !IDENTIFIER.test(roleId)) ||
+      (startsAutomationChain !== undefined && typeof startsAutomationChain !== "boolean") ||
+      (startsAutomationChain === true && actorKind !== "agent")
     ) {
       throw new NodeRuntimeError("invalid_config", "A Discord participant binding is invalid.");
     }
-    return { tenantKey, userId, participantId, actorKind: actorKind as "human" | "agent", roleId };
+    return {
+      tenantKey,
+      userId,
+      participantId,
+      actorKind: actorKind as "human" | "agent",
+      roleId,
+      ...(startsAutomationChain === true ? { startsAutomationChain: true } : {}),
+    };
   });
   if (new Set(parsed.map((item) => `${item.tenantKey}\0${item.userId}`)).size !== parsed.length) {
     throw new NodeRuntimeError("invalid_config", "Discord participant bindings must be unique.");
