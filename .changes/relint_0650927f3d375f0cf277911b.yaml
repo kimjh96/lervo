@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_0650927f3d375f0cf277911b"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Make native reply selection contextual and expose allowlisted Discord channel and thread creation through managed conversation."

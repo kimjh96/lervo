@@ -2,4 +2,4 @@
 "intentId": "relint_0e6c0c31b1aa46b139754298"
 "package": "@lervo/cli"
 "impact": "minor"
-"summary": "Enable authorized Discord channel and thread effects, cross-Node peer bindings, and context-aware reply projection."
+"summary": "Enable explicitly authorized Discord agent effects and cross-Node peer identity bindings."
