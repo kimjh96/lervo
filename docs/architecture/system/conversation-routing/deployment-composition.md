@@ -4,6 +4,8 @@ Configuration parsing separates channel and participant bindings from routing an
 
 New platforms and providers stay behind adapters. Role-backed deliberation can reuse identity and evidence contracts without expanding authority. Multiple agent deployments share a repository-scoped snapshot and query-index lifecycle. Bot-backed deployments retain independent Gateway credentials and lifecycle. Webhook-backed deployments may share one exact Gateway application and bot credential; each current runtime retains its connection lifecycle plus separate hired-agent identity, role context, provider sessions, history, webhook credentials, response ownership, and publication state.
 
+Conversation coordinates remain surface-neutral. Discord resolves a Gateway thread channel through authenticated channel metadata, verifies its guild and configured parent, and maps it to the canonical parent conversation plus a distinct thread key. Outbound source-event correlation supplies a separate reply-message key. Bot delivery projects both coordinates; webhook delivery projects the thread and retains the reply as canonical evidence because Discord's webhook execution does not provide the same native reply boundary. Neither path treats a thread ID as a message ID.
+
 ## Deployment contracts
 
 - [Bot deployments](deployment-composition/bot-deployments.md): runtime isolation, supervision, turn ownership, identity history, and response failures.

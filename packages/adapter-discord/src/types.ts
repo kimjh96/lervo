@@ -50,11 +50,20 @@ export interface DiscordDeliveryRequest {
   outboundId: string;
   guildId: string | null;
   channelId: string;
+  threadId: string | null;
   replyToMessageId: string | null;
   content: string;
   automationDepth: number;
   allowedMentions: "none";
   enforceIdempotency: true;
+}
+
+export interface DiscordConversationAddressPort {
+  /** Resolves a Gateway channel into its configured parent conversation and optional thread. */
+  resolve(input: {
+    guildId: string | null;
+    channelId: string;
+  }): Promise<{ conversationKey: string; threadKey: string | null }>;
 }
 
 export interface DiscordDeliveryResult {
@@ -136,6 +145,7 @@ export interface DiscordConversationAdapterOptions {
   identity: ConversationPlatformIdentityPort;
   artifactStore: ArtifactStore;
   delivery: DiscordDeliveryPort;
+  conversationAddress?: DiscordConversationAddressPort;
   deliveryIdentity?: string;
   ignoredParticipantKeys?: readonly string[];
   typing?: DiscordTypingPort;

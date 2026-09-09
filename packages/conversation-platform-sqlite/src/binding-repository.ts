@@ -326,6 +326,7 @@ export class ConversationPlatformBindingRepository {
     integrationId: string;
     target: ConversationTarget;
     actor: ConversationOutboundMessage["actor"];
+    sourceEventId: string;
   }): PlatformOutboundAddress {
     if (
       !this.activeOutboundConversations.has(
@@ -352,12 +353,27 @@ export class ConversationPlatformBindingRepository {
         input.target.conversationId,
       ) as { tenant_key: string; conversation_key: string } | undefined;
     if (row === undefined) throw this.notFound("outbound conversation");
+    const reply = this.database
+      .prepare(
+        `
+      SELECT external_message_key FROM message_correlations
+      WHERE platform = ? AND integration_id = ? AND tenant_key = ?
+        AND conversation_key = ? AND observed_event_id = ?
+    `,
+      )
+      .get(
+        input.platform,
+        input.integrationId,
+        row.tenant_key,
+        row.conversation_key,
+        input.sourceEventId,
+      ) as { external_message_key: string } | undefined;
     if (input.target.threadId === null) {
       return {
         tenantKey: row.tenant_key,
         conversationKey: row.conversation_key,
         threadKey: null,
-        replyToMessageKey: null,
+        replyToMessageKey: reply?.external_message_key ?? null,
       };
     }
     const thread = this.database
@@ -374,7 +390,7 @@ export class ConversationPlatformBindingRepository {
       tenantKey: row.tenant_key,
       conversationKey: row.conversation_key,
       threadKey: thread.thread_key,
-      replyToMessageKey: thread.thread_key,
+      replyToMessageKey: reply?.external_message_key ?? null,
     };
   }
 

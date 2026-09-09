@@ -88,7 +88,9 @@ export class DiscordRestWebhookDelivery implements DiscordDeliveryPort {
     if (
       input.guildId === null ||
       [...input.content].length > 2_000 ||
-      input.channelId !== this.options.parentChannelId
+      input.channelId !== this.options.parentChannelId ||
+      (input.threadId !== null && !/^[0-9]{1,32}$/u.test(input.threadId)) ||
+      (input.replyToMessageId !== null && !/^[0-9]{1,32}$/u.test(input.replyToMessageId))
     ) {
       throw new ConversationPlatformError(
         "platform_delivery_failed",
@@ -106,6 +108,7 @@ export class DiscordRestWebhookDelivery implements DiscordDeliveryPort {
         JSON.stringify({
           guildId: input.guildId,
           channelId: input.channelId,
+          threadId: input.threadId,
           replyToMessageId: input.replyToMessageId,
           webhookId: this.options.webhookId,
           body,
@@ -113,6 +116,7 @@ export class DiscordRestWebhookDelivery implements DiscordDeliveryPort {
       )
       .digest("hex")}`;
     const query = new URLSearchParams({ wait: "true" });
+    if (input.threadId !== null) query.set("thread_id", input.threadId);
     const nativeFetch = this.options.fetch ?? globalThis.fetch;
     const redactingFetch: typeof globalThis.fetch = async (...arguments_) => {
       try {
@@ -160,7 +164,7 @@ export class DiscordRestWebhookDelivery implements DiscordDeliveryPort {
         if (
           typeof response.id !== "string" ||
           !/^[0-9]{1,32}$/u.test(response.id) ||
-          response.channel_id !== input.channelId ||
+          response.channel_id !== (input.threadId ?? input.channelId) ||
           response.webhook_id !== this.options.webhookId
         ) {
           throw new Error("Discord webhook delivery response mismatch");

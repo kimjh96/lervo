@@ -33,6 +33,7 @@ export async function deliverDiscordConversationMessage(input: {
         integrationId: input.descriptor.integrationId,
         target: input.message.target,
         actor: input.message.actor,
+        sourceEventId: input.message.sourceEventId,
       }),
     ]);
     const guildId = address.tenantKey === "dm" ? null : address.tenantKey;
@@ -46,6 +47,7 @@ export async function deliverDiscordConversationMessage(input: {
       outboundId: input.message.outboundId,
       guildId,
       channelId: address.conversationKey,
+      threadId: address.threadKey,
       replyToMessageId: address.replyToMessageKey,
       content,
       automationDepth: input.message.automationDepth,

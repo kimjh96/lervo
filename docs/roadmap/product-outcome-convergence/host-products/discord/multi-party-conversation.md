@@ -38,7 +38,7 @@ Installed Node deployments can map bounded canonical repository event types to p
 
 The installed executive boundary executes hash-bound, allowlisted Discord text-channel and public-thread effects with durable replay and fail-closed uncertainty. The installed deliberation worker reconciles uncertain outcomes from canonical CLI evidence and publishes a bounded visible result through the managed conversation path.
 
-Webhook-backed delivery, peer-author normalization, shared-Gateway validation, and replay-safe executive webhook preparation are implemented. Remaining work includes invoking the preparation and runtime-binding flow from natural CEO conversation, provisioning the real channel webhooks, broader natural addressed groups, and the required real two-agent discussion. Separate applications remain optional for native Discord member presence and mentions.
+Webhook-backed delivery, peer-author normalization, shared-Gateway validation, replay-safe executive webhook preparation, authenticated parent/thread resolution, native thread delivery, bot-native replies, and source-message reply correlation are implemented. Webhook replies remain canonical rather than native. Remaining work includes invoking the preparation and runtime-binding flow from natural CEO conversation, provisioning the real channel webhooks, broader natural addressed groups, and the required real two-agent discussion. Separate applications remain optional for native Discord member presence and mentions.
 
 ## Acceptance
 

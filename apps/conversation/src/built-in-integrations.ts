@@ -1,5 +1,6 @@
 import {
   DiscordConversationAdapter,
+  DiscordRestConversationAddress,
   DiscordRestDelivery,
   DiscordRestWebhookDelivery,
   DiscordRestTyping,
@@ -58,6 +59,7 @@ function slackIntegration(
 function discordIntegration(
   deployment: DiscordConversationDeployment,
   gatewayAuthentication: NonNullable<DiscordConversationDeployment["gatewayAuthentication"]>,
+  parentChannelIds: readonly string[],
 ): ConversationIntegrationDeployment {
   return {
     integrationId: deployment.integrationId,
@@ -110,6 +112,18 @@ function discordIntegration(
           ? {}
           : { requestTimeoutMs: deployment.requestTimeoutMs }),
       });
+      const conversationAddress = new DiscordRestConversationAddress({
+        botToken: deployment.botToken,
+        allowedGuildIds: deployment.allowedGuildIds,
+        parentChannelIds,
+        ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
+        ...(deployment.requestTimeoutMs === undefined
+          ? {}
+          : { requestTimeoutMs: deployment.requestTimeoutMs }),
+        ...(deployment.maxResponseBytes === undefined
+          ? {}
+          : { maxResponseBytes: deployment.maxResponseBytes }),
+      });
       return new DiscordConversationAdapter({
         integrationId: deployment.integrationId,
         applicationId: deployment.applicationId,
@@ -119,6 +133,7 @@ function discordIntegration(
         identity: context.identity,
         artifactStore: context.artifactStore,
         delivery,
+        conversationAddress,
         deliveryIdentity:
           deployment.delivery?.kind === "webhook"
             ? `webhooks:${deployment.delivery.webhooks
@@ -153,7 +168,16 @@ export function configuredConversationIntegrations(
       if (authentication === undefined) {
         throw new Error("A Discord integration requires one Gateway authentication owner.");
       }
-      return discordIntegration(deployment, authentication);
+      return discordIntegration(
+        deployment,
+        authentication,
+        options.conversations
+          .filter(
+            (binding) =>
+              binding.platform === "discord" && binding.integrationId === deployment.integrationId,
+          )
+          .map((binding) => binding.conversationKey),
+      );
     }),
     ...(options.integrations ?? []),
   ];

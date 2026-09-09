@@ -357,11 +357,13 @@ describe("SQLite conversation platform state", () => {
           threadId: first.threadId,
         },
         actor: { kind: "agent", participantId: "ptc_platform02", roleId: "reviewer" },
+        sourceEventId: eventId,
       }),
     ).resolves.toMatchObject({
       tenantKey: "T123",
       conversationKey: "C123",
       threadKey: "1710000000.000100",
+      replyToMessageKey: "1710000001.000100",
     });
     await store.recordOutbound({
       platform: "slack",

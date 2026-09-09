@@ -32,6 +32,7 @@ export async function deliverSlackConversationMessage(input: {
         integrationId: input.descriptor.integrationId,
         target: input.message.target,
         actor: input.message.actor,
+        sourceEventId: input.message.sourceEventId,
       }),
     ]);
     if (!input.allowedTeamIds.has(address.tenantKey)) throw new Error("team scope mismatch");
@@ -40,7 +41,7 @@ export async function deliverSlackConversationMessage(input: {
       teamId: address.tenantKey,
       channelId: address.conversationKey,
       threadTs: address.threadKey,
-      replyToTs: address.replyToMessageKey,
+      replyToTs: address.threadKey ?? address.replyToMessageKey,
       text,
       automationDepth: input.message.automationDepth,
       format: "plain",

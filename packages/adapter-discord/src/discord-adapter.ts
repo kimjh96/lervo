@@ -162,14 +162,31 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
     if (this.ignoredParticipantKeys.has(parsed.participantKey)) {
       return { status: "ignored", reason: "own_participant_message", checkpoint };
     }
+    let address: { conversationKey: string; threadKey: string | null };
+    try {
+      address =
+        this.options.conversationAddress === undefined
+          ? { conversationKey: parsed.channelId, threadKey: null }
+          : await this.options.conversationAddress.resolve({
+              guildId: parsed.guildId,
+              channelId: parsed.channelId,
+            });
+    } catch (error) {
+      if (error instanceof ConversationPlatformError) throw error;
+      throw new ConversationPlatformError(
+        "identity_mapping_failed",
+        "The Discord conversation address could not be resolved.",
+        { cause: error instanceof Error ? error : undefined },
+      );
+    }
     let identity;
     try {
       identity = await this.options.identity.mapInbound({
         platform: "discord",
         integrationId: this.descriptor.integrationId,
         tenantKey: parsed.guildId ?? "dm",
-        conversationKey: parsed.channelId,
-        threadKey: null,
+        conversationKey: address.conversationKey,
+        threadKey: address.threadKey,
         sourceMessageKey: parsed.messageId,
         replyToMessageKey: parsed.replyToMessageId,
         participantKey: parsed.participantKey,
@@ -211,7 +228,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
         platform: "discord",
         integrationId: this.descriptor.integrationId,
         tenantKey: parsed.guildId ?? "dm",
-        conversationKey: parsed.channelId,
+        conversationKey: address.conversationKey,
         externalMessageKey: parsed.messageId,
         eventId: event.eventId,
         automationDepth: event.automationDepth,

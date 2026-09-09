@@ -57,12 +57,18 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
   }
 
   async send(input: DiscordDeliveryRequest): Promise<DiscordDeliveryResult> {
-    if (!/^[0-9]{1,32}$/.test(input.channelId) || [...input.content].length > 2_000) {
+    if (
+      !/^[0-9]{1,32}$/u.test(input.channelId) ||
+      (input.threadId !== null && !/^[0-9]{1,32}$/u.test(input.threadId)) ||
+      (input.replyToMessageId !== null && !/^[0-9]{1,32}$/u.test(input.replyToMessageId)) ||
+      [...input.content].length > 2_000
+    ) {
       throw new ConversationPlatformError(
         "platform_delivery_failed",
         "The Discord channel or content is invalid.",
       );
     }
+    const targetChannelId = input.threadId ?? input.channelId;
     const nonce = createHash("sha256").update(input.outboundId).digest("base64url").slice(0, 25);
     const body = {
       content: input.content,
@@ -80,6 +86,7 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
         JSON.stringify({
           guildId: input.guildId,
           channelId: input.channelId,
+          threadId: input.threadId,
           body,
         }),
       )
@@ -99,7 +106,7 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
       send: async () => {
         const response = object(
           await postPlatformJson({
-            url: `${this.apiBaseUrl}/channels/${encodeURIComponent(input.channelId)}/messages`,
+            url: `${this.apiBaseUrl}/channels/${encodeURIComponent(targetChannelId)}/messages`,
             headers: { authorization: `Bot ${this.options.botToken}` },
             body,
             ...(this.options.fetch === undefined ? {} : { fetch: this.options.fetch }),
@@ -119,7 +126,7 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
         if (
           typeof response.id !== "string" ||
           !/^[0-9]{1,32}$/.test(response.id) ||
-          response.channel_id !== input.channelId
+          response.channel_id !== targetChannelId
         ) {
           throw new Error("Discord delivery response mismatch");
         }

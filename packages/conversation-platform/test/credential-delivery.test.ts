@@ -1,5 +1,6 @@
 import {
   DiscordRestDelivery,
+  DiscordRestConversationAddress,
   DiscordRestHistory,
   DiscordRestTyping,
   DiscordRestWebhookDelivery,
@@ -118,7 +119,8 @@ describe("credential-backed platform delivery", () => {
 
   it("sends Discord with an enforced nonce and disables all mention parsing", async () => {
     const replay = new MemoryReplay();
-    const request = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+    const request = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      expect(String(url)).toBe("https://discord.com/api/v10/channels/333456789012345678/messages");
       expect(init?.headers).toMatchObject({ authorization: `Bot ${"d".repeat(40)}` });
       const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       expect(body).toMatchObject({
@@ -132,7 +134,7 @@ describe("credential-backed platform delivery", () => {
       return new Response(
         JSON.stringify({
           id: "423456789012345678",
-          channel_id: "223456789012345678",
+          channel_id: "333456789012345678",
         }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
@@ -148,6 +150,7 @@ describe("credential-backed platform delivery", () => {
       outboundId,
       guildId: "123456789012345678",
       channelId: "223456789012345678",
+      threadId: "333456789012345678",
       replyToMessageId: "323456789012345678",
       content: "Do not mention <@123> directly.",
       automationDepth: 1,
@@ -167,7 +170,7 @@ describe("credential-backed platform delivery", () => {
     const webhookToken = "w".repeat(40);
     const request = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
       expect(String(url)).toBe(
-        `https://discord.com/api/v10/webhooks/523456789012345678/${webhookToken}?wait=true`,
+        `https://discord.com/api/v10/webhooks/523456789012345678/${webhookToken}?wait=true&thread_id=333456789012345678`,
       );
       expect(init?.headers).not.toHaveProperty("authorization");
       expect(JSON.parse(String(init?.body))).toEqual({
@@ -179,7 +182,7 @@ describe("credential-backed platform delivery", () => {
       return new Response(
         JSON.stringify({
           id: "423456789012345678",
-          channel_id: "223456789012345678",
+          channel_id: "333456789012345678",
           webhook_id: "523456789012345678",
         }),
         { status: 200, headers: { "content-type": "application/json" } },
@@ -200,6 +203,7 @@ describe("credential-backed platform delivery", () => {
       outboundId,
       guildId: "123456789012345678",
       channelId: "223456789012345678",
+      threadId: "333456789012345678",
       replyToMessageId: "323456789012345678",
       content: "Review complete.",
       automationDepth: 1,
@@ -233,6 +237,7 @@ describe("credential-backed platform delivery", () => {
       outboundId,
       guildId: "123456789012345678",
       channelId: "223456789012345678",
+      threadId: null,
       replyToMessageId: null,
       content: "Draft ready.",
       automationDepth: 1,
@@ -248,6 +253,71 @@ describe("credential-backed platform delivery", () => {
     }
     expect(observed).not.toContain(webhookToken);
     await expect(delivery.send(input)).rejects.toThrow("Operator review is required");
+  });
+
+  it("resolves an authenticated Discord thread to its configured parent conversation", async () => {
+    const request = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      expect(String(url)).toBe("https://discord.com/api/v10/channels/333456789012345678");
+      expect(init?.headers).toMatchObject({ authorization: `Bot ${"d".repeat(40)}` });
+      return new Response(
+        JSON.stringify({
+          id: "333456789012345678",
+          guild_id: "123456789012345678",
+          parent_id: "223456789012345678",
+          type: 11,
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    });
+    const addresses = new DiscordRestConversationAddress({
+      botToken: "d".repeat(40),
+      allowedGuildIds: ["123456789012345678"],
+      parentChannelIds: ["223456789012345678"],
+      fetch: request as typeof fetch,
+    });
+
+    await expect(
+      addresses.resolve({
+        guildId: "123456789012345678",
+        channelId: "223456789012345678",
+      }),
+    ).resolves.toEqual({ conversationKey: "223456789012345678", threadKey: null });
+    expect(request).not.toHaveBeenCalled();
+    await expect(
+      addresses.resolve({
+        guildId: "123456789012345678",
+        channelId: "333456789012345678",
+      }),
+    ).resolves.toEqual({
+      conversationKey: "223456789012345678",
+      threadKey: "333456789012345678",
+    });
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a Discord thread whose parent is outside the configured conversation scope", async () => {
+    const addresses = new DiscordRestConversationAddress({
+      botToken: "d".repeat(40),
+      allowedGuildIds: ["123456789012345678"],
+      parentChannelIds: ["223456789012345678"],
+      fetch: async () =>
+        new Response(
+          JSON.stringify({
+            id: "333456789012345678",
+            guild_id: "123456789012345678",
+            parent_id: "923456789012345678",
+            type: 11,
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    });
+
+    await expect(
+      addresses.resolve({
+        guildId: "123456789012345678",
+        channelId: "333456789012345678",
+      }),
+    ).rejects.toMatchObject({ code: "identity_mapping_failed" });
   });
 
   it("retrieves bounded Discord history after the durable channel cursor", async () => {

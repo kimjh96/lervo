@@ -487,6 +487,10 @@ describe("authenticated platform conversation adapters", () => {
   it("maps peer webhook authors as agents and suppresses only the current webhook identity", async () => {
     const artifactStore = await artifacts();
     const identity = identityPort();
+    const resolveAddress = vi.fn(async () => ({
+      conversationKey: "223456789012345678",
+      threadKey: "333456789012345678",
+    }));
     const adapter = new DiscordConversationAdapter({
       integrationId: "itg_discord02",
       applicationId: "999999999999999999",
@@ -496,6 +500,7 @@ describe("authenticated platform conversation adapters", () => {
       identity: identity.port,
       artifactStore,
       delivery: { send: async () => ({ messageId: "1", deliveredAt: now.toISOString() }) },
+      conversationAddress: { resolve: resolveAddress },
       ignoredParticipantKeys: ["webhook:723456789012345678"],
       now: () => now,
     });
@@ -532,9 +537,15 @@ describe("authenticated platform conversation adapters", () => {
     ).resolves.toMatchObject({ status: "accepted", event: { actor: { kind: "agent" } } });
     expect(identity.inbound).toHaveBeenCalledWith(
       expect.objectContaining({
+        conversationKey: "223456789012345678",
+        threadKey: "333456789012345678",
         participantKey: "webhook:623456789012345678",
         actorKindHint: "agent",
       }),
     );
+    expect(resolveAddress).toHaveBeenCalledWith({
+      guildId: "123456789012345678",
+      channelId: "223456789012345678",
+    });
   });
 });
