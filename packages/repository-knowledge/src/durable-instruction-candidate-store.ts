@@ -11,6 +11,7 @@ import {
   type DurableInstructionCandidate,
   type DurableInstructionCandidateInspection,
 } from "./durable-instruction-candidate.js";
+import { isIgnorableFilesystemMetadata } from "./filesystem-metadata.js";
 import { canonicalJson, sha256 } from "./integrity.js";
 import { RepositoryKnowledgeError } from "./types.js";
 
@@ -59,12 +60,14 @@ async function activeCandidatePaths(repositoryRoot: string): Promise<string[]> {
   }
   const paths: string[] = [];
   for (const shard of shards) {
+    if (isIgnorableFilesystemMetadata(shard)) continue;
     if (!shard.isDirectory() || shard.isSymbolicLink() || !/^[a-f0-9]{2}$/u.test(shard.name))
       throw new RepositoryKnowledgeError(
         "knowledge_source_unsafe",
         "The durable-instruction candidate registry contains an unsafe shard.",
       );
     for (const entry of await readdir(resolve(directory, shard.name), { withFileTypes: true })) {
+      if (isIgnorableFilesystemMetadata(entry)) continue;
       if (
         !entry.isFile() ||
         entry.isSymbolicLink() ||

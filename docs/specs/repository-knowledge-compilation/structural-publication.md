@@ -2,7 +2,7 @@
 
 ## Sources
 
-The scanner walks repository files except explicit VCS, dependency, generated, state, secret, size, and count exclusions. It excludes Python `.venv` and `venv` directories at every depth, like `node_modules`.
+The scanner walks repository files except explicit VCS, dependency, generated, state, secret, size, and count exclusions. It excludes Python `.venv` and `venv` directories at every depth, like `node_modules`. Finder `.DS_Store` files and regular AppleDouble `._*` sidecars are transport metadata, so scans and internal knowledge registries ignore them. Directories or symbolic links with those names remain subject to normal fail-closed safety checks.
 
 It classifies documentation, instructions, code, configuration, schemas, tests, automation, skills, workflows, agents, policies, hooks, client and tool configuration, revision identity, verified artifacts, allowlisted events, sensitive logs and traces, and unsupported binaries.
 

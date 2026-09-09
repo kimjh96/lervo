@@ -7,6 +7,7 @@ import {
   parseCanonicalizationOutcome,
   type CanonicalizationOutcome,
 } from "./canonicalization-outcome.js";
+import { isIgnorableFilesystemMetadata } from "./filesystem-metadata.js";
 import { canonicalJson, sha256 } from "./integrity.js";
 import { RepositoryKnowledgeError } from "./types.js";
 
@@ -77,6 +78,7 @@ async function boundedCandidatePaths(root: string): Promise<string[]> {
   }
   const paths: string[] = [];
   for (const shard of shards.sort((left, right) => left.name.localeCompare(right.name))) {
+    if (isIgnorableFilesystemMetadata(shard)) continue;
     if (!shard.isDirectory() || !/^[a-f0-9]{2}$/u.test(shard.name))
       throw new RepositoryKnowledgeError(
         "knowledge_source_unsafe",
@@ -84,6 +86,7 @@ async function boundedCandidatePaths(root: string): Promise<string[]> {
       );
     const entries = await readdir(resolve(directory, shard.name), { withFileTypes: true });
     for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+      if (isIgnorableFilesystemMetadata(entry)) continue;
       if (!entry.isFile() || !/^kcanon_[a-f0-9]{24}\.json$/u.test(entry.name))
         throw new RepositoryKnowledgeError(
           "knowledge_source_unsafe",

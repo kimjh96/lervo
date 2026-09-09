@@ -2,6 +2,7 @@ import { constants } from "node:fs";
 import { lstat, open, readdir } from "node:fs/promises";
 import { basename, extname, relative, resolve, sep } from "node:path";
 
+import { isIgnorableFilesystemMetadata } from "./filesystem-metadata.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { loadDocumentMoveLineages } from "./source-lineage.js";
 import type {
@@ -513,6 +514,7 @@ export async function scanRepositoryKnowledge(input: {
     const entries = await readdir(directory, { withFileTypes: true });
     entries.sort((left, right) => left.name.localeCompare(right.name));
     for (const entry of entries) {
+      if (isIgnorableFilesystemMetadata(entry)) continue;
       const absolute = resolve(directory, entry.name);
       const path = relative(root, absolute).split(sep).join("/");
       const identityPath = sourceLineages.identityPathByCurrentPath.get(path);

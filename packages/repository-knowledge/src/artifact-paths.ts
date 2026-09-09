@@ -1,6 +1,7 @@
 import { lstat, readdir } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 
+import { isIgnorableFilesystemMetadata } from "./filesystem-metadata.js";
 import { RepositoryKnowledgeError } from "./types.js";
 
 const ARTIFACT_ID = /^[a-z][a-z0-9_-]*_([a-f0-9]{24,64})$/u;
@@ -52,6 +53,7 @@ export async function listKnowledgeArtifactPaths(input: {
   const suffix = `.${input.extension}`;
   const files: string[] = [];
   for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+    if (isIgnorableFilesystemMetadata(entry)) continue;
     if (entry.isSymbolicLink())
       throw new RepositoryKnowledgeError(
         "knowledge_source_unsafe",
@@ -69,6 +71,7 @@ export async function listKnowledgeArtifactPaths(input: {
     }
     const children = await readdir(resolve(absolute, entry.name), { withFileTypes: true });
     for (const child of children.sort((left, right) => left.name.localeCompare(right.name))) {
+      if (isIgnorableFilesystemMetadata(child)) continue;
       if (!child.isFile() || child.isSymbolicLink() || !child.name.endsWith(suffix)) {
         throw new RepositoryKnowledgeError(
           "knowledge_source_unsafe",
