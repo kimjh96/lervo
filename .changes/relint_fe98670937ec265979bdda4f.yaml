@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fe98670937ec265979bdda4f"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Make managed conversation response schemas valid for strict provider structured-output validation."

@@ -58,7 +58,7 @@ export function managedConversationTurnOutputSchema(
     type: "object",
     additionalProperties: false,
     properties: {
-      schemaVersion: { const: 1 },
+      schemaVersion: { type: "integer", const: 1 },
       intent: { type: "string", enum: ["answer", "continue_work", "clarify"] },
       confidence: { type: "string", enum: ["high", "medium", "low"] },
       participation: { type: "string", enum: ["relevant", "not_relevant"] },
