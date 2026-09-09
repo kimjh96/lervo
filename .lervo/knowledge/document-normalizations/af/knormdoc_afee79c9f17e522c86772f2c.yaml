@@ -1,0 +1,43 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6a54e18dfd77ac60396644eb
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e07ceebf085f65e1e9d340ce
+outputLanguage: en
+outputs:
+  - byteCount: 1260
+    contentHash: sha256:419ac0fe927fabfd416c323abd651004961166b5fd473ccdbca98b69c0591cc6
+    path: docs/specs/repository-agent-surfaces.md
+    userRegionHash: sha256:419ac0fe927fabfd416c323abd651004961166b5fd473ccdbca98b69c0591cc6
+  - byteCount: 619
+    contentHash: sha256:eb8434e6755161b4ead1615ce7a0930d7a6db141391e55882e3900ad20d5da58
+    path: docs/specs/repository-agent-surfaces/instruction-routing.md
+    userRegionHash: sha256:eb8434e6755161b4ead1615ce7a0930d7a6db141391e55882e3900ad20d5da58
+  - byteCount: 873
+    contentHash: sha256:19c57962951e63fa9c398e6c26bfb09b82adcd60aa4be2d294d12c32e5b33cb9
+    path: docs/specs/repository-agent-surfaces/recognized-surfaces.md
+    userRegionHash: sha256:19c57962951e63fa9c398e6c26bfb09b82adcd60aa4be2d294d12c32e5b33cb9
+  - byteCount: 391
+    contentHash: sha256:99b9cb3db92c9a616a5433835a17d194d35c924aac381f21c61264d2a341014c
+    path: docs/specs/repository-agent-surfaces/rewrite-ownership.md
+    userRegionHash: sha256:99b9cb3db92c9a616a5433835a17d194d35c924aac381f21c61264d2a341014c
+profile: specification_document
+recordId: knormdoc_afee79c9f17e522c86772f2c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:034b70f6faf193ac6e830641ba6cf905e41f6dff78f0cddfdcf44b7f69929608
+sourcePath: docs/specs/repository-agent-surfaces.md
+sourceUnitVersionIds:
+  - uv_39af99991410af20647f50b0
+  - uv_612958498bd9d845e507ea85
+  - uv_93ab16c077f199b2d96b9582
+  - uv_e8303212acacc21c81852f2a
+  - uv_f28a8950f8d76cf4f414dac0
+  - uv_f45a68e958a5027fd9800cff

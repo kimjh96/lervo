@@ -1,8 +1,11 @@
-import type {
-  KnowledgeMigrationPlan,
-  RepositoryAgentArtifact,
-  RepositoryKnowledgeScan,
-} from "./types.js";
+import type { RepositoryAgentArtifact } from "./types.js";
+
+const opaqueSkillResourceExtension =
+  /\.(?:7z|a|avi|bin|bmp|class|db|dll|dylib|exe|gif|gz|ico|jar|jpe?g|lockb|mov|mp3|mp4|o|pdf|png|pyc|sqlite3?|tar|ttf|wasm|webp|woff2?|xz|zip)$/i;
+
+function skillResourceContentHandling(path: string): RepositoryAgentArtifact["contentHandling"] {
+  return opaqueSkillResourceExtension.test(path) ? "opaque_resource" : "semantic_source";
+}
 
 function scopeFor(path: string, local: boolean): RepositoryAgentArtifact["scope"] {
   if (local) return "local_repository";
@@ -107,7 +110,7 @@ export function repositoryAgentArtifactForPath(path: string): RepositoryAgentArt
       role: "skill_resource",
       discovery: "on_demand",
       migrationDisposition: "portable_skill_resource",
-      contentHandling: "semantic_source",
+      contentHandling: skillResourceContentHandling(normalized),
     });
   }
   if (/(^|\/)\.claude\/skills\/[^/]+\/SKILL\.md$/.test(normalized)) {
@@ -127,7 +130,7 @@ export function repositoryAgentArtifactForPath(path: string): RepositoryAgentArt
       role: "skill_resource",
       discovery: "on_demand",
       migrationDisposition: "portable_skill_review",
-      contentHandling: "semantic_source",
+      contentHandling: skillResourceContentHandling(normalized),
     });
   }
   if (/(^|\/)\.claude\/commands\/.+\.md$/.test(normalized)) {
@@ -349,46 +352,4 @@ export function repositoryAgentArtifactForPath(path: string): RepositoryAgentArt
     });
   }
   return undefined;
-}
-
-const reviewDispositions = new Set<RepositoryAgentArtifact["migrationDisposition"]>([
-  "portable_skill_review",
-  "workflow_review",
-  "provider_specific_review",
-]);
-
-export function summarizeRepositoryAgentArtifacts(
-  scan: RepositoryKnowledgeScan,
-): KnowledgeMigrationPlan["agentArtifacts"] {
-  const items = scan.sources
-    .flatMap((source) =>
-      source.agentArtifact === undefined
-        ? []
-        : [
-            {
-              path: source.path,
-              status: source.status,
-              classification: source.classification,
-              ...source.agentArtifact,
-            },
-          ],
-    )
-    .sort((left, right) => left.path.localeCompare(right.path));
-  const byRole: KnowledgeMigrationPlan["agentArtifacts"]["byRole"] = {};
-  for (const item of items) byRole[item.role] = (byRole[item.role] ?? 0) + 1;
-  return {
-    total: items.length,
-    semanticSources: items.filter(
-      (item) => item.contentHandling === "semantic_source" && item.status === "included",
-    ).length,
-    localInventoryOnly: items.filter((item) => item.contentHandling === "local_inventory_only")
-      .length,
-    reviewRequired: items.filter((item) => reviewDispositions.has(item.migrationDisposition))
-      .length,
-    nonstandard: items.filter(
-      (item) => item.discovery === "not_standard" || item.discovery === "not_current_standard",
-    ).length,
-    byRole,
-    items,
-  };
 }

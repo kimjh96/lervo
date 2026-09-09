@@ -54823,6 +54823,10 @@ var observeGitHeadRevision = async (repositoryRoot) => {
 };
 
 // packages/repository-knowledge/dist/agent-artifact-profile.js
+var opaqueSkillResourceExtension = /\.(?:7z|a|avi|bin|bmp|class|db|dll|dylib|exe|gif|gz|ico|jar|jpe?g|lockb|mov|mp3|mp4|o|pdf|png|pyc|sqlite3?|tar|ttf|wasm|webp|woff2?|xz|zip)$/i;
+function skillResourceContentHandling(path) {
+  return opaqueSkillResourceExtension.test(path) ? "opaque_resource" : "semantic_source";
+}
 function scopeFor(path, local) {
   if (local)
     return "local_repository";
@@ -54914,7 +54918,7 @@ function repositoryAgentArtifactForPath(path) {
       role: "skill_resource",
       discovery: "on_demand",
       migrationDisposition: "portable_skill_resource",
-      contentHandling: "semantic_source"
+      contentHandling: skillResourceContentHandling(normalized2)
     });
   }
   if (/(^|\/)\.claude\/skills\/[^/]+\/SKILL\.md$/.test(normalized2)) {
@@ -54934,7 +54938,7 @@ function repositoryAgentArtifactForPath(path) {
       role: "skill_resource",
       discovery: "on_demand",
       migrationDisposition: "portable_skill_review",
-      contentHandling: "semantic_source"
+      contentHandling: skillResourceContentHandling(normalized2)
     });
   }
   if (/(^|\/)\.claude\/commands\/.+\.md$/.test(normalized2)) {
@@ -55151,33 +55155,6 @@ function repositoryAgentArtifactForPath(path) {
   }
   return void 0;
 }
-var reviewDispositions = /* @__PURE__ */ new Set([
-  "portable_skill_review",
-  "workflow_review",
-  "provider_specific_review"
-]);
-function summarizeRepositoryAgentArtifacts(scan) {
-  const items = scan.sources.flatMap((source) => source.agentArtifact === void 0 ? [] : [
-    {
-      path: source.path,
-      status: source.status,
-      classification: source.classification,
-      ...source.agentArtifact
-    }
-  ]).sort((left, right) => left.path.localeCompare(right.path));
-  const byRole = {};
-  for (const item of items)
-    byRole[item.role] = (byRole[item.role] ?? 0) + 1;
-  return {
-    total: items.length,
-    semanticSources: items.filter((item) => item.contentHandling === "semantic_source" && item.status === "included").length,
-    localInventoryOnly: items.filter((item) => item.contentHandling === "local_inventory_only").length,
-    reviewRequired: items.filter((item) => reviewDispositions.has(item.migrationDisposition)).length,
-    nonstandard: items.filter((item) => item.discovery === "not_standard" || item.discovery === "not_current_standard").length,
-    byRole,
-    items
-  };
-}
 
 // packages/repository-knowledge/dist/scanner.js
 var binaryExtensions = /* @__PURE__ */ new Set([
@@ -55321,6 +55298,12 @@ function repositorySourceClassificationForPath(path) {
 function agentArtifactFields(path) {
   const agentArtifact = repositoryAgentArtifactForPath(path);
   return agentArtifact === void 0 ? {} : { agentArtifact };
+}
+function opaqueSkillResourceFields(path) {
+  const agentArtifact = repositoryAgentArtifactForPath(path);
+  if (agentArtifact?.role !== "skill_resource")
+    return {};
+  return { agentArtifact: { ...agentArtifact, contentHandling: "opaque_resource" } };
 }
 async function safeReadFile(path, expectedSize) {
   let handle;
@@ -55653,7 +55636,32 @@ async function scanRepositoryKnowledge(input) {
         });
         continue;
       }
+      const bytes = await safeReadFile(absolute, stats.size);
+      const includeOpaqueSkillResource = () => {
+        const opaqueFields = opaqueSkillResourceFields(path);
+        if (!("agentArtifact" in opaqueFields))
+          return false;
+        includedBytes += bytes.byteLength;
+        if (includedBytes > input.policy.limits.maxTotalBytes) {
+          throw new RepositoryKnowledgeError("knowledge_source_limit_exceeded", "Read source bytes exceed the policy limit.");
+        }
+        sources.push({
+          sourceId: id,
+          path,
+          ...identityFields,
+          kind: repositorySourceKindForPath(path),
+          ...opaqueFields,
+          status: "included",
+          classification: "ordinary",
+          byteCount: bytes.byteLength,
+          contentHash: sha2562(bytes),
+          reason: "opaque_portable_skill_resource"
+        });
+        return true;
+      };
       if (binaryExtensions.has(extname2(path).toLowerCase())) {
+        if (includeOpaqueSkillResource())
+          continue;
         sources.push({
           sourceId: id,
           path,
@@ -55668,8 +55676,9 @@ async function scanRepositoryKnowledge(input) {
         });
         continue;
       }
-      const bytes = await safeReadFile(absolute, stats.size);
       if (bytes.includes(0)) {
+        if (includeOpaqueSkillResource())
+          continue;
         sources.push({
           sourceId: id,
           path,
@@ -55688,6 +55697,8 @@ async function scanRepositoryKnowledge(input) {
       try {
         content3 = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       } catch {
+        if (includeOpaqueSkillResource())
+          continue;
         sources.push({
           sourceId: id,
           path,
@@ -55873,7 +55884,7 @@ async function scanRepositoryKnowledge(input) {
       units: contentUnitVersions
     }),
     coverage: {
-      included: included.length,
+      included: sources.filter((source) => source.status === "included").length,
       excluded: sources.filter((source) => source.status === "excluded").length,
       unsupported: sources.filter((source) => source.status === "unsupported").length,
       includedBytes,
@@ -63880,6 +63891,35 @@ async function assertNoKnowledgeMaterializationTransaction(input) {
       return;
   }
   throw new RepositoryKnowledgeError("knowledge_recovery_required", "The previous knowledge materialization transaction must be recovered first.");
+}
+
+// packages/repository-knowledge/dist/agent-artifact-summary.js
+var reviewDispositions = /* @__PURE__ */ new Set([
+  "portable_skill_review",
+  "workflow_review",
+  "provider_specific_review"
+]);
+function summarizeRepositoryAgentArtifacts(scan) {
+  const items = scan.sources.flatMap((source) => source.agentArtifact === void 0 ? [] : [
+    {
+      path: source.path,
+      status: source.status,
+      classification: source.classification,
+      ...source.agentArtifact
+    }
+  ]).sort((left, right) => left.path.localeCompare(right.path));
+  const byRole = {};
+  for (const item of items)
+    byRole[item.role] = (byRole[item.role] ?? 0) + 1;
+  return {
+    total: items.length,
+    semanticSources: items.filter((item) => item.contentHandling === "semantic_source" && item.status === "included").length,
+    localInventoryOnly: items.filter((item) => item.contentHandling === "local_inventory_only").length,
+    reviewRequired: items.filter((item) => reviewDispositions.has(item.migrationDisposition)).length,
+    nonstandard: items.filter((item) => item.discovery === "not_standard" || item.discovery === "not_current_standard").length,
+    byRole,
+    items
+  };
 }
 
 // packages/repository-knowledge/dist/publication-snapshot.js

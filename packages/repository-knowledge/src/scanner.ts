@@ -184,6 +184,14 @@ function agentArtifactFields(
   return agentArtifact === undefined ? {} : { agentArtifact };
 }
 
+function opaqueSkillResourceFields(
+  path: string,
+): Pick<RepositorySource, "agentArtifact"> | Record<string, never> {
+  const agentArtifact = repositoryAgentArtifactForPath(path);
+  if (agentArtifact?.role !== "skill_resource") return {};
+  return { agentArtifact: { ...agentArtifact, contentHandling: "opaque_resource" } };
+}
+
 async function safeReadFile(path: string, expectedSize: number): Promise<Uint8Array> {
   let handle;
   try {
@@ -605,7 +613,33 @@ export async function scanRepositoryKnowledge(input: {
         });
         continue;
       }
+      const bytes = await safeReadFile(absolute, stats.size);
+      const includeOpaqueSkillResource = (): boolean => {
+        const opaqueFields = opaqueSkillResourceFields(path);
+        if (!("agentArtifact" in opaqueFields)) return false;
+        includedBytes += bytes.byteLength;
+        if (includedBytes > input.policy.limits.maxTotalBytes) {
+          throw new RepositoryKnowledgeError(
+            "knowledge_source_limit_exceeded",
+            "Read source bytes exceed the policy limit.",
+          );
+        }
+        sources.push({
+          sourceId: id,
+          path,
+          ...identityFields,
+          kind: repositorySourceKindForPath(path),
+          ...opaqueFields,
+          status: "included",
+          classification: "ordinary",
+          byteCount: bytes.byteLength,
+          contentHash: sha256(bytes),
+          reason: "opaque_portable_skill_resource",
+        });
+        return true;
+      };
       if (binaryExtensions.has(extname(path).toLowerCase())) {
+        if (includeOpaqueSkillResource()) continue;
         sources.push({
           sourceId: id,
           path,
@@ -620,8 +654,8 @@ export async function scanRepositoryKnowledge(input: {
         });
         continue;
       }
-      const bytes = await safeReadFile(absolute, stats.size);
       if (bytes.includes(0)) {
+        if (includeOpaqueSkillResource()) continue;
         sources.push({
           sourceId: id,
           path,
@@ -640,6 +674,7 @@ export async function scanRepositoryKnowledge(input: {
       try {
         content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
       } catch {
+        if (includeOpaqueSkillResource()) continue;
         sources.push({
           sourceId: id,
           path,
@@ -891,7 +926,7 @@ export async function scanRepositoryKnowledge(input: {
       units: contentUnitVersions,
     }),
     coverage: {
-      included: included.length,
+      included: sources.filter((source) => source.status === "included").length,
       excluded: sources.filter((source) => source.status === "excluded").length,
       unsupported: sources.filter((source) => source.status === "unsupported").length,
       includedBytes,

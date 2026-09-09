@@ -25,7 +25,7 @@ import type {
 } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
 import { assertNoKnowledgeMaterializationTransaction } from "./durable-apply.js";
-import { summarizeRepositoryAgentArtifacts } from "./agent-artifact-profile.js";
+import { summarizeRepositoryAgentArtifacts } from "./agent-artifact-summary.js";
 import {
   repositoryPublicationMessages,
   type RepositoryPublicationGroup,

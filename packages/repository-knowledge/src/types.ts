@@ -68,7 +68,7 @@ export interface RepositoryAgentArtifact {
     | "execution_policy_preserve"
     | "local_preserve"
     | "nonstandard_preserve";
-  contentHandling: "semantic_source" | "local_inventory_only";
+  contentHandling: "semantic_source" | "opaque_resource" | "local_inventory_only";
 }
 
 export interface RepositoryKnowledgePolicy {

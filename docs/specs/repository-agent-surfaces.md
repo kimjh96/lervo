@@ -5,23 +5,13 @@ As of: 2026-08-30
 
 ## Scope
 
-This specification owns recognized provider entrypoints, instruction routing, upgrade migration, and repository-rewriter protection. The main [repository knowledge compilation specification](repository-knowledge-compilation.md) owns scanning and publication. [Lifecycle convergence](repository-knowledge-lifecycle-convergence.md) owns ordered repair and final lint.
+This specification owns recognized provider entrypoints, instruction routing, upgrade migration, and repository-rewriter protection. [Repository knowledge compilation](repository-knowledge-compilation.md) owns scanning and publication. [Lifecycle convergence](repository-knowledge-lifecycle-convergence.md) owns ordered repair and final lint.
 
-## Recognized surfaces
+## Contracts
 
-Recognized surfaces include AGENTS hierarchy; Claude memory, rules, skills, commands, agents, and settings; Codex rules, hooks, configuration, and custom agents; Agent Skills; and supported third-party entrypoints.
-
-Behavioral instructions, portable skills, and reviewable workflows may be semantic sources. Execution policy, hooks, client and tool configuration, provider subagents, local memory, and unknown `.agents/**` remain inventory-only. Migration may merge only versioned Lervo terminal handlers into project arrays after exact approval. Existing provider semantics are not translated. `.agents/rules/**` is not standard.
-
-## Fixed-size instruction routing
-
-AGENTS contains one fixed-size registry bootstrap rather than one route per source. Task purpose and target paths select current instructions and portable skills through repository knowledge query. Adding, removing, or promoting an independently addressed source does not edit AGENTS.
-
-Schema-1 enumerated routes and the obsolete promoted-pattern block migrate to schema 2. A managed-block-only change is safe upgrade state and preserves all surrounding user bytes. Any coincident user-region rewrite retains exact approval. Immediate replanning after an applied migration is current.
-
-## Rewrite ownership
-
-[Tool-neutral rewrite ownership](repository-knowledge-lifecycle-convergence.md#tool-neutral-rewrite-ownership) protects generated, managed-block, and reviewed-exact bytes from formatter, autofix, transform, and generator adapters. The neutral registry is authoritative; tracked `.prettierignore` projection is deprecated compatibility state.
+- [Recognized surfaces](repository-agent-surfaces/recognized-surfaces.md): classification, resource handling, and provider migration boundaries.
+- [Fixed-size instruction routing](repository-agent-surfaces/instruction-routing.md): registry bootstrap and schema upgrades.
+- [Rewrite ownership](repository-agent-surfaces/rewrite-ownership.md): protection of generated, managed, and reviewed bytes under [tool-neutral rewrite ownership](repository-knowledge-lifecycle-convergence.md#tool-neutral-rewrite-ownership).
 
 ## Decisions
 

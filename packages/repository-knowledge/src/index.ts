@@ -48,6 +48,7 @@ export * from "./instruction-bridge.js";
 export * from "./instruction-bootstrap.js";
 export * from "./instruction-routes.js";
 export * from "./agent-artifact-profile.js";
+export * from "./agent-artifact-summary.js";
 export * from "./agent-profile-pattern.js";
 export * from "./lint-query.js";
 export * from "./query.js";

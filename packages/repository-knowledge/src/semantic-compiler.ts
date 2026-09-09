@@ -195,7 +195,8 @@ function sourceUnitData(scan: RepositoryKnowledgeScan): SemanticCompilerSourceUn
         (source) =>
           source.status === "included" &&
           source.classification === "ordinary" &&
-          source.agentArtifact?.contentHandling !== "local_inventory_only" &&
+          (source.agentArtifact === undefined ||
+            source.agentArtifact.contentHandling === "semantic_source") &&
           source.content !== undefined &&
           source.contentHash !== null,
       )

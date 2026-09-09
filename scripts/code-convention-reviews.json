@@ -151,7 +151,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/compiler.ts",
-      "contentHash": "sha256:6205e5d0c9e69364876edb8526e62c96f3634b0f50028231f6d25c200271fd99",
+      "contentHash": "sha256:9998bfe3bb37a05d81082038ea1e7848a52f54e3ca0baea8aa808c654caabbf6",
       "responsibility": "Deterministic structural knowledge compiler",
       "rationale": "Publication rendering, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract.",
       "disposition": "cohesive"
@@ -235,14 +235,14 @@
     },
     {
       "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:b65650ca49bd60cfd20c60d12cd6ddf79f2ddfb3a9b704a887503b422a6b6fe3",
+      "contentHash": "sha256:7aa1eeb812b8efa189fc3e69ca2f067153750b77412bb59114992872dde0eb06",
       "responsibility": "Bounded repository knowledge scanner",
       "rationale": "Classification, safe reads, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/semantic-compiler.ts",
-      "contentHash": "sha256:b74fc329979f8c786252bf6261b17ba60bbbdf588713743aefe0dbdfedb83473",
+      "contentHash": "sha256:c65122d6efda0b8ad660fb8e4c726453145590ae1fd376a32e1d5deac24456b0",
       "responsibility": "Semantic knowledge candidate compiler",
       "rationale": "Compilation identity, bounded sharding, provider response validation, and candidate assembly are phases of one semantic compiler contract.",
       "disposition": "cohesive"
@@ -270,7 +270,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:d639edb24aef6b387ad4b7072d6aa72dd7c4be41f6df08f105217f5618de8be0",
+      "contentHash": "sha256:9c8fea28014cc64c60a6e5c69243a988f92437f9420eb13f9a48f2f066e0f665",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, and typed domain failures without owning their implementations.",
       "disposition": "cohesive"

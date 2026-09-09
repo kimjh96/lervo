@@ -54,6 +54,13 @@ describe("repository agent artifact profiles", () => {
     ],
     [".agents/skills/deploy/SKILL.md", "shared", "skill", "portable_skill", "semantic_source"],
     [
+      ".agents/skills/deploy/assets/preview.png",
+      "shared",
+      "skill_resource",
+      "portable_skill_resource",
+      "opaque_resource",
+    ],
+    [
       ".claude/commands/release.md",
       "claude",
       "legacy_command",
@@ -162,6 +169,36 @@ describe("repository agent artifact profiles", () => {
       role: "skill_resource",
       discovery: "on_demand",
     });
+  });
+
+  it("hashes opaque portable skill resources without decoding them as semantic text", async () => {
+    const root = await fixtureRepository();
+    const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff]);
+    await mkdir(resolve(root, ".agents/skills/deploy/assets"), { recursive: true });
+    await writeFile(resolve(root, ".agents/skills/deploy/assets/preview.png"), bytes);
+
+    const scan = await scanRepositoryKnowledge({
+      repositoryRoot: root,
+      projectId: "prj_opaqueskillfixture",
+      policy: defaultRepositoryKnowledgePolicy,
+      observeRevision: async () => ({ status: "observed", content: `${"1".repeat(40)}\n` }),
+    });
+
+    const opaqueSource = scan.sources.find((source) => source.path.endsWith("preview.png"));
+    expect(opaqueSource).toMatchObject({
+      kind: "skill_contract",
+      status: "included",
+      classification: "ordinary",
+      byteCount: bytes.byteLength,
+      contentHash: sha256(bytes),
+      reason: "opaque_portable_skill_resource",
+      agentArtifact: { role: "skill_resource", contentHandling: "opaque_resource" },
+    });
+    expect(opaqueSource).not.toHaveProperty("content");
+    expect(scan.units).not.toContainEqual(
+      expect.objectContaining({ path: expect.stringContaining("preview.png") }),
+    );
+    expect(scan.coverage).toMatchObject({ included: 2, unsupported: 0 });
   });
 
   it("distinguishes repository provider directories from nested project surfaces", () => {
