@@ -257,6 +257,72 @@ describe("natural-language Discord conversation mode", () => {
     await expect(managedMode.evaluate(fourth)).resolves.toBe("relevant");
     await expect(managedMode.respond(fourth)).resolves.toEqual(managedReply);
     expect(managedResolve).toHaveBeenCalledTimes(1);
+
+    const agentWorkResolver = {
+      resolve: vi.fn(async () => ({
+        intent: "continue_work" as const,
+        confidence: "high" as const,
+        participation: "relevant" as const,
+        effect: { kind: "repository_work" as const, argument: null },
+        provider: {
+          providerId: "codex",
+          requestedModel: "gpt-requested",
+          model: "gpt-observed",
+          observedModelIds: ["gpt-observed"],
+          answerModelEvidence: "thread_start" as const,
+          modelUnavailableReason: null,
+          adapterVersion: "4" as const,
+        },
+        resultDigest: `sha256:${"a".repeat(64)}`,
+        replyCandidate: null,
+      })),
+    };
+    const agentWork = await input("cevt_test0005");
+    agentWork.event.actor = {
+      kind: "agent",
+      participantId: "ptc_ceoagent01",
+      roleId: "ceo",
+    };
+    const restrictedAgentMode = new NaturalLanguageDiscordConversationResponder({
+      applicationId,
+      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "developer" },
+      repositoryRoot: process.cwd(),
+      artifactStore,
+      history: { recent: async () => [] },
+      resolutionStore: { read: async () => null, record: async () => undefined },
+      managedTurnResolver: agentWorkResolver,
+      surfaceEffects: [],
+      participationPolicy,
+      readOnly: readOnly as ConversationResponder,
+      continuation: continuation as ConversationResponder,
+      platformAction,
+    });
+    await expect(restrictedAgentMode.mode(agentWork.event)).resolves.toBe("clarify");
+
+    const authorizedAgentMode = new NaturalLanguageDiscordConversationResponder({
+      applicationId,
+      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "developer" },
+      authorizedAgentEffectRequesters: [
+        {
+          participantId: "ptc_ceoagent01",
+          roleId: "ceo",
+          conversationId: "cnv_test0001",
+        },
+      ],
+      repositoryRoot: process.cwd(),
+      artifactStore,
+      history: { recent: async () => [] },
+      resolutionStore: { read: async () => null, record: async () => undefined },
+      managedTurnResolver: agentWorkResolver,
+      surfaceEffects: [],
+      participationPolicy,
+      readOnly: readOnly as ConversationResponder,
+      continuation: continuation as ConversationResponder,
+      platformAction,
+    });
+    await expect(authorizedAgentMode.mode(agentWork.event)).resolves.toBe("continuation");
+    await authorizedAgentMode.respond(agentWork);
+    expect(continuation.respond).toHaveBeenCalledTimes(2);
   });
 });
 

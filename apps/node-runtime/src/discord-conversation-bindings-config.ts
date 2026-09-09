@@ -52,7 +52,15 @@ export function parseDiscordParticipantBindings(
     const source = configRecord(item, `discordConversation.participants[${index}]`);
     exactConfigKeys(
       source,
-      ["tenantKey", "userId", "participantId", "actorKind", "roleId", "startsAutomationChain"],
+      [
+        "tenantKey",
+        "userId",
+        "participantId",
+        "actorKind",
+        "roleId",
+        "startsAutomationChain",
+        "mayRequestEffects",
+      ],
       `discordConversation.participants[${index}]`,
     );
     const tenantKey = configText(source.tenantKey, "participant tenantKey");
@@ -64,6 +72,7 @@ export function parseDiscordParticipantBindings(
         ? null
         : configText(source.roleId, "participant roleId");
     const startsAutomationChain = source.startsAutomationChain;
+    const mayRequestEffects = source.mayRequestEffects;
     if (
       !(tenantKey === "dm" || SNOWFLAKE.test(tenantKey)) ||
       !SNOWFLAKE.test(userId) ||
@@ -72,7 +81,9 @@ export function parseDiscordParticipantBindings(
       (actorKind === "human" ? roleId !== null : roleId === null) ||
       (roleId !== null && !IDENTIFIER.test(roleId)) ||
       (startsAutomationChain !== undefined && typeof startsAutomationChain !== "boolean") ||
-      (startsAutomationChain === true && actorKind !== "agent")
+      (startsAutomationChain === true && actorKind !== "agent") ||
+      (mayRequestEffects !== undefined && typeof mayRequestEffects !== "boolean") ||
+      (mayRequestEffects === true && actorKind !== "agent")
     ) {
       throw new NodeRuntimeError("invalid_config", "A Discord participant binding is invalid.");
     }
@@ -83,6 +94,7 @@ export function parseDiscordParticipantBindings(
       actorKind: actorKind as "human" | "agent",
       roleId,
       ...(startsAutomationChain === true ? { startsAutomationChain: true } : {}),
+      ...(mayRequestEffects === true ? { mayRequestEffects: true } : {}),
     };
   });
   if (new Set(parsed.map((item) => `${item.tenantKey}\0${item.userId}`)).size !== parsed.length) {

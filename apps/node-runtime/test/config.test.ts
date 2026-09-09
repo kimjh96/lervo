@@ -279,6 +279,7 @@ describe("Node runtime configuration", () => {
       actorKind: "agent",
       roleId: "ceo",
       startsAutomationChain: true,
+      mayRequestEffects: true,
     });
     expect(
       parseNodeRuntimeConfig(trustedAgentInitiator, root).discordConversation?.participants,
@@ -288,6 +289,7 @@ describe("Node runtime configuration", () => {
           actorKind: "agent",
           roleId: "ceo",
           startsAutomationChain: true,
+          mayRequestEffects: true,
         }),
       ]),
     );
@@ -298,6 +300,15 @@ describe("Node runtime configuration", () => {
       }
     ).participants[0]!.startsAutomationChain = true;
     expect(() => parseNodeRuntimeConfig(invalidHumanInitiator, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
+    const invalidHumanEffectRequester = structuredClone(configured);
+    (
+      invalidHumanEffectRequester.discordConversation as {
+        participants: Array<Record<string, unknown>>;
+      }
+    ).participants[0]!.mayRequestEffects = true;
+    expect(() => parseNodeRuntimeConfig(invalidHumanEffectRequester, root)).toThrow(
       expect.objectContaining({ code: "invalid_config" }),
     );
     const invalidHumanParticipation = structuredClone(configured);

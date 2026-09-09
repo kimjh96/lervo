@@ -96,6 +96,7 @@ export interface NodeDiscordConversationConfig {
     actorKind: "human" | "agent";
     roleId: string | null;
     startsAutomationChain?: boolean;
+    mayRequestEffects?: boolean;
   }>;
   administration?: {
     allowedActions: Array<

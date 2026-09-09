@@ -65,6 +65,11 @@ export class NaturalLanguageDiscordConversationResponder
     private readonly options: {
       applicationId: string;
       respondingAgent: { agentId: string | null; roleId: string };
+      authorizedAgentEffectRequesters?: readonly {
+        participantId: string;
+        roleId: string;
+        conversationId: string;
+      }[];
       repositoryRoot: string;
       artifactStore: ArtifactStore;
       history: ConversationHistoryPort;
@@ -79,6 +84,23 @@ export class NaturalLanguageDiscordConversationResponder
       explicitControl?: ConversationResponder;
     },
   ) {}
+
+  private admittedMode(
+    event: ConversationInboundEvent,
+    resolution: ConversationIntentResolution,
+  ): DiscordConversationMode {
+    const mode = modeFor(resolution);
+    if (!["continuation", "platform_action"].includes(mode) || event.actor.kind === "human") {
+      return mode;
+    }
+    const admitted = this.options.authorizedAgentEffectRequesters?.some(
+      (requester) =>
+        requester.participantId === event.actor.participantId &&
+        requester.roleId === event.actor.roleId &&
+        requester.conversationId === event.target.conversationId,
+    );
+    return admitted === true ? mode : "clarify";
+  }
 
   async mode(event: ConversationInboundEvent): Promise<DiscordConversationMode> {
     return (await this.resolution(event)).mode;
@@ -155,12 +177,8 @@ export class NaturalLanguageDiscordConversationResponder
         resolution,
         resolvedAt: new Date().toISOString(),
       });
-      const mode = modeFor(resolution);
       return {
-        mode:
-          ["continuation", "platform_action"].includes(mode) && event.actor.kind !== "human"
-            ? "clarify"
-            : mode,
+        mode: this.admittedMode(event, resolution),
         resolution,
         priorTurns,
         replyCandidate: managed.replyCandidate,
@@ -168,12 +186,8 @@ export class NaturalLanguageDiscordConversationResponder
     }
     const stored = await this.options.resolutionStore.read(event);
     if (stored !== null) {
-      const storedMode = modeFor(stored);
       return {
-        mode:
-          ["continuation", "platform_action"].includes(storedMode) && event.actor.kind !== "human"
-            ? "clarify"
-            : storedMode,
+        mode: this.admittedMode(event, stored),
         resolution: stored,
         priorTurns,
         replyCandidate: null,
@@ -204,12 +218,8 @@ export class NaturalLanguageDiscordConversationResponder
       resolution,
       resolvedAt: new Date().toISOString(),
     });
-    const mode = modeFor(resolution);
     return {
-      mode:
-        ["continuation", "platform_action"].includes(mode) && event.actor.kind !== "human"
-          ? "clarify"
-          : mode,
+      mode: this.admittedMode(event, resolution),
       resolution,
       priorTurns,
       replyCandidate: null,

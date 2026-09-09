@@ -20,6 +20,7 @@ A channel may contain people and multiple hired agents with different roles. Mes
 - Every eligible unaddressed human message has one deterministic owner in conversational deployments; semantic participation failure cannot silently discard it.
 - Agent-authored discussion is read-only by default.
 - Uncorrelated agent messages begin at maximum automation depth unless an exact reviewed participant binding designates the coordinating agent as a chain starter; that designation grants no effect authority.
+- Agent-authored continuation and platform effects require a separate exact participant, role, tenant, and conversation opt-in, then retain the existing signed command and allowlisted-effect boundaries.
 - Repository mutation, external effects, assignment changes, and approval resolution require their existing authority paths.
 - Participation policies, maximum automation depth, response budgets, explicit deliberation termination, and self-message suppression must prevent agent reply loops.
 

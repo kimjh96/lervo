@@ -183,6 +183,17 @@ export async function openNodeDiscordConversationRuntime(
         agentId: agentParticipation.agentId,
         roleId: agentParticipation.roleId,
       },
+      authorizedAgentEffectRequesters: config.participants.flatMap((participant) =>
+        participant.mayRequestEffects === true && participant.roleId !== null
+          ? config.conversations
+              .filter((conversation) => conversation.tenantKey === participant.tenantKey)
+              .map((conversation) => ({
+                participantId: participant.participantId,
+                roleId: participant.roleId!,
+                conversationId: conversation.conversationId,
+              }))
+          : [],
+      ),
       repositoryRoot: options.repositoryRoot,
       artifactStore: artifacts,
       history: new SQLiteConversationHistory(

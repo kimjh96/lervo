@@ -6,4 +6,6 @@ Agent-authored discussion is disabled by default. When enabled, deterministic tu
 
 An uncorrelated agent message starts at the maximum automation depth unless the current participant binding explicitly marks that exact identity as an automation-chain starter. A reviewed starter begins at depth zero but gains no repository, organization, or platform-effect authority from that designation. This keeps ordinary bot-loop suppression as the default while allowing an appointed coordinating agent to initiate a bounded conversation through a replaceable surface.
 
+Agent-authored repository continuation and platform effects have a second, independent opt-in. The runtime admits them only for an exact configured participant and role within the tenant-derived mapped conversation. Admission routes through the existing signed continuation or allowlisted effect adapter and never expands command roles, effect kinds, provider capabilities, or repository permissions.
+
 Workforce provider authority may be fixed to Codex or Claude or remain policy-selectable. A future automatic selector must bind the exact model, policy version, reason, and availability, capability, cost, and latency checks. It must fail closed when no candidate qualifies.
