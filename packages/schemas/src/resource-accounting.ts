@@ -17,7 +17,7 @@ export const resourceAccountingDescriptorShape = {
   type: "object",
   properties: {
     kind: { const: "resource_accounting_descriptor" },
-    schemaVersion: { type: "integer", const: 1 },
+    schemaVersion: { type: "integer", const: 2 },
     provider: providerSchema,
     adapterId: adapterIdSchema,
     adapterVersion: { type: "string", minLength: 1 },
@@ -26,7 +26,17 @@ export const resourceAccountingDescriptorShape = {
     unavailableReason: { anyOf: [reasonCodeSchema, { type: "null" }] },
     normalizationId: { type: "string", pattern: "^[a-z][a-z0-9_.-]{0,127}$" },
     nativeCounterSemanticsId: { type: "string", pattern: "^[a-z][a-z0-9_.-]{0,127}$" },
-    model: { anyOf: [{ type: "string", minLength: 1 }, { type: "null" }] },
+    requestedModel: {
+      anyOf: [
+        {
+          type: "string",
+          minLength: 1,
+          maxLength: 128,
+          pattern: "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$",
+        },
+        { type: "null" },
+      ],
+    },
     serviceTier: { anyOf: [{ type: "string", minLength: 1 }, { type: "null" }] },
   },
   required: [
@@ -40,7 +50,7 @@ export const resourceAccountingDescriptorShape = {
     "unavailableReason",
     "normalizationId",
     "nativeCounterSemanticsId",
-    "model",
+    "requestedModel",
     "serviceTier",
   ],
   oneOf: [

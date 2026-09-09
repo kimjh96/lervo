@@ -2,8 +2,14 @@ import { chmod, lstat, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-import type { ManagedConversationResponseArtifactPort } from "@lervo/conversation-responder";
+import type {
+  ManagedConversationGeneratedArtifact,
+  ManagedConversationResponseArtifactPort,
+} from "@lervo/conversation-responder";
 import type { WritingArtifactCoordinate } from "@lervo/writing";
+
+const MODEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u;
+const REASON_PATTERN = /^[a-z][a-z0-9_]{0,63}$/u;
 
 function validArtifact(value: unknown): value is WritingArtifactCoordinate {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
@@ -18,6 +24,40 @@ function validArtifact(value: unknown): value is WritingArtifactCoordinate {
     Number.isSafeInteger(artifact.byteCount) &&
     artifact.byteCount! >= 0 &&
     artifact.byteCount! <= 65_536
+  );
+}
+
+function validResult(value: unknown): value is ManagedConversationGeneratedArtifact {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const result = value as Partial<ManagedConversationGeneratedArtifact>;
+  const identity = result.modelIdentity;
+  const observedModelIds = identity?.observedModelIds;
+  const answerModelEvidence: unknown = identity?.answerModelEvidence;
+  return (
+    validArtifact(result.artifact) &&
+    typeof identity === "object" &&
+    identity !== null &&
+    typeof identity.provider === "string" &&
+    ["codex", "claude", "lervo"].includes(identity.provider) &&
+    (identity.requestedModel === null ||
+      (typeof identity.requestedModel === "string" &&
+        MODEL_PATTERN.test(identity.requestedModel))) &&
+    (identity.answerModel === null ||
+      (typeof identity.answerModel === "string" && MODEL_PATTERN.test(identity.answerModel))) &&
+    Array.isArray(observedModelIds) &&
+    observedModelIds.length <= 32 &&
+    new Set(observedModelIds).size === observedModelIds.length &&
+    observedModelIds.every((model) => MODEL_PATTERN.test(model)) &&
+    (identity.answerModel === null || observedModelIds.includes(identity.answerModel)) &&
+    typeof answerModelEvidence === "string" &&
+    ["thread_start", "response_object", "assistant_message", "unavailable"].includes(
+      answerModelEvidence,
+    ) &&
+    (identity.answerModel === null
+      ? answerModelEvidence === "unavailable" &&
+        typeof identity.unavailableReason === "string" &&
+        REASON_PATTERN.test(identity.unavailableReason)
+      : answerModelEvidence !== "unavailable" && identity.unavailableReason === null)
   );
 }
 
@@ -66,27 +106,27 @@ export class SQLiteConversationResponseArtifactStore implements ManagedConversat
     }
   }
 
-  async get(requestDigest: string): Promise<WritingArtifactCoordinate | null> {
+  async get(requestDigest: string): Promise<ManagedConversationGeneratedArtifact | null> {
     this.assertOpen();
     this.assertDigest(requestDigest);
     const row = this.database
       .prepare("SELECT artifact_json FROM response_artifacts WHERE request_digest = ?")
       .get(requestDigest) as { artifact_json: string } | undefined;
     if (row === undefined) return null;
-    const artifact: unknown = JSON.parse(row.artifact_json);
-    if (!validArtifact(artifact)) {
+    const result: unknown = JSON.parse(row.artifact_json);
+    if (!validResult(result)) {
       throw new Error("The cached conversation response artifact is invalid.");
     }
-    return artifact;
+    return result;
   }
 
   async put(input: Parameters<ManagedConversationResponseArtifactPort["put"]>[0]): Promise<void> {
     this.assertOpen();
     this.assertDigest(input.requestDigest);
-    if (!validArtifact(input.artifact) || !Number.isFinite(Date.parse(input.createdAt))) {
+    if (!validResult(input.result) || !Number.isFinite(Date.parse(input.createdAt))) {
       throw new Error("The conversation response artifact record is invalid.");
     }
-    const artifactJson = JSON.stringify(input.artifact);
+    const artifactJson = JSON.stringify(input.result);
     this.database.exec("BEGIN IMMEDIATE;");
     try {
       const current = this.database

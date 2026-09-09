@@ -25,8 +25,12 @@ describe("conversation intent resolution evidence", () => {
         effect: { kind: "none" as const },
         provider: {
           providerId: "claude",
+          requestedModel: "claude-sonnet",
           model: "claude-sonnet-4-6",
-          adapterVersion: "2" as const,
+          observedModelIds: ["claude-haiku-4-5", "claude-sonnet-4-6"],
+          answerModelEvidence: "assistant_message" as const,
+          modelUnavailableReason: null,
+          adapterVersion: "4" as const,
         },
         resultDigest: `sha256:${"b".repeat(64)}`,
       },
@@ -50,6 +54,9 @@ describe("conversation intent resolution evidence", () => {
       event_id: event.eventId,
       provider_id: "claude",
       model: "claude-sonnet-4-6",
+      requested_model: "claude-sonnet",
+      observed_model_ids_json: '["claude-haiku-4-5","claude-sonnet-4-6"]',
+      answer_model_evidence: "assistant_message",
       intent: "answer",
       participation: "not_relevant",
     });

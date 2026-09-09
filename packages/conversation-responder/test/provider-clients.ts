@@ -41,7 +41,7 @@ export class ConversationCodexClient implements CodexAppServerClient {
 
   async startThread(options: CodexThreadStartOptions) {
     this.startOptions = structuredClone(options);
-    return { threadId: this.threadId };
+    return { threadId: this.threadId, model: "codex-conversation-observed" };
   }
 
   async injectItems(_threadId: string, items: readonly unknown[]) {
@@ -118,6 +118,13 @@ export class ConversationClaudeClient implements ClaudeAgentClient {
         parent_tool_use_id: null,
       },
       {
+        type: "assistant",
+        uuid: `${turnId}-assistant`,
+        session_id: this.providerSessionId,
+        parent_tool_use_id: null,
+        message: { model: "claude-conversation-observed", content: [] },
+      },
+      {
         type: "result",
         subtype: "success",
         is_error: false,
@@ -126,6 +133,15 @@ export class ConversationClaudeClient implements ClaudeAgentClient {
         session_id: this.providerSessionId,
         duration_ms: 1,
         result: this.result,
+        modelUsage: {
+          "claude-conversation-observed": {
+            inputTokens: 1,
+            outputTokens: 1,
+            cacheReadInputTokens: 0,
+            cacheCreationInputTokens: 0,
+            contextWindow: 1000,
+          },
+        },
       },
     );
   }

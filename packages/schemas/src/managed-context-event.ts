@@ -8,6 +8,7 @@ import {
   scopeSchema,
   sha256Schema,
 } from "./common.js";
+import { providerModelIdentitySchema } from "./provider-model-identity.js";
 
 const providerCoordinateSchema = {
   type: "string",
@@ -69,6 +70,7 @@ export const adapterResultCapturedEventPayloadSchema = {
     providerSessionId: providerCoordinateSchema,
     targetTurnId: providerCoordinateSchema,
     providerTurnId: providerCoordinateSchema,
+    modelIdentity: providerModelIdentitySchema,
     resultDigest: sha256Schema,
     byteCount: { type: "integer", minimum: 1, maximum: 4 * 1024 * 1024 },
     mediaType: { const: "text/markdown; charset=utf-8" },
@@ -79,6 +81,7 @@ export const adapterResultCapturedEventPayloadSchema = {
     "providerSessionId",
     "targetTurnId",
     "providerTurnId",
+    "modelIdentity",
     "resultDigest",
     "byteCount",
     "mediaType",

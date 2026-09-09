@@ -5,6 +5,7 @@ import {
   type ResourceAccountingDescriptor,
   type ResourceUsage,
   type ResourceUsageRecordedEventPayload,
+  type ProviderModelIdentity,
   type WorkCausalityRecordedEventPayload,
   validateSchema,
 } from "@lervo/schemas";
@@ -129,12 +130,33 @@ export class ResourceUsageAccumulator {
   private readonly snapshots = new Map<string, ResourceUsage>();
   private readonly deltaDigests = new Map<string, string>();
   private invalidReason: string | null = null;
+  private modelIdentity: ProviderModelIdentity;
 
   constructor(
     private readonly descriptor: ResourceAccountingDescriptor,
     private readonly coordinates: ResourceObservationCoordinates,
   ) {
     assertResourceAccountingDescriptor(descriptor);
+    this.modelIdentity = {
+      provider: descriptor.provider,
+      requestedModel: descriptor.requestedModel,
+      answerModel: null,
+      observedModelIds: [],
+      answerModelEvidence: "unavailable",
+      unavailableReason: "provider_model_unavailable",
+    };
+  }
+
+  observeModelIdentity(identity: ProviderModelIdentity): void {
+    if (
+      identity.provider !== this.descriptor.provider ||
+      identity.requestedModel !== this.descriptor.requestedModel ||
+      (identity.answerModel !== null && !identity.observedModelIds.includes(identity.answerModel))
+    ) {
+      this.invalidReason = "model_identity_mismatch";
+      return;
+    }
+    this.modelIdentity = structuredClone(identity);
   }
 
   observe(event: AdapterNormalizedEvent): void {
@@ -194,6 +216,7 @@ export class ResourceUsageAccumulator {
       source: "provider_reported" as const,
       accountingMode: this.descriptor.accountingMode,
       accountingDescriptorHash: descriptorHash,
+      modelIdentity: structuredClone(this.modelIdentity),
     };
     if (this.invalidReason !== null) {
       return { ...base, status: "invalid", usage: null, reasonCode: this.invalidReason };

@@ -14,6 +14,8 @@ export class CodexSessionRegistry {
     session: AdapterSession,
     client: CodexAppServerClient,
     capabilityActivations: CodexSessionState["capabilityActivations"],
+    requestedModel: string | null,
+    sessionObservedModel: string | null,
   ): void {
     if (this.has(session.providerSessionId)) {
       throw new CodexAdapterError("provider_protocol_failed", "The Codex thread ID is duplicated.");
@@ -24,6 +26,8 @@ export class CodexSessionRegistry {
       injectedTargetTurnIds: new Set(),
       startedTargetTurnIds: new Set(),
       turnResults: new Map(),
+      requestedModel,
+      sessionObservedModel,
       eventStreamClaimed: false,
       capabilityActivations: structuredClone(capabilityActivations),
       activationConfirmed: false,

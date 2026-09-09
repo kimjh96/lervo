@@ -128,7 +128,7 @@
     "claimEligibilitySources": [
       {
         "path": "packages/schemas/src/adapter.ts",
-        "digest": "sha256:396a1f8357eee912ec5644dfdfc15af3a0dec5053b3ac5f88c3a19caceb66d0a"
+        "digest": "sha256:f715e26177c86ddbe74c59fcddb0c98ac1174fdb8f6e3cd36c3777c2cc1cdd48"
       },
       {
         "path": "packages/adapter-contract/src/context-reference.ts",

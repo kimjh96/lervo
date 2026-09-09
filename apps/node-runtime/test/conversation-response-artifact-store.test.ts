@@ -1,6 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -13,19 +14,29 @@ afterEach(async () => {
 });
 
 describe("conversation response artifact store", () => {
-  it("retains one immutable generated artifact across restart", async () => {
+  it("retains one immutable generated artifact and rejects invalid model identity", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-response-artifact-"));
     roots.push(root);
     const path = resolve(root, "response-artifacts.sqlite");
     const contentHash = `sha256:${"a".repeat(64)}`;
     const record = {
       requestDigest: `sha256:${"b".repeat(64)}`,
-      artifact: {
-        artifactId: `art_${"a".repeat(64)}`,
-        uri: `lervo-cas://sha256/${"a".repeat(64)}`,
-        mediaType: "text/markdown; charset=utf-8" as const,
-        contentHash,
-        byteCount: 42,
+      result: {
+        artifact: {
+          artifactId: `art_${"a".repeat(64)}`,
+          uri: `lervo-cas://sha256/${"a".repeat(64)}`,
+          mediaType: "text/markdown; charset=utf-8" as const,
+          contentHash,
+          byteCount: 42,
+        },
+        modelIdentity: {
+          provider: "codex",
+          requestedModel: null,
+          answerModel: "codex-observed",
+          observedModelIds: ["codex-observed"],
+          answerModelEvidence: "thread_start" as const,
+          unavailableReason: null,
+        },
       },
       createdAt: "2026-09-08T09:00:00.000Z",
     };
@@ -34,14 +45,35 @@ describe("conversation response artifact store", () => {
     store.close();
 
     store = await SQLiteConversationResponseArtifactStore.open(path, 2);
-    await expect(store.get(record.requestDigest)).resolves.toEqual(record.artifact);
+    await expect(store.get(record.requestDigest)).resolves.toEqual(record.result);
     await expect(
       store.put({
         ...record,
-        artifact: { ...record.artifact, byteCount: 43 },
+        result: {
+          ...record.result,
+          artifact: { ...record.result.artifact, byteCount: 43 },
+        },
       }),
     ).rejects.toThrow("another artifact");
-    await expect(store.get(record.requestDigest)).resolves.toEqual(record.artifact);
+    await expect(store.get(record.requestDigest)).resolves.toEqual(record.result);
+    store.close();
+
+    const database = new DatabaseSync(path);
+    database
+      .prepare("UPDATE response_artifacts SET artifact_json = ? WHERE request_digest = ?")
+      .run(
+        JSON.stringify({
+          ...record.result,
+          modelIdentity: { ...record.result.modelIdentity, observedModelIds: [] },
+        }),
+        record.requestDigest,
+      );
+    database.close();
+
+    store = await SQLiteConversationResponseArtifactStore.open(path, 2);
+    await expect(store.get(record.requestDigest)).rejects.toThrow(
+      "cached conversation response artifact is invalid",
+    );
     store.close();
   });
 });

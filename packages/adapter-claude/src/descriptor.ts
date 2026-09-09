@@ -27,7 +27,7 @@ export function createClaudeResourceAccountingDescriptor(
 ): ResourceAccountingDescriptor {
   return {
     kind: "resource_accounting_descriptor",
-    schemaVersion: 1,
+    schemaVersion: 2,
     provider: "claude",
     adapterId: CLAUDE_ADAPTER_ID,
     adapterVersion: CLAUDE_ADAPTER_VERSION,
@@ -36,7 +36,7 @@ export function createClaudeResourceAccountingDescriptor(
     unavailableReason: null,
     normalizationId: "claude_sdk_usage_v1",
     nativeCounterSemanticsId: "claude_message_model_usage_cumulative_v1",
-    model: options.model ?? null,
+    requestedModel: options.model ?? null,
     serviceTier: null,
   };
 }

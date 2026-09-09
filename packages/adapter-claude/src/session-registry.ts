@@ -14,6 +14,7 @@ export class ClaudeSessionRegistry {
     session: AdapterSession,
     client: ClaudeAgentClient,
     capabilityActivations: ClaudeSessionState["capabilityActivations"],
+    requestedModel: string | null,
   ): void {
     if (this.sessions.has(session.providerSessionId)) {
       throw new ClaudeAdapterError(
@@ -27,6 +28,8 @@ export class ClaudeSessionRegistry {
       injectedTargetTurnIds: new Set(),
       startedTargetTurnIds: new Set(),
       turnResults: new Map(),
+      requestedModel,
+      answerModels: new Map(),
       eventStreamClaimed: false,
       capabilityActivations: structuredClone(capabilityActivations),
       activationConfirmed: false,
@@ -56,6 +59,7 @@ export class ClaudeSessionRegistry {
     state.injectedTargetTurnIds.clear();
     state.startedTargetTurnIds.clear();
     state.turnResults.clear();
+    state.answerModels.clear();
     state.managedWrites?.clear();
     delete state.managedWrites;
     delete state.activeTurn;

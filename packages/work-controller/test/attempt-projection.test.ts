@@ -3,6 +3,15 @@ import { describe, expect, it } from "vitest";
 import { projectManagedAttempts } from "../src/index.js";
 import { assignment, causalityPayload, event, workstreamId } from "./fixtures.js";
 
+const codexModelIdentity = {
+  provider: "codex",
+  requestedModel: null,
+  answerModel: "codex-fixture",
+  observedModelIds: ["codex-fixture"],
+  answerModelEvidence: "thread_start",
+  unavailableReason: null,
+} as const;
+
 describe("managed attempt projection", () => {
   it("replays root and retry attempts while retaining accounting boundaries", () => {
     const node = assignment("1");
@@ -31,6 +40,7 @@ describe("managed attempt projection", () => {
           source: "provider_reported",
           accountingMode: "turn_cumulative",
           accountingDescriptorHash: descriptor,
+          modelIdentity: codexModelIdentity,
           status: "observed",
           usage: {
             inputTokens: 10,
@@ -71,6 +81,7 @@ describe("managed attempt projection", () => {
           source: "provider_reported",
           accountingMode: "turn_cumulative",
           accountingDescriptorHash: descriptor,
+          modelIdentity: codexModelIdentity,
           status: "observed",
           usage: {
             inputTokens: 6,
@@ -136,6 +147,7 @@ describe("managed attempt projection", () => {
           source: "provider_reported",
           accountingMode: "turn_cumulative",
           accountingDescriptorHash: descriptor,
+          modelIdentity: codexModelIdentity,
           status: "observed",
           usage: {
             inputTokens: 10,
@@ -173,6 +185,7 @@ describe("managed attempt projection", () => {
           source: "provider_reported",
           accountingMode: "turn_cumulative",
           accountingDescriptorHash: descriptor,
+          modelIdentity: codexModelIdentity,
           status: "observed",
           usage: {
             inputTokens: 5,
@@ -244,6 +257,7 @@ describe("managed attempt projection", () => {
               source: "provider_reported",
               accountingMode: "turn_cumulative",
               accountingDescriptorHash: `sha256:${"a".repeat(64)}`,
+              modelIdentity: codexModelIdentity,
               status: "unavailable",
               usage: null,
               reasonCode: "resource_observation_missing",
@@ -281,6 +295,7 @@ describe("managed attempt projection", () => {
               source: "provider_reported",
               accountingMode: "turn_cumulative",
               accountingDescriptorHash: `sha256:${"a".repeat(64)}`,
+              modelIdentity: codexModelIdentity,
               status: "unavailable",
               usage: null,
               reasonCode: "resource_observation_missing",

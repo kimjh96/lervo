@@ -48,18 +48,18 @@ export class ManagedConversationResponder implements ManagedConversationResponde
     plan: ManagedConversationResponsePlan,
     requestDigest: string,
   ): Promise<ConversationReplyCandidate> {
-    let artifact = await this.options.responseArtifacts?.get(requestDigest);
-    if (artifact === undefined || artifact === null) {
-      artifact = await this.generateArtifact({ request: input, plan, requestDigest });
+    let generated = await this.options.responseArtifacts?.get(requestDigest);
+    if (generated === undefined || generated === null) {
+      generated = await this.generateArtifact({ request: input, plan, requestDigest });
       await this.options.responseArtifacts?.put({
         requestDigest,
-        artifact,
+        result: generated,
         createdAt: (this.options.now?.() ?? new Date()).toISOString(),
       });
     }
     try {
       return await publishConversationResponse({
-        artifact,
+        artifact: generated.artifact,
         writingContract: plan.writingContract,
         artifactStore: this.options.artifactStore,
         ...(this.options.semanticEvaluator === undefined

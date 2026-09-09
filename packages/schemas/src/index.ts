@@ -52,6 +52,7 @@ export * from "./managed-context-coverage-report.js";
 export * from "./managed-context-event.js";
 export * from "./policy.js";
 export * from "./project.js";
+export * from "./provider-model-identity.js";
 export * from "./project-identity-migration.js";
 export * from "./remote-command.js";
 export * from "./resource-accounting.js";

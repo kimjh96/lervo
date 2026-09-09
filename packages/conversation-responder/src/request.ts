@@ -53,8 +53,10 @@ export function validateConversationResponsePlan(
       !/^agt_[a-f0-9]{24}$/u.test(plan.executionIdentity.agentId)) ||
     !/^[a-z][a-z0-9_-]{0,63}$/u.test(plan.executionIdentity.provider) ||
     plan.executionIdentity.provider !== plan.adapter.descriptor.provider ||
-    (plan.executionIdentity.model !== null &&
-      (plan.executionIdentity.model.length < 1 || plan.executionIdentity.model.length > 128)) ||
+    plan.executionIdentity.requestedModel !== plan.adapter.resourceAccounting.requestedModel ||
+    (plan.executionIdentity.requestedModel !== null &&
+      (plan.executionIdentity.requestedModel.length < 1 ||
+        plan.executionIdentity.requestedModel.length > 128)) ||
     !validateSchema("role", plan.role).valid ||
     !validateSchema("writingContract", plan.writingContract).valid
   ) {
@@ -108,7 +110,7 @@ export function conversationResponseInstructions(
       "Respond using the injected shared context and the conversation source below.",
       "Respond in the primary language of the message unless the message requests another language.",
       "Do not claim to have seen documents that were neither loaded nor injected.",
-      "When asked about your agent, provider, or model identity, answer only from executionIdentity and distinguish the durable agent from this turn's provider and model.",
+      "When asked about identity, distinguish the durable agent from the turn provider. executionIdentity.requestedModel is configuration only; never present it as the provider-observed answer model.",
       "Write only the response body; do not send directly to an external platform.",
       `Keep the response at or below ${maximumResponseCharacters} Unicode characters.`,
     ],

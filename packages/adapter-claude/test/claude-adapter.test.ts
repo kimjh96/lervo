@@ -74,6 +74,7 @@ class FakeClaudeClient implements ClaudeAgentClient {
         session_id: PROVIDER_SESSION_ID,
         parent_tool_use_id: null,
         message: {
+          model: "claude-answer-model",
           content: [
             {
               type: "tool_use",
@@ -108,6 +109,7 @@ class FakeClaudeClient implements ClaudeAgentClient {
         session_id: PROVIDER_SESSION_ID,
         parent_tool_use_id: null,
         message: {
+          model: "claude-answer-model",
           content: [
             {
               type: "tool_use",
@@ -162,6 +164,13 @@ class FakeClaudeClient implements ClaudeAgentClient {
                 cacheReadInputTokens: 7,
                 cacheCreationInputTokens: 3,
                 contextWindow: 200_000,
+              },
+              "claude-helper-model": {
+                inputTokens: 2,
+                outputTokens: 1,
+                cacheReadInputTokens: 0,
+                cacheCreationInputTokens: 0,
+                contextWindow: 100_000,
               },
             },
       },
@@ -351,6 +360,14 @@ describe("Claude managed adapter", () => {
       stopReason: "completed",
       expectedEventCount: 6,
       expectedResultContent: "super-secret-result",
+      expectedModelIdentity: {
+        provider: "claude",
+        requestedModel: null,
+        answerModel: "claude-answer-model",
+        observedModelIds: ["claude-answer-model", "claude-helper-model", "claude-test"],
+        answerModelEvidence: "assistant_message",
+        unavailableReason: null,
+      },
     });
     expect(report).toEqual({ passed: true, violations: [] });
     expect(client.closed).toBe(true);
@@ -639,11 +656,11 @@ describe("Claude managed adapter", () => {
     }
     expect(events.find((event) => event.type === "provider.usage.updated")?.payload).toEqual({
       providerTurnId: PROVIDER_TURN_ID,
-      inputTokens: 20,
+      inputTokens: 22,
       cachedInputTokens: 7,
-      outputTokens: 2,
+      outputTokens: 3,
       reasoningOutputTokens: 0,
-      totalTokens: 22,
+      totalTokens: 25,
       contextWindow: 200_000,
     });
     expect(events.some((event) => event.type === "provider.file_change.reported")).toBe(false);

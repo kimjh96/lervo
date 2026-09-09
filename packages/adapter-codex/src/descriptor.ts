@@ -22,16 +22,18 @@ export function createCodexAdapterDescriptor(): AdapterDescriptor {
   };
 }
 
+export function requestedCodexModel(options: CodexAdapterOptions): string | null {
+  return options.transport?.kind === "responses_api_no_tools"
+    ? (options.transport.model ?? null)
+    : (options.model ?? null);
+}
+
 export function createCodexResourceAccountingDescriptor(
   options: CodexAdapterOptions,
 ): ResourceAccountingDescriptor {
-  const model =
-    options.transport?.kind === "responses_api_no_tools"
-      ? (options.transport.model ?? null)
-      : (options.model ?? null);
   return {
     kind: "resource_accounting_descriptor",
-    schemaVersion: 1,
+    schemaVersion: 2,
     provider: "codex",
     adapterId: CODEX_ADAPTER_ID,
     adapterVersion: CODEX_ADAPTER_VERSION,
@@ -40,7 +42,7 @@ export function createCodexResourceAccountingDescriptor(
     unavailableReason: null,
     normalizationId: "codex_app_server_usage_v1",
     nativeCounterSemanticsId: "codex_turn_token_usage_cumulative_v1",
-    model,
+    requestedModel: requestedCodexModel(options),
     serviceTier: null,
   };
 }

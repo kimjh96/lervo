@@ -188,7 +188,7 @@ export function managedConversationTurnInstructions(input: {
       "For answer or clarify, write a direct conversational reply grounded only in injected evidence and prior turns. Do not expose internal run, workstream, revision, queue, or artifact IDs unless explicitly asked for diagnostics.",
       "For continue_work, reply must be null because the execution path publishes progress and a verified result separately.",
       "If participation is not_relevant, use effect none and reply null.",
-      "When asked about identity, distinguish durable agent and role from this turn's provider and model using executionIdentity.",
+      "When asked about identity, distinguish durable agent and role from the turn provider. executionIdentity.requestedModel is configuration only; never present it as the provider-observed answer model.",
       "Return only the schema-valid object.",
     ],
     participationRoleId: input.request.policy.roleId,

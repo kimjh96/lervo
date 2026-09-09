@@ -61,7 +61,10 @@ describe("Codex stdio app-server client", () => {
     });
     controller.abort();
     await iterator.return?.();
-    expect(thread).toEqual({ threadId: "thread-stdio-1" });
+    expect(thread).toEqual({
+      threadId: "thread-stdio-1",
+      model: "codex-observed-fixture",
+    });
     expect(turn).toEqual({ turnId: "turn-stdio-1" });
     await client.unsubscribe(thread.threadId);
     await client.close();

@@ -356,7 +356,12 @@ export async function evaluateAdapterContract(
   const turnResult = await adapter.getTurnResult(session, turn);
   addValidationViolation(violations, "turn_result_invalid", turnResult);
   const resultBinding = inspectTurnResultBinding({ session, turn, result: turnResult });
-  if (!resultBinding.passed || turnResult.content !== fixture.expectedResultContent) {
+  if (
+    !resultBinding.passed ||
+    turnResult.content !== fixture.expectedResultContent ||
+    (fixture.expectedModelIdentity !== undefined &&
+      JSON.stringify(turnResult.modelIdentity) !== JSON.stringify(fixture.expectedModelIdentity))
+  ) {
     violations.push({
       code: "turn_result_mismatch",
       detail: [
@@ -364,6 +369,10 @@ export async function evaluateAdapterContract(
         ...(turnResult.content === fixture.expectedResultContent
           ? []
           : ["turn result content does not match the fixture"]),
+        ...(fixture.expectedModelIdentity === undefined ||
+        JSON.stringify(turnResult.modelIdentity) === JSON.stringify(fixture.expectedModelIdentity)
+          ? []
+          : ["turn result model identity does not match the fixture"]),
       ].join("; "),
     });
   }

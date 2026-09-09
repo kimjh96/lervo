@@ -22,6 +22,8 @@ Lervo supports developers, researchers, designers, product operators, marketers,
 
 One Lervo organization may coordinate several repository-backed project teams. Hired agents remain durable expert identities rather than disposable provider sessions. A policy-bound central leadership agent may coordinate teams without replacing the human owner or weakening repository authority.
 
+Discord is an initial replaceable collaboration surface, not the organization runtime or source of truth. The same headless Lervo application contracts must support a future first-party surface without losing hired-agent identity, reviewed context, conversation coordinates, work state, authority decisions, or evidence.
+
 ## Core concepts
 
 - [Managed execution and evidence](vision/execution.md): adapters, direct terminals, evidence states, and revisioned continuation.
@@ -46,6 +48,9 @@ One Lervo organization may coordinate several repository-backed project teams. H
 5. Generated entrypoints and indexes remain bounded as the repository grows.
 6. Every material change has a reviewable plan, verification result, and privacy-bounded event meaning.
 7. An initialized repository can converge to an installed Lervo build without hand-composing subsystem migrations or confusing a semantic version with exact runtime bytes.
+8. A supported conversation surface can show requested code, perform authorized repository work through the same managed Codex and Claude capabilities as local entrypoints, and return verified results without making the surface an execution authority.
+9. Installed comparisons demonstrate whether Lervo grounding, evidence, and verification improve exact task outcomes over direct provider baselines; Lervo never substitutes an unsupported universal quality claim for measured results.
+10. One owner can operate central leadership plus the Shiflo, Plen, and Arac repository teams while each hired agent retains isolated durable context and can collaborate through bounded conversations, threads, replies, mentions, assignments, and handoffs.
 
 ## Related contracts
 

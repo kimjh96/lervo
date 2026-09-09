@@ -1,6 +1,7 @@
 import type { FromSchema } from "json-schema-to-ts";
 
 import { runIdSchema, sha256Schema } from "./common.js";
+import { providerModelIdentitySchema } from "./provider-model-identity.js";
 
 export const workIdSchema = {
   type: "string",
@@ -144,6 +145,7 @@ const resourceUsageRecordedProperties = {
     enum: ["turn_cumulative", "session_cumulative", "operation_delta"],
   },
   accountingDescriptorHash: sha256Schema,
+  modelIdentity: providerModelIdentitySchema,
   status: { type: "string", enum: ["observed", "partial", "unavailable", "invalid"] },
   usage: { anyOf: [resourceUsageSchema, { type: "null" }] },
   reasonCode: { anyOf: [reasonCodeSchema, { type: "null" }] },
@@ -162,6 +164,7 @@ export const resourceUsageRecordedEventPayloadSchema = {
     "source",
     "accountingMode",
     "accountingDescriptorHash",
+    "modelIdentity",
     "status",
     "usage",
     "reasonCode",

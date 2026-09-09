@@ -22,7 +22,10 @@ lines.on("line", (line) => {
   }
   if (message.method === "initialized") return;
   if (message.method === "thread/start") {
-    send({ id: message.id, result: { thread: { id: "thread-stdio-1" } } });
+    send({
+      id: message.id,
+      result: { thread: { id: "thread-stdio-1" }, model: "codex-observed-fixture" },
+    });
     send({ method: "thread/started", params: { thread: { id: "thread-stdio-1" } } });
     return;
   }

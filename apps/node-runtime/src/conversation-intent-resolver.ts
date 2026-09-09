@@ -15,11 +15,22 @@ export interface ConversationIntentResolution {
   confidence: "high" | "medium" | "low";
   participation: "relevant" | "not_relevant";
   effect: ConversationRequestedEffect;
-  provider: {
-    providerId: string;
-    model: string | null;
-    adapterVersion: "1" | "2" | "3";
-  };
+  provider:
+    | {
+        providerId: string;
+        model: string | null;
+        adapterVersion: "1" | "2" | "3";
+      }
+    | {
+        providerId: string;
+        requestedModel: string | null;
+        model: string | null;
+        observedModelIds: string[];
+        answerModelEvidence:
+          "thread_start" | "response_object" | "assistant_message" | "unavailable";
+        modelUnavailableReason: string | null;
+        adapterVersion: "4";
+      };
   resultDigest: string;
 }
 

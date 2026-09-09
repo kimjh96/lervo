@@ -221,7 +221,15 @@ describe("natural-language Discord conversation mode", () => {
       confidence: "high" as const,
       participation: "relevant" as const,
       effect: { kind: "none" as const, argument: null },
-      provider: { providerId: "codex", model: "gpt-managed", adapterVersion: "3" as const },
+      provider: {
+        providerId: "codex",
+        requestedModel: "gpt-requested",
+        model: "gpt-observed",
+        observedModelIds: ["gpt-observed"],
+        answerModelEvidence: "thread_start" as const,
+        modelUnavailableReason: null,
+        adapterVersion: "4" as const,
+      },
       resultDigest: `sha256:${"f".repeat(64)}`,
       replyCandidate: managedReply,
     }));

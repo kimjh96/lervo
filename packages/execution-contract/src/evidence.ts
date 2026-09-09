@@ -30,6 +30,22 @@ function sameStringArray(actual: unknown, expected: readonly string[]): boolean 
   );
 }
 
+function sameModelIdentity(
+  actual: unknown,
+  expected: ManagedProviderRunResult["modelIdentity"],
+): boolean {
+  if (typeof actual !== "object" || actual === null || Array.isArray(actual)) return false;
+  const value = actual as Record<string, unknown>;
+  return (
+    value.provider === expected.provider &&
+    value.requestedModel === expected.requestedModel &&
+    value.answerModel === expected.answerModel &&
+    sameStringArray(value.observedModelIds, expected.observedModelIds) &&
+    value.answerModelEvidence === expected.answerModelEvidence &&
+    value.unavailableReason === expected.unavailableReason
+  );
+}
+
 export function validateManagedProviderRunEvidence(input: {
   run: ManagedProviderRunResult;
   events: readonly EventEnvelope[];
@@ -143,6 +159,7 @@ export function validateManagedProviderRunEvidence(input: {
     resultEvent.payload.providerSessionId !== run.session.providerSessionId ||
     resultEvent.payload.targetTurnId !== run.turn.targetTurnId ||
     resultEvent.payload.providerTurnId !== run.turn.providerTurnId ||
+    !sameModelIdentity(resultEvent.payload.modelIdentity, run.modelIdentity) ||
     resultEvent.payload.mediaType !== run.resultArtifact.mediaType ||
     resultEvent.payload.referenceTelemetry !== "supported" ||
     (publicationChanged

@@ -55,7 +55,7 @@ export class FixtureDeliberationAdapter implements ProviderAdapter {
   ) {
     this.resourceAccounting = {
       kind: "resource_accounting_descriptor",
-      schemaVersion: 1,
+      schemaVersion: 2,
       provider,
       adapterId: `lervo/${provider}`,
       adapterVersion: "fixture-1",
@@ -64,7 +64,7 @@ export class FixtureDeliberationAdapter implements ProviderAdapter {
       unavailableReason: "fixture_usage_unavailable",
       normalizationId: "fixture_usage_v1",
       nativeCounterSemanticsId: "fixture_counter_v1",
-      model: null,
+      requestedModel: null,
       serviceTier: null,
     };
     this.descriptor = {

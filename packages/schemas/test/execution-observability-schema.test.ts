@@ -6,7 +6,7 @@ describe("execution observability schemas", () => {
   it("binds supported accounting to a null unavailable reason", () => {
     const descriptor = {
       kind: "resource_accounting_descriptor",
-      schemaVersion: 1,
+      schemaVersion: 2,
       provider: "codex",
       adapterId: "lervo/codex",
       adapterVersion: "1.0.0",
@@ -15,7 +15,7 @@ describe("execution observability schemas", () => {
       unavailableReason: null,
       normalizationId: "codex_usage_v1",
       nativeCounterSemanticsId: "codex_counter_v1",
-      model: null,
+      requestedModel: null,
       serviceTier: null,
     };
     expect(validateSchema("resourceAccountingDescriptor", descriptor).valid).toBe(true);

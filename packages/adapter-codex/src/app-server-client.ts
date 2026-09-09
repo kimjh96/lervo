@@ -120,7 +120,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
       }),
     );
     const thread = requiredRecord(result.thread);
-    return { threadId: requiredString(thread.id) };
+    return { threadId: requiredString(thread.id), model: requiredString(result.model) };
   }
 
   async listConnectedMcpServers(threadId: string): Promise<string[]> {

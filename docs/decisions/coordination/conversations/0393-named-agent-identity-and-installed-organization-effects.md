@@ -35,6 +35,16 @@ An organization executive is an appointed named agent operating under a role and
 
 The durable replay store reserves each external effect before dispatch. A verified receipt replays without repeating the effect. Explicit platform rejection is terminal. Timeout, transport loss, malformed response, a reserved record after interruption, or any otherwise unprovable result becomes `uncertain` and is never automatically retried. Capacity is fixed at 10,000 records and fails closed at the bound.
 
+### Surface-neutral work and collaboration
+
+Discord is the first installed surface over the managed conversation, workforce, assignment, execution, context, evidence, and organization application contracts. It is not a reduced chat-only runtime. A hired agent may inspect and quote requested code, enter authorized repository work, publish verified results, create threads, reply, mention eligible participants, and converse with other agents through those existing boundaries. A channel or mention never grants repository or external-effect authority.
+
+The appointed CEO may hire internal workforce agents, assign them to teams, create allowlisted Discord channels and public threads, and coordinate work when exact organization policy and effect authorization allow it. Creating a new Discord application, issuing its token, and authorizing guild installation remain external owner/platform actions; hiring an agent and binding an already authorized external bot identity remain separate transitions.
+
+Every hired agent accumulates reviewed identity, work, relationship, and expertise context under its durable agent ID. Surface history is input to that lifecycle, not canonical memory by itself. Shiflo, Plen, and Arac remain distinct repository teams with separate authority and context; central coordination uses explicit routes, assignments, handoffs, or policy.
+
+A future first-party Lervo interface must replace or coexist with Discord by invoking the same headless contracts and replaying the same durable identities, context, conversation coordinates, work, and evidence. Provider adapters and repository execution do not move into the surface.
+
 ### Uncertain deliberation
 
 After uncertain execution, the installed deliberation worker inspects canonical CLI status instead of rerunning execution. A verified terminal or resumable status enters the ordinary managed conversation path as `deliberation.completed`. After the configured bounded number of inconclusive inspections, `deliberation.attention` produces one human-readable status.
@@ -46,6 +56,8 @@ These signals exclude deliberation, workstream, request, and platform IDs from m
 Product surfaces can render a stable named expert while separately showing role and provider evidence. Renaming cannot silently expand authority. A future first-party Lervo interface can invoke the same product-host organization routes and normalized conversation application without importing Discord behavior.
 
 Discord cannot create a separately authenticated bot application, issue its token, or authorize its installation on the owner's behalf. One named agent can be fully deployed with the current credential; externally accepting two simultaneously visible agent identities remains conditional on a second application credential and guild installation.
+
+Lervo may claim better task performance than direct Codex CLI or Claude Code only for installed paired scenarios whose evidence shows the improvement. Repository grounding, authority checks, verification, retry stability, and durable context are the intended advantages; provider intelligence is not relabeled as a Lervo result.
 
 ## References
 

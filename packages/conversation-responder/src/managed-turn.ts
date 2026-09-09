@@ -54,11 +54,11 @@ export class ManagedConversationTurnResolver implements ManagedConversationTurnR
     plan: ManagedConversationResponsePlan,
     turnDigest: string,
   ): Promise<ManagedConversationTurnResolution> {
-    const artifact = await this.resolveArtifact(input, plan, turnDigest);
+    const generated = await this.resolveArtifact(input, plan, turnDigest);
     let body: ManagedTurnBody;
     try {
       body = parseManagedConversationTurn(
-        JSON.parse(await readManagedConversationTurnArtifact(this.options, artifact)),
+        JSON.parse(await readManagedConversationTurnArtifact(this.options, generated.artifact)),
         input.surfaceEffects,
         plan.maximumResponseCharacters ?? 2_000,
       );
@@ -91,9 +91,13 @@ export class ManagedConversationTurnResolver implements ManagedConversationTurnR
       participation: body.participation,
       effect: body.effect,
       provider: {
-        providerId: plan.executionIdentity.provider,
-        model: plan.executionIdentity.model,
-        adapterVersion: "3",
+        providerId: generated.modelIdentity.provider,
+        requestedModel: generated.modelIdentity.requestedModel,
+        model: generated.modelIdentity.answerModel,
+        observedModelIds: [...generated.modelIdentity.observedModelIds],
+        answerModelEvidence: generated.modelIdentity.answerModelEvidence,
+        modelUnavailableReason: generated.modelIdentity.unavailableReason,
+        adapterVersion: "4",
       },
       resultDigest: managedTurnDigest(JSON.stringify(body)),
       replyCandidate,
@@ -118,7 +122,7 @@ export class ManagedConversationTurnResolver implements ManagedConversationTurnR
     });
     await this.options.responseArtifacts?.put({
       requestDigest: turnDigest,
-      artifact,
+      result: artifact,
       createdAt: (this.options.now?.() ?? new Date()).toISOString(),
     });
     return artifact;

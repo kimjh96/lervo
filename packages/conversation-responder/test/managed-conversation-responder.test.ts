@@ -17,12 +17,12 @@ import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { handleConversationEvent } from "@lervo/interaction";
 import { SQLiteConversationInteractionStore } from "@lervo/interaction-sqlite";
 import type { DocumentRegistry, RoleProfile, SharedContextPublication } from "@lervo/schemas";
-import type { WritingArtifactCoordinate } from "@lervo/writing";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
   ManagedConversationResponder,
   ManagedConversationTurnResolver,
+  type ManagedConversationGeneratedArtifact,
   VerifiedConversationPublication,
   managedConversationTurnOutputSchema,
 } from "../src/index.js";
@@ -237,10 +237,11 @@ describe("managed conversation responder", () => {
       planner: { id: "doc_planner_context", path: "docs/planner.md", content: plannerContent },
     } as const;
     const roles = { reviewer: role("reviewer"), planner: role("planner") };
-    const responseArtifacts = new Map<string, WritingArtifactCoordinate>();
+    const responseArtifacts = new Map<string, ManagedConversationGeneratedArtifact>();
     const adapters = {
       reviewer: new CodexAdapter({
         repositoryRoot: root,
+        model: "gpt-review",
         clientFactory: async () => codexClient,
         resolveArtifact: (uri) => artifacts.get(uri),
         now,
@@ -249,6 +250,7 @@ describe("managed conversation responder", () => {
       }),
       planner: new ClaudeAdapter({
         repositoryRoot: root,
+        model: "claude-plan",
         clientFactory: async () => claudeClient,
         resolveArtifact: (uri) => artifacts.get(uri),
         now,
@@ -266,8 +268,8 @@ describe("managed conversation responder", () => {
       artifactStore: artifacts,
       responseArtifacts: {
         get: async (requestDigest) => responseArtifacts.get(requestDigest) ?? null,
-        put: async ({ requestDigest, artifact }) => {
-          responseArtifacts.set(requestDigest, artifact);
+        put: async ({ requestDigest, result }) => {
+          responseArtifacts.set(requestDigest, result);
         },
         remove: async (requestDigest) => {
           responseArtifacts.delete(requestDigest);
@@ -305,7 +307,7 @@ describe("managed conversation responder", () => {
                 ? "agt_111111111111111111111111"
                 : "agt_222222222222222222222222",
             provider: roleId === "reviewer" ? "codex" : "claude",
-            model: roleId === "reviewer" ? "gpt-review" : "claude-plan",
+            requestedModel: roleId === "reviewer" ? "gpt-review" : "claude-plan",
           },
           runId: `run_conversation_${roleId}`,
           sessionId: `ses_conversation_${roleId}`,
@@ -395,11 +397,11 @@ describe("managed conversation responder", () => {
     const codexInstructions = codexClient.instructions.replaceAll('\\"', '"');
     expect(codexInstructions).toContain(rawMessage);
     expect(codexInstructions).toContain('"provider":"codex"');
-    expect(codexInstructions).toContain('"model":"gpt-review"');
+    expect(codexInstructions).toContain('"requestedModel":"gpt-review"');
     expect(codexClient.instructions).toContain("Please remember that evidence comes first.");
     expect(claudeClient.instructions).toContain(rawMessage);
     expect(claudeClient.instructions).toContain('"provider":"claude"');
-    expect(claudeClient.instructions).toContain('"model":"claude-plan"');
+    expect(claudeClient.instructions).toContain('"requestedModel":"claude-plan"');
     expect(codexClient.closed).toBe(true);
     expect(claudeClient.closed).toBe(true);
     expect(reviewer.publicationPermit.surface).toBe("chat");
@@ -431,6 +433,7 @@ describe("managed conversation responder", () => {
     );
     const turnAdapter = new CodexAdapter({
       repositoryRoot: root,
+      model: "gpt-review",
       clientFactory: async () => turnClient,
       resolveArtifact: (uri) => artifacts.get(uri),
       structuredOutputSchema: managedConversationTurnOutputSchema(surfaceEffects),
@@ -446,8 +449,8 @@ describe("managed conversation responder", () => {
       artifactStore: artifacts,
       responseArtifacts: {
         get: async (requestDigest) => responseArtifacts.get(requestDigest) ?? null,
-        put: async ({ requestDigest, artifact }) => {
-          responseArtifacts.set(requestDigest, artifact);
+        put: async ({ requestDigest, result }) => {
+          responseArtifacts.set(requestDigest, result);
         },
         remove: async (requestDigest) => {
           responseArtifacts.delete(requestDigest);
@@ -474,7 +477,7 @@ describe("managed conversation responder", () => {
           executionIdentity: {
             agentId: "agt_111111111111111111111111",
             provider: "codex",
-            model: "gpt-review",
+            requestedModel: "gpt-review",
           },
           runId: "run_conversation_managed_turn",
           sessionId: "ses_conversation_managed_turn",
@@ -528,7 +531,15 @@ describe("managed conversation responder", () => {
       intent: "answer",
       participation: "relevant",
       effect: { kind: "none", argument: null },
-      provider: { providerId: "codex", model: "gpt-review", adapterVersion: "3" },
+      provider: {
+        providerId: "codex",
+        requestedModel: "gpt-review",
+        model: "codex-conversation-observed",
+        observedModelIds: ["codex-conversation-observed"],
+        answerModelEvidence: "thread_start",
+        modelUnavailableReason: null,
+        adapterVersion: "4",
+      },
     });
     expect(managedTurn.replyCandidate?.content).toEqual(
       managedTurnConcurrent.replyCandidate?.content,

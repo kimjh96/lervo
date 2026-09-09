@@ -59,6 +59,7 @@ export interface AdapterContractFixture {
   turnRequest: AdapterTurnRequest;
   stopReason: AdapterStopRequest["reason"];
   expectedResultContent: string;
+  expectedModelIdentity?: AdapterTurnResult["modelIdentity"];
   expectedEventCount?: number;
   eventTimeoutMs?: number;
 }

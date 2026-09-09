@@ -27,7 +27,7 @@ const contentHash = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 function resourceAccounting(provider: string): ResourceAccountingDescriptor {
   return {
     kind: "resource_accounting_descriptor",
-    schemaVersion: 1,
+    schemaVersion: 2,
     provider,
     adapterId: `lervo/${provider}`,
     adapterVersion: "0.0.0",
@@ -36,7 +36,7 @@ function resourceAccounting(provider: string): ResourceAccountingDescriptor {
     unavailableReason: "fixture_usage_unavailable",
     normalizationId: "fixture_usage_v1",
     nativeCounterSemanticsId: "fixture_counter_v1",
-    model: null,
+    requestedModel: null,
     serviceTier: null,
   };
 }
@@ -224,6 +224,14 @@ class FixtureAdapter implements ProviderAdapter {
       providerSessionId: session.providerSessionId,
       targetTurnId: turn.targetTurnId,
       providerTurnId: turn.providerTurnId,
+      modelIdentity: {
+        provider: session.provider,
+        requestedModel: null,
+        answerModel: null,
+        observedModelIds: [],
+        answerModelEvidence: "unavailable",
+        unavailableReason: "fixture_model_unavailable",
+      },
       mediaType: "text/markdown; charset=utf-8",
       content,
       contentHash: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,

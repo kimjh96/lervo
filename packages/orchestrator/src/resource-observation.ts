@@ -9,6 +9,7 @@ import type {
   AdapterNormalizedEvent,
   ResourceAccountingDescriptor,
   WorkCausalityRecordedEventPayload,
+  ProviderModelIdentity,
 } from "@lervo/schemas";
 import type { ContextArtifactPort } from "@lervo/context-delivery";
 
@@ -62,6 +63,10 @@ export class ManagedResourceObservation {
 
   observe(event: AdapterNormalizedEvent): void {
     this.accumulator.observe(event);
+  }
+
+  observeModelIdentity(identity: ProviderModelIdentity): void {
+    this.accumulator.observeModelIdentity(identity);
   }
 
   event(occurredAt: string): ManagedEventSpec | null {

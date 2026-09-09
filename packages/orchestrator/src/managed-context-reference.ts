@@ -104,6 +104,7 @@ export function managedResultReferenceSpecs(input: {
           providerSessionId: input.session.providerSessionId,
           targetTurnId: input.turn.targetTurnId,
           providerTurnId: input.turn.providerTurnId,
+          modelIdentity: structuredClone(input.result.modelIdentity),
           resultDigest: input.result.contentHash,
           byteCount: input.result.byteCount,
           mediaType: input.result.mediaType,

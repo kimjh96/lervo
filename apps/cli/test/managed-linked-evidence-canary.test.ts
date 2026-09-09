@@ -532,6 +532,7 @@ describe("managed linked-evidence provider selection", () => {
       return new Response(
         JSON.stringify({
           id: "resp_fixture_01",
+          model: "codex-observed-fixture",
           status: "completed",
           output: [
             {

@@ -1,9 +1,26 @@
 import { asRecord, eventTime, text } from "./normalization-utils.js";
+import type { ProviderModelIdentity } from "@lervo/schemas";
 
 export interface CapturedClaudeTurnResult {
   providerTurnId: string;
   content: string;
   producedAt: string;
+  modelIdentity: ProviderModelIdentity;
+}
+
+export function captureClaudeAssistantModel(
+  raw: unknown,
+  providerSessionId: string,
+): string | null {
+  const message = asRecord(raw);
+  if (
+    message?.type !== "assistant" ||
+    text(message.session_id) !== providerSessionId ||
+    (message.parent_tool_use_id !== null && message.parent_tool_use_id !== undefined)
+  ) {
+    return null;
+  }
+  return text(asRecord(message.message)?.model) ?? null;
 }
 
 export function captureClaudeTurnResult(input: {
@@ -12,6 +29,8 @@ export function captureClaudeTurnResult(input: {
   activeProviderTurnId: string | undefined;
   captureStructuredOutput: boolean;
   now: () => Date;
+  requestedModel: string | null;
+  answerModels: readonly string[];
 }): CapturedClaudeTurnResult | null {
   const message = asRecord(input.raw);
   if (
@@ -44,5 +63,37 @@ export function captureClaudeTurnResult(input: {
   ) {
     return null;
   }
-  return { providerTurnId, content, producedAt: eventTime(message, input.now) };
+  const observedModelIds = Object.keys(asRecord(message.modelUsage) ?? {}).sort();
+  const answerModels = [...new Set(input.answerModels)].sort();
+  const answerModel = answerModels.length === 1 ? answerModels[0]! : null;
+  if (answerModel !== null && !observedModelIds.includes(answerModel)) {
+    observedModelIds.push(answerModel);
+    observedModelIds.sort();
+  }
+  return {
+    providerTurnId,
+    content,
+    producedAt: eventTime(message, input.now),
+    modelIdentity:
+      answerModel === null
+        ? {
+            provider: "claude",
+            requestedModel: input.requestedModel,
+            answerModel: null,
+            observedModelIds,
+            answerModelEvidence: "unavailable",
+            unavailableReason:
+              answerModels.length === 0
+                ? "provider_answer_model_unavailable"
+                : "provider_answer_model_ambiguous",
+          }
+        : {
+            provider: "claude",
+            requestedModel: input.requestedModel,
+            answerModel,
+            observedModelIds,
+            answerModelEvidence: "assistant_message",
+            unavailableReason: null,
+          },
+  };
 }

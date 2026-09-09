@@ -20,6 +20,7 @@ import type {
   RoleProfile,
   SharedContextPublication,
   WritingContract,
+  ProviderModelIdentity,
 } from "@lervo/schemas";
 import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 import type { WritingArtifactCoordinate, WritingSemanticEvaluator } from "@lervo/writing";
@@ -29,7 +30,7 @@ export interface ManagedConversationResponsePlan {
   executionIdentity: {
     agentId: string | null;
     provider: string;
-    model: string | null;
+    requestedModel: string | null;
   };
   participationRoleId?: string;
   maximumResponseCharacters?: number;
@@ -91,7 +92,15 @@ export interface ManagedConversationTurnResolution {
   confidence: "high" | "medium" | "low";
   participation: "relevant" | "not_relevant";
   effect: { kind: "none" | "repository_work" | string; argument: string | null };
-  provider: { providerId: string; model: string | null; adapterVersion: "3" };
+  provider: {
+    providerId: string;
+    requestedModel: string | null;
+    model: string | null;
+    observedModelIds: string[];
+    answerModelEvidence: ProviderModelIdentity["answerModelEvidence"];
+    modelUnavailableReason: string | null;
+    adapterVersion: "4";
+  };
   resultDigest: string;
   replyCandidate: ConversationReplyCandidate | null;
 }
@@ -140,13 +149,18 @@ export interface ManagedConversationArtifactRunnerOptions {
 }
 
 export interface ManagedConversationResponseArtifactPort {
-  get(requestDigest: string): Promise<WritingArtifactCoordinate | null>;
+  get(requestDigest: string): Promise<ManagedConversationGeneratedArtifact | null>;
   put(input: {
     requestDigest: string;
-    artifact: WritingArtifactCoordinate;
+    result: ManagedConversationGeneratedArtifact;
     createdAt: string;
   }): Promise<void>;
   remove(requestDigest: string): Promise<void>;
+}
+
+export interface ManagedConversationGeneratedArtifact {
+  artifact: WritingArtifactCoordinate;
+  modelIdentity: ProviderModelIdentity;
 }
 
 export interface ManagedConversationProviderSessionPort {

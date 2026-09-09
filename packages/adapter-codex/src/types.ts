@@ -34,6 +34,7 @@ export interface CodexThreadStartOptions {
 
 export interface CodexThread {
   threadId: string;
+  model?: string | null;
 }
 
 export interface CodexTurn {
@@ -96,7 +97,12 @@ export interface CodexSessionState {
   client: CodexAppServerClient;
   injectedTargetTurnIds: Set<string>;
   startedTargetTurnIds: Set<string>;
-  turnResults: Map<string, { content: string; producedAt: string }>;
+  turnResults: Map<
+    string,
+    Pick<import("@lervo/schemas").AdapterTurnResult, "content" | "producedAt" | "modelIdentity">
+  >;
+  requestedModel: string | null;
+  sessionObservedModel: string | null;
   managedWrites?: CodexManagedWriteHandler;
   activeTurn?: AdapterTurn;
   activeProviderTurnId?: string;

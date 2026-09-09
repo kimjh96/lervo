@@ -43,7 +43,7 @@ import { ClaudeEventNormalizer } from "./normalize.js";
 import { ClaudeManagedWriteController } from "./managed-write.js";
 import { ClaudeSdkAgentClient } from "./sdk-client.js";
 import { ClaudeSessionRegistry } from "./session-registry.js";
-import { captureClaudeTurnResult } from "./turn-result.js";
+import { captureClaudeAssistantModel, captureClaudeTurnResult } from "./turn-result.js";
 import { buildClaudeManagedTurnMessage } from "./turn-message.js";
 import {
   ClaudeAdapterError,
@@ -135,7 +135,7 @@ export class ClaudeAdapter implements ProviderAdapter {
         startedAt: timestamp(this.now, "Claude session start time", request.requestedAt),
       };
       assertAdapterMessage(session, "Claude session");
-      this.sessions.add(session, client, activations);
+      this.sessions.add(session, client, activations, this.options.model ?? null);
       return clone(session);
     } catch (error) {
       await client.close().catch(() => undefined);
@@ -340,6 +340,12 @@ export class ClaudeAdapter implements ProviderAdapter {
     try {
       for await (const raw of state.client.messages(signal)) {
         const activeProviderTurnId = state.activeProviderTurnId;
+        const assistantModel = captureClaudeAssistantModel(raw, session.providerSessionId);
+        if (activeProviderTurnId !== undefined && assistantModel !== null) {
+          const models = state.answerModels.get(activeProviderTurnId) ?? new Set<string>();
+          models.add(assistantModel);
+          state.answerModels.set(activeProviderTurnId, models);
+        }
         const normalizedEvents = normalizer.normalize(raw);
         if (normalizedEvents.some((event) => event.type === "provider.turn.completed")) {
           const captured = captureClaudeTurnResult({
@@ -348,12 +354,12 @@ export class ClaudeAdapter implements ProviderAdapter {
             activeProviderTurnId,
             captureStructuredOutput: this.options.structuredOutputSchema !== undefined,
             now: this.now,
+            requestedModel: state.requestedModel,
+            answerModels: [...(state.answerModels.get(activeProviderTurnId ?? "") ?? [])],
           });
           if (captured !== null) {
-            state.turnResults.set(captured.providerTurnId, {
-              content: captured.content,
-              producedAt: captured.producedAt,
-            });
+            state.turnResults.set(captured.providerTurnId, captured);
+            state.answerModels.delete(captured.providerTurnId);
           }
         }
         for (const normalized of normalizedEvents) {

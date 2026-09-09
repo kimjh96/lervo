@@ -62,6 +62,14 @@ describe("work execution report", () => {
           source: "provider_reported",
           accountingMode: "turn_cumulative",
           accountingDescriptorHash: hash,
+          modelIdentity: {
+            provider: "codex",
+            requestedModel: null,
+            answerModel: "codex-fixture",
+            observedModelIds: ["codex-fixture"],
+            answerModelEvidence: "thread_start",
+            unavailableReason: null,
+          },
           status: "observed",
           usage: {
             inputTokens: 10,

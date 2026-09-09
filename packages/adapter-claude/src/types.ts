@@ -78,7 +78,12 @@ export interface ClaudeSessionState {
   client: ClaudeAgentClient;
   injectedTargetTurnIds: Set<string>;
   startedTargetTurnIds: Set<string>;
-  turnResults: Map<string, { content: string; producedAt: string }>;
+  turnResults: Map<
+    string,
+    Pick<import("@lervo/schemas").AdapterTurnResult, "content" | "producedAt" | "modelIdentity">
+  >;
+  requestedModel: string | null;
+  answerModels: Map<string, Set<string>>;
   managedWrites?: ClaudeManagedWriteHandler;
   activeTurn?: AdapterTurn;
   activeProviderTurnId?: string;

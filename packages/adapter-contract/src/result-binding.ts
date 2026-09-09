@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 
-import type { AdapterSession, AdapterTurn, AdapterTurnResult } from "@lervo/schemas";
+import type {
+  AdapterSession,
+  AdapterTurn,
+  AdapterTurnResult,
+  ProviderModelIdentity,
+} from "@lervo/schemas";
 
 export const MAX_ADAPTER_TURN_RESULT_BYTES = 4 * 1024 * 1024;
 
@@ -34,6 +39,7 @@ export function createAdapterTurnResult(input: {
   turn: AdapterTurn;
   content: string;
   producedAt: string;
+  modelIdentity?: ProviderModelIdentity;
 }): AdapterTurnResult {
   const bytes = encodeTurnResultContent(input.content);
   return {
@@ -46,6 +52,16 @@ export function createAdapterTurnResult(input: {
     providerSessionId: input.session.providerSessionId,
     targetTurnId: input.turn.targetTurnId,
     providerTurnId: input.turn.providerTurnId,
+    modelIdentity:
+      input.modelIdentity ??
+      ({
+        provider: input.session.provider,
+        requestedModel: null,
+        answerModel: null,
+        observedModelIds: [],
+        answerModelEvidence: "unavailable",
+        unavailableReason: "provider_model_unavailable",
+      } as const),
     mediaType: "text/markdown; charset=utf-8",
     content: input.content,
     contentHash: digestTurnResult(bytes),
@@ -72,6 +88,16 @@ export function inspectTurnResultBinding(input: {
     violations.push({
       code: "result_coordinates_mismatch",
       detail: "The turn result is not bound to the managed session and turn coordinates.",
+    });
+  }
+  const identity = input.result.modelIdentity;
+  if (
+    identity.provider !== input.session.provider ||
+    (identity.answerModel !== null && !identity.observedModelIds.includes(identity.answerModel))
+  ) {
+    violations.push({
+      code: "result_coordinates_mismatch",
+      detail: "The provider model identity is not bound to the managed provider result.",
     });
   }
   const producedAt = Date.parse(input.result.producedAt);

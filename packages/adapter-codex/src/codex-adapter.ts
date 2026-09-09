@@ -38,6 +38,7 @@ import { CodexStdioAppServerClient } from "./app-server-client.js";
 import {
   createCodexAdapterDescriptor,
   createCodexResourceAccountingDescriptor,
+  requestedCodexModel,
 } from "./descriptor.js";
 import { buildManagedContextItems } from "./context-items.js";
 import { CodexEventNormalizer } from "./normalize.js";
@@ -203,7 +204,13 @@ export class CodexAdapter implements ProviderAdapter {
         startedAt: timestamp(this.now, "Codex session start time", request.requestedAt),
       };
       assertAdapterMessage(session, "Codex session");
-      this.sessions.add(session, client, activations);
+      this.sessions.add(
+        session,
+        client,
+        activations,
+        requestedCodexModel(this.options),
+        thread.model ?? null,
+      );
       return clone(session);
     } catch (error) {
       await client.close().catch(() => undefined);
@@ -422,12 +429,11 @@ export class CodexAdapter implements ProviderAdapter {
           raw: notification,
           providerSessionId: session.providerSessionId,
           now: this.now,
+          requestedModel: state.requestedModel,
+          sessionObservedModel: state.sessionObservedModel,
         });
         if (captured !== null) {
-          state.turnResults.set(captured.providerTurnId, {
-            content: captured.content,
-            producedAt: captured.producedAt,
-          });
+          state.turnResults.set(captured.providerTurnId, captured);
         }
         if (normalized === null) continue;
         assertAdapterMessage(normalized, "Codex normalized event");

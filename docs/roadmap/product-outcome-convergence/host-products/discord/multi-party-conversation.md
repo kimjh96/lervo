@@ -22,6 +22,8 @@ A channel may contain people and multiple hired agents with different roles. Mes
 - Repository mutation, external effects, assignment changes, and approval resolution require their existing authority paths.
 - Participation policies, maximum automation depth, response budgets, explicit deliberation termination, and self-message suppression must prevent agent reply loops.
 
+Read-only discussion includes requested repository inspection and bounded code excerpts. Actual repository changes enter managed continuation with the same Codex and Claude adapter capabilities, authority, snapshots, verification, evidence, and result return used outside Discord. Agents may create allowed threads, reply, and mention participants when conversation and organization policy permit; those surface actions remain distinct from repository authority.
+
 ## Automatic provider selection
 
 Selection must evaluate the hired agent's provider policy, exact role capabilities, provider availability, and configured cost and latency budgets. It must record the selected provider, model, selection policy version, and reason, and fail closed when no candidate satisfies those constraints. Provider choice never changes role or assignment authority.
@@ -40,7 +42,7 @@ Remaining work includes a second Discord application, token issuance, guild inst
 
 ## Acceptance
 
-One real channel with one person and at least two hired agents in distinct roles must complete a bounded discussion, preserve every participant and role coordinate, stop at its declared terminal condition, and produce no unauthorized repository or external effect.
+One real channel with one person and at least two hired agents in distinct roles must inspect requested code, complete authorized real work, use threads, replies, and mentions as needed, complete a bounded discussion, preserve every participant, role, provider-model, and agent-context coordinate across restart, stop at its declared terminal condition, and produce no unauthorized repository or external effect. The same scenario must be replayable through a non-Discord test surface over the shared application contracts.
 
 ## References
 

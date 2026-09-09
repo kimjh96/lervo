@@ -9,7 +9,7 @@ import type { AdapterNormalizedEvent, ResourceAccountingDescriptor } from "@lerv
 
 const descriptor: ResourceAccountingDescriptor = {
   kind: "resource_accounting_descriptor",
-  schemaVersion: 1,
+  schemaVersion: 2,
   provider: "fixture",
   adapterId: "adapter_fixture",
   adapterVersion: "1.0.0",
@@ -18,7 +18,7 @@ const descriptor: ResourceAccountingDescriptor = {
   unavailableReason: null,
   normalizationId: "fixture_usage_v1",
   nativeCounterSemanticsId: "fixture_cumulative_v1",
-  model: null,
+  requestedModel: null,
   serviceTier: null,
 };
 
@@ -108,6 +108,27 @@ describe("resource accounting", () => {
     expect(resourceAccountingDescriptorHash(structuredClone(descriptor))).toBe(
       resourceAccountingDescriptorHash(descriptor),
     );
+  });
+
+  it("binds provider-observed answer and auxiliary models to resource evidence", () => {
+    const ledger = accumulator();
+    ledger.observe(usage("evt_fixture001", "turn-1", 10, 2));
+    ledger.observeModelIdentity({
+      provider: "fixture",
+      requestedModel: null,
+      answerModel: "answer-model",
+      observedModelIds: ["answer-model", "helper-model"],
+      answerModelEvidence: "assistant_message",
+      unavailableReason: null,
+    });
+
+    expect(ledger.finalize()).toMatchObject({
+      status: "observed",
+      modelIdentity: {
+        answerModel: "answer-model",
+        observedModelIds: ["answer-model", "helper-model"],
+      },
+    });
   });
 
   it("maps causal relationships to stable accounting scopes", () => {

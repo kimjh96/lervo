@@ -20,7 +20,7 @@ import type {
 export class FixtureProviderAdapter implements ProviderAdapter {
   readonly resourceAccounting: ResourceAccountingDescriptor = {
     kind: "resource_accounting_descriptor",
-    schemaVersion: 1,
+    schemaVersion: 2,
     provider: "codex",
     adapterId: "lervo/codex",
     adapterVersion: "fixture-1",
@@ -29,7 +29,7 @@ export class FixtureProviderAdapter implements ProviderAdapter {
     unavailableReason: "fixture_usage_unavailable",
     normalizationId: "fixture_usage_v1",
     nativeCounterSemanticsId: "fixture_counter_v1",
-    model: null,
+    requestedModel: null,
     serviceTier: null,
   };
   readonly descriptor: AdapterDescriptor = {

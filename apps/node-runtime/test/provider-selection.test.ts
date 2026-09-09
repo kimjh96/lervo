@@ -16,7 +16,7 @@ describe("Node conversation provider selection", () => {
       expect(adapter.descriptor.provider).toBe(input.provider);
       expect(adapter.resourceAccounting).toMatchObject({
         provider: input.provider,
-        model: input.model,
+        requestedModel: input.model,
       });
     });
   }

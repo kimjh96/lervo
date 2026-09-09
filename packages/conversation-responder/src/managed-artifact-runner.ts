@@ -102,6 +102,6 @@ export class ManagedConversationArtifactRunner {
         "No independent provider session was assigned to the conversation response role.",
       );
     }
-    return run.resultArtifact;
+    return { artifact: run.resultArtifact, modelIdentity: run.modelIdentity };
   }
 }

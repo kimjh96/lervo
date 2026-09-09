@@ -53,16 +53,23 @@
     },
     {
       "path": "packages/adapter-claude/src/claude-adapter.ts",
-      "contentHash": "sha256:267c2cfcbdc8452e89465e9f4e129d71d89ce70f161faae6de51b6dceec30fe2",
+      "contentHash": "sha256:21351a8ab24c790283bd79da300bd0cba9495e7f807a3a2d75f983e405f735da",
       "responsibility": "Claude managed-provider adapter",
       "rationale": "The class owns one external Claude protocol boundary and translates native session, tool, telemetry, stop, and result behavior into common adapter contracts; the accounting declaration remains in a linked descriptor module.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/adapter-codex/src/codex-adapter.ts",
-      "contentHash": "sha256:386cb9b5cce83f796a62fa3f1e851f943f37c89ae50bbad32ab4b4b4c41670dc",
+      "contentHash": "sha256:c81b425a110017c7523d1aa407bce74d827276cec43b3485122a913abe991dda",
       "responsibility": "Codex managed-provider adapter",
       "rationale": "The class owns the Codex provider boundary, selects one injected native transport, and translates thread, turn, telemetry, stop, and result behavior into common adapter contracts; transport parsing and the accounting declaration remain linked modules.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/adapter-contract/src/contract.ts",
+      "contentHash": "sha256:17c7db1a525c188f1ebc67ea08f9966265f3b4701ea9b49f263df6f7dfa147dd",
+      "responsibility": "Common provider-adapter contract evaluation",
+      "rationale": "The module executes one provider-neutral adapter conformance lifecycle from descriptor and session start through context, turn, telemetry, result identity, and stop; provider translation and focused binding rules remain in linked modules.",
       "disposition": "cohesive"
     },
     {
@@ -88,7 +95,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:5df32ba4bc1290c67463145e7bc78b4af216950a732925061bfc3d72de985169",
+      "contentHash": "sha256:fe40b2fa0384191837c5502de595a9d9dec7b21f94dd2db1ca243e3163ceb037",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
       "disposition": "cohesive"
@@ -116,7 +123,7 @@
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:8ef47814a459b512c71e170e2b3baf93696a5c932f61dbcfad5234d2c0597052",
+      "contentHash": "sha256:ab3d4b1f63273661fb30b64c575876d47a3f606b806a58e3144597df7a3f024c",
       "responsibility": "Managed provider-run coordinator",
       "rationale": "Snapshotting, abort handling, context delivery, turn execution, validation, resource and stage observation composition, and stop are phases of one provider-neutral managed-run state machine; accounting and timing invariants remain in linked modules.",
       "disposition": "cohesive"
@@ -291,7 +298,7 @@
     },
     {
       "path": "packages/schemas/src/adapter.ts",
-      "contentHash": "sha256:396a1f8357eee912ec5644dfdfc15af3a0dec5053b3ac5f88c3a19caceb66d0a",
+      "contentHash": "sha256:f715e26177c86ddbe74c59fcddb0c98ac1174fdb8f6e3cd36c3777c2cc1cdd48",
       "responsibility": "Managed provider adapter schema catalog",
       "rationale": "The file is a declarative schema catalog for one adapter protocol; its length is data-shaped and contains no independent executable workflow.",
       "disposition": "cohesive"

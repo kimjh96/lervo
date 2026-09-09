@@ -13,6 +13,8 @@ Completion requires agreement among contracts, capability decisions, context evi
 
 After a managed provider turn and its verification phase return, a schema-v2 writer records `role.profile.activated` with provider, exact resolved role ID and version, role-contract and effective-profile hashes, actual runtime-profile hash, source kind, and time.
 
+The adapter turn result, `adapter.result.captured`, managed-run result, and `resource.usage.recorded` retain one provider-model identity with the configured requested model, provider-observed answer model, all observed model identifiers, observation source, and explicit unavailability reason. Resource-accounting descriptor v2 names its static configuration coordinate `requestedModel`; it never presents that value as observation. The answer model must occur in the observed set. Configuration, an alias, a null value, and an auxiliary usage identifier never substitute for provider observation. Conversation resolution and its replay artifact retain the same identity unchanged.
+
 A repository still selecting writer v1 continues without profile-activation evidence; that run is ineligible for an agent-profile candidate. Event append failure under v2 fails the command.
 
 The event excludes role text, prompts, paths, output, credentials, native session IDs, and user identity. It proves only that the managed provider/verification phase used those resolved coordinates, not attention, semantic reliance, quality, publication, or whole-run completion.

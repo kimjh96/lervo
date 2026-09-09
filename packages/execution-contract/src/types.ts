@@ -5,6 +5,7 @@ import type {
   ContextEvidence,
   VerificationResult,
   WorkCausalityRecordedEventPayload,
+  ProviderModelIdentity,
 } from "@lervo/schemas";
 
 export interface ManagedFileChangeEvidence {
@@ -42,6 +43,7 @@ export interface ManagedProviderRunResult {
   turn: AdapterTurn;
   terminalEventId: string;
   resultArtifact: ManagedProviderResultArtifact;
+  modelIdentity: ProviderModelIdentity;
   contextEvidence: readonly ContextEvidence[];
   capabilityActivations: AdapterCapabilityActivationReceipt[];
   managedChanges: ManagedFileChangeEvidence[];

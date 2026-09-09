@@ -20,6 +20,7 @@ import {
   CodexAdapter,
   CodexAdapterError,
   CodexEventNormalizer,
+  CodexResponsesNoToolClient,
   type CodexAppServerClient,
   type CodexServerRequestId,
   type CodexThreadStartOptions,
@@ -42,9 +43,11 @@ class FakeCodexClient implements CodexAppServerClient {
   closed = false;
   failClose = false;
 
-  async startThread(options: CodexThreadStartOptions) {
+  async startThread(
+    options: CodexThreadStartOptions,
+  ): Promise<{ threadId: string; model?: string }> {
     this.calls.push({ method: "startThread", value: options });
-    return { threadId: "codex-thread-1" };
+    return { threadId: "codex-thread-1", model: "codex-observed-model" };
   }
 
   async injectItems(threadId: string, items: readonly unknown[]) {
@@ -232,6 +235,13 @@ class NoToolFakeCodexClient extends FakeCodexClient {
   }
 }
 
+class UnobservedModelCodexClient extends FakeCodexClient {
+  override async startThread(options: CodexThreadStartOptions) {
+    this.calls.push({ method: "startThread", value: options });
+    return { threadId: "codex-thread-1" };
+  }
+}
+
 function clock() {
   let value = Date.parse("2026-08-18T00:00:01Z");
   return () => {
@@ -390,6 +400,14 @@ describe("Codex managed adapter", () => {
         stopReason: "completed",
         expectedEventCount: 7,
         expectedResultContent: "super-secret-result",
+        expectedModelIdentity: {
+          provider: "codex",
+          requestedModel: null,
+          answerModel: "codex-observed-model",
+          observedModelIds: ["codex-observed-model"],
+          answerModelEvidence: "thread_start",
+          unavailableReason: null,
+        },
       },
     );
     expect(report).toEqual({ passed: true, violations: [] });
@@ -418,6 +436,104 @@ describe("Codex managed adapter", () => {
       stopReason: "completed",
       expectedEventCount: 4,
       expectedResultContent: "super-secret-result",
+      expectedModelIdentity: {
+        provider: "codex",
+        requestedModel: "codex-fixture",
+        answerModel: "codex-observed-model",
+        observedModelIds: ["codex-observed-model"],
+        answerModelEvidence: "thread_start",
+        unavailableReason: null,
+      },
+    });
+
+    expect(report).toEqual({ passed: true, violations: [] });
+  });
+
+  it("reports model identity unavailable when the provider supplies no observation", async () => {
+    const report = await evaluateAdapterContract(adapter(new UnobservedModelCodexClient()), {
+      expectedProvider: "codex",
+      ...fixture(),
+      stopReason: "completed",
+      expectedEventCount: 7,
+      expectedResultContent: "super-secret-result",
+      expectedModelIdentity: {
+        provider: "codex",
+        requestedModel: null,
+        answerModel: null,
+        observedModelIds: [],
+        answerModelEvidence: "unavailable",
+        unavailableReason: "provider_model_unavailable",
+      },
+    });
+
+    expect(report).toEqual({ passed: true, violations: [] });
+  });
+
+  it("binds the model returned by the Responses API instead of the requested alias", async () => {
+    const client = new CodexResponsesNoToolClient({
+      apiKey: "fixture-key",
+      model: "codex-requested-alias",
+      requestTimeoutMs: 1_000,
+      createId: () => "observedfixture",
+      now: clock(),
+      fetch: async () =>
+        new Response(
+          JSON.stringify({
+            id: "resp_observed_fixture",
+            status: "completed",
+            model: "codex-observed-snapshot",
+            output: [
+              {
+                type: "message",
+                id: "message-observed-fixture",
+                content: [{ type: "output_text", text: "observed result" }],
+              },
+            ],
+            usage: {
+              input_tokens: 2,
+              input_tokens_details: { cached_tokens: 0 },
+              output_tokens: 1,
+              output_tokens_details: { reasoning_tokens: 0 },
+              total_tokens: 3,
+            },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    });
+    const data = fixture();
+    const instance = new CodexAdapter({
+      repositoryRoot: "/repo",
+      transport: {
+        kind: "responses_api_no_tools",
+        apiKey: "fixture-key",
+        model: "codex-requested-alias",
+      },
+      clientFactory: async () => client,
+      now: clock(),
+      createReceiptId: () => "ctx_codex_response",
+      createEventId: (() => {
+        let sequence = 0;
+        return () => `evt_codex_response_${++sequence}`;
+      })(),
+    });
+    const report = await evaluateAdapterContract(instance, {
+      expectedProvider: "codex",
+      ...data,
+      turnRequest: {
+        ...data.turnRequest,
+        providerSessionId: "responses_observedfixture",
+      },
+      stopReason: "completed",
+      expectedEventCount: 4,
+      expectedResultContent: "observed result",
+      expectedModelIdentity: {
+        provider: "codex",
+        requestedModel: "codex-requested-alias",
+        answerModel: "codex-observed-snapshot",
+        observedModelIds: ["codex-observed-snapshot"],
+        answerModelEvidence: "response_object",
+        unavailableReason: null,
+      },
     });
 
     expect(report).toEqual({ passed: true, violations: [] });

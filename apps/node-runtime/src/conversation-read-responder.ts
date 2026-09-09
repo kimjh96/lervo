@@ -308,7 +308,7 @@ export async function openManagedConversationReadResponder(input: {
         executionIdentity: {
           agentId: input.agentId,
           provider: input.config.routing.response.provider,
-          model: input.config.routing.response.model ?? null,
+          requestedModel: input.config.routing.response.model ?? null,
         },
         participationRoleId: input.participationRoleId,
         maximumResponseCharacters: 2_000,

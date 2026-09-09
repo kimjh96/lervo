@@ -30,6 +30,7 @@ import {
   adapterCapabilityActivationReceiptSchema,
   adapterCapabilityActivationRequestSchema,
 } from "./capability-activation.js";
+import { providerModelIdentitySchema } from "./provider-model-identity.js";
 
 export {
   adapterManagedWriteCompletionSchema,
@@ -417,6 +418,7 @@ export const adapterTurnResultSchema = {
     providerSessionId: { type: "string", minLength: 1 },
     targetTurnId: { type: "string", minLength: 1 },
     providerTurnId: { type: "string", minLength: 1 },
+    modelIdentity: providerModelIdentitySchema,
     mediaType: { const: "text/markdown; charset=utf-8" },
     content: { type: "string", minLength: 1 },
     contentHash: sha256Schema,
@@ -433,6 +435,7 @@ export const adapterTurnResultSchema = {
     "providerSessionId",
     "targetTurnId",
     "providerTurnId",
+    "modelIdentity",
     "mediaType",
     "content",
     "contentHash",

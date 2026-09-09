@@ -556,6 +556,7 @@ export class ManagedProviderRunCoordinator {
         session: state.session,
         turn: state.turn!,
       });
+      resourceObservation.observeModelIdentity(state.turnResult.modelIdentity);
       if (state.injected === undefined || state.contextEvidence === undefined) {
         throw new ManagedProviderRunError(
           "contract_validation_failed",
@@ -742,6 +743,7 @@ export class ManagedProviderRunCoordinator {
       turn: copy(state.turn),
       terminalEventId: terminal.eventId,
       resultArtifact: copy(state.resultArtifact),
+      modelIdentity: copy(state.turnResult!.modelIdentity),
       contextEvidence: copy(state.contextEvidence),
       capabilityActivations: copy(state.capabilityActivations),
       managedChanges: state.writeBridge?.evidence() ?? [],
