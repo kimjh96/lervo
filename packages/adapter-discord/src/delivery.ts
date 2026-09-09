@@ -48,7 +48,8 @@ export async function deliverDiscordConversationMessage(input: {
       guildId,
       channelId: address.conversationKey,
       threadId: address.threadKey,
-      replyToMessageId: address.replyToMessageKey,
+      replyToMessageId:
+        input.message.deliveryRelation === "reply" ? address.replyToMessageKey : null,
       content,
       automationDepth: input.message.automationDepth,
       allowedMentions: "none",

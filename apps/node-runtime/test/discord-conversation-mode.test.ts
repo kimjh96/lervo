@@ -193,6 +193,7 @@ describe("natural-language Discord conversation mode", () => {
     expect(platformAction.respond).toHaveBeenCalledWith(
       expect.objectContaining({ context: { priorTurns: expect.any(Array) } }),
       { kind: "discord_current_member_nickname_set", nickname: "Lervo" },
+      { effectRequesterAuthorized: true },
     );
 
     const restarted = new NaturalLanguageDiscordConversationResponder({
@@ -323,6 +324,54 @@ describe("natural-language Discord conversation mode", () => {
     await expect(authorizedAgentMode.mode(agentWork.event)).resolves.toBe("continuation");
     await authorizedAgentMode.respond(agentWork);
     expect(continuation.respond).toHaveBeenCalledTimes(2);
+
+    const threadAction = {
+      availableEffects: [
+        "none" as const,
+        "repository_work" as const,
+        "discord_public_thread_create" as const,
+      ],
+      respond: vi.fn(async () => candidate("Thread created.")),
+    };
+    const authorizedThreadMode = new NaturalLanguageDiscordConversationResponder({
+      applicationId,
+      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "developer" },
+      authorizedAgentEffectRequesters: [
+        {
+          participantId: "ptc_ceoagent01",
+          roleId: "ceo",
+          conversationId: "cnv_test0001",
+        },
+      ],
+      repositoryRoot: process.cwd(),
+      artifactStore,
+      history: { recent: async () => [] },
+      resolutionStore: { read: async () => null, record: async () => undefined },
+      managedTurnResolver: {
+        resolve: async () => ({
+          ...(await agentWorkResolver.resolve()),
+          effect: { kind: "discord_public_thread_create", argument: "Release review" },
+        }),
+      },
+      surfaceEffects: [
+        {
+          effectId: "discord_public_thread_create",
+          description: "Create a public thread.",
+          argumentDescription: "Thread name.",
+          maximumArgumentCharacters: 100,
+        },
+      ],
+      participationPolicy,
+      readOnly: readOnly as ConversationResponder,
+      continuation: continuation as ConversationResponder,
+      platformAction: threadAction,
+    });
+    await authorizedThreadMode.respond(agentWork);
+    expect(threadAction.respond).toHaveBeenCalledWith(
+      expect.any(Object),
+      { kind: "discord_public_thread_create", name: "Release review" },
+      { effectRequesterAuthorized: true },
+    );
   });
 });
 

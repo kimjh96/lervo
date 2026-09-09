@@ -117,6 +117,18 @@ describe("conversation contract", () => {
     });
 
     expect(outbound.publicationPermit.surface).toBe("chat");
+    expect(outbound.deliveryRelation).toBe("standalone");
+    expect(
+      createConversationOutboundMessage({
+        event: source,
+        policy: participation,
+        participantId: "ptc_agent001",
+        content: replyContent,
+        publicationPermit: permit(),
+        deliveryRelation: "reply",
+        createdAt: "2026-08-20T00:00:02.000Z",
+      }).deliveryRelation,
+    ).toBe("reply");
     expect(() =>
       createConversationOutboundMessage({
         event: source,

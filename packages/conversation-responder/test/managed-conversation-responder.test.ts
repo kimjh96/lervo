@@ -419,11 +419,12 @@ describe("managed conversation responder", () => {
       },
     ];
     const managedTurnBody = JSON.stringify({
-      schemaVersion: 1,
+      schemaVersion: 2,
       intent: "answer",
       confidence: "high",
       participation: "relevant",
       effect: { kind: "none", argument: null },
+      deliveryRelation: "reply",
       reply: "I am the reviewer agent, and this turn is running through Codex.",
     });
     const turnClient = new ConversationCodexClient(
@@ -544,6 +545,7 @@ describe("managed conversation responder", () => {
     expect(managedTurn.replyCandidate?.content).toEqual(
       managedTurnConcurrent.replyCandidate?.content,
     );
+    expect(managedTurn.replyCandidate?.deliveryRelation).toBe("reply");
     expect(turnClient.instructions).toContain("managed_conversation_turn");
     expect(turnClient.instructions).toContain("executionIdentity");
     expect(turnClient.closed).toBe(true);

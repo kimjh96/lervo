@@ -23,17 +23,19 @@ A queued execution origin retains only the coarse response language `en` or `ko`
 
 Intent resolution returns `answer`, `continue_work`, or `clarify` and binds one structured effect:
 
-| Effect | Required fields | Authority and meaning |
-| --- | --- | --- |
-| `none` | kind | No mutation may occur |
-| `repository_work` | kind | Use the signed exact-workstream Hub continuation path |
-| `discord_current_member_nickname_set` | kind, nickname | Change only this authenticated bot member's nickname in the mapped guild |
+| Effect                                | Required fields | Authority and meaning                                                    |
+| ------------------------------------- | --------------- | ------------------------------------------------------------------------ |
+| `none`                                | kind            | No mutation may occur                                                    |
+| `repository_work`                     | kind            | Use the signed exact-workstream Hub continuation path                    |
+| `discord_current_member_nickname_set` | kind, nickname  | Change only this authenticated bot member's nickname in the mapped guild |
+| `discord_guild_text_channel_create`   | kind, name      | Create one bounded text channel in the mapped guild                      |
+| `discord_public_thread_create`        | kind, name      | Create one bounded public thread under the mapped current channel        |
 
 The resolver receives available effect kinds. An unavailable effect becomes clarification and never falls through to repository work. The immutable intent record binds effect JSON alongside event, message hash, provider, model, confidence, digest, and time. The nickname is a bounded 1 to 32 character platform argument and may repeat that small source value; the full message remains only in CAS.
 
-`discordConversation.administration.allowedActions` grants explicit platform authority. The first action is `current_member.nickname.set`. The Discord adapter accepts only configured guild IDs, uses the current bot member endpoint, verifies the returned application ID and nickname, and never accepts a target user ID. Only a mapped human may request this action. API rejection or response mismatch is a response failure and cannot be reported as success.
+`discordConversation.administration.allowedActions` grants explicit platform authority. Natural conversation exposes nickname, guild text-channel creation, and current-channel public-thread creation only when their exact actions are allowlisted. The Discord adapter accepts only configured guild and channel IDs, validates bounded names, verifies returned scope and object identity, and never accepts an arbitrary user ID or thread parent. A mapped human or an explicitly `mayRequestEffects` agent may request the action; agent authority remains bound to its participant, role, and conversation. API rejection or response mismatch is a response failure and cannot be reported as success.
 
-Discord application creation, bot-token issuance, and guild installation are owner or OAuth provisioning transitions, not Discord Bot API capabilities. A future CEO agent may manage channels, roles, membership, and a pre-provisioned bot pool only through separately allowlisted actions and receipts.
+Discord application creation, bot-token issuance, and guild installation are owner or OAuth provisioning transitions, not Discord Bot API capabilities. A CEO agent may manage bounded channel and thread creation and a pre-provisioned webhook pool only through separately allowlisted actions and receipts.
 
 ### Interaction ownership and retry
 

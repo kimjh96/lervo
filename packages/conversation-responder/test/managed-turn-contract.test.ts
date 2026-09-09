@@ -15,7 +15,7 @@ describe("managed conversation turn output contract", () => {
     expect(schema).toMatchObject({
       type: "object",
       properties: {
-        schemaVersion: { type: "integer", const: 1 },
+        schemaVersion: { type: "integer", const: 2 },
       },
     });
     expect(findUntypedProperties(schema)).toEqual([]);

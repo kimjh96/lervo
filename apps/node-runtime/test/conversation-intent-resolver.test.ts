@@ -36,7 +36,7 @@ describe("conversation intent provider contract", () => {
             intent: "continue_work",
             confidence: "high",
             participation: "relevant",
-            effect: { kind: "repository_work", nickname: null },
+            effect: { kind: "repository_work", nickname: null, name: null },
           };
         },
       });
@@ -48,7 +48,7 @@ describe("conversation intent provider contract", () => {
         provider: {
           providerId: provider,
           model: `${provider}-model`,
-          adapterVersion: "2",
+          adapterVersion: "3",
         },
         resultDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
       });
@@ -64,9 +64,30 @@ describe("conversation intent provider contract", () => {
         intent: "mutate_everything",
         confidence: "high",
         participation: "relevant",
-        effect: { kind: "none", nickname: null },
+        effect: { kind: "none", nickname: null, name: null },
       }),
     });
     await expect(resolver.resolve(turn)).rejects.toThrow("intent result is invalid");
+  });
+
+  it("routes bounded Discord channel and thread creation effects", async () => {
+    for (const [kind, name] of [
+      ["discord_guild_text_channel_create", "release-room"],
+      ["discord_public_thread_create", "Release review"],
+    ] as const) {
+      const resolver = createConversationIntentResolver({
+        providerId: "codex",
+        model: null,
+        resolve: async () => ({
+          intent: "continue_work",
+          confidence: "high",
+          participation: "relevant",
+          effect: { kind, nickname: null, name },
+        }),
+      });
+      await expect(
+        resolver.resolve({ ...turn, availableEffects: ["none", "repository_work", kind] }),
+      ).resolves.toMatchObject({ effect: { kind, name } });
+    }
   });
 });

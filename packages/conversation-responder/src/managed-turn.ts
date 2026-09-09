@@ -85,6 +85,7 @@ export class ManagedConversationTurnResolver implements ManagedConversationTurnR
               : { maximumResponseCharacters: plan.maximumResponseCharacters }),
             ...(this.options.now === undefined ? {} : { now: this.options.now }),
           });
+    if (replyCandidate !== null) replyCandidate.deliveryRelation = body.deliveryRelation;
     return {
       intent: body.intent,
       confidence: body.confidence,

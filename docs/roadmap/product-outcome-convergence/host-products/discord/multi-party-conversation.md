@@ -24,7 +24,7 @@ A channel may contain people and multiple hired agents with different roles. Mes
 - Repository mutation, external effects, assignment changes, and approval resolution require their existing authority paths.
 - Participation policies, maximum automation depth, response budgets, explicit deliberation termination, and self-message suppression must prevent agent reply loops.
 
-Read-only discussion includes requested repository inspection and bounded code excerpts. Actual repository changes enter managed continuation with the same Codex and Claude adapter capabilities, authority, snapshots, verification, evidence, and result return used outside Discord. Agents may create allowed threads, reply, and mention participants when conversation and organization policy permit; those surface actions remain distinct from repository authority.
+Read-only discussion includes requested repository inspection and bounded code excerpts. Actual repository changes enter managed continuation with the same Codex and Claude adapter capabilities, authority, snapshots, verification, evidence, and result return used outside Discord. Agents may create allowed threads, reply, and mention participants when conversation and organization policy permit; those surface actions remain distinct from repository authority. Native reply projection is selected per turn only when it clarifies a concurrent or explicit reply relationship. Ordinary sequential answers remain standalone messages instead of mechanically replying to every source message.
 
 ## Automatic provider selection
 
@@ -40,7 +40,7 @@ Installed Node deployments can map bounded canonical repository event types to p
 
 The installed executive boundary executes hash-bound, allowlisted Discord text-channel and public-thread effects with durable replay and fail-closed uncertainty. The installed deliberation worker reconciles uncertain outcomes from canonical CLI evidence and publishes a bounded visible result through the managed conversation path.
 
-Webhook-backed delivery, same-Node and explicitly bound cross-Node peer-author normalization, shared-Gateway validation, replay-safe executive webhook preparation, authenticated parent/thread resolution, native thread delivery, bot-native replies, and source-message reply correlation are implemented. Webhook replies remain canonical rather than native. Remaining work includes invoking the preparation and runtime-binding flow from natural CEO conversation, broader natural addressed groups, and the required real two-agent discussion. Separate applications remain optional for native Discord member presence and mentions.
+Webhook-backed delivery, same-Node and explicitly bound cross-Node peer-author normalization, shared-Gateway validation, replay-safe executive webhook preparation, authenticated parent/thread resolution, native thread delivery, bot-native replies, source-message reply correlation, and natural allowlisted text-channel and current-channel public-thread creation are implemented. Webhook replies remain canonical rather than native. Remaining work includes invoking agent-deployment preparation and runtime binding from natural CEO conversation, broader natural addressed groups, and the required real two-agent discussion. Separate applications remain optional for native Discord member presence and mentions.
 
 ## Acceptance
 

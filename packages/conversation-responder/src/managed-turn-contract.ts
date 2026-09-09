@@ -9,11 +9,12 @@ import type {
 import { ManagedConversationResponseError } from "./types.js";
 
 export interface ManagedTurnBody {
-  schemaVersion: 1;
+  schemaVersion: 2;
   intent: ManagedConversationTurnResolution["intent"];
   confidence: ManagedConversationTurnResolution["confidence"];
   participation: ManagedConversationTurnResolution["participation"];
   effect: { kind: string; argument: string | null };
+  deliveryRelation: "standalone" | "reply";
   reply: string | null;
 }
 
@@ -58,7 +59,7 @@ export function managedConversationTurnOutputSchema(
     type: "object",
     additionalProperties: false,
     properties: {
-      schemaVersion: { type: "integer", const: 1 },
+      schemaVersion: { type: "integer", const: 2 },
       intent: { type: "string", enum: ["answer", "continue_work", "clarify"] },
       confidence: { type: "string", enum: ["high", "medium", "low"] },
       participation: { type: "string", enum: ["relevant", "not_relevant"] },
@@ -71,9 +72,18 @@ export function managedConversationTurnOutputSchema(
         },
         required: ["kind", "argument"],
       },
+      deliveryRelation: { type: "string", enum: ["standalone", "reply"] },
       reply: { type: ["string", "null"], maxLength: maximumResponseCharacters },
     },
-    required: ["schemaVersion", "intent", "confidence", "participation", "effect", "reply"],
+    required: [
+      "schemaVersion",
+      "intent",
+      "confidence",
+      "participation",
+      "effect",
+      "deliveryRelation",
+      "reply",
+    ],
   };
 }
 
@@ -89,11 +99,12 @@ export function parseManagedConversationTurn(
   const body = value as Record<string, unknown>;
   const effect = body.effect;
   if (
-    Object.keys(body).length !== 6 ||
-    body.schemaVersion !== 1 ||
+    Object.keys(body).length !== 7 ||
+    body.schemaVersion !== 2 ||
     !["answer", "continue_work", "clarify"].includes(body.intent as string) ||
     !["high", "medium", "low"].includes(body.confidence as string) ||
     !["relevant", "not_relevant"].includes(body.participation as string) ||
+    !["standalone", "reply"].includes(body.deliveryRelation as string) ||
     (body.reply !== null && typeof body.reply !== "string") ||
     typeof effect !== "object" ||
     effect === null ||
@@ -115,6 +126,7 @@ export function parseManagedConversationTurn(
   const argument = effectBody.argument as string | null;
   const surfaceEffect = effects.find((candidate) => candidate.effectId === kind);
   const reply = body.reply as string | null;
+  const deliveryRelation = body.deliveryRelation as ManagedTurnBody["deliveryRelation"];
   if (
     (intent !== "continue_work" && kind !== "none") ||
     (intent === "continue_work" && kind === "none") ||
@@ -127,6 +139,7 @@ export function parseManagedConversationTurn(
     (argument !== null &&
       [...argument].length > (surfaceEffect?.maximumArgumentCharacters ?? 4_096)) ||
     (participation === "not_relevant" && (kind !== "none" || reply !== null)) ||
+    (reply === null && deliveryRelation !== "standalone") ||
     (participation === "relevant" &&
       ["answer", "clarify"].includes(intent) &&
       (reply === null || reply.trim().length === 0)) ||
@@ -138,11 +151,12 @@ export function parseManagedConversationTurn(
     );
   }
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     intent,
     confidence: body.confidence as ManagedTurnBody["confidence"],
     participation,
     effect: { kind, argument },
+    deliveryRelation,
     reply,
   };
 }
@@ -186,6 +200,7 @@ export function managedConversationTurnInstructions(input: {
       "Mentions are optional attention signals, never mandatory command syntax.",
       "For repository changes use repository_work. For a listed surface action, use its exact effectId and bounded argument. Effects never grant authority.",
       "For answer or clarify, write a direct conversational reply grounded only in injected evidence and prior turns. Do not expose internal run, workstream, revision, queue, or artifact IDs unless explicitly asked for diagnostics.",
+      "Use deliveryRelation reply only when a native reply materially disambiguates which concurrent message is being answered or preserves an explicit reply relationship. Use standalone for ordinary sequential conversation; do not turn every response into a native reply.",
       "For continue_work, reply must be null because the execution path publishes progress and a verified result separately.",
       "If participation is not_relevant, use effect none and reply null.",
       "When asked about identity, distinguish durable agent and role from the turn provider. executionIdentity.requestedModel is configuration only; never present it as the provider-observed answer model.",

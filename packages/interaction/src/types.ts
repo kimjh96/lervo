@@ -124,6 +124,7 @@ export interface ConversationTurnOwnershipEvaluator {
 
 export interface ConversationReplyCandidate {
   content: ConversationContentReference;
+  deliveryRelation?: "standalone" | "reply";
   publicationPermit: WritingPublicationPermit;
   publicationEvidence: {
     artifact: WritingArtifactCoordinate;

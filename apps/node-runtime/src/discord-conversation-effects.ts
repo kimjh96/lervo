@@ -14,8 +14,9 @@ export function createDiscordConversationEffects(input: {
   surfaceEffects: ManagedConversationSurfaceEffect[];
   platformAction: DiscordConversationAdministrationResponder;
 } {
-  const surfaceEffects: ManagedConversationSurfaceEffect[] =
-    input.config.administration?.allowedActions.includes("current_member.nickname.set") === true
+  const allowedActions = input.config.administration?.allowedActions ?? [];
+  const surfaceEffects: ManagedConversationSurfaceEffect[] = [
+    ...(allowedActions.includes("current_member.nickname.set")
       ? [
           {
             effectId: "discord_current_member_nickname_set",
@@ -24,7 +25,29 @@ export function createDiscordConversationEffects(input: {
             maximumArgumentCharacters: 32,
           },
         ]
-      : [];
+      : []),
+    ...(allowedActions.includes("guild_text_channel.create")
+      ? [
+          {
+            effectId: "discord_guild_text_channel_create",
+            description: "Create a text channel in the current Discord server.",
+            argumentDescription:
+              "The lowercase Discord channel name using letters, numbers, hyphens, or underscores.",
+            maximumArgumentCharacters: 100,
+          },
+        ]
+      : []),
+    ...(allowedActions.includes("public_thread.create")
+      ? [
+          {
+            effectId: "discord_public_thread_create",
+            description: "Create a public thread under the current Discord channel.",
+            argumentDescription: "The intended thread name.",
+            maximumArgumentCharacters: 100,
+          },
+        ]
+      : []),
+  ];
   return {
     surfaceEffects,
     platformAction: new DiscordConversationAdministrationResponder({
@@ -45,8 +68,11 @@ export function createDiscordConversationEffects(input: {
       conversations: input.config.conversations.map((binding) => ({
         conversationId: binding.conversationId,
         guildId: binding.tenantKey,
+        channelId: binding.conversationKey,
       })),
-      allowNicknameUpdate: surfaceEffects.length > 0,
+      allowNicknameUpdate: allowedActions.includes("current_member.nickname.set"),
+      allowGuildTextChannelCreate: allowedActions.includes("guild_text_channel.create"),
+      allowPublicThreadCreate: allowedActions.includes("public_thread.create"),
     }),
   };
 }

@@ -28,6 +28,7 @@ export interface DiscordPlatformActionResponder {
   respond(
     input: Parameters<ConversationResponder["respond"]>[0],
     effect: Exclude<ConversationRequestedEffect, { kind: "none" | "repository_work" }>,
+    authorization: { effectRequesterAuthorized: boolean },
   ): ReturnType<ConversationResponder["respond"]>;
 }
 
@@ -102,6 +103,18 @@ export class NaturalLanguageDiscordConversationResponder
     return admitted === true ? mode : "clarify";
   }
 
+  private effectRequesterAuthorized(event: ConversationInboundEvent): boolean {
+    return (
+      event.actor.kind === "human" ||
+      this.options.authorizedAgentEffectRequesters?.some(
+        (requester) =>
+          requester.participantId === event.actor.participantId &&
+          requester.roleId === event.actor.roleId &&
+          requester.conversationId === event.target.conversationId,
+      ) === true
+    );
+  }
+
   async mode(event: ConversationInboundEvent): Promise<DiscordConversationMode> {
     return (await this.resolution(event)).mode;
   }
@@ -161,9 +174,12 @@ export class NaturalLanguageDiscordConversationResponder
               kind: "discord_current_member_nickname_set",
               nickname: managed.effect.argument!,
             }
-          : managed.effect.kind === "repository_work"
-            ? { kind: "repository_work" }
-            : { kind: "none" };
+          : managed.effect.kind === "discord_guild_text_channel_create" ||
+              managed.effect.kind === "discord_public_thread_create"
+            ? { kind: managed.effect.kind, name: managed.effect.argument! }
+            : managed.effect.kind === "repository_work"
+              ? { kind: "repository_work" }
+              : { kind: "none" };
       const resolution: ConversationIntentResolution = {
         intent: managed.intent,
         confidence: managed.confidence,
@@ -232,9 +248,16 @@ export class NaturalLanguageDiscordConversationResponder
     if (resolution.mode === "control") return this.options.explicitControl!.respond(request);
     if (
       resolution.mode === "platform_action" &&
-      resolution.resolution.effect.kind === "discord_current_member_nickname_set"
+      !["none", "repository_work"].includes(resolution.resolution.effect.kind)
     ) {
-      return this.options.platformAction.respond(request, resolution.resolution.effect);
+      return this.options.platformAction.respond(
+        request,
+        resolution.resolution.effect as Exclude<
+          ConversationRequestedEffect,
+          { kind: "none" | "repository_work" }
+        >,
+        { effectRequesterAuthorized: this.effectRequesterAuthorized(input.event) },
+      );
     }
     if (["read_only", "clarify"].includes(resolution.mode) && resolution.replyCandidate !== null) {
       return resolution.replyCandidate;

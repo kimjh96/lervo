@@ -37,13 +37,29 @@ function validEffect(value: unknown): value is ConversationIntentResolution["eff
   if (effect.kind === "none" || effect.kind === "repository_work") {
     return Object.keys(effect).length === 1;
   }
+  if (effect.kind === "discord_current_member_nickname_set") {
+    return (
+      Object.keys(effect).length === 2 &&
+      typeof effect.nickname === "string" &&
+      [...effect.nickname].length >= 1 &&
+      [...effect.nickname].length <= 32 &&
+      !effect.nickname.includes("\0")
+    );
+  }
+  if (effect.kind === "discord_guild_text_channel_create") {
+    return (
+      Object.keys(effect).length === 2 &&
+      typeof effect.name === "string" &&
+      /^[a-z0-9][a-z0-9_-]{0,99}$/u.test(effect.name)
+    );
+  }
   return (
-    effect.kind === "discord_current_member_nickname_set" &&
+    effect.kind === "discord_public_thread_create" &&
     Object.keys(effect).length === 2 &&
-    typeof effect.nickname === "string" &&
-    [...effect.nickname].length >= 1 &&
-    [...effect.nickname].length <= 32 &&
-    !effect.nickname.includes("\0")
+    typeof effect.name === "string" &&
+    [...effect.name].length >= 1 &&
+    [...effect.name].length <= 100 &&
+    !effect.name.includes("\0")
   );
 }
 

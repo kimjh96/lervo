@@ -37950,6 +37950,7 @@ var conversationOutboundMessageSchema = {
     },
     content: conversationContentReferenceSchema,
     publicationPermit: writingPublicationPermitValueSchema,
+    deliveryRelation: { type: "string", enum: ["standalone", "reply"] },
     automationDepth: { type: "integer", minimum: 1, maximum: 8 },
     createdAt: timestampSchema
   },

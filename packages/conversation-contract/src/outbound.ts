@@ -36,6 +36,7 @@ export function createConversationOutboundMessage(input: {
   agentBinding?: ConversationOutboundMessage["actor"]["agentBinding"];
   content: ConversationOutboundMessage["content"];
   publicationPermit: ConversationOutboundMessage["publicationPermit"];
+  deliveryRelation?: "standalone" | "reply";
   createdAt: string;
 }): ConversationOutboundMessage {
   const content: OutboundContent = {
@@ -51,6 +52,7 @@ export function createConversationOutboundMessage(input: {
     },
     content: clone(input.content),
     publicationPermit: clone(input.publicationPermit),
+    deliveryRelation: input.deliveryRelation ?? "standalone",
     automationDepth: input.event.automationDepth + 1,
     createdAt: input.createdAt,
   };

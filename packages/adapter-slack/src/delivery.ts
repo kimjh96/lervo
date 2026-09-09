@@ -41,7 +41,9 @@ export async function deliverSlackConversationMessage(input: {
       teamId: address.tenantKey,
       channelId: address.conversationKey,
       threadTs: address.threadKey,
-      replyToTs: address.threadKey ?? address.replyToMessageKey,
+      replyToTs:
+        address.threadKey ??
+        (input.message.deliveryRelation === "reply" ? address.replyToMessageKey : null),
       text,
       automationDepth: input.message.automationDepth,
       format: "plain",

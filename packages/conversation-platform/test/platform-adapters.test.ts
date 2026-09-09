@@ -423,6 +423,7 @@ describe("authenticated platform conversation adapters", () => {
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({
         content: "Confirmed. Proceeding to the next verification step.",
+        replyToMessageId: null,
         allowedMentions: "none",
         enforceIdempotency: true,
       }),
