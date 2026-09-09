@@ -27,6 +27,8 @@ The `organization.team.kind.changed` event reclassifies one exact existing repos
 
 Changing an agent deployment’s provider, model, command role, conversation set, or hired-agent role binding rotates the deployment rather than mutating its bound evidence. The runtime-binding transaction ends every active channel membership on the replaced deployment, retires it with `configuration_replaced`, appends the exact membership revision when needed, then binds a new deployment and channel memberships. Exact repeated configuration is idempotent. A principal bound to another active agent still fails closed. Immutable deployment history is preserved while per-agent execution settings evolve.
 
+The conversation-platform projection follows that rotation by refreshing role coordinates only when the external principal, internal participant, and durable hired-agent ID remain exact. It never accepts a different agent ID under an existing principal. Prior normalized message events retain their original actor and role snapshot, so changing current participation authority neither discards context nor rewrites history.
+
 ### Organization effects
 
 An organization executive is an appointed named agent operating under a role and policy, not an agent whose name is `CEO`. The surface-neutral organization execution boundary binds an allowed request to the exact effect payload, adapter, team, budget policy, automation depth, and decision hash. The installed Discord adapter supports allowlisted text-channel and public-thread creation. It reads credentials only from owner-controlled Node configuration and verifies the exact Discord response.

@@ -502,4 +502,78 @@ describe("SQLite conversation platform state", () => {
       }),
     ).rejects.toMatchObject({ code: "conflicting_binding" });
   });
+
+  it("refreshes the current role snapshot for the same hired agent across restart", async () => {
+    const path = await databasePath();
+    let store = await SQLiteConversationPlatformStore.open(options(path));
+    store.close();
+
+    const changed = options(path);
+    changed.participants[1] = {
+      ...changed.participants[1]!,
+      actor: {
+        kind: "agent",
+        participantId: "ptc_platform02",
+        roleId: "ceo",
+        agentBinding: {
+          agentId: `agt_${"a".repeat(24)}`,
+          roleVersion: "2.0.0",
+          roleContractHash: `sha256:${"d".repeat(64)}`,
+          roleProfileHash: `sha256:${"e".repeat(64)}`,
+        },
+      },
+    };
+    store = await SQLiteConversationPlatformStore.open(changed);
+
+    await expect(
+      store.mapInbound({
+        platform: "slack",
+        integrationId,
+        tenantKey: "T123",
+        conversationKey: "C123",
+        threadKey: null,
+        sourceMessageKey: "agent-message-after-role-change",
+        replyToMessageKey: null,
+        participantKey: "bot:B123",
+        mentionedParticipantKeys: [],
+        actorKindHint: "agent",
+      }),
+    ).resolves.toMatchObject({
+      actor: {
+        participantId: "ptc_platform02",
+        roleId: "ceo",
+        agentBinding: {
+          agentId: `agt_${"a".repeat(24)}`,
+          roleVersion: "2.0.0",
+          roleContractHash: `sha256:${"d".repeat(64)}`,
+          roleProfileHash: `sha256:${"e".repeat(64)}`,
+        },
+      },
+    });
+    store.close();
+  });
+
+  it("rejects assigning an existing platform principal to a different hired agent", async () => {
+    const path = await databasePath();
+    const store = await SQLiteConversationPlatformStore.open(options(path));
+    store.close();
+    const changed = options(path);
+    changed.participants[1] = {
+      ...changed.participants[1]!,
+      actor: {
+        kind: "agent",
+        participantId: "ptc_platform02",
+        roleId: "reviewer",
+        agentBinding: {
+          agentId: `agt_${"f".repeat(24)}`,
+          roleVersion: "1.2.3",
+          roleContractHash: `sha256:${"b".repeat(64)}`,
+          roleProfileHash: `sha256:${"c".repeat(64)}`,
+        },
+      },
+    };
+    await expect(SQLiteConversationPlatformStore.open(changed)).rejects.toMatchObject({
+      code: "conflicting_binding",
+    });
+  });
 });

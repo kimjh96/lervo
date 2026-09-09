@@ -134,30 +134,7 @@ export class ConversationPlatformBindingRepository {
     }
     const agentBinding = binding.actor.agentBinding ?? null;
     if (agentBinding !== null) {
-      this.database
-        .prepare(
-          `
-            UPDATE participant_bindings SET agent_id = ?, role_version = ?,
-              role_contract_hash = ?, role_profile_hash = ?
-            WHERE platform = ? AND integration_id = ? AND tenant_key = ? AND participant_key = ?
-              AND actor_kind = ? AND participant_id = ? AND role_id = ?
-              AND agent_id IS NULL AND role_version IS NULL
-              AND role_contract_hash IS NULL AND role_profile_hash IS NULL
-          `,
-        )
-        .run(
-          agentBinding.agentId,
-          agentBinding.roleVersion,
-          agentBinding.roleContractHash,
-          agentBinding.roleProfileHash,
-          binding.platform,
-          binding.integrationId,
-          binding.tenantKey,
-          binding.participantKey,
-          binding.actor.kind,
-          binding.actor.participantId,
-          binding.actor.roleId,
-        );
+      this.refreshAgentBinding(binding, agentBinding);
     }
     this.insertIdempotent({
       table: "participant_bindings",
@@ -189,6 +166,42 @@ export class ConversationPlatformBindingRepository {
         agentBinding?.roleProfileHash ?? null,
       ],
     });
+  }
+
+  private refreshAgentBinding(
+    binding: ConversationPlatformParticipantBinding,
+    agentBinding: NonNullable<ConversationOutboundMessage["actor"]["agentBinding"]>,
+  ): void {
+    this.database
+      .prepare(
+        `
+          UPDATE participant_bindings SET role_id = ?, agent_id = ?, role_version = ?,
+            role_contract_hash = ?, role_profile_hash = ?
+          WHERE platform = ? AND integration_id = ? AND tenant_key = ? AND participant_key = ?
+            AND actor_kind = ? AND participant_id = ?
+            AND (
+              (agent_id IS NULL AND role_version IS NULL
+                AND role_contract_hash IS NULL AND role_profile_hash IS NULL
+                AND role_id = ?)
+              OR agent_id = ?
+            )
+        `,
+      )
+      .run(
+        binding.actor.roleId,
+        agentBinding.agentId,
+        agentBinding.roleVersion,
+        agentBinding.roleContractHash,
+        agentBinding.roleProfileHash,
+        binding.platform,
+        binding.integrationId,
+        binding.tenantKey,
+        binding.participantKey,
+        binding.actor.kind,
+        binding.actor.participantId,
+        binding.actor.roleId,
+        agentBinding.agentId,
+      );
   }
 
   private installThread(binding: ConversationPlatformThreadBinding): void {

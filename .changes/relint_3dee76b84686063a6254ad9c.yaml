@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3dee76b84686063a6254ad9c"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Allow one Discord principal to follow the same hired agent across reviewed role changes."

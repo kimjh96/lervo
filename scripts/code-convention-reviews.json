@@ -74,7 +74,7 @@
     },
     {
       "path": "packages/conversation-platform-sqlite/src/binding-repository.ts",
-      "contentHash": "sha256:02bd620cc724b2de5cd365fc52986ceefd6398f7f49b9fbf48e7967e70c9f463",
+      "contentHash": "sha256:e93595fb72d7cedd5708aa96dca496ff53b80744a46489ef89839e798c4bb8c0",
       "responsibility": "Conversation-platform binding persistence",
       "rationale": "The repository class owns one SQLite persistence boundary for platform bindings, including validation, reads, writes, and transaction-safe state changes.",
       "disposition": "cohesive"

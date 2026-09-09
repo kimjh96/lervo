@@ -18,6 +18,8 @@ The platform-neutral turn-ownership contract uses the common source-event hash a
 
 Hired-agent participants retain the agent ID, exact role version, contract hash, and profile hash in platform bindings and normalized message history. Each deployment keeps its own durable interaction store and supplies bounded recent turns only to that agent's responder. Role contracts, provider sessions, bot credentials, and conversation history remain independently replaceable.
 
+When an exact external principal remains bound to the same hired-agent ID, deployment restart may refresh that principal's current role ID, version, contract hash, and profile hash. A different agent ID or participant ID still fails closed. This projection refresh does not rewrite prior normalized messages: historical turns retain the role snapshot recorded when each event was created.
+
 Response errors pass through a provider-neutral classifier before persistence. Retryable work has an explicit attempt bound. Exhausted or non-retryable work produces a fixed, deterministically verified terminal status instead of remaining silent. See [ADR-0387](../../../decisions/coordination/conversations/0387-terminal-conversation-response-failures.md).
 
 ## Proactive signals and deliberation
