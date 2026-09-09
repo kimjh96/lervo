@@ -598,7 +598,9 @@ export async function scanRepositoryKnowledge(input: {
         });
         continue;
       }
-      if (stats.size > input.policy.limits.maxFileBytes) {
+      const artifactProfile = repositoryAgentArtifactForPath(path);
+      const boundedOpaqueResource = artifactProfile?.contentHandling === "opaque_resource";
+      if (stats.size > input.policy.limits.maxFileBytes && !boundedOpaqueResource) {
         sources.push({
           sourceId: id,
           path,

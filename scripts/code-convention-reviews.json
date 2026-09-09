@@ -235,7 +235,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:7aa1eeb812b8efa189fc3e69ca2f067153750b77412bb59114992872dde0eb06",
+      "contentHash": "sha256:8f52424bdd548d2f0a2570b029872059d2cb4ba5aa107b640c8d134e39538666",
       "responsibility": "Bounded repository knowledge scanner",
       "rationale": "Classification, safe reads, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate.",
       "disposition": "cohesive"

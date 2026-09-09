@@ -173,7 +173,8 @@ describe("repository agent artifact profiles", () => {
 
   it("hashes opaque portable skill resources without decoding them as semantic text", async () => {
     const root = await fixtureRepository();
-    const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff]);
+    const bytes = Buffer.alloc(defaultRepositoryKnowledgePolicy.limits.maxFileBytes + 1, 0xff);
+    bytes.set([0x89, 0x50, 0x4e, 0x47, 0x00]);
     await mkdir(resolve(root, ".agents/skills/deploy/assets"), { recursive: true });
     await writeFile(resolve(root, ".agents/skills/deploy/assets/preview.png"), bytes);
 
