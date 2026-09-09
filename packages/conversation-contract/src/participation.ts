@@ -14,6 +14,7 @@ type PolicyContent = Omit<ConversationParticipationPolicy, "policyId">;
 type DecisionContent = Omit<ConversationParticipationDecision, "decisionId">;
 
 const responseReasons = new Set<ConversationParticipationReason>([
+  "owned_human_message",
   "mentioned",
   "relevant",
   "proactive_signal",

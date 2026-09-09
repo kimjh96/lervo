@@ -131,6 +131,7 @@ export interface NodeDiscordConversationConfig {
   policy?: {
     mode?: "mention_only" | "relevant" | "proactive" | "silent";
     respondTo?: Array<"human" | "agent" | "system">;
+    unaddressedHumanMessages?: "evaluate" | "respond";
     signalCodes?: string[];
     cooldownSeconds?: number;
     maxResponsesPerHour?: number;

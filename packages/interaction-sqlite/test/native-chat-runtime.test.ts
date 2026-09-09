@@ -92,6 +92,7 @@ function participationPolicy(
   conversationIds = ["cnv_general01"],
   roleId = "role_reviewer",
   cooldownSeconds = 0,
+  unaddressedHumanMessages?: "evaluate" | "respond",
 ) {
   return createConversationParticipationPolicy({
     projectId: "prj_project01",
@@ -99,6 +100,7 @@ function participationPolicy(
     conversationIds,
     mode: "relevant",
     respondTo: ["human"],
+    ...(unaddressedHumanMessages === undefined ? {} : { unaddressedHumanMessages }),
     signalCodes: ["review.requested"],
     cooldownSeconds,
     maxResponsesPerHour: 5,
@@ -200,7 +202,7 @@ describe("durable native chat interaction", () => {
     const stopActivity = vi.fn();
     const startActivity = vi.fn(() => ({ stop: stopActivity }));
     const relevance = vi.fn(async () => {
-      expect(startActivity).toHaveBeenCalledOnce();
+      expect(startActivity).not.toHaveBeenCalled();
       return "relevant" as const;
     });
     const responder = vi.fn(async () => responseCandidate());
@@ -568,7 +570,7 @@ describe("durable native chat interaction", () => {
     const terminalVerifier = vi.fn(async () => undefined);
     const common = {
       event,
-      policy: participationPolicy(),
+      policy: participationPolicy(["cnv_general01"], "role_reviewer", 0, "respond"),
       workerId: "bounded-retry-worker",
       agentParticipantId: "ptc_agent001",
       agentBinding: {
@@ -580,7 +582,11 @@ describe("durable native chat interaction", () => {
       store,
       responder: { respond: responder },
       publicationVerifier: { verify: vi.fn(async () => undefined) },
-      relevanceEvaluator: { evaluate: async () => "relevant" as const },
+      relevanceEvaluator: {
+        evaluate: vi.fn(async () => {
+          throw new Error("semantic participation must not gate an owned human message");
+        }),
+      },
       responseFailureClassifier: {
         classify: () => ({ failureCode: "response_writing_blocked" as const, retryable: true }),
       },

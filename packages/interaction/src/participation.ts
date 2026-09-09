@@ -12,6 +12,18 @@ import type {
 import { InteractionError } from "./errors.js";
 import type { ParticipationWindow } from "./types.js";
 
+function respondsToOwnedHumanMessage(input: {
+  event: ConversationInboundEvent;
+  policy: ConversationParticipationPolicy;
+}): boolean {
+  return (
+    input.event.kind === "message.created" &&
+    input.event.actor.kind === "human" &&
+    input.policy.unaddressedHumanMessages === "respond" &&
+    (input.policy.mode === "relevant" || input.policy.mode === "proactive")
+  );
+}
+
 export function assertConversationParticipationScope(input: {
   event: ConversationInboundEvent;
   policy: ConversationParticipationPolicy;
@@ -57,6 +69,7 @@ export function requiresConversationRelevance(input: {
     return false;
   return (
     input.event.kind === "message.created" &&
+    !respondsToOwnedHumanMessage(input) &&
     !input.event.mentions.roleIds.includes(input.policy.roleId) &&
     (input.agentParticipantId === undefined ||
       !input.event.mentions.participantIds.includes(input.agentParticipantId)) &&
@@ -127,6 +140,9 @@ export function decideConversationParticipation(input: {
   } else if (input.policy.mode === "mention_only") {
     reason = "not_mentioned";
     relevance = "not_checked";
+  } else if (respondsToOwnedHumanMessage(input)) {
+    reason = "owned_human_message";
+    relevance = "not_checked";
   } else if (input.relevance === "relevant") {
     reason = "relevant";
   } else if (input.relevance === "not_relevant") {
@@ -137,7 +153,10 @@ export function decideConversationParticipation(input: {
   }
 
   const triggered =
-    reason === "mentioned" || reason === "relevant" || reason === "proactive_signal";
+    reason === "owned_human_message" ||
+    reason === "mentioned" ||
+    reason === "relevant" ||
+    reason === "proactive_signal";
   if (triggered && input.window.latestResponseAt !== null) {
     const cooldownUntil =
       Date.parse(input.window.latestResponseAt) + input.policy.cooldownSeconds * 1_000;
@@ -158,7 +177,10 @@ export function decideConversationParticipation(input: {
     event: input.event,
     policy: input.policy,
     action:
-      reason === "mentioned" || reason === "relevant" || reason === "proactive_signal"
+      reason === "owned_human_message" ||
+      reason === "mentioned" ||
+      reason === "relevant" ||
+      reason === "proactive_signal"
         ? "respond"
         : "observe",
     reason,

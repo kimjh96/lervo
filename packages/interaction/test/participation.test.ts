@@ -57,6 +57,7 @@ function policy(
     maxResponsesPerHour?: number;
     maxAutomationDepth?: number;
     conversationIds?: string[];
+    unaddressedHumanMessages?: "evaluate" | "respond";
   } = {},
 ) {
   return createConversationParticipationPolicy({
@@ -65,6 +66,9 @@ function policy(
     conversationIds: input.conversationIds ?? ["cnv_general01"],
     mode: input.mode ?? "relevant",
     respondTo: ["human"],
+    ...(input.unaddressedHumanMessages === undefined
+      ? {}
+      : { unaddressedHumanMessages: input.unaddressedHumanMessages }),
     signalCodes: ["review.requested"],
     cooldownSeconds: input.cooldownSeconds ?? 0,
     maxResponsesPerHour: input.maxResponsesPerHour ?? 5,
@@ -139,6 +143,54 @@ describe("conversation participation", () => {
       action: "observe",
       reason: "relevance_unavailable",
     });
+  });
+
+  it("assigns an unaddressed human message to its deterministic owner without semantic gating", () => {
+    const conversational = policy({ unaddressedHumanMessages: "respond" });
+    expect(
+      requiresConversationRelevance({
+        event: event(),
+        policy: conversational,
+        ownsTurn: true,
+      }),
+    ).toBe(false);
+    expect(
+      decideConversationParticipation({
+        event: event(),
+        policy: conversational,
+        relevance: "not_checked",
+        ownsTurn: true,
+        window: { latestResponseAt: null, responsesInLastHour: 0 },
+        decidedAt: "2026-08-20T00:00:10.000Z",
+      }),
+    ).toMatchObject({
+      action: "respond",
+      reason: "owned_human_message",
+      relevance: "not_checked",
+    });
+  });
+
+  it("keeps unaddressed agent messages behind semantic participation", () => {
+    const conversational = createConversationParticipationPolicy({
+      projectId: "prj_project01",
+      roleId: "role_reviewer",
+      conversationIds: ["cnv_general01"],
+      mode: "proactive",
+      respondTo: ["agent", "human"],
+      unaddressedHumanMessages: "respond",
+      signalCodes: [],
+      cooldownSeconds: 0,
+      maxResponsesPerHour: 5,
+      maxAutomationDepth: 2,
+      createdAt: "2026-08-20T00:00:00.000Z",
+    });
+    expect(
+      requiresConversationRelevance({
+        event: event({ actorKind: "agent" }),
+        policy: conversational,
+        ownsTurn: true,
+      }),
+    ).toBe(true);
   });
 
   it("observes a turn owned by another agent without making a relevance claim", () => {

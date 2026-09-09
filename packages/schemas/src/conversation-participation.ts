@@ -22,6 +22,7 @@ export const conversationParticipationReasons = [
   "turn_not_owned",
   "cooldown",
   "rate_limited",
+  "owned_human_message",
   "mentioned",
   "relevant",
   "proactive_signal",
@@ -53,6 +54,10 @@ export const conversationParticipationPolicySchema = {
       minItems: 1,
       uniqueItems: true,
       items: { type: "string", enum: ["human", "agent", "system"] },
+    },
+    unaddressedHumanMessages: {
+      type: "string",
+      enum: ["evaluate", "respond"],
     },
     signalCodes: {
       type: "array",

@@ -7,7 +7,7 @@
 
 The first installed Discord composition treated every accepted mention as write-capable remote continuation. Repository questions entered the signed managed-write path and correctly failed without a verified provider file change. A later `ask`/`continue` prefix draft preserved authority boundaries but violated the requirement for ordinary conversation with or without a bot mention.
 
-Lervo already separates provider-neutral contracts for read-only managed answers, signed remote continuation, conversation participation, bounded automation depth, and cross-provider deliberation. Natural-language routing composes them without making Discord syntax a task authority.
+Lervo already separates provider-neutral contracts for read-only managed answers, signed remote continuation, conversation participation, bounded automation depth, and cross-provider deliberation. Natural-language routing composes these without making Discord syntax a task authority.
 
 ## Decision
 
@@ -15,7 +15,7 @@ Lervo already separates provider-neutral contracts for read-only managed answers
 
 Optional `discordConversation.routing` enables natural-language routing and binds a distinct `readOnlyRoleId`. Its `intent`, `response`, and optional independent publication `evaluation` selections name `codex` or `claude`, with optional model and bounded reasoning-effort overrides. The existing command selection independently controls write-capable continuation. The managed host also accepts provider-keyed model and reasoning-effort settings for command execution. Every selected provider must be allowlisted by the managed provider host, which owns executable selection.
 
-Under `mode: relevant`, every message from a mapped participant in a mapped conversation is eligible. Mentions are optional attention signals, not intent selectors. Deployments without routing retain legacy mention-only continuation.
+Under `mode: relevant`, every message from a mapped participant in a mapped conversation is eligible. Mentions are optional attention signals, not intent selectors. `policy.unaddressedHumanMessages` separates dedicated human dialogue from semantic multi-agent participation: `respond` routes eligible human messages directly to their deterministic owner; `evaluate` retains semantic filtering. Natural-language routing defaults to `respond`. Deployments without routing retain legacy mention-only continuation and semantic filtering.
 
 ### Intent resolution
 
@@ -27,13 +27,13 @@ The provider-backed intent adapter has no model tools or repository capabilities
 
 It returns exactly one transient intent (`answer`, `continue_work`, or `clarify`), confidence (`high`, `medium`, or `low`), and a structured effect limited to available runtime effects. Classification uses meaning and bounded context, never keywords, prefixes, regular expressions, aliases, or synonym lists.
 
-Routing follows these boundaries:
+Routing boundaries:
 
 - `answer` delegates to `ManagedConversationResponder`.
 - Medium- or high-confidence human `continue_work` with `repository_work` delegates to the signed exact-workstream Hub command path.
 - An explicitly allowlisted Discord platform effect delegates to its scoped adapter and never enters repository continuation.
-- `clarify`, low confidence, unavailable effects, and agent-authored mutation requests remain with the read-only responder to answer or clarify without mutation.
-- Resolver failure produces the existing retryable `response_generation_failed` interaction outcome.
+- `clarify`, low confidence, unavailable effects, and agent-authored mutation requests stay with the read-only responder to answer or clarify without mutation.
+- Resolver failure for an owned human message produces the existing retryable `response_generation_failed` interaction outcome and, after the configured bound, a verified visible terminal response. It cannot become a silent `relevance_unavailable` observation.
 
 An immutable local intent-resolution record binds the source event and message hash to intent, confidence, structured effect, adapter version, provider, configured model, result digest, and resolution time. It contains no raw message. Restart recovery verifies and reuses it without reclassification or timestamp changes. Managed-run events and remote-command records independently retain the provider and model selected for read and write execution.
 
@@ -55,13 +55,13 @@ A `discordConversations` deployment requires one distinct active hired agent per
 
 ### Platform activity and queues
 
-Transient typing starts only after participation chooses `respond`, never for observed, duplicate, busy, or throttled input. One conversation-owned activity lease persists across a scheduled response retry and ends at terminal completion, abort, or a safety timeout. Typing refresh and failure remain outside semantic intent, provider execution, publication evidence, and durable delivery. Gateway heartbeat and resume processing remain outside the ordered provider-work queue so slow answers cannot make subsequent messages disappear.
+Transient typing starts only after participation chooses `respond`, never for observed, duplicate, busy, or throttled input. One conversation-owned activity lease persists across a scheduled response retry and ends at terminal completion, abort, or a safety timeout. Typing refresh and failure stay outside semantic intent, provider execution, publication evidence, and durable delivery. Gateway heartbeat and resume processing stay outside the ordered provider-work queue so slow answers cannot make subsequent messages disappear.
 
 ### Latency profile
 
 The measured pre-change read-response baseline was 19.6–51.4 seconds across seven recent managed runs. A later live message took 56.9 seconds: intent used 13.0 seconds, the first managed response used 14.5 seconds, and a transient evaluator failure caused another complete 12.1-second response run before evaluation and delivery.
 
-The installed read responder stores the verified managed result artifact against the exact stable response request digest before optional independent evaluation. The digest excludes the per-attempt decision ID; one process-local single-flight shares identical concurrent requests. Retries after evaluator transport or response-contract failure reuse the immutable CAS artifact without another response-provider invocation. A definitive writing-policy rejection removes the cached coordinate so a later attempt may generate a corrected answer.
+Before optional independent evaluation, the installed read responder stores the verified managed result artifact against the exact stable response request digest. The digest excludes the per-attempt decision ID; one process-local single-flight shares identical concurrent requests. Retries after evaluator transport or response-contract failure reuse the immutable CAS artifact without another response-provider invocation. A definitive writing-policy rejection removes the cached coordinate so a later attempt may generate a corrected answer.
 
 The owner-only SQLite mapping stores only the request digest, artifact coordinate, and creation time, retains at most 1,024 records, and rejects conflicting bindings. It copies no message or response body and adds no event. Invalid or conflicting cache state fails response generation rather than selecting unverified bytes.
 

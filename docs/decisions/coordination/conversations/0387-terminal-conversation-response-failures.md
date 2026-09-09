@@ -5,19 +5,30 @@
 
 ## Context
 
-A Discord question reached intent resolution and produced a valid Codex response artifact, but writing publication repeatedly failed. The interaction runtime collapsed the responder error into `response_generation_failed`, retried without an attempt bound, and showed no terminal outcome. Later messages could complete while the original request remained silently active.
+A Discord question reached intent resolution and produced a valid Codex response artifact, but publication writing repeatedly failed. The interaction runtime collapsed the responder error into `response_generation_failed`, retried without an attempt bound, and showed no terminal outcome. Later messages could complete while the original request remained silently active.
+
+A second silence path preceded response execution: an unaddressed human message in a dedicated mapped channel asked the same managed turn to decide semantic participation. If that provider call failed, the runtime recorded `relevance_unavailable` as an observed decision without entering bounded response failure handling.
 
 ## Decision
 
 The responder boundary preserves provider-neutral failure classifications. The installed Node distinguishes `response_generation_failed`, `response_evaluation_unavailable`, `response_writing_blocked`, `response_execution_invalid`, `response_contract_invalid`, and `publication_verification_failed`. Provider-specific error prose and payloads do not cross that boundary.
 
-An unavailable or invalid semantic evaluator is distinct from a completed evaluation rejecting content. Evaluator unavailability retains the generated response artifact for bounded retry: a Claude evaluation failure does not rerun the Codex response. A completed rejection removes the candidate and permits one bounded regeneration attempt.
+An unavailable or invalid semantic evaluator differs from a completed evaluation rejecting content. Evaluator unavailability retains the generated response artifact for bounded retry: a Claude evaluation failure does not rerun the Codex response. A completed rejection removes the candidate and permits one bounded regeneration attempt.
 
 Each deployment sets `policy.maxResponseAttempts` from 1 through 10, defaulting to 3. Retryable failures are rescheduled only while the current claim attempt is below the bound. A non-retryable failure or exhausted retry budget creates one fixed multilingual status artifact, verifies it through a deterministic no-model writing contract, records a normal durable outbox message, and completes the inbox as `failed_terminal`. The static response includes only the attempt count and source event ID; it excludes prompt text, provider errors, credentials, model output, and unrestricted artifact locations.
 
+`policy.unaddressedHumanMessages` independently controls whether unaddressed human messages require semantic participation evaluation:
+
+- `evaluate` preserves selective shared-channel behavior.
+- `respond` assigns every eligible unaddressed human message to the deterministic turn owner with reason `owned_human_message`, without claiming semantic relevance.
+
+Discord natural-language routing defaults to `respond`; deployments without routing default to `evaluate`. Mention-only, silent, actor, automation-depth, cooldown, hourly-rate, and turn-ownership checks still take precedence.
+
+The owned responder performs the managed turn. Provider or structured-output failures enter the same classified, bounded response retry and visible terminal-failure path as other response failures. Unaddressed agent messages still require semantic relevance so the human guarantee cannot create agent reply loops.
+
 The durable inbox retains the terminal failure code, failure time, and attempt count alongside its completed state. `failed_terminal` means response generation or publication did not complete and a verified explanatory message was queued; it does not prove platform delivery. The ordinary outbox delivery receipt separately proves delivery. Failure to store or verify the fixed terminal response is an interaction runtime failure, not another unbounded generation retry.
 
-Retry selection uses availability time and bounded batches. Rescheduling places a failed item behind ready newer work; exhaustion prevents a permanently poisoned item from consuming future cycles.
+Retry selection uses availability time and bounded batches. Rescheduling places failed items behind ready newer work; exhaustion prevents a permanently poisoned item from consuming future cycles.
 
 ## State and failure meaning
 
@@ -25,6 +36,7 @@ Retry selection uses availability time and bounded batches. Rescheduling places 
 | --- | --- | --- |
 | `retry_scheduled` | source event, role, failure code, attempt, next attempt time | Another bounded attempt may run; no reply has been queued |
 | `failed_terminal` | source event, role, failure code, attempt count, fixed verified outbound | Generation or publication ended and an explanatory reply was queued |
+| `owned_human_message` | source event, policy, role, deterministic owner, `relevance=not_checked`, decision time | An eligible unaddressed human message must enter response handling without a semantic relevance claim |
 | `response_writing_blocked` | source event, role, attempt, failure time | Generated content did not pass its writing contract |
 | `response_evaluation_unavailable` | source event, role, attempt, failure time | The independent writing evaluator failed or returned an invalid contract; the generated artifact remains cached for retry |
 | `response_execution_invalid` | source event, role, attempt, failure time | Managed execution evidence or independent session binding was invalid |
@@ -32,6 +44,8 @@ Retry selection uses availability time and bounded batches. Rescheduling places 
 | `publication_verification_failed` | source event, role, attempt, failure time | A candidate's permit or publication evidence could not be verified |
 
 No new global event is added. The interaction SQLite inbox and outbox own the state. A future global telemetry event must separately define retention and allowlisted fields.
+
+The new policy value and decision reason contain no message text, provider payload, credential, or model output. They inherit the existing bounded participation-decision retention and privacy contract.
 
 ## Consequences
 

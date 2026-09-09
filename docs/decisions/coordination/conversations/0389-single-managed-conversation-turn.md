@@ -5,9 +5,9 @@
 
 ## Context
 
-The initial natural-language Discord runtime classified intent and participation with a no-capability provider call, then generated an informational reply with a second managed provider call. Normal reads required two sequential model round trips. Typing started only after classification, leaving users without immediate acknowledgement during the slowest part of the path.
+The initial natural-language Discord runtime classified intent and participation with a no-capability provider call, then generated an informational reply with a second managed provider call. Normal reads required two sequential model round trips. Typing began only after classification, leaving users without immediate acknowledgement during the slowest part of the path.
 
-CLI managed runs prepared product-default lexical search, repository-knowledge hits, and relation recommendations. Discord managed reads injected required instructions and the current workstream without that retrieval preparation. Describing both as “managed Lervo execution” overstated infrastructure parity.
+CLI managed runs prepared product-default lexical search, repository-knowledge hits, and relation recommendations. Discord managed reads injected required instructions and the current workstream without that retrieval preparation. Calling both “managed Lervo execution” overstated infrastructure parity.
 
 Discord is the first conversation surface, not the application boundary. Future Lervo clients must reuse turn semantics and evidence contracts without importing Discord transport or REST actions into core execution.
 
@@ -38,13 +38,13 @@ Surface adapters declare effect IDs and bounded argument descriptions. Core know
 - Relation-projection recommendations.
 - Additional context candidates and linked-evidence shadow observation.
 
-The managed context coordinator remains authoritative for `recommended`, `selected`, `loaded`, `injected`, and `referenced` evidence. Search and relation projections are rebuildable; recommendation does not make them canonical. Source hashes are checked again before context use.
+The managed context coordinator remains authoritative for `recommended`, `selected`, `loaded`, `injected`, and `referenced` evidence. Search and relation projections are rebuildable; recommendation does not make them canonical. Source hashes are rechecked before context use.
 
 The current repository measurement was about 2.2 to 2.5 seconds for cold local retrieval, recorded as preparation cost rather than provider latency. Retrieval remains exact and fail-closed. A future revision-keyed projection cache may optimize it only if invalidation and source-hash revalidation preserve those claims.
 
 ### Immediate activity and publication
 
-For human-authored turns, response activity starts immediately after the durable inbox claim, before semantic relevance evaluation. The same idempotent activity lease passes to response generation and stops on silence, completion, retry scheduling, terminal failure, or unexpected error. Agent-authored turns do not make every peer bot display speculative typing before relevance is known.
+For a human-authored turn selected for response by participation, activity starts immediately after the bounded participation-window lookup and decision, before managed response work. Dedicated natural-language routing decides without semantic relevance evaluation, so normal human messages show activity before model work. Selective shared-channel evaluation, rate limiting, cooldown, and non-owner decisions do not display speculative typing. The same idempotent activity lease passes to response generation and scheduled retry, stopping on completion, terminal failure, abort, or the safety timeout. Agent-authored turns do not make every peer bot display speculative typing before relevance is known.
 
 The provider's structured envelope is internal. Only its verified reply field enters the existing chat writing contract and publication permit. Internal run, queue, revision, workstream, and artifact coordinates stay out of ordinary prose unless the user explicitly requests diagnostics.
 

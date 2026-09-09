@@ -216,6 +216,7 @@ describe("Node runtime configuration", () => {
         policy: {
           mode: "proactive",
           respondTo: ["agent", "human", "system"],
+          unaddressedHumanMessages: "respond",
           signalCodes: ["deliberation.attention", "deliberation.completed", "work.completed"],
           maxResponseAttempts: 2,
         },
@@ -257,6 +258,33 @@ describe("Node runtime configuration", () => {
     ).toMatchObject({
       response: { provider: "codex", timeoutMs: 60_000 },
     });
+    const selectiveHumanParticipation = structuredClone(configured);
+    (
+      selectiveHumanParticipation.discordConversation as {
+        policy: { unaddressedHumanMessages?: string };
+      }
+    ).policy.unaddressedHumanMessages = "evaluate";
+    expect(
+      parseNodeRuntimeConfig(selectiveHumanParticipation, root).discordConversation?.policy,
+    ).toMatchObject({ unaddressedHumanMessages: "evaluate" });
+    const invalidHumanParticipation = structuredClone(configured);
+    (
+      invalidHumanParticipation.discordConversation as {
+        policy: Record<string, unknown>;
+      }
+    ).policy.unaddressedHumanMessages = "ignore";
+    expect(() => parseNodeRuntimeConfig(invalidHumanParticipation, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
+    const invalidHourlyLimit = structuredClone(configured);
+    (
+      invalidHourlyLimit.discordConversation as {
+        policy: Record<string, unknown>;
+      }
+    ).policy.maxResponsesPerHour = 61;
+    expect(() => parseNodeRuntimeConfig(invalidHourlyLimit, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
     const unscoped = structuredClone(configured);
     (unscoped.discordConversation as { allowedGuildIds: string[] }).allowedGuildIds = [];
     expect(() => parseNodeRuntimeConfig(unscoped, root)).toThrow(

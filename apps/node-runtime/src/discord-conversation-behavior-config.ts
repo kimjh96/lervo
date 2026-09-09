@@ -156,6 +156,7 @@ export function parseDiscordConversationBehavior(input: {
       policy,
       [
         "respondTo",
+        "unaddressedHumanMessages",
         "mode",
         "signalCodes",
         "cooldownSeconds",
@@ -184,6 +185,15 @@ export function parseDiscordConversationBehavior(input: {
     policy?.mode === undefined
       ? undefined
       : configText(policy.mode, "discordConversation.policy.mode");
+  const unaddressedHumanMessages =
+    policy?.unaddressedHumanMessages === undefined
+      ? routing === undefined
+        ? undefined
+        : "respond"
+      : configText(
+          policy.unaddressedHumanMessages,
+          "discordConversation.policy.unaddressedHumanMessages",
+        );
   const signalCodes =
     policy?.signalCodes === undefined
       ? undefined
@@ -197,12 +207,21 @@ export function parseDiscordConversationBehavior(input: {
   if (mode !== undefined && !["mention_only", "relevant", "proactive", "silent"].includes(mode)) {
     throw new NodeRuntimeError("invalid_config", "discordConversation.policy.mode is invalid.");
   }
+  if (
+    unaddressedHumanMessages !== undefined &&
+    !["evaluate", "respond"].includes(unaddressedHumanMessages)
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "discordConversation.policy.unaddressedHumanMessages is invalid.",
+    );
+  }
   const timeoutMs =
     intent === undefined
       ? undefined
       : optionalConfigInteger(intent, "timeoutMs", 1_000, 300_000, "routing.intent");
   const cooldownSeconds = optionalPolicy("cooldownSeconds", 0, 86_400);
-  const maxResponsesPerHour = optionalPolicy("maxResponsesPerHour", 1, 10_000);
+  const maxResponsesPerHour = optionalPolicy("maxResponsesPerHour", 1, 60);
   const maxAutomationDepth = optionalPolicy("maxAutomationDepth", 0, 32);
   const maxResponseAttempts = optionalPolicy("maxResponseAttempts", 1, 10);
   return {
@@ -255,6 +274,11 @@ export function parseDiscordConversationBehavior(input: {
       : {
           policy: {
             respondTo,
+            ...(unaddressedHumanMessages === undefined
+              ? {}
+              : {
+                  unaddressedHumanMessages: unaddressedHumanMessages as "evaluate" | "respond",
+                }),
             ...(mode === undefined
               ? {}
               : { mode: mode as "mention_only" | "relevant" | "proactive" | "silent" }),
