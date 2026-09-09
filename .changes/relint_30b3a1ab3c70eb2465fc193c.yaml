@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_30b3a1ab3c70eb2465fc193c"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Ignore Finder and AppleDouble metadata in repository knowledge inventories."
