@@ -6,6 +6,8 @@ New platforms and providers stay behind adapters. Role-backed deliberation can r
 
 Conversation coordinates remain surface-neutral. Discord resolves a Gateway thread channel through authenticated channel metadata, verifies its guild and configured parent, and maps it to the canonical parent conversation plus a distinct thread key. Outbound source-event correlation supplies a separate reply-message key. Bot delivery projects both coordinates; webhook delivery projects the thread and retains the reply as canonical evidence because Discord's webhook execution does not provide the same native reply boundary. Neither path treats a thread ID as a message ID.
 
+Same-Node deployments derive peer identity bindings from each other's reviewed configuration. Separate repository Nodes cannot inspect one another's local workforce state, so each observer carries an explicit immutable peer binding scoped to the shared tenant and conversation. Both paths compose the same platform participant record, including durable agent and role hashes, before Gateway history reconciliation begins.
+
 ## Deployment contracts
 
 - [Bot deployments](deployment-composition/bot-deployments.md): runtime isolation, supervision, turn ownership, identity history, and response failures.

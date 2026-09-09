@@ -17,14 +17,9 @@ interface DiscordCompositionOptions {
   bearerToken(): string;
 }
 
-export interface DiscordPeerAgentBinding {
-  participantKeys: string[];
-  participantId: string;
-  roleId: string;
-  agentBinding: ConversationAgentBinding;
-  tenantKeys: string[];
-  conversationIds: string[];
-}
+export type DiscordPeerAgentBinding = NonNullable<
+  NodeDiscordConversationConfig["peerAgents"]
+>[number] & { agentBinding: ConversationAgentBinding };
 
 export function createDiscordHubContinuation(
   options: DiscordCompositionOptions,
@@ -87,6 +82,7 @@ export function createDiscordPlatformBindings(input: {
   peerAgents?: DiscordPeerAgentBinding[];
 }) {
   const { config } = input;
+  const peerAgents = [...(config.peerAgents ?? []), ...(input.peerAgents ?? [])];
   const tenantKeys = [...new Set(config.conversations.map((binding) => binding.tenantKey))];
   return {
     conversations: config.conversations.map((binding) => ({
@@ -124,7 +120,7 @@ export function createDiscordPlatformBindings(input: {
           },
         })),
       ),
-      ...(input.peerAgents ?? []).flatMap((peer) =>
+      ...peerAgents.flatMap((peer) =>
         tenantKeys.flatMap((tenantKey) =>
           peer.tenantKeys.includes(tenantKey)
             ? peer.participantKeys.map((participantKey) => ({

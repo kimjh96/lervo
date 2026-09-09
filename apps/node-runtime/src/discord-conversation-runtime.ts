@@ -51,6 +51,7 @@ export async function openNodeDiscordConversationRuntime(
   options: NodeDiscordConversationRuntimeOptions,
 ): Promise<NodeDiscordConversationRuntime> {
   const config = options.config;
+  const peerAgents = [...(config.peerAgents ?? []), ...(options.peerAgents ?? [])];
   const agentParticipation =
     options.agentParticipation ??
     (await resolveDiscordAgentParticipation({
@@ -87,7 +88,7 @@ export async function openNodeDiscordConversationRuntime(
     participantId: config.agentParticipantId,
     roleId: agentParticipation.roleId,
     conversationIds: config.conversations.map((binding) => binding.conversationId),
-    peers: options.peerAgents ?? [],
+    peers: peerAgents,
   });
   const policy = createDiscordConversationParticipationPolicy({
     config,

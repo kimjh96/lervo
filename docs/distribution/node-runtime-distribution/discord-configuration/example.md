@@ -110,3 +110,25 @@ To present a hired agent through a channel webhook while reusing the installed G
 ```
 
 The runtime uses the hired agent's durable display name as the webhook username. The avatar is optional and must use HTTPS without URL credentials.
+
+When the peer webhook belongs to a deployment in another repository Node, add its reviewed immutable identity to the observing deployment. `participantKeys` use Discord adapter coordinates; the remaining values come from the peer's current workforce record and shared conversation membership.
+
+```json
+{
+  "peerAgents": [
+    {
+      "participantKeys": ["webhook:523456789012345678"],
+      "participantId": "ptc_peeragent01",
+      "roleId": "developer",
+      "agentBinding": {
+        "agentId": "agt_222222222222222222222222",
+        "roleVersion": "1.0.0",
+        "roleContractHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "roleProfileHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "tenantKeys": ["123456789012345678"],
+      "conversationIds": ["cnv_operator01"]
+    }
+  ]
+}
+```

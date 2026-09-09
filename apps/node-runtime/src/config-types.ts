@@ -98,6 +98,19 @@ export interface NodeDiscordConversationConfig {
     startsAutomationChain?: boolean;
     mayRequestEffects?: boolean;
   }>;
+  peerAgents?: Array<{
+    participantKeys: string[];
+    participantId: string;
+    roleId: string;
+    agentBinding: {
+      agentId: string;
+      roleVersion: string;
+      roleContractHash: string;
+      roleProfileHash: string;
+    };
+    tenantKeys: string[];
+    conversationIds: string[];
+  }>;
   administration?: {
     allowedActions: Array<
       | "current_member.nickname.set"

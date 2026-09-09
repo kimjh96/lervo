@@ -216,6 +216,92 @@ describe("Discord conversation deployments configuration", () => {
     ]);
   });
 
+  it("parses cross-node peer agents and installs their immutable webhook identity", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, 30_004);
+    const config = deployment({
+      suffix: "01",
+      applicationId: "999999999999999991",
+      agentId: `agt_${"a".repeat(24)}`,
+      participantId: "ptc_lervoagent01",
+      provider: "codex",
+    });
+    const peerAgent = {
+      participantKeys: ["webhook:899999999999999992"],
+      participantId: "ptc_lervoagent02",
+      roleId: "developer",
+      agentBinding: {
+        agentId: `agt_${"b".repeat(24)}`,
+        roleVersion: "1.0.0",
+        roleContractHash: `sha256:${"c".repeat(64)}`,
+        roleProfileHash: `sha256:${"d".repeat(64)}`,
+      },
+      tenantKeys: [guildId],
+      conversationIds: ["cnv_operator01"],
+    };
+    const parsed = parseNodeRuntimeConfig(
+      { ...fixture.value, discordConversation: { ...config, peerAgents: [peerAgent] } },
+      root,
+    ).discordConversation!;
+
+    expect(parsed.peerAgents).toEqual([peerAgent]);
+    expect(
+      createDiscordPlatformBindings({
+        config: parsed,
+        projectId: "prj_discord01",
+        agentRoleId: "developer",
+      }).participants,
+    ).toContainEqual(
+      expect.objectContaining({
+        participantKey: "webhook:899999999999999992",
+        actor: {
+          kind: "agent",
+          participantId: "ptc_lervoagent02",
+          roleId: "developer",
+          agentBinding: peerAgent.agentBinding,
+        },
+      }),
+    );
+  });
+
+  it("fails closed when a cross-node peer exceeds the configured conversation scope", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, 30_005);
+    const config = deployment({
+      suffix: "01",
+      applicationId: "999999999999999991",
+      agentId: `agt_${"a".repeat(24)}`,
+      participantId: "ptc_lervoagent01",
+      provider: "codex",
+    });
+    expect(() =>
+      parseNodeRuntimeConfig(
+        {
+          ...fixture.value,
+          discordConversation: {
+            ...config,
+            peerAgents: [
+              {
+                participantKeys: ["webhook:899999999999999992"],
+                participantId: "ptc_lervoagent02",
+                roleId: "developer",
+                agentBinding: {
+                  agentId: `agt_${"b".repeat(24)}`,
+                  roleVersion: "1.0.0",
+                  roleContractHash: `sha256:${"c".repeat(64)}`,
+                  roleProfileHash: `sha256:${"d".repeat(64)}`,
+                },
+                tenantKeys: [guildId],
+                conversationIds: ["cnv_unconfigured01"],
+              },
+            ],
+          },
+        },
+        root,
+      ),
+    ).toThrow(expect.objectContaining({ code: "invalid_config" }));
+  });
+
   it("maps peer bot authors and mention aliases to the same hired-agent participant", () => {
     const config = deployment({
       suffix: "01",

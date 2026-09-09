@@ -1,6 +1,8 @@
 import type { NodeDiscordConversationConfig } from "./config-types.js";
 
-export function discordSpeakerPrincipalId(config: NodeDiscordConversationConfig): string {
+type DiscordSpeakerConfig = Pick<NodeDiscordConversationConfig, "applicationId" | "speaker">;
+
+export function discordSpeakerPrincipalId(config: DiscordSpeakerConfig): string {
   if (config.speaker?.kind === "webhook") {
     return `webhooks:${config.speaker.webhooks
       .map((webhook) => webhook.webhookId)
@@ -10,7 +12,7 @@ export function discordSpeakerPrincipalId(config: NodeDiscordConversationConfig)
   return config.applicationId;
 }
 
-export function discordSpeakerParticipantKeys(config: NodeDiscordConversationConfig): string[] {
+export function discordSpeakerParticipantKeys(config: DiscordSpeakerConfig): string[] {
   if (config.speaker?.kind === "webhook") {
     return config.speaker.webhooks.map((webhook) => `webhook:${webhook.webhookId}`);
   }
