@@ -26,6 +26,7 @@ import {
   createKnowledgeRefreshReviewCandidate,
   lintRepositoryKnowledge,
   queryRepositoryKnowledge,
+  RepositoryKnowledgeQueryIndex,
   scanRepositoryKnowledge,
   scanConfiguredRepositoryKnowledge,
   listKnowledgeArtifactPaths,
@@ -180,7 +181,11 @@ describe("repository knowledge migration", () => {
       query: "seed-only-keyword",
       documentRegistry,
     });
+    const preparedQuery = (
+      await RepositoryKnowledgeQueryIndex.prepare({ repositoryRoot: root })
+    ).query({ query: "seed-only-keyword", documentRegistry });
 
+    expect(preparedQuery).toEqual(query);
     expect(query.hits[0]?.conceptId).toBe(seed.value.conceptId);
     expect(query.hits[0]).toMatchObject({ assurance: "human_reviewed", freshness: "current" });
     expect(query.relationProjection.seedConceptIds).toEqual([seed.value.conceptId]);

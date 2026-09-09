@@ -30,6 +30,10 @@ export interface FinalizeProviderRunInput {
   managedChanges: readonly ManagedFileChangeEvidence[];
   time: () => string;
   append: (specs: ManagedEventSpec[]) => void;
+  measureStage<T>(
+    stageId: "provider_stop" | "repository_snapshot",
+    operation: () => Promise<T>,
+  ): Promise<T>;
 }
 
 async function drainProviderStream(input: FinalizeProviderRunInput): Promise<void> {
@@ -146,7 +150,9 @@ async function captureAfterSnapshot(
 export async function finalizeProviderRun(
   input: FinalizeProviderRunInput,
 ): Promise<RepositorySnapshot | undefined> {
-  await drainProviderStream(input);
-  await stopAdapter(input);
-  return captureAfterSnapshot(input);
+  await input.measureStage("provider_stop", async () => {
+    await drainProviderStream(input);
+    await stopAdapter(input);
+  });
+  return input.measureStage("repository_snapshot", () => captureAfterSnapshot(input));
 }

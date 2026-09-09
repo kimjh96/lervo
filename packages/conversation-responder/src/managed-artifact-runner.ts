@@ -1,4 +1,7 @@
-import { ManagedProviderRunCoordinator } from "@lervo/orchestrator";
+import {
+  createCachedRepositorySnapshotCapture,
+  ManagedProviderRunCoordinator,
+} from "@lervo/orchestrator";
 
 import { MemoryConversationProviderSessionRegistry } from "./provider-session.js";
 import { validateConversationManagedRun } from "./run-validation.js";
@@ -10,10 +13,12 @@ import { ManagedConversationResponseError } from "./types.js";
 
 export class ManagedConversationArtifactRunner {
   private readonly providerSessions;
+  private readonly captureSnapshot;
 
   constructor(private readonly options: ManagedConversationArtifactRunnerOptions) {
     this.providerSessions =
       options.providerSessions ?? new MemoryConversationProviderSessionRegistry();
+    this.captureSnapshot = options.captureSnapshot ?? createCachedRepositorySnapshotCapture();
   }
 
   async run(input: {
@@ -32,6 +37,7 @@ export class ManagedConversationArtifactRunner {
       policyVersion: this.options.policyVersion,
       events: this.options.events,
       artifactStore: this.options.artifactStore,
+      captureSnapshot: this.captureSnapshot,
       ...(this.options.deadlines === undefined ? {} : { deadlines: this.options.deadlines }),
       ...(this.options.now === undefined ? {} : { now: this.options.now }),
       ...(this.options.createEventId === undefined

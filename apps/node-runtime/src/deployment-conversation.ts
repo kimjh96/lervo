@@ -13,6 +13,7 @@ import {
 import { resolveDiscordAgentParticipation } from "./discord-agent-participation.js";
 import { NodeRuntimeError } from "./errors.js";
 import type { NodeDiscordConversationOpenPorts, NodeRuntimeOpenPorts } from "./open-ports.js";
+import { createManagedConversationRepositoryResources } from "./conversation-read-responder.js";
 
 function selectPorts(
   configs: NodeDiscordConversationConfig[],
@@ -75,6 +76,7 @@ export async function openDeploymentConversation(input: {
     ),
   );
   const providerExecutables = input.config.remoteCommands?.providerHost?.executables;
+  const managedRepositoryResources = createManagedConversationRepositoryResources();
   const ready = new Set<string>();
   let readyPublished = false;
   let failureObserved = false;
@@ -119,6 +121,7 @@ export async function openDeploymentConversation(input: {
           dataDirectory: resolve(input.dataDirectory, "conversation", conversation.integrationId),
           bearerToken: input.bearerToken,
           repositoryEvents: input.repositoryEvents,
+          managedRepositoryResources,
           ...(providerExecutables === undefined ? {} : { providerExecutables }),
           agentParticipation: participations[index]!,
           peerAgents,

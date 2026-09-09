@@ -579,22 +579,21 @@ export class ManagedProviderRunCoordinator {
       failures.add(error, phase);
     }
 
-    const after = await stageObservation.measure("provider_stop", () =>
-      finalizeProviderRun({
-        adapter: this.options.adapter,
-        ...(state.session === undefined ? {} : { session: state.session }),
-        ...(monitor === undefined ? {} : { monitor }),
-        ...(state.before === undefined ? {} : { before: state.before }),
-        repositoryRoot: input.repositoryRoot,
-        captureSnapshot: this.captureSnapshot,
-        snapshotPolicy: this.snapshotPolicy,
-        deadlines: this.deadlines,
-        failures,
-        managedChanges: state.writeBridge?.evidence() ?? [],
-        time: () => this.time(),
-        append: (specs) => this.append(specs),
-      }),
-    );
+    const after = await finalizeProviderRun({
+      adapter: this.options.adapter,
+      ...(state.session === undefined ? {} : { session: state.session }),
+      ...(monitor === undefined ? {} : { monitor }),
+      ...(state.before === undefined ? {} : { before: state.before }),
+      repositoryRoot: input.repositoryRoot,
+      captureSnapshot: this.captureSnapshot,
+      snapshotPolicy: this.snapshotPolicy,
+      deadlines: this.deadlines,
+      failures,
+      managedChanges: state.writeBridge?.evidence() ?? [],
+      time: () => this.time(),
+      append: (specs) => this.append(specs),
+      measureStage: (stageId, operation) => stageObservation.measure(stageId, operation),
+    });
     if (after !== undefined) state.after = after;
 
     await this.persistOutputs(input, state, failures, stageObservation);

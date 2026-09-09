@@ -8,6 +8,7 @@ import {
   type GraphDocumentRecommendation,
 } from "@lervo/context";
 import { queryRepositoryKnowledge } from "@lervo/repository-knowledge";
+import type { KnowledgeQueryResult } from "@lervo/repository-knowledge";
 import {
   createSearchAttempt,
   createSearchRecommendationBatch,
@@ -34,6 +35,13 @@ export interface PreparedManagedSearchContext {
   graphRecommendations: readonly GraphDocumentRecommendation[];
   knowledgeAttempt: SearchAttempt;
 }
+
+export type ManagedRepositoryKnowledgeQuery = (input: {
+  repositoryRoot: string;
+  query: string;
+  limit: number;
+  documentRegistry?: DocumentRegistry;
+}) => Promise<KnowledgeQueryResult>;
 
 function digestBytes(bytes: Uint8Array): string {
   return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -82,6 +90,7 @@ export async function prepareManagedSearchContext(input: {
   documentRegistry?: DocumentRegistry;
   expectedPaths?: readonly string[];
   runId?: string;
+  knowledgeQuery?: ManagedRepositoryKnowledgeQuery;
 }): Promise<PreparedManagedSearchContext> {
   const query = managedSearchQuery(input.query, input.fallbackQuery);
   const nonce = input.nonce ?? randomBytes(16).toString("hex");
@@ -103,12 +112,16 @@ export async function prepareManagedSearchContext(input: {
   });
   const store = await LocalSearchObservationStore.open(input.repositoryRoot);
   await store.recordAttempt(attempt);
-  const supplementalSources = await collectLocalKnowledgeSources(input.repositoryRoot);
-  const knowledge = await queryRepositoryKnowledge({
+  const knowledgeQuery: ManagedRepositoryKnowledgeQuery =
+    input.knowledgeQuery ??
+    (async (knowledgeInput) => {
+      const supplementalSources = await collectLocalKnowledgeSources(knowledgeInput.repositoryRoot);
+      return queryRepositoryKnowledge({ ...knowledgeInput, supplementalSources });
+    });
+  const knowledge = await knowledgeQuery({
     repositoryRoot: input.repositoryRoot,
     query,
     limit: 20,
-    supplementalSources,
     ...(input.documentRegistry === undefined ? {} : { documentRegistry: input.documentRegistry }),
   });
   const documentIdByPath = new Map(

@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8eb22ef03ef075e8c71b672a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0b6b861a3ca6b1de763ebbd8
+outputLanguage: en
+outputs:
+  - byteCount: 685
+    contentHash: sha256:a2051b77b6ddcecf84727ce5a27cd057303fd399409cd7a11a08b292f64959d3
+    path: docs/architecture/system/knowledge-and-context.md
+    userRegionHash: sha256:a2051b77b6ddcecf84727ce5a27cd057303fd399409cd7a11a08b292f64959d3
+profile: architecture_document
+recordId: knormdoc_d08f5ab964a22d6127b09987
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a2051b77b6ddcecf84727ce5a27cd057303fd399409cd7a11a08b292f64959d3
+sourcePath: docs/architecture/system/knowledge-and-context.md
+sourceUnitVersionIds:
+  - uv_5b3330187c96b81fe6cf2876
+  - uv_d974a8a4377017cf9b3a3201

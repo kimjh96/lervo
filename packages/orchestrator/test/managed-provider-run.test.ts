@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { FileSystemCas } from "@lervo/cas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { managedContextReferenceComment } from "@lervo/adapter-contract";
+import type { ExecutionStagesObservedEventPayload } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -32,6 +33,35 @@ import { FakeManagedAdapter } from "./provider-run-fake-adapter.js";
 afterEach(cleanupManagedFixtures);
 
 describe("managed provider run lifecycle", () => {
+  it("attributes post-run snapshots separately from provider shutdown", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("codex");
+    let nanoseconds = 0n;
+    const result = await new ManagedProviderRunCoordinator({
+      adapter,
+      coordinates: { projectId, runId, sessionId, roleId: role.roleId },
+      policyVersion,
+      events: data.store,
+      artifactStore: new MemoryArtifactStore(),
+      now: clock(),
+      createEventId: sequenceFactory("evt_stages"),
+      stageTiming: {
+        clock: () => {
+          nanoseconds += 1_000_000n;
+          return nanoseconds;
+        },
+      },
+    }).run({ ...providerRunInput(), repositoryRoot: data.root });
+    expect(result.status).toBe("completed");
+    const stages = (
+      data.store.list({ runId }).find((event) => event.type === "execution.stages.observed")!
+        .payload as ExecutionStagesObservedEventPayload
+    ).stages;
+    expect(stages.find((stage) => stage.stageId === "repository_snapshot")?.durationMs).toBe(2);
+    expect(stages.find((stage) => stage.stageId === "provider_stop")?.durationMs).toBe(1);
+    data.store.close();
+  });
+
   it("blocks a version-1 writer before provider startup or partial admission", async () => {
     const data = await createManagedFixture();
     const path = data.store.path;

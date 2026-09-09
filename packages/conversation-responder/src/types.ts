@@ -10,6 +10,7 @@ import type {
   ManagedPrepareContextInput,
   ManagedProviderRunDeadlines,
   ManagedResolvedSkill,
+  CaptureRepositorySnapshot,
 } from "@lervo/orchestrator";
 import type {
   ConversationInboundEvent,
@@ -122,6 +123,7 @@ export interface ManagedConversationResponderOptions {
   providerSessions?: ManagedConversationProviderSessionPort;
   responseArtifacts?: ManagedConversationResponseArtifactPort;
   deadlines?: Partial<ManagedProviderRunDeadlines>;
+  captureSnapshot?: CaptureRepositorySnapshot;
 }
 
 export interface ManagedConversationArtifactRunnerOptions {
@@ -134,6 +136,7 @@ export interface ManagedConversationArtifactRunnerOptions {
   createEventId?: () => string;
   providerSessions?: ManagedConversationProviderSessionPort;
   deadlines?: Partial<ManagedProviderRunDeadlines>;
+  captureSnapshot?: CaptureRepositorySnapshot;
 }
 
 export interface ManagedConversationResponseArtifactPort {

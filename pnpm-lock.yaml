@@ -470,6 +470,9 @@ importers:
       '@lervo/managed-provider-host':
         specifier: workspace:*
         version: link:../../packages/managed-provider-host
+      '@lervo/orchestrator':
+        specifier: workspace:*
+        version: link:../../packages/orchestrator
       '@lervo/organization-credential-source-file':
         specifier: workspace:*
         version: link:../../packages/organization-credential-source-file

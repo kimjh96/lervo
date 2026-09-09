@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8eb22ef03ef075e8c71b672a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d783c59c6ee0f52dfeab0fd6
+outputLanguage: en
+outputs:
+  - byteCount: 2209
+    contentHash: sha256:ec425962f6e8c82af1ce6a310b082685cddbb8e164d4df262553e84166a358b7
+    path: docs/architecture/system/conversation-routing/deployment-composition/bot-deployments.md
+    userRegionHash: sha256:ec425962f6e8c82af1ce6a310b082685cddbb8e164d4df262553e84166a358b7
+profile: architecture_document
+recordId: knormdoc_75af3654237d8548fac6b489
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ec425962f6e8c82af1ce6a310b082685cddbb8e164d4df262553e84166a358b7
+sourcePath: docs/architecture/system/conversation-routing/deployment-composition/bot-deployments.md
+sourceUnitVersionIds:
+  - uv_174d1ef8557a0a5ecb606bc3
+  - uv_cc23adcb07d9d9a023226e71
+  - uv_cfee7bc18cff4a4c8f529634

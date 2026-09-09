@@ -3,10 +3,12 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+import { readRepositoryFile } from "@lervo/context";
 
 import {
   captureRepositorySnapshot,
   changedRepositoryPaths,
+  createCachedRepositorySnapshotCapture,
   inspectManagedRepositoryChanges,
   defaultRepositorySnapshotPolicy,
 } from "../src/index.js";
@@ -36,6 +38,30 @@ describe("repository snapshot", () => {
     expect(changedRepositoryPaths(before, after)).toEqual(["src/a.ts", "src/b.ts", "src/link.ts"]);
     expect(Object.keys(after.files)).not.toContain(".lervo/state/events.sqlite");
     expect(before.revision).not.toBe(after.revision);
+  });
+
+  it("reuses verified file hashes while still detecting metadata-backed content changes", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-snapshot-cache-"));
+    roots.push(root);
+    await mkdir(resolve(root, "src"), { recursive: true });
+    await writeFile(resolve(root, "src/a.ts"), "before\n");
+    const reads: string[] = [];
+    const capture = createCachedRepositorySnapshotCapture({
+      readFile: async (repositoryRoot, path) => {
+        reads.push(path);
+        return readRepositoryFile(repositoryRoot, path);
+      },
+    });
+
+    const first = await capture(root);
+    const second = await capture(root);
+    expect(second).toEqual(first);
+    expect(reads).toEqual(["src/a.ts"]);
+
+    await writeFile(resolve(root, "src/a.ts"), "after!\n");
+    const third = await capture(root);
+    expect(third.revision).not.toBe(first.revision);
+    expect(reads).toEqual(["src/a.ts", "src/a.ts"]);
   });
 
   it("separates cumulative verified changes from unmanaged paths", () => {

@@ -5,11 +5,11 @@
 
 ## Context
 
-The initial natural-language Discord runtime classified intent and participation with a no-capability provider call, then generated an informational reply with a second managed provider call. Normal reads required two sequential model round trips. Typing began only after classification, leaving users without immediate acknowledgement during the slowest part of the path.
+The initial natural-language Discord runtime used a no-capability provider call to classify intent and participation, then a second managed call to generate informational replies. Normal reads required two sequential model round trips. Typing started after classification, leaving users without acknowledgement during the slowest part of the path.
 
-CLI managed runs prepared product-default lexical search, repository-knowledge hits, and relation recommendations. Discord managed reads injected required instructions and the current workstream without that retrieval preparation. Calling both “managed Lervo execution” overstated infrastructure parity.
+CLI managed runs prepared product-default lexical search, repository-knowledge hits, and relation recommendations. Discord reads injected required instructions and the current workstream without retrieval preparation. Calling both “managed Lervo execution” overstated infrastructure parity.
 
-Discord is the first conversation surface, not the application boundary. Future Lervo clients must reuse turn semantics and evidence contracts without importing Discord transport or REST actions into core execution.
+Discord is the first conversation surface, not the application boundary. Future clients must reuse turn semantics and evidence contracts without importing Discord transport or REST actions into core execution.
 
 ## Decision
 
@@ -18,19 +18,19 @@ Discord is the first conversation surface, not the application boundary. Future 
 `@lervo/conversation-responder` owns a provider-neutral managed-turn application service. One read-only managed provider run returns a schema-constrained object containing:
 
 - Semantic intent: `answer`, `continue_work`, or `clarify`.
-- Confidence and this hired agent's `relevant` or `not_relevant` participation.
-- Either no effect, repository work, or one caller-declared surface effect with a bounded argument.
-- The human-facing reply for read-only answers and clarification.
+- Confidence and the hired agent's `relevant` or `not_relevant` participation.
+- No effect, repository work, or one caller-declared surface effect with a bounded argument.
+- A human-facing reply for read-only answers and clarification.
 
-The same immutable result drives participation, effect routing, and reply publication. Informational turns use no separate classifier. Repository changes still enter the signed Hub continuation and configured command provider; Discord actions still enter the allowlisted Discord administration adapter. The managed turn grants neither authority.
+The same immutable result drives participation, effect routing, and reply publication. Informational turns have no separate classifier. Repository changes still enter the signed Hub continuation and configured command provider; Discord actions enter the allowlisted Discord administration adapter. The managed turn grants neither authority.
 
-Surface adapters declare effect IDs and bounded argument descriptions. Core knows no Discord route, application ID, guild ID, channel ID, or REST operation. Node maps the current nickname effect to Discord. Future Lervo surfaces can declare their own effects and reuse the service unchanged.
+Surface adapters declare effect IDs and bounded argument descriptions. Core knows no Discord route, application ID, guild ID, channel ID, or REST operation. Node maps the current nickname effect to Discord. Future surfaces can declare effects and reuse the service unchanged.
 
-`routing.response` selects the combined turn's provider, model, reasoning effort, and timeout. `routing.intent` remains accepted only for backward-compatible custom responder composition; the installed managed path neither invokes it nor attributes a turn to it. The default 60-second provider-turn deadline fails closed into the bounded conversation retry and terminal-failure path.
+`routing.response` selects the combined turn's provider, model, reasoning effort, and timeout. `routing.intent` remains accepted only for backward-compatible custom responder composition; the installed managed path neither invokes it nor attributes turns to it. The default 60-second provider-turn deadline fails closed into the bounded conversation retry and terminal-failure path.
 
 ### Shared repository retrieval
 
-`@lervo/repository-context` owns managed repository-context preparation previously held by the CLI. CLI execution and conversation turns share the implementation for:
+`@lervo/repository-context` owns managed repository-context preparation previously held by the CLI. CLI execution and conversation turns share implementations for:
 
 - The qualified product-default lexical-v2 engine and exact projector identities.
 - Operational search attempts and recommendation batches.
@@ -40,25 +40,35 @@ Surface adapters declare effect IDs and bounded argument descriptions. Core know
 
 The managed context coordinator remains authoritative for `recommended`, `selected`, `loaded`, `injected`, and `referenced` evidence. Search and relation projections are rebuildable; recommendation does not make them canonical. Source hashes are rechecked before context use.
 
-The current repository measurement was about 2.2 to 2.5 seconds for cold local retrieval, recorded as preparation cost rather than provider latency. Retrieval remains exact and fail-closed. A future revision-keyed projection cache may optimize it only if invalidation and source-hash revalidation preserve those claims.
+Before opening conversation ingress, Node prepares one query-neutral repository-knowledge index. Every hired agent deployed for the same repository shares that projection and one repository-snapshot capture lifecycle. Agent identity, role context, provider sessions, history, and publication remain isolated. A second bot does not duplicate canonical repository scanning or its in-memory projection.
+
+The projection is keyed by the exact managed repository snapshot revision and replaced when that revision changes. A prepared knowledge `sourceSnapshotId` identifies the bounded observation that created it; it does not imply inclusion of later supplemental events. Supplemental event additions do not mutate canonical sources or sidecars. A canonical source, claim, concept, or relation change invalidates the repository revision. Selected publication bytes are reread and content-hash checked immediately before context use. Memory growth is bounded to one current and one in-flight revision.
+
+Managed conversation snapshots walk the complete policy-included tree before and after every provider turn. A conversation-lifetime capture may reuse a regular-file or symlink hash only while path kind, device, inode, size, modification time, and change time all remain exact. Any metadata change forces a safe reread; additions and deletions remain visible. The post-run snapshot contributes to `repository_snapshot`, not `provider_stop`, separating stage evidence for enforcement and adapter shutdown.
+
+Pre-cache cold local retrieval measured about 2.2–2.5 seconds. A current local measurement observed 2,495 ms for initial knowledge preparation, then 1.3 ms for a revision-matched query; a cold snapshot took 879 ms, followed by 72 ms metadata-validated snapshots. These development-host observations do not establish Discord latency acceptance. Retrieval remains exact and fail-closed.
 
 ### Immediate activity and publication
 
-For a human-authored turn selected for response by participation, activity starts immediately after the bounded participation-window lookup and decision, before managed response work. Dedicated natural-language routing decides without semantic relevance evaluation, so normal human messages show activity before model work. Selective shared-channel evaluation, rate limiting, cooldown, and non-owner decisions do not display speculative typing. The same idempotent activity lease passes to response generation and scheduled retry, stopping on completion, terminal failure, abort, or the safety timeout. Agent-authored turns do not make every peer bot display speculative typing before relevance is known.
+For human-authored turns selected for response by participation, activity starts immediately after the bounded participation-window lookup and decision, before managed response work. Dedicated natural-language routing decides without semantic relevance evaluation, so normal human messages show activity before model work. Selective shared-channel evaluation, rate limiting, cooldown, and non-owner decisions do not display speculative typing.
+
+The same idempotent activity lease passes to response generation and scheduled retry. It stops on completion, terminal failure, abort, or the safety timeout. Agent-authored turns do not make every peer bot display speculative typing before relevance is known.
 
 The provider's structured envelope is internal. Only its verified reply field enters the existing chat writing contract and publication permit. Internal run, queue, revision, workstream, and artifact coordinates stay out of ordinary prose unless the user explicitly requests diagnostics.
 
 ## Evidence and privacy
 
-The combined run retains the hired agent ID, exact role, selected provider and model, provider session, context evidence, stage timing, token usage, cache usage, result artifact, and root work causality. The intent store retains the bounded semantic result for routing history. Raw messages and replies remain CAS artifacts. Search attempts retain digests and source coordinates rather than copying request text.
+The combined run retains the hired agent ID, exact role, selected provider and model, provider session, context evidence, stage timing, token usage, cache usage, result artifact, and root work causality. The intent store retains the bounded semantic result for routing history. Raw messages and replies remain CAS artifacts. Search attempts retain digests and source coordinates rather than request text.
 
 Provider usage is reported only when the adapter proves it. Unavailable token or cache measurements remain unavailable; Lervo does not infer request-wide usage. Duration is enforceable during the turn. Token and cache ceilings can govern subsequent work only from complete observed accounting and must follow the existing fail-closed governed-budget policy when observation is required.
 
 ## Consequences
 
-Normal Discord questions use one model round trip instead of two, typing appears before model work, and Discord reads consume the same managed repository retrieval as CLI execution. Codex and Claude remain interchangeable behind adapters. Change execution may use a different provider from the conversational turn, preserving the configured Codex-read and Claude-change split.
+Normal Discord questions use one model round trip instead of two, typing appears before model work, and Discord reads use the same managed repository retrieval as CLI execution. Repeated turns avoid rebuilding unchanged projections or rehashing unchanged bytes. Multiple named agents share repository infrastructure while keeping identities and memories isolated.
 
-Real external latency acceptance requires human-authored Discord samples after deployment. Local or simulated measurements cannot establish Discord p95. A second visible hired agent still requires a separately provisioned Discord application and guild installation.
+Codex and Claude remain interchangeable behind adapters. Change execution may use a different provider from the conversational turn, preserving the configured Codex-read and Claude-change split.
+
+Real external latency acceptance requires human-authored Discord samples after deployment. Local or simulated measurements cannot establish Discord p95. A second visible hired agent requires a separately provisioned Discord application and guild installation.
 
 ## References
 

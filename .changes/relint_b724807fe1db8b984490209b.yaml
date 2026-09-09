@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b724807fe1db8b984490209b"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reduce managed conversation latency with revision-bound snapshot and knowledge-query reuse."

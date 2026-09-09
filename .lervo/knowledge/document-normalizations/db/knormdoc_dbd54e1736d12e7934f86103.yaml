@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8eb22ef03ef075e8c71b672a
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fa9e02203aead3a8c2b49afa
+outputLanguage: en
+outputs:
+  - byteCount: 317
+    contentHash: sha256:94238d796afa4f84587c812ab1396ef39c95fdbaf0ea0a8fad33f2f6c13269c8
+    path: docs/architecture/system/conversation-routing/deployment-composition/proactive-signals-and-deliberation.md
+    userRegionHash: sha256:94238d796afa4f84587c812ab1396ef39c95fdbaf0ea0a8fad33f2f6c13269c8
+  - byteCount: 379
+    contentHash: sha256:85e204f834f562c592d2f0af93a1442354f9b631006d0a1c55477a7389d328d2
+    path: docs/architecture/system/conversation-routing/deployment-composition/proactive-signals-and-deliberation/explicit-deliberation.md
+    userRegionHash: sha256:85e204f834f562c592d2f0af93a1442354f9b631006d0a1c55477a7389d328d2
+  - byteCount: 353
+    contentHash: sha256:8d809ad0b8f3d72fb62955f18358f9850fd7261dda5f8037c1ce227805ba958a
+    path: docs/architecture/system/conversation-routing/deployment-composition/proactive-signals-and-deliberation/proactive-signals.md
+    userRegionHash: sha256:8d809ad0b8f3d72fb62955f18358f9850fd7261dda5f8037c1ce227805ba958a
+profile: architecture_document
+recordId: knormdoc_dbd54e1736d12e7934f86103
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9759ae02f4b22b8192fb4c16ef646e18a288c09c2311f6d555451cf45a85676f
+sourcePath: docs/architecture/system/conversation-routing/deployment-composition/proactive-signals-and-deliberation.md
+sourceUnitVersionIds:
+  - uv_2c22117e9dc65af91d058cfb

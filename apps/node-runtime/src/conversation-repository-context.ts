@@ -1,6 +1,10 @@
 import { documentIdForPath, type ContextDocumentCandidate } from "@lervo/context";
 import { readConversationControlMessage } from "@lervo/conversation-control";
-import { prepareManagedSearchContext, productDefaultSearchEngine } from "@lervo/repository-context";
+import {
+  prepareManagedSearchContext,
+  productDefaultSearchEngine,
+  type ManagedRepositoryKnowledgeQuery,
+} from "@lervo/repository-context";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
 import type { ConversationInboundEvent, DocumentRegistry, RoleProfile } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
@@ -30,6 +34,7 @@ export async function prepareConversationRepositoryContext(input: {
   artifactStore: ArtifactStore;
   registry: DocumentRegistry;
   baseRole: RoleProfile;
+  knowledgeQuery?: ManagedRepositoryKnowledgeQuery;
 }) {
   const [message, currentWorkstream] = await Promise.all([
     readConversationControlMessage({ artifactStore: input.artifactStore, event: input.event }),
@@ -44,6 +49,7 @@ export async function prepareConversationRepositoryContext(input: {
     productDefault: productDefaultSearchEngine,
     documentRegistry: input.registry,
     runId: input.runId,
+    ...(input.knowledgeQuery === undefined ? {} : { knowledgeQuery: input.knowledgeQuery }),
   });
   const role = structuredClone(input.baseRole);
   const documentRules: Record<string, string[]> = {};

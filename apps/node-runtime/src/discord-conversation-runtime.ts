@@ -33,7 +33,10 @@ import {
 import type { DiscordPeerAgentBinding } from "./discord-conversation-composition.js";
 import { ConversationResultRuntime } from "./conversation-result-runtime.js";
 import { SQLiteConversationResultStore } from "./conversation-result-store.js";
-import { openManagedConversationReadResponder } from "./conversation-read-responder.js";
+import {
+  openManagedConversationReadResponder,
+  type ManagedConversationRepositoryResources,
+} from "./conversation-read-responder.js";
 import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
 import { NaturalLanguageDiscordConversationResponder } from "./discord-conversation-mode.js";
 import { resolveDiscordAgentParticipation } from "./discord-agent-participation.js";
@@ -76,6 +79,7 @@ export interface NodeDiscordConversationRuntimeOptions {
   readOnlyResponder?: ConversationResponder;
   intentResolver?: ConversationIntentResolver;
   providerExecutables?: Partial<Record<"codex" | "claude", string>>;
+  managedRepositoryResources?: ManagedConversationRepositoryResources;
   agentParticipation?: DiscordAgentParticipation;
   peerAgents?: DiscordPeerAgentBinding[];
   gatewayTransport?: DiscordGatewayTransport;
@@ -183,6 +187,7 @@ export async function openNodeDiscordConversationRuntime(
         dataDirectory: options.dataDirectory,
         artifactStore: artifacts,
         surfaceEffects,
+        repositoryResources: options.managedRepositoryResources,
         ...(options.providerExecutables === undefined
           ? {}
           : { providerExecutables: options.providerExecutables }),

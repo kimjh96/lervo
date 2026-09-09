@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { BigIntStats } from "node:fs";
 import { lstat, readdir, readlink } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 
@@ -14,6 +15,8 @@ export type CaptureRepositorySnapshot = (
   repositoryRoot: string,
   policy?: RepositorySnapshotPolicy,
 ) => Promise<RepositorySnapshot>;
+
+export type RepositorySnapshotFileReader = typeof readRepositoryFile;
 
 export interface RepositorySnapshotPolicy {
   excludedDirectoryNames: readonly string[];
@@ -50,6 +53,18 @@ export class RepositorySnapshotError extends Error {
     super(message, options);
     this.name = "RepositorySnapshotError";
   }
+}
+
+interface CachedSnapshotEntry {
+  kind: "file" | "symlink";
+  identity: string;
+  hash: string;
+  byteLength: number;
+}
+
+interface SnapshotCaptureState {
+  cacheKey: string;
+  entries: ReadonlyMap<string, CachedSnapshotEntry>;
 }
 
 function sha256(value: string | Uint8Array): string {
@@ -104,10 +119,40 @@ export async function captureRepositorySnapshot(
   repositoryRoot: string,
   policy: RepositorySnapshotPolicy = defaultRepositorySnapshotPolicy,
 ): Promise<RepositorySnapshot> {
-  const resolvedPolicy = resolveRepositorySnapshotPolicy(policy);
+  return captureRepositorySnapshotWithCache({
+    repositoryRoot,
+    policy,
+    previous: undefined,
+    readFile: readRepositoryFile,
+  }).then((result) => result.snapshot);
+}
+
+function snapshotCacheKey(root: string, policy: RepositorySnapshotPolicy): string {
+  return JSON.stringify([
+    root,
+    [...policy.excludedDirectoryNames].sort(),
+    [...policy.excludedPaths].sort(),
+  ]);
+}
+
+function entryIdentity(stats: BigIntStats): string {
+  return [stats.dev, stats.ino, stats.size, stats.mtimeNs, stats.ctimeNs].map(String).join(":");
+}
+
+async function captureRepositorySnapshotWithCache(input: {
+  repositoryRoot: string;
+  policy: RepositorySnapshotPolicy;
+  previous: SnapshotCaptureState | undefined;
+  readFile: RepositorySnapshotFileReader;
+}): Promise<{ snapshot: RepositorySnapshot; state: SnapshotCaptureState }> {
+  const resolvedPolicy = resolveRepositorySnapshotPolicy(input.policy);
   const excludedDirectories = new Set(resolvedPolicy.excludedDirectoryNames);
   const excludedPaths = new Set(resolvedPolicy.excludedPaths);
-  const root = resolve(repositoryRoot);
+  const root = resolve(input.repositoryRoot);
+  const cacheKey = snapshotCacheKey(root, resolvedPolicy);
+  const previousEntries =
+    input.previous?.cacheKey === cacheKey ? input.previous.entries : new Map();
+  const nextEntries = new Map<string, CachedSnapshotEntry>();
   try {
     const rootStats = await lstat(root);
     if (!rootStats.isDirectory() || rootStats.isSymbolicLink()) throw new Error("unsafe root");
@@ -141,8 +186,21 @@ export async function captureRepositorySnapshot(
         throw new RepositorySnapshotError("The repository snapshot file-count limit was exceeded.");
       }
       if (entry.isSymbolicLink()) {
-        const target = await readlink(absolutePath);
-        files[path] = sha256(`symlink\0${target}`);
+        const before = await lstat(absolutePath, { bigint: true });
+        const identity = entryIdentity(before);
+        const cached = previousEntries.get(path);
+        let hash: string;
+        if (cached?.kind === "symlink" && cached.identity === identity) {
+          hash = cached.hash;
+        } else {
+          const target = await readlink(absolutePath);
+          if (identity !== entryIdentity(await lstat(absolutePath, { bigint: true }))) {
+            throw new RepositorySnapshotError("Could not snapshot the repository file safely.");
+          }
+          hash = sha256(`symlink\0${target}`);
+        }
+        files[path] = hash;
+        nextEntries.set(path, { kind: "symlink", identity, hash, byteLength: 0 });
         continue;
       }
       if (!entry.isFile()) {
@@ -151,22 +209,33 @@ export async function captureRepositorySnapshot(
       }
       try {
         const before = await lstat(absolutePath, { bigint: true });
-        const bytes = await readRepositoryFile(root, path);
-        const after = await lstat(absolutePath, { bigint: true });
-        if (
-          before.dev !== after.dev ||
-          before.ino !== after.ino ||
-          before.size !== after.size ||
-          before.mtimeNs !== after.mtimeNs ||
-          before.ctimeNs !== after.ctimeNs
-        ) {
-          throw new Error("changed while reading");
+        const identity = entryIdentity(before);
+        const cached = previousEntries.get(path);
+        let hash: string;
+        let contentByteLength: number;
+        if (cached?.kind === "file" && cached.identity === identity) {
+          hash = cached.hash;
+          contentByteLength = cached.byteLength;
+        } else {
+          const bytes = await input.readFile(root, path);
+          const after = await lstat(absolutePath, { bigint: true });
+          if (identity !== entryIdentity(after)) {
+            throw new Error("changed while reading");
+          }
+          hash = sha256(bytes);
+          contentByteLength = bytes.byteLength;
         }
-        byteCount += bytes.byteLength;
+        byteCount += contentByteLength;
         if (byteCount > resolvedPolicy.maxBytes) {
           throw new RepositorySnapshotError("The repository snapshot byte limit was exceeded.");
         }
-        files[path] = sha256(bytes);
+        files[path] = hash;
+        nextEntries.set(path, {
+          kind: "file",
+          identity,
+          hash,
+          byteLength: contentByteLength,
+        });
       } catch (error) {
         if (error instanceof RepositorySnapshotError) throw error;
         throw new RepositorySnapshotError("Could not snapshot the repository file safely.", {
@@ -181,8 +250,39 @@ export async function captureRepositorySnapshot(
     .sort()
     .map((path) => [path, files[path]]);
   return {
-    revision: sha256(JSON.stringify(canonicalEntries)),
-    files,
+    snapshot: {
+      revision: sha256(JSON.stringify(canonicalEntries)),
+      files,
+    },
+    state: { cacheKey, entries: nextEntries },
+  };
+}
+
+export function createCachedRepositorySnapshotCapture(input?: {
+  readFile?: RepositorySnapshotFileReader;
+}): CaptureRepositorySnapshot {
+  const readFile = input?.readFile ?? readRepositoryFile;
+  let state: SnapshotCaptureState | undefined;
+  let pending: Promise<void> = Promise.resolve();
+  return async (repositoryRoot, policy = defaultRepositorySnapshotPolicy) => {
+    let release: () => void = () => undefined;
+    const predecessor = pending;
+    pending = new Promise<void>((resolvePending) => {
+      release = resolvePending;
+    });
+    await predecessor;
+    try {
+      const result = await captureRepositorySnapshotWithCache({
+        repositoryRoot,
+        policy,
+        previous: state,
+        readFile,
+      });
+      state = result.state;
+      return result.snapshot;
+    } finally {
+      release();
+    }
   };
 }
 

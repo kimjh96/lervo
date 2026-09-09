@@ -28,6 +28,11 @@ import {
   validateSchema,
 } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
+import {
+  createCachedRepositorySnapshotCapture,
+  type CaptureRepositorySnapshot,
+} from "@lervo/orchestrator";
+import { RevisionedRepositoryKnowledgeQuery } from "@lervo/repository-context";
 
 import { AgentContextMaterializer } from "./agent-context-materialization.js";
 import type { NodeDiscordConversationConfig } from "./config-types.js";
@@ -36,6 +41,18 @@ import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
 import { SQLiteConversationResponseArtifactStore } from "./conversation-response-artifact-store.js";
 
 const WRITING_DOCUMENT_ID = "doc_node_conversation_writing_policy";
+
+export interface ManagedConversationRepositoryResources {
+  captureSnapshot: CaptureRepositorySnapshot;
+  knowledgeQuery: RevisionedRepositoryKnowledgeQuery;
+}
+
+export function createManagedConversationRepositoryResources(): ManagedConversationRepositoryResources {
+  return {
+    captureSnapshot: createCachedRepositorySnapshotCapture(),
+    knowledgeQuery: new RevisionedRepositoryKnowledgeQuery(),
+  };
+}
 
 function digest(value: string): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -151,6 +168,7 @@ export async function openManagedConversationReadResponder(input: {
   artifactStore: ArtifactStore;
   surfaceEffects: readonly ManagedConversationSurfaceEffect[];
   providerExecutables?: Partial<Record<"codex" | "claude", string>>;
+  repositoryResources?: ManagedConversationRepositoryResources | undefined;
 }): Promise<{
   responder: ConversationResponder;
   turnResolver: ManagedConversationTurnResolver;
@@ -181,6 +199,14 @@ export async function openManagedConversationReadResponder(input: {
       writingContract,
     });
     const baseRole = readOnlyRole(input.config.routing.readOnlyRoleId, writingContract);
+    const repositoryResources =
+      input.repositoryResources ?? createManagedConversationRepositoryResources();
+    const { captureSnapshot, knowledgeQuery } = repositoryResources;
+    const initialSnapshot = await captureSnapshot(input.repositoryRoot);
+    await knowledgeQuery.prepare({
+      repositoryRoot: input.repositoryRoot,
+      sourceRevision: initialSnapshot.revision,
+    });
     const agentContextMaterializer = new AgentContextMaterializer({
       repositoryRoot: input.repositoryRoot,
       projectId: input.projectId,
@@ -248,6 +274,7 @@ export async function openManagedConversationReadResponder(input: {
       structuredOutputSchema?: Record<string, unknown>,
     ) => {
       const runId = id("run");
+      const sourceSnapshot = await captureSnapshot(input.repositoryRoot);
       const repositoryContext = await prepareConversationRepositoryContext({
         repositoryRoot: input.repositoryRoot,
         projectId: input.projectId,
@@ -256,6 +283,11 @@ export async function openManagedConversationReadResponder(input: {
         artifactStore: input.artifactStore,
         registry: provisioned.registry,
         baseRole,
+        knowledgeQuery: (queryInput) =>
+          knowledgeQuery.query({
+            ...queryInput,
+            sourceRevision: sourceSnapshot.revision,
+          }),
       });
       const agentContext =
         input.agentId === null ? null : await agentContextMaterializer.materialize(input.agentId);
@@ -310,6 +342,7 @@ export async function openManagedConversationReadResponder(input: {
       events,
       artifactStore: input.artifactStore,
       responseArtifacts,
+      captureSnapshot,
       deadlines: { providerTurnMs: input.config.routing.response.timeoutMs ?? 60_000 },
       ...(semanticEvaluator === undefined ? {} : { semanticEvaluator }),
       createEventId: () => id("evt"),
@@ -322,6 +355,7 @@ export async function openManagedConversationReadResponder(input: {
       events,
       artifactStore: input.artifactStore,
       responseArtifacts,
+      captureSnapshot,
       deadlines: { providerTurnMs: input.config.routing.response.timeoutMs ?? 60_000 },
       ...(semanticEvaluator === undefined ? {} : { semanticEvaluator }),
       createEventId: () => id("evt"),
