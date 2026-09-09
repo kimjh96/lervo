@@ -16,6 +16,7 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 - Same-version rebuilt Node payloads upgrade transactionally; complete readiness or three fresh Hub-unavailable-only `offline_ready` observations are required before the fleet registry commits.
 - Knowledge lint succeeds after every applied repository upgrade.
 - The local-only path works without a Hub; absent Node registration is current rather than an onboarding side effect.
+- A stale registered Node under a current sync-disabled project policy remains pending authority without blocking local generated-only migration.
 - CLI acquisition remains an explicit installation-environment responsibility and is never misreported as repository-upgrade evidence.
 
 ## Evidence

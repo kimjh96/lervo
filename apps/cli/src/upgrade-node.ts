@@ -145,14 +145,36 @@ export async function inspectRegisteredNodeUpgrade(
       configPath: null,
     };
   const common = { registered: true, currentVersion: registration.runtimeVersion, desiredVersion };
-  const plan = await createNodeFleetOnboardingPlan({
-    registryPath,
-    repositoryRoot: physicalRoot,
-    nodeId: registration.nodeId,
-    destinationId: registration.destinationId,
-    runtimeVersion: desiredVersion,
-    serviceManager: registration.serviceManager,
-  });
+  let plan: NodeFleetOnboardingPlan;
+  try {
+    plan = await createNodeFleetOnboardingPlan({
+      registryPath,
+      repositoryRoot: physicalRoot,
+      nodeId: registration.nodeId,
+      destinationId: registration.destinationId,
+      runtimeVersion: desiredVersion,
+      serviceManager: registration.serviceManager,
+    });
+  } catch (error) {
+    if (
+      error !== null &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "node_fleet_sync_disabled"
+    ) {
+      return {
+        stage: stage({
+          ...common,
+          disposition: "pending_authority",
+          planId: null,
+          reason: "node_sync_policy_disabled",
+        }),
+        plan: null,
+        configPath: null,
+      };
+    }
+    throw error;
+  }
   const planFields = {
     ...common,
     planId: plan.planId,
