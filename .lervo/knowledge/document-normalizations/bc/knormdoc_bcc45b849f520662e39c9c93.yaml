@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_060a2377830e7868f0decfc3
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_88fab7d84767b4e0fcd21e0f
+outputLanguage: en
+outputs:
+  - byteCount: 1511
+    contentHash: sha256:dbb54ad6514d30ee02974fc40a76e0e3be0b0e1f58216f155fb5a6ebf32f16fa
+    path: docs/specifications/execution/lifecycle-and-context/managed-run-lifecycle/direct-hooks.md
+    userRegionHash: sha256:dbb54ad6514d30ee02974fc40a76e0e3be0b0e1f58216f155fb5a6ebf32f16fa
+profile: specification_document
+recordId: knormdoc_bcc45b849f520662e39c9c93
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1860151bd18c9d3e42af334706751fcb7db0a4b665e2b38d7af2369934025404
+sourcePath: docs/specifications/execution/lifecycle-and-context/managed-run-lifecycle/direct-hooks.md
+sourceUnitVersionIds:
+  - uv_1cafc9c55a3868ac4498c5ad

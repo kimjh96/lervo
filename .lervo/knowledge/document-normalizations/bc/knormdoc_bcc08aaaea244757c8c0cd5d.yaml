@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_060a2377830e7868f0decfc3
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4271d13ff5f1b663eb4ce6c3
+outputLanguage: en
+outputs:
+  - byteCount: 328
+    contentHash: sha256:9739e5f48c26930473571daa9336891260f4b30277f81670da9e6c9488904ff0
+    path: docs/architecture/system/conversation-routing/deployment-composition/bot-deployments.md
+    userRegionHash: sha256:9739e5f48c26930473571daa9336891260f4b30277f81670da9e6c9488904ff0
+  - byteCount: 268
+    contentHash: sha256:bdb5a0c9181019c9af3ec3a0881c628eb274f947b166f0a1add00e53c9b8e7eb
+    path: docs/architecture/system/conversation-routing/deployment-composition/bot-deployments/response-failures.md
+    userRegionHash: sha256:bdb5a0c9181019c9af3ec3a0881c628eb274f947b166f0a1add00e53c9b8e7eb
+  - byteCount: 1136
+    contentHash: sha256:6a90384781cc4e71fc7d203ad5d2db4f888caf8364f6e03947568a4edbb15de2
+    path: docs/architecture/system/conversation-routing/deployment-composition/bot-deployments/runtime-boundaries.md
+    userRegionHash: sha256:6a90384781cc4e71fc7d203ad5d2db4f888caf8364f6e03947568a4edbb15de2
+  - byteCount: 1183
+    contentHash: sha256:f2156666a4ad8ab0a75e40a74a161969bb02cdfdcf351f8d323025529368e81d
+    path: docs/architecture/system/conversation-routing/deployment-composition/bot-deployments/turn-ownership.md
+    userRegionHash: sha256:f2156666a4ad8ab0a75e40a74a161969bb02cdfdcf351f8d323025529368e81d
+profile: architecture_document
+recordId: knormdoc_bcc08aaaea244757c8c0cd5d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ae7481318ebb0c96451c872676100c17b34a7011d04746e432015989eebeb5b6
+sourcePath: docs/architecture/system/conversation-routing/deployment-composition/bot-deployments.md
+sourceUnitVersionIds:
+  - uv_795381f595ec34493c357338
+  - uv_8700dc24b6ce7f31718e2fc6
+  - uv_a41372c69b04fd802be02310

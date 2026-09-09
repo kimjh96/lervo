@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_060a2377830e7868f0decfc3
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d55b53142d37379734e26284
+outputLanguage: en
+outputs:
+  - byteCount: 8495
+    contentHash: sha256:d4ad427bfad3d2783777dd8c129208074abf4dcb8ba8e2c335c5feac97c5ad46
+    path: docs/decisions/coordination/conversations/0393-named-agent-identity-and-installed-organization-effects.md
+    userRegionHash: sha256:d4ad427bfad3d2783777dd8c129208074abf4dcb8ba8e2c335c5feac97c5ad46
+profile: decision_record
+recordId: knormdoc_cd4b3fd03256d7259af40419
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:05d129e6115f91e788ffb486d5a9648a82baafc25e441351d59ea0b819fc277e
+sourcePath: docs/decisions/coordination/conversations/0393-named-agent-identity-and-installed-organization-effects.md
+sourceUnitVersionIds:
+  - uv_1c250ef8df3540553c78e279
+  - uv_5e86ef9be1d9dffe847101fb
+  - uv_777838ec164fd3b927b9dce8
+  - uv_7d195e3b991bc5ae74a1c233
+  - uv_7d335ff3c383cdb7b9967c7c
+  - uv_7d988000c83dae6e08dfdef2
+  - uv_bc32ddfde5790590df0d5008
+  - uv_d7cf99c238c3e88c061db215
+  - uv_f63b212f261e12f09d39c19e

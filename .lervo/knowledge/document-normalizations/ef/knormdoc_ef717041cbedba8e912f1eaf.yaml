@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_060a2377830e7868f0decfc3
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_75f7eab4de36bf3128c45866
+outputLanguage: en
+outputs:
+  - byteCount: 554
+    contentHash: sha256:e66d36afb4770a6ccc2074c30c4bb3f6934f2ac485725ff4375057957fb776cf
+    path: docs/specifications/execution/lifecycle-and-context/managed-run-lifecycle/cross-provider-continuation.md
+    userRegionHash: sha256:e66d36afb4770a6ccc2074c30c4bb3f6934f2ac485725ff4375057957fb776cf
+profile: specification_document
+recordId: knormdoc_ef717041cbedba8e912f1eaf
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e66d36afb4770a6ccc2074c30c4bb3f6934f2ac485725ff4375057957fb776cf
+sourcePath: docs/specifications/execution/lifecycle-and-context/managed-run-lifecycle/cross-provider-continuation.md
+sourceUnitVersionIds:
+  - uv_7cbd754aefc0afc4dba4618c

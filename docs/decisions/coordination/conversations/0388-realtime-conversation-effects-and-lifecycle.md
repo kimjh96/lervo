@@ -3,7 +3,7 @@
 - Status: accepted
 - Decision date: 2026-09-08
 
-[ADR-0389](0389-single-managed-conversation-turn.md) replaced the separate intent-then-response sequencing with a single managed turn. Effect authority, retry ownership, terminal failure, writing profiles, and privacy boundaries remain in force.
+[ADR-0389](0389-single-managed-conversation-turn.md) replaced separate intent-then-response sequencing with a single managed turn. Effect authority, retry ownership, terminal failure, writing profiles, and privacy boundaries remain in force.
 
 ## Context
 
@@ -23,13 +23,13 @@ A queued execution origin retains only the coarse response language `en` or `ko`
 
 Intent resolution returns `answer`, `continue_work`, or `clarify` and binds one structured effect:
 
-| Effect                                | Required fields | Authority and meaning                                                    |
-| ------------------------------------- | --------------- | ------------------------------------------------------------------------ |
-| `none`                                | kind            | No mutation may occur                                                    |
-| `repository_work`                     | kind            | Use the signed exact-workstream Hub continuation path                    |
-| `discord_current_member_nickname_set` | kind, nickname  | Change only this authenticated bot member's nickname in the mapped guild |
-| `discord_guild_text_channel_create`   | kind, name      | Create one bounded text channel in the mapped guild                      |
-| `discord_public_thread_create`        | kind, name      | Create one bounded public thread under the mapped current channel        |
+| Effect | Required fields | Authority and meaning |
+| --- | --- | --- |
+| `none` | kind | No mutation may occur |
+| `repository_work` | kind | Use the signed exact-workstream Hub continuation path |
+| `discord_current_member_nickname_set` | kind, nickname | Change only this authenticated bot member's nickname in the mapped guild |
+| `discord_guild_text_channel_create` | kind, name | Create one bounded text channel in the mapped guild |
+| `discord_public_thread_create` | kind, name | Create one bounded public thread under the mapped current channel |
 
 The resolver receives available effect kinds. An unavailable effect becomes clarification and never falls through to repository work. The immutable intent record binds effect JSON alongside event, message hash, provider, model, confidence, digest, and time. The nickname is a bounded 1 to 32 character platform argument and may repeat that small source value; the full message remains only in CAS.
 

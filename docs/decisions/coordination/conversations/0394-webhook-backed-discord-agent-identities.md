@@ -5,40 +5,66 @@
 
 ## Context
 
-ADR-0385 required one Discord application, bot token, and guild installation for every visibly distinct hired agent. That boundary correctly prevented one bot user from being presented as several bot users, but it treated a bot account as the only honest Discord presentation identity. Discord incoming webhooks can instead publish with their own webhook ID and an agent-specific name and avatar. An already installed bot with `MANAGE_WEBHOOKS` can create those webhooks through the public API.
+ADR-0385 required a separate Discord application, bot token, and guild installation for each visibly distinct hired agent. This prevented presenting one bot user as several but treated bot accounts as the only honest presentation identity. Incoming webhooks have their own IDs and can publish with agent-specific names and avatars. An installed bot with `MANAGE_WEBHOOKS` can create them through the public API.
 
-Lervo still needs one authenticated Gateway application to receive events. Hiring, external presentation, channel membership, provider execution, repository authority, and durable context must remain separate transitions.
+Lervo still needs an authenticated Gateway application for events. Hiring, external presentation, channel membership, provider execution, repository authority, and durable context remain separate transitions.
 
 ## Decision
 
-A Discord conversation deployment chooses one speaker strategy:
+### Speaker configuration
 
-- `bot` uses the authenticated Gateway application's bot user as the external principal.
-- `webhook` binds one distinct incoming webhook per configured channel to one durable hired agent. All webhook IDs in that immutable deployment form the external speaker principal. The agent's current durable display name and optional configured HTTPS avatar are applied at delivery.
+Each Discord conversation deployment selects one strategy:
 
-The optional `speaker` state contains `kind`. Webhook state additionally requires `webhooks[]` entries with `channelId`, `webhookId`, and owner-only `tokenFile`, plus optional `avatarUrl`. Every configured guild conversation has exactly one entry. IDs and paths remain deployment configuration; tokens remain only in the referenced files and process memory. Missing coverage, duplicate IDs or paths, direct-message scope, an unhired speaker, an unsafe avatar URL, or a shared application with conflicting credentials means `invalid_config` before ingress.
+- `bot`: the authenticated Gateway application's bot user is the external principal.
+- `webhook`: one distinct incoming webhook per configured channel binds to one durable hired agent. The immutable deployment's complete webhook-ID set forms its external speaker principal. Delivery uses the agent's current durable display name and optional configured HTTPS avatar.
 
-Webhook-backed deployments may share the same exact Gateway application and owner-only bot-token file. Each current deployment runtime owns its authenticated Gateway connection while sharing those application credentials. The deployments retain distinct integration, worker, participant, hired-agent, provider, storage, response ownership, webhook IDs, and owner-only webhook-token files. Reusing a webhook ID or credential file across agents fails closed. A shared application with a different bot-token file also fails closed.
+Optional `speaker` state contains `kind`. Webhook state also requires `webhooks[]` entries containing `channelId`, `webhookId`, and owner-only `tokenFile`, plus optional `avatarUrl`. Every configured guild conversation has exactly one entry. IDs and paths are deployment configuration; tokens exist only in referenced files and process memory. Missing coverage, duplicate IDs or paths, direct-message scope, an unhired speaker, an unsafe avatar URL, or conflicting credentials for a shared application causes `invalid_config` before ingress.
 
-Gateway payload normalization maps `webhook_id` to `webhook:<id>` and records the author as an agent only after the configured identity binding succeeds. Each runtime suppresses its own webhook messages while peer webhook messages resolve to the peer's exact participant, agent, and role hashes. Webhook tokens remain outside repository history, event payloads, request hashes, logs, and conversational prose.
+Webhook deployments may share the exact Gateway application and owner-only bot-token file. Each current runtime owns its authenticated Gateway connection. Deployments retain distinct integration, worker, participant, hired-agent, provider, storage, response ownership, webhook IDs, and owner-only webhook-token files. Reusing webhook IDs or credential files across agents fails closed, as does sharing an application with a different bot-token file.
 
-Deployments composed by one Node derive those peer bindings from the sibling deployment configuration. A separate repository Node instead declares bounded `peerAgents` entries containing only the peer's external participant keys, durable participant and agent identifiers, exact role version and hashes, and tenant and conversation scope. Node startup rejects duplicate principals, self-bindings, malformed hashes, and coordinates outside the local allowlist. Unbound webhook authors continue to fail closed; history reconciliation never invents or downgrades an agent identity merely to advance a cursor.
+### Ingress and peer identity
 
-A manually bound coordinating bot remains unable to start an uncorrelated automation chain unless its exact reviewed participant binding opts in. That opt-in starts at depth zero but does not weaken self-message suppression, participation limits, or effect authority.
+Gateway normalization maps `webhook_id` to `webhook:<id>` and records an agent author only after configured identity binding succeeds. Each runtime suppresses its own webhook messages; peer webhook messages resolve to the peer's exact participant, agent, and role hashes. Webhook tokens remain outside repository history, event payloads, request hashes, logs, and conversational prose.
 
-That participant may independently opt in as an effect requester. The permission is checked against its normalized participant, role, tenant-derived conversation scope, and current deployment configuration before an agent-authored continuation or platform action leaves read-only routing. It only admits the request to the existing signed continuation or allowlisted executive adapter; automation-chain initiation alone continues to grant no mutation authority.
+Deployments composed by one Node derive peer bindings from sibling configuration. A separate repository Node declares bounded `peerAgents` entries containing only external participant keys, durable participant and agent identifiers, exact role version and hashes, and tenant and conversation scope. Startup rejects duplicate principals, self-bindings, malformed hashes, and coordinates outside the local allowlist. Unbound webhook authors fail closed. History reconciliation never invents or downgrades agent identity merely to advance a cursor.
 
-The Discord executive adapter implements `agent.deployment.prepare` by creating an incoming webhook only in an allowlisted channel and storing its returned token in a configured owner-only credential directory. The receipt contains the webhook ID and hashes only; it never contains credential bytes. Creation uses the existing replay-safe executive boundary. An uncertain API or storage outcome is not retried automatically. Independently, a managed natural turn may select allowlisted text-channel creation or public-thread creation. The latter is constrained to the current mapped channel, and both verify the returned Discord scope before reporting success.
+### Automation and effect authority
 
-Webhook delivery preserves durable outbound replay, disables Discord mention parsing by default, and verifies the returned webhook and channel IDs. Bot delivery remains available. The platform address keeps `threadKey` and `replyToMessageKey` separate. For Discord, authenticated channel lookup resolves an incoming thread to an allowlisted parent conversation, inbound identity and correlation use that parent plus the explicit thread key, bot delivery targets the thread channel, and webhook delivery projects the thread key only as Discord's `thread_id` query. The source inbound event correlation independently resolves the available reply-message ID. A managed response records the surface-neutral `deliveryRelation` as `standalone` or `reply`; ordinary sequential turns default to `standalone`, while the managed turn may select `reply` only when the native relationship materially disambiguates the target or preserves an explicit reply. Bot delivery projects that selection. Webhook delivery retains the relation as canonical evidence without claiming unsupported native reply projection. Legacy outbound records without the additive field are standalone. The value contains no message content or platform identifier; an invalid value fails outbound validation before delivery. A mismatched guild, parent, channel type, delivery response, or unconfigured parent fails closed. Native Discord member presence and native `@user` mentionability still require a separate bot application; webhook identity is not represented as a guild member. Lervo participant and role addressing remains surface-neutral and does not depend on native mentionability.
+A manually bound coordinating bot may start an uncorrelated automation chain only through an opt-in on its exact reviewed participant binding. It starts at depth zero while retaining self-message suppression, participation limits, and effect authority.
 
-No global event is added. Existing organization deployment, channel-membership, executive-effect receipt, conversation ingress, and outbound receipt contracts retain their failure and privacy meanings. The organization external-principal hash now binds the selected bot ID or exact webhook-ID set.
+That participant may separately opt in as an effect requester. Before agent-authored continuation or a platform action leaves read-only routing, permission is checked against the normalized participant, role, tenant-derived conversation scope, and current deployment configuration. Permission only admits the request to the existing signed continuation or allowlisted executive adapter. Chain initiation alone grants no mutation authority.
+
+The Discord executive adapter implements `agent.deployment.prepare` by creating an incoming webhook only in an allowlisted channel and storing its returned token in a configured owner-only credential directory. The receipt contains only the webhook ID and hashes, never credential bytes. Creation uses the existing replay-safe executive boundary; uncertain API or storage outcomes are not retried automatically.
+
+Independently, a managed natural turn may select allowlisted text-channel or public-thread creation. Public threads are limited to the current mapped channel. Both operations verify returned Discord scope before reporting success.
+
+### Delivery, threads, and replies
+
+Webhook delivery preserves durable outbound replay, disables Discord mention parsing by default, and verifies returned webhook and channel IDs. Bot delivery remains available.
+
+Platform addresses keep `threadKey` separate from `replyToMessageKey`. For Discord:
+
+- Authenticated channel lookup resolves an incoming thread to an allowlisted parent conversation.
+- Inbound identity and correlation use that parent and the explicit thread key.
+- Bot delivery targets the thread channel.
+- Webhook delivery projects the thread key only as Discord's `thread_id` query.
+- Source inbound event correlation independently resolves the available reply-message ID.
+
+A managed response records surface-neutral `deliveryRelation` as `standalone` or `reply`. Ordinary sequential turns default to `standalone`. A managed turn may select `reply` only when the native relationship materially disambiguates the target or preserves an explicit reply. Bot delivery projects this selection; webhook delivery retains canonical evidence without claiming unsupported native reply projection. Legacy outbound records without the additive field are standalone. The value contains no message content or platform identifier. Invalid values fail outbound validation before delivery.
+
+A mismatched guild, parent, channel type, delivery response, or unconfigured parent fails closed. Native Discord member presence, typing indicators, and `@user` mentionability require a separate installed bot application per agent. Webhook identities are not guild members and cannot emit typing. Lervo participant and role addressing remains surface-neutral and independent of native mentionability.
+
+### Existing contracts
+
+No global event is added. Organization deployment, channel-membership, executive-effect receipt, conversation ingress, and outbound receipt contracts retain their failure and privacy meanings. The organization external-principal hash binds the selected bot ID or exact webhook-ID set.
 
 ## Consequences
 
-One installed Discord application can host the CEO transport and multiple visibly named Lervo agents without manufacturing bot accounts or weakening durable agent identity. A future first-party surface can reuse the same agents, context, work, and evidence because webhook configuration remains an adapter concern.
+One installed Discord application can host CEO transport and multiple visibly named Lervo agents without manufacturing bot accounts or weakening durable agent identity. A future first-party surface can reuse their agents, context, work, and evidence because webhook configuration remains an adapter concern.
 
-Separate Discord applications remain an optional deployment strategy when guild-member presence, independent Discord permissions, or native agent mentions are required. Native thread intake, thread delivery, and reply correlation are implemented in the shared adapter contracts. Real multi-agent acceptance still requires provisioning webhooks, binding the resulting deployment configuration, restarting the Node, and observing a bounded human-plus-two-agent conversation.
+Each agent needing native guild-member presence, independent typing, independent Discord permissions, or native agent mentions requires a separate installed Discord application. Separate applications remain optional only for webhook identities without those requirements.
+
+Native thread intake, thread delivery, and reply correlation are implemented in shared adapter contracts. Real multi-agent acceptance still requires provisioning webhooks, binding deployment configuration, restarting the Node, and observing a bounded human-plus-two-agent conversation.
 
 ## References
 

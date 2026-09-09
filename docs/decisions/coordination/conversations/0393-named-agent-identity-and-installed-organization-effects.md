@@ -5,7 +5,7 @@
 
 ## Context
 
-The organization model distinguished hired agents from roles, provider turns, and one-to-one Discord deployments but lacked human-facing workforce names. Surfaces could mistake a role such as `CEO` for agent identity. The organization policy evaluator returned a pure decision without an installed, replay-safe boundary for approved Discord administration.
+The organization model separated hired agents from roles, provider turns, and one-to-one Discord deployments but lacked human-facing workforce names. Surfaces could mistake a role such as `CEO` for agent identity. The organization policy evaluator returned a pure decision without an installed, replay-safe boundary for approved Discord administration.
 
 Managed deliberation marked unprovable provider outcomes uncertain, but the installed conversation surface neither reconciled that state nor published a bounded, human-readable terminal status. Internal queue coordinates could remain an operator concern instead of clearly ending the conversation.
 
@@ -13,7 +13,7 @@ Managed deliberation marked unprovable provider outcomes uncertain, but the inst
 
 ### Named identity and team classification
 
-Every current workforce agent has a `displayName` and `displayNameSource`; the source is `explicit`, `generated`, or `legacy_derived`. New hires may supply an optional unique name; otherwise, Lervo generates a neutral name from the durable agent ID. Legacy records derive a stable neutral name on read. Rename is an exact-revision workforce transition. Roles remain reusable authority and expertise contracts; providers and models remain turn-execution evidence. Neither becomes the display name.
+Every current workforce agent has a `displayName` and `displayNameSource`: `explicit`, `generated`, or `legacy_derived`. New hires may supply an optional unique name; otherwise, Lervo generates a neutral name from the durable agent ID. Legacy records derive a stable neutral name on read. Rename is an exact-revision workforce transition. Roles remain reusable authority and expertise contracts; providers and models remain turn-execution evidence. Neither becomes the display name.
 
 The `agent.identity.changed` workforce event has an explicit `changeKind`:
 
@@ -37,9 +37,9 @@ The durable replay store reserves each external effect before dispatch. A verifi
 
 ### Surface-neutral work and collaboration
 
-Discord is the first installed surface over the managed conversation, workforce, assignment, execution, context, evidence, and organization application contracts. It is not a reduced chat-only runtime. A hired agent may inspect and quote requested code, enter authorized repository work, publish verified results, create threads, reply, mention eligible participants, and converse with other agents through those existing boundaries. A channel or mention never grants repository or external-effect authority.
+Discord is the first installed surface over the managed conversation, workforce, assignment, execution, context, evidence, and organization application contracts, not a reduced chat-only runtime. Through those boundaries, a hired agent may inspect and quote requested code, enter authorized repository work, publish verified results, create threads, reply, mention eligible participants, and converse with other agents. A channel or mention never grants repository or external-effect authority.
 
-The appointed CEO may hire internal workforce agents, assign them to teams, create allowlisted Discord channels and public threads, and coordinate work when exact organization policy and effect authorization allow it. Creating a new Discord application, issuing its token, and authorizing guild installation remain external owner/platform actions; hiring an agent and binding an already authorized external bot identity remain separate transitions.
+The appointed CEO may hire internal workforce agents, assign them to teams, create allowlisted Discord channels and public threads, and coordinate work when exact organization policy and effect authorization allow it. Creating a new Discord application, issuing its token, and authorizing guild installation remain external owner/platform actions. Hiring an agent and binding an already authorized external bot identity remain separate transitions.
 
 Every hired agent accumulates reviewed identity, work, relationship, and expertise context under its durable agent ID. Surface history is input to that lifecycle, not canonical memory by itself. Shiflo, Plen, and Arac remain distinct repository teams with separate authority and context; central coordination uses explicit routes, assignments, handoffs, or policy.
 
@@ -57,7 +57,7 @@ Product surfaces can render a stable named expert while separately showing role 
 
 Discord cannot create a separately authenticated bot application, issue its token, or authorize its installation on the owner's behalf. Under [ADR-0394](0394-webhook-backed-discord-agent-identities.md), that limitation no longer blocks multiple named Lervo speakers: an installed bot with allowlisted `MANAGE_WEBHOOKS` authority can prepare separate incoming-webhook identities while the resulting tokens remain in owner-only runtime storage. Distinct guild-member bot identities still require separate applications.
 
-Lervo may claim better task performance than direct Codex CLI or Claude Code only for installed paired scenarios whose evidence shows the improvement. Repository grounding, authority checks, verification, retry stability, and durable context are the intended advantages; provider intelligence is not relabeled as a Lervo result.
+Lervo may claim better task performance than direct Codex CLI or Claude Code only for installed paired scenarios whose evidence shows improvement. Repository grounding, authority checks, verification, retry stability, and durable context are the intended advantages; provider intelligence is not relabeled as a Lervo result.
 
 ## References
 

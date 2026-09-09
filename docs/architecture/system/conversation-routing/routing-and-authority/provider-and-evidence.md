@@ -4,7 +4,11 @@ The combined managed conversation turn, independent writing evaluation, and writ
 
 ## Turn evidence and history
 
-Immutable turn evidence binds event ID, message hash, hired agent, role, provider, requested model, provider-observed answer model, every observed model identifier, adapter version, structured effect, result digest, and resolution time without copying raw message text. Requested configuration never proves the runtime model. Codex binds the effective model returned by app-server thread start or the Responses result object. Claude binds the answer-producing root assistant model separately from all `modelUsage` identifiers so helper usage cannot become the claimed answer model. When the provider cannot prove the answer model, evidence records an explicit unavailable reason instead of a default, alias, or guess. A bounded platform action argument may repeat the requested nickname but never includes the full message. One result owns participation, routing, and a read reply; retries reuse the content-and-model-identity artifact instead of invoking a separate classifier.
+Immutable turn evidence binds event ID, message hash, hired agent, role, provider, requested model, provider-observed answer model, every observed model identifier, adapter version, structured effect, result digest, and resolution time without copying raw message text.
+
+Requested configuration never proves the runtime model. Codex binds the effective model returned by app-server thread start or the Responses result object. Claude binds the answer-producing root assistant model separately from all `modelUsage` identifiers so helper usage cannot become the claimed answer model. If the provider cannot prove the answer model, evidence records an explicit unavailable reason, never a default, alias, or guess.
+
+A bounded platform action argument may repeat the requested nickname but never includes the full message. One result owns participation, routing, and a read reply; retries reuse the content-and-model-identity artifact instead of invoking a separate classifier.
 
 Managed-run events separately record the actual response or command provider. Conversation history reuses completed interaction records and CAS content to preserve local context across restart.
 

@@ -13,7 +13,9 @@ The fixed queue acknowledgement is code-owned status text. Provider-model review
 
 ### Ownership and composition
 
-The optional `discordConversation` section of strict Node runtime configuration enables one repository-scoped Discord integration. The mutually exclusive, bounded `discordConversations` collection composes distinct hired-agent speaker identities under ADR-0385 as superseded by [ADR-0394](0394-webhook-backed-discord-agent-identities.md). `lervo-node` remains the single owner-only, always-on service. Discord configuration parsing, credential loading, application composition, per-agent runtime behavior, and aggregate Node lifecycle supervision remain separate modules.
+The optional `discordConversation` section of strict Node runtime configuration enables one repository-scoped Discord integration. The mutually exclusive, bounded `discordConversations` collection composes distinct hired-agent speaker identities under ADR-0385 as superseded by [ADR-0394](0394-webhook-backed-discord-agent-identities.md).
+
+`lervo-node` remains the single owner-only, always-on service. Discord configuration parsing, credential loading, application composition, per-agent runtime behavior, and aggregate Node lifecycle supervision remain separate modules.
 
 ### Credentials
 
@@ -43,13 +45,13 @@ A conversation-owned worker retries one ready interaction at a time, including a
 
 Durable-inbox inspection or advancement failure reports the privacy-bounded `interaction_retry_failed` health code and terminates the supervised Node; provider and message content are excluded.
 
-Semantic writing evaluators pass an exact JSON schema through the common provider-adapter construction boundary. Provider-specific structured-output mechanics remain inside Codex and Claude adapters. The common evaluator still validates exact check order, identifiers, states, and violation counts before publication.
+Semantic writing evaluators pass an exact JSON schema through the common provider-adapter construction boundary. Provider-specific structured-output mechanics remain inside Codex and Claude adapters. The common evaluator validates exact check order, identifiers, states, and violation counts before publication.
 
 ### Writing contracts and evidence
 
 Queue acknowledgements use `writing_mul-fixed-conversation-status`, a versioned multilingual contract with deterministic checks and no semantic checks. Natural conversation replies use `writing_mul-realtime-conversation` when no independent evaluator is configured, or `writing_mul-conversation` when `routing.evaluation` enables the separate fail-closed semantic pass.
 
-The writing gate requires a separate model or human evaluator only when the contract declares semantic checks. Publication still requires content-bound evaluation evidence and a permit; fixed acknowledgements emit no semantic-review claim.
+The writing gate requires a separate model or human evaluator only when the contract declares semantic checks. Publication requires content-bound evaluation evidence and a permit; fixed acknowledgements emit no semantic-review claim.
 
 ### Verification
 

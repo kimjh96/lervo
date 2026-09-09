@@ -1,10 +1,18 @@
 # Identity and organization bindings
 
+## Participant identity
+
 Participant bindings default to `actorKind: human` and `roleId: null` when omitted. `agentId` binds the responding bot participant to an active workforce agent and derives its exact current role independently of the command role. A mapped external Discord bot can use `actorKind: agent` with an explicit role.
 
-An agent participant may set `startsAutomationChain: true` only when that exact external identity is a reviewed automation initiator, such as the appointed CEO bot. Its otherwise uncorrelated inbound messages start at automation depth zero and still pass actor allowlists, turn ownership, relevance, rate, provider-budget, and effect-authority checks. The field defaults to false; uncorrelated messages from every other agent enter at the maximum depth and cannot start a reply loop. Human participants cannot set it.
+## Automation and effect authority
 
-An agent participant may separately set `mayRequestEffects: true` only when that exact participant, role, tenant, and mapped conversation are authorized to request repository continuation or an allowlisted platform effect. This admits the request to the existing signed continuation or scoped effect boundary; it does not add command roles, effect kinds, repository permissions, or provider capabilities. The field defaults to false and human participants cannot set it. `startsAutomationChain` and `mayRequestEffects` are independent so loop admission never silently becomes mutation authority.
+An agent participant may set `startsAutomationChain: true` only when that exact external identity is a reviewed automation initiator, such as the appointed CEO bot. Its otherwise uncorrelated inbound messages start at automation depth zero and still pass actor allowlists, turn ownership, relevance, rate, provider-budget, and effect-authority checks. The field defaults to false. Uncorrelated messages from every other agent enter at the maximum depth and cannot start a reply loop. Human participants cannot set it.
+
+An agent participant may separately set `mayRequestEffects: true` only when that exact participant, role, tenant, and mapped conversation are authorized to request repository continuation or an allowlisted platform effect. This admits the request to the existing signed continuation or scoped effect boundary without adding command roles, effect kinds, repository permissions, or provider capabilities. The field defaults to false; human participants cannot set it.
+
+`startsAutomationChain` and `mayRequestEffects` are independent: loop admission never silently becomes mutation authority.
+
+## Organization binding and validation
 
 An optional `organization` object names exact `organizationId` and `teamId` values. Before enabling it, an owner runs `lervo organization bind-runtime --organization <id> --team <id> --config <node-config> --write`. This records repository-local team, hired-agent, external-principal, and channel membership history without copying raw Discord IDs or credentials into events.
 

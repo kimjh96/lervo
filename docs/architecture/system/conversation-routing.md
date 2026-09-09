@@ -2,7 +2,7 @@
 
 Status: `active`
 
-The installed Node separates Discord transport, normalized identity, participation policy, semantic intent, managed response, remote continuation, publication, and durable evidence. Platform adapters do not choose repository effects, and provider adapters do not enter conversation or authority contracts.
+The installed Node separates Discord transport, normalized identity, participation policy, semantic intent, managed response, remote continuation, publication, and durable evidence. Platform adapters do not choose repository effects; provider adapters do not enter conversation or authority contracts.
 
 - [Routing, identity, and evidence](conversation-routing/routing-and-authority.md): intent resolution, provider selection, and authority boundaries.
 - [Transport and recovery](conversation-routing/transport-and-recovery.md): Gateway control, history reconciliation, typing, and durable response retries.

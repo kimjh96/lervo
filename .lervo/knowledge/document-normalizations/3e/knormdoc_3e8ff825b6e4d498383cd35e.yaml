@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_060a2377830e7868f0decfc3
+compiler:
+  compilerBuildId: sha256:bc1adba4ba160cb16cf5c45764543d2d6f1ef28e1322ab5da759ff536bd3c018
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_66c3f5e3ec6f060060706379
+outputLanguage: en
+outputs:
+  - byteCount: 2070
+    contentHash: sha256:87a2f1ff61ac2a0a93f12b9133d74ceaa50f298c4ae61594b5797bbf36d9fa98
+    path: docs/specifications/execution/lifecycle-and-context/managed-run-lifecycle/execution-and-profile-evidence.md
+    userRegionHash: sha256:87a2f1ff61ac2a0a93f12b9133d74ceaa50f298c4ae61594b5797bbf36d9fa98
+profile: specification_document
+recordId: knormdoc_3e8ff825b6e4d498383cd35e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:229e2d21ccfaffe42ad46ba16b915f1cae9bc262ac85d3b43ba3dac846c52d39
+sourcePath: docs/specifications/execution/lifecycle-and-context/managed-run-lifecycle/execution-and-profile-evidence.md
+sourceUnitVersionIds:
+  - uv_0b8c077f4189ff2d8b6f9467

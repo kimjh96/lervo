@@ -2,7 +2,19 @@
 
 State: `delivery required`.
 
-Implemented behavior includes authenticated Gateway-to-Hub intake, exact-workstream managed-host admission, installed Node service composition, durable publication-verified execution-result return, bounded hosting for distinct role-agent bot or webhook identities, active-lease renewal, retry-stable response reuse, conversational status publication, allowlisted current-bot nickname administration, replay-safe webhook preparation with owner-only token storage, and native Discord thread and reply projection with authenticated parent-channel validation.
+Implemented behavior:
+
+- Authenticated Gateway-to-Hub intake.
+- Exact-workstream managed-host admission.
+- Installed Node service composition.
+- Durable publication-verified execution-result return.
+- Bounded hosting for distinct role-agent bot or webhook identities.
+- Active-lease renewal.
+- Retry-stable response reuse.
+- Conversational status publication.
+- Allowlisted current-bot nickname administration.
+- Replay-safe webhook preparation with owner-only token storage.
+- Native Discord thread and reply projection with authenticated parent-channel validation.
 
 Open, separately tracked outcomes:
 

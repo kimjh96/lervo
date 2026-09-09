@@ -87,7 +87,7 @@ Replace every identifier and path with reviewed deployment coordinates. Store th
 }
 ```
 
-To present a hired agent through a channel webhook while reusing the installed Gateway bot, add the following fields. Every configured conversation channel requires one webhook binding.
+To present a hired agent through a channel webhook while reusing the installed Gateway bot, add these fields. Every configured conversation channel requires one webhook binding.
 
 ```json
 {
@@ -109,9 +109,9 @@ To present a hired agent through a channel webhook while reusing the installed G
 }
 ```
 
-The runtime uses the hired agent's durable display name as the webhook username. The avatar is optional and must use HTTPS without URL credentials.
+The runtime uses the hired agent's durable display name as the webhook username. The optional avatar must use HTTPS without URL credentials.
 
-When the peer webhook belongs to a deployment in another repository Node, add its reviewed immutable identity to the observing deployment. `participantKeys` use Discord adapter coordinates; the remaining values come from the peer's current workforce record and shared conversation membership.
+When a peer webhook belongs to a deployment in another repository Node, add its reviewed immutable identity to the observing deployment. `participantKeys` use Discord adapter coordinates; the remaining values come from the peer's current workforce record and shared conversation membership.
 
 ```json
 {
