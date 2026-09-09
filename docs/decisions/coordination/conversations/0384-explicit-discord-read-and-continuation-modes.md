@@ -7,33 +7,23 @@
 
 The first installed Discord composition treated every accepted mention as write-capable remote continuation. Repository questions entered the signed managed-write path and correctly failed without a verified provider file change. A later `ask`/`continue` prefix draft preserved authority boundaries but violated the requirement for ordinary conversation with or without a bot mention.
 
-Lervo already separates provider-neutral contracts for read-only managed answers, signed remote continuation, conversation participation, bounded automation depth, and cross-provider deliberation. Natural-language routing composes these without making Discord syntax a task authority.
+Lervo separates provider-neutral contracts for read-only managed answers, signed remote continuation, conversation participation, bounded automation depth, and cross-provider deliberation. Natural-language routing composes these without making Discord syntax a task authority.
 
 ## Decision
 
 ### Routing configuration
 
-Optional `discordConversation.routing` enables natural-language routing and binds a distinct `readOnlyRoleId`. Its `intent`, `response`, and optional independent publication `evaluation` selections name `codex` or `claude`, with optional model and bounded reasoning-effort overrides. The existing command selection independently controls write-capable continuation. The managed host also accepts provider-keyed model and reasoning-effort settings for command execution. Every selected provider must be allowlisted by the managed provider host, which owns executable selection.
+Optional `discordConversation.routing` enables natural-language routing and binds a distinct `readOnlyRoleId`. Its `intent`, `response`, and optional independent publication `evaluation` selections name `codex` or `claude`, with optional model and bounded reasoning-effort overrides. Existing command selection independently controls write-capable continuation. The managed host also accepts provider-keyed model and reasoning-effort settings for command execution. Every selected provider must be allowlisted by the managed provider host, which owns executable selection.
 
 Under `mode: relevant`, every message from a mapped participant in a mapped conversation is eligible. Mentions are optional attention signals, not intent selectors. `policy.unaddressedHumanMessages` separates dedicated human dialogue from semantic multi-agent participation: `respond` routes eligible human messages directly to their deterministic owner; `evaluate` retains semantic filtering. Natural-language routing defaults to `respond`. Deployments without routing retain legacy mention-only continuation and semantic filtering.
 
 ### Intent resolution
 
-The provider-backed intent adapter has no model tools or repository capabilities. It receives:
-
-- The integrity-checked message, actor kind, and optional-mention fact.
-- At most four prior turns reconstructed from integrity-checked interaction records and CAS artifacts.
-- The current workstream title, objective, and status.
+The provider-backed intent adapter has no model tools or repository capabilities. It receives the integrity-checked message, actor kind, optional-mention fact, at most four prior turns reconstructed from integrity-checked interaction records and CAS artifacts, and the current workstream title, objective, and status.
 
 It returns exactly one transient intent (`answer`, `continue_work`, or `clarify`), confidence (`high`, `medium`, or `low`), and a structured effect limited to available runtime effects. Classification uses meaning and bounded context, never keywords, prefixes, regular expressions, aliases, or synonym lists.
 
-Routing boundaries:
-
-- `answer` delegates to `ManagedConversationResponder`.
-- Medium- or high-confidence human `continue_work` with `repository_work` delegates to the signed exact-workstream Hub command path.
-- An explicitly allowlisted Discord platform effect delegates to its scoped adapter and never enters repository continuation.
-- `clarify`, low confidence, unavailable effects, and agent-authored mutation requests stay with the read-only responder to answer or clarify without mutation.
-- Resolver failure for an owned human message produces the existing retryable `response_generation_failed` interaction outcome and, after the configured bound, a verified visible terminal response. It cannot become a silent `relevance_unavailable` observation.
+`answer` delegates to `ManagedConversationResponder`. Medium- or high-confidence human `continue_work` with `repository_work` delegates to the signed exact-workstream Hub command path. An explicitly allowlisted Discord platform effect delegates to its scoped adapter and never enters repository continuation. `clarify`, low confidence, unavailable effects, and agent-authored mutation requests stay with the read-only responder to answer or clarify without mutation. Resolver failure for an owned human message enters the classified response-failure contract and produces a verified visible terminal response immediately or after only a proven transient retry; it cannot become a silent `relevance_unavailable` observation.
 
 An immutable local intent-resolution record binds the source event and message hash to intent, confidence, structured effect, adapter version, provider, configured model, result digest, and resolution time. It contains no raw message. Restart recovery verifies and reuses it without reclassification or timestamp changes. Managed-run events and remote-command records independently retain the provider and model selected for read and write execution.
 
@@ -45,7 +35,7 @@ Natural replies use the versioned `writing_mul-realtime-conversation` contract u
 
 ### Participants and agents
 
-Participant bindings distinguish mapped humans from mapped agents. Optional `discordConversation.agentId` binds the responding bot participant to one active hired agent. Startup verifies the agent's exact current role version, contract hash, profile hash, lifecycle status, and fixed-or-any provider policy. Stale or incompatible bindings fail as `invalid_config`.
+Participant bindings distinguish mapped humans from mapped agents. Optional `discordConversation.agentId` binds the responding bot participant to one active hired agent. Startup verifies the agent’s exact current role version, contract hash, profile hash, lifecycle status, and fixed-or-any provider policy. Stale or incompatible bindings fail as `invalid_config`.
 
 The participation role is independent of `command.roleId`: a researcher may converse while a developer command role performs an explicitly authorized continuation. Agent participation is disabled by default and requires `agent` in `policy.respondTo`. The role template never becomes an actor.
 

@@ -362,6 +362,79 @@ describe("agent organization CLI", () => {
       ]),
     );
     expect(await runCli(bind, io(root))).toBe(0);
+    expect(
+      await runCli(
+        [
+          "agent",
+          "status",
+          "--agent",
+          agentId,
+          "--status",
+          "suspended",
+          "--revision",
+          "2",
+          "--write",
+          "--root",
+          root,
+        ],
+        io(root),
+      ),
+    ).toBe(0);
+    expect(
+      await runCli(
+        [
+          "agent",
+          "role",
+          "--agent",
+          agentId,
+          "--role",
+          "ceo",
+          "--revision",
+          "3",
+          "--write",
+          "--root",
+          root,
+        ],
+        io(root),
+      ),
+    ).toBe(0);
+    expect(
+      await runCli(
+        [
+          "agent",
+          "status",
+          "--agent",
+          agentId,
+          "--status",
+          "active",
+          "--revision",
+          "4",
+          "--write",
+          "--root",
+          root,
+        ],
+        io(root),
+      ),
+    ).toBe(0);
+    const roleSynchronized: string[] = [];
+    expect(await runCli(bind, io(root, roleSynchronized))).toBe(0);
+    const roleProjection = JSON.parse(roleSynchronized.join(""));
+    expect(roleProjection.memberships).toEqual([
+      expect.objectContaining({
+        agentId,
+        agentDisplayName: "Tarin",
+        roleId: "ceo",
+        status: "active",
+        revision: 2,
+      }),
+    ]);
+    expect(roleProjection.deployments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ roleId: "developer", retiredAt: expect.any(String) }),
+        expect.objectContaining({ roleId: "ceo", retiredAt: null }),
+      ]),
+    );
+    expect(changedConfig.discordConversation.command.roleId).toBe("developer");
     const storage = await openProjectStorage(root);
     try {
       const organizationEvents: ReturnType<typeof storage.events.list> = [];
@@ -382,6 +455,11 @@ describe("agent organization CLI", () => {
         "organization.agent.identity.changed",
         "organization.channel.membership.changed",
         "organization.external_agent.deployment.retired",
+        "organization.external_agent.deployment.bound",
+        "organization.channel.membership.changed",
+        "organization.channel.membership.changed",
+        "organization.external_agent.deployment.retired",
+        "organization.agent.membership.changed",
         "organization.external_agent.deployment.bound",
         "organization.channel.membership.changed",
       ]);

@@ -55,6 +55,7 @@ function synchronizeMembership(input: {
   const currentMembership = projectOrganization(input.storage).memberships.find(
     (item) => item.membershipId === membershipId,
   );
+  let replacedDeploymentId: string | null = null;
   if (currentMembership === undefined) {
     appendOrganizationEvent(input.storage, "organization.agent.membership.changed", {
       membershipId,
@@ -69,23 +70,62 @@ function synchronizeMembership(input: {
       revision: 1,
       changedAt: input.occurredAt,
     });
-  } else if (
-    currentMembership.status === "active" &&
-    (currentMembership.agentDisplayName !== input.agent.displayName ||
-      currentMembership.agentDisplayNameSource !== input.agent.displayNameSource)
-  ) {
-    appendOrganizationEvent(input.storage, "organization.agent.identity.changed", {
-      membershipId,
-      organizationId: input.organizationId,
-      teamId: input.teamId,
-      projectId: input.storage.manifest.projectId,
-      agentId: input.agent.agentId,
-      previousDisplayName: currentMembership.agentDisplayName ?? null,
-      displayName: input.agent.displayName,
-      displayNameSource: input.agent.displayNameSource,
-      revision: (currentMembership.displayNameRevision ?? 0) + 1,
-      changedAt: input.occurredAt,
-    });
+  } else {
+    if (currentMembership.status !== "active") {
+      throw new Error("The existing organization membership is not active.");
+    }
+    if (
+      currentMembership.agentDisplayName !== input.agent.displayName ||
+      currentMembership.agentDisplayNameSource !== input.agent.displayNameSource
+    ) {
+      appendOrganizationEvent(input.storage, "organization.agent.identity.changed", {
+        membershipId,
+        organizationId: input.organizationId,
+        teamId: input.teamId,
+        projectId: input.storage.manifest.projectId,
+        agentId: input.agent.agentId,
+        previousDisplayName: currentMembership.agentDisplayName ?? null,
+        displayName: input.agent.displayName,
+        displayNameSource: input.agent.displayNameSource,
+        revision: (currentMembership.displayNameRevision ?? 0) + 1,
+        changedAt: input.occurredAt,
+      });
+    }
+    const synchronizedIdentity = projectOrganization(input.storage).memberships.find(
+      (item) => item.membershipId === membershipId,
+    )!;
+    const roleChanged =
+      synchronizedIdentity.roleId !== role.roleId ||
+      synchronizedIdentity.roleVersion !== role.roleVersion ||
+      synchronizedIdentity.roleContractHash !== role.roleContractHash ||
+      synchronizedIdentity.roleProfileHash !== role.roleProfileHash ||
+      synchronizedIdentity.providerPolicyHash !== role.providerPolicyHash;
+    if (roleChanged) {
+      const activeDeployments = projectOrganization(input.storage).deployments.filter(
+        (item) => item.membershipId === membershipId && item.retiredAt === null,
+      );
+      for (const deployment of activeDeployments) {
+        retireReplacedDeployment({
+          storage: input.storage,
+          deploymentId: deployment.deploymentId,
+          occurredAt: input.occurredAt,
+        });
+      }
+      replacedDeploymentId = activeDeployments.at(-1)?.deploymentId ?? null;
+      appendOrganizationEvent(input.storage, "organization.agent.membership.changed", {
+        membershipId,
+        organizationId: input.organizationId,
+        teamId: input.teamId,
+        projectId: input.storage.manifest.projectId,
+        agentId: input.agent.agentId,
+        ...role,
+        displayNameRevision: synchronizedIdentity.displayNameRevision ?? 1,
+        previousStatus: "active",
+        status: "active",
+        revision: synchronizedIdentity.revision + 1,
+        changedAt: input.occurredAt,
+      });
+    }
   }
   const synchronized = projectOrganization(input.storage).memberships.find(
     (item) => item.membershipId === membershipId,
@@ -102,7 +142,7 @@ function synchronizeMembership(input: {
   ) {
     throw new Error("The existing organization membership does not match the active agent role.");
   }
-  return { membership: synchronized, role };
+  return { membership: synchronized, role, replacedDeploymentId };
 }
 
 function retireReplacedDeployment(input: {
@@ -144,7 +184,7 @@ export function bindDiscordAgentDeployment(input: {
   agent: WorkforceAgent;
   occurredAt: string;
 }): void {
-  const { membership, role } = synchronizeMembership(input);
+  const { membership, role, replacedDeploymentId } = synchronizeMembership(input);
   const conversations = conversationIdentity(input.config);
   const deploymentConfigHash = externalAgentDeploymentConfigHash({
     platform: "discord",
@@ -201,7 +241,8 @@ export function bindDiscordAgentDeployment(input: {
       platform: "discord",
       externalPrincipalHash,
       deploymentConfigHash,
-      replacesDeploymentId: activeDeployment?.deploymentId ?? null,
+      membershipRevision: membership.revision,
+      replacesDeploymentId: activeDeployment?.deploymentId ?? replacedDeploymentId,
     });
   if (exactActiveDeployment === undefined) {
     appendOrganizationEvent(input.storage, "organization.external_agent.deployment.bound", {

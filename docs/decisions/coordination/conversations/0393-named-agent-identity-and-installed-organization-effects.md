@@ -5,21 +5,27 @@
 
 ## Context
 
-The organization model distinguished a hired agent from its role, provider turn, and one-to-one Discord deployment, but the workforce projection lacked a human-facing name. Surfaces could therefore mistake a role such as `CEO` for agent identity. The organization policy evaluator returned a pure decision without an installed, replay-safe boundary for approved Discord administration.
+The organization model distinguished a hired agent from its role, provider turn, and one-to-one Discord deployment, but lacked a human-facing workforce name. Surfaces could therefore mistake a role such as `CEO` for agent identity. The organization policy evaluator returned a pure decision without an installed, replay-safe boundary for approved Discord administration.
 
-Managed deliberation marked unprovable provider outcomes uncertain, but the installed conversation surface neither reconciled that state nor published a bounded human-readable terminal status. Internal queue coordinates could remain an operator concern instead of clearly ending the conversation.
+Managed deliberation marked unprovable provider outcomes uncertain, but the installed conversation surface neither reconciled that state nor published a bounded, human-readable terminal status. Internal queue coordinates could remain an operator concern instead of clearly ending the conversation.
 
 ## Decision
 
 ### Named identity and team classification
 
-Every current workforce agent has a `displayName` and `displayNameSource`; the source is `explicit`, `generated`, or `legacy_derived`. New hires may provide an optional unique name; otherwise Lervo generates a neutral name from the durable agent ID. Legacy records derive a stable neutral name on read. Rename is an exact-revision workforce transition. A role remains a reusable authority and expertise contract; a provider or model remains turn-execution evidence. Neither becomes the display name.
+Every current workforce agent has a `displayName` and `displayNameSource`. The source is `explicit`, `generated`, or `legacy_derived`. New hires may provide an optional unique name; otherwise, Lervo generates a neutral name from the durable agent ID. Legacy records derive a stable neutral name on read. Rename is an exact-revision workforce transition. A role remains a reusable authority and expertise contract; a provider or model remains turn-execution evidence. Neither becomes the display name.
 
-The `agent.identity.changed` workforce event requires `agentId`, `previousDisplayName`, `displayName`, `displayNameSource`, and `revision`. The `organization.agent.identity.changed` event additionally binds exact organization, team, project, and membership. Its projection updates active membership and active external deployment without changing role, provider policy, employment, or channel authority. Names are bounded non-secret display metadata; raw platform IDs and credentials remain excluded.
+The `agent.identity.changed` workforce event has an explicit `changeKind`.
+
+- A `display_name` transition requires `agentId`, `previousDisplayName`, `displayName`, `displayNameSource`, and `revision`.
+- A `role_binding` transition retains those identity coordinates and additionally requires the previous and next role IDs, versions, contract hashes, profile hashes, the next capability hash, and revision.
+- Legacy events without `changeKind` are display-name transitions.
+
+The `organization.agent.identity.changed` event synchronizes only the display-name variant across exact organization, team, project, and membership. Its projection updates active membership and active external deployment without changing role, provider policy, employment, or channel authority. Role rebinding instead appends an exact `organization.agent.membership.changed` revision and rotates every affected external deployment. Names are bounded, non-secret display metadata; raw platform IDs and credentials remain excluded.
 
 The `organization.team.kind.changed` event reclassifies one exact existing repository team between `central` and `project`. It requires immutable organization, team, project, and repository identity coordinates, previous and next kinds, a monotonic revision, and `changedAt`. Stale coordinates or unchanged kinds fail as `organization_state_conflict`. Reclassification never moves repository authority or data.
 
-Changing an agent deployment’s provider, model, command role, or conversation set rotates the deployment rather than mutating its bound evidence. The runtime-binding transaction ends every active channel membership on the replaced deployment, retires it with `configuration_replaced`, then binds a new deployment and channel memberships. Exact repeated configuration is idempotent. A principal bound to another active agent still fails closed. Immutable deployment history is preserved while per-agent execution settings evolve.
+Changing an agent deployment’s provider, model, command role, conversation set, or hired-agent role binding rotates the deployment rather than mutating its bound evidence. The runtime-binding transaction ends every active channel membership on the replaced deployment, retires it with `configuration_replaced`, appends the exact membership revision when needed, then binds a new deployment and channel memberships. Exact repeated configuration is idempotent. A principal bound to another active agent still fails closed. Immutable deployment history is preserved while per-agent execution settings evolve.
 
 ### Organization effects
 

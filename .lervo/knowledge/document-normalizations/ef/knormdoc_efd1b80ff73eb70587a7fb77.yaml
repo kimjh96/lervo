@@ -1,7 +1,7 @@
 byteOwnership:
   owner: reviewer
   rewritePolicy: reviewed_exact
-candidateId: knorm_a1a6ba54b3e2349accaa4834
+candidateId: knorm_44e94f2180f2fb342dcee06d
 compiler:
   compilerBuildId: sha256:aa0727d080e161eec21898f05cb13e51a55c959480f75ad8ce5bd352d3b084e8
   compilerId: lervo.codex.document-normalizer
@@ -9,25 +9,25 @@ compiler:
   isolation: external_no_capabilities
   provider: codex
 formatVersion: lervo.document.v1
-operationId: knormop_9a3d82fae413ea1a01845728
+operationId: knormop_0a980536afb7751f58dcdaf1
 outputLanguage: en
 outputs:
-  - byteCount: 5487
-    contentHash: sha256:312a438179aba8f7879a953f4af25872a0c4d060b772d1e5761c01c561614985
+  - byteCount: 6055
+    contentHash: sha256:8bf7eb49a6bfce552fd3cfc662a0bcbd33861cd9745ab5d0ea0bdc65a0acee9b
     path: docs/decisions/coordination/conversations/0393-named-agent-identity-and-installed-organization-effects.md
-    userRegionHash: sha256:312a438179aba8f7879a953f4af25872a0c4d060b772d1e5761c01c561614985
+    userRegionHash: sha256:8bf7eb49a6bfce552fd3cfc662a0bcbd33861cd9745ab5d0ea0bdc65a0acee9b
 profile: decision_record
-recordId: knormdoc_a4d181bd5a52bc297a249d6a
+recordId: knormdoc_efd1b80ff73eb70587a7fb77
 resourceBindings: []
 schemaVersion: 2
-sourceContentHash: sha256:b686c9df2956e818443e261293d1b0313e632efcd0858b2adc37b1b2c4289738
+sourceContentHash: sha256:5071b3fa6f6c4071db5b68007f12252816954d93d00ae6017bae565fe7048868
 sourcePath: docs/decisions/coordination/conversations/0393-named-agent-identity-and-installed-organization-effects.md
 sourceUnitVersionIds:
-  - uv_0ca8954d7b6f314897f005e6
-  - uv_1f338963b9276df1797dceb9
-  - uv_6ac44a9cb0a22d6c0a6ffaa6
-  - uv_82f30ec97daca585a9037828
-  - uv_c9f3ca7214c356fa1d80e90d
-  - uv_ce28aeccdbcabc61f71bbf32
-  - uv_e2619bc237bee58b6c856458
-  - uv_ed78b7ef435c588f6160df38
+  - uv_04a0119e50be0e85cb965dcd
+  - uv_20d3eaeadd9a68a51299d46a
+  - uv_9c4e626284bd151d92538f05
+  - uv_b66a76e7b71f392b71d42628
+  - uv_b6d4800f47b2d44f125ee9c8
+  - uv_cc130354a557b847aa439963
+  - uv_e02650be3cecfea874bce16c
+  - uv_fc74ce5d0521c6f83b79466e

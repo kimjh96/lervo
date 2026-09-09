@@ -12,6 +12,28 @@ const terminalContractFailures = new Set([
   "remote_continuation_denied",
 ]);
 
+const contextFailures = new Set([
+  "context_injection_failed",
+  "context_materialization_failed",
+  "context_preparation_failed",
+  "repository_snapshot_failed",
+]);
+
+const providerFailures = new Set([
+  "provider_process_failed",
+  "provider_protocol_failed",
+  "provider_result_failed",
+  "provider_start_failed",
+  "provider_stop_failed",
+  "provider_stream_failed",
+  "provider_turn_failed",
+  "session_mismatch",
+  "session_not_found",
+  "session_stopped",
+]);
+
+const storageFailures = new Set(["artifact_storage_failed", "telemetry_recording_failed"]);
+
 export class NodeConversationResponseFailureClassifier implements ConversationResponseFailureClassifier {
   classify(error: unknown): ConversationResponseFailure {
     const code =
@@ -27,6 +49,18 @@ export class NodeConversationResponseFailureClassifier implements ConversationRe
     if (code === "writing_evaluation_unavailable") {
       return { failureCode: "response_evaluation_unavailable", retryable: true };
     }
+    if (code !== null && (code.startsWith("knowledge_") || contextFailures.has(code))) {
+      return { failureCode: "response_context_unavailable", retryable: false };
+    }
+    if (code !== null && providerFailures.has(code)) {
+      return { failureCode: "response_provider_unavailable", retryable: false };
+    }
+    if (code !== null && storageFailures.has(code)) {
+      return {
+        failureCode: "response_storage_unavailable",
+        retryable: code === "artifact_storage_failed",
+      };
+    }
     if (code !== null && terminalContractFailures.has(code)) {
       return {
         failureCode:
@@ -36,6 +70,6 @@ export class NodeConversationResponseFailureClassifier implements ConversationRe
         retryable: false,
       };
     }
-    return { failureCode: "response_generation_failed", retryable: true };
+    return { failureCode: "response_generation_failed", retryable: false };
   }
 }

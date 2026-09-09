@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_44e94f2180f2fb342dcee06d
+compiler:
+  compilerBuildId: sha256:aa0727d080e161eec21898f05cb13e51a55c959480f75ad8ce5bd352d3b084e8
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_644d6c8f99a0c5bf794ae5c7
+outputLanguage: en
+outputs:
+  - byteCount: 9432
+    contentHash: sha256:799170926feafb9dd4ff3e2e89724ec146ebdef09fe96df0f755fb60e00ac8e2
+    path: docs/decisions/coordination/conversations/0386-organization-teams-and-agent-identities.md
+    userRegionHash: sha256:799170926feafb9dd4ff3e2e89724ec146ebdef09fe96df0f755fb60e00ac8e2
+profile: decision_record
+recordId: knormdoc_0553feeddad8d3200a2ac308
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:95226cc61a202900b38cac82ebefdfb97899b70f66e8658bf523b88a032e8eee
+sourcePath: docs/decisions/coordination/conversations/0386-organization-teams-and-agent-identities.md
+sourceUnitVersionIds:
+  - uv_96f65a938eaa8baba7063b17
+  - uv_adcba24f4a77c2ca2d2921f5
+  - uv_c4bd6c5cfd8831dcb8e59405
+  - uv_dae6849504449aa0fe1596cc
+  - uv_e9e29c11f61659485e385bc4
+  - uv_eacb685bbd630731ec20ffaa
+  - uv_f42c0a7ebfe0f3824f78a48b
+  - uv_fd3c014696baf1ffc3675dc0

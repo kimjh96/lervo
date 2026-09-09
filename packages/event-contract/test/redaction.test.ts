@@ -210,6 +210,34 @@ describe("event payload privacy boundary", () => {
     expect(JSON.stringify(result.payload)).not.toContain(".lervo/roles");
   });
 
+  it("keeps exact agent role-transition coordinates without role or capability bodies", () => {
+    const payload = {
+      changeKind: "role_binding",
+      agentId: `agt_${"a".repeat(24)}`,
+      previousDisplayName: "Tarin",
+      displayName: "Tarin",
+      displayNameSource: "explicit",
+      previousRoleId: "developer",
+      previousRoleVersion: "1.0.0",
+      previousRoleContractHash: `sha256:${"b".repeat(64)}`,
+      previousRoleProfileHash: `sha256:${"c".repeat(64)}`,
+      roleId: "ceo",
+      roleVersion: "1.0.0",
+      roleContractHash: `sha256:${"d".repeat(64)}`,
+      roleProfileHash: `sha256:${"e".repeat(64)}`,
+      capabilityHash: `sha256:${"f".repeat(64)}`,
+      revision: 3,
+    };
+    const result = sanitizeEventPayload("agent.identity.changed", {
+      ...payload,
+      sourcePath: ".lervo/roles/ceo.json",
+      profile: { description: "private role prose" },
+    });
+    expect(result.payload).toEqual(payload);
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+    expect(JSON.stringify(result.payload)).not.toContain(".lervo/roles");
+  });
+
   it("keeps managed profile activation coordinates without role or provider bodies", () => {
     const payload = {
       activationId: `rpact_${"a".repeat(24)}`,

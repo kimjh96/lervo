@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_733aae187f8cb30aca6da391"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Preserve named agent identity across role changes and classify conversation failures."

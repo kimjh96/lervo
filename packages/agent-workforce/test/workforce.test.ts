@@ -16,6 +16,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   cancelAssignment,
   changeAgentDisplayName,
+  changeAgentRole,
+  changeAgentStatus,
   claimAssignment,
   completeAssignment,
   createAssignment,
@@ -150,6 +152,79 @@ describe("repository agent workforce", () => {
     });
     await expect(
       registerAgent({ repositoryRoot: root, roleId: "writer", displayName: "nova" }),
+    ).rejects.toMatchObject({ code: "agent_state_conflict" });
+  });
+
+  it("changes a suspended agent role without replacing its identity or context namespace", async () => {
+    const root = await repository();
+    const events: Array<{ type: string; payload: Record<string, unknown> }> = [];
+    const hired = await registerAgent({
+      repositoryRoot: root,
+      roleId: "developer",
+      provider: "any",
+      displayName: "Tarin",
+      recordEvent: (event) => {
+        events.push(event);
+      },
+    });
+    const suspended = await changeAgentStatus({
+      repositoryRoot: root,
+      agentId: hired.agentId,
+      expectedRevision: 1,
+      status: "suspended",
+      recordEvent: (event) => {
+        events.push(event);
+      },
+    });
+    const rebound = await changeAgentRole({
+      repositoryRoot: root,
+      agentId: hired.agentId,
+      expectedRevision: suspended.revision,
+      roleId: "ceo",
+      recordEvent: (event) => {
+        events.push(event);
+      },
+    });
+
+    expect(rebound).toMatchObject({
+      agentId: hired.agentId,
+      displayName: "Tarin",
+      displayNameSource: "explicit",
+      roleId: "ceo",
+      roleVersion: "1.0.0",
+      provider: "any",
+      status: "suspended",
+      revision: 3,
+      createdAt: hired.createdAt,
+    });
+    expect(rebound.roleContractHash).not.toBe(hired.roleContractHash);
+    expect(rebound.roleProfileHash).not.toBe(hired.roleProfileHash);
+    expect(rebound.capabilityHash).not.toBe(hired.capabilityHash);
+    expect(events.at(-1)).toMatchObject({
+      type: "agent.identity.changed",
+      payload: {
+        changeKind: "role_binding",
+        agentId: hired.agentId,
+        previousDisplayName: "Tarin",
+        displayName: "Tarin",
+        previousRoleId: "developer",
+        roleId: "ceo",
+        revision: 3,
+      },
+    });
+    const active = await changeAgentStatus({
+      repositoryRoot: root,
+      agentId: hired.agentId,
+      expectedRevision: rebound.revision,
+      status: "active",
+    });
+    await expect(
+      changeAgentRole({
+        repositoryRoot: root,
+        agentId: hired.agentId,
+        expectedRevision: active.revision,
+        roleId: "developer",
+      }),
     ).rejects.toMatchObject({ code: "agent_state_conflict" });
   });
 

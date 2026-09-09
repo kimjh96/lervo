@@ -3,6 +3,7 @@ import { parseArgs } from "node:util";
 
 import {
   changeAgentDisplayName,
+  changeAgentRole,
   changeAgentStatus,
   listAgents,
   registerAgent,
@@ -21,6 +22,7 @@ export const agentUsage = [
   "  lervo agent hire --role <role> [--name <display-name>] [--provider <codex|claude|any>] [--scope <path>] [--capability <package-id>] [--parent <agent-id>] --write [--root <path>] [--json]",
   "  lervo agent status --agent <agent-id> --status <active|suspended|retired> --revision <n> --write [--root <path>] [--json]",
   "  lervo agent rename --agent <agent-id> --name <display-name> --revision <n> --write [--root <path>] [--json]",
+  "  lervo agent role --agent <agent-id> --role <role-id> --revision <n> --write [--root <path>] [--json]",
   agentLivenessUsage,
   agentContextUsage,
 ].join("\n");
@@ -164,6 +166,29 @@ export async function runAgentCommand(args: string[], io: CliIo): Promise<number
       }),
     );
     output(io, agent, parsed.values.json, `${agent.agentId} is now named ${agent.displayName}.`);
+    return 0;
+  }
+  if (action === "role") {
+    if (!parsed.values.write || parsed.values.agent === undefined) {
+      throw new Error(
+        "Agent role transition requires exact identity, role, revision, and --write.",
+      );
+    }
+    const agent = await mutateWorkforceState(root, (recordEvent) =>
+      changeAgentRole({
+        repositoryRoot: root,
+        agentId: parsed.values.agent!,
+        roleId: role(parsed.values.role),
+        expectedRevision: revision(parsed.values.revision),
+        recordEvent,
+      }),
+    );
+    output(
+      io,
+      agent,
+      parsed.values.json,
+      `Agent ${agent.displayName} (${agent.agentId}) now holds role ${agent.roleId} at revision ${agent.revision}.`,
+    );
     return 0;
   }
   throw new Error("The agent action is invalid.");
