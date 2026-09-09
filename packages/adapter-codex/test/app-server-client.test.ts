@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -69,5 +69,25 @@ describe("Codex stdio app-server client", () => {
       status: "exited",
       evidence: "owned_process_state",
     });
+  });
+
+  it("makes the current Node runtime discoverable to a provider child", async () => {
+    const previousPath = process.env.PATH;
+    process.env.PATH = ["/fixture/system-a", "/fixture/system-b"].join(delimiter);
+    try {
+      const client = await CodexStdioAppServerClient.connect({
+        executable: process.execPath,
+        commandArguments: [
+          join(import.meta.dirname, "fixtures/fake-app-server.mjs"),
+          "--require-runtime-path",
+        ],
+        cwd: process.cwd(),
+        requestTimeoutMs: 1_000,
+      });
+      await client.close();
+    } finally {
+      if (previousPath === undefined) delete process.env.PATH;
+      else process.env.PATH = previousPath;
+    }
   });
 });

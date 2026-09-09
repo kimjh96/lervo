@@ -4,6 +4,7 @@ import {
   type WarmQuery,
   type startup,
 } from "@anthropic-ai/claude-agent-sdk";
+import { delimiter, dirname } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { ClaudeSdkAgentClient } from "../src/index.js";
@@ -175,6 +176,23 @@ describe("Claude Agent SDK client", () => {
 
     expect(fake.state.startupParams?.options?.effort).toBe("low");
     await client.close();
+  });
+
+  it("makes the current Node runtime discoverable to the Claude process", async () => {
+    const previousPath = process.env.PATH;
+    process.env.PATH = ["/usr/bin", "/bin"].join(delimiter);
+    try {
+      const fake = fakeSdk();
+      const client = await ClaudeSdkAgentClient.connect(clientOptions(), fake.sdkStartup);
+
+      expect(fake.state.startupParams?.options?.env?.PATH?.split(delimiter)[0]).toBe(
+        dirname(process.execPath),
+      );
+      await client.close();
+    } finally {
+      if (previousPath === undefined) delete process.env.PATH;
+      else process.env.PATH = previousPath;
+    }
   });
 
   it("replaces the provider default with an explicit bounded system prompt", async () => {

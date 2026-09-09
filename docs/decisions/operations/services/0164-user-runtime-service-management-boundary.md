@@ -2,35 +2,54 @@
 
 - Status: accepted
 - Decision date: 2026-08-22
+- Provider child environment amendment: 2026-09-09
 
 ## Context
 
-Rendered service definitions required manual installation. Because activation can start networking and managed commands, repository implementation and host activation must remain separate.
+Rendered service definitions required manual installation. Activation can start networking and managed commands, so repository implementation and host activation must remain separate.
 
 ## Decision
+
+### Scope and authority
 
 `pnpm service:manage` supports only Linux `systemctl --user` and macOS `launchctl gui/<uid>`. It never uses `sudo` or system services. Read-only status normalizes `managerAvailable`, `installed`, `enabled`, and `active` without exposing manager output or paths.
 
 `install` and `remove` require `--write`, a canonical owner-only rendered definition, and real absolute executable and configuration paths. The source must be bounded, no-follow, mode-checked, and byte-equal to fresh renderer output.
 
-Standalone JavaScript runtimes may bind `--node-executable <absolute-path>`. When present, the canonical service command is the exact Node executable followed by the runtime entry point and configuration argument. The Node executable must be a real executable regular file. The JavaScript entry point must be a real regular file but need not have an executable bit. Omitting the option preserves the direct-executable contract. This avoids ambient `PATH` and shebang resolution without embedding Node in the standalone distribution or introducing a runtime-specific wrapper lifecycle. The renderer composes the command; the manager only validates and applies the exact rendered bytes.
+### Runtime and provider commands
+
+Standalone JavaScript runtimes may bind `--node-executable <absolute-path>`. When supplied, the canonical service command is the exact Node executable followed by the runtime entry point and configuration argument. The Node executable must be a real executable regular file; the JavaScript entry point must be a real regular file but need not be executable. Omitting the option preserves the direct-executable contract.
+
+This avoids ambient `PATH` and shebang resolution without embedding Node in the standalone distribution or introducing a runtime-specific wrapper lifecycle. The renderer composes the command; the manager only validates and applies the exact rendered bytes.
+
+Provider adapters preserve the host environment but prepend the directory of the currently running Node executable to the child process path. This adapter launch guarantee is not service-manager inference: a configured Codex or Claude entrypoint using `#!/usr/bin/env node` must start identically from an interactive shell, systemd, or launchd, even when the manager supplies only a system path. The adapter does not guess another runtime, rewrite the configured provider executable, or publish environment values.
+
+### Targets and conflicts
 
 Per-user Hub targets are fixed:
 
 - `~/.config/systemd/user/lervo-hub.service`
 - `~/Library/LaunchAgents/com.lervo.hub.plist`
 
-[ADR-0202](0202-repository-node-fleet-identity-and-registry.md) replaces the global Node target with a required repository-node instance identity: `lervo-node-<instance>.service` or `com.lervo.node.<instance>`. Existing legacy global Node definitions are never automatically overwritten, stopped, or removed.
+[ADR-0202](0202-repository-node-fleet-identity-and-registry.md) replaces the global Node target with a required repository-node instance identity: `lervo-node-<instance>.service` or `com.lervo.node.<instance>`. Legacy global Node definitions are never automatically overwritten, stopped, or removed.
 
 Different existing bytes cause `service_state_conflict`; the command neither overwrites nor stops the service.
 
-Installation exclusively creates a mode-0600 target, reloads, enables, starts, and verifies normalized status. A newly activated service must remain operational across three observations separated by 500 milliseconds; one transient active response is insufficient. Removal permits at most six observations and requires three consecutive stopped observations before deleting the exact definition, preventing asynchronous manager teardown from being mistaken for failure or completion.
+### Installation, removal, and upgrades
 
-Identical, already-active bytes return unchanged. Failure for a new target compensates by stopping and disabling, then deletes only after an exact-byte recheck. Unverified application or compensation returns `service_apply_unknown` without retry, deletion, or a success claim.
+Installation exclusively creates a mode-0600 target, reloads, enables, starts, and verifies normalized status. A newly activated service must remain operational across three observations separated by 500 milliseconds; one transient active response is insufficient. Identical, already-active bytes return unchanged.
 
-Removal acts only when the target equals the canonical source. It stops and disables the service, verifies inactivity and bytes, then deletes the definition. Missing or differing definitions are never guessed. A transactional upgrade binds both exact predecessor and replacement definitions, accepts either a stably operational predecessor or its exact inactive installed form, and restores the predecessor's prior disposition if replacement activation fails. Runtime material uses `SIGHUP` only where the runtime explicitly supports reload.
+Failure for a new target compensates by stopping and disabling, then deletes only after an exact-byte recheck. Unverified application or compensation returns `service_apply_unknown` without retry, deletion, or a success claim.
 
-Fixed failures distinguish argument, authority, manager, source, CAS, conflict, and unknown external apply or removal errors. A missing, non-executable, or symlinked Node executable fails before any service-manager call. Output excludes manager streams, commands, definitions, secrets, paths, and causes. Absolute paths remain only in the owner-only service definition. Service status is an observation, not evidence of runtime readiness, command execution, or content use.
+Removal acts only when the target equals the canonical source. It stops and disables the service, verifies inactivity and bytes, then deletes the exact definition. It permits at most six observations and requires three consecutive stopped observations before deletion, preventing asynchronous manager teardown from being mistaken for failure or completion. Missing or differing definitions are never guessed.
+
+A transactional upgrade binds both exact predecessor and replacement definitions, accepts either a stably operational predecessor or its exact inactive installed form, and restores the predecessor's prior disposition if replacement activation fails. Runtime material uses `SIGHUP` only where the runtime explicitly supports reload.
+
+### Failures, privacy, and evidence
+
+Fixed failures distinguish argument, authority, manager, source, CAS, conflict, and unknown external apply or removal errors. A missing, non-executable, or symlinked Node executable fails before any service-manager call.
+
+Output excludes manager streams, commands, definitions, secrets, paths, and causes. Absolute paths remain only in the owner-only service definition. Service status is an observation, not evidence of runtime readiness, command execution, or content use.
 
 ## Consequences
 

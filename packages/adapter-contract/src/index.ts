@@ -8,3 +8,4 @@ export * from "./provider-adapter.js";
 export * from "./result-binding.js";
 export * from "./runtime-inspection.js";
 export * from "./process-observation.js";
+export * from "./provider-process-environment.js";

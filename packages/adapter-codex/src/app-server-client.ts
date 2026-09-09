@@ -1,6 +1,8 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createInterface } from "node:readline";
 
+import { createProviderProcessEnvironment } from "@lervo/adapter-contract";
+
 import { AsyncQueue } from "./async-queue.js";
 import {
   CodexAdapterError,
@@ -71,6 +73,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
   static async connect(options: StdioClientOptions): Promise<CodexStdioAppServerClient> {
     const child = spawn(options.executable, options.commandArguments ?? ["app-server", "--stdio"], {
       cwd: options.cwd,
+      env: createProviderProcessEnvironment(),
       stdio: ["pipe", "pipe", "pipe"],
     });
     const client = new CodexStdioAppServerClient(child, options.requestTimeoutMs);

@@ -1,8 +1,36 @@
+import { delimiter, dirname } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
-import { inspectProviderExecutable } from "../src/index.js";
+import { createProviderProcessEnvironment, inspectProviderExecutable } from "../src/index.js";
 
 describe("provider runtime inspection", () => {
+  it("prepends the current Node runtime to a provider process environment", () => {
+    const environment = createProviderProcessEnvironment(
+      { PATH: ["/usr/bin", dirname(process.execPath), "/bin"].join(delimiter), OMITTED: undefined },
+      process.execPath,
+    );
+
+    expect(environment.PATH?.split(delimiter)).toEqual([
+      dirname(process.execPath),
+      "/usr/bin",
+      "/bin",
+    ]);
+    expect(environment).not.toHaveProperty("OMITTED");
+  });
+
+  it("preserves the host path key spelling without emitting a duplicate", () => {
+    const environment = createProviderProcessEnvironment(
+      { Path: "/system/bin", PATH: "/ignored/duplicate", TOKEN: "preserved" },
+      "/runtime/bin/node",
+    );
+
+    expect(environment).toEqual({
+      Path: ["/runtime/bin", "/system/bin"].join(delimiter),
+      TOKEN: "preserved",
+    });
+  });
+
   it("reads a bounded version without inheriting credentials", async () => {
     const key = "LERVO_PROVIDER_PROBE_SECRET";
     const previous = process.env[key];

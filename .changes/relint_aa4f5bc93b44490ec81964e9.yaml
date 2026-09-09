@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_aa4f5bc93b44490ec81964e9"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Ensure managed Codex and Claude entrypoints can resolve the Lervo Node runtime under service managers."

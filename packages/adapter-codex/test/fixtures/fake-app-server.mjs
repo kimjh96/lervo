@@ -1,4 +1,12 @@
 import { createInterface } from "node:readline";
+import { delimiter, dirname } from "node:path";
+
+if (
+  process.argv.includes("--require-runtime-path") &&
+  !process.env.PATH?.split(delimiter).includes(dirname(process.execPath))
+) {
+  process.exit(5);
+}
 
 const lines = createInterface({ input: process.stdin, crlfDelay: Infinity });
 

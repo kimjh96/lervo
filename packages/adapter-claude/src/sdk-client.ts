@@ -5,6 +5,7 @@ import type {
   McpServerConfig,
   SdkPluginConfig,
 } from "@anthropic-ai/claude-agent-sdk";
+import { createProviderProcessEnvironment } from "@lervo/adapter-contract";
 
 import { AsyncQueue } from "./async-queue.js";
 import { createClaudeManagedWriteHooks } from "./sdk-managed-write-hooks.js";
@@ -104,6 +105,7 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
         options: {
           abortController,
           cwd: options.cwd,
+          env: createProviderProcessEnvironment(),
           ...(options.model === undefined ? {} : { model: options.model }),
           ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
           ...(options.executable === undefined
