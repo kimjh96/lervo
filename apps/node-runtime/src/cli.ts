@@ -18,6 +18,17 @@ export interface NodeRuntimeCliPorts extends NodeRuntimeOpenPorts {
   signals?: NodeRuntimeSignalSource;
 }
 
+function failureCauseSummary(error: Error): string {
+  const messages: string[] = [];
+  let current: unknown = error.cause;
+  while (current instanceof Error && messages.length < 4) {
+    const message = current.message.replaceAll(/[\r\n\0]+/gu, " ").trim();
+    if (message.length > 0) messages.push(message.slice(0, 512));
+    current = current.cause;
+  }
+  return messages.length === 0 ? "" : ` Cause: ${messages.join(" <- ")}`;
+}
+
 function configArgument(args: readonly string[]): { mode: "run" | "check"; path: string } {
   if (
     args.length !== 2 ||
@@ -49,6 +60,7 @@ export async function runNodeRuntimeCli(
     const managedRemoteCommands = createManagedProviderRemoteCommandPorts(config);
     const deployment = await openNodeRuntime(config, {
       ...ports,
+      runtimeConfigPath: path,
       ...(ports.remoteCommands !== undefined
         ? { remoteCommands: ports.remoteCommands }
         : managedRemoteCommands === undefined
@@ -81,7 +93,9 @@ export async function runNodeRuntimeCli(
         : new NodeRuntimeError("startup_failed", "Could not start Lervo Node.", {
             cause: error,
           });
-    ports.stderr(`Lervo Node error (${failure.code}): ${failure.message}\n`);
+    ports.stderr(
+      `Lervo Node error (${failure.code}): ${failure.message}${failureCauseSummary(failure)}\n`,
+    );
     return 1;
   }
 }

@@ -5,10 +5,14 @@ Lervo coordinates repository-backed project teams over shared infrastructure. Ea
 ```text
 human owner or board
   -> named central executive agent (CEO responsibility)
+     -> repository product owner (Lervo)
+        -> specialist hired agents
      -> project team (Shiflo)
-        -> team lead and specialist hired agents
+        -> repository product owner
+           -> specialist hired agents
      -> project team (Plen)
-        -> team lead and specialist hired agents
+        -> repository product owner
+           -> specialist hired agents
      -> new project teams
 
 shared control plane
@@ -20,5 +24,7 @@ shared control plane
 ```
 
 The organization contract covers [identity and deployment](agent-organization/identity-and-deployment.md), [reviewed agent context](agent-organization/reviewed-agent-context.md), and [coordination and authority](agent-organization/coordination-and-authority.md).
+
+The central executive and repository product owners are distinct durable agents. A product owner may hire and assign child agents only through an exact policy limited to its own repository-backed team, budget, delegation depth, and capability ancestry. Central coordination does not make the executive the Lervo repository product owner. Shared conversations do not widen participants' team authority.
 
 See [ADR-0386](../../decisions/coordination/conversations/0386-organization-teams-and-agent-identities.md), [ADR-0390](../../decisions/coordination/conversations/0390-project-reviewed-agent-context-and-headless-organization-control.md), [ADR-0393](../../decisions/coordination/conversations/0393-named-agent-identity-and-installed-organization-effects.md), and [ADR-0394](../../decisions/coordination/conversations/0394-webhook-backed-discord-agent-identities.md).

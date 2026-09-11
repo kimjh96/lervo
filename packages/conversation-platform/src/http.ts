@@ -21,6 +21,8 @@ export interface PlatformJsonMutationOptions extends PlatformJsonRequestOptions 
 
 export type PlatformJsonReadOptions = Omit<PlatformJsonRequestOptions, "body">;
 
+export type PlatformResourceDeleteOptions = Omit<PlatformJsonRequestOptions, "body">;
+
 export function assertPlatformHttpLimits(input: {
   maxResponseBytes?: number;
   requestTimeoutMs?: number;
@@ -176,4 +178,40 @@ export function postPlatformJson(options: PlatformJsonRequestOptions): Promise<u
 
 export function patchPlatformJson(options: PlatformJsonRequestOptions): Promise<unknown> {
   return mutatePlatformJson({ ...options, method: "PATCH" });
+}
+
+export async function deletePlatformResource(
+  options: PlatformResourceDeleteOptions,
+): Promise<void> {
+  const timeoutMs = options.requestTimeoutMs ?? DEFAULT_TIMEOUT_MS;
+  assertPlatformHttpLimits(options);
+  const url = platformApiUrl(
+    options.url,
+    options.allowInsecureHttpForTests,
+    options.allowQuery === true,
+  );
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await (options.fetch ?? globalThis.fetch)(url, {
+      method: "DELETE",
+      headers: { accept: "application/json", ...options.headers },
+      redirect: "error",
+      signal: controller.signal,
+    });
+    if (response.status !== 204 && response.status !== 404) {
+      await response.body?.cancel();
+      throw new PlatformDeliveryRejectedError();
+    }
+    await response.body?.cancel();
+  } catch (error) {
+    if (error instanceof PlatformDeliveryRejectedError) throw error;
+    throw new ConversationPlatformError(
+      "platform_delivery_failed",
+      "The platform resource deletion could not be verified safely.",
+      { cause: error instanceof Error ? error : undefined },
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
 }

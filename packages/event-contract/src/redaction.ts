@@ -4,6 +4,7 @@ import {
   type AgentContextPromotedEventPayload,
   type AssignmentCompletionPreparedEventPayload,
   type AssignmentCompletionReconciledEventPayload,
+  type ConversationRepositoryWorkCompletedEventPayload,
   type DeliberationArtifactRecordedEventPayload,
   type EventType,
   type KnowledgeCandidateCreatedEventPayload,
@@ -26,6 +27,27 @@ export const eventPayloadAllowlists = {
   "run.resolved": ["role", "risk", "policyVersion"],
   "run.completed": ["resultDigest", "artifactIds", "verificationStatus"],
   "run.failed": ["failureCode", "retryable", "diagnosticDigest"],
+  "conversation.repository_work.completed": [
+    "sourceConversationEventId",
+    "workerAgentId",
+    "providerSessionDigest",
+    "requestedModel",
+    "requestedReasoningEffort",
+    "requestContentHash",
+    "resultContentHash",
+    "resultByteCount",
+    "repositoryRevisionBefore",
+    "repositoryRevisionAfter",
+    "changedPaths",
+    "changedPathCount",
+    "workstreamId",
+    "workstreamRevision",
+    "workstreamSnapshotHash",
+    "knowledgeDisposition",
+    "replicaDisposition",
+    "verificationStatus",
+    "completedAt",
+  ],
   "context.recommended": [
     "recommendationId",
     "batchId",
@@ -1119,6 +1141,12 @@ export function sanitizeEventPayload(
     !assignmentCompletionPreparedCoordinateMatches(
       sanitized as unknown as AssignmentCompletionPreparedEventPayload,
     );
+  const invalidConversationRepositoryWorkCoordinate =
+    !invalidSchema &&
+    type === "conversation.repository_work.completed" &&
+    !conversationRepositoryWorkCoordinateMatches(
+      sanitized as unknown as ConversationRepositoryWorkCompletedEventPayload,
+    );
   const invalidCompletionReconciledCoordinate =
     !invalidSchema &&
     type === "assignment.completion.reconciled" &&
@@ -1151,6 +1179,7 @@ export function sanitizeEventPayload(
     invalidVerificationCoordinate ||
     invalidRunCompletedCoordinate ||
     invalidCompletionPreparedCoordinate ||
+    invalidConversationRepositoryWorkCoordinate ||
     invalidCompletionReconciledCoordinate ||
     invalidWorkstreamCoordinate ||
     invalidResourceUsageCoordinate ||
@@ -1167,6 +1196,7 @@ export function sanitizeEventPayload(
 }
 
 const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
+  "conversation.repository_work.completed": "conversationRepositoryWorkCompletedEventPayload",
   "agent.context.promoted": "agentContextPromotedEventPayload",
   "agent.context.handoff.recorded": "agentContextHandoffRecordedEventPayload",
   "agent.liveness.observed": "agentLivenessObservedEventPayload",
@@ -1219,6 +1249,16 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "resource.usage.recorded": "resourceUsageRecordedEventPayload",
   "execution.stages.observed": "executionStagesObservedEventPayload",
 };
+
+function conversationRepositoryWorkCoordinateMatches(
+  payload: ConversationRepositoryWorkCompletedEventPayload,
+): boolean {
+  if (payload.changedPathCount < payload.changedPaths.length) return false;
+  return payload.changedPathCount === 0
+    ? payload.changedPaths.length === 0 &&
+        payload.repositoryRevisionBefore === payload.repositoryRevisionAfter
+    : payload.repositoryRevisionBefore !== payload.repositoryRevisionAfter;
+}
 
 function deliberationArtifactCoordinateMatches(
   payload: DeliberationArtifactRecordedEventPayload,

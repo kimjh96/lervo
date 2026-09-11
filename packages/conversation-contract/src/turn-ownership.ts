@@ -7,6 +7,7 @@ import { digest } from "./shared.js";
 export interface ConversationTurnCandidate {
   participantId: string;
   roleId: string;
+  unaddressedPriority?: number;
 }
 
 export interface ConversationTurnOwnership {
@@ -23,7 +24,11 @@ function assertCandidates(candidates: readonly ConversationTurnCandidate[]): voi
       (candidate) =>
         !/^ptc_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(candidate.participantId) ||
         !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(candidate.roleId) ||
-        candidate.roleId.length > 100,
+        candidate.roleId.length > 100 ||
+        (candidate.unaddressedPriority !== undefined &&
+          (!Number.isSafeInteger(candidate.unaddressedPriority) ||
+            candidate.unaddressedPriority < 0 ||
+            candidate.unaddressedPriority > 100)),
     )
   ) {
     throw new ConversationContractError(
@@ -37,13 +42,14 @@ function selectWinner(
   event: ConversationInboundEvent,
   scope: string,
   candidates: readonly ConversationTurnCandidate[],
+  stableAcrossTurns = false,
 ): ConversationTurnCandidate {
   return [...candidates].sort((left, right) => {
     const leftScore = digest(
-      `${event.sourceEventKeyHash}\0${event.target.conversationId}\0${scope}\0${left.participantId}`,
+      `${stableAcrossTurns ? "stable" : event.sourceEventKeyHash}\0${event.target.conversationId}\0${scope}\0${left.participantId}`,
     );
     const rightScore = digest(
-      `${event.sourceEventKeyHash}\0${event.target.conversationId}\0${scope}\0${right.participantId}`,
+      `${stableAcrossTurns ? "stable" : event.sourceEventKeyHash}\0${event.target.conversationId}\0${scope}\0${right.participantId}`,
     );
     return (
       rightScore.localeCompare(leftScore) || left.participantId.localeCompare(right.participantId)
@@ -95,9 +101,15 @@ export function resolveConversationTurnOwnership(input: {
     };
   }
 
+  const maximumPriority = Math.max(
+    ...candidates.map((candidate) => candidate.unaddressedPriority ?? 0),
+  );
+  const preferred = candidates.filter(
+    (candidate) => (candidate.unaddressedPriority ?? 0) === maximumPriority,
+  );
   return {
     basis: "unaddressed",
     candidateParticipantIds: candidates.map((candidate) => candidate.participantId),
-    ownerParticipantIds: [selectWinner(input.event, "unaddressed", candidates).participantId],
+    ownerParticipantIds: [selectWinner(input.event, "unaddressed", preferred, true).participantId],
   };
 }

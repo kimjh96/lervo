@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { applyInitPlan, createInitPlan } from "@lervo/project";
+import type { SkillManifest } from "@lervo/schemas";
+import { hashSkillPackage } from "@lervo/skills";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -918,6 +920,115 @@ describe("document content normalization", () => {
       requiredSkillName: "deploy-check",
     });
     expect(candidate.items[0]?.outputs[0]?.content).toContain("name: deploy-check");
+  });
+
+  it("updates a project skill manifest atomically with normalized package documents", async () => {
+    const root = await repository();
+    const skillRoot = resolve(root, ".agents/skills/deploy-check");
+    await mkdir(resolve(skillRoot, "references"), { recursive: true });
+    await writeFile(
+      resolve(skillRoot, "SKILL.md"),
+      "---\nname: deploy-check\ndescription: Check deployment.\n---\n# Check\n\nInspect status.\n",
+    );
+    await writeFile(resolve(skillRoot, "references/status.md"), "# Status\n\nRead health.\n");
+    const manifest: SkillManifest = {
+      schemaVersion: 1,
+      skillId: "deploy-check",
+      version: "1.0.0",
+      contentHash: await hashSkillPackage(skillRoot),
+      source: {
+        kind: "project",
+        uri: ".agents/skills/deploy-check",
+        publisher: { id: "fixture", name: "Fixture" },
+      },
+      supportedRoles: ["developer"],
+      compatibility: {
+        providers: { mode: "any" },
+        minimumRuntimeVersion: "0.1.0",
+        platforms: [process.platform as "darwin" | "linux" | "win32"],
+        requiredTools: [],
+        unknownIsCompatible: false,
+      },
+      requiredCapabilities: ["filesystem.read"],
+      contracts: {
+        inputSchemaRef: "lervo-schema://skill/input/v1",
+        outputSchemaRef: "lervo-schema://skill/output/v1",
+      },
+      trust: { level: "untrusted", signatureStatus: "unsigned" },
+      enabledScope: { kind: "user" },
+      pinned: false,
+    };
+    await writeFile(
+      resolve(skillRoot, "lervo-skill.json"),
+      `${JSON.stringify(manifest, null, 2)}\n`,
+    );
+    const normalizer: RepositoryDocumentNormalizationCompiler = {
+      descriptor: compiler([]).descriptor,
+      async normalize(envelope) {
+        return {
+          schemaVersion: 1,
+          documents: envelope.documents.map((document) => ({
+            sourcePath: document.path,
+            outputs: [
+              {
+                path: document.path,
+                content: document.path.endsWith("SKILL.md")
+                  ? "---\nname: deploy-check\ndescription: Check a deployment safely.\n---\n# Deployment check\n\nInspect status and report evidence.\n"
+                  : "# Deployment status\n\nRead the bounded health evidence.\n",
+                coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
+              },
+            ],
+          })),
+          telemetry: {
+            filesystemReads: 0,
+            filesystemWrites: 0,
+            shellProcesses: 0,
+            networkRequests: 0,
+            externalActions: 0,
+            toolCalls: 0,
+            complete: true,
+          },
+        };
+      },
+    };
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: normalizer,
+      signal: new AbortController().signal,
+    });
+    const plan = await createDocumentNormalizationPlan({
+      repositoryRoot: root,
+      candidate,
+      now: new Date("2026-09-04T00:00:00.000Z"),
+    });
+
+    expect(
+      plan.operations.find(
+        (operation) => operation.path === ".agents/skills/deploy-check/lervo-skill.json",
+      ),
+    ).toMatchObject({ action: "update", mediaType: "application/json" });
+    await applyDocumentNormalizationPlan({
+      plan,
+      candidate,
+      approvals: plan.items.map((item) => ({
+        operationId: item.operationId,
+        approvalHash: item.approvalHash,
+      })),
+      now: new Date("2026-09-04T00:00:00.000Z"),
+      recordApplied: () => undefined,
+    });
+
+    const updatedManifest = JSON.parse(
+      await readFile(resolve(skillRoot, "lervo-skill.json"), "utf8"),
+    ) as SkillManifest;
+    expect(updatedManifest.contentHash).toBe(await hashSkillPackage(skillRoot));
+    const lifecycle = await inspectConfiguredDocumentNormalization({ repositoryRoot: root });
+    expect(
+      lifecycle.records.find(
+        (record) => record.outputPaths[0] === ".agents/skills/deploy-check/SKILL.md",
+      )?.status,
+    ).toBe("current");
+    expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
   });
 
   it("keeps agent routing outside the public README while rewriting internal non-portable wiki links", async () => {

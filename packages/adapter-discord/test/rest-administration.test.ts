@@ -197,6 +197,90 @@ describe("Discord REST administration", () => {
     });
   });
 
+  it("updates an incoming webhook name only inside the allowlisted channel", async () => {
+    const fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      expect(String(_url)).toBe("http://discord.test/api/v10/webhooks/623456789012345678");
+      expect(init?.method).toBe("PATCH");
+      expect(JSON.parse(String(init?.body))).toEqual({ name: "Sora" });
+      return new Response(
+        JSON.stringify({
+          id: "623456789012345678",
+          guild_id: "123456789012345678",
+          channel_id: "223456789012345678",
+          name: "Sora",
+          type: 1,
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    });
+    const administration = new DiscordRestAdministration({
+      applicationId: "999999999999999999",
+      botToken: `discord.${"t".repeat(40)}`,
+      allowedGuildIds: ["123456789012345678"],
+      allowedChannelIds: ["223456789012345678"],
+      apiBaseUrl: "http://discord.test/api/v10",
+      allowInsecureHttpForTests: true,
+      fetch: fetch as typeof globalThis.fetch,
+      now: () => new Date("2026-09-11T00:00:00.000Z"),
+    });
+
+    await expect(
+      administration.updateIncomingWebhook({
+        guildId: "123456789012345678",
+        channelId: "223456789012345678",
+        webhookId: "623456789012345678",
+        name: "Sora",
+      }),
+    ).resolves.toEqual({
+      guildId: "123456789012345678",
+      channelId: "223456789012345678",
+      webhookId: "623456789012345678",
+      name: "Sora",
+      observedAt: "2026-09-11T00:00:00.000Z",
+    });
+  });
+
+  it("deletes an incoming webhook idempotently only inside the allowlisted channel", async () => {
+    let status = 204;
+    const fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      expect(String(_url)).toBe("http://discord.test/api/v10/webhooks/623456789012345678");
+      expect(init?.method).toBe("DELETE");
+      const response = new Response(null, { status });
+      status = 404;
+      return response;
+    });
+    const administration = new DiscordRestAdministration({
+      applicationId: "999999999999999999",
+      botToken: `discord.${"t".repeat(40)}`,
+      allowedGuildIds: ["123456789012345678"],
+      allowedChannelIds: ["223456789012345678"],
+      apiBaseUrl: "http://discord.test/api/v10",
+      allowInsecureHttpForTests: true,
+      fetch: fetch as typeof globalThis.fetch,
+      now: () => new Date("2026-09-11T00:00:03.000Z"),
+    });
+
+    await expect(
+      administration.deleteIncomingWebhook({
+        guildId: "123456789012345678",
+        channelId: "223456789012345678",
+        webhookId: "623456789012345678",
+      }),
+    ).resolves.toEqual({
+      guildId: "123456789012345678",
+      channelId: "223456789012345678",
+      webhookId: "623456789012345678",
+      observedAt: "2026-09-11T00:00:03.000Z",
+    });
+    await expect(
+      administration.deleteIncomingWebhook({
+        guildId: "123456789012345678",
+        channelId: "223456789012345678",
+        webhookId: "623456789012345678",
+      }),
+    ).resolves.toMatchObject({ webhookId: "623456789012345678" });
+  });
+
   it("prepares a webhook deployment through the executive adapter without returning its token", async () => {
     const fetch = vi.fn(async () =>
       Promise.resolve(

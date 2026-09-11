@@ -12,6 +12,18 @@ const systemSchedule: ConversationInteractionRetrySchedule = {
   },
 };
 
+export function reportConversationInteractionRetryFailure(
+  error: unknown,
+  onError?: (error: Error) => void,
+): void {
+  const failure = error instanceof Error ? error : new Error("The interaction retry cycle failed.");
+  if (onError === undefined) {
+    process.stderr.write(`Lervo Discord interaction retry failed: ${failure.message}\n`);
+  } else {
+    onError(failure);
+  }
+}
+
 export class ConversationInteractionRetryLoop {
   private handle: unknown;
   private stopped = true;
@@ -20,7 +32,7 @@ export class ConversationInteractionRetryLoop {
   constructor(
     private readonly options: {
       runCycle(): Promise<void>;
-      onFailure(): void;
+      onFailure(error: unknown): void;
       intervalMs?: number;
       schedule?: ConversationInteractionRetrySchedule;
     },
@@ -61,10 +73,8 @@ export class ConversationInteractionRetryLoop {
   private async run(): Promise<void> {
     try {
       await this.options.runCycle();
-    } catch {
-      this.stopped = true;
-      this.options.onFailure();
-      return;
+    } catch (error) {
+      this.options.onFailure(error);
     }
     if (!this.stopped) this.schedule(this.options.intervalMs ?? 2_000);
   }

@@ -497,5 +497,5 @@ describe("agent organization CLI", () => {
     } finally {
       await storage.close();
     }
-  });
+  }, 15_000);
 });

@@ -119,6 +119,7 @@ export interface RepositorySupplementalSource {
 
 export interface RepositoryKnowledgeScanOptions {
   supplementalSources?: readonly RepositorySupplementalSource[];
+  sourceUnitFailureMode?: "fail" | "file_only";
 }
 
 export interface RepositorySourceUnit {

@@ -99,6 +99,10 @@ function alreadyCanonical(path: string, taxonomy: DecisionTaxonomy): boolean {
 
 function migrationCandidate(path: string, taxonomy: DecisionTaxonomy): boolean {
   if (!/\.mdx?$/iu.test(path)) return false;
+  // Reviewed normalization creates bounded sibling topic families beside a
+  // package README. They inherit that local entrypoint's placement instead of
+  // becoming unrelated legacy documents on the next layout pass.
+  if (/(?:^|\/)README\/.*\.mdx?$/iu.test(path)) return false;
   if (
     !path.includes("/") &&
     (basename(path) === "README.md" || CONVENTIONAL_ENTRYPOINTS.has(basename(path)))

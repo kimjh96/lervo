@@ -53,6 +53,15 @@ function validEffect(value: unknown): value is ConversationIntentResolution["eff
       /^[a-z0-9][a-z0-9_-]{0,99}$/u.test(effect.name)
     );
   }
+  if (effect.kind === "workforce_agent_hire") {
+    return (
+      Object.keys(effect).length === 2 &&
+      typeof effect.specification === "string" &&
+      [...effect.specification].length >= 1 &&
+      [...effect.specification].length <= 512 &&
+      !effect.specification.includes("\0")
+    );
+  }
   return (
     effect.kind === "discord_public_thread_create" &&
     Object.keys(effect).length === 2 &&

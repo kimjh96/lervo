@@ -5,7 +5,7 @@
 
 ## Context
 
-Discord remote continuation had application composition but no installed service owner. A second daemon would duplicate the per-repository configuration, Hub credential rotation, shutdown, readiness, restart, and service-manager authority already owned by `lervo-node`.
+Discord remote continuation had application composition but no installed service owner. A second daemon would duplicate the per-repository configuration, Hub credential rotation, shutdown, readiness, restart, and service-manager authority owned by `lervo-node`.
 
 The fixed queue acknowledgement is code-owned status text. Provider-model review would add cost and availability coupling and falsely imply that every fixed reply needs semantic generation.
 
@@ -31,7 +31,9 @@ Unknown fields, duplicate bindings, unsupported participant roles, out-of-scope 
 
 Node health adds an optional `conversation` component with states `disabled`, `pending`, `ready`, and `unavailable`. `ready` means the configured Gateway emitted authenticated READY or RESUMED state. `unavailable` contains only a bounded failure code.
 
-Authentication rejection, invalid runtime configuration, or authenticated dispatch failure resolves the conversation supervisor failure, closes intake before repository storage, and terminates Node with `conversation_runtime_failed`. The existing user service manager may then apply its bounded restart policy.
+Authentication rejection or invalid runtime configuration resolves the conversation supervisor failure, closes intake before repository storage, and terminates Node with `conversation_runtime_failed`. An authenticated dispatch failure is scoped to that message and reported through the interaction failure and retry contract; it does not terminate unrelated bot integrations or active provider work. The existing user service manager may apply its bounded restart policy only to terminal supervisor failures.
+
+After self-message suppression, authenticated Discord messages without textual content are checkpointed and ignored. Embeds, attachments, joins, and other valid empty-content messages cannot terminate the Gateway. Malformed non-string or oversized content remains a dispatch failure.
 
 ### Queues and typing activity
 
@@ -41,7 +43,7 @@ When participation chooses a response, the Discord REST activity port starts a b
 
 Accepted interactions are durable before response work. Generation and publication failures remain pending with an availability time. Active work renews its inbox lease; the managed-provider deployment starts with a five-minute bounded lease to prevent ordinary model latency from causing concurrent duplicate execution.
 
-A conversation-owned worker retries one ready interaction at a time, including an expired lease after process interruption, without another platform event. Selection binds the exact current integration, participation policy, and role so historical pending records cannot gain new policy meaning or block current work. Retry provider work stays outside the Gateway control queue.
+A conversation-owned worker retries one ready interaction at a time without another platform event, including an expired lease after process interruption. Selection binds the exact current integration, participation policy, and role so historical pending records cannot gain new policy meaning or block current work. Retry provider work stays outside the Gateway control queue.
 
 Durable-inbox inspection or advancement failure reports the privacy-bounded `interaction_retry_failed` health code and terminates the supervised Node; provider and message content are excluded.
 
@@ -61,7 +63,7 @@ The writing gate requires a separate model or human evaluator only when the cont
 
 The installed Node service owns Discord-first remote-continuation intake without creating a competing daemon or task authority. Existing Node installations remain compatible because the single `discordConversation` form, natural-language routing, and health component remain optional.
 
-Publishing provider results back to Discord and transferring Git source bytes from an offline Mac remain separate outcomes outside this decision.
+ADR-0383 implements publishing exact-path managed-provider results back to Discord. ADR-0395 separately implements resumable native repository work. This decision's fixed acknowledgement applies only to remote continuation actually accepted by its authority path.
 
 ## References
 

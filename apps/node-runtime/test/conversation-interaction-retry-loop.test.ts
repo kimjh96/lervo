@@ -51,7 +51,7 @@ describe("conversation interaction retry loop", () => {
     expect(schedule.pending).toEqual([]);
   });
 
-  it("stops and reports one bounded failure when a cycle throws", async () => {
+  it("reports an isolated cycle failure and keeps retrying", async () => {
     const schedule = new RetrySchedule();
     const onFailure = vi.fn();
     const loop = new ConversationInteractionRetryLoop({
@@ -66,6 +66,13 @@ describe("conversation interaction retry loop", () => {
     schedule.runNext();
     await settled();
     expect(onFailure).toHaveBeenCalledOnce();
+    expect(schedule.pending[0]?.delayMs).toBe(2_000);
+
+    schedule.runNext();
+    await settled();
+    expect(onFailure).toHaveBeenCalledTimes(2);
+    expect(schedule.pending[0]?.delayMs).toBe(2_000);
+    await loop.stop();
     expect(schedule.pending).toEqual([]);
   });
 });

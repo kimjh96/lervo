@@ -1050,6 +1050,29 @@ describe("repository knowledge migration", () => {
     await expect(access(resolve(root, "private-fixture-value"))).rejects.toThrow();
   });
 
+  it("keeps an incomplete TypeScript file available as a file-only query unit", async () => {
+    const root = await repository();
+    await initialize(root);
+    await writeFile(resolve(root, "unfinished.ts"), "const a =\n");
+
+    const scan = await scanRepositoryKnowledge({
+      repositoryRoot: root,
+      projectId: "prj_knowledgefixture",
+      policy: defaultRepositoryKnowledgePolicy,
+      sourceUnitFailureMode: "file_only",
+    });
+
+    expect(scan.sources).toContainEqual(
+      expect.objectContaining({ path: "unfinished.ts", status: "included" }),
+    );
+    expect(scan.units).toContainEqual(
+      expect.objectContaining({ path: "unfinished.ts", unitKind: "file", locator: "file:/" }),
+    );
+    expect(scan.units).not.toContainEqual(
+      expect.objectContaining({ path: "unfinished.ts", unitKind: "code_symbol" }),
+    );
+  });
+
   it("bounds JSON and YAML key count and nesting depth", () => {
     const tooManyJsonKeys = `{${Array.from({ length: 16_385 }, (_, index) => `"key_${index}":true`).join(",")}}`;
     expect(() => extractJsonKeySpans(tooManyJsonKeys)).toThrowError(

@@ -202,7 +202,7 @@ describe("durable native chat interaction", () => {
     const stopActivity = vi.fn();
     const startActivity = vi.fn(() => ({ stop: stopActivity }));
     const relevance = vi.fn(async () => {
-      expect(startActivity).not.toHaveBeenCalled();
+      expect(startActivity).toHaveBeenCalledTimes(1);
       return "relevant" as const;
     });
     const responder = vi.fn(async () => responseCandidate());
@@ -276,6 +276,11 @@ describe("durable native chat interaction", () => {
         store: reopened,
         workerId: "delivery-worker-2",
         clock: () => new Date("2026-08-20T00:00:04.000Z"),
+        onDelivered: vi.fn(async ({ outbound, receipt }) => {
+          expect(outbound.sourceEventId).toBe(event.eventId);
+          expect(receipt.outboundId).toBe(outbound.outboundId);
+          expect(reopened.auditIntegrity()).toMatchObject({ outboxCount: 1 });
+        }),
       }),
     ).resolves.toEqual({
       status: "processed",

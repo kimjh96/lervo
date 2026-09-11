@@ -104,6 +104,25 @@ describe("Node runtime configuration", () => {
     );
   });
 
+  it("parses fail-closed repository replica readiness bounds", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, await availablePort());
+    const configured = structuredClone(fixture.value);
+    configured.repositoryReplica = {
+      required: true,
+      maximumStalenessMs: 15_000,
+      waitTimeoutMs: 30_000,
+      pollIntervalMs: 500,
+    };
+    expect(parseNodeRuntimeConfig(configured, root)).toMatchObject({
+      repositoryReplica: configured.repositoryReplica,
+    });
+    (configured.repositoryReplica as Record<string, unknown>).required = false;
+    expect(() => parseNodeRuntimeConfig(configured, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
+  });
+
   it("parses bounded Discord conversation scope and owner-only credential paths", async () => {
     const root = await temporaryRoot();
     const fixture = await nodeRuntimeFixture(root, await availablePort());
@@ -267,6 +286,21 @@ describe("Node runtime configuration", () => {
     expect(
       parseNodeRuntimeConfig(selectiveHumanParticipation, root).discordConversation?.policy,
     ).toMatchObject({ unaddressedHumanMessages: "evaluate" });
+    const workforceHiring = structuredClone(configured);
+    const workforceConversation = workforceHiring.discordConversation as Record<string, unknown>;
+    workforceConversation.agentId = "agt_0123456789abcdef01234567";
+    workforceConversation.administration = {
+      allowedActions: ["workforce.agent.hire"],
+    };
+    expect(
+      parseNodeRuntimeConfig(workforceHiring, root).discordConversation?.administration,
+    ).toEqual({ allowedActions: ["workforce.agent.hire"] });
+    const unboundWorkforceHiring = structuredClone(workforceHiring);
+    (unboundWorkforceHiring.discordConversation as Record<string, unknown>).organization =
+      undefined;
+    expect(() => parseNodeRuntimeConfig(unboundWorkforceHiring, root)).toThrow(
+      "requires an exact hired-agent and organization binding",
+    );
     const trustedAgentInitiator = structuredClone(configured);
     (
       trustedAgentInitiator.discordConversation as {

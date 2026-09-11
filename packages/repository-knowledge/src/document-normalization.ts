@@ -5,6 +5,7 @@ import { performance } from "node:perf_hooks";
 
 import { parse, stringify } from "yaml";
 import { loadDecisionTaxonomy, type DecisionTaxonomy } from "@lervo/project";
+import { hashSkillPackageProjection } from "@lervo/skills";
 
 import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
 import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
@@ -53,6 +54,7 @@ const MAX_OUTPUT_DOCUMENTS = 12;
 const MAX_OUTPUT_BYTES = 32 * 1024;
 const MAX_CANDIDATE_BYTES = 16 * 1024 * 1024;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
+const SKILL_MANIFEST_NAMES = new Set(["lervo-skill.json", "lervo-capability.json"]);
 const DOCUMENT_NORMALIZATION_PROFILES = new Set<DocumentNormalizationProfile>([
   "human_readme",
   "agent_instruction",
@@ -328,6 +330,30 @@ function normalizationProfile(source: RepositorySource): DocumentNormalizationPr
   )
     return "repository_document";
   return null;
+}
+
+function portableSkillRoot(path: string): string | null {
+  const match = /^(.*\.agents\/skills\/[^/]+)\//u.exec(path);
+  return match?.[1] ?? null;
+}
+
+function portableSkillResourceBindings(
+  scan: RepositoryKnowledgeScan,
+  sourcePath: string,
+): Array<{ path: string; contentHash: string }> {
+  const skillRoot = portableSkillRoot(sourcePath);
+  if (skillRoot === null) return [];
+  return scan.sources
+    .filter(
+      (source) =>
+        source.path.startsWith(`${skillRoot}/`) &&
+        source.path !== sourcePath &&
+        !SKILL_MANIFEST_NAMES.has(basename(source.path)) &&
+        source.status === "included" &&
+        source.contentHash !== null,
+    )
+    .map((source) => ({ path: source.path, contentHash: source.contentHash! }))
+    .sort((left, right) => left.path.localeCompare(right.path));
 }
 
 function frontmatterName(content: string): string | null {
@@ -1211,20 +1237,10 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
       invalidCandidate(
         "source-section coverage identities do not match the current repository inventory",
       );
-    const skillRoot = item.profile === "portable_skill" ? `${dirname(item.sourcePath)}/` : null;
     const resourceBindings =
-      skillRoot === null
-        ? []
-        : input.scan.sources
-            .filter(
-              (source) =>
-                source.path.startsWith(skillRoot) &&
-                source.path !== item.sourcePath &&
-                source.status === "included" &&
-                source.contentHash !== null,
-            )
-            .map((source) => ({ path: source.path, contentHash: source.contentHash! }))
-            .sort((left, right) => left.path.localeCompare(right.path));
+      item.profile === "portable_skill"
+        ? portableSkillResourceBindings(input.scan, item.sourcePath)
+        : [];
     if (canonicalJson(resourceBindings) !== canonicalJson(item.resourceBindings))
       invalidCandidate("portable skill resources do not match the current repository inventory");
 
@@ -1489,21 +1505,10 @@ export async function compileDocumentNormalizationCandidateObserved(
       response.documents.map((document) => {
         const source = sourceByPath.get(document.sourcePath)!;
         const sourceUnitVersionIds = source.units.map((unit) => unit.unitVersionId).sort();
-        const skillRoot =
-          source.profile === "portable_skill" ? `${dirname(source.source.path)}/` : null;
         const resourceBindings =
-          skillRoot === null
-            ? []
-            : input.scan.sources
-                .filter(
-                  (item) =>
-                    item.path.startsWith(skillRoot) &&
-                    item.path !== source.source.path &&
-                    item.status === "included" &&
-                    item.contentHash !== null,
-                )
-                .map((item) => ({ path: item.path, contentHash: item.contentHash! }))
-                .sort((left, right) => left.path.localeCompare(right.path));
+          source.profile === "portable_skill"
+            ? portableSkillResourceBindings(input.scan, source.source.path)
+            : [];
         const outputs = document.outputs
           .map((output) => ({
             path: output.path,
@@ -1624,7 +1629,7 @@ function normalizationRecord(input: {
     profile: input.item.profile,
     compiler: input.candidate.compiler,
     sourceUnitVersionIds: input.item.sourceUnitVersionIds,
-    resourceBindings: input.item.resourceBindings,
+    resourceBindings: projectedNormalizationResourceBindings(input),
     byteOwnership: { owner: "reviewer", rewritePolicy: "reviewed_exact" },
     outputs: input.item.outputs.map((output) => ({
       path: output.path,
@@ -1641,6 +1646,115 @@ function normalizationRecord(input: {
     ),
     content: stringify(record, { sortMapEntries: true }),
   };
+}
+
+function projectedNormalizationResourceBindings(input: {
+  candidate: DocumentNormalizationCandidate;
+  item: DocumentNormalizationCandidateItem;
+}): Array<{ path: string; contentHash: string }> {
+  if (input.item.profile !== "portable_skill") return input.item.resourceBindings;
+  const skillRoot = portableSkillRoot(input.item.sourcePath);
+  if (skillRoot === null) return input.item.resourceBindings;
+  const projected = new Map(
+    input.item.resourceBindings.map((resource) => [resource.path, resource.contentHash]),
+  );
+  for (const item of input.candidate.items) {
+    for (const output of item.outputs) {
+      if (
+        output.path.startsWith(`${skillRoot}/`) &&
+        output.path !== input.item.sourcePath &&
+        !SKILL_MANIFEST_NAMES.has(basename(output.path))
+      ) {
+        projected.set(output.path, output.contentHash);
+      }
+    }
+  }
+  return [...projected]
+    .map(([path, contentHash]) => ({ path, contentHash }))
+    .sort((left, right) => left.path.localeCompare(right.path));
+}
+
+function rewrittenSkillManifest(content: string, contentHash: string): string {
+  const parsed = JSON.parse(content) as { contentHash?: unknown };
+  if (typeof parsed.contentHash !== "string" || !HASH.test(parsed.contentHash)) {
+    throw new RepositoryKnowledgeError(
+      "knowledge_reconciliation_conflict",
+      "A project skill manifest does not expose the expected content hash binding.",
+    );
+  }
+  let replacements = 0;
+  const rewritten = content.replace(
+    /("contentHash"\s*:\s*")sha256:[a-f0-9]{64}(")/gu,
+    (_match, prefix: string, suffix: string) => {
+      replacements += 1;
+      return `${prefix}${contentHash}${suffix}`;
+    },
+  );
+  if (replacements !== 1) {
+    throw new RepositoryKnowledgeError(
+      "knowledge_reconciliation_conflict",
+      "A project skill manifest content hash cannot be updated deterministically.",
+    );
+  }
+  return rewritten;
+}
+
+async function projectedSkillManifestOperations(input: {
+  repositoryRoot: string;
+  scan: RepositoryKnowledgeScan;
+  candidate: DocumentNormalizationCandidate;
+}): Promise<DurableKnowledgeUserFileOperation[]> {
+  const roots = new Set(
+    input.candidate.items
+      .map((item) => portableSkillRoot(item.sourcePath))
+      .filter((root): root is string => root !== null),
+  );
+  const operations: DurableKnowledgeUserFileOperation[] = [];
+  for (const skillRoot of [...roots].sort()) {
+    const manifestSources = input.scan.sources.filter(
+      (source) =>
+        source.path.startsWith(`${skillRoot}/`) &&
+        SKILL_MANIFEST_NAMES.has(basename(source.path)) &&
+        source.status === "included" &&
+        source.content !== undefined &&
+        source.contentHash !== null,
+    );
+    if (!manifestSources.some((source) => basename(source.path) === "lervo-skill.json")) continue;
+    const overrides = new Map<string, Uint8Array>();
+    for (const item of input.candidate.items) {
+      for (const output of item.outputs) {
+        if (output.path.startsWith(`${skillRoot}/`)) {
+          overrides.set(output.path.slice(skillRoot.length + 1), Buffer.from(output.content));
+        }
+      }
+    }
+    const directory = resolve(input.repositoryRoot, skillRoot);
+    const firstHash = await hashSkillPackageProjection(directory, overrides);
+    const secondHash = await hashSkillPackageProjection(directory, overrides);
+    if (firstHash !== secondHash) {
+      throw new RepositoryKnowledgeError(
+        "knowledge_reconciliation_conflict",
+        "A project skill package changed while its normalized projection was prepared.",
+      );
+    }
+    for (const source of manifestSources.sort((left, right) =>
+      left.path.localeCompare(right.path),
+    )) {
+      const content = rewrittenSkillManifest(source.content!, firstHash);
+      const desiredHash = sha256(content);
+      if (desiredHash === source.contentHash) continue;
+      operations.push({
+        path: source.path,
+        action: "update",
+        ownership: "user",
+        mediaType: "application/json",
+        content,
+        expectedCurrentHash: source.contentHash!,
+        desiredHash,
+      });
+    }
+  }
+  return operations;
 }
 
 async function hashAt(path: string): Promise<string | null> {
@@ -2220,6 +2334,12 @@ export async function createDocumentNormalizationPlan(input: {
     });
     return outputs;
   });
+  const skillManifestOperations = await projectedSkillManifestOperations({
+    repositoryRoot: root,
+    scan,
+    candidate: input.candidate,
+  });
+  operations.push(...skillManifestOperations);
   operations.push(...obsoleteRecords);
   const materials = {
     projectId: scan.projectId,
@@ -2232,6 +2352,11 @@ export async function createDocumentNormalizationPlan(input: {
     obsoleteRecords: obsoleteRecords.map((operation) => ({
       path: operation.path,
       expectedCurrentHash: operation.expectedCurrentHash,
+    })),
+    skillManifestUpdates: skillManifestOperations.map((operation) => ({
+      path: operation.path,
+      expectedCurrentHash: operation.expectedCurrentHash,
+      desiredHash: operation.desiredHash,
     })),
     blockers,
   };

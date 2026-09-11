@@ -17,6 +17,7 @@ const contextFailures = new Set([
   "context_materialization_failed",
   "context_preparation_failed",
   "repository_snapshot_failed",
+  "repository_observation_failed",
 ]);
 
 const providerFailures = new Set([
@@ -32,10 +33,19 @@ const providerFailures = new Set([
   "session_stopped",
 ]);
 
-const storageFailures = new Set(["artifact_storage_failed", "telemetry_recording_failed"]);
+const storageFailures = new Set([
+  "artifact_storage_failed",
+  "repository_result_storage_failed",
+  "telemetry_recording_failed",
+]);
 
 export class NodeConversationResponseFailureClassifier implements ConversationResponseFailureClassifier {
+  constructor(private readonly onError?: (error: Error) => void) {}
+
   classify(error: unknown): ConversationResponseFailure {
+    this.onError?.(
+      error instanceof Error ? error : new Error("A non-Error conversation response failed."),
+    );
     const code =
       typeof error === "object" &&
       error !== null &&

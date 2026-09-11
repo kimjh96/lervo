@@ -121,4 +121,89 @@ describe("Discord multi-agent turn ownership", () => {
     expect(first.owns({ event: addressed, policy: policy("developer") })).toBe(false);
     expect(second.owns({ event: peerAddressed, policy: policy("researcher") })).toBe(true);
   });
+
+  it("keeps the explicitly addressed agent as owner for subsequent unaddressed human turns", () => {
+    const first = createDiscordConversationTurnOwnership({
+      participantId: "ptc_lervoagent01",
+      roleId: "developer",
+      conversationIds: ["cnv_operator01"],
+      peers: [peer],
+    });
+    const second = createDiscordConversationTurnOwnership({
+      participantId: peer.participantId,
+      roleId: peer.roleId,
+      conversationIds: ["cnv_operator01"],
+      peers: [
+        {
+          ...peer,
+          participantKeys: ["bot:999999999999999991", "user:999999999999999991"],
+          participantId: "ptc_lervoagent01",
+          roleId: "developer",
+        },
+      ],
+    });
+    const addressed = event("itg_discord01", [peer.participantId]);
+    const { schemaVersion: _schemaVersion, eventId: _eventId, ...addressedContent } = addressed;
+    const peerAddressed = createConversationInboundEvent({
+      ...addressedContent,
+      target: { ...addressed.target, integrationId: "itg_discord02" },
+    });
+    first.owns({ event: addressed, policy: policy("developer") });
+    second.owns({ event: peerAddressed, policy: policy("researcher") });
+
+    const followUp = event("itg_discord01");
+    const { schemaVersion: _followUpVersion, eventId: _followUpId, ...followUpContent } = followUp;
+    const peerFollowUp = createConversationInboundEvent({
+      ...followUpContent,
+      target: { ...followUp.target, integrationId: "itg_discord02" },
+    });
+    expect(first.owns({ event: followUp, policy: policy("developer") })).toBe(false);
+    expect(second.owns({ event: peerFollowUp, policy: policy("researcher") })).toBe(true);
+  });
+
+  it("uses the CEO as the stable unaddressed general-channel owner", () => {
+    const po = createDiscordConversationTurnOwnership({
+      participantId: "ptc_lervoagent01",
+      roleId: "product-owner",
+      conversationIds: ["cnv_operator01"],
+      peers: [{ ...peer, roleId: "ceo" }],
+    });
+    const ceo = createDiscordConversationTurnOwnership({
+      participantId: peer.participantId,
+      roleId: "ceo",
+      conversationIds: ["cnv_operator01"],
+      peers: [
+        {
+          ...peer,
+          participantId: "ptc_lervoagent01",
+          roleId: "product-owner",
+        },
+      ],
+    });
+    expect(po.owns({ event: event("itg_discord01"), policy: policy("product-owner") })).toBe(false);
+    expect(ceo.owns({ event: event("itg_discord02"), policy: policy("ceo") })).toBe(true);
+  });
+
+  it("does not turn an unaddressed agent report into unsolicited bot chatter", () => {
+    const ownership = createDiscordConversationTurnOwnership({
+      participantId: "ptc_lervoagent01",
+      roleId: "product-owner",
+      conversationIds: ["cnv_operator01"],
+      peers: [peer],
+    });
+    const source = event("itg_discord01");
+    const { schemaVersion: _schemaVersion, eventId: _eventId, ...content } = source;
+    const report = createConversationInboundEvent({
+      ...content,
+      actor: {
+        kind: "agent",
+        participantId: peer.participantId,
+        roleId: peer.roleId,
+        agentBinding: peer.agentBinding,
+      },
+      automationDepth: 1,
+    });
+
+    expect(ownership.owns({ event: report, policy: policy("product-owner") })).toBe(false);
+  });
 });

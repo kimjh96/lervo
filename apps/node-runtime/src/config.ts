@@ -58,6 +58,7 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
       "sync",
       "organizationCredentials",
       "workspaceCoordination",
+      "repositoryReplica",
       "remoteCommands",
       "discordConversation",
       "discordConversations",
@@ -168,6 +169,41 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
         "workspaceCoordination must bind hub_coordinated mode and a valid Node ID.",
       );
   }
+  const repositoryReplica =
+    source.repositoryReplica === undefined
+      ? undefined
+      : configRecord(source.repositoryReplica, "repositoryReplica");
+  if (repositoryReplica !== undefined) {
+    exactConfigKeys(
+      repositoryReplica,
+      ["required", "maximumStalenessMs", "waitTimeoutMs", "pollIntervalMs"],
+      "repositoryReplica",
+    );
+    if (repositoryReplica.required !== true) {
+      throw new NodeRuntimeError(
+        "invalid_config",
+        "repositoryReplica.required must be true when replica readiness is configured.",
+      );
+    }
+  }
+  const replicaInteger = (key: string, minimum: number, maximum: number) =>
+    repositoryReplica === undefined
+      ? undefined
+      : optionalConfigInteger(repositoryReplica, key, minimum, maximum, "repositoryReplica");
+  const maximumStalenessMs = replicaInteger("maximumStalenessMs", 1_000, 300_000);
+  const replicaWaitTimeoutMs = replicaInteger("waitTimeoutMs", 1_000, 300_000);
+  const replicaPollIntervalMs = replicaInteger("pollIntervalMs", 100, 10_000);
+  if (
+    repositoryReplica !== undefined &&
+    (maximumStalenessMs === undefined ||
+      replicaWaitTimeoutMs === undefined ||
+      replicaPollIntervalMs === undefined)
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "repositoryReplica requires every bounded readiness interval.",
+    );
+  }
   return {
     schemaVersion: 1,
     repositoryRoot: resolve(baseDirectory, configText(source.repositoryRoot, "repositoryRoot")),
@@ -203,6 +239,16 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
           workspaceCoordination: {
             mode: "hub_coordinated" as const,
             nodeId: workspaceCoordination.nodeId as string,
+          },
+        }),
+    ...(repositoryReplica === undefined
+      ? {}
+      : {
+          repositoryReplica: {
+            required: true as const,
+            maximumStalenessMs: maximumStalenessMs!,
+            waitTimeoutMs: replicaWaitTimeoutMs!,
+            pollIntervalMs: replicaPollIntervalMs!,
           },
         }),
     ...(remoteCommands === undefined ? {} : { remoteCommands }),

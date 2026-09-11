@@ -1,6 +1,7 @@
 import type { ConversationRemoteContinuationPort } from "@lervo/conversation-control";
 import type { DiscordGatewayTransport } from "@lervo/discord-gateway";
 import type { ConversationResponder } from "@lervo/interaction";
+import type { RepositoryWorkTurnExecutor } from "@lervo/adapter-contract";
 import type {
   AuthenticatedHubTransport,
   OutboundSyncPollingWaitPort,
@@ -15,12 +16,14 @@ export interface NodeDiscordConversationOpenPorts {
   continuation?: ConversationRemoteContinuationPort;
   readOnlyResponder?: ConversationResponder;
   intentResolver?: ConversationIntentResolver;
+  repositoryWorkExecutor?: RepositoryWorkTurnExecutor;
   gatewayTransport?: DiscordGatewayTransport;
   fetch?: typeof globalThis.fetch;
   onError?(error: Error): void;
 }
 
 export interface NodeRuntimeOpenPorts {
+  runtimeConfigPath?: string;
   createTransport?: (options: SyncHttpTransportOptions) => AuthenticatedHubTransport;
   wait?: OutboundSyncPollingWaitPort;
   nowMilliseconds?: () => number;

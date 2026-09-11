@@ -205,6 +205,9 @@ export class ConversationInteractionRuntime {
       ...(this.deployment.deliveryLimit === undefined
         ? {}
         : { limit: this.deployment.deliveryLimit }),
+      ...(this.deployment.onDelivered === undefined
+        ? {}
+        : { onDelivered: this.deployment.onDelivered }),
     });
   }
 

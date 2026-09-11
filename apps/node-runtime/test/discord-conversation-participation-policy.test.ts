@@ -61,6 +61,7 @@ describe("Discord conversation participation policy", () => {
       mode: "relevant",
       unaddressedHumanMessages: "respond",
       maxResponsesPerHour: 60,
+      maxAutomationDepth: 8,
     });
     expect(
       createDiscordConversationParticipationPolicy({
@@ -81,6 +82,7 @@ describe("Discord conversation participation policy", () => {
     configured.policy = {
       unaddressedHumanMessages: "evaluate",
       maxResponsesPerHour: 12,
+      maxAutomationDepth: 3,
     };
     expect(
       createDiscordConversationParticipationPolicy({
@@ -92,6 +94,7 @@ describe("Discord conversation participation policy", () => {
     ).toMatchObject({
       unaddressedHumanMessages: "evaluate",
       maxResponsesPerHour: 12,
+      maxAutomationDepth: 3,
     });
   });
 });

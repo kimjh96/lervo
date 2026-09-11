@@ -85,6 +85,75 @@ describe("reader-first event envelope compatibility", () => {
     ).toBe(false);
   });
 
+  it("keeps managed conversation repository-work completion unavailable to v1", () => {
+    const payload = {
+      sourceConversationEventId: `cve_${"b".repeat(64)}`,
+      workerAgentId: `agt_${"c".repeat(24)}`,
+      providerSessionDigest: hash,
+      requestedModel: "gpt-6-astra",
+      requestedReasoningEffort: "medium",
+      requestContentHash: hash,
+      resultContentHash: hash,
+      resultByteCount: 42,
+      repositoryRevisionBefore: `sha256:${"d".repeat(64)}`,
+      repositoryRevisionAfter: `sha256:${"e".repeat(64)}`,
+      changedPaths: ["src/incomplete.ts"],
+      changedPathCount: 1,
+      workstreamId: `wks_${"f".repeat(24)}`,
+      workstreamRevision: 7,
+      workstreamSnapshotHash: hash,
+      knowledgeDisposition: "current",
+      replicaDisposition: "current",
+      verificationStatus: "passed",
+      completedAt: "2026-09-10T00:00:00.000Z",
+    };
+    expect(validateSchema("conversationRepositoryWorkCompletedEventPayload", payload).valid).toBe(
+      true,
+    );
+    const legacyPayload = { ...payload } as Partial<typeof payload>;
+    delete legacyPayload.requestedModel;
+    delete legacyPayload.requestedReasoningEffort;
+    expect(
+      validateSchema("conversationRepositoryWorkCompletedEventPayload", legacyPayload).valid,
+    ).toBe(true);
+    expect(
+      validateSchema("conversationRepositoryWorkCompletedEventPayload", {
+        ...payload,
+        requestedReasoningEffort: "extreme",
+      }).valid,
+    ).toBe(false);
+    expect(
+      validateSchema("conversationRepositoryWorkCompletedEventPayload", {
+        ...payload,
+        repositoryRevisionAfter: payload.repositoryRevisionBefore,
+        changedPaths: [],
+        changedPathCount: 0,
+      }).valid,
+    ).toBe(true);
+    expect(
+      validateSchema(
+        "event",
+        envelope({
+          schemaVersion: 2,
+          type: "conversation.repository_work.completed",
+          actor: { kind: "agent", provider: "codex" },
+          payload,
+        }),
+      ).valid,
+    ).toBe(true);
+    expect(
+      validateSchema(
+        "event",
+        envelope({
+          schemaVersion: 1,
+          type: "conversation.repository_work.completed",
+          actor: { kind: "agent", provider: "codex" },
+          payload,
+        }),
+      ).valid,
+    ).toBe(false);
+  });
+
   it("keeps managed provider-process observations bounded and unavailable to v1", () => {
     const payload = {
       adapterId: "lervo/codex",

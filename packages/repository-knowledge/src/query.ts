@@ -64,6 +64,7 @@ export class RepositoryKnowledgeQueryIndex {
   static async prepare(input: {
     repositoryRoot: string;
     supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
+    sourceUnitFailureMode?: RepositoryKnowledgeScanOptions["sourceUnitFailureMode"];
   }): Promise<RepositoryKnowledgeQueryIndex> {
     const root = resolve(input.repositoryRoot);
     await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root });
@@ -75,6 +76,9 @@ export class RepositoryKnowledgeQueryIndex {
       projectId: project.projectId,
       policy,
       generatedPaths: generated,
+      ...(input.sourceUnitFailureMode === undefined
+        ? {}
+        : { sourceUnitFailureMode: input.sourceUnitFailureMode }),
       ...(input.supplementalSources === undefined
         ? {}
         : { supplementalSources: input.supplementalSources }),

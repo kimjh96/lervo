@@ -5,17 +5,27 @@
 
 ## Context
 
-Distinct hired-agent bots can independently judge the same unaddressed message relevant. Allowing every bot to respond causes duplicate typing, provider cost, reply storms, and nondeterministic agent-to-agent loops. Recording a non-selected agent as semantically irrelevant would create false evidence. Discord-specific locks would prevent a future Lervo conversation surface from reusing the rule.
+Distinct hired-agent bots can independently judge the same unaddressed message relevant. Letting every bot respond causes duplicate typing, provider cost, reply storms, and nondeterministic agent-to-agent loops. Recording a non-selected agent as semantically irrelevant would create false evidence. Discord-specific locks would prevent reuse on a future Lervo conversation surface.
 
 ## Decision
 
-`@lervo/conversation-contract` resolves response ownership from the normalized source-event hash, Lervo conversation ID, and durable participant/role candidates. It never consumes a Discord application ID, channel ID, credential, message body, or provider choice.
+`@lervo/conversation-contract` resolves response ownership from the Lervo conversation ID and durable participant/role candidates. Role-addressed ties may also use the normalized source-event hash. It never consumes a Discord application ID, channel ID, credential, message body, or provider choice.
 
-Exact participant mentions own their turns. A role mention selects one candidate per mentioned role. An unaddressed message or subscribed signal selects one candidate across the conversation. Deterministic rendezvous scoring lets independently deployed bots reach the same result despite different integration and normalized event IDs. The source actor is never a candidate for its own turn.
+Ownership follows these rules:
 
-`@lervo/interaction` evaluates ownership before relevance, typing, or provider execution. A non-owner commits the existing participation decision with `action: observe`, `reason: turn_not_owned`, and `relevance: not_checked`. This means another eligible participant owns the response; it is not a semantic relevance result, delivery result, or execution failure. The state retains only the existing event, policy, project, conversation, role, decision, and time coordinates. Candidate rosters and scoring inputs are not persisted.
+- Exact participant mentions own their turns.
+- A role mention selects one candidate per mentioned role.
+- An unaddressed message or subscribed signal selects one stable candidate across the conversation, filtered first by the highest reviewed unaddressed priority. Node composition gives a CEO priority over ordinary project participants, so general conversation does not rotate between POs on every message.
+- Deterministic rendezvous scoring lets independently deployed bots reach the same result despite different integration and normalized event IDs.
+- The source actor is never a candidate for its own turn.
+
+A unique explicit participant or role address also becomes the deployment's bounded in-memory owner for that conversation and thread. Subsequent unaddressed human turns stay with that interlocutor instead of reverting to the general-channel winner. Every peer observes the same explicit address and reaches the same sticky choice. Discord normalizes a reply to a configured bot or webhook as an explicit participant address. Restart discards this transient state and safely restores deterministic stable ownership; durable agent and provider context remain unchanged.
+
+`@lervo/interaction` evaluates ownership before relevance, typing, or provider execution. A non-owner commits the existing participation decision with `action: observe`, `reason: turn_not_owned`, and `relevance: not_checked`. This means another eligible participant owns the response; it is not a semantic relevance result, delivery result, or execution failure. State retains only the existing event, policy, project, conversation, role, decision, and time coordinates. Candidate rosters and scoring inputs are not persisted.
 
 The Node composition boundary supplies the current hired-agent participant and only peers bound to the same Lervo conversation. The common contract owns selection; Discord owns external identity mapping; interaction owns durable observation. Provider adapters remain unaware of group scheduling.
+
+Discord deployments ignore a turn containing external mentions when none of those principals resolve locally. They do not erase unresolved addressing and reinterpret the message as unaddressed. A configured peer also discovered as a same-process peer is included once when its durable agent, role, tenant, and speaker coordinates agree. Disagreement fails configuration before duplicate candidates reach turn selection.
 
 ## Consequences
 

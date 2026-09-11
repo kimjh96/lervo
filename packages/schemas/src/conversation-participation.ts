@@ -72,7 +72,7 @@ export const conversationParticipationPolicySchema = {
     },
     cooldownSeconds: { type: "integer", minimum: 0, maximum: 86_400 },
     maxResponsesPerHour: { type: "integer", minimum: 1, maximum: 60 },
-    maxAutomationDepth: { type: "integer", minimum: 0, maximum: 4 },
+    maxAutomationDepth: { type: "integer", minimum: 0, maximum: 32 },
     createdAt: timestampSchema,
   },
   required: [

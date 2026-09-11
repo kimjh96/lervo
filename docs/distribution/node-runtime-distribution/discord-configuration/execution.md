@@ -2,7 +2,8 @@
 
 - [Example behavior](execution/behavior.md): intent resolution, execution routing, conversation continuity, and failure handling.
 - [Participants and execution settings](execution/settings.md): identity bindings, organization validation, provider settings, response limits, and command completion requirements.
-
-Optional `repositorySignals` maps exact canonical repository event types to subscribed proactive signal codes. It requires `policy.mode: proactive`, `system` in `respondTo`, and every mapped code in `signalCodes`. Signal messages never copy source event payloads; the selected agent resolves current information through managed repository retrieval.
-
-Optional `deliberation` binds exact human principals and permissions to the durable conversation queue. `cliExecutable` must be an executable Lervo CLI matching the installed Node release. Topics cross the process boundary on stdin, and the queue-assigned identity must match the managed result. Start with `/lervo deliberate start <policy-id> -- <topic>`, inspect with `/lervo deliberate status <deliberation-id>`, and resume only an authoritatively reconciled interruption.
+- [Conversation routing](execution/conversation-routing.md): automation depth, explicit addresses, ownership, and participant matching.
+- [Native repository work](execution/native-work.md): provider execution, session continuity, replica parity, failures, and evidence limits.
+- [Repository signals](execution/repository-signals.md): proactive subscriptions and payload privacy.
+- [Deliberation](execution/deliberation.md): durable queue identity, CLI requirements, and interruption recovery.
+- [Webhook workforce children](execution/webhook-children.md): hiring, configuration, restart, and Discord capability limits.

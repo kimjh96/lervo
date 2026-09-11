@@ -26,6 +26,10 @@ export async function runConversationDeliveryCycle(input: {
   leaseDurationMs?: number;
   retryDelayMs?: number;
   limit?: number;
+  onDelivered?(input: {
+    outbound: import("@lervo/schemas").ConversationOutboundMessage;
+    receipt: import("@lervo/schemas").ConversationDeliveryReceipt;
+  }): void | Promise<void>;
 }): Promise<ConversationDeliveryCycleResult> {
   assertConversationAdapterDescriptor(input.adapter.descriptor);
   const leaseDurationMs = input.leaseDurationMs ?? 30_000;
@@ -90,6 +94,7 @@ export async function runConversationDeliveryCycle(input: {
           receipt,
         });
         deliveredCount += 1;
+        await input.onDelivered?.({ outbound: lease.outbound, receipt });
         continue;
       }
     } catch {

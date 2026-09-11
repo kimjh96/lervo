@@ -1,6 +1,8 @@
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { chmod, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
 
 import { FileSystemCas } from "@lervo/cas";
 import type { ConversationRemoteContinuationPort } from "@lervo/conversation-control";
@@ -31,6 +33,7 @@ const guildId = "123456789012345678";
 const channelId = "223456789012345678";
 const humanId = "323456789012345678";
 const deployments: NodeRuntimeDeployment[] = [];
+const execute = promisify(execFile);
 
 afterEach(async () => {
   await Promise.all(deployments.splice(0).map((deployment) => deployment.close()));
@@ -67,6 +70,15 @@ describe("installed Node Discord conversation runtime", () => {
   it("loads owner-only credentials, reaches ready, queues a request, and fails closed", async () => {
     const root = await temporaryRoot();
     const fixture = await nodeRuntimeFixture(root, await availablePort());
+    await execute("git", ["init", "-b", "main"], { cwd: fixture.repositoryRoot });
+    await execute("git", ["config", "user.email", "lervo-test@example.invalid"], {
+      cwd: fixture.repositoryRoot,
+    });
+    await execute("git", ["config", "user.name", "Lervo Test"], {
+      cwd: fixture.repositoryRoot,
+    });
+    await execute("git", ["add", "."], { cwd: fixture.repositoryRoot });
+    await execute("git", ["commit", "-m", "fixture"], { cwd: fixture.repositoryRoot });
     await ownerFile(resolve(root, "discord.token"), `discord.${"t".repeat(40)}\n`);
     const deliberationCli = resolve(root, "deliberation-cli-fixture");
     await ownerFile(
@@ -183,6 +195,12 @@ process.stdin.on("end", () => process.stdout.write(JSON.stringify({schemaVersion
         content: "The current workstream is active and the repository was not changed.",
       });
     });
+    const repositoryWork = vi.fn(async () => ({
+      provider: "codex" as const,
+      providerSessionId: "11111111-1111-4111-8111-111111111111",
+      response: "The requested repository work completed.",
+      completedAt: "2026-09-07T08:00:00.500Z",
+    }));
     const deployment = await openNodeRuntime(await loadNodeRuntimeConfig(fixture.configPath), {
       createTransport: () => ({
         registerProject: async () => ({}),
@@ -194,6 +212,7 @@ process.stdin.on("end", () => process.stdout.write(JSON.stringify({schemaVersion
         intentResolver: {
           resolve: intentResolver,
         },
+        repositoryWorkExecutor: { provider: "codex", execute: repositoryWork },
         gatewayTransport: gateway,
         fetch: delivery as typeof globalThis.fetch,
         onError: (error) => gatewayErrors.push(error),
@@ -223,7 +242,7 @@ process.stdin.on("end", () => process.stdout.write(JSON.stringify({schemaVersion
     });
     try {
       await settled(
-        () => request.mock.calls.length === 1 && messageDelivery.mock.calls.length === 1,
+        () => repositoryWork.mock.calls.length === 1 && messageDelivery.mock.calls.length === 1,
       );
     } catch {
       throw new Error(
@@ -252,7 +271,7 @@ process.stdin.on("end", () => process.stdout.write(JSON.stringify({schemaVersion
     try {
       await settled(
         () =>
-          request.mock.calls.length === 1 &&
+          request.mock.calls.length === 0 &&
           readOnlyResponse.mock.calls.length === 1 &&
           messageDelivery.mock.calls.length === 2,
       );
@@ -304,7 +323,8 @@ process.stdin.on("end", () => process.stdout.write(JSON.stringify({schemaVersion
       },
     });
     await settled(() => messageDelivery.mock.calls.length === 4);
-    expect(request).toHaveBeenCalledOnce();
+    expect(request).not.toHaveBeenCalled();
+    expect(repositoryWork).toHaveBeenCalledOnce();
     expect(readOnlyResponse).toHaveBeenCalledOnce();
     expect(messageDelivery).toHaveBeenCalledTimes(4);
     expect(administrationDelivery).toHaveBeenCalledOnce();

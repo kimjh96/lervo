@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { parseNodeRuntimeConfig } from "../src/config.js";
-import { createDiscordPlatformBindings } from "../src/discord-conversation-composition.js";
+import {
+  createAuthorizedAgentEffectRequesters,
+  createDiscordPlatformBindings,
+} from "../src/discord-conversation-composition.js";
 import { nodeRuntimeFixture, temporaryRoot } from "./fixture.js";
 
 const guildId = "123456789012345678";
@@ -130,6 +133,60 @@ describe("Discord conversation deployments configuration", () => {
     expect(() =>
       parseNodeRuntimeConfig(
         { ...fixture.value, discordConversations: [first, conflictingChannel] },
+        root,
+      ),
+    ).toThrow(expect.objectContaining({ code: "invalid_config" }));
+  });
+
+  it("accepts only an exact co-resident speaker as a reviewed manual chain starter", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, 30_006);
+    const first = deployment({
+      suffix: "01",
+      applicationId: "999999999999999991",
+      agentId: `agt_${"a".repeat(24)}`,
+      participantId: "ptc_lervoagent01",
+      provider: "codex",
+    });
+    const second = deployment({
+      suffix: "02",
+      applicationId: "999999999999999992",
+      agentId: `agt_${"b".repeat(24)}`,
+      participantId: "ptc_lervoagent02",
+      provider: "claude",
+    });
+    const manualPeer = {
+      tenantKey: guildId,
+      userId: second.applicationId,
+      participantId: second.agentParticipantId,
+      actorKind: "agent" as const,
+      roleId: "researcher",
+      startsAutomationChain: true,
+    };
+    const reviewedFirst = { ...first, participants: [...first.participants, manualPeer] };
+
+    expect(
+      parseNodeRuntimeConfig(
+        { ...fixture.value, discordConversations: [reviewedFirst, second] },
+        root,
+      ).discordConversations?.[0]?.participants,
+    ).toContainEqual(expect.objectContaining(manualPeer));
+
+    expect(() =>
+      parseNodeRuntimeConfig(
+        {
+          ...fixture.value,
+          discordConversations: [
+            {
+              ...reviewedFirst,
+              participants: [
+                ...first.participants,
+                { ...manualPeer, participantId: "ptc_wrongagent01" },
+              ],
+            },
+            second,
+          ],
+        },
         root,
       ),
     ).toThrow(expect.objectContaining({ code: "invalid_config" }));
@@ -406,6 +463,41 @@ describe("Discord conversation deployments configuration", () => {
         startsAutomationChain: true,
       }),
     );
+  });
+
+  it("authorizes an exact co-resident CEO to request repository effects", async () => {
+    const root = await temporaryRoot();
+    const fixture = await nodeRuntimeFixture(root, 30_006);
+    const config = deployment({
+      suffix: "01",
+      applicationId: "999999999999999991",
+      agentId: `agt_${"a".repeat(24)}`,
+      participantId: "ptc_lervoagent01",
+      provider: "codex",
+    });
+    const peer = {
+      participantKeys: ["bot:799999999999999991"],
+      participantId: "ptc_ceoagent01",
+      roleId: "ceo",
+      agentBinding: {
+        agentId: `agt_${"b".repeat(24)}`,
+        roleVersion: "1.0.0",
+        roleContractHash: `sha256:${"c".repeat(64)}`,
+        roleProfileHash: `sha256:${"d".repeat(64)}`,
+      },
+      tenantKeys: [guildId],
+      conversationIds: ["cnv_operator01"],
+    };
+    const parsed = parseNodeRuntimeConfig(
+      { ...fixture.value, discordConversation: config },
+      root,
+    ).discordConversation!;
+
+    expect(createAuthorizedAgentEffectRequesters(parsed, [peer])).toContainEqual({
+      participantId: "ptc_ceoagent01",
+      roleId: "ceo",
+      conversationId: "cnv_operator01",
+    });
   });
 
   it("maps a peer webhook author to its durable hired-agent participant", () => {

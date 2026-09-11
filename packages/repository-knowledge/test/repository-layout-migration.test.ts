@@ -189,6 +189,16 @@ describe("repository layout migration", () => {
     }
   });
 
+  it("preserves bounded topic families created beside package README entrypoints", () => {
+    expect(
+      classifyRepositoryDocument(
+        "packages/devtools/README/quickstart.md",
+        "# Quickstart\n\nRun the package locally.\n",
+        defaultDecisionTaxonomy,
+      ),
+    ).toEqual({ kind: "not_migration_candidate" });
+  });
+
   it("preserves exact repository role paths whose relocation policy is preserve", () => {
     const taxonomy: DecisionTaxonomy = {
       ...defaultDecisionTaxonomy,

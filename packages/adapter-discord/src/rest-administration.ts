@@ -1,6 +1,7 @@
 import {
   ConversationPlatformError,
   assertPlatformHttpLimits,
+  deletePlatformResource,
   patchPlatformJson,
   postPlatformJson,
   platformApiUrl,
@@ -275,5 +276,86 @@ export class DiscordRestAdministration implements DiscordAdministrationPort {
       token: response.token,
       observedAt: this.now().toISOString(),
     };
+  }
+
+  async updateIncomingWebhook(input: {
+    guildId: string;
+    channelId: string;
+    webhookId: string;
+    name: string;
+  }) {
+    if (
+      !this.allowedGuildIds.has(input.guildId) ||
+      !this.allowedChannelIds.has(input.channelId) ||
+      !/^[0-9]{1,32}$/u.test(input.webhookId) ||
+      [...input.name].length < 1 ||
+      [...input.name].length > 80 ||
+      input.name.includes("\0")
+    ) {
+      throw new ConversationPlatformError(
+        "invalid_platform_configuration",
+        "The Discord webhook update request is outside the configured scope.",
+      );
+    }
+    const response = object(
+      await patchPlatformJson({
+        url: `${this.apiBaseUrl}/webhooks/${encodeURIComponent(input.webhookId)}`,
+        headers: { authorization: `Bot ${this.options.botToken}` },
+        body: { name: input.name },
+        ...(this.options.fetch === undefined ? {} : { fetch: this.options.fetch }),
+        ...(this.options.requestTimeoutMs === undefined
+          ? {}
+          : { requestTimeoutMs: this.options.requestTimeoutMs }),
+        ...(this.options.maxResponseBytes === undefined
+          ? {}
+          : { maxResponseBytes: this.options.maxResponseBytes }),
+        allowInsecureHttpForTests: this.options.allowInsecureHttpForTests === true,
+      }),
+    );
+    if (
+      response.id !== input.webhookId ||
+      response.guild_id !== input.guildId ||
+      response.channel_id !== input.channelId ||
+      response.name !== input.name ||
+      response.type !== 1
+    ) {
+      throw new ConversationPlatformError(
+        "platform_delivery_failed",
+        "The Discord webhook update response could not be verified.",
+      );
+    }
+    return {
+      guildId: input.guildId,
+      channelId: input.channelId,
+      webhookId: input.webhookId,
+      name: input.name,
+      observedAt: this.now().toISOString(),
+    };
+  }
+
+  async deleteIncomingWebhook(input: { guildId: string; channelId: string; webhookId: string }) {
+    if (
+      !this.allowedGuildIds.has(input.guildId) ||
+      !this.allowedChannelIds.has(input.channelId) ||
+      !/^[0-9]{1,32}$/u.test(input.webhookId)
+    ) {
+      throw new ConversationPlatformError(
+        "invalid_platform_configuration",
+        "The Discord webhook deletion request is outside the configured scope.",
+      );
+    }
+    await deletePlatformResource({
+      url: `${this.apiBaseUrl}/webhooks/${encodeURIComponent(input.webhookId)}`,
+      headers: { authorization: `Bot ${this.options.botToken}` },
+      ...(this.options.fetch === undefined ? {} : { fetch: this.options.fetch }),
+      ...(this.options.requestTimeoutMs === undefined
+        ? {}
+        : { requestTimeoutMs: this.options.requestTimeoutMs }),
+      ...(this.options.maxResponseBytes === undefined
+        ? {}
+        : { maxResponseBytes: this.options.maxResponseBytes }),
+      allowInsecureHttpForTests: this.options.allowInsecureHttpForTests === true,
+    });
+    return { ...input, observedAt: this.now().toISOString() };
   }
 }

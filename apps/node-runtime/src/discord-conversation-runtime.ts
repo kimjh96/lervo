@@ -18,15 +18,20 @@ import { createProviderConversationIntentResolver } from "./conversation-intent-
 import { SQLiteConversationHistory } from "./conversation-history.js";
 import { SQLiteConversationIntentResolutionStore } from "./conversation-intent-store.js";
 import {
+  createAuthorizedAgentEffectRequesters,
   createDiscordHubContinuation,
   createDiscordPlatformBindings,
+  type DiscordPeerAgentBinding,
 } from "./discord-conversation-composition.js";
 import { ConversationResultRuntime } from "./conversation-result-runtime.js";
 import { SQLiteConversationResultStore } from "./conversation-result-store.js";
 import { openManagedConversationReadResponder } from "./conversation-read-responder.js";
 import { NaturalLanguageDiscordConversationResponder } from "./discord-conversation-mode.js";
 import { resolveDiscordAgentParticipation } from "./discord-agent-participation.js";
-import { ConversationInteractionRetryLoop } from "./conversation-interaction-retry-loop.js";
+import {
+  ConversationInteractionRetryLoop,
+  reportConversationInteractionRetryFailure,
+} from "./conversation-interaction-retry-loop.js";
 import { NodeConversationResponseFailureClassifier } from "./conversation-response-failure-policy.js";
 import { createDiscordConversationEffects } from "./discord-conversation-effects.js";
 import { createDiscordConversationTurnOwnership } from "./discord-conversation-turn-ownership.js";
@@ -36,22 +41,26 @@ import { DiscordConversationDeliberationRuntime } from "./discord-conversation-d
 import { startDiscordConversationRepositorySignals } from "./discord-conversation-repository-signals.js";
 import { createDiscordConversationResultRuntime } from "./discord-conversation-result-composition.js";
 import { createDiscordConversationContinuation } from "./discord-conversation-continuation.js";
+import { openDiscordConversationRepositoryWork } from "./discord-conversation-repository-work.js";
 import { loadDiscordConversationDeliveryCredentials } from "./discord-conversation-webhook-delivery.js";
+import { discordSpeakerParticipantKeys } from "./discord-conversation-speaker.js";
 import type {
   NodeDiscordConversationRuntime,
   NodeDiscordConversationRuntimeOptions,
 } from "./discord-conversation-runtime-types.js";
 
-export type {
-  NodeDiscordConversationRuntime,
-  NodeDiscordConversationRuntimeOptions,
-} from "./discord-conversation-runtime-types.js";
+export * from "./discord-conversation-runtime-types.js";
 
 export async function openNodeDiscordConversationRuntime(
   options: NodeDiscordConversationRuntimeOptions,
 ): Promise<NodeDiscordConversationRuntime> {
   const config = options.config;
-  const peerAgents = [...(config.peerAgents ?? []), ...(options.peerAgents ?? [])];
+  const reconfigurationEvents = new Set<string>();
+  const peerAgents: DiscordPeerAgentBinding[] = [
+    ...(config.peerAgents ?? []),
+    ...(options.peerAgents ?? []),
+  ];
+  const authorizedAgentEffectRequesters = createAuthorizedAgentEffectRequesters(config, peerAgents);
   const agentParticipation =
     options.agentParticipation ??
     (await resolveDiscordAgentParticipation({
@@ -63,8 +72,8 @@ export async function openNodeDiscordConversationRuntime(
       config,
       agentDisplayName: agentParticipation.displayName,
     });
-  let resolveFailure!: () => void;
-  let failed = false;
+  let failed = false,
+    resolveFailure!: () => void;
   const failure = new Promise<void>((resolvePromise) => {
     resolveFailure = resolvePromise;
   });
@@ -106,6 +115,32 @@ export async function openNodeDiscordConversationRuntime(
   let intentStore: SQLiteConversationIntentResolutionStore | null = null;
   let interactionRetryLoop: ConversationInteractionRetryLoop | null = null;
   let repositorySignalLoop: ConversationRepositorySignalLoop | null = null;
+  const repositoryWork =
+    config.routing === undefined
+      ? null
+      : openDiscordConversationRepositoryWork({
+          config: { ...config, routing: config.routing },
+          repositoryRoot: options.repositoryRoot,
+          ...(options.repositoryReplica === undefined
+            ? {}
+            : { repositoryReplica: options.repositoryReplica }),
+          dataDirectory: options.dataDirectory,
+          artifactStore: artifacts,
+          parentAgentId: agentParticipation.agentId ?? config.agentParticipantId,
+          authorizedEffectRequesters: authorizedAgentEffectRequesters,
+          ...(options.providerExecutables === undefined
+            ? {}
+            : { providerExecutables: options.providerExecutables }),
+          ...(options.providerModels === undefined
+            ? {}
+            : { providerModels: options.providerModels }),
+          ...(options.providerReasoningEfforts === undefined
+            ? {}
+            : { providerReasoningEfforts: options.providerReasoningEfforts }),
+          ...(options.repositoryWorkExecutor === undefined
+            ? {}
+            : { executor: options.repositoryWorkExecutor }),
+        });
   const deliberationRuntime =
     config.deliberation === undefined
       ? null
@@ -135,6 +170,14 @@ export async function openNodeDiscordConversationRuntime(
       config,
       botToken: token,
       artifactStore: artifacts,
+      repositoryRoot: options.repositoryRoot,
+      parentAgentId: agentParticipation.agentId,
+      parentRoleId: agentParticipation.roleId,
+      ...(repositoryWork === null ? {} : { repositoryWorkStore: repositoryWork.store }),
+      ...(options.runtimeConfigPath === undefined
+        ? {}
+        : { runtimeConfigPath: options.runtimeConfigPath }),
+      onDeploymentPrepared: (sourceEventId) => reconfigurationEvents.add(sourceEventId),
       ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
     });
     const readOnly =
@@ -184,17 +227,7 @@ export async function openNodeDiscordConversationRuntime(
         agentId: agentParticipation.agentId,
         roleId: agentParticipation.roleId,
       },
-      authorizedAgentEffectRequesters: config.participants.flatMap((participant) =>
-        participant.mayRequestEffects === true && participant.roleId !== null
-          ? config.conversations
-              .filter((conversation) => conversation.tenantKey === participant.tenantKey)
-              .map((conversation) => ({
-                participantId: participant.participantId,
-                roleId: participant.roleId!,
-                conversationId: conversation.conversationId,
-              }))
-          : [],
-      ),
+      authorizedAgentEffectRequesters,
       repositoryRoot: options.repositoryRoot,
       artifactStore: artifacts,
       history: new SQLiteConversationHistory(
@@ -210,6 +243,7 @@ export async function openNodeDiscordConversationRuntime(
       participationPolicy: policy,
       readOnly,
       continuation: continuationResponder,
+      work: repositoryWork!.responder,
       platformAction,
       ...(deliberationRuntime === null ? {} : { explicitControl: deliberationRuntime.responder }),
     });
@@ -218,7 +252,8 @@ export async function openNodeDiscordConversationRuntime(
   const publicationVerifier = new VerifiedConversationPublication({
     artifactStore: artifacts,
     resolveWritingContract: async ({ event }) =>
-      modeResponder !== null && ["read_only", "clarify"].includes(await modeResponder.mode(event))
+      modeResponder !== null &&
+      ["read_only", "clarify", "work"].includes(await modeResponder.mode(event))
         ? config.routing?.evaluation === undefined
           ? realtimeConversationWritingContract
           : adaptiveConversationWritingContract
@@ -243,6 +278,24 @@ export async function openNodeDiscordConversationRuntime(
           allowedGuildIds: config.allowedGuildIds,
           allowDirectMessages: config.allowDirectMessages,
           botToken: token,
+          textualParticipantAliases: [
+            ...(agentParticipation.displayName === null
+              ? []
+              : discordSpeakerParticipantKeys(config)
+                  .slice(0, 1)
+                  .map((participantKey) => ({
+                    displayName: agentParticipation.displayName!,
+                    participantKey,
+                  }))),
+            ...peerAgents.flatMap((peer) =>
+              peer.displayName === undefined
+                ? []
+                : peer.participantKeys.slice(0, 1).map((participantKey) => ({
+                    displayName: peer.displayName!,
+                    participantKey,
+                  })),
+            ),
+          ],
           ...(webhookDelivery === undefined ? {} : { delivery: webhookDelivery }),
           gateway: {
             intents: config.intents,
@@ -264,9 +317,7 @@ export async function openNodeDiscordConversationRuntime(
               options.onError?.(error);
               const code =
                 "code" in error && typeof error.code === "string" ? error.code : "unknown";
-              if (
-                ["authentication_failed", "dispatch_failed", "invalid_configuration"].includes(code)
-              ) {
+              if (["authentication_failed", "invalid_configuration"].includes(code)) {
                 fail(code);
               }
             },
@@ -283,7 +334,9 @@ export async function openNodeDiscordConversationRuntime(
               : { agentBinding: agentParticipation.agentBinding }),
             responder,
             publicationVerifier,
-            responseFailureClassifier: new NodeConversationResponseFailureClassifier(),
+            responseFailureClassifier: new NodeConversationResponseFailureClassifier(
+              options.onError,
+            ),
             terminalFailureResponder,
             terminalFailurePublicationVerifier,
             ...(modeResponder === null ? {} : { relevanceEvaluator: modeResponder }),
@@ -293,6 +346,10 @@ export async function openNodeDiscordConversationRuntime(
         workerId: config.workerId,
         leaseDurationMs: 300_000,
         maximumResponseAttempts: config.policy?.maxResponseAttempts ?? 3,
+        onDelivered: ({ outbound }) => {
+          if (!reconfigurationEvents.delete(outbound.sourceEventId)) return;
+          fail("conversation_reconfiguration_requested");
+        },
       },
       ...(deliberationRuntime === null
         ? {}
@@ -317,7 +374,9 @@ export async function openNodeDiscordConversationRuntime(
       runCycle: async () => {
         await openedApplication.runInteractionRetryCycle?.(config.integrationId);
       },
-      onFailure: () => fail("interaction_retry_failed"),
+      // A failed durable retry belongs to one interaction. Fresh Discord ingress and
+      // other agent bindings must remain available while the leased record is retried.
+      onFailure: (error) => reportConversationInteractionRetryFailure(error, options.onError),
     });
     interactionRetryLoop.start();
     deliberationRuntime?.attach(application, config.deliberation!.pollIntervalMs ?? 2_000);
@@ -355,6 +414,7 @@ export async function openNodeDiscordConversationRuntime(
         openedApplication.close();
         resultRuntime!.close();
         readRuntime?.close();
+        repositoryWork?.responder.close();
         intentStore?.close();
       },
     };
@@ -365,6 +425,7 @@ export async function openNodeDiscordConversationRuntime(
     application?.close();
     resultRuntime?.close();
     readRuntime?.close();
+    repositoryWork?.responder.close();
     intentStore?.close();
     if (resultRuntime === null) resultStore.close();
     throw error;

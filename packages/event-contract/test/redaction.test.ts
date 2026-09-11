@@ -3,6 +3,57 @@ import { describe, expect, it } from "vitest";
 import { RedactionError, sanitizeEventPayload } from "../src/index.js";
 
 describe("event payload privacy boundary", () => {
+  it("keeps bounded managed conversation-work evidence without raw provider content", () => {
+    const payload = {
+      sourceConversationEventId: `cve_${"a".repeat(64)}`,
+      workerAgentId: `agt_${"b".repeat(24)}`,
+      providerSessionDigest: `sha256:${"c".repeat(64)}`,
+      requestedModel: "gpt-6-astra",
+      requestedReasoningEffort: "medium",
+      requestContentHash: `sha256:${"d".repeat(64)}`,
+      resultContentHash: `sha256:${"e".repeat(64)}`,
+      resultByteCount: 42,
+      repositoryRevisionBefore: `sha256:${"f".repeat(64)}`,
+      repositoryRevisionAfter: `sha256:${"1".repeat(64)}`,
+      changedPaths: ["src/incomplete.ts"],
+      changedPathCount: 1,
+      workstreamId: `wks_${"2".repeat(24)}`,
+      workstreamRevision: 8,
+      workstreamSnapshotHash: `sha256:${"3".repeat(64)}`,
+      knowledgeDisposition: "current",
+      replicaDisposition: "current",
+      verificationStatus: "passed",
+      completedAt: "2026-09-10T00:00:00.000Z",
+    };
+    const result = sanitizeEventPayload("conversation.repository_work.completed", {
+      ...payload,
+      rawPrompt: "private",
+      rawResult: "private",
+      providerSessionId: "private",
+    });
+    expect(result.payload).toEqual(payload);
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+    expect(() =>
+      sanitizeEventPayload("conversation.repository_work.completed", {
+        ...payload,
+        repositoryRevisionAfter: payload.repositoryRevisionBefore,
+      }),
+    ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+    expect(
+      sanitizeEventPayload("conversation.repository_work.completed", {
+        ...payload,
+        repositoryRevisionAfter: payload.repositoryRevisionBefore,
+        changedPaths: [],
+        changedPathCount: 0,
+      }).payload,
+    ).toEqual({
+      ...payload,
+      repositoryRevisionAfter: payload.repositoryRevisionBefore,
+      changedPaths: [],
+      changedPathCount: 0,
+    });
+  });
+
   it("keeps organization identity coordinates while removing external identifiers", () => {
     const payload = {
       deploymentId: "adep_lervoagent01",

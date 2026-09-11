@@ -21,7 +21,7 @@ import type { ConversationHistoryPort } from "./conversation-history.js";
 import type { ConversationIntentResolutionStore } from "./conversation-intent-store.js";
 
 export type DiscordConversationMode =
-  "read_only" | "continuation" | "platform_action" | "clarify" | "control";
+  "read_only" | "work" | "continuation" | "platform_action" | "clarify" | "control";
 
 export interface DiscordPlatformActionResponder {
   readonly availableEffects: readonly ConversationRequestedEffect["kind"][];
@@ -42,7 +42,7 @@ function withoutLeadingBotMention(message: string, applicationId: string): strin
 function modeFor(resolution: ConversationIntentResolution): DiscordConversationMode {
   return resolution.intent === "continue_work" && resolution.confidence !== "low"
     ? resolution.effect.kind === "repository_work"
-      ? "continuation"
+      ? "work"
       : "platform_action"
     : resolution.intent === "clarify" || resolution.confidence === "low"
       ? "clarify"
@@ -81,6 +81,7 @@ export class NaturalLanguageDiscordConversationResponder
       participationPolicy: Parameters<ConversationRelevanceEvaluator["evaluate"]>[0]["policy"];
       readOnly: ConversationResponder;
       continuation: ConversationResponder;
+      work?: ConversationResponder;
       platformAction: DiscordPlatformActionResponder;
       explicitControl?: ConversationResponder;
     },
@@ -91,7 +92,10 @@ export class NaturalLanguageDiscordConversationResponder
     resolution: ConversationIntentResolution,
   ): DiscordConversationMode {
     const mode = modeFor(resolution);
-    if (!["continuation", "platform_action"].includes(mode) || event.actor.kind === "human") {
+    if (
+      !["work", "continuation", "platform_action"].includes(mode) ||
+      event.actor.kind === "human"
+    ) {
       return mode;
     }
     const admitted = this.options.authorizedAgentEffectRequesters?.some(
@@ -177,9 +181,11 @@ export class NaturalLanguageDiscordConversationResponder
           : managed.effect.kind === "discord_guild_text_channel_create" ||
               managed.effect.kind === "discord_public_thread_create"
             ? { kind: managed.effect.kind, name: managed.effect.argument! }
-            : managed.effect.kind === "repository_work"
-              ? { kind: "repository_work" }
-              : { kind: "none" };
+            : managed.effect.kind === "workforce_agent_hire"
+              ? { kind: managed.effect.kind, specification: managed.effect.argument! }
+              : managed.effect.kind === "repository_work"
+                ? { kind: "repository_work" }
+                : { kind: "none" };
       const resolution: ConversationIntentResolution = {
         intent: managed.intent,
         confidence: managed.confidence,
@@ -261,6 +267,9 @@ export class NaturalLanguageDiscordConversationResponder
     }
     if (["read_only", "clarify"].includes(resolution.mode) && resolution.replyCandidate !== null) {
       return resolution.replyCandidate;
+    }
+    if (resolution.mode === "work") {
+      return (this.options.work ?? this.options.continuation).respond(request);
     }
     return (
       resolution.mode === "continuation" ? this.options.continuation : this.options.readOnly

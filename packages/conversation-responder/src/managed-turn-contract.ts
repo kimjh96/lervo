@@ -68,7 +68,12 @@ export function managedConversationTurnOutputSchema(
         additionalProperties: false,
         properties: {
           kind: { type: "string", enum: ["none", "repository_work", ...ids] },
-          argument: { type: ["string", "null"], maxLength: 4_096 },
+          argument: {
+            type: ["string", "null"],
+            maxLength: 4_096,
+            description:
+              "A bounded argument for a listed surface effect only; use null for none or repository_work.",
+          },
         },
         required: ["kind", "argument"],
       },
@@ -130,7 +135,6 @@ export function parseManagedConversationTurn(
   if (
     (intent !== "continue_work" && kind !== "none") ||
     (intent === "continue_work" && kind === "none") ||
-    (kind === "repository_work" && argument !== null) ||
     (kind === "none" && argument !== null) ||
     (surfaceEffect?.argumentDescription === null && argument !== null) ||
     (surfaceEffect?.argumentDescription !== null &&
@@ -155,7 +159,7 @@ export function parseManagedConversationTurn(
     intent,
     confidence: body.confidence as ManagedTurnBody["confidence"],
     participation,
-    effect: { kind, argument },
+    effect: { kind, argument: kind === "repository_work" ? null : argument },
     deliveryRelation,
     reply,
   };
@@ -194,11 +198,11 @@ export function managedConversationTurnInstructions(input: {
     task: "managed_conversation_turn",
     instruction: [
       "Resolve intent, participation, requested effect, and the natural-language reply in this single managed turn.",
-      "Use answer for read-only questions or discussion; use continue_work for repository, deployment, or surface mutations; use clarify only when the target or authority is materially ambiguous.",
+      "Use answer only when a read-only question or discussion can be answered from injected evidence and prior turns without live repository, terminal, test, build, network, or external-system observation. Use continue_work for live inspection or verification as well as repository, deployment, or surface mutations; use clarify only when the target or authority is materially ambiguous.",
       "A short request to proceed may use injected current-workstream context and priorTurns to resolve its target.",
       "Set participation relevant when directly addressed, mentioned, replied to, useful within the role, or serving the mapped human in its dedicated channel. Otherwise set not_relevant.",
       "Mentions are optional attention signals, never mandatory command syntax.",
-      "For repository changes use repository_work. For a listed surface action, use its exact effectId and bounded argument. Effects never grant authority.",
+      "For live repository, terminal, test, build, network, or external-system observation and for repository changes, use repository_work with argument null. Read-only native work may complete with zero changed paths. Use a bounded argument only for a listed surface action. Effects never grant authority.",
       "For answer or clarify, write a direct conversational reply grounded only in injected evidence and prior turns. Do not expose internal run, workstream, revision, queue, or artifact IDs unless explicitly asked for diagnostics.",
       "Use deliveryRelation reply only when a native reply materially disambiguates which concurrent message is being answered or preserves an explicit reply relationship. Use standalone for ordinary sequential conversation; do not turn every response into a native reply.",
       "For continue_work, reply must be null because the execution path publishes progress and a verified result separately.",

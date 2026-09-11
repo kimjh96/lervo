@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_39c6956fb473e6703777b2c2
+compiler:
+  compilerBuildId: sha256:126612f342267b5dfbefdf7c2f88bf1fe0a710c846d5e3a4f0ed99d118fde27e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d2d3eff5258a5ab94aee17d3
+outputLanguage: en
+outputs:
+  - byteCount: 317
+    contentHash: sha256:2f0f69886aee8b2d656d307e636c7dc1b417778e9a4c1241c7a059aa537fcca3
+    path: docs/specifications/execution/provider-adapters/publication.md
+    userRegionHash: sha256:2f0f69886aee8b2d656d307e636c7dc1b417778e9a4c1241c7a059aa537fcca3
+  - byteCount: 1458
+    contentHash: sha256:3cfedec59fe0c44286c2bd77834613d73211a6b822d5143e3b96a9bd1d1c2827
+    path: docs/specifications/execution/provider-adapters/publication/evaluation.md
+    userRegionHash: sha256:3cfedec59fe0c44286c2bd77834613d73211a6b822d5143e3b96a9bd1d1c2827
+  - byteCount: 1216
+    contentHash: sha256:0c622d296715d926628a6c5c78b07d7a25b4395c7c5cebe8301f50ca86ac5eb8
+    path: docs/specifications/execution/provider-adapters/publication/evidence-roles.md
+    userRegionHash: sha256:0c622d296715d926628a6c5c78b07d7a25b4395c7c5cebe8301f50ca86ac5eb8
+profile: specification_document
+recordId: knormdoc_f815c73f1f5db914bdb45184
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2a66448d4bc7eb52badc1b764da89f13fbe1b1b08fad61458cf59ee0598f5028
+sourcePath: docs/specifications/execution/provider-adapters/publication.md
+sourceUnitVersionIds:
+  - uv_1ee67376f991788a719dd079
+  - uv_8eca73aafb35960bae13d8d5
+  - uv_a5c6b894d676a5bfddd943e4

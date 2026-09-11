@@ -13,6 +13,7 @@ export * from "./conversation.js";
 export * from "./conversation-event.js";
 export * from "./conversation-outbound.js";
 export * from "./conversation-participation.js";
+export * from "./conversation-repository-work-event.js";
 export * from "./deliberation-artifact.js";
 export * from "./deliberation-event.js";
 export * from "./deliberation-outcome.js";

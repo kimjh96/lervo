@@ -32,9 +32,9 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:a6539720c3d4b4df2b8ab0dfda730b8eb360ffb1caf5b23f0df55151767e6020",
+      "contentHash": "sha256:6c17ab52cd01fa87c74c3fba398b864eecebc8f11f3ec790cf9ddac57b2d7d81",
       "responsibility": "Managed provider run command orchestration",
-      "rationale": "The module composes one managed provider-run boundary; provider differences remain injected dependencies, causal validation and assignment finalization are extracted, and single-or-multiple expected-path normalization is isolated in a focused module rather than adding parsing policy here.",
+      "rationale": "The module composes one managed provider-run boundary; provider differences remain injected dependencies, while causal validation, assignment finalization, writing-policy materialization, and expected-path normalization remain extracted behind focused modules.",
       "disposition": "cohesive"
     },
     {
@@ -49,6 +49,27 @@
       "contentHash": "sha256:4d471e20b5ce112014c376aa6a93a45456e9fc2976672cc1de8254f8a65c9ad5",
       "responsibility": "Hub runtime deployment composition",
       "rationale": "TLS material loading, dependency and server composition, reload, resource lifecycle orchestration, and health wiring are phases of one Hub deployment boundary; HTTP connection-drain mechanics and domain policy remain in linked modules.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/node-runtime/src/conversation-repository-work-store.ts",
+      "contentHash": "sha256:7494b3927c637848b429b3230f5d3b26245bd376f0fe41272e67d8bebe33c593",
+      "responsibility": "Conversation repository-work session persistence",
+      "rationale": "Turn replay, semantic duplicate coalescing, resumable provider sessions, active delegate selection, failure recording, and bounded pruning operate on one SQLite transaction boundary; execution policy, provider processes, artifacts, and response rendering remain in linked modules.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/node-runtime/src/discord-conversation-runtime.ts",
+      "contentHash": "sha256:67550f83a18d2b05a931b1133d535406581b4cbc76b7be39293653b1459f31af",
+      "responsibility": "Single Discord conversation deployment composition",
+      "rationale": "The module opens and closes one immutable Discord deployment by wiring its identity, participation, routing, work, delivery, retry, signal, and deliberation ports; each independent policy, adapter, persistence, and loop implementation remains in a focused linked module.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/node-runtime/src/discord-hired-agent-deployment.ts",
+      "contentHash": "sha256:f15563c4e6a8f3cfdc7ba7355ff35fc2e16a6dd6de1e6e0ae92f214de24a9a01",
+      "responsibility": "Discord hired-agent webhook deployment lifecycle",
+      "rationale": "Webhook preparation, display-name synchronization, retirement, owner-credential recovery, and atomic runtime configuration replacement are phases of one hired-agent Discord deployment lifecycle; organization events, REST transport, and workforce policy remain in linked modules.",
       "disposition": "cohesive"
     },
     {
@@ -81,7 +102,7 @@
     },
     {
       "path": "packages/conversation-platform-sqlite/src/binding-repository.ts",
-      "contentHash": "sha256:caed71dd98d7ef2dee28276a50f3991e0dcff0a415624aaabb7475e664c600d0",
+      "contentHash": "sha256:6c10d9f5be85d9c534a6b196672315d5ea0f74b0d1deb6d6f5377381bb921355",
       "responsibility": "Conversation-platform binding persistence",
       "rationale": "The repository class owns one SQLite persistence boundary for platform bindings, including validation, reads, writes, and transaction-safe state changes.",
       "disposition": "cohesive"
@@ -95,7 +116,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:fe40b2fa0384191837c5502de595a9d9dec7b21f94dd2db1ca243e3163ceb037",
+      "contentHash": "sha256:4d38fef6d3377b088e0f6cf3ac61fbd4018b30a8da744941c7de9609a3372dc2",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
       "disposition": "cohesive"
@@ -158,7 +179,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:eb4f609397af115d4fbe158ff66af7e0495db9864f12b5d73ee86c31aa84becf",
+      "contentHash": "sha256:4a52901a2cbb392ad757447679876d865c6678fa70e946b4b61ee960c568f188",
       "responsibility": "Reviewed document normalization lifecycle",
       "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation orchestration, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Observation policy, explicit selection and workset/preflight contracts, shard-cache storage, and CLI parsing or rendering are separate modules.",
       "disposition": "cohesive"
@@ -235,7 +256,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:8f52424bdd548d2f0a2570b029872059d2cb4ba5aa107b640c8d134e39538666",
+      "contentHash": "sha256:0f672d65ed361d1cf811b88bab0d61827ae97388c889fdcb18343fe8ea4649ae",
       "responsibility": "Bounded repository knowledge scanner",
       "rationale": "Classification, safe reads, source-unit extraction, scan construction, and immutable scan transforms all own the canonical scanned-source aggregate.",
       "disposition": "cohesive"
@@ -270,7 +291,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:9c8fea28014cc64c60a6e5c69243a988f92437f9420eb13f9a48f2f066e0f665",
+      "contentHash": "sha256:b1d291b21aacb32f65bb4fcb0015b9afe8f8e2d5f555f583c3e17022e640e2d6",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, and typed domain failures without owning their implementations.",
       "disposition": "cohesive"
@@ -312,7 +333,7 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:ef54a0f41913353c54f881cc5f283a8528bb227792d27cd4ca7c7832f4eb4d67",
+      "contentHash": "sha256:0c3909f190acfe23b8167716b31e50017fa579141b26e1c709a3d9dd939db84e",
       "responsibility": "Repository schema validator registry",
       "rationale": "The module declaratively registers and exposes validators for the versioned schema catalog; its length follows schema inventory and it owns no domain workflow or external effect.",
       "disposition": "cohesive"

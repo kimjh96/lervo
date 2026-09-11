@@ -56,6 +56,10 @@ export interface DiscordConversationDeployment extends PlatformCredentialTranspo
   allowedGuildIds: readonly string[];
   allowDirectMessages: boolean;
   botToken: string;
+  textualParticipantAliases?: readonly {
+    displayName: string;
+    participantKey: string;
+  }[];
   delivery?:
     | { kind: "bot" }
     | {
@@ -94,6 +98,10 @@ export interface ConversationInteractionDeployment {
   deliveryLimit?: number;
   maxRecords?: number;
   now?: () => Date;
+  onDelivered?(input: {
+    outbound: import("@lervo/schemas").ConversationOutboundMessage;
+    receipt: import("@lervo/schemas").ConversationDeliveryReceipt;
+  }): void | Promise<void>;
 }
 
 export interface ConversationApplicationOptions {

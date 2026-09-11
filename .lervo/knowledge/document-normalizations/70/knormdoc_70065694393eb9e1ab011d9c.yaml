@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_39c6956fb473e6703777b2c2
+compiler:
+  compilerBuildId: sha256:126612f342267b5dfbefdf7c2f88bf1fe0a710c846d5e3a4f0ed99d118fde27e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0745cac71154a5d99dcf180c
+outputLanguage: en
+outputs:
+  - byteCount: 734
+    contentHash: sha256:6f8a9eb8c096056cf4501722b49fc65bca7d7e45fe66be54f0950df7266aad2e
+    path: docs/specifications/execution/provider-adapters/telemetry.md
+    userRegionHash: sha256:6f8a9eb8c096056cf4501722b49fc65bca7d7e45fe66be54f0950df7266aad2e
+  - byteCount: 1472
+    contentHash: sha256:37f4abd829eca8563fe1e6703958b60a348d05689b7a6359991670ee1d8ff1af
+    path: docs/specifications/execution/provider-adapters/telemetry/linked-evidence-selection.md
+    userRegionHash: sha256:37f4abd829eca8563fe1e6703958b60a348d05689b7a6359991670ee1d8ff1af
+  - byteCount: 863
+    contentHash: sha256:3321dc73fc84d727aa6aa9dfbf0b63956be0390a141ad78945da815a689e1e65
+    path: docs/specifications/execution/provider-adapters/telemetry/managed-process-observation.md
+    userRegionHash: sha256:3321dc73fc84d727aa6aa9dfbf0b63956be0390a141ad78945da815a689e1e65
+  - byteCount: 1460
+    contentHash: sha256:273fe35cd932aa9ceb2dee87634d53f3f6189b4a0144086091ef9257bbc60a0a
+    path: docs/specifications/execution/provider-adapters/telemetry/native-events-and-usage.md
+    userRegionHash: sha256:273fe35cd932aa9ceb2dee87634d53f3f6189b4a0144086091ef9257bbc60a0a
+  - byteCount: 1375
+    contentHash: sha256:7dafc77088499fc72bd94224b71dee5b8c1d25e6c7513b6ed27a49dd1ce17b71
+    path: docs/specifications/execution/provider-adapters/telemetry/selection-only-responses-transport.md
+    userRegionHash: sha256:7dafc77088499fc72bd94224b71dee5b8c1d25e6c7513b6ed27a49dd1ce17b71
+profile: specification_document
+recordId: knormdoc_70065694393eb9e1ab011d9c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ac47072399f5a0a9ca66d50cec5804757d0cd6cc4f874a439c7ecfff29356c88
+sourcePath: docs/specifications/execution/provider-adapters/telemetry.md
+sourceUnitVersionIds:
+  - uv_01ce7aed8b9dc36248eac06b
+  - uv_0a17a37d41766fc8093794ec
+  - uv_3eb4a76072c60cb05662de5f
+  - uv_470e21ef1ac365623e6a6212
+  - uv_795f083a1809217d37bc8fe0

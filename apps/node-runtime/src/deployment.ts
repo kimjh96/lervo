@@ -227,6 +227,9 @@ export async function openNodeRuntime(
       projectIdentityHash: target.projectIdentityHash,
       repositoryRoot: paths.repositoryRoot,
       dataDirectory: paths.data,
+      ...(ports.runtimeConfigPath === undefined
+        ? {}
+        : { runtimeConfigPath: ports.runtimeConfigPath }),
       bearerToken: () => bearerToken.current(),
       repositoryEvents: store,
       legacyPorts: ports.discordConversation,

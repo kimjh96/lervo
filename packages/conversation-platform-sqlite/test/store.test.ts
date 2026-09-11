@@ -455,6 +455,34 @@ describe("SQLite conversation platform state", () => {
     });
   });
 
+  it("continues an authenticated agent reply from the correlated automation depth", async () => {
+    const path = await databasePath();
+    const store = await SQLiteConversationPlatformStore.open(options(path));
+    await store.recordInbound({
+      platform: "slack",
+      integrationId,
+      tenantKey: "T123",
+      conversationKey: "C123",
+      externalMessageKey: "1710000100.000100",
+      eventId,
+      automationDepth: 1,
+    });
+    const mapped = await store.mapInbound({
+      platform: "slack",
+      integrationId,
+      tenantKey: "T123",
+      conversationKey: "C123",
+      threadKey: null,
+      sourceMessageKey: "1710000101.000100",
+      replyToMessageKey: "1710000100.000100",
+      participantKey: "bot:B123",
+      mentionedParticipantKeys: [],
+      actorKindHint: "agent",
+    });
+    expect(mapped.automationDepth).toBe(2);
+    store.close();
+  });
+
   it("keeps uncertain sends blocked and successful receipts replayable across restart", async () => {
     const path = await databasePath();
     let store = await SQLiteConversationPlatformStore.open(options(path));

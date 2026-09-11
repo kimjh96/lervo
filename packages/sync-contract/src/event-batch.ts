@@ -20,6 +20,37 @@ import { assertProjectRegistrationRequest } from "./registration.js";
 
 type BatchContent = Omit<OutboundEventBatch, "batchId">;
 
+function isLegacyModelIdentityPayload(event: EventEnvelope): boolean {
+  if (
+    event.schemaVersion !== 2 ||
+    !["adapter.result.captured", "resource.usage.recorded"].includes(event.type) ||
+    Object.hasOwn(event.payload, "modelIdentity") ||
+    event.actor.kind !== "provider"
+  ) {
+    return false;
+  }
+  try {
+    const sanitized = sanitizeEventPayload(event.type, {
+      ...event.payload,
+      modelIdentity: {
+        provider: event.actor.provider,
+        requestedModel: null,
+        answerModel: null,
+        observedModelIds: [],
+        answerModelEvidence: "unavailable",
+        unavailableReason: "legacy_unobserved",
+      },
+    });
+    const { modelIdentity: _modelIdentity, ...legacyPayload } = sanitized.payload;
+    return (
+      sanitized.redactions.length === 0 &&
+      canonicalJson(legacyPayload) === canonicalJson(event.payload)
+    );
+  } catch {
+    return false;
+  }
+}
+
 function assertNoUnsupportedEventVersions(batch: unknown): void {
   if (batch === null || typeof batch !== "object" || Array.isArray(batch)) return;
   const events = (batch as { events?: unknown }).events;
@@ -55,6 +86,7 @@ export function assertSyncableEvent(event: EventEnvelope): void {
   try {
     sanitized = sanitizeEventPayload(event.type, event.payload);
   } catch (error) {
+    if (isLegacyModelIdentityPayload(event)) return;
     throw new SyncContractError(
       "invalid_event_batch",
       "The synchronization event payload does not satisfy the allowlist contract.",

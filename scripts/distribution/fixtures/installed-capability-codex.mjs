@@ -57,7 +57,7 @@ async function handle(line) {
   if (message.method === "initialized") return;
   if (message.method === "thread/start") {
     connectedServerNames = Object.keys(message.params?.config?.mcp_servers ?? {});
-    send({ id: message.id, result: { thread: { id: threadId } } });
+    send({ id: message.id, result: { thread: { id: threadId }, model: "codex-observed-fixture" } });
     send({ method: "thread/started", params: { thread: { id: threadId } } });
     return;
   }

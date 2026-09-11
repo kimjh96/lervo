@@ -86,9 +86,14 @@ function outbound(input: {
     participantId: input.agentParticipantId,
     ...(input.agentBinding === undefined ? {} : { agentBinding: input.agentBinding }),
     content: input.candidate.content,
-    ...(input.candidate.deliveryRelation === undefined
+    ...(input.candidate.deliveryRelation === undefined && input.event.actor.kind !== "agent"
       ? {}
-      : { deliveryRelation: input.candidate.deliveryRelation }),
+      : {
+          deliveryRelation:
+            input.event.actor.kind === "agent"
+              ? ("reply" as const)
+              : input.candidate.deliveryRelation!,
+        }),
     publicationPermit: input.candidate.publicationPermit,
     createdAt: createdAt(input.clock),
   });

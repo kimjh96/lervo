@@ -66,6 +66,7 @@ export class RevisionedRepositoryKnowledgeQuery {
         RepositoryKnowledgeQueryIndex.prepare({
           repositoryRoot: input.repositoryRoot,
           supplementalSources,
+          sourceUnitFailureMode: "file_only",
         }),
       );
     this.pending = { generation, key, index };

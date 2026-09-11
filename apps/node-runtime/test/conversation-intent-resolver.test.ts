@@ -36,7 +36,12 @@ describe("conversation intent provider contract", () => {
             intent: "continue_work",
             confidence: "high",
             participation: "relevant",
-            effect: { kind: "repository_work", nickname: null, name: null },
+            effect: {
+              kind: "repository_work",
+              nickname: null,
+              name: null,
+              specification: null,
+            },
           };
         },
       });
@@ -53,6 +58,9 @@ describe("conversation intent provider contract", () => {
         resultDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
       });
       expect(request).toMatchObject({ untrustedConversationTurn: turn });
+      expect(JSON.stringify(request)).toContain(
+        "Read-only live work is still continue_work even when it is expected to leave repository bytes unchanged.",
+      );
     });
   }
 
@@ -64,7 +72,7 @@ describe("conversation intent provider contract", () => {
         intent: "mutate_everything",
         confidence: "high",
         participation: "relevant",
-        effect: { kind: "none", nickname: null, name: null },
+        effect: { kind: "none", nickname: null, name: null, specification: null },
       }),
     });
     await expect(resolver.resolve(turn)).rejects.toThrow("intent result is invalid");
@@ -82,7 +90,7 @@ describe("conversation intent provider contract", () => {
           intent: "continue_work",
           confidence: "high",
           participation: "relevant",
-          effect: { kind, nickname: null, name },
+          effect: { kind, nickname: null, name, specification: null },
         }),
       });
       await expect(

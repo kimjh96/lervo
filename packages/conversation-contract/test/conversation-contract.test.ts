@@ -172,6 +172,34 @@ describe("conversation contract", () => {
     expect(second.ownerParticipantIds).toEqual(first.ownerParticipantIds);
   });
 
+  it("keeps unaddressed turns with the preferred conversation owner", () => {
+    const candidates = [
+      { participantId: "ptc_agent001", roleId: "product-owner", unaddressedPriority: 0 },
+      { participantId: "ptc_agent002", roleId: "ceo", unaddressedPriority: 100 },
+    ];
+    expect(resolveConversationTurnOwnership({ event: event(), candidates })).toMatchObject({
+      basis: "unaddressed",
+      ownerParticipantIds: ["ptc_agent002"],
+    });
+  });
+
+  it("accepts a bounded multi-agent automation depth above one exchange", () => {
+    expect(
+      createConversationParticipationPolicy({
+        projectId: "prj_project01",
+        roleId: "role_reviewer",
+        conversationIds: ["cnv_general01"],
+        mode: "relevant",
+        respondTo: ["human", "agent"],
+        signalCodes: [],
+        cooldownSeconds: 0,
+        maxResponsesPerHour: 8,
+        maxAutomationDepth: 8,
+        createdAt: "2026-08-20T00:00:00.000Z",
+      }),
+    ).toMatchObject({ maxAutomationDepth: 8 });
+  });
+
   it("honors exact participant mentions and selects one owner per mentioned role", () => {
     const source = event();
     const candidates = [

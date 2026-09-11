@@ -1,0 +1,114 @@
+import { spawn } from "node:child_process";
+
+import { assertRepositoryReplicaSnapshot, type RepositoryReplicaSnapshot } from "@lervo/sync";
+
+import type {
+  RepositoryReplicaPeerPort,
+  RepositoryReplicaReceipt,
+} from "./repository-replica-coordinator.js";
+
+const MAXIMUM_SSH_OUTPUT_BYTES = 512 * 1024 * 1024;
+
+export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
+  constructor(
+    private readonly options: {
+      executable: string;
+      arguments: readonly string[];
+      destination: string;
+      remoteNodeExecutable: string;
+      remoteRuntimeExecutable: string;
+      remoteCommandPrefix?: readonly string[];
+    },
+  ) {}
+
+  private command(args: readonly string[], hasInput: boolean): string[] {
+    return [
+      ...this.options.arguments,
+      ...(hasInput ? [] : ["-n"]),
+      this.options.destination,
+      ...(this.options.remoteCommandPrefix ?? []),
+      this.options.remoteNodeExecutable,
+      this.options.remoteRuntimeExecutable,
+      "repository-replica",
+      ...args,
+    ];
+  }
+
+  private execute(args: readonly string[], input?: Uint8Array): Promise<Uint8Array> {
+    return new Promise((resolve, reject) => {
+      const hasInput = input !== undefined;
+      const child = spawn(this.options.executable, this.command(args, hasInput), {
+        stdio: [hasInput ? "pipe" : "ignore", "pipe", "pipe"],
+      });
+      const stdout: Buffer[] = [];
+      const stderr: Buffer[] = [];
+      let bytes = 0;
+      const collect = (target: Buffer[]) => (chunk: Buffer) => {
+        bytes += chunk.byteLength;
+        if (bytes > MAXIMUM_SSH_OUTPUT_BYTES) {
+          child.kill("SIGKILL");
+          reject(new Error("Repository replica SSH output exceeded its bound."));
+          return;
+        }
+        target.push(chunk);
+      };
+      child.stdout!.on("data", collect(stdout));
+      child.stderr!.on("data", collect(stderr));
+      child.stdin?.on("error", (error: NodeJS.ErrnoException) => {
+        if (error.code !== "EPIPE") reject(error);
+      });
+      child.once("error", reject);
+      child.once("close", (code) => {
+        if (code !== 0) {
+          reject(
+            new Error(
+              `Repository replica SSH command failed (${code ?? "signal"}): ${Buffer.concat(stderr).toString("utf8").trim()}`,
+            ),
+          );
+          return;
+        }
+        resolve(new Uint8Array(Buffer.concat(stdout)));
+      });
+      child.stdin?.end(input);
+    });
+  }
+
+  async snapshot(repositoryRoot: string): Promise<RepositoryReplicaSnapshot> {
+    const output = await this.execute(["snapshot", "--root", repositoryRoot]);
+    const snapshot = JSON.parse(Buffer.from(output).toString("utf8")) as RepositoryReplicaSnapshot;
+    assertRepositoryReplicaSnapshot(snapshot);
+    return snapshot;
+  }
+
+  bundle(repositoryRoot: string): Promise<Uint8Array> {
+    return this.execute(["bundle", "--root", repositoryRoot]);
+  }
+
+  async apply(input: {
+    repositoryRoot: string;
+    bundle: Uint8Array;
+    expectedCurrentSnapshotHash: string;
+    allowHistoryReplacement?: boolean;
+  }): Promise<RepositoryReplicaSnapshot> {
+    const output = await this.execute(
+      [
+        input.allowHistoryReplacement === true ? "adopt" : "apply",
+        "--root",
+        input.repositoryRoot,
+        "--expected",
+        input.expectedCurrentSnapshotHash,
+      ],
+      input.bundle,
+    );
+    const snapshot = JSON.parse(Buffer.from(output).toString("utf8")) as RepositoryReplicaSnapshot;
+    assertRepositoryReplicaSnapshot(snapshot);
+    return snapshot;
+  }
+
+  async recordReceipt(input: RepositoryReplicaReceipt): Promise<void> {
+    await this.execute(
+      ["receipt", "--root", input.repositoryRoot],
+      Buffer.from(`${JSON.stringify(input)}\n`, "utf8"),
+    );
+  }
+}

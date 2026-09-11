@@ -31,6 +31,7 @@ import {
   type LocalProviderWritingEvaluatorInput,
 } from "./managed-writing-evaluator.js";
 import { finalizeImmediateManagedAssignment } from "./managed-run-assignment-finalization.js";
+import { prepareManagedRunWritingPolicy } from "./managed-run-writing-policy.js";
 import { recordManagedRoleProfileActivation } from "./managed-role-profile-activation.js";
 import {
   executeManagedLinkedEvidenceCanary,
@@ -257,13 +258,22 @@ export function createManagedRunExecutor(
       }
       const knowledgePolicy = await loadRepositoryKnowledgePolicy(storage.paths.repositoryRoot);
       const writingContract = writingContractForLanguage(knowledgePolicy.publication.language);
-      const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
+      let registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
       const role =
         roleId === "developer"
           ? createDeveloperRole(skillIds, verificationSuiteIds)
           : structuredClone(roleContract.definition.profile);
       role.defaultSkills = [...skillIds];
       role.verification.suiteIds = [...verificationSuiteIds];
+      const managedWriting = await prepareManagedRunWritingPolicy({
+        repositoryRoot: storage.paths.repositoryRoot,
+        dataDirectory: storage.paths.data,
+        registry,
+        role,
+        writingContract,
+        verifiedAt: storage.manifest.createdAt,
+      });
+      registry = managedWriting.registry;
       const capabilityIds =
         requestedCapabilityIds.length === 0
           ? [...(role.defaultCapabilityPackages ?? [])]
@@ -486,8 +496,12 @@ export function createManagedRunExecutor(
             : linkedEvidenceCanary === undefined
               ? { defaultLinkedEvidenceSelections: linkedEvidenceSelections }
               : { linkedEvidenceSelections }),
-          documentRules:
-            currentWorkstream === null ? {} : { "repository.workstream": [workstreamDocumentId] },
+          documentRules: {
+            ...managedWriting.documentRules,
+            ...(currentWorkstream === null
+              ? {}
+              : { "repository.workstream": [workstreamDocumentId] }),
+          },
           additionalCandidates: [
             ...searchContext.additionalCandidates,
             ...(currentWorkstream === null
@@ -505,7 +519,7 @@ export function createManagedRunExecutor(
           ],
           createReceiptId: () => dependencies.createId("ctx"),
         },
-        writingPolicy: null,
+        writingPolicy: managedWriting.writingPolicy,
         resolvedSkills,
         resolvedCapabilities: runCapabilities.capabilities.map((item) => ({
           capabilityId: item.capabilityId,

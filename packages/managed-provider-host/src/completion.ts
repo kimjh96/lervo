@@ -14,7 +14,9 @@ import type { RemoteContinuationCoordinate } from "@lervo/schemas";
 
 import { ManagedProviderHostError } from "./types.js";
 
-async function assertKnowledgeCurrent(repositoryRoot: string): Promise<void> {
+export async function assertManagedRepositoryKnowledgeCurrent(
+  repositoryRoot: string,
+): Promise<void> {
   await assertNoKnowledgeMaterializationTransaction({ repositoryRoot });
   const { scan } = await scanConfiguredRepositoryKnowledge(repositoryRoot);
   const shared = { preparedScan: scan };
@@ -62,5 +64,5 @@ export async function verifyManagedProviderHostCompletion(input: {
       "The repository changed without advancing the exact continued workstream.",
     );
   }
-  await assertKnowledgeCurrent(input.repositoryRoot);
+  await assertManagedRepositoryKnowledgeCurrent(input.repositoryRoot);
 }

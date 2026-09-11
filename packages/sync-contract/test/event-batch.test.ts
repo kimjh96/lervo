@@ -124,4 +124,57 @@ describe("outbound event batch contract", () => {
     const batch = createOutboundEventBatch({ registration: request, events: [legacy] });
     expect(batch.events[0]!.payload).not.toHaveProperty("selectionTransitionId");
   });
+
+  it.each([
+    {
+      type: "adapter.result.captured",
+      payload: {
+        adapterId: "codex-app-server",
+        providerSessionId: "session-legacy",
+        targetTurnId: "turn-legacy",
+        providerTurnId: "provider-turn-legacy",
+        resultDigest: `sha256:${"a".repeat(64)}`,
+        byteCount: 1,
+        mediaType: "text/markdown; charset=utf-8",
+        referenceTelemetry: "supported",
+      },
+    },
+    {
+      type: "resource.usage.recorded",
+      payload: {
+        workId: `wrk_${"a".repeat(24)}`,
+        resourceObservationId: `ruo_${"b".repeat(24)}`,
+        sourceCoordinateDigest: `sha256:${"c".repeat(64)}`,
+        scope: "primary_provider",
+        source: "provider_reported",
+        accountingMode: "operation_delta",
+        accountingDescriptorHash: `sha256:${"d".repeat(64)}`,
+        status: "unavailable",
+        usage: null,
+        reasonCode: "legacy_unobserved",
+      },
+    },
+  ] as const)(
+    "keeps a hash-valid legacy $type event syncable without inventing model evidence",
+    ({ type, payload }) => {
+      const project = manifest();
+      const source = eventChain(project.projectId, 1)[0]!;
+      const { eventHash: _eventHash, ...sourceWithoutHash } = source;
+      const withoutHash: Omit<EventEnvelope, "eventHash"> = {
+        ...sourceWithoutHash,
+        schemaVersion: 2,
+        type,
+        actor: { kind: "provider", provider: "codex" },
+        payload,
+      };
+      const legacy: EventEnvelope = { ...withoutHash, eventHash: computeEventHash(withoutHash) };
+
+      const batch = createOutboundEventBatch({
+        registration: registration(project),
+        events: [legacy],
+      });
+      expect(batch.events[0]!.payload).toEqual(payload);
+      expect(batch.events[0]!.payload).not.toHaveProperty("modelIdentity");
+    },
+  );
 });

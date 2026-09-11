@@ -38045,7 +38045,7 @@ var conversationParticipationPolicySchema = {
     },
     cooldownSeconds: { type: "integer", minimum: 0, maximum: 86400 },
     maxResponsesPerHour: { type: "integer", minimum: 1, maximum: 60 },
-    maxAutomationDepth: { type: "integer", minimum: 0, maximum: 4 },
+    maxAutomationDepth: { type: "integer", minimum: 0, maximum: 32 },
     createdAt: timestampSchema
   },
   required: [
@@ -38097,6 +38097,74 @@ var conversationParticipationDecisionSchema = {
     "reason",
     "relevance",
     "decidedAt"
+  ],
+  additionalProperties: false
+};
+
+// packages/schemas/dist/conversation-repository-work-event.js
+var requestedModelSchema = {
+  type: "string",
+  minLength: 1,
+  maxLength: 128,
+  pattern: "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$"
+};
+var reasoningEffortSchema = {
+  type: "string",
+  enum: ["low", "medium", "high", "xhigh", "max"]
+};
+var conversationRepositoryWorkCompletedEventPayloadSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/conversation-repository-work-completed-event-payload.schema.json",
+  type: "object",
+  properties: {
+    sourceConversationEventId: conversationEventIdSchema,
+    workerAgentId: workforceAgentIdSchema,
+    providerSessionDigest: sha256Schema,
+    requestedModel: { anyOf: [requestedModelSchema, { type: "null" }] },
+    requestedReasoningEffort: { anyOf: [reasoningEffortSchema, { type: "null" }] },
+    requestContentHash: sha256Schema,
+    resultContentHash: sha256Schema,
+    resultByteCount: { type: "integer", minimum: 1, maximum: 16777216 },
+    repositoryRevisionBefore: sha256Schema,
+    repositoryRevisionAfter: sha256Schema,
+    changedPaths: {
+      type: "array",
+      maxItems: 64,
+      uniqueItems: true,
+      items: {
+        type: "string",
+        minLength: 1,
+        maxLength: 500,
+        pattern: "^(?!/)(?![A-Za-z]:[/\\\\])(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$"
+      }
+    },
+    changedPathCount: { type: "integer", minimum: 0 },
+    workstreamId: { type: "string", pattern: "^wks_[a-f0-9]{24}$" },
+    workstreamRevision: { type: "integer", minimum: 1 },
+    workstreamSnapshotHash: sha256Schema,
+    knowledgeDisposition: { type: "string", enum: ["current", "baseline_valid"] },
+    replicaDisposition: { type: "string", enum: ["current", "not_configured"] },
+    verificationStatus: { type: "string", const: "passed" },
+    completedAt: timestampSchema
+  },
+  required: [
+    "sourceConversationEventId",
+    "workerAgentId",
+    "providerSessionDigest",
+    "requestContentHash",
+    "resultContentHash",
+    "resultByteCount",
+    "repositoryRevisionBefore",
+    "repositoryRevisionAfter",
+    "changedPaths",
+    "changedPathCount",
+    "workstreamId",
+    "workstreamRevision",
+    "workstreamSnapshotHash",
+    "knowledgeDisposition",
+    "replicaDisposition",
+    "verificationStatus",
+    "completedAt"
   ],
   additionalProperties: false
 };
@@ -40272,6 +40340,7 @@ var eventTypesV1 = [
 ];
 var eventTypesV2 = [
   ...eventTypesV1,
+  "conversation.repository_work.completed",
   "agent.liveness.observed",
   "provider.process.observed",
   "work.causality.recorded",
@@ -47515,6 +47584,7 @@ var validators = {
   conversationParticipationPolicy: ajv.compile(conversationParticipationPolicySchema),
   conversationParticipationDecision: ajv.compile(conversationParticipationDecisionSchema),
   conversationOutboundMessage: ajv.compile(conversationOutboundMessageSchema),
+  conversationRepositoryWorkCompletedEventPayload: ajv.compile(conversationRepositoryWorkCompletedEventPayloadSchema),
   conversationDeliveryReceipt: ajv.compile(conversationDeliveryReceiptSchema),
   deliberationPolicy: ajv.getSchema(deliberationPolicySchema.$id),
   deliberationWorkflowSource: ajv.compile(deliberationWorkflowSourceSchema),
@@ -47763,6 +47833,27 @@ var eventPayloadAllowlists = {
   "run.resolved": ["role", "risk", "policyVersion"],
   "run.completed": ["resultDigest", "artifactIds", "verificationStatus"],
   "run.failed": ["failureCode", "retryable", "diagnosticDigest"],
+  "conversation.repository_work.completed": [
+    "sourceConversationEventId",
+    "workerAgentId",
+    "providerSessionDigest",
+    "requestedModel",
+    "requestedReasoningEffort",
+    "requestContentHash",
+    "resultContentHash",
+    "resultByteCount",
+    "repositoryRevisionBefore",
+    "repositoryRevisionAfter",
+    "changedPaths",
+    "changedPathCount",
+    "workstreamId",
+    "workstreamRevision",
+    "workstreamSnapshotHash",
+    "knowledgeDisposition",
+    "replicaDisposition",
+    "verificationStatus",
+    "completedAt"
+  ],
   "context.recommended": [
     "recommendationId",
     "batchId",
@@ -48779,16 +48870,18 @@ function sanitizeEventPayload(type, payload) {
   const invalidVerificationCoordinate = !invalidSchema && type === "verification.completed" && !verificationCoordinateMatches(sanitized);
   const invalidRunCompletedCoordinate = !invalidSchema && type === "run.completed" && !runCompletedCoordinateMatches(sanitized);
   const invalidCompletionPreparedCoordinate = !invalidSchema && type === "assignment.completion.prepared" && !assignmentCompletionPreparedCoordinateMatches(sanitized);
+  const invalidConversationRepositoryWorkCoordinate = !invalidSchema && type === "conversation.repository_work.completed" && !conversationRepositoryWorkCoordinateMatches(sanitized);
   const invalidCompletionReconciledCoordinate = !invalidSchema && type === "assignment.completion.reconciled" && !assignmentCompletionReconciledCoordinateMatches(sanitized);
   const invalidWorkstreamCoordinate = !invalidSchema && type === "workstream.snapshot.recorded" && !workstreamCoordinateMatches(sanitized);
   const invalidResourceUsageCoordinate = !invalidSchema && type === "resource.usage.recorded" && !resourceUsageCoordinateMatches(sanitized);
   const invalidAgentContextCoordinate = !invalidSchema && (type === "agent.context.promoted" && !agentContextPromotionCoordinateMatches(sanitized) || type === "agent.context.handoff.recorded" && !agentContextHandoffCoordinateMatches(sanitized));
-  if (invalidSchema || invalidArtifactCoordinate || invalidCandidateCoordinate || invalidKnowledgeCoordinate || invalidVerificationCoordinate || invalidRunCompletedCoordinate || invalidCompletionPreparedCoordinate || invalidCompletionReconciledCoordinate || invalidWorkstreamCoordinate || invalidResourceUsageCoordinate || invalidAgentContextCoordinate) {
+  if (invalidSchema || invalidArtifactCoordinate || invalidCandidateCoordinate || invalidKnowledgeCoordinate || invalidVerificationCoordinate || invalidRunCompletedCoordinate || invalidCompletionPreparedCoordinate || invalidConversationRepositoryWorkCoordinate || invalidCompletionReconciledCoordinate || invalidWorkstreamCoordinate || invalidResourceUsageCoordinate || invalidAgentContextCoordinate) {
     throw new RedactionError("invalid_payload", "$", `${type} payload does not satisfy the required coordinates and state contract.`);
   }
   return { payload: sanitized, redactions };
 }
 var eventPayloadSchemas = {
+  "conversation.repository_work.completed": "conversationRepositoryWorkCompletedEventPayload",
   "agent.context.promoted": "agentContextPromotedEventPayload",
   "agent.context.handoff.recorded": "agentContextHandoffRecordedEventPayload",
   "agent.liveness.observed": "agentLivenessObservedEventPayload",
@@ -48837,6 +48930,11 @@ var eventPayloadSchemas = {
   "resource.usage.recorded": "resourceUsageRecordedEventPayload",
   "execution.stages.observed": "executionStagesObservedEventPayload"
 };
+function conversationRepositoryWorkCoordinateMatches(payload) {
+  if (payload.changedPathCount < payload.changedPaths.length)
+    return false;
+  return payload.changedPathCount === 0 ? payload.changedPaths.length === 0 && payload.repositoryRevisionBefore === payload.repositoryRevisionAfter : payload.repositoryRevisionBefore !== payload.repositoryRevisionAfter;
+}
 function deliberationArtifactCoordinateMatches(payload) {
   return payload.artifactId === `art_${payload.contentHash.slice("sha256:".length)}`;
 }
@@ -54727,12 +54825,19 @@ async function listContentFiles(root2, current = root2) {
   }
   return files;
 }
-async function hashSkillPackage(directoryPath) {
+async function hashSkillPackageProjection(directoryPath, overrides) {
   const files = await listContentFiles(directoryPath);
-  return hashSkillContentFiles(await Promise.all(files.map(async (path) => ({
-    path: portablePath(relative2(directoryPath, path)),
-    bytes: await regularFile(path)
-  }))));
+  const projected = new Map(await Promise.all(files.map(async (path) => [portablePath(relative2(directoryPath, path)), await regularFile(path)])));
+  for (const [path, bytes] of overrides) {
+    if ([MANIFEST_NAME, "lervo-capability.json"].includes(path)) {
+      throw new SkillResolutionError("unsafe_skill_package", "Skill package content projections cannot replace package manifests.");
+    }
+    projected.set(path, bytes);
+  }
+  return hashSkillContentFiles([...projected].map(([path, bytes]) => ({ path, bytes })));
+}
+async function hashSkillPackage(directoryPath) {
+  return hashSkillPackageProjection(directoryPath, /* @__PURE__ */ new Map());
 }
 
 // packages/skills/dist/authorization-filesystem.js
@@ -55478,7 +55583,7 @@ function jsonKeyUnits(projectId, source) {
     versionBinding: "unit"
   }));
 }
-function extractUnits(projectId, source) {
+function extractUnits(projectId, source, sourceUnitFailureMode = "fail") {
   if (source.kind === "revision_metadata") {
     return [
       unit({
@@ -55509,14 +55614,28 @@ function extractUnits(projectId, source) {
     endLine: source.content.split("\n").length,
     title: basename5(source.path)
   });
-  const cssSpans = source.path.toLocaleLowerCase().endsWith(".css") ? extractCssSymbolSpans(source.content) : [];
+  let codeUnits;
+  let jsonUnits;
+  let yamlUnits;
+  let cssSpans;
+  try {
+    codeUnits = codeSymbolUnits(projectId, source);
+    jsonUnits = jsonKeyUnits(projectId, source);
+    yamlUnits = yamlKeyUnits(projectId, source);
+    cssSpans = source.path.toLocaleLowerCase().endsWith(".css") ? extractCssSymbolSpans(source.content) : [];
+  } catch (error) {
+    if (sourceUnitFailureMode !== "file_only" || !(error instanceof RepositoryKnowledgeError) || error.code !== "knowledge_unit_extraction_failed") {
+      throw error;
+    }
+    return [fileUnit];
+  }
   const cssCoordinates = coordinateMap(source.content, cssSpans.flatMap((span) => [span.startCharacter, span.endCharacter]));
   return [
     fileUnit,
     ...source.path.endsWith(".md") || source.path.endsWith(".mdx") ? markdownUnits(projectId, source) : [],
-    ...codeSymbolUnits(projectId, source),
-    ...jsonKeyUnits(projectId, source),
-    ...yamlKeyUnits(projectId, source),
+    ...codeUnits,
+    ...jsonUnits,
+    ...yamlUnits,
     ...cssSpans.map((span) => unit({
       projectId,
       source,
@@ -55621,7 +55740,9 @@ async function scanRepositoryKnowledge(input) {
         });
         continue;
       }
-      if (stats.size > input.policy.limits.maxFileBytes) {
+      const artifactProfile = repositoryAgentArtifactForPath(path);
+      const boundedOpaqueResource = artifactProfile?.contentHandling === "opaque_resource";
+      if (stats.size > input.policy.limits.maxFileBytes && !boundedOpaqueResource) {
         sources.push({
           sourceId: id,
           path,
@@ -55821,7 +55942,7 @@ async function scanRepositoryKnowledge(input) {
     const supplemental = supplementalByPath.get(source.path);
     if (supplemental === void 0)
       return [
-        ...extractUnits(input.projectId, source),
+        ...extractUnits(input.projectId, source, input.sourceUnitFailureMode),
         ...(skillDescriptorByPath.get(source.path) ?? []).map((descriptor) => unit({
           projectId: input.projectId,
           source,
@@ -63987,6 +64108,8 @@ function alreadyCanonical(path, taxonomy) {
 function migrationCandidate(path, taxonomy) {
   if (!/\.mdx?$/iu.test(path))
     return false;
+  if (/(?:^|\/)README\/.*\.mdx?$/iu.test(path))
+    return false;
   if (!path.includes("/") && (basename6(path) === "README.md" || CONVENTIONAL_ENTRYPOINTS.has(basename6(path))))
     return false;
   if (basename6(path) === "README.md" && posix4.dirname(path) !== documentRoot(taxonomy))
@@ -68384,6 +68507,7 @@ var RepositoryKnowledgeQueryIndex = class _RepositoryKnowledgeQueryIndex {
       projectId: project2.projectId,
       policy,
       generatedPaths: generated,
+      ...input.sourceUnitFailureMode === void 0 ? {} : { sourceUnitFailureMode: input.sourceUnitFailureMode },
       ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources }
     });
     const currentUnits = new Set(scan.units.map((unit2) => unit2.unitVersionId));
@@ -77502,6 +77626,12 @@ var CodexStdioAppServerClient = class _CodexStdioAppServerClient {
 
 // packages/adapter-codex/dist/responses-no-tool-client.js
 var MAXIMUM_RESPONSE_BYTES = 1024 * 1024;
+
+// packages/adapter-codex/dist/repository-work.js
+import { execFile as execFile6, spawn as spawn3 } from "node:child_process";
+import { promisify as promisify6 } from "node:util";
+var MAXIMUM_OUTPUT_BYTES = 16 * 1024 * 1024;
+var executeFile2 = promisify6(execFile6);
 
 // apps/cli/src/provider-query-runner-codex.ts
 var defaultDependencies = {

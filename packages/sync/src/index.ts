@@ -5,6 +5,7 @@ export * from "./http-transport.js";
 export * from "./polling-runtime.js";
 export * from "./peer-capabilities.js";
 export * from "./project-registration.js";
+export * from "./repository-replication.js";
 export * from "./transport.js";
 export * from "./types.js";
 export * from "./worker.js";

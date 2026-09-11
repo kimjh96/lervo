@@ -6,4 +6,10 @@ Conversation records preserve exact hired-agent and role hashes. Unique display 
 
 Implemented outcomes include durable organization membership, central/project team reclassification, reviewed executive Discord channel and thread effects, and bounded deliberation-outcome reconciliation.
 
-Delegation and approval effects, reviewed accumulated agent-context promotion through real turns, natural group routing, and installed multi-team acceptance remain `delivery required`.
+Repository product-owner role contracts and durable named PO identities can be installed independently of Discord deployment. The following remain `delivery required` until live evidence proves them:
+
+- Natural team-scoped PO hiring and assignment effects.
+- Approval effects.
+- Reviewed accumulated agent-context promotion through real turns.
+- Shared-general-channel group routing.
+- Installed multi-team acceptance.

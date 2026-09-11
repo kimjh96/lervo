@@ -1,6 +1,7 @@
 import type { ConversationRemoteContinuationPort } from "@lervo/conversation-control";
 import type { DiscordGatewayTransport } from "@lervo/discord-gateway";
 import type { ConversationResponder } from "@lervo/interaction";
+import type { RepositoryWorkTurnExecutor } from "@lervo/adapter-contract";
 import type { RemoteCommandDeliveryAcknowledgement, RemoteCommandLease } from "@lervo/schemas";
 import type { EventStore } from "@lervo/storage-contract";
 
@@ -30,12 +31,19 @@ export interface NodeDiscordConversationRuntimeOptions {
     createdAt: string;
   };
   repositoryRoot: string;
+  repositoryReplica?: NodeRuntimeConfig["repositoryReplica"];
   dataDirectory: string;
+  runtimeConfigPath?: string;
   bearerToken(): string;
   continuation?: ConversationRemoteContinuationPort;
   readOnlyResponder?: ConversationResponder;
   intentResolver?: ConversationIntentResolver;
   providerExecutables?: Partial<Record<"codex" | "claude", string>>;
+  providerModels?: Partial<Record<"codex" | "claude", string>>;
+  providerReasoningEfforts?: Partial<
+    Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">
+  >;
+  repositoryWorkExecutor?: RepositoryWorkTurnExecutor;
   managedRepositoryResources?: ManagedConversationRepositoryResources;
   agentParticipation?: DiscordAgentParticipation;
   peerAgents?: DiscordPeerAgentBinding[];

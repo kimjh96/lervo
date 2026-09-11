@@ -105,13 +105,16 @@ function discordIntegration(
       } else {
         delivery = new DiscordRestDelivery({ ...transportOptions, botToken: deployment.botToken });
       }
-      const typing = new DiscordRestTyping({
-        botToken: deployment.botToken,
-        ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
-        ...(deployment.requestTimeoutMs === undefined
-          ? {}
-          : { requestTimeoutMs: deployment.requestTimeoutMs }),
-      });
+      const typing =
+        deployment.delivery?.kind === "webhook"
+          ? undefined
+          : new DiscordRestTyping({
+              botToken: deployment.botToken,
+              ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
+              ...(deployment.requestTimeoutMs === undefined
+                ? {}
+                : { requestTimeoutMs: deployment.requestTimeoutMs }),
+            });
       const conversationAddress = new DiscordRestConversationAddress({
         botToken: deployment.botToken,
         allowedGuildIds: deployment.allowedGuildIds,
@@ -145,7 +148,10 @@ function discordIntegration(
           deployment.delivery?.kind === "webhook"
             ? deployment.delivery.webhooks.map((webhook) => `webhook:${webhook.webhookId}`)
             : [`bot:${deployment.applicationId}`],
-        typing,
+        ...(deployment.textualParticipantAliases === undefined
+          ? {}
+          : { textualParticipantAliases: deployment.textualParticipantAliases }),
+        ...(typing === undefined ? {} : { typing }),
         ...(context.now === undefined ? {} : { now: context.now }),
       });
     },

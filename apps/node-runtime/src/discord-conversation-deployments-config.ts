@@ -6,7 +6,7 @@ import {
   discordSpeakerPrincipalId,
 } from "./discord-conversation-speaker.js";
 
-const MAX_DISCORD_CONVERSATIONS = 8;
+export const MAX_DISCORD_CONVERSATIONS = 8;
 
 function unique(values: string[]): boolean {
   return new Set(values).size === values.length;
@@ -67,20 +67,28 @@ function validateDistinctIdentities(configs: NodeDiscordConversationConfig[]): v
       "Discord webhook speakers must use distinct webhook IDs and owner-only credential files.",
     );
   }
-  const configuredParticipantIds = new Set(
+  const configuredParticipants = new Map(
     configs.flatMap((config) =>
-      discordSpeakerParticipantKeys(config).map((key) => key.slice(key.indexOf(":") + 1)),
+      discordSpeakerParticipantKeys(config).map(
+        (key) => [key.slice(key.indexOf(":") + 1), config] as const,
+      ),
     ),
   );
-  if (
-    configs.some((config) =>
-      config.participants.some((participant) => configuredParticipantIds.has(participant.userId)),
-    )
-  ) {
-    throw new NodeRuntimeError(
-      "invalid_config",
-      "Configured Discord speaker identities are bound automatically and cannot be repeated as manual participants.",
-    );
+  for (const config of configs) {
+    for (const participant of config.participants) {
+      const peer = configuredParticipants.get(participant.userId);
+      if (peer === undefined) continue;
+      if (
+        participant.actorKind !== "agent" ||
+        participant.participantId !== peer.agentParticipantId ||
+        participant.startsAutomationChain !== true
+      ) {
+        throw new NodeRuntimeError(
+          "invalid_config",
+          "A repeated Discord speaker identity must be the exact co-resident agent and an explicit automation-chain starter.",
+        );
+      }
+    }
   }
 }
 

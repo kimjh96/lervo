@@ -19,7 +19,35 @@ interface DiscordCompositionOptions {
 
 export type DiscordPeerAgentBinding = NonNullable<
   NodeDiscordConversationConfig["peerAgents"]
->[number] & { agentBinding: ConversationAgentBinding };
+>[number] & { agentBinding: ConversationAgentBinding; displayName?: string };
+
+export function createAuthorizedAgentEffectRequesters(
+  config: NodeDiscordConversationConfig,
+  peerAgents: readonly DiscordPeerAgentBinding[],
+) {
+  return [
+    ...config.participants.flatMap((participant) =>
+      participant.mayRequestEffects === true && participant.roleId !== null
+        ? config.conversations
+            .filter((conversation) => conversation.tenantKey === participant.tenantKey)
+            .map((conversation) => ({
+              participantId: participant.participantId,
+              roleId: participant.roleId!,
+              conversationId: conversation.conversationId,
+            }))
+        : [],
+    ),
+    ...peerAgents.flatMap((peer) =>
+      peer.roleId === "ceo"
+        ? peer.conversationIds.map((conversationId) => ({
+            participantId: peer.participantId,
+            roleId: peer.roleId,
+            conversationId,
+          }))
+        : [],
+    ),
+  ];
+}
 
 export function createDiscordHubContinuation(
   options: DiscordCompositionOptions,
@@ -84,6 +112,12 @@ export function createDiscordPlatformBindings(input: {
   const { config } = input;
   const peerAgents = [...(config.peerAgents ?? []), ...(input.peerAgents ?? [])];
   const tenantKeys = [...new Set(config.conversations.map((binding) => binding.tenantKey))];
+  const manualParticipantKeys = new Set(
+    config.participants.map(
+      (participant) =>
+        `${participant.tenantKey}\0${participant.actorKind === "agent" ? "bot" : "user"}:${participant.userId}`,
+    ),
+  );
   return {
     conversations: config.conversations.map((binding) => ({
       platform: "discord" as const,
@@ -94,18 +128,29 @@ export function createDiscordPlatformBindings(input: {
       conversationId: binding.conversationId,
     })),
     participants: [
-      ...config.participants.map((binding) => ({
-        platform: "discord" as const,
-        integrationId: config.integrationId,
-        tenantKey: binding.tenantKey,
-        participantKey: `${binding.actorKind === "agent" ? "bot" : "user"}:${binding.userId}`,
-        actor: {
-          kind: binding.actorKind,
-          participantId: binding.participantId,
-          roleId: binding.roleId,
-        },
-        ...(binding.startsAutomationChain === true ? { startsAutomationChain: true } : {}),
-      })),
+      ...config.participants.map((binding) => {
+        const participantKey = `${binding.actorKind === "agent" ? "bot" : "user"}:${binding.userId}`;
+        const peer = peerAgents.find(
+          (candidate) =>
+            candidate.participantId === binding.participantId &&
+            candidate.roleId === binding.roleId &&
+            candidate.tenantKeys.includes(binding.tenantKey) &&
+            candidate.participantKeys.includes(participantKey),
+        );
+        return {
+          platform: "discord" as const,
+          integrationId: config.integrationId,
+          tenantKey: binding.tenantKey,
+          participantKey,
+          actor: {
+            kind: binding.actorKind,
+            participantId: binding.participantId,
+            roleId: binding.roleId,
+            ...(peer === undefined ? {} : { agentBinding: peer.agentBinding }),
+          },
+          ...(binding.startsAutomationChain === true ? { startsAutomationChain: true } : {}),
+        };
+      }),
       ...tenantKeys.flatMap((tenantKey) =>
         discordSpeakerParticipantKeys(config).map((participantKey) => ({
           platform: "discord" as const,
@@ -123,18 +168,23 @@ export function createDiscordPlatformBindings(input: {
       ...peerAgents.flatMap((peer) =>
         tenantKeys.flatMap((tenantKey) =>
           peer.tenantKeys.includes(tenantKey)
-            ? peer.participantKeys.map((participantKey) => ({
-                platform: "discord" as const,
-                integrationId: config.integrationId,
-                tenantKey,
-                participantKey,
-                actor: {
-                  kind: "agent" as const,
-                  participantId: peer.participantId,
-                  roleId: peer.roleId,
-                  agentBinding: peer.agentBinding,
-                },
-              }))
+            ? peer.participantKeys
+                .filter(
+                  (participantKey) => !manualParticipantKeys.has(`${tenantKey}\0${participantKey}`),
+                )
+                .map((participantKey) => ({
+                  platform: "discord" as const,
+                  integrationId: config.integrationId,
+                  tenantKey,
+                  participantKey,
+                  actor: {
+                    kind: "agent" as const,
+                    participantId: peer.participantId,
+                    roleId: peer.roleId,
+                    agentBinding: peer.agentBinding,
+                  },
+                  startsAutomationChain: true,
+                }))
             : [],
         ),
       ),

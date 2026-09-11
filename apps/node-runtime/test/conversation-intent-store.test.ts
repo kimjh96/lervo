@@ -39,6 +39,22 @@ describe("conversation intent resolution evidence", () => {
     await store.record(input);
     await store.record(input);
     await expect(store.read(event)).resolves.toEqual(input.resolution);
+    const hireEvent = {
+      eventId: "cve_hire0001",
+      content: { contentHash: `sha256:${"d".repeat(64)}`, byteCount: 16 },
+    } as ConversationInboundEvent;
+    const hireResolution = {
+      ...input.resolution,
+      intent: "continue_work" as const,
+      participation: "relevant" as const,
+      effect: {
+        kind: "workforce_agent_hire" as const,
+        specification: '{"name":"Navi","roleId":"developer","provider":"any"}',
+      },
+      resultDigest: `sha256:${"e".repeat(64)}`,
+    };
+    await store.record({ ...input, event: hireEvent, resolution: hireResolution });
+    await expect(store.read(hireEvent)).resolves.toEqual(hireResolution);
     await expect(
       store.read({
         ...event,

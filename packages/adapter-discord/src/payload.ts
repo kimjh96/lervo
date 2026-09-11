@@ -45,6 +45,25 @@ function isoTimestamp(value: unknown): string {
   return new Date(milliseconds).toISOString();
 }
 
+function messageContent(value: unknown): string {
+  if (typeof value !== "string" || value.length > 65_536) {
+    throw new ConversationPlatformError(
+      "invalid_platform_payload",
+      "Discord message content is invalid.",
+    );
+  }
+  return value;
+}
+
+function agentParticipantKey(value: unknown): string | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const message = value as Record<string, unknown>;
+  const author = objectValue(message.author);
+  const webhookId = optionalSnowflake(message.webhook_id, "Discord referenced webhook ID");
+  if (webhookId !== null) return `webhook:${webhookId}`;
+  return author.bot === true ? `bot:${snowflake(author.id, "Discord referenced author ID")}` : null;
+}
+
 export function parseDiscordGatewayPayload(
   value: unknown,
 ): { kind: "not_dispatch" } | ParsedDiscordGateway {
@@ -70,6 +89,7 @@ export function parseDiscordMessagePayload(value: unknown): ParsedDiscordMessage
     message.message_reference === undefined || message.message_reference === null
       ? null
       : objectValue(message.message_reference);
+  const referencedAgent = agentParticipantKey(message.referenced_message);
   return {
     kind: "message",
     messageId: snowflake(message.id, "Discord message ID"),
@@ -79,15 +99,18 @@ export function parseDiscordMessagePayload(value: unknown): ParsedDiscordMessage
       webhookId === null
         ? `${bot ? "bot" : "user"}:${snowflake(author.id, "Discord author ID")}`
         : `webhook:${webhookId}`,
-    mentionedParticipantKeys: mentionValues.map(
-      (item) => `user:${snowflake(objectValue(item).id, "Discord mentioned user ID")}`,
-    ),
+    mentionedParticipantKeys: [
+      ...mentionValues.map(
+        (item) => `user:${snowflake(objectValue(item).id, "Discord mentioned user ID")}`,
+      ),
+      ...(referencedAgent === null ? [] : [referencedAgent]),
+    ].filter((value, index, values) => values.indexOf(value) === index),
     actorKindHint: bot || webhookId !== null ? "agent" : "human",
     replyToMessageId:
       reference === null
         ? null
         : optionalSnowflake(reference.message_id, "Discord reply message ID"),
-    content: requiredString(message.content, "Discord message content", 65_536),
+    content: messageContent(message.content),
     occurredAt: isoTimestamp(message.timestamp),
   };
 }

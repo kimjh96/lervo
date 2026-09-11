@@ -328,10 +328,13 @@ export class ConversationPlatformBindingRepository {
       replyToEventId: reply?.reply_event_id ?? null,
       automationDepth:
         source?.automation_depth ??
-        (actor.actor_kind === "agent" &&
-        !this.activeAutomationChainStarters.has(this.participantKey(input))
-          ? 8
-          : 0),
+        (actor.actor_kind !== "agent"
+          ? 0
+          : reply !== null
+            ? Math.min(reply.automation_depth + 1, 8)
+            : this.activeAutomationChainStarters.has(this.participantKey(input))
+              ? 0
+              : 8),
     };
   }
 

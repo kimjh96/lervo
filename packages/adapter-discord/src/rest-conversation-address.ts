@@ -61,7 +61,7 @@ export class DiscordRestConversationAddress implements DiscordConversationAddres
   async resolve(input: {
     guildId: string | null;
     channelId: string;
-  }): Promise<{ conversationKey: string; threadKey: string | null }> {
+  }): Promise<{ conversationKey: string; threadKey: string | null } | null> {
     if (!snowflake.test(input.channelId)) {
       throw new ConversationPlatformError(
         "identity_mapping_failed",
@@ -112,10 +112,7 @@ export class DiscordRestConversationAddress implements DiscordConversationAddres
       typeof channel.type !== "number" ||
       !discordThreadTypes.has(channel.type)
     ) {
-      throw new ConversationPlatformError(
-        "identity_mapping_failed",
-        "The Discord thread is outside the configured conversation scope.",
-      );
+      return null;
     }
     return { conversationKey: channel.parent_id, threadKey: input.channelId };
   }

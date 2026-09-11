@@ -1,4 +1,6 @@
 export * from "./cli.js";
+export * from "./agent-organization-event-mutation.js";
+export * from "./agent-organization-mutation.js";
 export * from "./control-loop.js";
 export type { NodeRemoteCommandPorts, NodeRemoteControlRuntime } from "./control-runtime.js";
 export * from "./config-types.js";
@@ -8,6 +10,7 @@ export * from "./conversation-intent-resolver.js";
 export * from "./credentials.js";
 export * from "./discord-conversation-config.js";
 export * from "./discord-agent-organization.js";
+export * from "./discord-agent-organization-deployment-binding.js";
 export * from "./discord-conversation-deployments-config.js";
 export * from "./discord-conversation-speaker.js";
 export * from "./discord-conversation-group-runtime.js";

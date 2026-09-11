@@ -59,11 +59,11 @@ export interface DiscordDeliveryRequest {
 }
 
 export interface DiscordConversationAddressPort {
-  /** Resolves a Gateway channel into its configured parent conversation and optional thread. */
+  /** Resolves an owned Gateway channel, or returns null when another channel owns the event. */
   resolve(input: {
     guildId: string | null;
     channelId: string;
-  }): Promise<{ conversationKey: string; threadKey: string | null }>;
+  }): Promise<{ conversationKey: string; threadKey: string | null } | null>;
 }
 
 export interface DiscordDeliveryResult {
@@ -130,6 +130,24 @@ export interface DiscordAdministrationPort {
     token: string;
     observedAt: string;
   }>;
+  updateIncomingWebhook(input: {
+    guildId: string;
+    channelId: string;
+    webhookId: string;
+    name: string;
+  }): Promise<{
+    guildId: string;
+    channelId: string;
+    webhookId: string;
+    name: string;
+    observedAt: string;
+  }>;
+  deleteIncomingWebhook(input: { guildId: string; channelId: string; webhookId: string }): Promise<{
+    guildId: string;
+    channelId: string;
+    webhookId: string;
+    observedAt: string;
+  }>;
 }
 
 export interface DiscordResponseActivity {
@@ -148,6 +166,10 @@ export interface DiscordConversationAdapterOptions {
   conversationAddress?: DiscordConversationAddressPort;
   deliveryIdentity?: string;
   ignoredParticipantKeys?: readonly string[];
+  textualParticipantAliases?: readonly {
+    displayName: string;
+    participantKey: string;
+  }[];
   typing?: DiscordTypingPort;
   capabilities?: readonly ConversationAdapterCapability[];
   now?: () => Date;

@@ -24,6 +24,12 @@ export interface NodeRuntimeConfig {
     mode: "hub_coordinated";
     nodeId: string;
   };
+  repositoryReplica?: {
+    required: true;
+    maximumStalenessMs: number;
+    waitTimeoutMs: number;
+    pollIntervalMs: number;
+  };
   discordConversation?: NodeDiscordConversationConfig;
   discordConversations?: NodeDiscordConversationConfig[];
   remoteCommands?: {
@@ -117,11 +123,13 @@ export interface NodeDiscordConversationConfig {
       | "guild_text_channel.create"
       | "public_thread.create"
       | "incoming_webhook.create"
+      | "workforce.agent.hire"
     >;
     webhookCredentialDirectory?: string;
   };
   routing?: {
     readOnlyRoleId: string;
+    workTimeoutMs?: number;
     intent?: {
       provider: "codex" | "claude";
       model?: string;

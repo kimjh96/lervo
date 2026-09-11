@@ -96,6 +96,7 @@ export const eventTypesV1 = [
 
 export const eventTypesV2 = [
   ...eventTypesV1,
+  "conversation.repository_work.completed",
   "agent.liveness.observed",
   "provider.process.observed",
   "work.causality.recorded",

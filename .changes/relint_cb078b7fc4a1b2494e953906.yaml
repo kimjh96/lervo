@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_cb078b7fc4a1b2494e953906"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Bind the exact repository writing contract when a human-facing role performs a managed CLI run."

@@ -28,6 +28,7 @@ Defines provider-neutral managed execution and evidence contracts. ADRs retain r
 - [Bounded dynamic assignment topology](execution/dynamic-assignment-topology.md) defines additive branch-and-join changes, exact review, graph bounds, interruption recovery, migration, and historical replay.
 - [Adverse-condition safety](execution/adverse-condition-safety.md) defines the common effect inventory, exact completion/rollback/recovery projection, cancellation and backpressure bounds, telemetry field registry, threat model, capacity and retention profiles, and compatibility rehearsals.
 - [Hub and Node coordination](coordination/hub-and-node.md) defines remote coordination.
+- [Conflict-safe repository replica continuation](../decisions/coordination/conversations/0396-conflict-safe-repository-replica-continuation.md) defines exact uncommitted Mac/WSL source handoff, bidirectional compare-and-swap, readiness receipts, and native-work completion enforcement.
 
 ## References
 

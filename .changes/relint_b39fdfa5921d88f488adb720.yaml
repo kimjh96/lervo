@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b39fdfa5921d88f488adb720"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Enable repository product owners to hire bounded child agents and atomically activate their Discord and durable organization deployments."

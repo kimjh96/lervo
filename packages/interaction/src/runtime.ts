@@ -110,117 +110,130 @@ export async function handleConversationEvent(input: {
     leaseDurationMs,
     clock,
     operation: async () => {
-      let window;
+      let activity: ReturnType<ConversationResponseActivity["start"]> | null = null;
+      const startActivity = () => {
+        if (activity !== null || input.responseActivity === undefined) return;
+        try {
+          activity = input.responseActivity.start();
+        } catch {
+          activity = null;
+        }
+      };
       try {
-        window = await input.store.getParticipationWindow({
-          policyId: input.policy.policyId,
-          conversationId: input.event.target.conversationId,
-          at: claimedAt,
-        });
-      } catch (error) {
-        throw new InteractionError(
-          "interaction_store_failed",
-          "The participation window query failed.",
-          {
-            cause: error,
-          },
-        );
-      }
-      let relevance: "not_checked" | "relevant" | "not_relevant" | "unknown" = "not_checked";
-      if (
-        requiresConversationRelevance({
-          event: input.event,
-          policy: input.policy,
-          agentParticipantId: input.agentParticipantId,
-          window,
-          at: claimedAt,
-          ownsTurn,
-        })
-      ) {
-        if (input.relevanceEvaluator === undefined) {
-          relevance = "unknown";
-        } else {
-          try {
-            relevance = await input.relevanceEvaluator.evaluate({
-              event: input.event,
-              policy: input.policy,
-            });
-          } catch {
+        let window;
+        try {
+          window = await input.store.getParticipationWindow({
+            policyId: input.policy.policyId,
+            conversationId: input.event.target.conversationId,
+            at: claimedAt,
+          });
+        } catch (error) {
+          throw new InteractionError(
+            "interaction_store_failed",
+            "The participation window query failed.",
+            { cause: error },
+          );
+        }
+        let relevance: "not_checked" | "relevant" | "not_relevant" | "unknown" = "not_checked";
+        if (
+          requiresConversationRelevance({
+            event: input.event,
+            policy: input.policy,
+            agentParticipantId: input.agentParticipantId,
+            window,
+            at: claimedAt,
+            ownsTurn,
+          })
+        ) {
+          startActivity();
+          if (input.relevanceEvaluator === undefined) {
             relevance = "unknown";
+          } else {
+            try {
+              relevance = await input.relevanceEvaluator.evaluate({
+                event: input.event,
+                policy: input.policy,
+              });
+            } catch {
+              relevance = "unknown";
+            }
           }
         }
-      }
-      const decision = decideConversationParticipation({
-        event: input.event,
-        policy: input.policy,
-        agentParticipantId: input.agentParticipantId,
-        relevance,
-        window,
-        decidedAt: claimedAt,
-        ownsTurn,
-      });
-      let outbound = null;
-      let terminalFailure: ConversationTerminalFailureState | undefined;
-      if (decision.action === "respond") {
-        const response = await runConversationResponseAttempt({
+        const decision = decideConversationParticipation({
           event: input.event,
           policy: input.policy,
-          decision,
-          claim,
-          store: input.store,
-          responder: input.responder,
-          publicationVerifier: input.publicationVerifier,
           agentParticipantId: input.agentParticipantId,
-          claimedAt,
-          retryDelayMs,
-          maximumResponseAttempts,
-          clock,
-          ...(input.agentBinding === undefined ? {} : { agentBinding: input.agentBinding }),
-          ...(input.responseActivity === undefined
-            ? {}
-            : { responseActivity: input.responseActivity }),
-          ...(input.responseFailureClassifier === undefined
-            ? {}
-            : { responseFailureClassifier: input.responseFailureClassifier }),
-          ...(input.terminalFailureResponder === undefined
-            ? {}
-            : { terminalFailureResponder: input.terminalFailureResponder }),
-          ...(input.terminalFailurePublicationVerifier === undefined
-            ? {}
-            : { terminalFailurePublicationVerifier: input.terminalFailurePublicationVerifier }),
+          relevance,
+          window,
+          decidedAt: claimedAt,
+          ownsTurn,
         });
-        if (response.status === "retry_scheduled") return response;
-        outbound = response.outbound;
-        terminalFailure = response.terminalFailure;
-      }
-      try {
-        await input.store.completeInbound({
-          eventId: input.event.eventId,
-          policyId: input.policy.policyId,
-          roleId: input.policy.roleId,
-          leaseId: claim.leaseId,
-          decision,
-          outbound,
-          ...(terminalFailure === undefined ? {} : { terminalFailure }),
-        });
-      } catch (error) {
-        throw new InteractionError(
-          "interaction_store_failed",
-          "The conversation decision commit failed.",
-          {
-            cause: error,
-          },
-        );
-      }
-      return terminalFailure === undefined
-        ? { status: "completed", decision, outbound }
-        : {
-            status: "failed_terminal",
+        let outbound = null;
+        let terminalFailure: ConversationTerminalFailureState | undefined;
+        if (decision.action === "respond") {
+          startActivity();
+          const response = await runConversationResponseAttempt({
+            event: input.event,
+            policy: input.policy,
             decision,
-            outbound: outbound!,
-            failureCode: terminalFailure.failureCode,
-            attemptCount: terminalFailure.attemptCount,
-          };
+            claim,
+            store: input.store,
+            responder: input.responder,
+            publicationVerifier: input.publicationVerifier,
+            agentParticipantId: input.agentParticipantId,
+            claimedAt,
+            retryDelayMs,
+            maximumResponseAttempts,
+            clock,
+            ...(input.agentBinding === undefined ? {} : { agentBinding: input.agentBinding }),
+            ...(input.responseFailureClassifier === undefined
+              ? {}
+              : { responseFailureClassifier: input.responseFailureClassifier }),
+            ...(input.terminalFailureResponder === undefined
+              ? {}
+              : { terminalFailureResponder: input.terminalFailureResponder }),
+            ...(input.terminalFailurePublicationVerifier === undefined
+              ? {}
+              : { terminalFailurePublicationVerifier: input.terminalFailurePublicationVerifier }),
+          });
+          if (response.status === "retry_scheduled") return response;
+          outbound = response.outbound;
+          terminalFailure = response.terminalFailure;
+        }
+        try {
+          await input.store.completeInbound({
+            eventId: input.event.eventId,
+            policyId: input.policy.policyId,
+            roleId: input.policy.roleId,
+            leaseId: claim.leaseId,
+            decision,
+            outbound,
+            ...(terminalFailure === undefined ? {} : { terminalFailure }),
+          });
+        } catch (error) {
+          throw new InteractionError(
+            "interaction_store_failed",
+            "The conversation decision commit failed.",
+            { cause: error },
+          );
+        }
+        return terminalFailure === undefined
+          ? { status: "completed", decision, outbound }
+          : {
+              status: "failed_terminal",
+              decision,
+              outbound: outbound!,
+              failureCode: terminalFailure.failureCode,
+              attemptCount: terminalFailure.attemptCount,
+            };
+      } finally {
+        try {
+          const activeLease = activity as ReturnType<ConversationResponseActivity["start"]> | null;
+          activeLease?.stop();
+        } catch {
+          // Discord activity is best-effort and cannot change the interaction result.
+        }
+      }
     },
   });
 }

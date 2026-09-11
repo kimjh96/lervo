@@ -295,7 +295,7 @@ describe("credential-backed platform delivery", () => {
     expect(request).toHaveBeenCalledOnce();
   });
 
-  it("rejects a Discord thread whose parent is outside the configured conversation scope", async () => {
+  it("ignores a Discord channel whose parent is outside the configured conversation scope", async () => {
     const addresses = new DiscordRestConversationAddress({
       botToken: "d".repeat(40),
       allowedGuildIds: ["123456789012345678"],
@@ -317,7 +317,7 @@ describe("credential-backed platform delivery", () => {
         guildId: "123456789012345678",
         channelId: "333456789012345678",
       }),
-    ).rejects.toMatchObject({ code: "identity_mapping_failed" });
+    ).resolves.toBeNull();
   });
 
   it("retrieves bounded Discord history after the durable channel cursor", async () => {

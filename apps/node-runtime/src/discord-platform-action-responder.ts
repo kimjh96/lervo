@@ -89,7 +89,7 @@ export class DiscordConversationAdministrationResponder implements DiscordPlatfo
       content = korean
         ? `네, 이 서버에 #${result.name} 채널을 만들었습니다.`
         : `Done. I created the #${result.name} channel in this server.`;
-    } else {
+    } else if (effect.kind === "discord_public_thread_create") {
       if (!this.options.allowPublicThreadCreate) {
         throw new Error("The Discord administration action is not authorized.");
       }
@@ -102,6 +102,8 @@ export class DiscordConversationAdministrationResponder implements DiscordPlatfo
       content = korean
         ? `네, 현재 채널에 "${result.name}" 스레드를 만들었습니다.`
         : `Done. I created the ${result.name} thread under this channel.`;
+    } else {
+      throw new Error("The Discord administration action is not supported.");
     }
     return createVerifiedConversationControlReply({
       artifactStore: this.options.artifactStore,

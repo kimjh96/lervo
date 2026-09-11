@@ -86,6 +86,7 @@ const eventLabels = {
   "organization.deliberation.participant.released": "Deliberation participant released",
   "agent.context.promoted": "Agent context promoted",
   "agent.context.handoff.recorded": "Agent context handoff recorded",
+  "conversation.repository_work.completed": "Conversation repository work completed",
 };
 
 const fieldLabels = {
@@ -118,7 +119,14 @@ const fieldLabels = {
   requestDigest: "Request digest",
   resultArtifactId: "Result artifact",
   resultContentHash: "Result hash",
+  requestedModel: "Requested model",
+  requestedReasoningEffort: "Requested reasoning effort",
   repositoryRevision: "Repository revision",
+  repositoryRevisionBefore: "Repository revision before work",
+  repositoryRevisionAfter: "Repository revision after work",
+  changedPaths: "Changed paths",
+  knowledgeDisposition: "Knowledge disposition",
+  replicaDisposition: "Replica disposition",
 };
 
 export function eventLabel(type) {

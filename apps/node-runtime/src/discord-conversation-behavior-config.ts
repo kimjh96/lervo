@@ -44,7 +44,7 @@ export function parseDiscordConversationBehavior(input: {
   if (routing !== undefined) {
     exactConfigKeys(
       routing,
-      ["readOnlyRoleId", "intent", "response", "evaluation"],
+      ["readOnlyRoleId", "workTimeoutMs", "intent", "response", "evaluation"],
       "discordConversation.routing",
     );
   }
@@ -59,6 +59,10 @@ export function parseDiscordConversationBehavior(input: {
     routing === undefined
       ? undefined
       : configText(routing.readOnlyRoleId, "discordConversation.routing.readOnlyRoleId");
+  const workTimeoutMs =
+    routing === undefined
+      ? undefined
+      : optionalConfigInteger(routing, "workTimeoutMs", 10_000, 1_800_000, "routing");
   const intent =
     routing?.intent === undefined ? undefined : configRecord(routing.intent, "routing.intent");
   const response =
@@ -230,6 +234,7 @@ export function parseDiscordConversationBehavior(input: {
       : {
           routing: {
             readOnlyRoleId: readOnlyRoleId!,
+            ...(workTimeoutMs === undefined ? {} : { workTimeoutMs }),
             ...(intent === undefined
               ? {}
               : {

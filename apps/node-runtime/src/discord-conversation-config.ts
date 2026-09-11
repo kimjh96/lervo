@@ -152,14 +152,15 @@ export function parseDiscordConversationConfig(
       : (boundedUniqueText(
           administration.allowedActions,
           "discordConversation.administration.allowedActions",
-          /^(?:current_member\.nickname\.set|guild_text_channel\.create|public_thread\.create|incoming_webhook\.create)$/u,
+          /^(?:current_member\.nickname\.set|guild_text_channel\.create|public_thread\.create|incoming_webhook\.create|workforce\.agent\.hire)$/u,
           1,
-          4,
+          5,
         ) as Array<
           | "current_member.nickname.set"
           | "guild_text_channel.create"
           | "public_thread.create"
           | "incoming_webhook.create"
+          | "workforce.agent.hire"
         >);
   const webhookCredentialDirectory =
     administration?.webhookCredentialDirectory === undefined
@@ -178,6 +179,15 @@ export function parseDiscordConversationConfig(
     throw new NodeRuntimeError(
       "invalid_config",
       "Discord webhook creation requires an owner-only credential directory.",
+    );
+  }
+  if (
+    allowedActions?.includes("workforce.agent.hire") === true &&
+    (agentId === undefined || source.organization === undefined)
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "Conversation workforce hiring requires an exact hired-agent and organization binding.",
     );
   }
   const behavior = parseDiscordConversationBehavior({

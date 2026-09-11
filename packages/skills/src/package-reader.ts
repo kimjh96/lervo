@@ -126,16 +126,33 @@ async function listContentFiles(root: string, current = root): Promise<string[]>
   return files;
 }
 
-export async function hashSkillPackage(directoryPath: string): Promise<string> {
+export async function hashSkillPackageProjection(
+  directoryPath: string,
+  overrides: ReadonlyMap<string, Uint8Array>,
+): Promise<string> {
   const files = await listContentFiles(directoryPath);
-  return hashSkillContentFiles(
+  const projected = new Map(
     await Promise.all(
-      files.map(async (path) => ({
-        path: portablePath(relative(directoryPath, path)),
-        bytes: await regularFile(path),
-      })),
+      files.map(
+        async (path) =>
+          [portablePath(relative(directoryPath, path)), await regularFile(path)] as const,
+      ),
     ),
   );
+  for (const [path, bytes] of overrides) {
+    if ([MANIFEST_NAME, "lervo-capability.json"].includes(path)) {
+      throw new SkillResolutionError(
+        "unsafe_skill_package",
+        "Skill package content projections cannot replace package manifests.",
+      );
+    }
+    projected.set(path, bytes);
+  }
+  return hashSkillContentFiles([...projected].map(([path, bytes]) => ({ path, bytes })));
+}
+
+export async function hashSkillPackage(directoryPath: string): Promise<string> {
+  return hashSkillPackageProjection(directoryPath, new Map());
 }
 
 async function readCandidate(input: {

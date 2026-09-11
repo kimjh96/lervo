@@ -321,7 +321,7 @@ describe("natural-language Discord conversation mode", () => {
       continuation: continuation as ConversationResponder,
       platformAction,
     });
-    await expect(authorizedAgentMode.mode(agentWork.event)).resolves.toBe("continuation");
+    await expect(authorizedAgentMode.mode(agentWork.event)).resolves.toBe("work");
     await authorizedAgentMode.respond(agentWork);
     expect(continuation.respond).toHaveBeenCalledTimes(2);
 

@@ -14,7 +14,30 @@ import { resolveDiscordAgentParticipation } from "./discord-agent-participation.
 import { NodeRuntimeError } from "./errors.js";
 import type { NodeDiscordConversationOpenPorts, NodeRuntimeOpenPorts } from "./open-ports.js";
 import { createManagedConversationRepositoryResources } from "./conversation-read-responder.js";
-import { discordSpeakerParticipantKeys } from "./discord-conversation-speaker.js";
+import { createCoResidentDiscordPeerAgents } from "./discord-conversation-co-resident-peers.js";
+
+function boundedErrorCoordinates(error: unknown): string {
+  const coordinates: Array<{ name: string; code: string | null }> = [];
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  while (typeof current === "object" && current !== null && !seen.has(current)) {
+    seen.add(current);
+    const record = current as { name?: unknown; code?: unknown; cause?: unknown };
+    coordinates.push({
+      name:
+        typeof record.name === "string" && /^[A-Za-z][A-Za-z0-9]{0,63}$/u.test(record.name)
+          ? record.name
+          : "Error",
+      code:
+        typeof record.code === "string" && /^[A-Za-z][A-Za-z0-9_-]{0,63}$/u.test(record.code)
+          ? record.code
+          : null,
+    });
+    if (coordinates.length >= 6) break;
+    current = record.cause;
+  }
+  return JSON.stringify(coordinates);
+}
 
 function selectPorts(
   configs: NodeDiscordConversationConfig[],
@@ -53,6 +76,7 @@ export async function openDeploymentConversation(input: {
   projectIdentityHash: string;
   repositoryRoot: string;
   dataDirectory: string;
+  runtimeConfigPath?: string;
   bearerToken(): string;
   repositoryEvents: Pick<EventStore, "latest" | "list">;
   legacyPorts: NodeRuntimeOpenPorts["discordConversation"];
@@ -77,6 +101,8 @@ export async function openDeploymentConversation(input: {
     ),
   );
   const providerExecutables = input.config.remoteCommands?.providerHost?.executables;
+  const providerModels = input.config.remoteCommands?.providerHost?.models;
+  const providerReasoningEfforts = input.config.remoteCommands?.providerHost?.reasoningEfforts;
   const managedRepositoryResources = createManagedConversationRepositoryResources();
   const ready = new Set<string>();
   let readyPublished = false;
@@ -85,29 +111,10 @@ export async function openDeploymentConversation(input: {
   try {
     for (const [index, conversation] of configs.entries()) {
       const integrationPorts = ports.get(conversation.integrationId) ?? {};
-      const peerAgents = configs.flatMap((peer, peerIndex) => {
-        if (peerIndex === index) return [];
-        return [
-          {
-            participantKeys: discordSpeakerParticipantKeys(peer),
-            participantId: peer.agentParticipantId,
-            roleId: participations[peerIndex]!.roleId,
-            agentBinding: participations[peerIndex]!.agentBinding!,
-            tenantKeys: conversation.allowedGuildIds.filter((tenant) =>
-              peer.allowedGuildIds.includes(tenant),
-            ),
-            conversationIds: peer.conversations.flatMap((peerBinding) =>
-              conversation.conversations.some(
-                (binding) =>
-                  binding.tenantKey === peerBinding.tenantKey &&
-                  binding.conversationKey === peerBinding.conversationKey &&
-                  binding.conversationId === peerBinding.conversationId,
-              )
-                ? [peerBinding.conversationId]
-                : [],
-            ),
-          },
-        ];
+      const peerAgents = createCoResidentDiscordPeerAgents({
+        configs,
+        participations,
+        currentIndex: index,
       });
       runtimes.push(
         await openNodeDiscordConversationRuntime({
@@ -119,11 +126,19 @@ export async function openDeploymentConversation(input: {
             createdAt: input.project.createdAt,
           },
           repositoryRoot: input.repositoryRoot,
+          ...(input.config.repositoryReplica === undefined
+            ? {}
+            : { repositoryReplica: input.config.repositoryReplica }),
           dataDirectory: resolve(input.dataDirectory, "conversation", conversation.integrationId),
+          ...(input.runtimeConfigPath === undefined
+            ? {}
+            : { runtimeConfigPath: input.runtimeConfigPath }),
           bearerToken: input.bearerToken,
           repositoryEvents: input.repositoryEvents,
           managedRepositoryResources,
           ...(providerExecutables === undefined ? {} : { providerExecutables }),
+          ...(providerModels === undefined ? {} : { providerModels }),
+          ...(providerReasoningEfforts === undefined ? {} : { providerReasoningEfforts }),
           agentParticipation: participations[index]!,
           peerAgents,
           ...integrationPorts,
@@ -137,7 +152,15 @@ export async function openDeploymentConversation(input: {
           onFailure: async (code) => {
             if (failureObserved) return;
             failureObserved = true;
+            process.stderr.write(
+              `Lervo Discord conversation runtime failed (${conversation.integrationId}:${code}).\n`,
+            );
             await input.onFailure(code);
+          },
+          onError: (error) => {
+            process.stderr.write(
+              `Lervo Discord conversation error (${conversation.integrationId}): ${boundedErrorCoordinates(error)}.\n`,
+            );
           },
         }),
       );

@@ -1,31 +1,44 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 function event(trace, type) {
   return trace.events.find((item) => item.type === type);
 }
 
 async function passedVerification(input, suffix) {
-  const execution = await input.runCli(
-    input.cli,
-    input.root,
-    [
-      "run",
-      "--provider",
-      "codex",
-      "--path",
-      "src/result.ts",
-      "--verification",
-      "project.default",
-      "--json",
-      `Verify independent installed workflow ${suffix}`,
-    ],
-    {
-      ...input.env,
-      LERVO_INSTALLED_CAPABILITY_CHANGE_KIND: suffix === "a" ? "add" : "update",
-      LERVO_INSTALLED_CAPABILITY_CONTENT: `export const verifiedWorkflow = ${JSON.stringify(suffix)};\n`,
-      LERVO_INSTALLED_CAPABILITY_RESULT: `Independent workflow ${suffix} verified.`,
-    },
-  );
+  let execution;
+  try {
+    execution = await input.runCli(
+      input.cli,
+      input.root,
+      [
+        "run",
+        "--provider",
+        "codex",
+        "--path",
+        "src/result.ts",
+        "--verification",
+        "project.default",
+        "--json",
+        `Verify independent installed workflow ${suffix}`,
+      ],
+      {
+        ...input.env,
+        LERVO_INSTALLED_CAPABILITY_CHANGE_KIND: suffix === "a" ? "add" : "update",
+        LERVO_INSTALLED_CAPABILITY_CONTENT: `export const verifiedWorkflow = ${JSON.stringify(suffix)};\n`,
+        LERVO_INSTALLED_CAPABILITY_RESULT: `Independent workflow ${suffix} verified.`,
+      },
+    );
+  } catch (error) {
+    const trace = await input.runCli(input.cli, input.root, ["trace", "last", "--full", "--json"]);
+    const debugPath = input.env.LERVO_INSTALLED_CAPABILITY_DEBUG_LOG;
+    const debug =
+      typeof debugPath === "string"
+        ? await readFile(debugPath, "utf8").catch(() => "No fixture debug output.\n")
+        : "No fixture debug path.\n";
+    error.message = `${error.message}\nFixture debug:\n${debug}\nInstalled verification trace:\n${trace.stdout}`;
+    throw error;
+  }
   const outcome = JSON.parse(execution.stdout);
   assert.equal(outcome.verificationStatus, "passed");
   const trace = JSON.parse(

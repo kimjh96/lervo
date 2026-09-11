@@ -335,6 +335,9 @@ describe("authenticated platform conversation adapters", () => {
       artifactStore,
       delivery: { send },
       typing: { start: startTyping },
+      textualParticipantAliases: [
+        { displayName: "Navi", participantKey: "webhook:723456789012345678" },
+      ],
       now: () => now,
     });
     const rawText = "Tell me the next step for this change.";
@@ -350,6 +353,10 @@ describe("authenticated platform conversation adapters", () => {
           author: { id: "523456789012345678", bot: false },
           content: rawText,
           mentions: [{ id: "623456789012345678" }],
+          referenced_message: {
+            webhook_id: "723456789012345678",
+            author: { id: "723456789012345678", bot: true },
+          },
           timestamp: "2026-08-20T00:00:00.000Z",
         },
       }),
@@ -387,7 +394,7 @@ describe("authenticated platform conversation adapters", () => {
         id: "323456789012345679",
         channel_id: "223456789012345678",
         author: { id: "523456789012345678", bot: false },
-        content: rawText,
+        content: "@Navi continue the research.",
         mentions: [],
         timestamp: "2026-08-20T00:00:01.000Z",
       }),
@@ -409,6 +416,17 @@ describe("authenticated platform conversation adapters", () => {
       }),
     );
     expect(JSON.stringify(accepted.event)).not.toContain("523456789012345678");
+    expect(identity.inbound).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mentionedParticipantKeys: ["user:623456789012345678", "webhook:723456789012345678"],
+      }),
+    );
+    expect(identity.inbound).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceMessageKey: "323456789012345679",
+        mentionedParticipantKeys: ["webhook:723456789012345678"],
+      }),
+    );
     expect(
       Buffer.from(
         await artifactStore.get(
@@ -485,6 +503,66 @@ describe("authenticated platform conversation adapters", () => {
     expect(identity.inbound).not.toHaveBeenCalled();
   });
 
+  it("authenticates and checkpoints Discord messages without textual content", async () => {
+    const artifactStore = await artifacts();
+    const identity = identityPort();
+    const verifyDispatch = vi.fn(async () => ({ authenticated: true as const }));
+    const adapter = new DiscordConversationAdapter({
+      integrationId: "itg_discord01",
+      applicationId: "999999999999999999",
+      allowedGuildIds: ["123456789012345678"],
+      allowDirectMessages: false,
+      gatewayAuthentication: { verifyDispatch },
+      identity: identity.port,
+      artifactStore,
+      delivery: { send: async () => ({ messageId: "1", deliveredAt: now.toISOString() }) },
+      now: () => now,
+    });
+    const body = Buffer.from(
+      JSON.stringify({
+        op: 0,
+        s: 44,
+        t: "MESSAGE_CREATE",
+        d: {
+          id: "323456789012345680",
+          channel_id: "223456789012345678",
+          guild_id: "123456789012345678",
+          author: { id: "523456789012345678", bot: false },
+          content: "",
+          embeds: [{ title: "Deployment update" }],
+          timestamp: "2026-08-20T00:00:00.000Z",
+        },
+      }),
+    );
+
+    await expect(
+      adapter.receiveGatewayDispatch({ sessionHandle: "authenticated-session", body }),
+    ).resolves.toEqual({
+      status: "ignored",
+      reason: "empty_message_content",
+      checkpoint: {
+        tenantKey: "123456789012345678",
+        channelId: "223456789012345678",
+        messageId: "323456789012345680",
+      },
+    });
+    await expect(
+      adapter.receiveHistoryMessage(
+        {
+          messageId: "323456789012345680",
+          body: Buffer.from(JSON.stringify(JSON.parse(body.toString("utf8")).d)),
+        },
+        "123456789012345678",
+      ),
+    ).resolves.toMatchObject({
+      status: "ignored",
+      reason: "empty_message_content",
+      checkpoint: { messageId: "323456789012345680" },
+    });
+    expect(verifyDispatch).toHaveBeenCalledOnce();
+    expect(identity.inbound).not.toHaveBeenCalled();
+  });
+
   it("maps peer webhook authors as agents and suppresses only the current webhook identity", async () => {
     const artifactStore = await artifacts();
     const identity = identityPort();
@@ -548,5 +626,96 @@ describe("authenticated platform conversation adapters", () => {
       guildId: "123456789012345678",
       channelId: "223456789012345678",
     });
+  });
+
+  it("ignores Discord messages owned by another configured channel", async () => {
+    const artifactStore = await artifacts();
+    const identity = identityPort();
+    const adapter = new DiscordConversationAdapter({
+      integrationId: "itg_discord_other_channel",
+      applicationId: "999999999999999999",
+      allowedGuildIds: ["123456789012345678"],
+      allowDirectMessages: false,
+      gatewayAuthentication: { verifyDispatch: async () => ({ authenticated: true }) },
+      identity: identity.port,
+      artifactStore,
+      delivery: { send: async () => ({ messageId: "1", deliveredAt: now.toISOString() }) },
+      conversationAddress: { resolve: async () => null },
+      now: () => now,
+    });
+
+    await expect(
+      adapter.receiveGatewayDispatch({
+        sessionHandle: "authenticated-session",
+        body: Buffer.from(
+          JSON.stringify({
+            op: 0,
+            s: 45,
+            t: "MESSAGE_CREATE",
+            d: {
+              id: "323456789012345681",
+              channel_id: "923456789012345678",
+              guild_id: "123456789012345678",
+              author: { id: "523456789012345678", bot: false },
+              content: "Message for another project channel",
+              timestamp: "2026-08-20T00:00:00.000Z",
+            },
+          }),
+        ),
+      }),
+    ).resolves.toEqual({
+      status: "ignored",
+      reason: "outside_conversation_scope",
+      checkpoint: null,
+    });
+    expect(identity.inbound).not.toHaveBeenCalled();
+  });
+
+  it("does not treat a Discord mention unknown to this agent as an unaddressed turn", async () => {
+    const artifactStore = await artifacts();
+    const identity = identityPort();
+    identity.inbound.mockResolvedValueOnce({
+      projectId: "prj_platform_adapter",
+      conversationId: "cnv_team_general",
+      threadId: null,
+      actor: { kind: "human", participantId: "ptc_external_user", roleId: null },
+      mentions: { roleIds: [], participantIds: [] },
+      replyToEventId: null,
+      automationDepth: 0,
+    });
+    const adapter = new DiscordConversationAdapter({
+      integrationId: "itg_discord03",
+      applicationId: "999999999999999999",
+      allowedGuildIds: ["123456789012345678"],
+      allowDirectMessages: false,
+      gatewayAuthentication: { verifyDispatch: async () => ({ authenticated: true }) },
+      identity: identity.port,
+      artifactStore,
+      delivery: { send: async () => ({ messageId: "1", deliveredAt: now.toISOString() }) },
+      now: () => now,
+    });
+    const body = Buffer.from(
+      JSON.stringify({
+        op: 0,
+        s: 1,
+        t: "MESSAGE_CREATE",
+        d: {
+          id: "323456789012345681",
+          channel_id: "223456789012345678",
+          guild_id: "123456789012345678",
+          author: { id: "523456789012345678", bot: false },
+          content: "<@623456789012345678> answer",
+          mentions: [{ id: "623456789012345678" }],
+          timestamp: now.toISOString(),
+        },
+      }),
+    );
+    await expect(
+      adapter.receiveGatewayDispatch({ sessionHandle: "authenticated-session", body }),
+    ).resolves.toMatchObject({
+      status: "ignored",
+      reason: "addressed_to_unmapped_participant",
+    });
+    expect(identity.recordInbound).not.toHaveBeenCalled();
   });
 });

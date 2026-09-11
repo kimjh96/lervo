@@ -57,6 +57,8 @@ describe("Discord conversation administration responder", () => {
         observedAt: "2026-09-10T00:00:01.000Z",
       })),
       createIncomingWebhook: vi.fn(),
+      updateIncomingWebhook: vi.fn(),
+      deleteIncomingWebhook: vi.fn(),
     };
     const responder = new DiscordConversationAdministrationResponder({
       artifactStore,
@@ -110,6 +112,8 @@ describe("Discord conversation administration responder", () => {
       createGuildTextChannel: vi.fn(),
       createPublicThread: vi.fn(),
       createIncomingWebhook: vi.fn(),
+      updateIncomingWebhook: vi.fn(),
+      deleteIncomingWebhook: vi.fn(),
     } satisfies DiscordAdministrationPort;
     const responder = new DiscordConversationAdministrationResponder({
       artifactStore,

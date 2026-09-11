@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_39c6956fb473e6703777b2c2
+compiler:
+  compilerBuildId: sha256:126612f342267b5dfbefdf7c2f88bf1fe0a710c846d5e3a4f0ed99d118fde27e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_be7ef078a8472434180242ae
+outputLanguage: en
+outputs:
+  - byteCount: 1337
+    contentHash: sha256:db649f433a72038772aaed67db06520aa95ca3406db9955e2eb2897973f23f76
+    path: docs/specifications/execution/provider-adapters/terminal-integration.md
+    userRegionHash: sha256:db649f433a72038772aaed67db06520aa95ca3406db9955e2eb2897973f23f76
+profile: specification_document
+recordId: knormdoc_bb6eba55a57fdc261798b945
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e1be1a2b27e1956302b56ee00a89ef6c3ce1388b4d9d8148a108b55a8643e640
+sourcePath: docs/specifications/execution/provider-adapters/terminal-integration.md
+sourceUnitVersionIds:
+  - uv_211817d5ad9e4de6d73979b7

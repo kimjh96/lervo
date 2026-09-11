@@ -31,4 +31,12 @@ describe("Node conversation response failure policy", () => {
       retryable: false,
     });
   });
+
+  it("reports the native error to the configured private observer", () => {
+    const errors: unknown[] = [];
+    const observed = new NodeConversationResponseFailureClassifier((error) => errors.push(error));
+    const error = coded("artifact_storage_failed");
+    observed.classify(error);
+    expect(errors).toEqual([error]);
+  });
 });

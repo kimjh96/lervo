@@ -34,6 +34,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
   private readonly now: () => Date;
   private readonly maximumPayloadBytes: number;
   private readonly ignoredParticipantKeys: ReadonlySet<string>;
+  private readonly textualParticipantAliases: ReadonlyMap<string, string>;
 
   constructor(private readonly options: DiscordConversationAdapterOptions) {
     if (
@@ -51,6 +52,20 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
         (new Set(options.ignoredParticipantKeys).size !== options.ignoredParticipantKeys.length ||
           options.ignoredParticipantKeys.some(
             (key) => !/^(?:bot|webhook):[0-9]{1,32}$/u.test(key),
+          ))) ||
+      (options.textualParticipantAliases !== undefined &&
+        (new Set(
+          options.textualParticipantAliases.map((alias) =>
+            alias.displayName.normalize("NFKC").toLocaleLowerCase("en-US"),
+          ),
+        ).size !== options.textualParticipantAliases.length ||
+          options.textualParticipantAliases.some(
+            (alias) =>
+              alias.displayName.length < 1 ||
+              alias.displayName.length > 80 ||
+              alias.displayName.trim() !== alias.displayName ||
+              /[\u0000-\u001f\u007f@]/u.test(alias.displayName) ||
+              !/^(?:bot|webhook):[0-9]{1,32}$/u.test(alias.participantKey),
           )))
     ) {
       throw new ConversationPlatformError(
@@ -63,6 +78,12 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
     this.maximumPayloadBytes = options.maximumGatewayPayloadBytes ?? 256 * 1024;
     this.ignoredParticipantKeys = new Set(
       options.ignoredParticipantKeys ?? [`bot:${options.applicationId}`],
+    );
+    this.textualParticipantAliases = new Map(
+      (options.textualParticipantAliases ?? []).map((alias) => [
+        alias.displayName.normalize("NFKC").toLocaleLowerCase("en-US"),
+        alias.participantKey,
+      ]),
     );
     this.descriptor = createPlatformConversationDescriptor({
       integrationId: options.integrationId,
@@ -162,7 +183,10 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
     if (this.ignoredParticipantKeys.has(parsed.participantKey)) {
       return { status: "ignored", reason: "own_participant_message", checkpoint };
     }
-    let address: { conversationKey: string; threadKey: string | null };
+    if (parsed.content.length === 0) {
+      return { status: "ignored", reason: "empty_message_content", checkpoint };
+    }
+    let address: { conversationKey: string; threadKey: string | null } | null;
     try {
       address =
         this.options.conversationAddress === undefined
@@ -179,6 +203,24 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
         { cause: error instanceof Error ? error : undefined },
       );
     }
+    if (address === null) {
+      return { status: "ignored", reason: "outside_conversation_scope", checkpoint: null };
+    }
+    const normalizedContent = parsed.content
+      .normalize("NFKC")
+      .trimStart()
+      .toLocaleLowerCase("en-US");
+    const textualParticipantKey = [...this.textualParticipantAliases.entries()]
+      .sort(([left], [right]) => right.length - left.length)
+      .find(
+        ([displayName]) =>
+          normalizedContent.startsWith(`@${displayName}`) &&
+          /^(?:$|[\s,;:])/u.test(normalizedContent.slice(displayName.length + 1)),
+      )?.[1];
+    const mentionedParticipantKeys = [
+      ...parsed.mentionedParticipantKeys,
+      ...(textualParticipantKey === undefined ? [] : [textualParticipantKey]),
+    ].filter((value, index, values) => values.indexOf(value) === index);
     let identity;
     try {
       identity = await this.options.identity.mapInbound({
@@ -190,7 +232,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
         sourceMessageKey: parsed.messageId,
         replyToMessageKey: parsed.replyToMessageId,
         participantKey: parsed.participantKey,
-        mentionedParticipantKeys: parsed.mentionedParticipantKeys,
+        mentionedParticipantKeys,
         actorKindHint: parsed.actorKindHint,
       });
     } catch (error) {
@@ -199,6 +241,13 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
         "Discord external identifiers could not be mapped to Lervo conversation coordinates.",
         { cause: error instanceof Error ? error : undefined },
       );
+    }
+    if (
+      mentionedParticipantKeys.length > 0 &&
+      identity.mentions.participantIds.length === 0 &&
+      identity.mentions.roleIds.length === 0
+    ) {
+      return { status: "ignored", reason: "addressed_to_unmapped_participant", checkpoint };
     }
     const content = await storeConversationText({
       content: parsed.content,

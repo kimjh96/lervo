@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_39c6956fb473e6703777b2c2
+compiler:
+  compilerBuildId: sha256:126612f342267b5dfbefdf7c2f88bf1fe0a710c846d5e3a4f0ed99d118fde27e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_04fcbf433d38e39e5f4f4b45
+outputLanguage: en
+outputs:
+  - byteCount: 9600
+    contentHash: sha256:b47757b2307baf6e0c01b3ff075e94534c0303e717b95ac74d9ca53378670251
+    path: docs/decisions/coordination/conversations/0394-webhook-backed-discord-agent-identities.md
+    userRegionHash: sha256:b47757b2307baf6e0c01b3ff075e94534c0303e717b95ac74d9ca53378670251
+profile: decision_record
+recordId: knormdoc_ca69ab10cd88af9d9e69c463
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bc389d1994ef4c751b760ad52e3101494d5d6c0a559e7f8fff9c485f025467ee
+sourcePath: docs/decisions/coordination/conversations/0394-webhook-backed-discord-agent-identities.md
+sourceUnitVersionIds:
+  - uv_2386ea90b3ec7c0402a027ed
+  - uv_34ea5ebd3d9314cfc478e56d
+  - uv_5c8d2550bf9658c1593c7b8f
+  - uv_6a061a1cc34969591723699c
+  - uv_82ba5cdd785a7d7e22876278
+  - uv_8935b7816829b672c9b7a7ba
+  - uv_8efe536e6ce3bac6373960b1
+  - uv_a3b3e6771ae51f1deb884edc
+  - uv_f3830f3994ce337c1e823b5c
+  - uv_f965b3ccf83411cad08ca166

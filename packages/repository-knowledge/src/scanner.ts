@@ -433,6 +433,7 @@ function jsonKeyUnits(
 function extractUnits(
   projectId: string,
   source: RepositorySource & { content: string; contentHash: string },
+  sourceUnitFailureMode: "fail" | "file_only" = "fail",
 ): RepositorySourceUnit[] {
   if (source.kind === "revision_metadata") {
     return [
@@ -464,9 +465,27 @@ function extractUnits(
     endLine: source.content.split("\n").length,
     title: basename(source.path),
   });
-  const cssSpans = source.path.toLocaleLowerCase().endsWith(".css")
-    ? extractCssSymbolSpans(source.content)
-    : [];
+  let codeUnits: RepositorySourceUnit[];
+  let jsonUnits: RepositorySourceUnit[];
+  let yamlUnits: RepositorySourceUnit[];
+  let cssSpans: ReturnType<typeof extractCssSymbolSpans>;
+  try {
+    codeUnits = codeSymbolUnits(projectId, source);
+    jsonUnits = jsonKeyUnits(projectId, source);
+    yamlUnits = yamlKeyUnits(projectId, source);
+    cssSpans = source.path.toLocaleLowerCase().endsWith(".css")
+      ? extractCssSymbolSpans(source.content)
+      : [];
+  } catch (error) {
+    if (
+      sourceUnitFailureMode !== "file_only" ||
+      !(error instanceof RepositoryKnowledgeError) ||
+      error.code !== "knowledge_unit_extraction_failed"
+    ) {
+      throw error;
+    }
+    return [fileUnit];
+  }
   const cssCoordinates = coordinateMap(
     source.content,
     cssSpans.flatMap((span) => [span.startCharacter, span.endCharacter]),
@@ -476,9 +495,9 @@ function extractUnits(
     ...(source.path.endsWith(".md") || source.path.endsWith(".mdx")
       ? markdownUnits(projectId, source)
       : []),
-    ...codeSymbolUnits(projectId, source),
-    ...jsonKeyUnits(projectId, source),
-    ...yamlKeyUnits(projectId, source),
+    ...codeUnits,
+    ...jsonUnits,
+    ...yamlUnits,
     ...cssSpans.map((span) =>
       unit({
         projectId,
@@ -506,6 +525,7 @@ export async function scanRepositoryKnowledge(input: {
   generatedPaths?: ReadonlySet<string>;
   observeRevision?: ObserveGitRevision;
   supplementalSources?: readonly RepositorySupplementalSource[];
+  sourceUnitFailureMode?: "fail" | "file_only";
 }): Promise<RepositoryKnowledgeScan> {
   const root = resolve(input.repositoryRoot);
   const sourceLineages = await loadDocumentMoveLineages({
@@ -839,7 +859,7 @@ export async function scanRepositoryKnowledge(input: {
     const supplemental = supplementalByPath.get(source.path);
     if (supplemental === undefined)
       return [
-        ...extractUnits(input.projectId, source),
+        ...extractUnits(input.projectId, source, input.sourceUnitFailureMode),
         ...(skillDescriptorByPath.get(source.path) ?? []).map((descriptor) =>
           unit({
             projectId: input.projectId,

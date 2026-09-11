@@ -23,7 +23,7 @@ export function createDiscordConversationParticipationPolicy(input: {
     cooldownSeconds: config.policy?.cooldownSeconds ?? 0,
     maxResponsesPerHour:
       config.policy?.maxResponsesPerHour ?? (config.routing === undefined ? 8 : 60),
-    maxAutomationDepth: config.policy?.maxAutomationDepth ?? 2,
+    maxAutomationDepth: config.policy?.maxAutomationDepth ?? 8,
     createdAt: input.projectCreatedAt,
   });
 }

@@ -1,0 +1,34 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_39c6956fb473e6703777b2c2
+compiler:
+  compilerBuildId: sha256:126612f342267b5dfbefdf7c2f88bf1fe0a710c846d5e3a4f0ed99d118fde27e
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.153.4
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f7a0912a5a10743fd57c8cd1
+outputLanguage: en
+outputs:
+  - byteCount: 8637
+    contentHash: sha256:0bcedcc62f663a65d6c1cd4a4b744e77f0fa86e4223b347881109ca47e95413d
+    path: docs/decisions/coordination/conversations/0395-resumable-native-repository-work-turns.md
+    userRegionHash: sha256:0bcedcc62f663a65d6c1cd4a4b744e77f0fa86e4223b347881109ca47e95413d
+profile: decision_record
+recordId: knormdoc_16ad6149723f527d1a1f9758
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1344dfc7de8d912527b9d0a4493dc5302bc8214dc5817844bb1d2fb644ffabdb
+sourcePath: docs/decisions/coordination/conversations/0395-resumable-native-repository-work-turns.md
+sourceUnitVersionIds:
+  - uv_08561a2da9e33b2cc2b0a8f7
+  - uv_303c2c5b5e4eb5b6215c8177
+  - uv_4748a9341bb6a8b658956b89
+  - uv_4af838e0f162883502e6a475
+  - uv_594e3fa6467199056173864a
+  - uv_931b2e8a13b59f2f26b9c185
+  - uv_94ca6a8c6b55532fc7feb4a0
+  - uv_aaa7043f498bca9eacbe8a1e
+  - uv_dc410370066f8a8d4402b342
