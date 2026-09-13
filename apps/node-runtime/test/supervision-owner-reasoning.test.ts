@@ -171,7 +171,7 @@ it.each(["normal", "lost_receipt", "expired_absent", "expired_path", "unexpired_
             roleContractHash: f.owner.roleContractHash,
             provider: "codex",
             requestedModel: null,
-            reservedTokens: 100,
+            reservedTokens: f.mandate.maximumAttemptTokens,
             attemptNumber: 1,
             deadline: new Date(Date.now() + 120_000).toISOString(),
           };

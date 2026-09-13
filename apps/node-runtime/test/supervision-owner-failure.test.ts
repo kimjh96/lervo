@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import { afterEach, expect, it } from "vitest";
 import { listAssignments } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
+import type { OperatingActionPlanV1 } from "@lervo/application-contract";
 import {
   applyKnowledgeMigrationPlan,
   createKnowledgeMigrationPlan,
@@ -14,6 +15,7 @@ import { createLoginFixture } from "../../../packages/adapter-contract/test/logi
 import { supervisionFixture } from "./supervision.fixture.js";
 import { openNodeOutcomeSupervisionRuntime } from "../src/outcome-supervision-runtime.js";
 import { SupervisionTaskSource } from "../src/supervision-task-source.js";
+import { readSupervisionJsonArtifact } from "../src/supervision-artifact-json.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -95,6 +97,14 @@ it.each([true, false])(
     let runtime = await open();
     try {
       expect((await runtime.runCycle()).disposition).toBe("uncertain");
+      const decision = storage.events
+        .list()
+        .find((event) => event.type === "work.supervision.decision.recorded");
+      const plan = (await readSupervisionJsonArtifact(
+        storage.artifacts,
+        String(decision?.payload.planArtifactHash),
+      )) as OperatingActionPlanV1;
+      expect(plan.reservedTokens).toBe(f.mandate.maximumAttemptTokens);
       await runtime.close();
       runtime = await open();
       expect((await runtime.runCycle()).disposition).toBe("effect_confirmed");

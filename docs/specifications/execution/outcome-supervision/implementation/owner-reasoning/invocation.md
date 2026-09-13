@@ -4,7 +4,7 @@ The owner prompt includes the observed UTC timestamp to interpret mandate and le
 
 `SupervisedOwnerReasoningV1` defines `work.owner_reasoning.v1` with twelve required fields: `schemaVersion`, `kind`, `basisHash`, `contextArtifactHash`, `roleId`, `roleVersion`, `roleContractHash`, `provider`, `requestedModel`, `reservedTokens`, `attemptNumber`, and `deadline`.
 
-Invocation uses `execute_as_owner`, adds one concurrent provider attempt, and reserves the configured token amount. It grants no assignment, worker, write path, or business effect. Canonical decision and resource admission precede invocation. Repeated calls for the same task basis must follow a recorded sequence of at most three attempts, further limited by the mandate.
+Invocation uses `execute_as_owner`, adds one concurrent provider attempt, and reserves the greater of the configured token amount and the mandate's per-attempt ceiling. This prevents a small configured reservation from admitting a call whose ordinary observed usage could exceed the remaining aggregate allowance. It grants no assignment, worker, write path, or business effect. Canonical decision and resource admission precede invocation. Repeated calls for the same task basis must follow a recorded sequence of at most three attempts, further limited by the mandate. Provider-reported usage can exceed a reservation; the admission ceiling is not a physical provider cutoff, and any overrun remains charged and blocks later calls.
 
 ## Readiness
 

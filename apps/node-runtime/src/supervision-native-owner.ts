@@ -174,7 +174,10 @@ export class NativeSupervisionOwner {
         roleContractHash: owner.roleContractHash,
         provider: this.configuration.provider,
         requestedModel: this.configuration.model ?? null,
-        reservedTokens: this.configuration.reservedTokens,
+        reservedTokens: Math.max(
+          this.configuration.reservedTokens,
+          facts.mandate.maximumAttemptTokens,
+        ),
         attemptNumber: previous.history.length + 1,
         deadline: base.deadline,
       };

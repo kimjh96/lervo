@@ -102,7 +102,11 @@ export class SupervisionOwnerReasoningEffects {
       if (
         provider !== this.configuration.provider ||
         basis.effect.requestedModel !== (this.configuration.model ?? null) ||
-        basis.effect.reservedTokens !== this.configuration.reservedTokens ||
+        basis.effect.reservedTokens !==
+          Math.max(
+            this.configuration.reservedTokens,
+            basis.context.facts.mandate.maximumAttemptTokens,
+          ) ||
         executable === undefined ||
         context === undefined
       )
