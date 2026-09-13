@@ -8,7 +8,7 @@ Canonical task snapshots load start, terminal, result, and verification evidence
 
 The Node owner session records [exact artifact reviews](../../../../../../specifications/execution/outcome-supervision/implementation/managed-execution/artifact-review.md) against canonical task evidence. The journal recovers one decision-bound verdict without duplication; stale or insufficient evidence cannot establish acceptance.
 
-Built-worker integration uses canonical control admission, actual normalized usage, owner-control readiness, and exact review evidence before completing the canonical goal and queuing a semantically permitted result. After failed transport and runtime restart, it retries the same outbound without another worker or evaluation call. The delivery test retains explicit verdict, evaluator, and transport fixtures.
+Built-worker integration requires canonical control admission, actual normalized usage, owner-control readiness, and exact review evidence before completing the canonical goal and queuing a semantically permitted result. After transport failure and runtime restart, it retries the same outbound without another worker or evaluation call. The delivery test retains explicit verdict, evaluator, and transport fixtures.
 
 A separate native-adapter integration exercises actual owner calls for independent semantic writing judgement, exact assignment reconciliation, artifact acceptance, and canonical goal completion; model outputs remain controlled fixtures. Installed acceptance remains open.
 
@@ -27,3 +27,7 @@ Native unstarted acceptance and verification amendment and exact successor claim
 ## Startup evidence
 
 Explicit Node startup configuration connects the installed mandate to the serial runtime, scoped conversation adapter, and separate health component. Controlled native regression passes ten scenarios; startup, configuration, and health checks pass nineteen tests. These checks neither establish production activation nor replace the thirteen installed journeys required by the [implementation status](../status.md).
+
+The installed [local supervision command](../../../../../../specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/local-command.md) exposes the same service without a Hub. Its private configuration check does not start a provider or establish authority. Lifecycle tests cover startup cancellation, repeated signals during shutdown, health output, and bounded failure diagnostics.
+
+On 2026-09-13, an external native provider inspected the actual `src/save.ts` checkout through this command. Source-preservation verification passed, but independent review requested rework. The retained assignment and mandate accumulated 433,739 reported tokens across eight starts. The next 100,000-token reservation exceeded that disposable fixture's 500,000-token ceiling, and the service reported unavailable. No accepted completion or duplicate-free completed-goal restart was observed. This observation does not close the common installed acceptance gate. The opt-in process test retains failed repositories and can resume their exact authority and cumulative usage instead of resetting the task.

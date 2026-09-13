@@ -3,9 +3,16 @@
 import { runNodeRuntimeCli } from "./cli.js";
 import { runDiscordWorkforceReconciliationCli } from "./discord-workforce-reconciliation-cli.js";
 import { runRepositoryReplicaCli } from "./repository-replica-cli.js";
+import { runLocalSupervisionCli } from "./local-supervision-cli.js";
 
 const args = process.argv.slice(2);
-if (args[0] === "discord-workforce-reconcile") {
+if (args[0] === "supervise") {
+  process.exitCode = await runLocalSupervisionCli(args.slice(1), {
+    cwd: process.cwd(),
+    stdout: (message) => process.stdout.write(message),
+    stderr: (message) => process.stderr.write(message),
+  });
+} else if (args[0] === "discord-workforce-reconcile") {
   process.exitCode = await runDiscordWorkforceReconciliationCli(args.slice(1), {
     cwd: process.cwd(),
     stdout: (message) => process.stdout.write(message),

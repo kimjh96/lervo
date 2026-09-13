@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1c4870414147db24b8e73616"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Run installed outcome supervision locally without a Hub using exact existing mandate authority and graceful process shutdown."
