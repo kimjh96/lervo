@@ -149,8 +149,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       return createVerifiedConversationControlReply({
         artifactStore: this.options.artifactStore,
         writingContract: realtimeConversationWritingContract,
-        content:
-          "동일한 요청은 이미 진행 중입니다. 중복 실행하지 않고 기존 작업의 완료 결과를 이 대화에 남기겠습니다.",
+        content: "동일한 요청이 이미 접수되어 중복 실행을 차단했습니다.",
       });
     }
     if (turn.completed !== null) {

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_9297102e7eb8454cb718572a
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_09433b3b11d98739e2f6fad5
+outputLanguage: en
+outputs:
+  - byteCount: 1779
+    contentHash: sha256:6ddd84f2cd81a9f5e12bd55eb1bef34a1967d00234753b0b7dda399b00eb6cf6
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/recording-and-replay.md
+    userRegionHash: sha256:6ddd84f2cd81a9f5e12bd55eb1bef34a1967d00234753b0b7dda399b00eb6cf6
+profile: specification_document
+recordId: knormdoc_625f9c6a8246c5625a79a46e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0bc7b97a896fb3a87d03a7ebc303b83ba5b0f053952b1c683d4a0941ad780ad3
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/recording-and-replay.md
+sourceUnitVersionIds:
+  - uv_91291aad2459b7ba4d9e241a

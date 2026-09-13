@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_bea32ac8375549a71eb8a9b9"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Resume supervised work after repaired preflight failures only when independent inspection proves execution never started."

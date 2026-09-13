@@ -126,7 +126,7 @@ describe("supervision verification definitions", { timeout: 30_000 }, () => {
       runtimeReadiness: f.runtimeReadiness,
     });
     try {
-      expect((await runtime.runCycle()).disposition).toBe("uncertain");
+      expect((await runtime.runCycle()).disposition).toBe("blocked");
       expect(f.counts().effects).toBe(0);
       expect(count).toBe(2);
     } finally {

@@ -22,9 +22,10 @@ afterEach(async () => {
 });
 
 describe("ConversationRepositoryWorkResponder", () => {
-  it.each([true, false])(
-    "keeps contextual results and independent evidence for changed=%s without replaying work",
-    async (changed) => {
+  it.each(["changed", "read_only", "running"])(
+    "keeps contextual results and independent evidence without replaying work (%s)",
+    async (scenario) => {
+      const changed = scenario === "changed";
       const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-work-"));
       roots.push(root);
       await execute("git", ["init", "-b", "main"], { cwd: root });
@@ -71,10 +72,11 @@ describe("ConversationRepositoryWorkResponder", () => {
         };
       });
       const verifyCompletion = vi.fn(async () => undefined);
+      const store = SQLiteConversationRepositoryWorkStore.open(resolve(root, "work.sqlite"));
       const responder = new ConversationRepositoryWorkResponder({
         repositoryRoot: root,
         artifactStore: artifacts,
-        store: SQLiteConversationRepositoryWorkStore.open(resolve(root, "work.sqlite")),
+        store,
         parentAgentId: "agt_111111111111111111111111",
         executors: { codex: { provider: "codex", execute: executeTurn } },
         models: { codex: "gpt-6-astra" },
@@ -98,6 +100,29 @@ describe("ConversationRepositoryWorkResponder", () => {
           verify: verifyCompletion,
         },
       });
+      if (scenario === "running") {
+        store.begin({
+          eventId: event.eventId,
+          conversationId: event.target.conversationId,
+          threadId: event.target.threadId,
+          workerId: "agt_111111111111111111111111",
+          provider: "codex",
+          requestContentHash: source.contentHash,
+          startedAt: new Date().toISOString(),
+        });
+        try {
+          const reply = await responder.respond({ event } as never);
+          expect(executeTurn).not.toHaveBeenCalled();
+          expect(verifyCompletion).not.toHaveBeenCalled();
+          const content = await artifacts.get(
+            `lervo-cas://sha256/${reply.content.contentHash.slice(7)}`,
+          );
+          expect(new TextDecoder().decode(content)).toContain("중복 실행을 차단했습니다");
+        } finally {
+          responder.close();
+        }
+        return;
+      }
       const first = await responder.respond({ event } as never);
       const second = await responder.respond({ event } as never);
       expect(executeTurn).toHaveBeenCalledTimes(1);

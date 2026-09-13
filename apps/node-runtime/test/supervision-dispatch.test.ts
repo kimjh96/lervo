@@ -77,9 +77,9 @@ describe("Node dispatch readiness integration", { timeout: 30_000 }, () => {
         runtimeReadiness: f.runtimeReadiness,
       });
       try {
-        expect((await runtime.runCycle()).disposition).toBe("uncertain");
+        expect((await runtime.runCycle()).disposition).toBe("blocked");
         expect(f.counts().effects).toBe(0);
-        expect(f.attention.at(-1)).toContain("effect_outcome_uncertain");
+        expect(f.attention.at(-1)).toContain("supervision_preflight_failed");
       } finally {
         await runtime.close();
       }

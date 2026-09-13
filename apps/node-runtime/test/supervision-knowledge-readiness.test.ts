@@ -151,7 +151,7 @@ describe("supervision knowledge observation", { timeout: 30_000 }, () => {
       runtimeReadiness: f.runtimeReadiness,
     });
     try {
-      expect((await runtime.runCycle()).disposition).toBe("uncertain");
+      expect((await runtime.runCycle()).disposition).toBe("blocked");
       expect(f.counts().effects).toBe(0);
       expect(calls).toBe(2);
     } finally {

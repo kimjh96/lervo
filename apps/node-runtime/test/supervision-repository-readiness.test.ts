@@ -65,7 +65,7 @@ describe("canonical repository readiness probes", () => {
       runtimeReadiness: f.runtimeReadiness,
     });
     try {
-      expect((await runtime.runCycle()).disposition).toBe("uncertain");
+      expect((await runtime.runCycle()).disposition).toBe("blocked");
       expect(f.counts().effects).toBe(0);
     } finally {
       await runtime.close();

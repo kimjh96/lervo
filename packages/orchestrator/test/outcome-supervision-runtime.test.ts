@@ -5,6 +5,7 @@ import type {
   SupervisionDecisionReceipt,
 } from "../src/outcome-supervision-ports.js";
 import { OutcomeSupervisionRuntime } from "../src/outcome-supervision-runtime.js";
+import { SupervisionPreflightError } from "../src/outcome-supervision-ports.js";
 import {
   hash,
   mandate,
@@ -111,6 +112,34 @@ function fixture() {
 }
 
 describe("serialized causal owner decisions", () => {
+  it("requires independent non-start evidence before retrying a failed preflight", async () => {
+    const f = fixture();
+    f.execute.mockRejectedValueOnce(new SupervisionPreflightError());
+    const runtime = new OutcomeSupervisionRuntime(f.ports);
+    expect((await runtime.runCycle(f.state.supervisionId)).disposition).toBe("blocked");
+    expect([...f.decisions.values()][0]!.status).toBe("recorded");
+    const restarted = new OutcomeSupervisionRuntime(f.ports);
+    expect((await restarted.runCycle(f.state.supervisionId)).disposition).toBe("uncertain");
+    expect(f.execute).toHaveBeenCalledOnce();
+    f.ports.inspectEffect = async () => ({ status: "not_started" });
+    expect((await restarted.runCycle(f.state.supervisionId)).disposition).toBe("effect_confirmed");
+    expect(f.execute).toHaveBeenCalledTimes(2);
+    expect(f.propose).toHaveBeenCalledOnce();
+  });
+
+  it("does not treat an effect error with a matching code as proof that execution never started", async () => {
+    const f = fixture();
+    f.execute.mockRejectedValueOnce(
+      Object.assign(new Error("Response lost after execution."), {
+        code: "supervision_preflight_failed",
+      }),
+    );
+    expect(
+      (await new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId)).disposition,
+    ).toBe("uncertain");
+    expect([...f.decisions.values()][0]!.status).toBe("uncertain");
+  });
+
   it("reconciles cancellation independently of expired resource admission without proposing work", async () => {
     const f = fixture();
     f.state.workstreamStatus = "cancelled";

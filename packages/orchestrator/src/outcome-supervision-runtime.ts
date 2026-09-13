@@ -13,6 +13,7 @@ import type {
   OutcomeSupervisionPorts,
   SupervisionDecisionReceipt,
 } from "./outcome-supervision-ports.js";
+import { SupervisionPreflightError } from "./outcome-supervision-ports.js";
 
 export interface OutcomeSupervisionCycleResult {
   disposition: "idle" | "busy" | "blocked" | "changed" | "effect_confirmed" | "uncertain";
@@ -281,7 +282,11 @@ export class OutcomeSupervisionRuntime {
         await this.ports.recordEffect(receipt);
         this.remember(supervisionId, report, mandate.expiresAt);
         return { disposition: "effect_confirmed" as const, report };
-      } catch {
+      } catch (error) {
+        if (error instanceof SupervisionPreflightError) {
+          await this.ports.recordAttention(report, [error.code]);
+          return { disposition: "blocked" as const, report };
+        }
         await this.ports.recordEffect({ ...recorded, status: "uncertain", effectEventIds: [] });
         await this.ports.recordAttention(report, ["effect_outcome_uncertain"]);
         return { disposition: "uncertain" as const, report };

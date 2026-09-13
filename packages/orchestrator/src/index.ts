@@ -42,6 +42,7 @@ export type {
   WorkspaceIntegrationVerificationRequirement,
 } from "./workspace-integration-contract.js";
 export { OutcomeSupervisionRuntime } from "./outcome-supervision-runtime.js";
+export { SupervisionPreflightError } from "./outcome-supervision-ports.js";
 export type { OutcomeSupervisionCycleResult } from "./outcome-supervision-runtime.js";
 export type {
   OutcomeSupervisionPorts,

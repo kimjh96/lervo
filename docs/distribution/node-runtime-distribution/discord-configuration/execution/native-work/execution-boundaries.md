@@ -1,5 +1,5 @@
 # Execution and evidence boundaries
 
-Native work may inspect and change repository bytes. Its execution instructions exclude commits, pushes, publication, deployment, broad deletion, and secret disclosure. These exclusions are policy instructions, not an operating-system sandbox guarantee.
+Native work may inspect and change repository bytes. Its execution instructions prohibit commits, pushes, publication, deployment, broad deletion, and secret disclosure. These prohibitions are policy instructions, not guarantees enforced by an operating-system sandbox.
 
-The result reports Git-observed changed paths and does not claim exact-path managed-run verification. Fixed queue text is never used for native work.
+Results report paths that Git observes as changed without claiming exact-path verification by a managed run. Native work never uses fixed queue text.

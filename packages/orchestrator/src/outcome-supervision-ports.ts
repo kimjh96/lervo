@@ -13,6 +13,16 @@ import type {
 
 export type { SupervisionDecisionReceipt } from "@lervo/application-contract";
 
+/** Only a preflight that has not invoked the effect may report this failure. */
+export class SupervisionPreflightError extends Error {
+  readonly code = "supervision_preflight_failed";
+
+  constructor(options?: ErrorOptions) {
+    super("Supervision preflight failed before effect invocation.", options);
+    this.name = "SupervisionPreflightError";
+  }
+}
+
 export interface OutcomeSupervisionPorts {
   now(): string;
   /** Cross-process, fenced lease; expiration alone must not permit a second effect. */

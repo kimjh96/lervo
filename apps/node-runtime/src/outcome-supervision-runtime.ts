@@ -15,16 +15,11 @@ import type { OperatingActionPlanV1 } from "@lervo/application-contract";
 import { SupervisionResultDelivery } from "./supervision-result-delivery.js";
 import { snapshotRuntimeReadinessConfiguration } from "./supervision-runtime-configuration.js";
 import { OutcomeSupervisionRuntime, type OutcomeSupervisionPorts } from "@lervo/orchestrator";
-import {
-  operatingContractHash,
-  reviewOperatingAction,
-  operatingReadinessKind,
-  assertOwnerControlReadiness,
-} from "@lervo/work-controller";
+import { operatingContractHash, assertOwnerControlReadiness } from "@lervo/work-controller";
 import { NodeSupervisionError } from "./supervision-authority.js";
 import { NodeSupervisionStore, type NodeSupervisionSession } from "./supervision-store.js";
 import { createSupervisionChangeLoop } from "./supervision-change-loop.js";
-import { assertNodeSupervisionReadiness } from "./supervision-readiness.js";
+import { prepareNodeSupervisionEffect } from "./supervision-execution-preflight.js";
 
 import type {
   NodeSupervisionEffectSession,
@@ -270,31 +265,19 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     findDecision: async (id) => session().findDecision(id),
     recordEffect: async (receipt) => session().recordEffect(receipt),
     execute: async (plan) => {
-      if (operatingReadinessKind(plan) === "owner_control") await readOwnerControlReadiness(plan);
-      const preflight =
-        operatingReadinessKind(plan) === "worker"
-          ? await readNodeDispatchPreflight({
-              ...dispatchReadinessInput(plan),
-              readAdmission: () => readAdmission(plan),
-            })
-          : null;
-      const readiness = preflight?.readiness ?? null;
-      const snapshot = preflight?.admission ?? (await readAdmission(plan));
-      const age = Date.parse(ports.now()) - Date.parse(snapshot.observedAt);
-      const installation = await session().readMandate();
-      const review = reviewOperatingAction({ mandate: installation.mandate, plan, snapshot });
-      if (!Number.isFinite(age) || age < 0 || age > 5000 || review.disposition !== "admitted")
-        throw new NodeSupervisionError("supervision_authority_changed");
-      if (readiness !== null)
-        assertNodeSupervisionReadiness({
-          readiness,
-          sourceRevisionDigest: snapshot.sourceRevisionDigest,
-          now: ports.now(),
-        });
-      const owner = session();
-      const authorityDigest = sourceBinding?.authorityDigest;
-      if (authorityDigest === undefined)
-        throw new NodeSupervisionError("supervision_authority_unavailable");
+      const { owner, review, authorityDigest } = await prepareNodeSupervisionEffect({
+        plan,
+        now: ports.now,
+        readOwnerControlReadiness,
+        readDispatchPreflight: () =>
+          readNodeDispatchPreflight({
+            ...dispatchReadinessInput(plan),
+            readAdmission: () => readAdmission(plan),
+          }),
+        readAdmission,
+        session,
+        authorityDigest: () => sourceBinding?.authorityDigest,
+      });
       const effectSession: NodeSupervisionEffectSession = {
         recordGoalCompletion: (action, effect) =>
           owner.recordGoalCompletion(action, effect, authorityDigest),

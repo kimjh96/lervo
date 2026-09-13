@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_ff00c3050e57aa2fa312cfcb
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_331703aa91b3f57664c8b432
+outputLanguage: en
+outputs:
+  - byteCount: 1491
+    contentHash: sha256:b64530e6d848452ea1ab429b83d86de47b59ee61f7f0ca70428ee43d23ebd80c
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/native-reasoning-supersession.md
+    userRegionHash: sha256:b64530e6d848452ea1ab429b83d86de47b59ee61f7f0ca70428ee43d23ebd80c
+profile: specification_document
+recordId: knormdoc_727b175ecf85d18f1d7e8d8d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2b719c296e8bdf7842f59f0f3b964daade6bd995d1ce110f72f4d901ff7a40af
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/native-reasoning-supersession.md
+sourceUnitVersionIds:
+  - uv_36fcdb596bcd1b82329fd8cf

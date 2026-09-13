@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_ff00c3050e57aa2fa312cfcb
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b9ba1d8bf16e600d9493f804
+outputLanguage: en
+outputs:
+  - byteCount: 584
+    contentHash: sha256:127bdee4cae972aad0420432cf1ef0ca3e99fc7bcd099f88d705b99cd35e7207
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/replica-parity.md
+    userRegionHash: sha256:127bdee4cae972aad0420432cf1ef0ca3e99fc7bcd099f88d705b99cd35e7207
+profile: repository_document
+recordId: knormdoc_9cc9bb453762928551b0814f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3af29b02c7a66afa059cab1a99ce40b30af04ce252d23e3808868d3459795b9d
+sourcePath: docs/distribution/node-runtime-distribution/discord-configuration/execution/native-work/replica-parity.md
+sourceUnitVersionIds:
+  - uv_96de24c51b33d8182a48bd01

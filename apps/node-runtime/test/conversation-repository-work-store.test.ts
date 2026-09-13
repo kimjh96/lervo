@@ -14,6 +14,49 @@ afterEach(async () => {
 });
 
 describe("SQLiteConversationRepositoryWorkStore", () => {
+  it("retains one running attempt when the same event is replayed through another handle or after reopen", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-work-store-running-"));
+    roots.push(root);
+    const path = resolve(root, "work.sqlite");
+    const first = SQLiteConversationRepositoryWorkStore.open(path);
+    let second = SQLiteConversationRepositoryWorkStore.open(path);
+    const turn = {
+      eventId: "evt_111111111111111111111111",
+      conversationId: "cnv_example",
+      threadId: null,
+      workerId: "agt_111111111111111111111111",
+      provider: "codex" as const,
+      requestContentHash: `sha256:${"1".repeat(64)}`,
+      startedAt: "2026-09-10T00:00:00.000Z",
+    };
+    try {
+      expect(first.begin(turn).duplicate).toBeNull();
+      expect(second.begin(turn).duplicate).toBe("in_progress");
+      second.close();
+      second = SQLiteConversationRepositoryWorkStore.open(path);
+      expect(second.begin({ ...turn, startedAt: "2026-09-11T00:00:00.000Z" }).duplicate).toBe(
+        "in_progress",
+      );
+      expect(() =>
+        second.begin({ ...turn, requestContentHash: `sha256:${"2".repeat(64)}` }),
+      ).toThrow("durable coordinates");
+      expect(second.begin(turn).duplicate).toBe("in_progress");
+      const observer = new DatabaseSync(path, { readOnly: true });
+      try {
+        expect(
+          observer
+            .prepare("SELECT status, attempt_count FROM conversation_repository_work_turns")
+            .get(),
+        ).toEqual({ status: "running", attempt_count: 1 });
+      } finally {
+        observer.close();
+      }
+    } finally {
+      first.close();
+      second.close();
+    }
+  });
+
   it("deduplicates completed work and resumes the durable conversation session", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-work-store-"));
     roots.push(root);

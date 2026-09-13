@@ -52,13 +52,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "apps/node-runtime/src/conversation-repository-work-store.ts",
-      "contentHash": "sha256:7494b3927c637848b429b3230f5d3b26245bd376f0fe41272e67d8bebe33c593",
-      "responsibility": "Conversation repository-work session persistence",
-      "rationale": "Turn replay, semantic duplicate coalescing, resumable provider sessions, active delegate selection, failure recording, and bounded pruning operate on one SQLite transaction boundary; execution policy, provider processes, artifacts, and response rendering remain in linked modules.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "apps/node-runtime/src/discord-conversation-runtime.ts",
       "contentHash": "sha256:f55dd2eb83ef8aad30ad0ebd7787d65d3584af2588d965af187e5c2003222d0f",
       "responsibility": "Single Discord conversation deployment composition",
