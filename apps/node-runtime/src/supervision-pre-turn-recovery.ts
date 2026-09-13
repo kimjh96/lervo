@@ -109,6 +109,8 @@ export async function recoverInterruptedPreTurn(input: {
         const terminal = {
           ...events[4]!,
           type: "run.failed" as const,
+          schemaVersion: 1 as const,
+          actor: { kind: "system" as const },
           eventId,
           seq: head.seq + 1,
           occurredAt,
