@@ -140,6 +140,27 @@ export class NaturalLanguageDiscordConversationResponder
     priorTurns: Awaited<ReturnType<ConversationHistoryPort["recent"]>>;
     replyCandidate: ConversationReplyCandidate | null;
   }> {
+    if (event.kind === "goal.requested") {
+      const resolution: ConversationIntentResolution = {
+        intent: "continue_work",
+        confidence: "high",
+        participation: "relevant",
+        effect: { kind: "repository_work" },
+        provider: { providerId: "lervo_goal", model: null, adapterVersion: "1" },
+        resultDigest: event.content.contentHash,
+      };
+      await this.options.resolutionStore.record({
+        event,
+        resolution,
+        resolvedAt: new Date().toISOString(),
+      });
+      return {
+        mode: this.admittedMode(event, resolution),
+        resolution,
+        priorTurns: [],
+        replyCandidate: null,
+      };
+    }
     if (this.options.explicitControl !== undefined) {
       const message = withoutLeadingBotMention(
         await readConversationControlMessage({ artifactStore: this.options.artifactStore, event }),

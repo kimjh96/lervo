@@ -33,7 +33,7 @@ describe("Node supervision repository composition", () => {
       ports: f.ports,
     });
     try {
-      expect((await runtime.runCycle()).disposition).toBe("uncertain");
+      expect((await runtime.runCycle()).disposition).toBe("blocked");
       expect(f.counts().effects).toBe(0);
     } finally {
       await runtime.close();

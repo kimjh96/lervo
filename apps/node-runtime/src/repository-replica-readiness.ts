@@ -99,10 +99,8 @@ export async function awaitRepositoryReplicaReadiness(input: {
       const remainingMilliseconds = deadline - now();
       if (remainingMilliseconds <= 0) polling = false;
       else {
-        await wakeup.wait(
-          revision,
-          Math.min(watcher === undefined ? input.pollIntervalMs : 30_000, remainingMilliseconds),
-        );
+        // Filesystem notifications may be coalesced; the bounded wait rechecks the receipt.
+        await wakeup.wait(revision, Math.min(input.pollIntervalMs, 1_000, remainingMilliseconds));
         if (wakeup.revision === revision) checkedReceipt = undefined;
       }
     }

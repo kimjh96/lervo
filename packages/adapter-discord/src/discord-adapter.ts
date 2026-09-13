@@ -21,6 +21,7 @@ import type {
   DiscordHistoryMessage,
   DiscordIngressResult,
 } from "./types.js";
+import type { DiscordGoalInteraction } from "./goal-interaction.js";
 import { deliverDiscordConversationMessage } from "./delivery.js";
 import {
   parseDiscordGatewayPayload,
@@ -35,6 +36,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
   private readonly maximumPayloadBytes: number;
   private readonly ignoredParticipantKeys: ReadonlySet<string>;
   private readonly textualParticipantAliases: ReadonlyMap<string, string>;
+  private readonly authenticatedGoals = new WeakSet<DiscordGoalInteraction>();
 
   constructor(private readonly options: DiscordConversationAdapterOptions) {
     if (
@@ -138,7 +140,49 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
     if (parsed.kind === "ignored") {
       return { status: "ignored", reason: parsed.reason, checkpoint: null };
     }
+    if (parsed.kind === "goal_command") {
+      if (parsed.command.applicationId !== this.options.applicationId)
+        throw new ConversationPlatformError(
+          "platform_authentication_failed",
+          "The Discord /goal application identity differs.",
+        );
+      this.authenticatedGoals.add(parsed.command);
+      return { status: "goal_command", command: parsed.command, checkpoint: null };
+    }
     return this.receiveAuthenticatedMessage(parsed);
+  }
+
+  /** Links the authenticated interaction to its visible callback message for durable result replies. */
+  async receiveGoalResponseMessage(input: {
+    command: DiscordGoalInteraction;
+    messageId: string;
+    occurredAt: string;
+  }): Promise<DiscordIngressResult> {
+    if (
+      !this.authenticatedGoals.has(input.command) ||
+      !/^[0-9]{1,32}$/u.test(input.messageId) ||
+      !Number.isFinite(Date.parse(input.occurredAt))
+    )
+      throw new ConversationPlatformError(
+        "platform_authentication_failed",
+        "The Discord /goal response lacks an authenticated source.",
+      );
+    return this.receiveAuthenticatedMessage(
+      {
+        kind: "message",
+        messageId: input.messageId,
+        channelId: input.command.channelId,
+        guildId: input.command.guildId,
+        participantKey: `user:${input.command.userId}`,
+        mentionedParticipantKeys: [`bot:${this.options.applicationId}`],
+        actorKindHint: "human",
+        replyToMessageId: null,
+        content: input.command.request,
+        occurredAt: input.occurredAt,
+      },
+      "goal.requested",
+      false,
+    );
   }
 
   async receiveHistoryMessage(
@@ -165,6 +209,8 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
 
   private async receiveAuthenticatedMessage(
     parsed: ParsedDiscordMessage,
+    kind: "message.created" | "goal.requested" = "message.created",
+    checkpointOnSuccess = true,
   ): Promise<DiscordIngressResult> {
     if (
       (parsed.guildId === null && !this.options.allowDirectMessages) ||
@@ -263,7 +309,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
         conversationId: identity.conversationId,
         threadId: identity.threadId,
       },
-      kind: "message.created",
+      kind,
       actor: identity.actor,
       content,
       mentions: identity.mentions,
@@ -292,7 +338,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
     return {
       status: "accepted",
       event,
-      checkpoint,
+      checkpoint: checkpointOnSuccess ? checkpoint : null,
       responseActivity:
         this.options.typing === undefined
           ? null

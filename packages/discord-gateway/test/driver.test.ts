@@ -96,6 +96,46 @@ function fixture(
 }
 
 describe("authenticated Discord Gateway driver", () => {
+  it("dispatches interactions while READY history reconciliation is still running", async () => {
+    let finishReady!: () => void;
+    const readyWait = new Promise<void>((resolve) => {
+      finishReady = resolve;
+    });
+    const setup = fixture(() => readyWait);
+    setup.driver.start();
+    const connection = setup.transport.connections[0]!;
+    emit(connection.observer, { op: 10, d: { heartbeat_interval: 45_000 } });
+    await settled();
+    emit(connection.observer, {
+      op: 0,
+      s: 1,
+      t: "READY",
+      d: { session_id: "gateway-session", resume_gateway_url: "wss://gateway.discord.gg" },
+    });
+    await settled();
+    emit(connection.observer, { op: 0, s: 2, t: "MESSAGE_CREATE", d: { id: "message-1" } });
+    emit(connection.observer, { op: 0, s: 3, t: "INTERACTION_CREATE", d: { id: "goal-1" } });
+    await settled();
+    expect(
+      setup.dispatches.map((item) => JSON.parse(Buffer.from(item.body).toString("utf8")).t),
+    ).toEqual(["INTERACTION_CREATE"]);
+    await expect(
+      setup.driver.verifyDispatch({
+        sessionHandle: setup.dispatches[0]!.sessionHandle,
+        applicationId: "999999999999999999",
+        sequence: 3,
+        eventName: "INTERACTION_CREATE",
+        verifiedAt: "2026-09-07T09:00:00.000Z",
+      }),
+    ).resolves.toEqual({ authenticated: true });
+    finishReady();
+    await settled();
+    expect(setup.dispatches).toHaveLength(2);
+    setup.schedule.runNext();
+    expect(JSON.parse(connection.sent.at(-1)!)).toEqual({ op: 1, d: 3 });
+    setup.driver.stop();
+  });
+
   it("identifies, authenticates READY, and forwards a verifiable dispatch", async () => {
     const setup = fixture();
     setup.driver.start();

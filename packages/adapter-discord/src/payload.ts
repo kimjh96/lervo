@@ -3,6 +3,7 @@ import {
   objectValue,
   requiredString,
 } from "@lervo/conversation-platform";
+import { parseDiscordGoalInteraction, type DiscordGoalInteraction } from "./goal-interaction.js";
 
 export interface ParsedDiscordMessage {
   kind: "message";
@@ -19,6 +20,12 @@ export interface ParsedDiscordMessage {
 
 export type ParsedDiscordGateway =
   | { kind: "ignored"; reason: string; sequence: number; eventName: string }
+  | {
+      kind: "goal_command";
+      sequence: number;
+      eventName: "INTERACTION_CREATE";
+      command: DiscordGoalInteraction;
+    }
   | (ParsedDiscordMessage & { sequence: number; eventName: "MESSAGE_CREATE" });
 
 function snowflake(value: unknown, label: string): string {
@@ -73,6 +80,12 @@ export function parseDiscordGatewayPayload(
   }
   const sequence = payload.s as number;
   const eventName = requiredString(payload.t, "Discord Gateway event name", 64);
+  if (eventName === "INTERACTION_CREATE") {
+    const command = parseDiscordGoalInteraction(payload.d);
+    return command === null
+      ? { kind: "ignored", reason: "unsupported_interaction", sequence, eventName }
+      : { kind: "goal_command", sequence, eventName, command };
+  }
   if (eventName !== "MESSAGE_CREATE") {
     return { kind: "ignored", reason: "unsupported_gateway_event", sequence, eventName };
   }

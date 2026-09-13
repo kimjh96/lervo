@@ -6,6 +6,7 @@ import type {
   ConversationOutboundMessage,
 } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
+import type { DiscordGoalInteraction } from "./goal-interaction.js";
 
 export interface DiscordGatewayDispatch {
   sessionHandle: string;
@@ -181,8 +182,9 @@ export type DiscordIngressResult =
       status: "accepted";
       event: ConversationInboundEvent;
       responseActivity: DiscordResponseActivity | null;
-      checkpoint: DiscordIngressCheckpoint;
+      checkpoint: DiscordIngressCheckpoint | null;
     }
+  | { status: "goal_command"; command: DiscordGoalInteraction; checkpoint: null }
   | { status: "ignored"; reason: string; checkpoint: DiscordIngressCheckpoint | null };
 
 export interface DiscordConversationAdapterPort {

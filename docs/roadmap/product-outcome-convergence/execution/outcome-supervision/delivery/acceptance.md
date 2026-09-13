@@ -14,6 +14,7 @@
 | User changes requirement | Revises exact plans and contracts while independent work continues. |
 | Revocation/budget/cancellation | Stops admission, reports missing usage, and reconciles in-flight effects. |
 | Platform replacement/idle | The same contract works locally without Hub and through Discord. Unchanged idle periods cause no model calls or repeated history reads. An unaddressed agent-authored reply must not trigger unsolicited acknowledgement loops, while exact participant mentions and human reply ownership continue to work. |
+| Native Discord `/goal` | Guild command is registered for the installed supervised owner, acknowledges within three seconds, attributes the human request to the exact visible source message, binds through the same canonical writer as local stdin, reports failed intake truthfully, and replies with independently verified result and publication evidence. An uncertain acknowledgement does not create a duplicate request. |
 | Result delivery failure | Retains accepted work and retries publication only; acceptance is not delivery success. |
 
 Use common provider/host contract fixtures. Record bundle/source, role/mandate hashes, causal links, artifacts, acceptance, failures, and missing observations. Measure goal completion, human interventions, redundant hires, duplicate effects, recovery time, model calls, and observed token scope. Improvement claims require an equivalent baseline.

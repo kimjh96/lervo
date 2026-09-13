@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { DiscordGatewayAuthenticationPort } from "@lervo/adapter-discord";
 
 import { NodeDiscordGatewayTransport } from "./websocket-transport.js";
+import { DiscordGatewayDispatchScheduler } from "./dispatch-scheduler.js";
 import {
   normalizeDiscordGatewayUrl,
   parseDiscordGatewayPayload,
@@ -53,7 +54,7 @@ export class AuthenticatedDiscordGatewayDriver
   private sessionHandle = "";
   private readonly authenticatedDispatches = new Set<string>();
   private dispatchChain = Promise.resolve();
-  private applicationDispatchChain = Promise.resolve();
+  private readonly applicationDispatches: DiscordGatewayDispatchScheduler;
 
   constructor(private readonly options: DiscordGatewayDriverOptions) {
     if (
@@ -94,6 +95,10 @@ export class AuthenticatedDiscordGatewayDriver
     this.heartbeatJitter = options.heartbeatJitter ?? Math.random;
     this.createSessionHandle =
       options.createSessionHandle ?? (() => `discord_${randomUUID().replaceAll("-", "")}`);
+    this.applicationDispatches = new DiscordGatewayDispatchScheduler(
+      options.onDispatch,
+      (message, error) => this.report("dispatch_failed", message, error),
+    );
   }
 
   start(): void {
@@ -151,9 +156,16 @@ export class AuthenticatedDiscordGatewayDriver
   }
 
   private enqueuePayload(payload: string | Uint8Array): void {
-    this.dispatchChain = this.dispatchChain
-      .then(() => this.handlePayload(parseDiscordGatewayPayload(payload, this.maximumPayloadBytes)))
-      .catch((error: unknown) => {
+    let parsed: DiscordGatewayPayload;
+    try {
+      parsed = parseDiscordGatewayPayload(payload, this.maximumPayloadBytes);
+    } catch (error) {
+      this.report("gateway_protocol_invalid", "Discord Gateway payload is invalid.", error);
+      this.reconnect(true);
+      return;
+    }
+    const handle = () =>
+      this.handlePayload(parsed).catch((error: unknown) => {
         if (error instanceof DiscordGatewayError) {
           this.report(error.code, error.message, error);
         } else {
@@ -161,11 +173,17 @@ export class AuthenticatedDiscordGatewayDriver
         }
         this.reconnect(true);
       });
+    // READY reconciliation can take longer than Discord's interaction response window.
+    if (parsed.op === 0 && parsed.t === "INTERACTION_CREATE" && this.identified) {
+      void handle();
+      return;
+    }
+    this.dispatchChain = this.dispatchChain.then(handle);
   }
 
   private async handlePayload(payload: DiscordGatewayPayload): Promise<void> {
     if (typeof payload.s === "number" && Number.isSafeInteger(payload.s) && payload.s >= 0) {
-      this.sequence = payload.s;
+      this.sequence = this.sequence === null ? payload.s : Math.max(this.sequence, payload.s);
     }
     if (payload.op === 10) {
       this.hello(payload.d);
@@ -231,11 +249,7 @@ export class AuthenticatedDiscordGatewayDriver
       sessionHandle: this.sessionHandle,
       body: Buffer.from(JSON.stringify(payload)),
     };
-    this.applicationDispatchChain = this.applicationDispatchChain
-      .then(() => this.options.onDispatch(dispatch))
-      .catch((error: unknown) => {
-        this.report("dispatch_failed", "Authenticated Discord dispatch handling failed.", error);
-      });
+    this.applicationDispatches.schedule(payload.t, dispatch);
   }
 
   private hello(value: unknown): void {

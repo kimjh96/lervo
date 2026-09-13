@@ -24,7 +24,7 @@ export const conversationInboundEventSchema = {
     eventId: conversationEventIdSchema,
     sourceEventKeyHash: sha256Schema,
     target: conversationTargetSchema,
-    kind: { type: "string", enum: ["message.created", "signal.raised"] },
+    kind: { type: "string", enum: ["message.created", "goal.requested", "signal.raised"] },
     actor: {
       type: "object",
       properties: {
@@ -90,6 +90,10 @@ export const conversationInboundEventSchema = {
   allOf: [
     {
       if: { properties: { kind: { const: "message.created" } }, required: ["kind"] },
+      then: { properties: { signalCode: { type: "null" } } },
+    },
+    {
+      if: { properties: { kind: { const: "goal.requested" } }, required: ["kind"] },
       then: { properties: { signalCode: { type: "null" } } },
     },
     {

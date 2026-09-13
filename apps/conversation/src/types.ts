@@ -1,6 +1,8 @@
 import type {
   DiscordConversationAdapter,
   DiscordGatewayAuthenticationPort,
+  DiscordGoalInteraction,
+  DiscordIngressResult,
 } from "@lervo/adapter-discord";
 import type { SlackConversationAdapter } from "@lervo/adapter-slack";
 import type { ConversationAdapter } from "@lervo/conversation-contract";
@@ -74,6 +76,11 @@ export interface DiscordConversationDeployment extends PlatformCredentialTranspo
       };
   gatewayAuthentication?: DiscordGatewayAuthenticationPort;
   gateway?: Omit<DiscordGatewayDriverOptions, "applicationId" | "botToken" | "onDispatch">;
+  onGoalCommand?(input: {
+    command: DiscordGoalInteraction;
+    adapter: DiscordConversationAdapter;
+    process(result: DiscordIngressResult): Promise<void>;
+  }): Promise<void>;
 }
 
 export interface ConversationInteractionBinding {

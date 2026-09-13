@@ -463,6 +463,77 @@ describe("authenticated platform conversation adapters", () => {
     ]);
   });
 
+  it("binds an authenticated /goal to the visible response and preserves human attribution", async () => {
+    const artifactStore = await artifacts();
+    const identity = identityPort();
+    const adapter = new DiscordConversationAdapter({
+      integrationId: "itg_discord01",
+      applicationId: "999999999999999999",
+      allowedGuildIds: ["123456789012345678"],
+      allowDirectMessages: false,
+      gatewayAuthentication: { verifyDispatch: async () => ({ authenticated: true }) },
+      identity: identity.port,
+      artifactStore,
+      delivery: {
+        send: async () => ({ messageId: "423456789012345678", deliveredAt: now.toISOString() }),
+      },
+      now: () => now,
+    });
+    const token = `interaction.${"s".repeat(40)}`;
+    const dispatch = await adapter.receiveGatewayDispatch({
+      sessionHandle: "authenticated-session",
+      body: Buffer.from(
+        JSON.stringify({
+          op: 0,
+          s: 43,
+          t: "INTERACTION_CREATE",
+          d: {
+            type: 2,
+            id: "523456789012345678",
+            application_id: "999999999999999999",
+            token,
+            guild_id: "123456789012345678",
+            channel_id: "223456789012345678",
+            member: { user: { id: "623456789012345678", bot: false } },
+            data: {
+              name: "goal",
+              type: 1,
+              options: [{ name: "request", type: 3, value: "Finish the reviewed result." }],
+            },
+          },
+        }),
+      ),
+    });
+    expect(dispatch.status).toBe("goal_command");
+    if (dispatch.status !== "goal_command") throw new Error("Expected a goal command.");
+    const ingress = await adapter.receiveGoalResponseMessage({
+      command: dispatch.command,
+      messageId: "723456789012345678",
+      occurredAt: now.toISOString(),
+    });
+    expect(ingress).toMatchObject({
+      status: "accepted",
+      checkpoint: null,
+      event: { kind: "goal.requested", actor: { kind: "human" }, signalCode: null },
+    });
+    if (ingress.status !== "accepted") throw new Error("Expected accepted goal ingress.");
+    expect(identity.inbound).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceMessageKey: "723456789012345678",
+        participantKey: "user:623456789012345678",
+        mentionedParticipantKeys: ["bot:999999999999999999"],
+      }),
+    );
+    expect(identity.recordInbound).toHaveBeenCalledWith(
+      expect.objectContaining({
+        externalMessageKey: "723456789012345678",
+        eventId: ingress.event.eventId,
+      }),
+    );
+    expect(JSON.stringify(ingress.event)).not.toContain(token);
+    expect(JSON.stringify(ingress.event)).not.toContain("623456789012345678");
+  });
+
   it("authenticates Discord before rejecting a guild outside the configured scope", async () => {
     const artifactStore = await artifacts();
     const identity = identityPort();

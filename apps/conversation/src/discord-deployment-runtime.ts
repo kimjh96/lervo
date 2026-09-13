@@ -84,7 +84,19 @@ export class ConversationDiscordDeploymentRuntime {
     if (adapter === undefined || processor === undefined) {
       throw new Error("The Discord ingress runtime is not ready.");
     }
-    await processor.process(await adapter.receiveGatewayDispatch(dispatch));
+    const ingress = await adapter.receiveGatewayDispatch(dispatch);
+    if (ingress.status === "goal_command") {
+      const deployment = this.options.discord?.find((item) => item.integrationId === integrationId);
+      if (deployment?.onGoalCommand === undefined)
+        throw new Error("The Discord /goal command is not enabled for this integration.");
+      await deployment.onGoalCommand({
+        command: ingress.command,
+        adapter,
+        process: (result) => processor.process(result),
+      });
+      return;
+    }
+    await processor.process(ingress);
   }
 
   private async reconcileHistory(integrationId: string): Promise<void> {
