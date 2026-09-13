@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createProviderProcessEnvironment } from "./provider-process-environment.js";
 
 export type ProviderRuntimeInspectionStatus = "available" | "unavailable" | "unknown";
 
@@ -61,7 +62,7 @@ export async function inspectRuntimeExecutable(
       shell: false,
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
-      env: process.env.PATH === undefined ? {} : { PATH: process.env.PATH },
+      env: createProviderProcessEnvironment({ PATH: process.env.PATH }),
     });
     const collect = (chunk: Buffer) => {
       const remaining = MAX_VERSION_BYTES - outputBytes;

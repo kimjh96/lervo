@@ -1,4 +1,7 @@
 import { delimiter, dirname } from "node:path";
+import { mkdtemp, rm, writeFile, chmod } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -63,6 +66,27 @@ describe("provider runtime inspection", () => {
       reasonCode: "ready",
     });
   });
+
+  it.skipIf(process.platform === "win32")(
+    "probes an env-node launcher under a minimal service path",
+    async () => {
+      const directory = await mkdtemp(resolve(tmpdir(), "lervo-provider-probe-"));
+      const executable = resolve(directory, "provider");
+      const previous = process.env.PATH;
+      try {
+        await writeFile(executable, "#!/usr/bin/env node\nconsole.log('fixture-provider 1.2.3')\n");
+        await chmod(executable, 0o700);
+        process.env.PATH = "";
+        await expect(
+          inspectProviderExecutable({ provider: "codex", executable, source: "configured" }),
+        ).resolves.toMatchObject({ status: "available", version: "fixture-provider 1.2.3" });
+      } finally {
+        if (previous === undefined) delete process.env.PATH;
+        else process.env.PATH = previous;
+        await rm(directory, { recursive: true, force: true });
+      }
+    },
+  );
 
   it("rejects output beyond the probe evidence limit", async () => {
     await expect(
