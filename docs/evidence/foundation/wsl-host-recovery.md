@@ -28,3 +28,11 @@ All seven actual Node processes matched the verified executable hash. Their proc
 The Hub readiness endpoint returned HTTP 200 and the configured Hub identity. No Discord test message, repository commit, push, tag, public release, or new outcome-supervision activation occurred during this repair.
 
 Outcome-supervision implementation continues separately through its [six delivery stages](../../roadmap/product-outcome-convergence/execution/outcome-supervision/delivery/sequence.md). This recovery establishes neither their installed acceptance nor AXLI event-history convergence.
+
+## 2026-09-13 access restoration
+
+Windows SSH remained available while a fresh Ubuntu process failed with `Wsl/Service/0x8007274c`. The existing WSL Hub answered its live endpoint, so the failure did not prove that all running Linux workloads had stopped. After the user explicitly authorized access recovery ahead of installed acceptance, `wsl.exe --shutdown` completed with exit code 0 within 45 seconds. No Windows reboot, force termination, or VHD replacement was requested.
+
+Fresh Ubuntu commands then succeeded, and `/dev/sdd` mounted the root ext4 filesystem read/write. The Hub public `/v1/health/live` endpoint returned HTTP 200. A later observation found the same Hub PID 2681 and seven Node PIDs 2682, 2683, 2685, 2692, 2693, 2694, and 2695, all active with zero automatic restarts. This is a bounded access restoration and stable observation, not a diagnosis or permanent repair of the timeout cause.
+
+The designated WSL repository received the three request-intake commits as patches after preserving its pre-existing untracked source file under `.lervo/state/request-path-preimage-20260913/`. Mac and WSL Git tree hashes then matched at `a4aae628b204d96dc96284a01b4186027f95b0ec`. WSL build, quality, task-base release-completion check, and eleven focused local/Discord contract tests passed; one live-process test remained skipped. A verified Node archive with SHA-256 `15b59a010b9bba81387ef127a613cd509c229d01d17218eabe067146063146f5` was installed at a new path and passed the current Lervo configuration preflight. The running service still used its previous executable and configuration without `outcomeSupervision`; no new Discord intake or production supervision activation was observed.
