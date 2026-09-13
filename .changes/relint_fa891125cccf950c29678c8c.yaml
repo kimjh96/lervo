@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fa891125cccf950c29678c8c"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add installed Discord goal intake and a fenced recovery command for interrupted supervised runs."

@@ -1,6 +1,7 @@
 import type { SupervisedAssignmentAmendmentV1 } from "@lervo/application-contract";
 import { supervisedAssignmentAmendmentFields } from "@lervo/work-controller";
 import { observedSupervisionRunTermination } from "./supervision-run-termination.js";
+import { readProvenPreTurnFailure } from "./supervision-pre-turn-failure-source.js";
 import type { SupervisedAssignmentRecovery } from "@lervo/application-contract";
 import { supervisedAssignmentRecoveryFields } from "@lervo/work-controller";
 import type {
@@ -56,6 +57,16 @@ export async function observeSupervisionTaskResources(input: {
   // Reporting groups remain exact; a separate proof can resolve default model identity.
   const groups = source.workstreamResources.groups;
   const workRuns = new Set(source.workstreamResources.runIds);
+  const preTurnFailures = new Set<string>();
+  for (const runId of workRuns)
+    if (
+      await readProvenPreTurnFailure(
+        source.events.filter((event) => event.runId === runId),
+        artifacts,
+      )
+    )
+      preTurnFailures.add(runId);
+  const accountedRunIds = [...workRuns].filter((runId) => !preTurnFailures.has(runId));
   const allStartedObserved = source.events
     .filter((event) => event.type === "adapter.started" && workRuns.has(event.runId))
     .every((event) =>
@@ -72,7 +83,7 @@ export async function observeSupervisionTaskResources(input: {
     groups.length === 1 &&
     groups[0]!.completeness === "complete" &&
     groups[0]!.source === "provider_reported" &&
-    groups[0]!.runCount === workRuns.size;
+    groups[0]!.runCount === accountedRunIds.length;
   const descriptors = new Map<string, ResourceAccountingDescriptor>();
   if (allStartedObserved && groups.length === 2)
     for (const group of groups)
@@ -86,15 +97,19 @@ export async function observeSupervisionTaskResources(input: {
   const comparableTotal =
     allStartedObserved && groups.length === 2
       ? comparableSupervisionResourceTotal({
-          runIds: source.workstreamResources.runIds,
+          runIds: accountedRunIds,
           groups,
           events: source.events,
           descriptors,
         })
       : null;
-  const completeUsage = exactUsage || comparableTotal !== null;
-  let observedAggregateTokens =
-    workRuns.size === 0 ? 0 : exactUsage ? groups[0]!.totalTokens : comparableTotal;
+  const zeroOnly = accountedRunIds.length === 0 && groups.length === 0;
+  const completeUsage = zeroOnly || exactUsage || comparableTotal !== null;
+  let observedAggregateTokens = zeroOnly
+    ? 0
+    : exactUsage
+      ? groups[0]!.totalTokens
+      : comparableTotal;
   let reservedAggregateTokens: number | null = 0;
   const reservedRuns = new Set<string>();
   const currentDecision = operatingDecisionId(plan);
@@ -245,7 +260,8 @@ export async function observeSupervisionTaskResources(input: {
       continue;
     const identity = managedExecutionIdentity(plan.projectId, operatingContractHash(recorded));
     const run = source.events.filter((item) => item.runId === identity.runId);
-    const finished = observedSupervisionRunTermination(run) !== null;
+    const finished =
+      preTurnFailures.has(identity.runId) || observedSupervisionRunTermination(run) !== null;
     if (!finished) reservedRuns.add(identity.runId);
     if (event.payload.decisionId !== currentDecision && (!finished || !completeUsage)) {
       observedAggregateTokens = null;

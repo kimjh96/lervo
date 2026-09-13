@@ -1,6 +1,7 @@
 import type { ArtifactStore } from "@lervo/storage-contract";
 import { type EventEnvelope } from "@lervo/schemas";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
+import { isProvenPreTurnFailure } from "./supervision-pre-turn-failure.js";
 import { observedSupervisionRunTermination } from "./supervision-run-termination.js";
 
 /** A stopped turn is safely repeatable only when its actual session cannot perform tool effects. */
@@ -27,6 +28,14 @@ export async function observeSupervisionFailure(
   const diagnostic = (await readSupervisionJsonArtifact(artifacts, hash)) as {
     failures: { code: string; phase: string; retryable: boolean }[];
   };
+  if (terminal.payload.failureCode === "interrupted_before_turn") {
+    const safe = isProvenPreTurnFailure(events, diagnostic);
+    return {
+      status: safe ? ("known_safe_failure" as const) : ("uncertain" as const),
+      reasonCode: safe ? "fenced_pre_turn_interruption" : "pre_turn_recovery_unverified",
+      diagnostic: safe ? diagnostic : null,
+    };
+  }
   if (
     diagnostic === null ||
     typeof diagnostic !== "object" ||

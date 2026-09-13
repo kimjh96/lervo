@@ -4,7 +4,7 @@
 
 An exact managed run with no events may be superseded after its deadline expires or its canonical source changes. The adapter first validates the admitted decision and CAS effect. Under the current serialized owner lease, it rechecks the source, mandate, event head, and empty run before recording `work.supervision.decision.superseded`.
 
-A late CLI must pass its original owner-token fence and the pending-decision check before reservation. Supersession grants no execution or task lease. Version four requires an empty run. Version five admits only the reservation-only case described below; every other partial run remains uncertain.
+A late CLI must pass its original owner-token fence and the pending-decision check before reservation. Supersession grants no execution or task lease. Version four requires an empty run. Version five admits only the reservation-only case described below. Other partial runs remain uncertain unless the separate [pre-turn host-reset recovery](../assignment-recovery.md) records an exact fenced failed terminal.
 
 The CAS absence envelope has `schemaVersion: 4`, `kind: work.effect_absence`, and these thirteen required fields:
 
