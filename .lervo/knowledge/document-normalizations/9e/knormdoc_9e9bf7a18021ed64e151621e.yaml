@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_17d02bb8da65c0a5f6c790f8
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1bc75ea26f0cb3250f4c660a
+outputLanguage: en
+outputs:
+  - byteCount: 1724
+    contentHash: sha256:0a6058af2f2876b37a08427fa2f350628a2cd54eb334e3b2ce1682cc69e33bb7
+    path: docs/specifications/coordination/native-repository-work-admission.md
+    userRegionHash: sha256:0a6058af2f2876b37a08427fa2f350628a2cd54eb334e3b2ce1682cc69e33bb7
+profile: specification_document
+recordId: knormdoc_9e9bf7a18021ed64e151621e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d39d539adcdcdb5fce6fc968f7066e6b681043004db3b789803acd7d724ac14c
+sourcePath: docs/specifications/coordination/native-repository-work-admission.md
+sourceUnitVersionIds:
+  - uv_d90324339aef4a2b4653600a
