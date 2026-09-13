@@ -11,11 +11,11 @@ import type { DiscordGoalInteraction } from "./goal-interaction.js";
 const GOAL_COMMAND = {
   name: "goal",
   type: 1,
-  description: "담당자에게 작업 목표를 요청합니다",
+  description: "현재 진행 중인 목표에 요청을 연결합니다",
   options: [
     {
       name: "request",
-      description: "달성할 목표와 완료 기준",
+      description: "현재 목표에 대한 요청과 완료 기준",
       type: 3,
       required: true,
       max_length: 4_000,
@@ -159,7 +159,10 @@ export class DiscordRestGoalCommand {
           headers: {},
           body: {
             type: 4,
-            data: { content: "목표를 확인하고 있습니다.", allowed_mentions: { parse: [] } },
+            data: {
+              content: "현재 목표의 요청을 확인하고 있습니다.",
+              allowed_mentions: { parse: [] },
+            },
           },
           requestTimeoutMs: 2_000,
           ...(this.options.fetch === undefined ? {} : { fetch: this.options.fetch }),

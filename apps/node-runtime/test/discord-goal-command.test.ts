@@ -62,6 +62,11 @@ it("acknowledges before intake and only reports a processed request after the pr
   expect(order).toEqual(["acknowledge", "map", "process", "update"]);
   expect(receiveGoalResponseMessage).toHaveBeenCalledWith({ command, ...receipt });
   expect(process).toHaveBeenCalledOnce();
+  expect(update).toHaveBeenCalledWith(
+    command,
+    receipt.messageId,
+    expect.stringContaining("현재 진행 중인 목표에 요청을 연결했습니다"),
+  );
 });
 
 it("shows failure after a rejected intake without claiming success", async () => {

@@ -86,6 +86,6 @@ export async function handleDiscordGoalCommand(input: {
   await input.commandRest.update(
     input.command,
     receipt.messageId,
-    "목표 요청을 담당자에게 전달했습니다. 접수 및 검증 결과는 이 대화의 답글로 안내합니다.",
+    "현재 진행 중인 목표에 요청을 연결했습니다. 검증과 완료 결과는 이 대화의 답글로 안내합니다.",
   );
 }
