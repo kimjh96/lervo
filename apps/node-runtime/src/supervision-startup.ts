@@ -29,6 +29,14 @@ export async function openNodeSupervisionService(input: {
     throw new Error("Supervision publication requires its exact configured conversation adapter.");
   if (config.resultOrigin !== undefined && input.deliveryAdapter === undefined)
     throw new Error("Supervision publication requires its configured conversation adapter.");
+  if (
+    config.resultOrigin !== undefined &&
+    input.deliverySpeaker !== undefined &&
+    (config.resultOrigin.actor.participantId !== input.deliverySpeaker.participantId ||
+      config.resultOrigin.actor.roleId !== input.deliverySpeaker.roleId ||
+      !input.deliverySpeaker.conversationIds.includes(config.resultOrigin.target.conversationId))
+  )
+    throw new Error("Supervision publication differs from the installed owner speaker.");
   let fail!: () => void;
   const failed = new Promise<void>((resolve) => {
     fail = resolve;

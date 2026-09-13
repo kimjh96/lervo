@@ -17,6 +17,8 @@ The common completion gate remains full positive installed supervision acceptanc
 - Installed local/Discord equivalence, including one real goal accepted through each surface. The shared writer and bounded local stdin path have focused tests; deployment evidence is still required.
 - Actual scoped startup with valid settled authority.
 
+The current Mac Lervo repository still selects event writer version 2, and its local reader inventory cannot resolve the exact repository Node for a version 3 activation plan. The configured production Node is on WSL; a fresh Ubuntu process launch through the reachable Windows SSH host returned `Wsl/Service/0x8007274c` on 2026-09-13. No production mandate or `outcomeSupervision` configuration was installed as a substitute for these missing conditions. Restoring access to the designated execution side is a prerequisite for the remaining actual Discord and activation checks.
+
 Historical writing acceptance and unobserved execution accounting also remain unresolved. Preserve the existing artifact, reviews, event history, unknown usage, and reservation. This verification scope excludes new research worker execution; another worker invocation would not establish the missing historical accounting.
 
 Use the [current per-scenario evidence](../../../../../evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/approved-discord-acceptance.md) rather than reporting six unimplemented tasks. Do not mark a stage complete solely from API, fixture, build, or message-delivery success.

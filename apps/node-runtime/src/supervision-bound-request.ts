@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { validateSchema, type ConversationOutboundMessage } from "@lervo/schemas";
 import type { ProjectStorage } from "@lervo/project-storage";
 import { operatingContractHash } from "@lervo/work-controller";
@@ -7,6 +8,8 @@ import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import type { SupervisionTaskSource } from "./supervision-task-source.js";
 
 type Source = Awaited<ReturnType<SupervisionTaskSource["read"]>>;
+
+const digest = (value: string) => `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
 export interface BoundSupervisionRequest {
   eventId: string;
@@ -56,9 +59,15 @@ export async function readBoundSupervisionRequest(
     Buffer.byteLength(request.request, "utf8") > 16_384 ||
     typeof request.contentHash !== "string" ||
     !/^sha256:[a-f0-9]{64}$/u.test(request.contentHash) ||
+    digest(request.request) !== request.contentHash ||
     (request.source === "local"
       ? request.origin !== null
       : !validateSchema("conversationOutboundOrigin", request.origin).valid) ||
+    (request.source === "discord" &&
+      request.sourceDigest !==
+        digest(
+          `discord\0${(request.origin as BoundSupervisionRequest["origin"])!.sourceEventId}`,
+        )) ||
     (request.origin !== null &&
       (request.origin as BoundSupervisionRequest["origin"])!.target.projectId !==
         storage.manifest.projectId)
@@ -83,7 +92,14 @@ export async function readBoundSupervisionRequest(
     operatingContractHash((acceptance as Record<string, unknown>).assignmentIds) !==
       operatingContractHash(
         source.assignments
-          .filter((assignment) => Date.parse(assignment.createdAt) <= Date.parse(event.occurredAt))
+          .filter((assignment) =>
+            source.events.some(
+              (item) =>
+                item.type === "assignment.created" &&
+                item.payload.assignmentId === assignment.assignmentId &&
+                item.seq < event.seq,
+            ),
+          )
           .map((assignment) => assignment.assignmentId)
           .sort(),
       )

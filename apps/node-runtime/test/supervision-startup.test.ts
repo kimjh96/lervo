@@ -6,6 +6,10 @@ import { createLoginFixture } from "../../../packages/adapter-contract/test/logi
 import { supervisionFixture } from "./supervision.fixture.js";
 import { parseSupervisionStartupConfiguration } from "../src/supervision-startup-config.js";
 import { openNodeSupervisionService } from "../src/supervision-startup.js";
+import { openDeploymentSupervision } from "../src/deployment-supervision.js";
+import type { NodeRuntimeConfig, NodeDiscordConversationConfig } from "../src/config-types.js";
+import type { NodeDiscordConversationRuntime } from "../src/discord-conversation-runtime-types.js";
+import type { NodeRuntimeHealthPublisher } from "../src/health.js";
 import { SupervisionTaskSource } from "../src/supervision-task-source.js";
 import type { NodeRuntimeComponentHealth } from "../src/health-contract.js";
 
@@ -99,4 +103,47 @@ it("starts and closes the local service without a Hub and observes unavailable w
     await storage.close();
   }
   expect(() => service.start()).toThrow(/closed/iu);
+});
+
+it("uses the durable owner's role for a configured Discord result speaker", async () => {
+  const { f, configuration } = await fixture();
+  const conversation = {
+    agentId: f.owner.agentId,
+    agentParticipantId: "ptc_startupowner",
+    integrationId: "itg_startupresult",
+    command: { agentId: null, roleId: "researcher", provider: "codex" },
+    conversations: [{ conversationId: "cnv_startupresult" }],
+  } as unknown as NodeDiscordConversationConfig;
+  const config = {
+    repositoryRoot: f.root,
+    discordConversation: conversation,
+    outcomeSupervision: {
+      ...configuration,
+      resultOrigin: {
+        sourceEventId: `cve_${"3".repeat(64)}`,
+        policyId: `cpp_${"4".repeat(64)}`,
+        target: {
+          integrationId: conversation.integrationId,
+          projectId: f.owner.projectId,
+          conversationId: "cnv_startupresult",
+          threadId: null,
+        },
+        actor: {
+          kind: "agent" as const,
+          participantId: conversation.agentParticipantId,
+          roleId: f.owner.roleId,
+        },
+      },
+    },
+  } as NodeRuntimeConfig;
+  const service = await openDeploymentSupervision({
+    config,
+    projectId: f.owner.projectId,
+    conversation: {
+      resultAdapter: () => ({ descriptor: { integrationId: "itg_startupresult" } }),
+    } as unknown as NodeDiscordConversationRuntime,
+    health: { observeSupervision: async () => undefined } as unknown as NodeRuntimeHealthPublisher,
+  });
+  expect(service).not.toBeNull();
+  await service!.close();
 });

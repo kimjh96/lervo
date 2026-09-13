@@ -1,6 +1,7 @@
 import type { NodeRuntimeConfig } from "./config-types.js";
 import type { NodeDiscordConversationRuntime } from "./discord-conversation-runtime-types.js";
 import { configuredDiscordConversations } from "./discord-conversation-deployments-config.js";
+import { resolveDiscordAgentParticipation } from "./discord-agent-participation.js";
 import type { NodeRuntimeHealthPublisher } from "./health.js";
 import { openNodeSupervisionService } from "./supervision-startup.js";
 
@@ -42,6 +43,20 @@ export async function openDeploymentSupervision(input: {
       : (input.conversation?.resultAdapter?.(origin.target.integrationId) ?? undefined);
   if (ownerConversations.length === 1 && adapter === undefined)
     throw new Error("The installed owner conversation has no result adapter.");
+  const ownerParticipation =
+    ownerConversations[0] === undefined
+      ? null
+      : await resolveDiscordAgentParticipation({
+          repositoryRoot: input.config.repositoryRoot,
+          config: ownerConversations[0],
+        });
+  if (
+    ownerParticipation !== null &&
+    ownerParticipation.agentId !== configuration.binding.ownerAgentId
+  )
+    throw new Error("The installed owner conversation identity changed.");
+  if (origin !== undefined && origin.actor.roleId !== ownerParticipation?.roleId)
+    throw new Error("The installed result origin differs from the owner's current role.");
   return openNodeSupervisionService({
     repositoryRoot: input.config.repositoryRoot,
     configuration,
@@ -51,7 +66,7 @@ export async function openDeploymentSupervision(input: {
       : {
           deliverySpeaker: {
             participantId: ownerConversations[0].agentParticipantId,
-            roleId: ownerConversations[0].command.roleId,
+            roleId: ownerParticipation!.roleId,
             conversationIds: ownerConversations[0].conversations.map((item) => item.conversationId),
           },
         }),

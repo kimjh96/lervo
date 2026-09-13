@@ -45,6 +45,7 @@ export async function bindSupervisionRequest(input: {
     Buffer.byteLength(request.request, "utf8") > 16_384 ||
     request.request.includes("\0") ||
     !/^sha256:[a-f0-9]{64}$/u.test(request.contentHash) ||
+    digest(request.request) !== request.contentHash ||
     (request.source === "local") !== (request.origin === undefined) ||
     (request.origin !== undefined &&
       (!validateSchema("conversationOutboundOrigin", request.origin).valid ||

@@ -74,6 +74,13 @@ it("binds a local request to one installed owner and replays its exact source wi
       request: { ...request, sourceId: "request-2" },
     }),
   ).rejects.toThrow(/already has a supervised request origin/iu);
+  await expect(
+    admitSupervisionRequest({
+      repositoryRoot: f.root,
+      binding: f.binding,
+      request: { ...request, sourceId: "request-3", contentHash: hash("Different bytes") },
+    }),
+  ).rejects.toThrow(/source or content is invalid/iu);
 });
 
 it("retains the exact Discord result origin within the same canonical request contract", async () => {

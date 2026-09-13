@@ -17,3 +17,5 @@ A configured result origin uses the canonical conversation origin schema: source
 The existing conversation adapter is selected by integration ID; a runtime group rejects conflicting matches. The origin grants no additional publication authority. Actual queue admission still verifies canonical goal acceptance, semantic publication evidence, current mandate and the exact origin.
 
 When `resultOrigin` is absent and the installed owner's configured Discord speaker is available, the service uses its adapter for a [request-bound origin](request-intake.md). The bound event's local CAS artifact supplies the exact source event, policy, target and speaker; publication still checks the adapter and independently accepted result. Local-only startup has no conversation adapter and no external delivery.
+
+The delivery speaker role comes from the active durable agent participation. The managed-command role may serve a different purpose and cannot identify the speaker. A configured static origin must match the active participant, role and conversation at startup.
