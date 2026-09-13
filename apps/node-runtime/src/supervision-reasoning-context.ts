@@ -20,6 +20,7 @@ import { readSupervisionTextArtifact } from "./supervision-artifact-json.js";
 import { readSupervisedReviewFeedback } from "./supervision-review-observation.js";
 import { readSupervisionPeerFacts } from "./supervision-peer-facts.js";
 import { readSupervisionHandoffState } from "./supervision-handoff-state.js";
+import { readBoundSupervisionRequest } from "./supervision-bound-request.js";
 import { observeSupervisionResearchPolicy } from "./supervision-research-policy.js";
 import { readSupervisionResearchEvidence } from "./supervision-research-evidence.js";
 
@@ -109,6 +110,7 @@ export async function canonicalOwnerReasoningFacts(
     writingContract: writingContractForLanguage(policy.publication.language),
     resultWritingContract,
     acceptedGoal: await readAcceptedSupervisionGoal(storage, source),
+    boundRequest: await readBoundSupervisionRequest(storage, source, binding),
     mandate,
     workstream: source.workstream,
     agents: source.agents,

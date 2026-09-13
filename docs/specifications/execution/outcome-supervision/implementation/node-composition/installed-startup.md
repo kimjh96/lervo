@@ -6,3 +6,4 @@ Node can activate installed outcome supervision through configuration, host comp
 - [Local command](installed-startup/local-command.md): installed execution without a Hub, process signals, and bounded health output.
 - [Host composition](installed-startup/host-composition.md): service lifecycle, Node integration, and result origin.
 - [Readiness and failure meaning](installed-startup/readiness-and-failure.md): health states, failure handling, privacy, and evidence boundaries.
+- [Request intake](installed-startup/request-intake.md): common local and Discord goal binding, replay and result-origin privacy.

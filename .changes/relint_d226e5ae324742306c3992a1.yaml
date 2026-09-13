@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d226e5ae324742306c3992a1"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Route installed owner requests through shared local and Discord supervision intake."

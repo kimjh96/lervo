@@ -38,7 +38,7 @@ import { DiscordConversationDeliberationRuntime } from "./discord-conversation-d
 import { startDiscordConversationBackground } from "./discord-conversation-background.js";
 import { createDiscordConversationResultRuntime } from "./discord-conversation-result-composition.js";
 import { createDiscordConversationContinuation } from "./discord-conversation-continuation.js";
-import { openDiscordConversationRepositoryWork } from "./discord-conversation-repository-work.js";
+import { openDiscordConversationWork } from "./discord-conversation-work.js";
 import { loadDiscordConversationDeliveryCredentials } from "./discord-conversation-webhook-delivery.js";
 import { discordSpeakerParticipantKeys } from "./discord-conversation-speaker.js";
 import type {
@@ -103,6 +103,13 @@ export async function openNodeDiscordConversationRuntime(
     agentParticipation,
   });
   const artifacts = await FileSystemCas.open(resolve(options.dataDirectory, "artifacts"));
+  const { repositoryWork, workResponder } = openDiscordConversationWork({
+    options,
+    artifacts,
+    participation: agentParticipation,
+    policyId: policy.policyId,
+    authorizedEffectRequesters: authorizedAgentEffectRequesters,
+  });
   const resultStore = await SQLiteConversationResultStore.open(
     resolve(options.dataDirectory, "execution-results.sqlite"),
   );
@@ -112,35 +119,6 @@ export async function openNodeDiscordConversationRuntime(
   let intentStore: SQLiteConversationIntentResolutionStore | null = null;
   let interactionRetryLoop: ConversationInteractionRetryLoop | null = null;
   let repositorySignalLoop: ConversationRepositorySignalLoop | null = null;
-  const repositoryWork =
-    config.routing === undefined
-      ? null
-      : openDiscordConversationRepositoryWork({
-          config: { ...config, routing: config.routing },
-          repositoryRoot: options.repositoryRoot,
-          ...(options.repositoryReplica === undefined
-            ? {}
-            : { repositoryReplica: options.repositoryReplica }),
-          dataDirectory: options.dataDirectory,
-          artifactStore: artifacts,
-          parentAgentId: agentParticipation.agentId ?? config.agentParticipantId,
-          ...(options.runtimeConfigPath === undefined
-            ? {}
-            : { runtimeConfigPath: options.runtimeConfigPath }),
-          authorizedEffectRequesters: authorizedAgentEffectRequesters,
-          ...(options.providerExecutables === undefined
-            ? {}
-            : { providerExecutables: options.providerExecutables }),
-          ...(options.providerModels === undefined
-            ? {}
-            : { providerModels: options.providerModels }),
-          ...(options.providerReasoningEfforts === undefined
-            ? {}
-            : { providerReasoningEfforts: options.providerReasoningEfforts }),
-          ...(options.repositoryWorkExecutor === undefined
-            ? {}
-            : { executor: options.repositoryWorkExecutor }),
-        });
   const deliberationRuntime =
     config.deliberation === undefined
       ? null
@@ -243,7 +221,7 @@ export async function openNodeDiscordConversationRuntime(
       participationPolicy: policy,
       readOnly,
       continuation: continuationResponder,
-      work: repositoryWork!.responder,
+      work: workResponder!,
       platformAction,
       ...(deliberationRuntime === null ? {} : { explicitControl: deliberationRuntime.responder }),
     });

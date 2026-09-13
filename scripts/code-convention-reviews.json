@@ -52,13 +52,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "apps/node-runtime/src/discord-conversation-runtime.ts",
-      "contentHash": "sha256:4d3bc21d6e419b6b39c6717225e306b6c233ef7a4f53556bfca51096cd6408ce",
-      "responsibility": "Single Discord conversation deployment composition",
-      "rationale": "The immutable deployment composition passes its existing runtime configuration path to native work composition. Worker selection is owned by the shared Discord workforce execution policy; admission, provider execution, persistence, identity, delivery, and background loops remain in linked modules. Lifecycle opening and shutdown remain one composition responsibility.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "apps/node-runtime/src/discord-hired-agent-deployment.ts",
       "contentHash": "sha256:f15563c4e6a8f3cfdc7ba7355ff35fc2e16a6dd6de1e6e0ae92f214de24a9a01",
       "responsibility": "Discord hired-agent webhook deployment lifecycle",

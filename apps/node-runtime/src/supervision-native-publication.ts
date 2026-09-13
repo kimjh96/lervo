@@ -17,8 +17,9 @@ export async function nativeResultPublication(
 ) {
   const accepted = input.facts.acceptedGoal;
   const policy = input.facts.resultWritingContract;
+  const origin = input.publicationOrigin;
   if (
-    input.publicationOrigin === undefined ||
+    origin === undefined ||
     accepted === null ||
     Object.keys(details).sort().join(",") !== "checks,resultContentHash,writingPolicyId" ||
     details.resultContentHash !== accepted.resultArtifactHash ||
@@ -61,7 +62,7 @@ export async function nativeResultPublication(
   });
   const content = {
     schemaVersion: 1 as const,
-    ...structuredClone(input.publicationOrigin),
+    ...structuredClone(origin),
     content: candidate.content,
     publicationPermit: candidate.publicationPermit,
     automationDepth: 1,

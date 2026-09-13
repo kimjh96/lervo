@@ -14,6 +14,11 @@ export async function openDeploymentSupervision(input: {
   const configuration = input.config.outcomeSupervision;
   if (configuration === undefined) return null;
   const origin = configuration.resultOrigin;
+  const ownerConversations = configuredDiscordConversations(input.config).filter(
+    (item) => item.agentId === configuration.binding.ownerAgentId,
+  );
+  if (ownerConversations.length > 1)
+    throw new Error("Supervision has multiple configured owner conversation speakers.");
   if (origin !== undefined) {
     const conversation = configuredDiscordConversations(input.config).find(
       (item) => item.integrationId === origin.target.integrationId,
@@ -31,12 +36,25 @@ export async function openDeploymentSupervision(input: {
   }
   const adapter =
     origin === undefined
-      ? undefined
+      ? ownerConversations.length === 0
+        ? undefined
+        : (input.conversation?.resultAdapter?.(ownerConversations[0]!.integrationId) ?? undefined)
       : (input.conversation?.resultAdapter?.(origin.target.integrationId) ?? undefined);
+  if (ownerConversations.length === 1 && adapter === undefined)
+    throw new Error("The installed owner conversation has no result adapter.");
   return openNodeSupervisionService({
     repositoryRoot: input.config.repositoryRoot,
     configuration,
     ...(adapter === undefined ? {} : { deliveryAdapter: adapter }),
+    ...(ownerConversations[0] === undefined
+      ? {}
+      : {
+          deliverySpeaker: {
+            participantId: ownerConversations[0].agentParticipantId,
+            roleId: ownerConversations[0].command.roleId,
+            conversationIds: ownerConversations[0].conversations.map((item) => item.conversationId),
+          },
+        }),
     observeHealth: (health) => input.health.observeSupervision(health),
   });
 }

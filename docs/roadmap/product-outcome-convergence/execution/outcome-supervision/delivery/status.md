@@ -12,9 +12,9 @@ Steps 1–6 contain implemented, tested, and deployed behavior; they are not six
 
 The common completion gate remains full positive installed supervision acceptance and production activation. Grouped fixture requests cannot substitute for thirteen separate installed intake journeys. Unresolved observations include:
 
-- Central/direct intake sharing one owner and assignment set, including preservation of the addressed product owner after hiring a separately deployed worker. Native admission now prevents retained delegate state from selecting that worker's identity, session, or private result scope; this correction alone does not establish the shared-assignment acceptance gate.
+- Installed central/direct intake acceptance. Source code now binds one authenticated Discord or local request through the installed owner lease and `work.supervision.bound`, preserves the configured product owner after a separately deployed hire, and reads a request-bound result origin. Repository fixtures prove canonical binding and one managed-result delivery. The actual central/direct production journey and a second recipient for one goal remain unverified.
 - Automatic permission recovery followed by resumed execution.
-- Equivalent local/Discord intake.
+- Installed local/Discord equivalence, including one real goal accepted through each surface. The shared writer and bounded local stdin path have focused tests; deployment evidence is still required.
 - Actual scoped startup with valid settled authority.
 
 Historical writing acceptance and unobserved execution accounting also remain unresolved. Preserve the existing artifact, reviews, event history, unknown usage, and reservation. This verification scope excludes new research worker execution; another worker invocation would not establish the missing historical accounting.

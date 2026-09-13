@@ -54,12 +54,7 @@ export class NativeSupervisionOwner {
       publicationOrigin === undefined ? undefined : structuredClone(publicationOrigin);
   }
   async propose(report: OutcomeSupervisionReportV1): Promise<OperatingActionPlanV1 | null> {
-    if (
-      report.nextAction === null ||
-      report.nextAction === "reconcile_cancellation" ||
-      (report.nextAction === "publish_result" && this.publicationOrigin === undefined)
-    )
-      return null;
+    if (report.nextAction === null || report.nextAction === "reconcile_cancellation") return null;
     const storage = await openProjectStorage(this.root);
     try {
       const source = await new SupervisionTaskSource(storage, this.binding, this.now).read();
@@ -77,6 +72,8 @@ export class NativeSupervisionOwner {
         source,
         this.now,
       );
+      const publicationOrigin = this.publicationOrigin ?? facts.boundRequest?.origin ?? undefined;
+      if (report.nextAction === "publish_result" && publicationOrigin === undefined) return null;
       const owner = facts.agents.find((agent) => agent.agentId === this.binding.ownerAgentId)!;
       const base: OperatingActionPlanV1 = {
         schemaVersion: 1,
@@ -151,9 +148,7 @@ export class NativeSupervisionOwner {
           reasoningPlanHash: previous.reasoningPlanHash!,
           resultArtifactHash: previous.resultArtifactHash!,
           readiness: this.readiness,
-          ...(this.publicationOrigin === undefined
-            ? {}
-            : { publicationOrigin: this.publicationOrigin }),
+          ...(publicationOrigin === undefined ? {} : { publicationOrigin }),
           now: this.now,
         });
       if (

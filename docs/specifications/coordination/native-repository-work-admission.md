@@ -2,6 +2,8 @@
 
 Native conversation work has a durable admission boundary. It neither implies admission by the outcome-supervision controller nor creates managed-run evidence. [ADR-0395](../../decisions/coordination/conversations/0395-resumable-native-repository-work-turns.md) defines native execution, authority, sessions, and result delivery.
 
+When the configured Discord speaker is the exact owner of an installed outcome-supervision mandate, the [installed request intake](../execution/outcome-supervision/implementation/node-composition/installed-startup/request-intake.md) takes `repository_work` instead. The native conversation store remains available for hiring history, but it does not admit or execute that supervised turn. This route is selected from reviewed Node configuration and durable agent identity, not message text.
+
 ## Admission
 
 Within one immediate SQLite transaction, the Node:

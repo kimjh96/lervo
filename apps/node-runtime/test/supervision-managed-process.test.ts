@@ -35,6 +35,7 @@ import { openNodeOutcomeSupervisionRuntime } from "../src/outcome-supervision-ru
 import { assertCanonicalGoalCompletionBasis } from "../src/supervision-goal-completion-basis.js";
 import { inspectGoalCompletion } from "../src/supervision-goal-completion-receipt.js";
 import { dispatchFixture } from "./supervision-dispatch.fixture.js";
+import { admitSupervisionRequest } from "../src/supervision-request-intake.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -151,18 +152,34 @@ it.each([
       throw new Error("The concrete managed adapter must own dispatch.");
     };
     const sent: ConversationOutboundMessage[] = [];
-    const resultDelivery: NodeSupervisionResultDeliveryConfiguration = {
-      origin: {
-        sourceEventId: `cve_${"3".repeat(64)}`,
-        policyId: `cpp_${"4".repeat(64)}`,
-        target: {
-          integrationId: "itg_supervisionresult",
-          projectId: storage.manifest.projectId,
-          conversationId: "cnv_supervisionresult",
-          threadId: null,
-        },
-        actor: { kind: "agent", participantId: "ptc_supervisionowner", roleId: f.owner.roleId },
+    const origin = {
+      sourceEventId: `cve_${"3".repeat(64)}`,
+      policyId: `cpp_${"4".repeat(64)}`,
+      target: {
+        integrationId: "itg_supervisionresult",
+        projectId: storage.manifest.projectId,
+        conversationId: "cnv_supervisionresult",
+        threadId: null,
       },
+      actor: { kind: "agent", participantId: "ptc_supervisionowner", roleId: f.owner.roleId },
+    } as const;
+    const dynamicOrigin = !suspendBeforeWrite && !reportUsage;
+    if (dynamicOrigin) {
+      await admitSupervisionRequest({
+        repositoryRoot: f.root,
+        binding: f.binding,
+        request: {
+          source: "discord",
+          sourceId: origin.sourceEventId,
+          requesterId: "ptc_supervisionrequester:owner",
+          request: "Complete the installed managed goal.",
+          contentHash: `sha256:${"e".repeat(64)}`,
+          origin,
+        },
+      });
+    }
+    const resultDelivery: NodeSupervisionResultDeliveryConfiguration = {
+      ...(dynamicOrigin ? {} : { origin }),
       adapter: {
         descriptor: {
           schemaVersion: 1,
@@ -506,7 +523,7 @@ it.each([
         });
         const outboundContent = {
           schemaVersion: 1 as const,
-          ...resultDelivery.origin,
+          ...origin,
           content: candidate.content,
           publicationPermit: candidate.publicationPermit,
           automationDepth: 1,

@@ -3,6 +3,8 @@ import { NodeRuntimeError } from "./errors.js";
 import { loadLocalSupervisionConfig } from "./local-supervision-config.js";
 import type { NodeRuntimeSignalSource } from "./process-runtime.js";
 import { openNodeSupervisionService } from "./supervision-startup.js";
+import { readLocalSupervisionRequest } from "./local-supervision-request.js";
+import { admitSupervisionRequest } from "./supervision-request-intake.js";
 
 interface LocalSupervisionCliPorts {
   cwd: string;
@@ -10,6 +12,8 @@ interface LocalSupervisionCliPorts {
   stderr(message: string): void;
   signals?: NodeRuntimeSignalSource;
   openService?: typeof openNodeSupervisionService;
+  stdin?: AsyncIterable<Uint8Array | string>;
+  admitRequest?: typeof admitSupervisionRequest;
 }
 
 /** Owns the local process lifetime; the existing service owns admission and all effects. */
@@ -18,15 +22,36 @@ export async function runLocalSupervisionCli(
   ports: LocalSupervisionCliPorts,
 ): Promise<number> {
   try {
-    if (args.length !== 2 || !["--config", "--check-config"].includes(args[0]!) || !args[1])
+    if (
+      ![2, 3].includes(args.length) ||
+      !["--config", "--check-config"].includes(args[0]!) ||
+      !args[1] ||
+      (args.length === 3 && (args[0] !== "--config" || args[2] !== "--request-stdin"))
+    )
       throw new NodeRuntimeError(
         "invalid_arguments",
-        "Usage: lervo-node supervise --config <config.json> | --check-config <config.json>",
+        "Usage: lervo-node supervise --config <config.json> [--request-stdin] | --check-config <config.json>",
       );
     const configuration = await loadLocalSupervisionConfig(resolve(ports.cwd, args[1]));
     if (args[0] === "--check-config") {
       ports.stdout("Local supervision configuration is valid; execution authority is unchecked.\n");
       return 0;
+    }
+    if (args[2] === "--request-stdin") {
+      const request = await readLocalSupervisionRequest(ports.stdin ?? process.stdin);
+      const admission = await (ports.admitRequest ?? admitSupervisionRequest)({
+        repositoryRoot: configuration.repositoryRoot,
+        binding: configuration.configuration.binding,
+        request: { source: "local", ...request },
+      });
+      ports.stdout(
+        JSON.stringify({
+          schemaVersion: 1,
+          component: "supervision_intake",
+          eventId: admission.eventId,
+          duplicate: admission.duplicate,
+        }) + "\n",
+      );
     }
     const signals = ports.signals ?? process;
     let stopRequested = false;

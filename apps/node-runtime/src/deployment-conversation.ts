@@ -126,6 +126,9 @@ export async function openDeploymentConversation(input: {
             createdAt: input.project.createdAt,
           },
           repositoryRoot: input.repositoryRoot,
+          ...(input.config.outcomeSupervision === undefined
+            ? {}
+            : { outcomeSupervision: input.config.outcomeSupervision }),
           ...(input.config.repositoryReplica === undefined
             ? {}
             : { repositoryReplica: input.config.repositoryReplica }),

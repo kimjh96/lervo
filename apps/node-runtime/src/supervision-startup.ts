@@ -17,6 +17,7 @@ export async function openNodeSupervisionService(input: {
   repositoryRoot: string;
   configuration: NodeSupervisionStartupConfiguration;
   deliveryAdapter?: ConversationAdapter;
+  deliverySpeaker?: { participantId: string; roleId: string; conversationIds: readonly string[] };
   observeHealth(health: NodeRuntimeComponentHealth): Promise<void>;
   now?(): string;
 }): Promise<NodeSupervisionService> {
@@ -26,6 +27,8 @@ export async function openNodeSupervisionService(input: {
     input.deliveryAdapter?.descriptor.integrationId !== config.resultOrigin.target.integrationId
   )
     throw new Error("Supervision publication requires its exact configured conversation adapter.");
+  if (config.resultOrigin !== undefined && input.deliveryAdapter === undefined)
+    throw new Error("Supervision publication requires its configured conversation adapter.");
   let fail!: () => void;
   const failed = new Promise<void>((resolve) => {
     fail = resolve;
@@ -41,9 +44,15 @@ export async function openNodeSupervisionService(input: {
     ownerReasoning: config.ownerReasoning,
     managedExecution: config.managedExecution,
     ...(config.handoffPeers === undefined ? {} : { handoffPeers: config.handoffPeers }),
-    ...(config.resultOrigin === undefined
+    ...(input.deliveryAdapter === undefined
       ? {}
-      : { resultDelivery: { origin: config.resultOrigin, adapter: input.deliveryAdapter! } }),
+      : {
+          resultDelivery: {
+            ...(config.resultOrigin === undefined ? {} : { origin: config.resultOrigin }),
+            ...(input.deliverySpeaker === undefined ? {} : { speaker: input.deliverySpeaker }),
+            adapter: input.deliveryAdapter,
+          },
+        }),
     ports: {
       now: input.now ?? (() => new Date().toISOString()),
       recordAttention: async () =>

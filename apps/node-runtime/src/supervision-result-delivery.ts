@@ -11,10 +11,12 @@ import { observeSupervisionTasks } from "./supervision-task-observation.js";
 import { readCanonicalResultDelivery } from "./supervision-result-delivery-basis.js";
 import { readResultDeliveryReceipt } from "./supervision-result-delivery-receipt.js";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
+import { readBoundSupervisionRequest } from "./supervision-bound-request.js";
 
 export interface NodeSupervisionResultDeliveryConfiguration {
   adapter: ConversationAdapter;
-  origin: Pick<ConversationOutboundMessage, "sourceEventId" | "policyId" | "target" | "actor">;
+  origin?: Pick<ConversationOutboundMessage, "sourceEventId" | "policyId" | "target" | "actor">;
+  speaker?: { participantId: string; roleId: string; conversationIds: readonly string[] };
 }
 
 /** Owns publication attempts only. It never calls a model or restarts accepted work. */
@@ -27,7 +29,8 @@ export class SupervisionResultDelivery {
     private readonly configuration: NodeSupervisionResultDeliveryConfiguration,
     private readonly now: () => string,
   ) {
-    this.origin = structuredClone(configuration.origin);
+    this.origin =
+      configuration.origin === undefined ? undefined : structuredClone(configuration.origin);
     this.tasks = new SupervisionTaskSource(storage, binding, now);
   }
   private async publication(plan: OperatingActionPlanV1, excludeDecision = false) {
@@ -48,14 +51,23 @@ export class SupervisionResultDelivery {
       observed,
       effect,
     });
+    const origin =
+      this.origin ??
+      (await readBoundSupervisionRequest(this.storage, source, this.binding))?.origin;
     if (
-      Object.entries(this.origin).some(
+      origin === undefined ||
+      origin === null ||
+      Object.entries(origin).some(
         ([key, value]) =>
           operatingContractHash(value) !==
           operatingContractHash(outbound[key as keyof ConversationOutboundMessage]),
       ) ||
       outbound.target.integrationId !== this.configuration.adapter.descriptor.integrationId ||
       outbound.target.projectId !== plan.projectId ||
+      (this.configuration.speaker !== undefined &&
+        (outbound.actor.participantId !== this.configuration.speaker.participantId ||
+          outbound.actor.roleId !== this.configuration.speaker.roleId ||
+          !this.configuration.speaker.conversationIds.includes(outbound.target.conversationId))) ||
       outbound.actor.roleId !== plan.roleId
     )
       throw new Error("The result delivery target differs from its configured origin.");

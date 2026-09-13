@@ -6,6 +6,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { runLocalSupervisionCli } from "../src/local-supervision-cli.js";
 import { parseLocalSupervisionConfig } from "../src/local-supervision-config.js";
 import type { openNodeSupervisionService } from "../src/supervision-startup.js";
+import { readLocalSupervisionRequest } from "../src/local-supervision-request.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -83,6 +84,62 @@ it("checks owner-only local configuration without a Hub, authority observation o
   );
   expect(() => parseLocalSupervisionConfig({ ...f.config, hub: {} }, f.root)).toThrow();
   expect(() => parseLocalSupervisionConfig({ ...f.config, schemaVersion: 2 }, f.root)).toThrow();
+});
+
+it("admits stdin through the shared owner path before starting the local service", async () => {
+  const f = await fixture();
+  const admitRequest = vi.fn(async () => ({ eventId: `evt_${"a".repeat(32)}`, duplicate: false }));
+  const running = runLocalSupervisionCli(["--config", f.path, "--request-stdin"], {
+    ...f.ports,
+    stdin: (async function* () {
+      yield Buffer.from("Bounded local goal.");
+    })(),
+    admitRequest,
+  });
+  await vi.waitFor(() => expect(f.start).toHaveBeenCalledOnce());
+  expect(admitRequest).toHaveBeenCalledWith(
+    expect.objectContaining({
+      repositoryRoot: resolve(f.root, "repository"),
+      binding: f.config.outcomeSupervision.binding,
+      request: expect.objectContaining({ source: "local", request: "Bounded local goal." }),
+    }),
+  );
+  expect(JSON.parse(f.stdout.mock.calls[0]![0])).toMatchObject({
+    component: "supervision_intake",
+    eventId: `evt_${"a".repeat(32)}`,
+  });
+  f.signals.emit("SIGTERM");
+  expect(await running).toBe(0);
+});
+
+it("rejects empty or oversized local stdin before any owner or provider startup", async () => {
+  const f = await fixture();
+  await expect(
+    readLocalSupervisionRequest(
+      (async function* () {
+        yield " ";
+      })(),
+    ),
+  ).rejects.toThrow();
+  await expect(
+    readLocalSupervisionRequest(
+      (async function* () {
+        yield "x".repeat(16_385);
+      })(),
+    ),
+  ).rejects.toThrow();
+  const admitRequest = vi.fn();
+  expect(
+    await runLocalSupervisionCli(["--config", f.path, "--request-stdin"], {
+      ...f.ports,
+      stdin: (async function* () {
+        yield " ";
+      })(),
+      admitRequest,
+    }),
+  ).toBe(1);
+  expect(admitRequest).not.toHaveBeenCalled();
+  expect(f.openService).not.toHaveBeenCalled();
 });
 
 it("rejects unsafe files, unknown options and transport origins before opening a service", async () => {

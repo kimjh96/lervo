@@ -23,6 +23,6 @@ Recent turns retain speaker kind, participant ID, durable agent ID when present,
 
 ## Authority and failure handling
 
-Medium- or high-confidence human `repository_work` enters the existing signed Hub command path. An explicitly allowed Discord effect enters the scoped administration adapter. Unsupported effects and all other outcomes stay in the read-only managed responder.
+An admitted `repository_work` request enters the installed owner's [shared supervision intake](../../../../specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/request-intake.md) when this Node's exact responding agent owns the configured mandate. Other natural Discord deployments use the resumable native repository-work responder. The separate signed Hub command path remains for exact reviewed remote effects. An explicitly allowed Discord effect enters the scoped administration adapter. Unsupported effects and all other outcomes stay in the read-only managed responder.
 
 Provider failure is classified and bounded; it never grants write or platform authority. Exhaustion queues a deterministic explanatory response rather than leaving the message silent. The installed managed path uses `routing.response` once. `routing.intent` remains a backward-compatible custom-composition fallback, not another production model round trip.

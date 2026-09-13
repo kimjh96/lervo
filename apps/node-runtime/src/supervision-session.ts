@@ -22,6 +22,10 @@ import {
 import { type ProjectStorage } from "@lervo/project-storage";
 import { SupervisionAuthorityHistory } from "./supervision-authority-history.js";
 import { SupervisionTaskSource } from "./supervision-task-source.js";
+import {
+  bindSupervisionRequest,
+  type SupervisionRequestInput,
+} from "./supervision-request-binding.js";
 import { recordCanonicalArtifactReview } from "./supervision-artifact-review.js";
 import { recordCanonicalGoalCompletion } from "./supervision-goal-completion.js";
 import { reconcileSupervisionCancellation } from "./supervision-cancellation.js";
@@ -37,6 +41,7 @@ import {
 } from "./supervision-authority.js";
 
 export interface NodeSupervisionSession {
+  bindRequest(request: SupervisionRequestInput): Promise<{ eventId: string; duplicate: boolean }>;
   reconcileCancellation(
     snapshot: Parameters<typeof reconcileSupervisionCancellation>[0]["snapshot"],
   ): ReturnType<typeof reconcileSupervisionCancellation>;
@@ -143,6 +148,17 @@ export function createNodeSupervisionSession(context: {
       { store: context.leases, lease },
     );
   const session: NodeSupervisionSession = {
+    bindRequest: (request) => {
+      assertOpen();
+      return bindSupervisionRequest({
+        storage: context.storage,
+        tasks: context.tasks,
+        binding: context.binding,
+        now: context.now,
+        commit: session.commit,
+        request,
+      });
+    },
     reconcileCancellation: (snapshot) => {
       assertOpen();
       return reconcileSupervisionCancellation({

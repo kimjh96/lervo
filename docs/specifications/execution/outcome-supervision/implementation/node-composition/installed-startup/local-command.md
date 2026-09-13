@@ -4,6 +4,8 @@
 
 `lervo-node supervise --check-config <config.json>` validates the private configuration without opening storage, observing authority, or starting a provider. Success proves only configuration validity. The running command checks current authority through the normal service and retains all mandate expiry, resource accounting, responsibility, designated-host, and effect admission rules.
 
+`lervo-node supervise --config <config.json> --request-stdin` reads one bounded UTF-8 request from stdin, binds it under the installed owner lease through the [shared request intake](request-intake.md), prints its canonical event ID, and starts the same service. Replaying identical stdin on the same current goal returns the existing binding. Empty, malformed or oversized input fails before service startup. A different source cannot replace an already bound goal.
+
 The local command rejects `resultOrigin` because it has no conversation adapter. Accepted results remain in their canonical workstream and artifact records. Transport-backed Node configuration remains responsible for external publication.
 
 ## Process lifetime
