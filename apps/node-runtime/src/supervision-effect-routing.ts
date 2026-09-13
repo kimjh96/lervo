@@ -53,9 +53,11 @@ export function inspectNodeSupervisionEffect(
         ? recoveries.inspect(plan, session())
         : plan.effectContract === "work.worker_hire.v1" && hiring !== null
           ? hiring.inspect(plan)
-          : ["work.assignment_completion.v1", "work.assignment_completion.v2"].includes(
-                plan.effectContract,
-              )
+          : [
+                "work.assignment_completion.v1",
+                "work.assignment_completion.v2",
+                "work.assignment_completion.v3",
+              ].includes(plan.effectContract)
             ? completions.inspect(plan, session())
             : plan.effectContract === "work.workspace_preparation.v1" && workspaces !== null
               ? workspaces.inspect(plan, session())
@@ -116,9 +118,11 @@ export function executeNodeSupervisionEffect(
     return recoveries.execute(plan, effectSession);
   return plan.effectContract === "work.worker_hire.v1" && hiring !== null
     ? hiring.execute(plan, effectSession)
-    : ["work.assignment_completion.v1", "work.assignment_completion.v2"].includes(
-          plan.effectContract,
-        )
+    : [
+          "work.assignment_completion.v1",
+          "work.assignment_completion.v2",
+          "work.assignment_completion.v3",
+        ].includes(plan.effectContract)
       ? completions.execute(plan, effectSession)
       : plan.effectContract === "work.workspace_preparation.v1" && workspaces !== null
         ? workspaces.execute(plan, effectSession)

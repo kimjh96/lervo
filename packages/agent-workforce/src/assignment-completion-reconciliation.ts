@@ -6,6 +6,7 @@ export interface AssignmentCompletionReconciliation {
   sourceRunId: string;
   assignmentRevision: number;
   preparedAt: string;
+  executionCompletedAt?: string;
 }
 
 export function validAssignmentCompletionReconciliation(input: {
@@ -20,6 +21,10 @@ export function validAssignmentCompletionReconciliation(input: {
     Number.isSafeInteger(input.reconciliation.assignmentRevision) &&
     input.reconciliation.assignmentRevision >= 1 &&
     !Number.isNaN(Date.parse(input.reconciliation.preparedAt)) &&
+    (input.reconciliation.executionCompletedAt === undefined ||
+      (Number.isFinite(Date.parse(input.reconciliation.executionCompletedAt)) &&
+        Date.parse(input.reconciliation.executionCompletedAt) <=
+          Date.parse(input.reconciliation.preparedAt))) &&
     input.verificationStatus === "passed" &&
     input.resultArtifacts.length === 1
   );
@@ -31,9 +36,10 @@ export function preparedCompletionMatchesAssignment(input: {
   agentId: string;
   leaseId: string;
   preparedAt: string;
+  executionCompletedAt?: string;
 }): boolean {
   const lease = input.assignment.lease;
-  const preparedAt = Date.parse(input.preparedAt);
+  const preparedAt = Date.parse(input.executionCompletedAt ?? input.preparedAt);
   return (
     input.assignment.revision === input.assignmentRevision &&
     input.assignment.status === "leased" &&

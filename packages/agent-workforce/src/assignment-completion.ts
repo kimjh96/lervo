@@ -37,11 +37,13 @@ export async function completeAssignmentOnce(input: {
     fail("assignment_invalid", "The assignment result is invalid.");
   if (
     input.reconciliation !== undefined &&
-    !validAssignmentCompletionReconciliation({
+    (!validAssignmentCompletionReconciliation({
       reconciliation: input.reconciliation,
       verificationStatus: input.verificationStatus,
       resultArtifacts: input.resultArtifacts,
-    })
+    }) ||
+      (input.reconciliation.executionCompletedAt !== undefined &&
+        Date.parse(input.reconciliation.preparedAt) > now.getTime()))
   ) {
     fail("assignment_invalid", "The assignment completion reconciliation is invalid.");
   }
@@ -57,6 +59,9 @@ export async function completeAssignmentOnce(input: {
         agentId: input.agentId,
         leaseId: input.leaseId,
         preparedAt: input.reconciliation.preparedAt,
+        ...(input.reconciliation.executionCompletedAt === undefined
+          ? {}
+          : { executionCompletedAt: input.reconciliation.executionCompletedAt }),
       })
     ) {
       fail(

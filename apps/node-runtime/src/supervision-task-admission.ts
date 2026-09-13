@@ -70,7 +70,11 @@ export async function observeSupervisionTaskAdmission(input: {
   } else if (plan.effectContract === "work.worker_hire.v1") {
     fields = (await readCanonicalWorkerHire({ ...input, now: () => now })).fields;
   } else if (
-    ["work.assignment_completion.v1", "work.assignment_completion.v2"].includes(plan.effectContract)
+    [
+      "work.assignment_completion.v1",
+      "work.assignment_completion.v2",
+      "work.assignment_completion.v3",
+    ].includes(plan.effectContract)
   ) {
     fields = (await readCanonicalAssignmentCompletion({ ...input, now: () => now })).fields;
   } else if (plan.effectContract === "work.workspace_preparation.v1") {

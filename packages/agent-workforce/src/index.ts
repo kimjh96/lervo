@@ -1,4 +1,5 @@
 export { amendAssignment } from "./assignment-amendment.js";
+export { reconcileSettledAssignmentCompletion } from "./assignment-settled-completion.js";
 export { amendedAssignment } from "./assignment-amendment-state.js";
 export * from "./assignment-graph.js";
 export * from "./agent-liveness.js";

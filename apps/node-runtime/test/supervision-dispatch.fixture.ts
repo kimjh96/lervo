@@ -34,6 +34,7 @@ export async function dispatchFixture(
     workerRoleId?: string;
     maximumAttemptTokens?: number;
   },
+  leaseDurationMs?: number,
 ) {
   const login = await createLoginFixture(roots);
   const suites =
@@ -114,6 +115,7 @@ export async function dispatchFixture(
     assignmentId: created.assignmentId,
     agentId: worker.agentId,
     sessionId: "ses_supervision_dispatch",
+    ...(leaseDurationMs === undefined ? {} : { leaseDurationMs }),
     recordEvent: async (event) => {
       const storage = await openProjectStorage(f.root);
       try {

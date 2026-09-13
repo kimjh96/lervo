@@ -142,14 +142,42 @@ export async function nativeAssignmentCompletion(
     return { effect, fields: supervisedArtifactReviewFields(effect) };
   }
   const writing = await input.storage.artifacts.put(canonicalJson({ artifact, publication }));
+  const late =
+    Date.parse(preparedAt) >=
+    Math.min(
+      Date.parse(assignment.lease.expiresAt),
+      Date.parse(binding.responsibility.completionDeadline),
+    );
+  const terminal = input.storage.events.get(task.terminalEventId!);
+  if (
+    late &&
+    (terminal?.type !== "run.completed" ||
+      Date.parse(terminal.occurredAt) < Date.parse(assignment.lease.acquiredAt) ||
+      Date.parse(terminal.occurredAt) >= Date.parse(assignment.lease.expiresAt) ||
+      Date.parse(terminal.occurredAt) >= Date.parse(binding.responsibility.completionDeadline))
+  )
+    throw new Error(
+      "Late owner completion requires a verified run inside its original execution authority.",
+    );
+  const roleEvaluationArtifactHash =
+    research === null
+      ? null
+      : (await input.storage.artifacts.put(canonicalJson(research))).contentHash;
   const effect: SupervisedAssignmentCompletion = {
-    ...(research === null
-      ? { schemaVersion: 1 as const }
-      : {
-          schemaVersion: 2 as const,
-          roleEvaluationArtifactHash: (await input.storage.artifacts.put(canonicalJson(research)))
-            .contentHash,
-        }),
+    ...(late
+      ? {
+          schemaVersion: 3 as const,
+          roleEvaluationArtifactHash,
+          terminalEventId: terminal!.eventId,
+          executionCompletedAt: terminal!.occurredAt,
+          settlementDeadline: input.base.deadline,
+        }
+      : research === null
+        ? { schemaVersion: 1 as const }
+        : {
+            schemaVersion: 2 as const,
+            roleEvaluationArtifactHash: roleEvaluationArtifactHash!,
+          }),
     kind: "work.assignment_completion",
     responsibility: binding.responsibility,
     expectedAssignmentHash: operatingContractHash(assignment),

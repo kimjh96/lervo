@@ -1,5 +1,10 @@
 import type { OperatingActionPlanV1 } from "@lervo/application-contract";
-import { listAgents, listAssignments, reconcileAssignmentCompletion } from "@lervo/agent-workforce";
+import {
+  listAgents,
+  listAssignments,
+  reconcileAssignmentCompletion,
+  reconcileSettledAssignmentCompletion,
+} from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
 import {
@@ -93,7 +98,9 @@ export class SupervisionAssignmentCompletionEffects {
           Math.min(
             Date.parse(plan.deadline),
             Date.parse(authority.installation.mandate.expiresAt),
-            prepared === null ? Date.parse(basis.assignment.lease!.expiresAt) : Infinity,
+            prepared === null && basis.effect.schemaVersion !== 3
+              ? Date.parse(basis.assignment.lease!.expiresAt)
+              : Infinity,
           )
       )
         throw new Error("The completion preparation authority or lease expired.");
@@ -130,7 +137,15 @@ export class SupervisionAssignmentCompletionEffects {
         revision: basis.assignment.revision + 1,
         updatedAt: this.now(),
       };
-      await reconcileAssignmentCompletion({
+      const reconcile =
+        basis.effect.schemaVersion === 3
+          ? (input: Parameters<typeof reconcileAssignmentCompletion>[0]) =>
+              reconcileSettledAssignmentCompletion({
+                ...input,
+                executionCompletedAt: receipt.terminal.occurredAt,
+              })
+          : reconcileAssignmentCompletion;
+      await reconcile({
         repositoryRoot: this.root,
         ...receipt.coordinate,
         completionEvidenceId: receipt.evidenceId,

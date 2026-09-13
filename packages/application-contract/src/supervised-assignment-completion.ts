@@ -20,5 +20,19 @@ export interface SupervisedAssignmentCompletionV2 extends Omit<
   roleEvaluationArtifactHash: string;
 }
 
+/** Current owner settlement of work verified before its original execution authority expired. */
+export interface SupervisedAssignmentCompletionV3 extends Omit<
+  SupervisedAssignmentCompletionV1,
+  "schemaVersion"
+> {
+  schemaVersion: 3;
+  roleEvaluationArtifactHash: string | null;
+  terminalEventId: string;
+  executionCompletedAt: string;
+  settlementDeadline: string;
+}
+
 export type SupervisedAssignmentCompletion =
-  SupervisedAssignmentCompletionV1 | SupervisedAssignmentCompletionV2;
+  | SupervisedAssignmentCompletionV1
+  | SupervisedAssignmentCompletionV2
+  | SupervisedAssignmentCompletionV3;

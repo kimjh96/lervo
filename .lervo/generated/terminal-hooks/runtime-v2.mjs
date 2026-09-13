@@ -71017,9 +71017,6 @@ async function listAssignments(root2) {
   })).value));
 }
 
-// packages/agent-workforce/dist/agent-liveness.js
-var DEFAULT_ROOT_AGENT_LIVENESS_STALE_AFTER_MS = 2 * 60 * 1e3;
-
 // packages/capabilities/dist/package-reader.js
 import { createHash as createHash15 } from "node:crypto";
 import { lstat as lstat32, readdir as readdir13 } from "node:fs/promises";
@@ -71606,6 +71603,9 @@ async function assertAssignmentExecutionAuthority(input) {
     fail10("assignment_path_conflict", "The managed run paths or verification suites differ from the leased assignment.");
   return { assignment: structuredClone(assignment), agent: structuredClone(agent) };
 }
+
+// packages/agent-workforce/dist/agent-liveness.js
+var DEFAULT_ROOT_AGENT_LIVENESS_STALE_AFTER_MS = 2 * 60 * 1e3;
 
 // packages/agent-workforce/dist/workspace-lifecycle.js
 import { isAbsolute as isAbsolute3 } from "node:path";

@@ -32,6 +32,7 @@ export function operatingReadinessKind(
       "work.workspace_preparation.v1",
       "work.assignment_completion.v1",
       "work.assignment_completion.v2",
+      "work.assignment_completion.v3",
     ].includes(plan.effectContract)
   )
     return "owner_control";

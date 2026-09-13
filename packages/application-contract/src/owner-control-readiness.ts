@@ -16,7 +16,8 @@ export interface OwnerControlReadinessV1 {
     | "work.scoped_handoff_acceptance.v1"
     | "work.owner_attention.v1"
     | "work.assignment_completion.v1"
-    | "work.assignment_completion.v2";
+    | "work.assignment_completion.v2"
+    | "work.assignment_completion.v3";
   observedAt: string;
   validUntil: string;
   status: "ready" | "blocked";

@@ -133,6 +133,7 @@ export async function observeSupervisionTaskResources(input: {
         "work.workspace_preparation.v1",
         "work.assignment_completion.v1",
         "work.assignment_completion.v2",
+        "work.assignment_completion.v3",
         "work.worker_hire.v1",
         "work.artifact_review.v1",
         "work.goal_completion.v1",
@@ -164,9 +165,11 @@ export async function observeSupervisionTaskResources(input: {
                 ? supervisedAssignmentRecoveryFields(effect as SupervisedAssignmentRecovery)
                 : recorded.effectContract === "work.worker_hire.v1"
                   ? supervisedWorkerHireFields(effect as SupervisedWorkerHireV1)
-                  : ["work.assignment_completion.v1", "work.assignment_completion.v2"].includes(
-                        recorded.effectContract,
-                      )
+                  : [
+                        "work.assignment_completion.v1",
+                        "work.assignment_completion.v2",
+                        "work.assignment_completion.v3",
+                      ].includes(recorded.effectContract)
                     ? supervisedAssignmentCompletionFields(effect as SupervisedAssignmentCompletion)
                     : recorded.effectContract === "work.workspace_preparation.v1"
                       ? supervisedWorkspacePreparationFields(

@@ -31,6 +31,8 @@ afterEach(async () => {
 
 it.each([
   "normal",
+  "late_completion",
+  "late_recovery",
   "recovery",
   "failed_writing",
   "writing_rework",
@@ -43,7 +45,11 @@ it.each([
     const completedRework = scenario.startsWith("rework");
     const writingRework = scenario === "writing_rework";
     const rework = completedRework || writingRework;
-    if (scenario === "recovery" || scenario === "rework_receipt_failure") {
+    if (
+      scenario === "recovery" ||
+      scenario === "late_recovery" ||
+      scenario === "rework_receipt_failure"
+    ) {
       const append = SQLiteEventStore.prototype.append;
       let failOnce = true;
       vi.spyOn(SQLiteEventStore.prototype, "append").mockImplementation(function (
@@ -52,7 +58,7 @@ it.each([
       ) {
         if (
           draft.type ===
-            (scenario === "recovery"
+            (scenario === "recovery" || scenario === "late_recovery"
               ? "assignment.completion.reconciled"
               : "assignment.reopened") &&
           failOnce
@@ -90,6 +96,8 @@ it.each([
         "request_rework",
         "revise_responsibility",
       ],
+      undefined,
+      scenario.startsWith("late_") ? 20_000 : undefined,
     );
     const log = resolve(f.login.context.homeDirectory, "native-operations.log");
     const promptLog = resolve(f.login.context.homeDirectory, "worker-prompt.log");
@@ -207,9 +215,13 @@ it.each([
           ).toEqual([]);
           return;
         }
+        if (i === 1 && scenario.startsWith("late_")) {
+          const remaining = Date.parse(f.assignment.lease!.expiresAt) - Date.now() + 50;
+          if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
+        }
         let cycle = await runtime.runCycle();
         if (
-          (i === 2 && scenario === "recovery") ||
+          (i === 2 && (scenario === "recovery" || scenario === "late_recovery")) ||
           (i === 6 && scenario === "rework_receipt_failure")
         ) {
           expect(cycle.disposition).toBe("uncertain");
@@ -299,6 +311,30 @@ it.each([
         ...(scenario === "publication_retry" ? ["prepare_publication"] : []),
       ]);
       const source = await new SupervisionTaskSource(storage, f.binding, f.ports.now).read();
+      if (scenario.startsWith("late_")) {
+        const decisions = source.events.filter(
+          (event) => event.type === "work.supervision.decision.recorded",
+        );
+        const plans = await Promise.all(
+          decisions.map(
+            (event) =>
+              readSupervisionJsonArtifact(
+                storage.artifacts,
+                String(event.payload.planArtifactHash),
+              ) as Promise<OperatingActionPlanV1>,
+          ),
+        );
+        expect(
+          plans.filter((plan) => plan.effectContract === "work.assignment_completion.v3"),
+        ).toHaveLength(1);
+        expect(source.execution.attempts).toHaveLength(1);
+        expect(source.events.filter((event) => event.type === "assignment.reopened")).toHaveLength(
+          0,
+        );
+        expect(
+          source.events.filter((event) => event.type === "assignment.lease.renewed"),
+        ).toHaveLength(0);
+      }
       if (rework) {
         expect(source.execution.attempts).toMatchObject([
           { attemptOrdinal: 1, relationship: "root" },

@@ -85,11 +85,12 @@ export async function readAssignmentCompletionEffect(
     storage.artifacts,
     modelEffect.contextArtifactHash,
   )) as OwnerReasoningContext;
+  const roleEvaluationHash = effect.schemaVersion === 1 ? null : effect.roleEvaluationArtifactHash;
   if (
     decision.operation !== "prepare_completion" ||
     details.assignmentId !== effect.responsibility.assignmentId ||
     Object.keys(details).sort().join(",") !==
-      (effect.schemaVersion === 2
+      (roleEvaluationHash !== null
         ? "assignmentId,checks,researchChecks,resultContentHash,writingPolicyId"
         : "assignmentId,checks,resultContentHash,writingPolicyId") ||
     details.resultContentHash !== writing.artifact.contentHash ||
@@ -127,11 +128,11 @@ export async function readAssignmentCompletionEffect(
   });
   if (
     research === null
-      ? effect.schemaVersion !== 1
-      : effect.schemaVersion !== 2 || research.overallStatus !== "passed"
+      ? roleEvaluationHash !== null
+      : roleEvaluationHash === null || research.overallStatus !== "passed"
   )
     throw new Error("The completion is missing its independently passed role evaluation.");
-  if (effect.schemaVersion === 2) {
+  if (roleEvaluationHash !== null) {
     const actual = context.facts.tasks.assignments.find(
       (item) => item.assignmentId === effect.responsibility.assignmentId,
     );
@@ -151,7 +152,7 @@ export async function readAssignmentCompletionEffect(
         ) ||
       operatingContractHash(research) !==
         operatingContractHash(
-          await readSupervisionJsonArtifact(storage.artifacts, effect.roleEvaluationArtifactHash),
+          await readSupervisionJsonArtifact(storage.artifacts, roleEvaluationHash),
         )
     )
       throw new Error(
@@ -187,6 +188,8 @@ export async function readCanonicalAssignmentCompletion(input: {
   const actual = basis.context.facts.tasks.assignments.find(
     (item) => item.assignmentId === task.assignmentId,
   );
+  const leaseEvidenceAt =
+    basis.effect.schemaVersion === 3 ? basis.effect.executionCompletedAt : basis.effect.preparedAt;
   if (
     assignment?.status !== "leased" ||
     assignment.lease === null ||
@@ -195,8 +198,8 @@ export async function readCanonicalAssignmentCompletion(input: {
     assignment.assigneeAgentId !== task.executorAgentId ||
     input.source.responsibilities.find((item) => item.assignmentId === task.assignmentId)?.binding
       ?.responsibilityHash !== basis.fields.responsibilityArtifactHash ||
-    Date.parse(basis.effect.preparedAt) < Date.parse(assignment.lease.acquiredAt) ||
-    Date.parse(basis.effect.preparedAt) >= Date.parse(assignment.lease.expiresAt) ||
+    Date.parse(leaseEvidenceAt) < Date.parse(assignment.lease.acquiredAt) ||
+    Date.parse(leaseEvidenceAt) >= Date.parse(assignment.lease.expiresAt) ||
     Date.parse(basis.effect.preparedAt) > Date.parse(input.now()) ||
     actual?.effectDisposition !== "reconciled" ||
     actual.artifactHashes.length !== 1 ||
@@ -212,7 +215,11 @@ export async function readCanonicalAssignmentCompletion(input: {
     terminal?.type !== "run.completed" ||
     terminal.payload.verificationStatus !== "passed" ||
     !(terminal.payload.artifactIds as string[]).includes(basis.writing.artifact.artifactId) ||
-    Date.parse(basis.effect.preparedAt) < Date.parse(terminal.occurredAt)
+    Date.parse(basis.effect.preparedAt) < Date.parse(terminal.occurredAt) ||
+    (basis.effect.schemaVersion === 3 &&
+      (terminal.eventId !== basis.effect.terminalEventId ||
+        terminal.occurredAt !== basis.effect.executionCompletedAt ||
+        Date.parse(terminal.occurredAt) >= Date.parse(task.completionDeadline)))
   )
     throw new Error("The completed result is not the verified managed task result.");
   return { ...basis, assignment, terminal };

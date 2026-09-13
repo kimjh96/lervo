@@ -218,9 +218,11 @@ export class SupervisionTaskSource {
             binding: this.binding,
             now: this.now,
           })
-        : ["work.assignment_completion.v1", "work.assignment_completion.v2"].includes(
-              plan.effectContract,
-            )
+        : [
+              "work.assignment_completion.v1",
+              "work.assignment_completion.v2",
+              "work.assignment_completion.v3",
+            ].includes(plan.effectContract)
           ? await readCanonicalAssignmentCompletion({
               storage: this.storage,
               source,
