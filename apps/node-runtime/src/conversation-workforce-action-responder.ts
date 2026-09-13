@@ -127,7 +127,7 @@ export class ConversationWorkforceActionResponder implements DiscordPlatformActi
       parentRoleId: string;
       hiring: ConversationWorkforceHiringPort;
       deployment?: ConversationWorkforceDeploymentPort;
-      onHired?(input: {
+      onConversationDelegateHired?(input: {
         conversationId: string;
         threadId: string | null;
         agent: WorkforceAgent;
@@ -163,12 +163,14 @@ export class ConversationWorkforceActionResponder implements DiscordPlatformActi
       agent,
       conversationId: input.event.target.conversationId,
     });
-    this.options.onHired?.({
-      conversationId: input.event.target.conversationId,
-      threadId: input.event.target.threadId,
-      agent,
-      hiredAt: (this.options.now ?? (() => new Date()))().toISOString(),
-    });
+    if (deployment === undefined) {
+      this.options.onConversationDelegateHired?.({
+        conversationId: input.event.target.conversationId,
+        threadId: input.event.target.threadId,
+        agent,
+        hiredAt: (this.options.now ?? (() => new Date()))().toISOString(),
+      });
+    }
     if (deployment?.configurationChanged === true) {
       this.options.onDeploymentPrepared?.(input.event.eventId);
     }

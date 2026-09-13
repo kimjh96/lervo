@@ -5,7 +5,7 @@
 
 ## Context
 
-Discord `repository_work` previously created a Hub remote command requiring pre-existing signed approval and one to sixteen exact managed-host paths. Natural requests such as “investigate this” or “fix this bug” cannot identify paths before inspection. The Hub repeatedly leased these commands without Node acknowledgement until expiry, while the fixed response incorrectly promised that work would start. Hiring registered a child agent's workforce identity without binding its next conversation task to an executable provider session.
+Discord `repository_work` previously created a Hub remote command that required pre-existing signed approval and one to sixteen exact managed-host paths. Natural requests such as “investigate this” or “fix this bug” cannot identify paths before inspection. The Hub repeatedly leased these commands without Node acknowledgement until expiry, while the fixed response incorrectly promised that work would start. Hiring registered a child agent's workforce identity without binding its next conversation task to an executable provider session.
 
 The exact-path managed-run contract remains appropriate for reviewed, deterministic changes. It is not an interactive Claude Code or Codex CLI session and must not be presented as one.
 
@@ -13,12 +13,12 @@ The exact-path managed-run contract remains appropriate for reviewed, determinis
 
 ### Native work boundary
 
-In a locally configured Discord deployment using natural routing, `repository_work` executes on the repository Node rather than entering Hub remote continuation. The configured provider adapter owns a non-interactive native CLI process:
+In a locally configured Discord deployment using natural routing, `repository_work` executes on the repository Node instead of entering Hub remote continuation. The configured provider adapter owns a non-interactive native CLI process:
 
 - Codex uses `codex exec` with its workspace-write automatic-review sandbox, adds the exact Git common directory as a repository-owned writable root for Lervo checkpoints, and resumes by exact thread ID under the same boundary.
 - Claude uses print-mode Claude Code with automatic permission classification and resumes by exact session ID.
 
-The Node supplies the repository root, model, reasoning effort, bounded timeout, abort signal, and an environment exposing the running Node executable to CLI launchers. Provider adapters own provider-specific arguments and result parsing. The conversation application depends only on the provider-neutral repository-work port.
+The Node supplies the repository root, model, reasoning effort, bounded timeout, abort signal, and an environment that exposes the running Node executable to CLI launchers. Provider adapters own provider-specific arguments and result parsing. The conversation application depends only on the provider-neutral repository-work port.
 
 Requests instruct the provider to inspect and act immediately instead of promising or queuing work. Ordinary requesters may not request commits, repository-remote creation, or pushes. A mapped human, or an agent already admitted by the configured effect-request authority, may explicitly request one of those exact effects. The provider must observe before execution, execute once, and independently verify afterward rather than blindly retrying an uncertain result.
 
@@ -40,7 +40,7 @@ Completed source events deduplicate without rerunning provider tools. Separate e
 
 Source-event identity validation, running or completed replay inspection, session lookup, duplicate lookup, and turn admission share one immediate SQLite transaction. Replaying the same running source event retains one attempt across database handles and reopening without refreshing its start time. Elapsed time does not prove interrupted work is safe to repeat. The duplicate response reports the admission record but does not promise that an unobserved process remains active or will deliver a result. Identity or content conflicts roll back admission. This adds no table, persisted field, or event and preserves conversation-scoped result privacy.
 
-Later events in the same worker scope resume the exact provider session across process invocations and Node restarts. Hiring activates the child as the conversation worker, giving its next task an independent session rather than the parent's session.
+Later events in the same worker scope resume the exact provider session across process invocations and Node restarts. Legacy hiring without a separately deployable speaker activates the child as the conversation worker, giving its next task an independent session rather than the parent's session. When hiring prepares a distinct child deployment, the parent retains its configured worker identity. Existing delegate rows cannot override that identity, provider, session, or result scope. The child receives work through its own deployment. [Native admission](../../../specifications/coordination/native-repository-work-admission.md) defines the configuration-derived selection and historical replay boundary.
 
 Each integration retains at most 4,096 completed or failed turn rows and 1,024 sessions or delegates. Project artifact policy governs CAS retention.
 
@@ -62,7 +62,7 @@ Natural routing defaults to automation depth eight, allowing explicitly mentione
 
 Exact participant and role mentions take priority. A unique explicit address establishes bounded in-memory conversation-and-thread stickiness: later unaddressed human turns remain with that interlocutor until another exact address changes ownership. Discord replies to a configured bot or webhook count as exact addresses.
 
-Without stickiness, unaddressed turns use a stable conversation winner rather than selection from the source-message hash. A uniquely configured CEO has higher unaddressed priority, making Tarin the stable general-channel default. A project channel with one PO remains owned by that PO.
+Without stickiness, unaddressed turns use a stable conversation winner instead of selection from the source-message hash. A uniquely configured CEO has higher unaddressed priority, making Tarin the stable general-channel default. A project channel with one PO remains owned by that PO.
 
 ## Consequences
 

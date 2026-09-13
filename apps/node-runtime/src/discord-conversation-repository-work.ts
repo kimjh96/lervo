@@ -9,6 +9,7 @@ import { ConversationRepositoryWorkResponder } from "./conversation-repository-w
 import { SQLiteConversationRepositoryWorkStore } from "./conversation-repository-work-store.js";
 import type { NodeDiscordConversationConfig } from "./config-types.js";
 import type { NodeRuntimeConfig } from "./config-types.js";
+import { discordWorkforceExecution } from "./discord-workforce-execution.js";
 
 export function openDiscordConversationRepositoryWork(input: {
   config: NodeDiscordConversationConfig & {
@@ -19,6 +20,7 @@ export function openDiscordConversationRepositoryWork(input: {
   dataDirectory: string;
   artifactStore: ArtifactStore;
   parentAgentId: string;
+  runtimeConfigPath?: string;
   providerExecutables?: Partial<Record<"codex" | "claude", string>>;
   providerModels?: Partial<Record<"codex" | "claude", string>>;
   providerReasoningEfforts?: Partial<
@@ -54,6 +56,10 @@ export function openDiscordConversationRepositoryWork(input: {
       artifactStore: input.artifactStore,
       store,
       parentAgentId: input.parentAgentId,
+      workerSelection:
+        discordWorkforceExecution(input.config, input.runtimeConfigPath) === "conversation_delegate"
+          ? "conversation_delegate"
+          : "configured_agent",
       executors,
       ...(input.providerModels === undefined ? {} : { models: input.providerModels }),
       ...(input.providerReasoningEfforts === undefined

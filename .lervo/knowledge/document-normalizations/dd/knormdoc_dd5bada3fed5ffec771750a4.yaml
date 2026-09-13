@@ -1,7 +1,7 @@
 byteOwnership:
   owner: reviewer
   rewritePolicy: reviewed_exact
-candidateId: knorm_17d02bb8da65c0a5f6c790f8
+candidateId: knorm_96c1b103a88f565aca7ed6de
 compiler:
   compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
   compilerId: lervo.codex.document-normalizer
@@ -9,18 +9,18 @@ compiler:
   isolation: external_no_capabilities
   provider: codex
 formatVersion: lervo.document.v1
-operationId: knormop_1bc75ea26f0cb3250f4c660a
+operationId: knormop_cb0b070e19d43c3916106f50
 outputLanguage: en
 outputs:
-  - byteCount: 1724
-    contentHash: sha256:0a6058af2f2876b37a08427fa2f350628a2cd54eb334e3b2ce1682cc69e33bb7
+  - byteCount: 2741
+    contentHash: sha256:bb40d3c6adf67f0b26b18d6f7fc8f70057af381e90daf273ee66d9ebc15df9ad
     path: docs/specifications/coordination/native-repository-work-admission.md
-    userRegionHash: sha256:0a6058af2f2876b37a08427fa2f350628a2cd54eb334e3b2ce1682cc69e33bb7
+    userRegionHash: sha256:bb40d3c6adf67f0b26b18d6f7fc8f70057af381e90daf273ee66d9ebc15df9ad
 profile: specification_document
-recordId: knormdoc_9e9bf7a18021ed64e151621e
+recordId: knormdoc_dd5bada3fed5ffec771750a4
 resourceBindings: []
 schemaVersion: 2
-sourceContentHash: sha256:d39d539adcdcdb5fce6fc968f7066e6b681043004db3b789803acd7d724ac14c
+sourceContentHash: sha256:a303fef3c5e4cd76e01ee9d9455c9b423b6ff3c225ec086457210b9c584800b4
 sourcePath: docs/specifications/coordination/native-repository-work-admission.md
 sourceUnitVersionIds:
-  - uv_d90324339aef4a2b4653600a
+  - uv_a69000be361e82cd7496f4c5

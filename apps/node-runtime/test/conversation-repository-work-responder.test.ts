@@ -22,7 +22,14 @@ afterEach(async () => {
 });
 
 describe("ConversationRepositoryWorkResponder", () => {
-  it.each(["changed", "read_only", "running"])(
+  it.each([
+    "changed",
+    "read_only",
+    "running",
+    "configured_owner",
+    "legacy_delegate",
+    "historical_delegate",
+  ])(
     "keeps contextual results and independent evidence without replaying work (%s)",
     async (scenario) => {
       const changed = scenario === "changed";
@@ -72,12 +79,50 @@ describe("ConversationRepositoryWorkResponder", () => {
         };
       });
       const verifyCompletion = vi.fn(async () => undefined);
-      const store = SQLiteConversationRepositoryWorkStore.open(resolve(root, "work.sqlite"));
+      let store = SQLiteConversationRepositoryWorkStore.open(resolve(root, "work.sqlite"));
+      if (scenario === "configured_owner" || scenario === "legacy_delegate") {
+        const delegate = {
+          agentId: "agt_222222222222222222222222",
+          displayName: "Navi",
+          roleId: "developer",
+          provider: "codex" as const,
+        };
+        store.activateDelegate({
+          conversationId: event.target.conversationId,
+          threadId: null,
+          delegate,
+          activatedAt: event.occurredAt,
+        });
+        const previous = await artifacts.put("Navi's private earlier result");
+        const coordinates = {
+          eventId: "evt_previous_delegate",
+          conversationId: event.target.conversationId,
+          threadId: null,
+          workerId: delegate.agentId,
+          provider: delegate.provider,
+        };
+        store.begin({
+          ...coordinates,
+          requestContentHash: previous.contentHash,
+          startedAt: event.occurredAt,
+        });
+        store.complete({
+          ...coordinates,
+          providerSessionId: "22222222-2222-4222-8222-222222222222",
+          result: previous,
+          completedAt: event.occurredAt,
+        });
+        store.close();
+        store = SQLiteConversationRepositoryWorkStore.open(resolve(root, "work.sqlite"));
+      }
       const responder = new ConversationRepositoryWorkResponder({
         repositoryRoot: root,
         artifactStore: artifacts,
         store,
         parentAgentId: "agt_111111111111111111111111",
+        ...(scenario === "legacy_delegate"
+          ? { workerSelection: "conversation_delegate" as const }
+          : {}),
         executors: { codex: { provider: "codex", execute: executeTurn } },
         models: { codex: "gpt-6-astra" },
         reasoningEfforts: { codex: "medium" },
@@ -100,17 +145,26 @@ describe("ConversationRepositoryWorkResponder", () => {
           verify: verifyCompletion,
         },
       });
-      if (scenario === "running") {
+      if (scenario === "running" || scenario === "historical_delegate") {
         store.begin({
           eventId: event.eventId,
           conversationId: event.target.conversationId,
           threadId: event.target.threadId,
-          workerId: "agt_111111111111111111111111",
+          workerId:
+            scenario === "historical_delegate"
+              ? "agt_222222222222222222222222"
+              : "agt_111111111111111111111111",
           provider: "codex",
           requestContentHash: source.contentHash,
           startedAt: new Date().toISOString(),
         });
         try {
+          if (scenario === "historical_delegate") {
+            await expect(responder.respond({ event } as never)).rejects.toThrow();
+            expect(executeTurn).not.toHaveBeenCalled();
+            expect(verifyCompletion).not.toHaveBeenCalled();
+            return;
+          }
           const reply = await responder.respond({ event } as never);
           expect(executeTurn).not.toHaveBeenCalled();
           expect(verifyCompletion).not.toHaveBeenCalled();
@@ -126,6 +180,25 @@ describe("ConversationRepositoryWorkResponder", () => {
       const first = await responder.respond({ event } as never);
       const second = await responder.respond({ event } as never);
       expect(executeTurn).toHaveBeenCalledTimes(1);
+      if (scenario === "configured_owner" || scenario === "legacy_delegate") {
+        const delegated = scenario === "legacy_delegate";
+        expect(executeTurn).toHaveBeenCalledWith(
+          expect.objectContaining({
+            providerSessionId: delegated ? "22222222-2222-4222-8222-222222222222" : null,
+            instructions: delegated
+              ? expect.stringContaining("Navi's private earlier result")
+              : expect.not.stringContaining("Navi"),
+          }),
+        );
+        expect(store.activeDelegate(event.target.conversationId, null)?.displayName).toBe("Navi");
+        expect(
+          store.recentCompletedResults({
+            conversationId: event.target.conversationId,
+            threadId: null,
+            workerId: delegated ? "agt_222222222222222222222222" : "agt_111111111111111111111111",
+          }),
+        ).toHaveLength(delegated ? 2 : 1);
+      }
       expect(executeTurn).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "gpt-6-astra",

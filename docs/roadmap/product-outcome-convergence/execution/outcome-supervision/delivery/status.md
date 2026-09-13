@@ -12,7 +12,7 @@ Steps 1–6 contain implemented, tested, and deployed behavior; they are not six
 
 The common completion gate remains full positive installed supervision acceptance and production activation. Grouped fixture requests cannot substitute for thirteen separate installed intake journeys. Unresolved observations include:
 
-- Central/direct intake sharing one owner and assignment set.
+- Central/direct intake sharing one owner and assignment set, including preservation of the addressed product owner after hiring a separately deployed worker. Native admission now prevents retained delegate state from selecting that worker's identity, session, or private result scope; this correction alone does not establish the shared-assignment acceptance gate.
 - Automatic permission recovery followed by resumed execution.
 - Equivalent local/Discord intake.
 - Actual scoped startup with valid settled authority.

@@ -13,6 +13,7 @@ import { DiscordConversationAdministrationResponder } from "./discord-platform-a
 import type { SQLiteConversationRepositoryWorkStore } from "./conversation-repository-work-store.js";
 import { RepositoryDiscordAgentOrganizationDeployment } from "./discord-agent-organization-deployment.js";
 import { DiscordHiredAgentDeployment } from "./discord-hired-agent-deployment.js";
+import { discordWorkforceExecution } from "./discord-workforce-execution.js";
 
 export function createDiscordConversationEffects(input: {
   config: NodeDiscordConversationConfig;
@@ -106,12 +107,12 @@ export function createDiscordConversationEffects(input: {
         parentAgentId: input.parentAgentId!,
         parentRoleId: input.parentRoleId,
         hiring: new RepositoryConversationWorkforceHiring(input.repositoryRoot),
-        ...(input.runtimeConfigPath === undefined ||
-        !allowedActions.includes("incoming_webhook.create")
+        ...(discordWorkforceExecution(input.config, input.runtimeConfigPath) !==
+        "separate_deployment"
           ? {}
           : {
               deployment: new DiscordHiredAgentDeployment({
-                configPath: input.runtimeConfigPath,
+                configPath: input.runtimeConfigPath!,
                 parentIntegrationId: input.config.integrationId,
                 administration,
                 organization: new RepositoryDiscordAgentOrganizationDeployment(
@@ -125,7 +126,7 @@ export function createDiscordConversationEffects(input: {
         ...(input.repositoryWorkStore === undefined
           ? {}
           : {
-              onHired: ({ conversationId, threadId, agent, hiredAt }) =>
+              onConversationDelegateHired: ({ conversationId, threadId, agent, hiredAt }) =>
                 input.repositoryWorkStore!.activateDelegate({
                   conversationId,
                   threadId,

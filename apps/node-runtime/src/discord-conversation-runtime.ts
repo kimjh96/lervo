@@ -124,6 +124,9 @@ export async function openNodeDiscordConversationRuntime(
           dataDirectory: options.dataDirectory,
           artifactStore: artifacts,
           parentAgentId: agentParticipation.agentId ?? config.agentParticipantId,
+          ...(options.runtimeConfigPath === undefined
+            ? {}
+            : { runtimeConfigPath: options.runtimeConfigPath }),
           authorizedEffectRequesters: authorizedAgentEffectRequesters,
           ...(options.providerExecutables === undefined
             ? {}

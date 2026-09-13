@@ -76,6 +76,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       artifactStore: ArtifactStore;
       store: SQLiteConversationRepositoryWorkStore;
       parentAgentId: string;
+      workerSelection?: "configured_agent" | "conversation_delegate";
       executors: Partial<Record<"codex" | "claude", RepositoryWorkTurnExecutor>>;
       models?: Partial<Record<"codex" | "claude", string>>;
       reasoningEfforts?: Partial<
@@ -124,10 +125,13 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       throw new Error("The repository work request is empty or exceeds its text bound.");
     }
     const startedAt = new Date().toISOString();
-    const delegate = this.options.store.activeDelegate(
-      input.event.target.conversationId,
-      input.event.target.threadId,
-    );
+    const delegate =
+      this.options.workerSelection === "conversation_delegate"
+        ? this.options.store.activeDelegate(
+            input.event.target.conversationId,
+            input.event.target.threadId,
+          )
+        : null;
     const provider =
       delegate === null || delegate.provider === "any"
         ? this.options.defaultProvider
