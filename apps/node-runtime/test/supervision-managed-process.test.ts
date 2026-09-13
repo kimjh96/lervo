@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
@@ -173,7 +174,9 @@ it.each([
           sourceId: origin.sourceEventId,
           requesterId: "ptc_supervisionrequester:owner",
           request: "Complete the installed managed goal.",
-          contentHash: `sha256:${"e".repeat(64)}`,
+          contentHash: `sha256:${createHash("sha256")
+            .update("Complete the installed managed goal.")
+            .digest("hex")}`,
           origin,
         },
       });
