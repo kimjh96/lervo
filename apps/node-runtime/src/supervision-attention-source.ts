@@ -6,6 +6,10 @@ import { canonicalOwnerReasoningFacts } from "./supervision-reasoning-context.js
 import { readSupervisionAttentionArtifact } from "./supervision-attention-artifact.js";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import { inspectSupervisionAttentionReceipt } from "./supervision-attention-receipt.js";
+import { retainsExhaustedRecoveryAttention } from "./supervision-attention-continuity.js";
+import type { OperatingMandate } from "@lervo/application-contract";
+import { validateSchema, type WorkstreamSnapshot } from "@lervo/schemas";
+import { assertOperatingMandate, operatingContractHash } from "@lervo/work-controller";
 
 export async function readCanonicalSupervisionAttention(input: {
   storage: ProjectStorage;
@@ -61,6 +65,50 @@ export async function hasPendingSupervisionAttention(
       throw new Error("Pending owner attention has no exact admitted receipt.");
     const basis = await readSupervisionAttentionArtifact(input.storage.artifacts, plan);
     if (basis.effect.basisHash === facts.basisHash) return true;
+    if (basis.effect.reasonCode !== "retry_budget_requires_resolution") continue;
+    const previousInstallation = input.source.events.findLast(
+      (candidate) =>
+        candidate.type === "work.supervision.mandate.installed" &&
+        candidate.seq < event.seq &&
+        candidate.payload.mandateHash === plan.mandateHash &&
+        candidate.payload.workstreamId === plan.workstreamId,
+    );
+    const previousWorkstreamEvent = input.source.events.findLast(
+      (candidate) =>
+        candidate.type === "workstream.snapshot.recorded" &&
+        candidate.seq < event.seq &&
+        candidate.payload.workstreamId === plan.workstreamId,
+    );
+    if (previousInstallation === undefined || previousWorkstreamEvent === undefined) continue;
+    const [previousMandate, previousWorkstream] = await Promise.all([
+      readSupervisionJsonArtifact(
+        input.storage.artifacts,
+        String(previousInstallation.payload.mandateArtifactHash),
+      ) as Promise<OperatingMandate>,
+      readSupervisionJsonArtifact(
+        input.storage.artifacts,
+        String(previousWorkstreamEvent.payload.snapshotContentHash),
+      ) as Promise<WorkstreamSnapshot>,
+    ]);
+    assertOperatingMandate(previousMandate);
+    if (
+      operatingContractHash(previousMandate) !== plan.mandateHash ||
+      !validateSchema("workstreamSnapshot", previousWorkstream).valid
+    )
+      throw new Error("The previous owner attention authority source is invalid.");
+    if (
+      retainsExhaustedRecoveryAttention({
+        reasonCode: basis.effect.reasonCode,
+        decisionId: String(event.payload.escalationId),
+        previousMandate,
+        currentMandate: facts.facts.mandate,
+        previousWorkstream,
+        currentWorkstream: input.source.workstream,
+        interveningEvents: input.source.events.filter((candidate) => candidate.seq > event.seq),
+        assignments: facts.facts.tasks.assignments,
+      })
+    )
+      return true;
   }
   return false;
 }

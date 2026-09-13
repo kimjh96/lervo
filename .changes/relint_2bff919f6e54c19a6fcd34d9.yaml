@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_2bff919f6e54c19a6fcd34d9"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Preserve exhausted retry attention across validity-only mandate renewal."
