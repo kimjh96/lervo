@@ -68,7 +68,70 @@ async function changeBundledSource(root) {
   await writeFile(resolve(root, "packages/bundled/src/index.ts"), "export const bundled = 2;\n");
 }
 
+async function prepareFixtureRelease(root, version) {
+  const intents = await loadReleaseIntents(root);
+  for (const path of [
+    "apps/cli/package.json",
+    "apps/cli/release-artifact-manifest.json",
+    "apps/cli/release-sbom.cdx.json",
+  ]) {
+    const value = JSON.parse(await readFile(resolve(root, path), "utf8"));
+    if (path.endsWith("package.json")) value.version = version;
+    else if (value.artifact) value.artifact.version = version;
+    else value.metadata.component.version = version;
+    await writeJson(root, path, value);
+  }
+  await writeFile(
+    resolve(root, ".changes/current-release.md"),
+    renderCurrentReleaseNotes(version, intents),
+  );
+  for (const intent of intents) await rm(resolve(root, intent.path));
+}
+
 describe("CLI release completion", () => {
+  it("checks prepared CI bytes against their source instead of an older tag", async () => {
+    const { root } = await fixture();
+    await git(root, "tag", "v0.2.2");
+    await changeBundledSource(root);
+    await createReleaseIntent(root, {
+      impact: "patch",
+      summary: "Correct an earlier bundled behavior before the current release.",
+    });
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "fix: correct earlier bundled behavior");
+    await prepareFixtureRelease(root, "0.2.3");
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "chore(cli): prepare earlier release");
+    await createReleaseIntent(root, {
+      impact: "minor",
+      summary: "Add the currently reviewed bundled capability for CLI users.",
+    });
+    await writeFile(resolve(root, "packages/bundled/src/index.ts"), "export const bundled = 3;\n");
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "feat: add current bundled capability");
+    const sourceRevision = await git(root, "rev-parse", "HEAD");
+    await git(root, "remote", "add", "origin", root);
+    await git(root, "update-ref", "refs/remotes/origin/main", sourceRevision);
+    await git(root, "checkout", "--detach", sourceRevision);
+    await prepareFixtureRelease(root, "0.3.0");
+
+    const detached = await inspectReleaseCompletion({ repositoryRoot: root });
+    expect(detached.valid).toBe(false);
+    expect(detached.diagnostics).toContain("prepared_release_notes_mismatch");
+
+    await git(root, "switch", "-C", "lervo/release-cli", sourceRevision);
+    await git(root, "branch", "--set-upstream-to=origin/main", "lervo/release-cli");
+    expect(await git(root, "merge-base", "HEAD", "@{upstream}")).toBe(sourceRevision);
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "chore(cli): prepare current release");
+    await expect(inspectReleaseCompletion({ repositoryRoot: root })).resolves.toMatchObject({
+      valid: true,
+      disposition: "release_prepared",
+      comparison: { baseRevision: sourceRevision, baseSource: "upstream_merge_base" },
+      preparedRelease: { valid: true, version: "0.3.0" },
+    });
+  });
+
   it("blocks a publishable worktree change without reviewed intent", async () => {
     const { root, base } = await fixture();
     await changeBundledSource(root);

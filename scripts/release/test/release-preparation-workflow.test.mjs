@@ -39,6 +39,15 @@ describe("CLI release preparation workflow", () => {
     assert.match(completion.run, /release:completion:check --base/u);
     assert.match(completion.run, /github\.event\.before/u);
     assert.match(prepare.run, /pnpm release:prepare --json/u);
+    assert.match(prepare.run, /git switch -C lervo\/release-cli "\$\{GITHUB_SHA\}"/u);
+    assert.match(prepare.run, /git branch --set-upstream-to=origin\/main lervo\/release-cli/u);
+    assert.match(
+      prepare.run,
+      /test "\$\(git merge-base HEAD '@\{upstream\}'\)" = "\$\{GITHUB_SHA\}"/u,
+    );
+    assert.ok(prepare.run.indexOf("git switch -C") < prepare.run.indexOf("pnpm release:prepare"));
+    assert.ok(prepare.run.indexOf("commit -m") < prepare.run.indexOf("pnpm check"));
+    assert.ok(prepare.run.indexOf("pnpm check") < prepare.run.indexOf("gh api"));
     assert.match(prepare.run, /pnpm release:prepare --apply --approval "\$\{plan_id\}" --json/u);
     assert.match(prepare.run, /pnpm check/u);
     assert.match(prepare.run, /pnpm lervo knowledge lint --json/u);
