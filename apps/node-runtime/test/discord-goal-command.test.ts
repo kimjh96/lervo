@@ -66,7 +66,9 @@ it("acknowledges before intake and only reports a processed request after the pr
 
 it("shows failure after a rejected intake without claiming success", async () => {
   const process = vi.fn();
-  const update = vi.fn(async () => undefined);
+  const update = vi.fn(
+    async (_command: typeof command, _messageId: string, _content: string) => undefined,
+  );
   await expect(
     handleDiscordGoalCommand({
       command,
@@ -84,7 +86,9 @@ it("shows failure after a rejected intake without claiming success", async () =>
 });
 
 it("keeps an admitted request uncertain when later processing fails", async () => {
-  const update = vi.fn(async () => undefined);
+  const update = vi.fn(
+    async (_command: typeof command, _messageId: string, _content: string) => undefined,
+  );
   await expect(
     handleDiscordGoalCommand({
       command,

@@ -4,6 +4,7 @@ import type { EventStore } from "@lervo/storage-contract";
 import { collectRunEventsBounded } from "@lervo/storage-contract";
 import { managedExecutionIdentity, operatingContractHash } from "@lervo/work-controller";
 import type { SupervisedManagedInvocation } from "./supervision-managed-admission.js";
+import { observedSupervisionRunTermination } from "./supervision-run-termination.js";
 
 export interface SupervisedManagedProcessConfiguration {
   nodeExecutable: string;
@@ -134,6 +135,8 @@ export async function runSupervisedManagedProcess(input: {
     reserved.payload.executionKey !== operatingContractHash(invocation.plan)
   )
     throw new Error("The managed worker has no exact canonical dispatch evidence.");
+  if (observedSupervisionRunTermination(events) === null)
+    throw new Error("The managed worker outcome requires reconciliation.");
   return { eventIds: [reserved.eventId, requested.eventId] };
 }
 
