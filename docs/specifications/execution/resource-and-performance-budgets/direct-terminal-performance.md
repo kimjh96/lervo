@@ -4,7 +4,7 @@
 
 ## Populations and budgets
 
-Successful `total` stage durations are grouped by provider, hook, environment-profile digest, repository profile, and cold state. Profiles must not be combined across these boundaries. Initial budgets require:
+Group successful `total` stage durations by provider, hook, environment-profile digest, repository profile, and cold state. Do not combine profiles across these boundaries. Initial budgets require:
 
 - Prompt-preparation p95 at most 15 seconds.
 - Stop p95 at most 5 seconds.
@@ -12,7 +12,7 @@ Successful `total` stage durations are grouped by provider, hook, environment-pr
 
 The environment-profile digest includes a hook-build digest. A changed measured implementation starts a new population without deleting or relabeling older exhausted evidence. A fresh cohort remains `unobservable` until it reaches the unchanged minimum population.
 
-The default minimum population is 30. Operators may select 1 through 100 for a local assessment; the report always records that policy. A profile below the selected population is `unobservable`. Missing, invalid, or incomplete stage evidence also fails closed.
+The default minimum population is 30. Operators may select 1 through 100 for a local assessment; the report always records that policy. Profiles below the selected population are `unobservable`. Missing, invalid, or incomplete stage evidence also fails closed.
 
 The command succeeds only when every required profile and configured query threshold passes. Exhausted evidence defaults to `blocked`; unobservable evidence defaults to `escalation_required`. Either disposition may be explicitly stricter.
 

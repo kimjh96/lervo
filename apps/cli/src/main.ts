@@ -53,6 +53,7 @@ import { migrateUsage, runMigrateCommand } from "./migrate-command.js";
 import { knowledgeUsage, runKnowledgeCommand } from "./knowledge-command.js";
 import { readmeUsage, runReadmeCommand } from "./readme-command.js";
 import { roleUsage, runRoleCommand } from "./role-command.js";
+import { researchUsage, runResearchCommand } from "./research-command.js";
 import { repositoryUsage, runRepositoryCommand } from "./repository-command.js";
 import { runManagedCommand, runUsage } from "./run-command.js";
 import { runSearchCommand, searchUsage } from "./search-command.js";
@@ -82,6 +83,7 @@ ${applicationUsage}
 ${loopUsage}
 ${liveTriggerUsage}
 ${runUsage}
+${researchUsage}
 ${deliberateUsage}
 ${traceUsage}
 ${searchUsage}
@@ -187,6 +189,7 @@ export async function runCli(
     return runWorkforceCommand(command, args.slice(1), io, services);
   if (command === "organization") return runAgentOrganizationCommand(args.slice(1), io);
   if (command === "role") return runRoleCommand(args.slice(1), io);
+  if (command === "research") return runResearchCommand(args.slice(1), io);
   if (command === "readme") return runReadmeCommand(args.slice(1), io);
   io.stderr(`Unknown command: ${command}\n${usage}`);
   return 1;

@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_646980bd4def19cec99e8fb2
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_53498f2a362461305217fc36
+outputLanguage: en
+outputs:
+  - byteCount: 2611
+    contentHash: sha256:22ebd618c687f583f75dc21a1fd470df76ea7087dde6fb6b0f3f41049fde7871
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/installed-readers-and-discord.md
+    userRegionHash: sha256:22ebd618c687f583f75dc21a1fd470df76ea7087dde6fb6b0f3f41049fde7871
+profile: repository_document
+recordId: knormdoc_d70a38e7684983225428b289
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1e1d7b3dec73ff1534d6324ab930e1027281b0d749a142eae60ac9acf147611c
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/installed-readers-and-discord.md
+sourceUnitVersionIds:
+  - uv_3c151f61764c1c46335b6a8f
+  - uv_65f8a10df6601db93c9af0df
+  - uv_ddd4dcc02d7288a9b526b79c

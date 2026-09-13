@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c5f7fa5f95b456f0d1d26791"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Resolve Git worktree and common-directory coordinates in one fresh observation to reduce repeated process startup during authority checks without caching repository identity."

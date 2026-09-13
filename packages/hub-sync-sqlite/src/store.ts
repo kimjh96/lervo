@@ -1,3 +1,6 @@
+import { RuntimeChangeNotifications } from "./runtime-change-notifications.js";
+import { HubRuntimeChangeError, type HubRuntimeChangeSource } from "@lervo/hub-sync";
+
 import { DatabaseSync } from "node:sqlite";
 
 import {
@@ -103,6 +106,19 @@ export class HubSyncSQLiteStore
     HubCommandArtifactLifecycleRepository,
     HubCommandArtifactCleanupScheduleStore
 {
+  private readonly runtimeChanges = new RuntimeChangeNotifications();
+
+  async waitForRuntimeChange(input: Parameters<HubRuntimeChangeSource["waitForRuntimeChange"]>[0]) {
+    this.assertOpen();
+    if (!this.registrationRepository.matchesIdentity(input))
+      throw new HubRuntimeChangeError("registration_required");
+    const result = await this.runtimeChanges.waitForRuntimeChange(input);
+    this.assertOpen();
+    if (!this.registrationRepository.matchesIdentity(input))
+      throw new HubRuntimeChangeError("registration_required");
+    return result;
+  }
+
   readonly path: string;
   private closed = false;
   private readonly auditRepository: HubAuditSQLiteRepository;
@@ -191,7 +207,15 @@ export class HubSyncSQLiteStore
     publishedAt: string;
   }): Promise<WorkstreamReplicationPublishResponse> {
     this.assertOpen();
-    return this.transactionRunner.write(() => this.workstreamRepository.publish(input));
+    const result = this.transactionRunner.write(() => this.workstreamRepository.publish(input));
+    if (result.status !== "duplicate")
+      this.runtimeChanges.notify({
+        topic: "workstream",
+        projectId: input.request.projectId,
+        repositoryIdentityHash: input.request.repositoryIdentityHash,
+        destinationId: input.destinationId,
+      });
+    return result;
   }
 
   async readWorkstream(input: {
@@ -259,7 +283,15 @@ export class HubSyncSQLiteStore
     queuedAt: string;
   }): Promise<HubRemoteCommandEnqueueResult> {
     this.assertOpen();
-    return this.transactionRunner.write(() => this.remoteCommandRepository.enqueue(input));
+    const result = this.transactionRunner.write(() => this.remoteCommandRepository.enqueue(input));
+    if (result.status === "queued")
+      this.runtimeChanges.notify({
+        topic: "command",
+        projectId: input.envelope.command.target.projectId,
+        repositoryIdentityHash: input.envelope.command.target.projectIdentityHash,
+        destinationId: input.destinationId,
+      });
+    return result;
   }
 
   async findAuthorship(input: {
@@ -276,7 +308,17 @@ export class HubSyncSQLiteStore
     record: HubCommandAuthorshipRecord;
   }> {
     this.assertOpen();
-    return this.transactionRunner.write(() => this.commandAuthorshipRepository.commit(input));
+    const result = this.transactionRunner.write(() =>
+      this.commandAuthorshipRepository.commit(input),
+    );
+    if (result.status === "created")
+      this.runtimeChanges.notify({
+        topic: "command",
+        projectId: input.target.projectId,
+        repositoryIdentityHash: input.target.projectIdentityHash,
+        destinationId: input.destinationId,
+      });
+    return result;
   }
 
   async findLeasedArtifact(input: {
@@ -616,6 +658,7 @@ export class HubSyncSQLiteStore
 
   async close(): Promise<void> {
     if (!this.closed) {
+      this.runtimeChanges.close();
       this.database.close();
       this.closed = true;
     }

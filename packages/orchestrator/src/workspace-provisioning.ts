@@ -191,6 +191,8 @@ export async function applyWorkspaceProvision(input: {
   plan: WorkspaceProvisionPlan;
   host: WorkspaceHostAdapter;
   now?: Date;
+  revalidate?: () => Promise<void>;
+  recordApplied?: (workspace: AgentWorkspace) => Promise<void>;
 }): Promise<AgentWorkspace> {
   if (
     !validPlan(input.plan) ||
@@ -220,6 +222,7 @@ export async function applyWorkspaceProvision(input: {
     verificationSuiteIds: assignment.verificationSuiteIds,
     ...(input.now === undefined ? {} : { now: input.now }),
   });
+  await input.revalidate?.();
   let stored = await readWorkspace(input.plan.repositoryRoot, input.plan.workspace.workspaceId);
   if (stored === null) {
     await createWorkspace({
@@ -231,7 +234,11 @@ export async function applyWorkspaceProvision(input: {
   }
   if (stored === null)
     throw new WorkspaceHostError("host_effect_uncertain", "Workspace state was not recorded.");
-  if (stored.workspace.state === "ready") return stored.workspace;
+  if (stored.workspace.state === "ready") {
+    await input.revalidate?.();
+    await input.recordApplied?.(stored.workspace);
+    return stored.workspace;
+  }
   if (
     stored.workspace.state !== "provisioning" ||
     digest(stored.workspace) !== digest(input.plan.workspace)
@@ -239,6 +246,7 @@ export async function applyWorkspaceProvision(input: {
     throw new WorkspaceHostError("host_effect_uncertain", "Workspace state differs from the plan.");
 
   try {
+    await input.revalidate?.();
     const inspection = await input.host.provision({
       repositoryRoot: input.plan.repositoryRoot,
       workspacePath: input.plan.workspacePath,
@@ -257,7 +265,8 @@ export async function applyWorkspaceProvision(input: {
         "host_effect_uncertain",
         "The host did not return exact ready evidence.",
       );
-    return (
+    await input.revalidate?.();
+    const ready = (
       await updateWorkspace({
         repositoryRoot: input.plan.repositoryRoot,
         workspaceId: input.plan.workspace.workspaceId,
@@ -271,9 +280,12 @@ export async function applyWorkspaceProvision(input: {
         hostNativeInstanceDigest: inspection.nativeInstanceDigest,
       })
     ).workspace;
+    await input.revalidate?.();
+    await input.recordApplied?.(ready);
+    return ready;
   } catch (error) {
     const latest = await readWorkspace(input.plan.repositoryRoot, input.plan.workspace.workspaceId);
-    if (latest?.workspace.state === "provisioning")
+    if (latest !== null && ["provisioning", "ready"].includes(latest.workspace.state))
       await updateWorkspace({
         repositoryRoot: input.plan.repositoryRoot,
         workspaceId: input.plan.workspace.workspaceId,

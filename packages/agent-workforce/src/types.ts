@@ -1,3 +1,7 @@
+import type { AssignmentAmendmentCoordinateV1 } from "@lervo/application-contract";
+import type { AssignmentRecoveryCoordinateV1 } from "@lervo/application-contract";
+import type { AssignmentTopologyPolicyReviewBindingV1 } from "@lervo/application-contract";
+
 export type WorkforceProvider = "codex" | "claude" | "any";
 export type AgentStatus = "active" | "suspended" | "retired";
 export type AssignmentStatus =
@@ -90,6 +94,7 @@ export interface WorkforceAssignmentTopologyProvenance {
   expectedNodeCount: number;
   nodeSetHash: string;
   nodeKey: string;
+  policyReview?: AssignmentTopologyPolicyReviewBindingV1;
 }
 
 export interface WorkforceAssignment {
@@ -113,6 +118,9 @@ export interface WorkforceAssignment {
   workstreamId: string | null;
   assigneeAgentId: string | null;
   lease: WorkforceLease | null;
+  lastLeaseGeneration?: number;
+  recovery?: WorkforceAssignmentRecovery;
+  amendment?: AssignmentAmendmentCoordinateV1;
   handoffs: WorkforceHandoff[];
   resultArtifacts: WorkforceArtifactReference[];
   failureCode: string | null;
@@ -120,6 +128,8 @@ export interface WorkforceAssignment {
   createdAt: string;
   updatedAt: string;
 }
+
+export type WorkforceAssignmentRecovery = AssignmentRecoveryCoordinateV1;
 
 export interface WorkforceEvent {
   type:
@@ -133,6 +143,8 @@ export interface WorkforceEvent {
     | "assignment.handoff.acknowledged"
     | "assignment.cancelled"
     | "assignment.completion.reconciled"
+    | "assignment.amended"
+    | "assignment.reopened"
     | "assignment.completed";
   occurredAt: string;
   actorAgentId: string | null;

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b40063c3e75ecc0561f3d711"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Persist exact owner artifact reviews with canonical task evidence, fenced recovery, and separate completion and delivery boundaries."

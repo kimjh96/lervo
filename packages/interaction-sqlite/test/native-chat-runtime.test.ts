@@ -525,6 +525,11 @@ describe("durable native chat interaction", () => {
       });
     }
 
+    expect(store.nextWakeupAt("itg_native001")).toBe(Date.parse("2026-08-20T00:00:03.000Z"));
+    expect(store.nextWakeupAt("itg_other0001")).toBeNull();
+    expect(
+      store.nextWakeupAt("itg_native001", [{ policyId: "policy_absent", roleId: "role_absent" }]),
+    ).toBeNull();
     expect(
       store.readyInbound({
         integrationId: "itg_native001",

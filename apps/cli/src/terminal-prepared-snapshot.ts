@@ -76,11 +76,24 @@ export async function writePreparedRepositorySnapshot(
     await handle?.close();
     await rm(temporary, { force: true });
   }
-  const entries = (await readdir(directory, { withFileTypes: true }))
-    .filter(
-      (entry) => entry.isFile() && /^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}\.json$/u.test(entry.name),
-    )
-    .sort((left, right) => left.name.localeCompare(right.name));
+  const entries = await Promise.all(
+    (await readdir(directory, { withFileTypes: true }))
+      .filter(
+        (entry) =>
+          entry.isFile() && /^tobs_[A-Za-z0-9][A-Za-z0-9_-]{7,63}\.json$/u.test(entry.name),
+      )
+      .map(async (entry) => ({
+        name: entry.name,
+        modifiedAt: (await lstat(resolve(directory, entry.name))).mtimeMs,
+      })),
+  );
+  const currentName = `${snapshot.observationId}.json`;
+  entries.sort(
+    (left, right) =>
+      Number(left.name === currentName) - Number(right.name === currentName) ||
+      left.modifiedAt - right.modifiedAt ||
+      left.name.localeCompare(right.name),
+  );
   for (const entry of entries.slice(0, Math.max(0, entries.length - MAXIMUM_SNAPSHOTS)))
     await rm(resolve(directory, entry.name), { force: true });
 }

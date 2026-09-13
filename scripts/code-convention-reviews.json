@@ -32,9 +32,9 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:6c17ab52cd01fa87c74c3fba398b864eecebc8f11f3ec790cf9ddac57b2d7d81",
+      "contentHash": "sha256:3a67569cd8481c2f0a348a3c38768e68cb7cc04be91a9c1e479ce039eac9b67c",
       "responsibility": "Managed provider run command orchestration",
-      "rationale": "The module composes one managed provider-run boundary; provider differences remain injected dependencies, while causal validation, assignment finalization, writing-policy materialization, and expected-path normalization remain extracted behind focused modules.",
+      "rationale": "The CLI composes one managed run from admission through writing publication and finalization. Research source capture and checker environment validation are delegated to dedicated CLI adapters; the entrypoint adds only ordered preparation and port coordinates. Capability, skill, provider and storage policies remain behind their existing boundaries.",
       "disposition": "cohesive"
     },
     {
@@ -60,9 +60,9 @@
     },
     {
       "path": "apps/node-runtime/src/discord-conversation-runtime.ts",
-      "contentHash": "sha256:67550f83a18d2b05a931b1133d535406581b4cbc76b7be39293653b1459f31af",
+      "contentHash": "sha256:f55dd2eb83ef8aad30ad0ebd7787d65d3584af2588d965af187e5c2003222d0f",
       "responsibility": "Single Discord conversation deployment composition",
-      "rationale": "The module opens and closes one immutable Discord deployment by wiring its identity, participation, routing, work, delivery, retry, signal, and deliberation ports; each independent policy, adapter, persistence, and loop implementation remains in a focused linked module.",
+      "rationale": "The composition root owns one immutable Discord deployment. The added integration-keyed result adapter selector exposes its already opened adapter without changing delivery or authority policy. Identity, routing, work, publication, background loops and persistence remain in linked modules; scoped supervision startup is composed separately.",
       "disposition": "cohesive"
     },
     {
@@ -74,16 +74,16 @@
     },
     {
       "path": "packages/adapter-claude/src/claude-adapter.ts",
-      "contentHash": "sha256:21351a8ab24c790283bd79da300bd0cba9495e7f807a3a2d75f983e405f735da",
+      "contentHash": "sha256:3f69d13667490abfa5e71bc81cd6fb94d3c2177dd6335661647cbeeb2a310c39",
       "responsibility": "Claude managed-provider adapter",
-      "rationale": "The class owns one external Claude protocol boundary and translates native session, tool, telemetry, stop, and result behavior into common adapter contracts; the accounting declaration remains in a linked descriptor module.",
+      "rationale": "The class owns one external Claude protocol boundary and translates native session, tool, telemetry, stop, and result behavior into common adapter contracts; the accounting declaration remains in a linked descriptor module. The explicit login profile is snapshotted for this same provider-session lifecycle; environment construction and native process transport remain separate modules.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/adapter-codex/src/codex-adapter.ts",
-      "contentHash": "sha256:c81b425a110017c7523d1aa407bce74d827276cec43b3485122a913abe991dda",
+      "contentHash": "sha256:a0d6736503d4e5e9bba15c31b30a363c4e24783a5a066da0c3c4832b035effeb",
       "responsibility": "Codex managed-provider adapter",
-      "rationale": "The class owns the Codex provider boundary, selects one injected native transport, and translates thread, turn, telemetry, stop, and result behavior into common adapter contracts; transport parsing and the accounting declaration remain linked modules.",
+      "rationale": "The class owns the Codex provider boundary, selects one injected native transport, and translates thread, turn, telemetry, stop, and result behavior into common adapter contracts; transport parsing and the accounting declaration remain linked modules. The explicit login profile is snapshotted for this same provider-session lifecycle; environment construction and native process transport remain separate modules.",
       "disposition": "cohesive"
     },
     {
@@ -91,13 +91,6 @@
       "contentHash": "sha256:17c7db1a525c188f1ebc67ea08f9966265f3b4701ea9b49f263df6f7dfa147dd",
       "responsibility": "Common provider-adapter contract evaluation",
       "rationale": "The module executes one provider-neutral adapter conformance lifecycle from descriptor and session start through context, turn, telemetry, result identity, and stop; provider translation and focused binding rules remain in linked modules.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/agent-workforce/src/store.ts",
-      "contentHash": "sha256:e29c0b34ef982ccb788f0affb2e35c2ba27e3d7ea08eb8fb89b650c06e7595b4",
-      "responsibility": "Durable repository workforce aggregate",
-      "rationale": "Agent and assignment records, including scheduler claims, bounded routine, topology and message-trigger provenance, topology activation, and acknowledgment, share one project-bound persistence model, atomic transition, event rollback, and concurrency retry boundary. Pure topology planning, scheduler selection, trigger admission, DAG cancellation, completion validation, and workspace lifecycle effects remain in linked modules.",
       "disposition": "cohesive"
     },
     {
@@ -116,9 +109,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:4d38fef6d3377b088e0f6cf3ac61fbd4018b30a8da744941c7de9609a3372dc2",
+      "contentHash": "sha256:12ce24b434c5721add107f3df169dff01d9d37d9879de656399d42cab1f776f5",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The allowlists and coordinate validators jointly implement one fail-closed event redaction contract; every branch contributes to the same privacy decision.",
+      "rationale": "The module owns one event payload privacy boundary with a declarative allowlist catalog and exact coordinate validation. New role input fields remain identifiers, hashes and byte counts; their strict shape validator is delegated to role-input-payload. Source text, prompts, filesystem roots and provider output are excluded.",
       "disposition": "cohesive"
     },
     {
@@ -130,9 +123,9 @@
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:3e4458b747b1ea7880512fbe64f46c4e00b6aff994cea1124499fb8ff5800778",
+      "contentHash": "sha256:54d1b3720cf42fa09f571d496b017315b962b5f55ded904c7382c70ef6e10ee1",
       "responsibility": "Hub synchronization SQLite store",
-      "rationale": "The store class is one persistence adapter that composes repositories under a shared database, transaction, and schema lifecycle.",
+      "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store.",
       "disposition": "cohesive"
     },
     {
@@ -144,9 +137,9 @@
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:ab3d4b1f63273661fb30b64c575876d47a3f606b806a58e3144597df7a3f024c",
+      "contentHash": "sha256:15720ed81c54d620ab2ef45ce9bf3212af238f71ff27545b01d270a036e3b9cb",
       "responsibility": "Managed provider-run coordinator",
-      "rationale": "Snapshotting, abort handling, context delivery, turn execution, validation, resource and stage observation composition, and stop are phases of one provider-neutral managed-run state machine; accounting and timing invariants remain in linked modules.",
+      "rationale": "The coordinator owns one provider-neutral run lifecycle and failure ledger. Role input validation and binding use a dedicated preparation module before provider creation; exact produced artifact coordinates flow through the existing verifier port after shutdown and CAS validation. No research, filesystem source policy, checker process, or provider-specific behavior is introduced here.",
       "disposition": "cohesive"
     },
     {
@@ -172,7 +165,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/compiler.ts",
-      "contentHash": "sha256:9998bfe3bb37a05d81082038ea1e7848a52f54e3ca0baea8aa808c654caabbf6",
+      "contentHash": "sha256:74cc7ace9c424d9f430969fa924482b06bfa314588a02903c38122e81f3fc1c3",
       "responsibility": "Deterministic structural knowledge compiler",
       "rationale": "Publication rendering, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract.",
       "disposition": "cohesive"
@@ -333,9 +326,9 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:0c3909f190acfe23b8167716b31e50017fa579141b26e1c709a3d9dd939db84e",
+      "contentHash": "sha256:7bac967e961a16d2571f9e954a83e1e6cecc7f4ebfd48e7eb59a5f39fd19ae16",
       "responsibility": "Repository schema validator registry",
-      "rationale": "The module declaratively registers and exposes validators for the versioned schema catalog; its length follows schema inventory and it owns no domain workflow or external effect.",
+      "rationale": "This module registers compiled validators for the schema catalog. The amendment event and conversation origin add linked declarative validators; domain decisions, configuration handling and persistence remain in their owning modules. No runtime workflow policy is added.",
       "disposition": "cohesive"
     },
     {

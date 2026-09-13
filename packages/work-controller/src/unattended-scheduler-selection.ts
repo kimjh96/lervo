@@ -1,3 +1,4 @@
+import { repositoryPathWithinScope } from "./repository-path-scope.js";
 import type {
   UnattendedSchedulerAgentV1,
   UnattendedSchedulerAssignmentV1,
@@ -8,9 +9,7 @@ import type {
 import { shortId } from "./hash.js";
 
 function ownsPath(responsibilityPaths: readonly string[], expectedPath: string): boolean {
-  return responsibilityPaths.some(
-    (scope) => scope === "*" || expectedPath === scope || expectedPath.startsWith(`${scope}/`),
-  );
+  return responsibilityPaths.some((scope) => repositoryPathWithinScope(expectedPath, scope));
 }
 
 function compatibleAgent(input: {

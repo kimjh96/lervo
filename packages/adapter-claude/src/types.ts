@@ -1,5 +1,5 @@
 import type { OutputFormat, startup } from "@anthropic-ai/claude-agent-sdk";
-import type { AdapterNativeProcessState } from "@lervo/adapter-contract";
+import type { AdapterNativeProcessState, ProviderLoginContext } from "@lervo/adapter-contract";
 import type {
   AdapterCapabilityActivationRequest,
   AdapterSession,
@@ -24,6 +24,7 @@ export interface ClaudeManagedWriteHandler extends ClaudeToolUseHandler {
 }
 
 export interface ClaudeAgentClientStartOptions {
+  environment?: Record<string, string>;
   providerSessionId: string;
   cwd: string;
   model?: string;
@@ -54,6 +55,7 @@ export type ClaudeAgentClientFactory = (
 ) => Promise<ClaudeAgentClient>;
 
 export interface ClaudeAdapterOptions {
+  loginContext?: ProviderLoginContext;
   repositoryRoot: string;
   model?: string;
   systemPrompt?: string;

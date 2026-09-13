@@ -75,6 +75,8 @@ export const eventTypesV1 = [
   "assignment.completion.prepared",
   "assignment.completion.reconciled",
   "assignment.completed",
+  "assignment.amended",
+  "assignment.reopened",
   "public_readme.improvement.applied",
   "document.stale.detected",
   "document.migration.applied",
@@ -105,7 +107,31 @@ export const eventTypesV2 = [
   "role.profile.activated",
 ] as const;
 
-export const eventTypes = eventTypesV2;
+export const supervisionEventTypes = [
+  "work.supervision.mandate.installed",
+  "work.supervision.mandate.revoked",
+  "work.supervision.bound",
+  "work.responsibility.bound",
+  "work.supervision.decision.recorded",
+  "work.supervision.decision.superseded",
+  "work.supervision.effect.observed",
+  "work.supervision.review.recorded",
+  "work.supervision.workspace.prepared",
+  "work.supervision.delivery.queued",
+  "work.supervision.delivery.observed",
+  "work.supervision.escalation.recorded",
+  "work.supervision.handoff.offered",
+  "work.supervision.handoff.accepted",
+  "work.supervision.peer.observed",
+] as const;
+
+export const eventTypesV3 = [
+  ...eventTypesV2,
+  ...supervisionEventTypes,
+  "managed.execution.reserved",
+  "role.input.bound",
+] as const;
+export const eventTypes = eventTypesV3;
 
 const eventEnvelopeProperties = {
   eventId: eventIdSchema,
@@ -201,14 +227,29 @@ export const eventEnvelopeSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://schemas.lervo.dev/v0/event.schema.json",
   title: "Lervo readable append-only event envelope",
-  oneOf: [eventEnvelopeV1Schema, eventEnvelopeV2Schema],
+  oneOf: [
+    eventEnvelopeV1Schema,
+    eventEnvelopeV2Schema,
+    {
+      ...eventEnvelopeV2Schema,
+      properties: {
+        ...eventEnvelopeV2Schema.properties,
+        type: { type: "string", enum: eventTypesV3 },
+        schemaVersion: { type: "integer", const: 3 },
+      },
+    },
+  ],
 } as const;
 
 export type EventEnvelopeV1 = FromSchema<typeof eventEnvelopeV1Schema>;
 export type EventEnvelopeV2 = FromSchema<typeof eventEnvelopeV2Schema>;
-export type EventEnvelope = Omit<EventEnvelopeV2, "schemaVersion"> & {
-  schemaVersion: EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"];
+export type EventEnvelopeV3 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> & {
+  schemaVersion: 3;
+  type: (typeof eventTypesV3)[number];
+};
+export type EventEnvelope = Omit<EventEnvelopeV3, "schemaVersion"> & {
+  schemaVersion: EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3;
 };
 export type EventTypeV1 = (typeof eventTypesV1)[number];
 export type EventTypeV2 = (typeof eventTypesV2)[number];
-export type EventType = EventTypeV2;
+export type EventType = (typeof eventTypesV3)[number];

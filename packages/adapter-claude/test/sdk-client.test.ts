@@ -130,6 +130,29 @@ function clientOptions() {
 }
 
 describe("Claude Agent SDK client", () => {
+  it("passes an explicit native profile without adding parent credentials", async () => {
+    const fake = fakeSdk();
+    const client = await ClaudeSdkAgentClient.connect(
+      {
+        ...clientOptions(),
+        environment: { HOME: "/fixture/owner-home", CLAUDE_CONFIG_DIR: "/fixture/owner-config" },
+      },
+      fake.sdkStartup,
+    );
+    try {
+      expect(fake.state.startupParams?.options?.env).toMatchObject({
+        HOME: "/fixture/owner-home",
+        CLAUDE_CONFIG_DIR: "/fixture/owner-config",
+      });
+      expect(Object.keys(fake.state.startupParams?.options?.env ?? {}).sort()).toEqual([
+        "CLAUDE_CONFIG_DIR",
+        "HOME",
+        "PATH",
+      ]);
+    } finally {
+      await client.close();
+    }
+  });
   it("closes a pre-warmed process without starting a model query", async () => {
     const fake = fakeSdk();
     const client = await ClaudeSdkAgentClient.connect(clientOptions(), fake.sdkStartup);

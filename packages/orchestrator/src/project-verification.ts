@@ -11,6 +11,7 @@ import {
   ManagedProviderRunError,
   type ManagedProjectVerification,
   type ManagedProjectVerifier,
+  type ManagedProviderResultArtifact,
 } from "./provider-run-types.js";
 import type { ManagedEventSpec } from "./telemetry.js";
 
@@ -23,6 +24,7 @@ export interface RunManagedProjectVerificationsInput {
   verifier: ManagedProjectVerifier;
   repositoryRoot: string;
   repositoryRevision: string;
+  producedArtifact?: ManagedProviderResultArtifact;
   artifactStore: ContextArtifactPort;
   signal?: AbortSignal;
   time: () => string;
@@ -115,6 +117,9 @@ export async function runManagedProjectVerifications(
       suite: structuredClone(suite),
       repositoryRoot: input.repositoryRoot,
       repositoryRevision: input.repositoryRevision,
+      ...(input.producedArtifact === undefined
+        ? {}
+        : { producedArtifact: structuredClone(input.producedArtifact) }),
       ...(input.signal === undefined ? {} : { signal: input.signal }),
     });
     await validateVerificationOriginal({

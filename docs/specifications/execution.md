@@ -13,22 +13,23 @@ Defines provider-neutral managed execution and evidence contracts. ADRs retain r
 
 ## Related specifications
 
-- [Typed semantic grounding](execution/semantic-grounding.md) precedes selection and effects.
-- [Managed linked evidence](execution/managed-linked-evidence-canary.md) defines the default-off exact canary, E1–E4 separation, bounded records, historical activation evidence, later production retirement, rejected prompt-only attempt, typed boundary, claim eligibility, paired control, and retirement. It owns canary record bounds and privacy exclusions.
-- [Capability packages](execution/capabilities.md) cover skills, MCP servers, plugins, and bundles.
-- [Provider adapters](execution/provider-adapters.md) defines provider-specific configuration, terminal integration, usage normalization, publication evaluation, and result projection. Codex and Claude share provider-neutral contracts without invented telemetry.
+- [Outcome supervision](execution/outcome-supervision.md): designs accountable continuation, autonomous staffing, artifact acceptance, and central escalation; implementation remains required.
+- [Typed semantic grounding](execution/semantic-grounding.md): precedes selection and effects.
+- [Managed linked evidence](execution/managed-linked-evidence-canary.md): defines the default-off exact canary, E1–E4 separation, bounded records, historical activation evidence, later production retirement, rejected prompt-only attempt, typed boundary, claim eligibility, paired control, and retirement. Owns canary record bounds and privacy exclusions.
+- [Capability packages](execution/capabilities.md): skills, MCP servers, plugins, and bundles.
+- [Provider adapters](execution/provider-adapters.md): provider-specific configuration, terminal integration, usage normalization, publication evaluation, and result projection. Codex and Claude share provider-neutral contracts without invented telemetry.
 - Repository assignments: [interactions](execution/assignment-interactions.md), [routines](execution/assignment-routines.md), and [connectors](execution/assignment-connectors.md).
-- [Governed loops](../roadmap/governed-loop-assignment-graph.md) defines bounded continuation.
-- [Repository knowledge compilation](../specs/repository-knowledge-compilation.md) owns scanner, taxonomy, normalization bounds, caching, retry, publication, durable apply, lifecycle, skill, entrypoint, agent-surface, and recovery details.
-- [State lifecycle](execution/state-lifecycle.md) defines durable local data and rebuildable projections.
-- [Events and privacy](execution/events-and-privacy.md) owns event contracts, reader compatibility, writer activation, and failure codes.
-- [Stage observation and performance](execution/stage-observation-and-performance.md) defines timing, environment, projection, and performance gates.
-- [Operating liveness](execution/operating-liveness.md) defines the installed read-only separation of root-agent heartbeat and managed-provider point-in-time process evidence.
-- [Bounded unattended scheduling](execution/unattended-scheduling.md) defines periodic governed selection, exact-revision claim, finite execution limits, kill-switch behavior, and uncertain-effect recovery.
-- [Bounded dynamic assignment topology](execution/dynamic-assignment-topology.md) defines additive branch-and-join changes, exact review, graph bounds, interruption recovery, migration, and historical replay.
-- [Adverse-condition safety](execution/adverse-condition-safety.md) defines the common effect inventory, exact completion/rollback/recovery projection, cancellation and backpressure bounds, telemetry field registry, threat model, capacity and retention profiles, and compatibility rehearsals.
-- [Hub and Node coordination](coordination/hub-and-node.md) defines remote coordination.
-- [Conflict-safe repository replica continuation](../decisions/coordination/conversations/0396-conflict-safe-repository-replica-continuation.md) defines exact uncommitted Mac/WSL source handoff, bidirectional compare-and-swap, readiness receipts, and native-work completion enforcement.
+- [Governed loops](../roadmap/governed-loop-assignment-graph.md): bounded continuation.
+- [Repository knowledge compilation](../specs/repository-knowledge-compilation.md): owns scanner, taxonomy, normalization bounds, caching, retry, publication, durable apply, lifecycle, skill, entrypoint, agent-surface, and recovery details.
+- [State lifecycle](execution/state-lifecycle.md): durable local data and rebuildable projections.
+- [Events and privacy](execution/events-and-privacy.md): owns event contracts, reader compatibility, writer activation, and failure codes.
+- [Stage observation and performance](execution/stage-observation-and-performance.md): timing, environment, projection, and performance gates.
+- [Operating liveness](execution/operating-liveness.md): installed read-only separation of root-agent heartbeat and managed-provider point-in-time process evidence.
+- [Bounded unattended scheduling](execution/unattended-scheduling.md): periodic governed selection, exact-revision claim, finite execution limits, kill-switch behavior, and uncertain-effect recovery.
+- [Bounded dynamic assignment topology](execution/dynamic-assignment-topology.md): additive branch-and-join changes, exact review, graph bounds, interruption recovery, migration, and historical replay.
+- [Adverse-condition safety](execution/adverse-condition-safety.md): common effect inventory, exact completion/rollback/recovery projection, cancellation and backpressure bounds, telemetry field registry, threat model, capacity and retention profiles, and compatibility rehearsals.
+- [Hub and Node coordination](coordination/hub-and-node.md): remote coordination.
+- [Conflict-safe repository replica continuation](../decisions/coordination/conversations/0396-conflict-safe-repository-replica-continuation.md): exact uncommitted Mac/WSL source handoff, bidirectional compare-and-swap, readiness receipts, and native-work completion enforcement.
 
 ## References
 

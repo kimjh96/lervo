@@ -68,7 +68,13 @@ export interface ManagedContextSnapshot {
   requiredDocumentIds: readonly string[];
 }
 
-export type ManagedPrepareContextInput = Omit<PrepareContextInput, "coordinates" | "policyVersion">;
+export type ManagedPrepareContextInput = Omit<
+  PrepareContextInput,
+  "coordinates" | "policyVersion"
+> & {
+  /** Optional isolated target; document freshness is still checked in repositoryRoot. */
+  writeRepositoryRoot?: string;
+};
 
 export type ManagedInjectContextInput = Omit<
   InjectLoadedContextInput,

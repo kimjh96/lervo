@@ -5,6 +5,7 @@ import type { EventWriterActivationEvidence } from "@lervo/schemas";
 import { readEventWriterCoordinate } from "./event-writer-coordinate-contract.js";
 import {
   createEventWriterActivationId,
+  assertEventReaderEvidence,
   eventWriterActivationConfigurationHash,
   eventWriterSha256,
   readEventWriterActivationEvidence,
@@ -41,8 +42,17 @@ export function createEventWriterActivationPlan(input: {
   currentCoordinate: EventWriterCoordinate;
   currentContentHash: string | null;
   evidence: unknown;
+  targetEventSchemaVersion?: 2 | 3;
 }): EventWriterActivationPlan {
+  const target = input.targetEventSchemaVersion ?? 2;
+  if (target !== 2 && target !== 3) {
+    failEventWriterActivation(
+      "event_writer_evidence_invalid",
+      "The requested writer version is unsupported.",
+    );
+  }
   const evidence = readEventWriterActivationEvidence(input.evidence);
+  assertEventReaderEvidence(evidence.readers, target);
   if (evidence.projectId !== input.projectId) {
     failEventWriterActivation(
       "event_writer_evidence_invalid",
@@ -50,7 +60,7 @@ export function createEventWriterActivationPlan(input: {
     );
   }
   const evidenceHash = eventWriterSha256(canonicalJson(evidence));
-  if (input.currentCoordinate.selectedEventSchemaVersion === 2) {
+  if (input.currentCoordinate.selectedEventSchemaVersion >= target) {
     const desiredContent = `${JSON.stringify(input.currentCoordinate, null, 2)}\n`;
     const desiredContentHash = eventWriterSha256(desiredContent);
     return {
@@ -110,15 +120,16 @@ export function createEventWriterActivationPlan(input: {
     hubSyncEnabled: input.hubSyncEnabled,
   });
   const desiredCoordinate = readEventWriterCoordinate({
-    schemaVersion: 1,
+    schemaVersion: target === 3 ? 2 : 1,
     projectId: input.projectId,
-    selectedEventSchemaVersion: 2,
+    selectedEventSchemaVersion: target,
     activationEvidence: {
       activationId: createEventWriterActivationId({
         projectId: input.projectId,
         observedAt: evidence.observedAt,
         configurationHash,
         readers: evidence.readers,
+        targetEventSchemaVersion: target,
       }),
       observedAt: evidence.observedAt,
       configurationHash,

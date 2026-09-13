@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6770ef274a38f44dd61fe47f
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_209a2a6c6844817158a3ebfe
+outputLanguage: en
+outputs:
+  - byteCount: 5375
+    contentHash: sha256:7e0dfd8e24b67e2d3716a5e3d5b265e36b53c4aa33e4031bc82be9f28ee8525a
+    path: docs/decisions/coordination/sync/0397-event-driven-node-idle-reconciliation.md
+    userRegionHash: sha256:7e0dfd8e24b67e2d3716a5e3d5b265e36b53c4aa33e4031bc82be9f28ee8525a
+profile: decision_record
+recordId: knormdoc_6d503912d6c7188d719bcd24
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:59f09a276ba34d87f07163aef35889d159f13d16f8b7758a560158e4e3049e04
+sourcePath: docs/decisions/coordination/sync/0397-event-driven-node-idle-reconciliation.md
+sourceUnitVersionIds:
+  - uv_0da45fd21084de89865d8da4
+  - uv_231d388a323559c07760609e
+  - uv_603c4b3990fd21cae0a1ff0d
+  - uv_c466dc069b6f15b3e4953689
+  - uv_fde213c394e54b59647f9305

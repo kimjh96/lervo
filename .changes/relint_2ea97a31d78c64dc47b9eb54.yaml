@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_2ea97a31d78c64dc47b9eb54"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Check host filesystem access for supervised task paths before dispatch and final execution, rejecting unsafe aliases and preserving independent worker and tool permission evidence."

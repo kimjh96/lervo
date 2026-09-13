@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8205338e66986f9591fdd64c
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3c6252c976099258c330402f
+outputLanguage: en
+outputs:
+  - byteCount: 863
+    contentHash: sha256:3321dc73fc84d727aa6aa9dfbf0b63956be0390a141ad78945da815a689e1e65
+    path: docs/specifications/execution/provider-adapters/telemetry/managed-process-observation.md
+    userRegionHash: sha256:3321dc73fc84d727aa6aa9dfbf0b63956be0390a141ad78945da815a689e1e65
+profile: specification_document
+recordId: knormdoc_c73e3de0e717ec8b77319dc5
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:3321dc73fc84d727aa6aa9dfbf0b63956be0390a141ad78945da815a689e1e65
+sourcePath: docs/specifications/execution/provider-adapters/telemetry/managed-process-observation.md
+sourceUnitVersionIds:
+  - uv_09a0f0fdc1db546deee4f885

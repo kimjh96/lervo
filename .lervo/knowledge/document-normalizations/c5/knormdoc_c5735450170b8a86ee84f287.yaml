@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_bc15e8c3d1bb00a48c22dcdd
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d1a08dff15ae970bdcf27da0
+outputLanguage: en
+outputs:
+  - byteCount: 610
+    contentHash: sha256:00d6086ed1be88d888f5d05574ac74a7381c17fd2a572ec096b23c932a972c18
+    path: docs/specifications/execution/outcome-supervision/implementation/storage/installation/evidence-and-recovery.md
+    userRegionHash: sha256:00d6086ed1be88d888f5d05574ac74a7381c17fd2a572ec096b23c932a972c18
+  - byteCount: 1178
+    contentHash: sha256:17a139a7c446e01fe88703ffe4926a6aa1493e8eeb1bf5d42b0ae259582236ba
+    path: docs/specifications/execution/outcome-supervision/implementation/storage/installation/evidence-and-recovery/artifacts-and-journal.md
+    userRegionHash: sha256:17a139a7c446e01fe88703ffe4926a6aa1493e8eeb1bf5d42b0ae259582236ba
+  - byteCount: 738
+    contentHash: sha256:c55fc30cb1d320d6761db2daac31090365b729c27e828a319f3b230166a86d0f
+    path: docs/specifications/execution/outcome-supervision/implementation/storage/installation/evidence-and-recovery/revocation.md
+    userRegionHash: sha256:c55fc30cb1d320d6761db2daac31090365b729c27e828a319f3b230166a86d0f
+  - byteCount: 996
+    contentHash: sha256:19ac2bd6d56dfdf9c5414b81d23ebae786da999e5d476ff8e297880ac5a3eac5
+    path: docs/specifications/execution/outcome-supervision/implementation/storage/installation/evidence-and-recovery/storage-and-validation.md
+    userRegionHash: sha256:19ac2bd6d56dfdf9c5414b81d23ebae786da999e5d476ff8e297880ac5a3eac5
+profile: specification_document
+recordId: knormdoc_c5735450170b8a86ee84f287
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9b29ec6582e5492b836d6c7b99b232daf3425411db24ed578ef9f1b23697b4bb
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/storage/installation/evidence-and-recovery.md
+sourceUnitVersionIds:
+  - uv_0083c40b4e758e825b10b117
+  - uv_71eb63d2691c1576bdaf061d
+  - uv_7df6447f75e672657e7fcee8
+  - uv_a57e21fd9aa46bc634b5eb8d

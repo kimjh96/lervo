@@ -1,3 +1,4 @@
+import type { NodeSupervisionStartupConfiguration } from "./supervision-startup-config.js";
 export interface NodeRuntimeConfig {
   schemaVersion: 1;
   repositoryRoot: string;
@@ -30,6 +31,7 @@ export interface NodeRuntimeConfig {
     waitTimeoutMs: number;
     pollIntervalMs: number;
   };
+  outcomeSupervision?: NodeSupervisionStartupConfiguration;
   discordConversation?: NodeDiscordConversationConfig;
   discordConversations?: NodeDiscordConversationConfig[];
   remoteCommands?: {

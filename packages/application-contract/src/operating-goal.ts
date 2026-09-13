@@ -9,7 +9,7 @@ export interface OperatingGoalReportV1 {
     goalId: string;
     authoritySource: "workstream";
     revision: number;
-    status: "active" | "blocked" | "completed";
+    status: "active" | "blocked" | "completed" | "cancelled";
     title: string;
     objective: string;
     updatedAt: string;

@@ -4,7 +4,7 @@ import type {
   AdapterSession,
   AdapterTurn,
 } from "@lervo/schemas";
-import type { AdapterNativeProcessState } from "@lervo/adapter-contract";
+import type { AdapterNativeProcessState, ProviderLoginContext } from "@lervo/adapter-contract";
 
 export type CodexApprovalPolicy = "untrusted" | "on-request" | "never";
 export type CodexSandboxMode = "read-only" | "workspace-write" | "danger-full-access";
@@ -75,6 +75,7 @@ export interface CodexManagedWriteHandler {
 }
 
 export interface CodexAdapterOptions {
+  loginContext?: ProviderLoginContext;
   repositoryRoot: string;
   model?: string;
   baseInstructions?: string;

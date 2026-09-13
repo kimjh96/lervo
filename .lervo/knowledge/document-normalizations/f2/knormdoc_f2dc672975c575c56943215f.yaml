@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_89dd5e117f39269bf41473df
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b29a76af2948b08ca3755fb5
+outputLanguage: en
+outputs:
+  - byteCount: 1624
+    contentHash: sha256:d7595be9a67274d923bd01ec19c5ef437757eb94f01d12808824942e5bbb27b4
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition.md
+    userRegionHash: sha256:d7595be9a67274d923bd01ec19c5ef437757eb94f01d12808824942e5bbb27b4
+profile: specification_document
+recordId: knormdoc_f2dc672975c575c56943215f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d2ac250f640faf9bb7fdcec139feb1941f8e21c61b93f165cfae3bc77f1f8b47
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/node-composition.md
+sourceUnitVersionIds:
+  - uv_43785f6d7663dfcba4c2b9a5
+  - uv_fbfed6d82d82a79061f143db
+  - uv_fd32dc2e0669fbc34eacf420

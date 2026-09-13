@@ -91,6 +91,84 @@ afterEach(async () => {
 });
 
 describe("event writer activation", () => {
+  it("upgrades v2 to explicitly selected v3 only with current reader evidence and preserves explicit rollback", async () => {
+    const root = await fixture();
+    const v2 = await planEventWriterActivation({ repositoryRoot: root, evidence: evidence() });
+    await applyEventWriterActivationPlan({ plan: v2, approval: v2.planId });
+    await expect(
+      planEventWriterActivation({
+        repositoryRoot: root,
+        evidence: evidence(),
+        targetEventSchemaVersion: 3,
+      }),
+    ).rejects.toMatchObject({ code: "event_writer_activation_blocked" });
+    const readers = evidence([1, 2, 3]);
+    const v3 = await planEventWriterActivation({
+      repositoryRoot: root,
+      evidence: readers,
+      targetEventSchemaVersion: 3,
+    });
+    expect(v3.desiredCoordinate).toMatchObject({ schemaVersion: 2, selectedEventSchemaVersion: 3 });
+    await expect(
+      applyEventWriterActivationPlan({ plan: v3, approval: v3.planId }),
+    ).rejects.toMatchObject({ code: "reader_inventory_revalidation_required" });
+    await expect(
+      applyEventWriterActivationPlan({
+        plan: v3,
+        approval: v3.planId,
+        currentEvidence: evidence(),
+      }),
+    ).rejects.toMatchObject({ code: "event_writer_plan_stale" });
+    await expect(
+      applyEventWriterActivationPlan({ plan: v3, approval: v3.planId, currentEvidence: readers }),
+    ).resolves.toMatchObject({
+      selectedEventSchemaVersion: 3,
+      receiptKind: "event_writer_activation_applied",
+    });
+    expect(
+      (await planEventWriterActivation({ repositoryRoot: root, evidence: readers })).status,
+    ).toBe("current");
+    expect((await inspectEventWriterCoordinate(root)).coordinate.selectedEventSchemaVersion).toBe(
+      3,
+    );
+    const rollback = await planEventWriterRollback(root);
+    await expect(
+      applyEventWriterActivationPlan({ plan: rollback, approval: rollback.planId }),
+    ).resolves.toMatchObject({ selectedEventSchemaVersion: 1, activationId: null });
+  });
+
+  it("rejects v3 readers unable to read earlier mixed history", async () => {
+    const root = await fixture();
+    await expect(
+      planEventWriterActivation({
+        repositoryRoot: root,
+        evidence: evidence([2, 3]),
+        targetEventSchemaVersion: 3,
+      }),
+    ).rejects.toMatchObject({ code: "event_writer_activation_blocked" });
+  });
+
+  it("binds the exact v3 target across interrupted publication and recovery", async () => {
+    const root = await fixture();
+    const readers = evidence([1, 2, 3]);
+    const plan = await planEventWriterActivation({
+      repositoryRoot: root,
+      evidence: readers,
+      targetEventSchemaVersion: 3,
+    });
+    await expect(
+      applyEventWriterActivationPlan({
+        plan,
+        approval: plan.planId,
+        currentEvidence: readers,
+        failureInjector: (checkpoint) => (checkpoint === "published" ? "interrupt" : undefined),
+      }),
+    ).rejects.toMatchObject({ code: "event_writer_recovery_required" });
+    await expect(recoverEventWriterActivation(root)).resolves.toMatchObject({
+      status: "completed",
+    });
+    expect((await inspectEventWriterCoordinate(root)).coordinate).toEqual(plan.desiredCoordinate);
+  });
   it("keeps an absent coordinate on the implicit version 1 default", async () => {
     const root = await fixture();
 

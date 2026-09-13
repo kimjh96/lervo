@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e73902a3eb1ecee4cf66b239
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_716f7641c9b8cf0043be1ec5
+outputLanguage: en
+outputs:
+  - byteCount: 3044
+    contentHash: sha256:6a811ae7ce935113c1a8810d317662a7b88d4b608d1f830db21ee692e3bda925
+    path: docs/specifications/execution/stage-observation-and-performance/direct-terminal-stages.md
+    userRegionHash: sha256:6a811ae7ce935113c1a8810d317662a7b88d4b608d1f830db21ee692e3bda925
+profile: specification_document
+recordId: knormdoc_a496f9c2dd196c7b4fc3c14e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f688022679025105dc50586d9b82bf6b4717b9c0cd1b4cb12f70a6cc475a1192
+sourcePath: docs/specifications/execution/stage-observation-and-performance/direct-terminal-stages.md
+sourceUnitVersionIds:
+  - uv_0e7c4f3274a3e3caa690f77e
+  - uv_65057e01029b9a3429b207fa
+  - uv_b0be0d925d7848edbf193482

@@ -43,6 +43,8 @@ import {
   type ManagedProviderRunDeadlines,
 } from "./provider-run-deadline.js";
 import { RunFailureLedger } from "./provider-run-failures.js";
+import { persistProviderFailureDiagnostic } from "./provider-failure-diagnostic.js";
+import { prepareRoleInputBinding } from "./role-input-binding.js";
 import { finalizeProviderRun } from "./provider-run-finalizer.js";
 import { collectProviderResult, storeProviderResult } from "./provider-result.js";
 import { runRequiredProjectVerifications } from "./project-verification.js";
@@ -260,6 +262,17 @@ export class ManagedProviderRunCoordinator {
     });
 
     try {
+      if (input.roleInput !== undefined) {
+        phase = "context_prepare";
+        this.append([
+          await prepareRoleInputBinding({
+            binding: input.roleInput,
+            roleId: this.options.coordinates.roleId,
+            artifacts: this.options.artifactStore,
+            now: this.time(),
+          }),
+        ]);
+      }
       phase = "resource_descriptor_store";
       await resourceObservation.persistDescriptor(this.options.artifactStore);
 
@@ -354,11 +367,27 @@ export class ManagedProviderRunCoordinator {
         const targetTurnId = targetTurnIds[index]!;
 
         phase = "context_prepare";
+        const contextRepositoryRoot = input.contextRepositoryRoot ?? input.repositoryRoot;
+        const contextRevision =
+          contextRepositoryRoot === input.repositoryRoot
+            ? contextSnapshot.revision
+            : (
+                await stageObservation.measure("repository_snapshot", () =>
+                  withinDeadline({
+                    operation: () =>
+                      this.captureSnapshot(contextRepositoryRoot, this.snapshotPolicy),
+                    timeoutMs: this.deadlines.snapshotMs,
+                    failureCode: "repository_snapshot_failed",
+                    label: "context source repository snapshot",
+                  }),
+                )
+              ).revision;
         await stageObservation.measure("corpus_preparation", () =>
           this.context.prepareContext({
             ...input.context,
-            repositoryRoot: input.repositoryRoot,
-            sourceRevision: contextSnapshot.revision,
+            repositoryRoot: contextRepositoryRoot,
+            writeRepositoryRoot: input.repositoryRoot,
+            sourceRevision: contextRevision,
             recordedAt: this.date(),
           }),
         );
@@ -653,6 +682,7 @@ export class ManagedProviderRunCoordinator {
           verifier: this.options.projectVerifier!,
           repositoryRoot: input.repositoryRoot,
           repositoryRevision: state.after!.revision,
+          producedArtifact: state.resultArtifact!,
           artifactStore: this.options.artifactStore,
           failureDisposition: input.context.role.verification.failureDisposition,
           ...(input.signal === undefined ? {} : { signal: input.signal }),
@@ -665,7 +695,7 @@ export class ManagedProviderRunCoordinator {
     }
   }
 
-  private complete(
+  private async complete(
     input: ManagedProviderRunInput,
     state: ManagedProviderRunExecutionState,
     terminal: AdapterNormalizedEvent | undefined,
@@ -673,7 +703,14 @@ export class ManagedProviderRunCoordinator {
     workCausality: ManagedProviderRunResult["workCausality"],
     resourceObservation: ManagedResourceObservation,
     stageObservation: ManagedStageObservation,
-  ): ManagedProviderRunResult {
+  ): Promise<ManagedProviderRunResult> {
+    if (!failures.empty) {
+      try {
+        await persistProviderFailureDiagnostic(this.options.artifactStore, failures.details());
+      } catch (error) {
+        failures.add(error, "result_store");
+      }
+    }
     const resultError = failures.resultError();
     const primaryFailure = failures.primary;
     if (resultError !== undefined && primaryFailure !== undefined) {

@@ -79,3 +79,18 @@ export const conversationDeliveryReceiptSchema = {
 
 export type ConversationOutboundMessage = FromSchema<typeof conversationOutboundMessageSchema>;
 export type ConversationDeliveryReceipt = FromSchema<typeof conversationDeliveryReceiptSchema>;
+
+/** Exact transport origin shared by host configuration and verified outbound messages. */
+export const conversationOutboundOriginSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/conversation-outbound-origin.schema.json",
+  type: "object",
+  properties: {
+    sourceEventId: conversationOutboundMessageSchema.properties.sourceEventId,
+    policyId: conversationOutboundMessageSchema.properties.policyId,
+    target: conversationOutboundMessageSchema.properties.target,
+    actor: conversationOutboundMessageSchema.properties.actor,
+  },
+  required: ["sourceEventId", "policyId", "target", "actor"],
+  additionalProperties: false,
+} as const;

@@ -82,8 +82,8 @@ export async function runAgentLivenessCommand(args: string[], io: CliIo): Promis
     });
     const storage = await openProjectStorage(root);
     try {
-      if (storage.writableEventSchemaVersion !== 2)
-        throw new Error("Root-agent heartbeat requires the active event writer schema v2.");
+      if ((storage.writableEventSchemaVersion ?? 1) < 2)
+        throw new Error("Root-agent heartbeat requires event writer schema v2 or later.");
       const identity = randomUUID().replaceAll("-", "");
       const recorded = storage.events.append({
         eventId: `evt_${identity}`,

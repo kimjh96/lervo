@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e37f1a76e540a1a6d3c20cd1"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Compose native accepted-result publication with managed semantic evidence and bounded transport retries; start installed supervision through explicit Node configuration with scoped delivery and independent health."

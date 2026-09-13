@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8205338e66986f9591fdd64c
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e9e5fee95b9675ced6761c96
+outputLanguage: en
+outputs:
+  - byteCount: 2859
+    contentHash: sha256:0edd29a258c1beebb8a3b774001c0c9a25f9b9302f0ce1202b758003874a29c9
+    path: docs/specifications/execution/outcome-supervision/implementation/worker-hiring.md
+    userRegionHash: sha256:0edd29a258c1beebb8a3b774001c0c9a25f9b9302f0ce1202b758003874a29c9
+profile: specification_document
+recordId: knormdoc_a7103986029dc2a04b74043a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d1753fd569b15ff7fc23572425e06228cc82cce30a9d95eb51545b74591023f6
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/worker-hiring.md
+sourceUnitVersionIds:
+  - uv_d2e2b772db345ea0e4b4e37c

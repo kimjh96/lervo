@@ -85,12 +85,7 @@ async function registeredWorktrees(repositoryRoot: string): Promise<Map<string, 
   return records;
 }
 
-async function gitOperationInProgress(workspacePath: string): Promise<boolean> {
-  const gitDirectory = await git(workspacePath, [
-    "rev-parse",
-    "--path-format=absolute",
-    "--git-dir",
-  ]);
+async function gitOperationInProgress(gitDirectory: string): Promise<boolean> {
   for (const name of [
     "MERGE_HEAD",
     "CHERRY_PICK_HEAD",
@@ -144,15 +139,10 @@ export class GitWorkspaceEvidence {
   }
 
   private async markerMatches(
-    workspacePath: string,
+    gitDirectory: string,
     expected: WorkspaceOwnershipMarker,
   ): Promise<boolean> {
     try {
-      const gitDirectory = await git(workspacePath, [
-        "rev-parse",
-        "--path-format=absolute",
-        "--git-dir",
-      ]);
       const path = resolve(gitDirectory, MARKER_NAME);
       const info = await lstat(path);
       if (!info.isFile() || info.isSymbolicLink() || info.size > 16_384) return false;
@@ -234,23 +224,43 @@ export class GitWorkspaceEvidence {
         nativeInstanceDigest: digest({ path: input.workspacePath }),
       };
     }
-    const [headCommit, treeHash, status, operation, matched, changed, untracked] =
-      await Promise.all([
-        git(input.workspacePath, ["rev-parse", "HEAD"]),
-        git(input.workspacePath, ["rev-parse", "HEAD^{tree}"]),
-        git(input.workspacePath, ["status", "--porcelain=v2", "--untracked-files=normal"]),
-        gitOperationInProgress(input.workspacePath),
-        this.markerMatches(input.workspacePath, input.marker),
-        git(input.workspacePath, ["diff", "--name-only", "-z", input.baseCommit]),
-        git(input.workspacePath, ["ls-files", "--others", "--exclude-standard", "-z"]),
-      ]);
+    const coordinates = (
+      await git(input.workspacePath, [
+        "rev-parse",
+        "--path-format=absolute",
+        "HEAD",
+        "HEAD^{tree}",
+        "--git-dir",
+      ])
+    ).split(/\r?\n/u);
+    const [headCommit, treeHash, gitDirectory] = coordinates;
+    if (
+      coordinates.length !== 3 ||
+      !COMMIT.test(headCommit!) ||
+      !COMMIT.test(treeHash!) ||
+      !isAbsolute(gitDirectory!) ||
+      gitDirectory!.includes("\0")
+    )
+      fail("host_coordinate_invalid", "The Git inspection coordinates are invalid.");
+    const [status, operation, matched] = await Promise.all([
+      git(input.workspacePath, ["status", "--porcelain=v2", "--untracked-files=normal"]),
+      gitOperationInProgress(gitDirectory!),
+      this.markerMatches(gitDirectory!, input.marker),
+    ]);
+    const [changed, untracked] =
+      headCommit === input.baseCommit && status.length === 0
+        ? ["", ""]
+        : await Promise.all([
+            git(input.workspacePath, ["diff", "--name-only", "-z", input.baseCommit]),
+            git(input.workspacePath, ["ls-files", "--others", "--exclude-standard", "-z"]),
+          ]);
     const changedPaths = [
       ...new Set(`${changed}\0${untracked}`.split("\0").filter(Boolean)),
     ].sort();
     return {
       status: matched ? "present" : "recovery_required",
-      headCommit,
-      treeHash,
+      headCommit: headCommit!,
+      treeHash: treeHash!,
       clean: status.length === 0,
       gitOperationInProgress: operation,
       changedPaths,
@@ -330,7 +340,10 @@ export class GitWorkspaceEvidence {
     };
   }
 
-  async provisionDetached(request: WorkspaceProvisionRequest): Promise<WorkspaceHostInspection> {
+  async provisionDetached(
+    request: WorkspaceProvisionRequest,
+    beforeMutation?: () => Promise<void>,
+  ): Promise<WorkspaceHostInspection> {
     this.validateRequest(request.repositoryRoot, request.workspacePath, request.marker);
     if (
       !COMMIT.test(request.baseCommit) ||
@@ -345,6 +358,7 @@ export class GitWorkspaceEvidence {
     const parentInfo = await lstat(dirname(request.workspacePath));
     if (!parentInfo.isDirectory() || parentInfo.isSymbolicLink())
       fail("host_coordinate_invalid", "The workspace parent must be a real directory.");
+    await beforeMutation?.();
     await git(request.repositoryRoot, [
       "worktree",
       "add",

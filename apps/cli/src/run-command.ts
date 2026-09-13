@@ -3,9 +3,10 @@ import { parseArgs } from "node:util";
 
 import type { ManagedRunOutcome, RunProvider } from "./managed-run.js";
 import type { CliIo, CliServices } from "./types.js";
+import { runSupervisedManagedCommand } from "./supervised-run-command.js";
 
 export const runUsage =
-  "  lervo run --provider <codex|claude> [--role <built-in-or-repository-role-id>] --path <relative-path> --verification <suite-id> [--verification <suite-id> ...] [--assignment <id> --agent <id> --lease <id>] [--skill <skill-id> ...] [--capability <package-id> ...] [--root <path>] [--risk <level>] [--json] <request>";
+  "  lervo run --provider <codex|claude> [--role <built-in-or-repository-role-id>] --path <relative-path> [--path <relative-path> ...] --verification <suite-id> [--verification <suite-id> ...] [--assignment <id> --agent <id> --lease <id>] [--execution-key <sha256>] [--skill <skill-id> ...] [--capability <package-id> ...] [--root <path>] [--risk <level>] [--json] (<request> | --stdin)";
 
 function errorCode(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
@@ -104,8 +105,12 @@ export async function runManagedCommand(
       allowPositionals: true,
       options: {
         provider: { type: "string" },
+        "execution-key": { type: "string" },
+        "provider-executable": { type: "string" },
         role: { type: "string" },
-        path: { type: "string" },
+        path: { type: "string", multiple: true },
+        stdin: { type: "boolean" },
+        "supervised-stdin": { type: "boolean" },
         root: { type: "string" },
         risk: { type: "string" },
         skill: { type: "string", multiple: true },
@@ -128,16 +133,42 @@ export async function runManagedCommand(
   }
 
   const provider = parsed.values.provider;
-  const expectedPath = parsed.values.path;
-  const instructions = parsed.positionals.join(" ").trim();
+  if (parsed.values["supervised-stdin"]) {
+    if (
+      parsed.positionals.length !== 0 ||
+      Object.keys(parsed.values).some((key) => !["supervised-stdin", "root", "json"].includes(key))
+    ) {
+      io.stderr("A supervised invocation accepts only --root and --json.\n");
+      return 1;
+    }
+    return runSupervisedManagedCommand(resolve(io.cwd, parsed.values.root ?? "."), io, services);
+  }
+  const expectedPaths = parsed.values.path ?? [];
+  let instructions = parsed.positionals.join(" ").trim();
+  if (parsed.values.stdin) {
+    if (parsed.positionals.length > 0 || io.stdin === undefined) {
+      io.stderr("--stdin requires available standard input and no positional request.\n");
+      return 1;
+    }
+    try {
+      const input = await io.stdin(131072);
+      if (Buffer.byteLength(input, "utf8") > 131072)
+        throw new Error("The managed task request is too large.");
+      instructions = input.trim();
+    } catch {
+      io.stderr("Could not read the managed task request from standard input.\n");
+      return 1;
+    }
+  }
   const verificationSuiteIds = parsed.values.verification ?? [];
   const workforceCoordinates = [parsed.values.assignment, parsed.values.agent, parsed.values.lease];
   const roleId = parsed.values.role ?? "developer";
   if (
     (provider !== "codex" && provider !== "claude") ||
-    expectedPath === undefined ||
+    expectedPaths.length === 0 ||
     verificationSuiteIds.length === 0 ||
     instructions.length === 0 ||
+    Buffer.byteLength(instructions, "utf8") > 131072 ||
     !/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(roleId) ||
     roleId.length > 100 ||
     (workforceCoordinates.some((value) => value !== undefined) &&
@@ -153,8 +184,14 @@ export async function runManagedCommand(
     const outcome = await services.executeManagedRun({
       repositoryRoot: resolve(io.cwd, parsed.values.root ?? "."),
       provider: provider as RunProvider,
-      expectedPath,
+      ...(expectedPaths.length === 1 ? { expectedPath: expectedPaths[0]! } : { expectedPaths }),
       instructions,
+      ...(parsed.values["execution-key"] === undefined
+        ? {}
+        : { executionKey: parsed.values["execution-key"] }),
+      ...(parsed.values["provider-executable"] === undefined
+        ? {}
+        : { providerExecutable: parsed.values["provider-executable"] }),
       risk: parsed.values.risk ?? "medium",
       skillIds: parsed.values.skill ?? [],
       capabilityIds: parsed.values.capability ?? [],

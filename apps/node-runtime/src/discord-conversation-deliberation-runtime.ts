@@ -101,6 +101,16 @@ export class DiscordConversationDeliberationRuntime {
     }
     this.deliberations = application.deliberations;
     this.loop = new ConversationDeliberationLoop({
+      ...(application.subscribeChanges === undefined
+        ? {}
+        : {
+            subscribe: (notify: () => void) =>
+              application.subscribeChanges!("deliberation", notify),
+          }),
+      nextWakeupAt: () => {
+        const at = application.nextDeliberationWakeupAt?.() ?? null;
+        return this.outcomes.hasPending ? Math.min(at ?? Infinity, Date.now() + intervalMs) : at;
+      },
       runCycle: async () => {
         const start = await application.runDeliberationWorkerCycle();
         await this.outcomes.observe(application, start);

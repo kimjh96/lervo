@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_9e35a27afdb4ad02a2214cad
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fafd7ea5a8cfb8f0f090636c
+outputLanguage: en
+outputs:
+  - byteCount: 3857
+    contentHash: sha256:e1d68997f695c41df18e1becc3207a04432bba279a2f643e2889c844a2e0701a
+    path: docs/evidence/foundation/node-change-driven-work-deployment.md
+    userRegionHash: sha256:e1d68997f695c41df18e1becc3207a04432bba279a2f643e2889c844a2e0701a
+profile: repository_document
+recordId: knormdoc_d2670d5e42ca6327f4af7610
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ca073138c751701e9bca9882400f654dcbc3550efafcf4d0f29b328abce832a8
+sourcePath: docs/evidence/foundation/node-change-driven-work-deployment.md
+sourceUnitVersionIds:
+  - uv_00ddc0fe9d57c9e48e263a0f
+  - uv_47fdfed89f3927fd373f0912
+  - uv_5883e94031fdec0565778670
+  - uv_b20434585036ddbc902d86f5
+  - uv_bf4e8fe1567169b0a9ca1ad6

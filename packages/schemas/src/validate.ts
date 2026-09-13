@@ -1,4 +1,6 @@
+import { assignmentAmendedEventPayloadSchema } from "./assignment-amendment-event.js";
 import { Ajv2020, type ErrorObject, type ValidateFunction } from "ajv/dist/2020.js";
+import { assignmentReopenedEventPayloadSchema } from "./assignment-recovery-event.js";
 
 import { adapterContractMessageSchema } from "./adapter.js";
 import { agentLivenessObservedEventPayloadSchema } from "./agent-liveness-event.js";
@@ -39,6 +41,7 @@ import { conversationRepositoryWorkCompletedEventPayloadSchema } from "./convers
 import { conversationInboundEventSchema } from "./conversation-event.js";
 import {
   conversationDeliveryReceiptSchema,
+  conversationOutboundOriginSchema,
   conversationOutboundMessageSchema,
 } from "./conversation-outbound.js";
 import {
@@ -330,6 +333,7 @@ const validators = {
   conversationInboundEvent: ajv.compile(conversationInboundEventSchema),
   conversationParticipationPolicy: ajv.compile(conversationParticipationPolicySchema),
   conversationParticipationDecision: ajv.compile(conversationParticipationDecisionSchema),
+  conversationOutboundOrigin: ajv.compile(conversationOutboundOriginSchema),
   conversationOutboundMessage: ajv.compile(conversationOutboundMessageSchema),
   conversationRepositoryWorkCompletedEventPayload: ajv.compile(
     conversationRepositoryWorkCompletedEventPayloadSchema,
@@ -392,6 +396,8 @@ const validators = {
   assignmentCompletionPreparedEventPayload: ajv.compile(
     assignmentCompletionPreparedEventPayloadSchema,
   ),
+  assignmentAmendedEventPayload: ajv.compile(assignmentAmendedEventPayloadSchema),
+  assignmentReopenedEventPayload: ajv.compile(assignmentReopenedEventPayloadSchema),
   assignmentCompletionReconciledEventPayload: ajv.compile(
     assignmentCompletionReconciledEventPayloadSchema,
   ),

@@ -15,15 +15,23 @@ Baseline disables only stage recording. Both arms start each pair from the same 
 
 ## Report contract
 
-Every report binds the exact source-byte digest, protocol digest, privacy-safe environment profiles and hashes, population, nearest-rank p50 and p95, eligible p99, maximum, process CPU, process peak RSS, failure and timeout rates, stage distributions, signed paired overhead, and retrieval, lifecycle, and privacy correctness.
+Every report binds:
+
+- Exact source-byte digest and protocol digest.
+- Privacy-safe environment profiles and hashes.
+- Population, nearest-rank p50 and p95, eligible p99, and maximum.
+- Process CPU, process peak RSS, failure and timeout rates, stage distributions, and signed paired overhead.
+- Retrieval, lifecycle, and privacy correctness.
 
 The source digest excludes only the generated report and rebuildable `docs/knowledge/` projections. Any other source change makes the report stale.
 
-Each profile binds one measurement-environment assessment derived only from its baseline duration distribution. `measurementEnvironment.status` is `unstable` when baseline p95 exceeds twice baseline p50 or a positive baseline p95 has a zero p50. The report retains the nullable p95-to-p50 ratio, fixed 20,000 basis-point boundary, and exact `baseline_p95_tail_inflation_exceeded` reason. These aggregate fields share the duration distribution's privacy boundary and add no host-process details.
+Each profile binds one measurement-environment assessment derived only from its baseline duration distribution. `measurementEnvironment.status` is `unstable` when baseline p95 exceeds twice baseline p50 or when positive baseline p95 accompanies zero p50. The report retains the nullable p95-to-p50 ratio, fixed 20,000 basis-point boundary, and exact `baseline_p95_tail_inflation_exceeded` reason. These aggregate fields share the duration distribution's privacy boundary and add no host-process details.
+
+Generated JSON is canonical aggregate evidence. Its Markdown companion interprets the bound observation without duplicating mutable measurements. Stage evidence proves elapsed Lervo work only; it does not prove provider acceptance, model attention, learning, semantic use, or task correctness.
 
 ## Acceptance
 
-Version 1 has no exception path. `budgetStatus` retains the existing numerical and correctness decision. `acceptanceStatus` additionally requires a stable measurement environment; `allProfilesPassed` requires every acceptance status to pass.
+Version 1 has no exception path. `budgetStatus` retains the existing numerical and correctness decision. `acceptanceStatus` additionally requires a stable measurement environment. `allProfilesPassed` requires every acceptance status to pass.
 
 Every profile must satisfy all gates:
 
@@ -35,8 +43,6 @@ Every profile must satisfy all gates:
 - Neither arm has an execution, timeout, retrieval, lifecycle, or privacy failure.
 
 An unstable environment adds `measurement_environment_unstable` without deleting a simultaneous `p95_regression_exceeded` or any other failure. The runner performs one complete observation without automatic retry, filtering, or result selection. An unstable report exits unsuccessfully and cannot enter foundation readiness.
-
-Generated JSON is canonical aggregate evidence. Its Markdown companion interprets the bound observation without duplicating mutable measurements. Stage evidence proves elapsed Lervo work only; it does not prove provider acceptance, model attention, learning, semantic use, or task correctness.
 
 ## Verification
 

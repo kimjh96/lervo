@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c33078d11554a4b157c9f2b3
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0f879d95f223a35d89eb2dc2
+outputLanguage: en
+outputs:
+  - byteCount: 2579
+    contentHash: sha256:25826e823d572af3deda1b61c82732289ce7b48e1793951932552ccb50275c18
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/authority-and-admission.md
+    userRegionHash: sha256:25826e823d572af3deda1b61c82732289ce7b48e1793951932552ccb50275c18
+profile: specification_document
+recordId: knormdoc_3e586ca8ec478836df4bb349
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:40352fc5a00ba90232b3e77478672f0acb1366d000cea61044112db5a4cb1d66
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/node-composition/authority-and-admission.md
+sourceUnitVersionIds:
+  - uv_21eab9f5745acecec564c014
+  - uv_2f93548f65066a4f65813dd5
+  - uv_d0dcf80e64d5bb3f055cbc84

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_c605693443cfb6c1aa478c5c
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_57e569b27f9ea1469f6a1592
+outputLanguage: en
+outputs:
+  - byteCount: 1726
+    contentHash: sha256:043d7f8a3c3a3e7f18359f903c44f7ebff42fa4340b63e28675881cd010f02a1
+    path: docs/specifications/execution/outcome-supervision/implementation/repository-readiness/git-workspace.md
+    userRegionHash: sha256:043d7f8a3c3a3e7f18359f903c44f7ebff42fa4340b63e28675881cd010f02a1
+profile: specification_document
+recordId: knormdoc_cbe719282b08c75ee1446102
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c3f4eda6d973379610fe6b2b06ddb867925b8deb7ba9b0b510c54449f44c0125
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/repository-readiness/git-workspace.md
+sourceUnitVersionIds:
+  - uv_7e65e051e6dec054d1a13bc1

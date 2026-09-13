@@ -63,6 +63,16 @@ export class ConversationInteractionRuntime {
     return new ConversationInteractionRuntime(input.deployment, store);
   }
 
+  nextWakeupAt(integrationId: string): number | null {
+    return this.store.nextWakeupAt(
+      integrationId,
+      this.deployment.bindings.map(({ policy }) => ({
+        policyId: policy.policyId,
+        roleId: policy.roleId,
+      })),
+    );
+  }
+
   async handle(
     event: ConversationInboundEvent,
     responseActivity?: ConversationResponseActivity,

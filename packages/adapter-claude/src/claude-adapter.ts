@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { resolve } from "node:path";
+import { claudeStoredLoginEnvironment } from "./login-inspection.js";
 
 import {
   createAdapterTurnResult,
@@ -67,7 +68,12 @@ export class ClaudeAdapter implements ProviderAdapter {
   private readonly createProviderMessageId: () => string;
   private readonly sessions = new ClaudeSessionRegistry();
 
+  private readonly processEnvironment: Record<string, string> | undefined;
   constructor(private readonly options: ClaudeAdapterOptions) {
+    this.processEnvironment =
+      options.loginContext === undefined
+        ? undefined
+        : claudeStoredLoginEnvironment(structuredClone(options.loginContext));
     this.descriptor = createClaudeAdapterDescriptor();
     this.resourceAccounting = createClaudeResourceAccountingDescriptor(options);
     this.repositoryRoot = resolve(options.repositoryRoot);
@@ -464,6 +470,9 @@ export class ClaudeAdapter implements ProviderAdapter {
     capabilityActivations: readonly AdapterCapabilityActivationRequest[],
   ) {
     const clientOptions = {
+      ...(this.processEnvironment === undefined
+        ? {}
+        : { environment: { ...this.processEnvironment } }),
       providerSessionId,
       cwd: this.repositoryRoot,
       ...(this.options.model === undefined ? {} : { model: this.options.model }),

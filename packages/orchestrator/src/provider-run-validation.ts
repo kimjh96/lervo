@@ -1,3 +1,4 @@
+import { isAbsolute } from "node:path";
 import type {
   AdapterCapabilityActivationReceipt,
   AdapterCapabilityActivationRequest,
@@ -81,11 +82,20 @@ export function validateManagedProviderRunInput(
   const writeDecision = input.context.role.capabilities["filesystem.write"];
   const expectedPathCount = input.context.expectedPaths.length;
   if (
+    (input.executionMode !== undefined && input.executionMode !== "read_only") ||
+    (input.executionMode === "read_only" &&
+      (expectedPathCount !== 0 || input.approvalAuthorization !== undefined)) ||
     input.instructions.length === 0 ||
     input.risk.length === 0 ||
     input.targetTurnId.length === 0 ||
     input.context.role.roleId !== options.coordinates.roleId ||
-    (writeDecision !== "deny" && input.context.expectedPaths.length === 0) ||
+    (input.contextRepositoryRoot !== undefined &&
+      (typeof input.contextRepositoryRoot !== "string" ||
+        !isAbsolute(input.contextRepositoryRoot) ||
+        input.contextRepositoryRoot.includes("\0"))) ||
+    (input.executionMode !== "read_only" &&
+      writeDecision !== "deny" &&
+      input.context.expectedPaths.length === 0) ||
     expectedPathCount > 16 ||
     new Set(input.context.expectedPaths).size !== expectedPathCount ||
     (expectedPathCount > 1 && input.createTargetTurnId === undefined) ||
@@ -158,7 +168,10 @@ export async function verifyManagedProviderRunApproval(input: {
   options: ManagedProviderRunOptions;
   evaluatedAt: string;
 }): Promise<void> {
-  if (input.run.context.role.capabilities["filesystem.write"] !== "require_approval") {
+  if (
+    input.run.executionMode === "read_only" ||
+    input.run.context.role.capabilities["filesystem.write"] !== "require_approval"
+  ) {
     return;
   }
   const authorization = input.run.approvalAuthorization;
@@ -222,6 +235,7 @@ export function createAdapterStartRequest(input: {
     writingPolicyId: expectedWritingPolicyId(input.run),
     requestDigest: input.run.requestDigest,
     executionMode:
+      input.run.executionMode !== "read_only" &&
       input.run.context.role.capabilities["filesystem.write"] !== "deny"
         ? "managed_write"
         : "read_only",

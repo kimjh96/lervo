@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_9146f6e511dc041111c2be9d
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1f88acebd027d6e7b1dbec86
+outputLanguage: en
+outputs:
+  - byteCount: 3124
+    contentHash: sha256:73130e9b330a4ecd0047de95a46671df502f044c4826b6e3089a6234a336efbe
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/cancellation.md
+    userRegionHash: sha256:73130e9b330a4ecd0047de95a46671df502f044c4826b6e3089a6234a336efbe
+profile: specification_document
+recordId: knormdoc_dae41ddc9a844e7eb011a52b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5db9c436a741acda7cd330035fbced6c3f4c7e78eafaa7fa5224e57da4cb88ad
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/recovery/cancellation.md
+sourceUnitVersionIds:
+  - uv_cb6ada50de341fa1278a8a5f

@@ -105,7 +105,7 @@ export class ClaudeSdkAgentClient implements ClaudeAgentClient {
         options: {
           abortController,
           cwd: options.cwd,
-          env: createProviderProcessEnvironment(),
+          env: createProviderProcessEnvironment(options.environment),
           ...(options.model === undefined ? {} : { model: options.model }),
           ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
           ...(options.executable === undefined

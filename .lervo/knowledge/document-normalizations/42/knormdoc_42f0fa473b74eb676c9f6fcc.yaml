@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2d69908b9daca6061fc0d1bb
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_84485df89193a7d54560397e
+outputLanguage: en
+outputs:
+  - byteCount: 446
+    contentHash: sha256:d7d7f540c0f5dc8e2d707383b72cf38c72335e20c218dcb0141fff8e005fe4bb
+    path: docs/specifications/execution/events-and-privacy/event-envelope-compatibility/payload-contracts/work-causality-recorded.md
+    userRegionHash: sha256:d7d7f540c0f5dc8e2d707383b72cf38c72335e20c218dcb0141fff8e005fe4bb
+profile: specification_document
+recordId: knormdoc_42f0fa473b74eb676c9f6fcc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ab6ac31c160eed235792a2e1c4711b9e50342bcf6802b205c8a2116b5acf9f14
+sourcePath: docs/specifications/execution/events-and-privacy/event-envelope-compatibility/payload-contracts/work-causality-recorded.md
+sourceUnitVersionIds:
+  - uv_e37bc36bd7e68263b39151f9

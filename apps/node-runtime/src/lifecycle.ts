@@ -1,3 +1,4 @@
+import type { NodeSupervisionService } from "./supervision-startup.js";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import type { OrganizationRuntimeCredentialDeliveryReceipt } from "@lervo/schemas";
 import { type OutboundSyncLoopResult } from "@lervo/sync";
@@ -13,7 +14,10 @@ import type {
 export interface NodeRuntimeCloseResult {
   status: "stopped" | "failed";
   failureCode?:
-    "sync_runtime_failed" | "remote_control_runtime_failed" | "conversation_runtime_failed";
+    | "sync_runtime_failed"
+    | "remote_control_runtime_failed"
+    | "conversation_runtime_failed"
+    | "supervision_runtime_failed";
   sync: OutboundSyncLoopResult | null;
   remoteControl: RemoteControlLoopResult | null;
 }
@@ -60,6 +64,7 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
     private readonly reloadRuntimeMaterialSnapshot: () => Promise<void>,
     private readonly health: Pick<NodeRuntimeHealthPublisher, "stopping"> | null,
     private readonly organizationCredentialDelivery: NodeOrganizationCredentialDelivery | null,
+    private readonly supervision: NodeSupervisionService | null,
   ) {
     this.closed = new Promise<NodeRuntimeCloseResult>((resolve, reject) => {
       this.resolveClosed = resolve;
@@ -72,6 +77,13 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
       throw new NodeRuntimeError("startup_failed", "The Node runtime can be started only once.");
     }
     this.started = true;
+    if (this.supervision !== null) {
+      this.supervision.start();
+      void this.supervision.failed.then(() => {
+        this.failureCode ??= "supervision_runtime_failed";
+        void this.close();
+      });
+    }
     this.syncLoop = Promise.resolve().then(() => this.runSyncLoop(this.abort.signal));
     void this.syncLoop.catch(() => {
       this.failureCode ??= "sync_runtime_failed";
@@ -220,6 +232,11 @@ class DefaultNodeRuntimeDeployment implements NodeRuntimeDeployment {
       shutdownErrors.push(error);
     }
     try {
+      await this.supervision?.close();
+    } catch (error) {
+      shutdownErrors.push(error);
+    }
+    try {
       await this.conversation?.close();
     } catch (error) {
       shutdownErrors.push(error);
@@ -258,6 +275,7 @@ export function createNodeRuntimeDeployment(
   reloadRuntimeMaterials: () => Promise<void> = reloadBearerToken,
   health: Pick<NodeRuntimeHealthPublisher, "stopping"> | null = null,
   organizationCredentialDelivery: NodeOrganizationCredentialDelivery | null = null,
+  supervision: NodeSupervisionService | null = null,
 ): NodeRuntimeDeployment {
   return new DefaultNodeRuntimeDeployment(
     store,
@@ -268,5 +286,6 @@ export function createNodeRuntimeDeployment(
     reloadRuntimeMaterials,
     health,
     organizationCredentialDelivery,
+    supervision,
   );
 }

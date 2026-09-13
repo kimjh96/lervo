@@ -1,0 +1,63 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_1c804fbc3cf60fff3adc0a55
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_951ec8a92aca9bb669e3e7ab
+outputLanguage: en
+outputs:
+  - byteCount: 3204
+    contentHash: sha256:cde83fe126844c90215ad8fc5c133aeb3f4da46ec926fe42b08c30e51478a5a1
+    path: docs/specifications/coordination/hub-and-node.md
+    userRegionHash: sha256:cde83fe126844c90215ad8fc5c133aeb3f4da46ec926fe42b08c30e51478a5a1
+  - byteCount: 3438
+    contentHash: sha256:fe3dd3b7436911f2a61f9a446baa5d7bd5cf30c5731ea21047575999f2e5e419
+    path: docs/specifications/coordination/hub-and-node/agent-workspaces.md
+    userRegionHash: sha256:fe3dd3b7436911f2a61f9a446baa5d7bd5cf30c5731ea21047575999f2e5e419
+  - byteCount: 2541
+    contentHash: sha256:0dab86d7b526953bff964f15938813096f46f7b180488e64f01ced8b19eb7b93
+    path: docs/specifications/coordination/hub-and-node/authentication.md
+    userRegionHash: sha256:0dab86d7b526953bff964f15938813096f46f7b180488e64f01ced8b19eb7b93
+  - byteCount: 1074
+    contentHash: sha256:f1493d815c7832797801e3cc1e642f01d43287f0e6b804b0047336576563edba
+    path: docs/specifications/coordination/hub-and-node/capability-packages.md
+    userRegionHash: sha256:f1493d815c7832797801e3cc1e642f01d43287f0e6b804b0047336576563edba
+  - byteCount: 1873
+    contentHash: sha256:7eb126d4b18cb1669597f0722a0fb83899a97b9b1b0cdd23d67b6456f86c83bd
+    path: docs/specifications/coordination/hub-and-node/event-streams.md
+    userRegionHash: sha256:7eb126d4b18cb1669597f0722a0fb83899a97b9b1b0cdd23d67b6456f86c83bd
+  - byteCount: 4396
+    contentHash: sha256:e99e2f15cf08e510accd47b4cb4dc160989b79a07714b420618955282cdb0c34
+    path: docs/specifications/coordination/hub-and-node/fleet-rollout.md
+    userRegionHash: sha256:e99e2f15cf08e510accd47b4cb4dc160989b79a07714b420618955282cdb0c34
+  - byteCount: 1838
+    contentHash: sha256:3df97e7c5ffe1d20b796e23d8c724d27ae763b7eb4bedc5a59dc84af68af11e1
+    path: docs/specifications/coordination/hub-and-node/runtime-lifecycle.md
+    userRegionHash: sha256:3df97e7c5ffe1d20b796e23d8c724d27ae763b7eb4bedc5a59dc84af68af11e1
+  - byteCount: 1117
+    contentHash: sha256:e191a47d6ae3f2135e2a52b93f80836d2cdeb87b7833afb632edd39c5744192c
+    path: docs/specifications/coordination/hub-and-node/workstreams.md
+    userRegionHash: sha256:e191a47d6ae3f2135e2a52b93f80836d2cdeb87b7833afb632edd39c5744192c
+profile: specification_document
+recordId: knormdoc_c67415d1a491546d795b1be9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4d5b8fbc7743d09d365405296ea0556e8d5de646101cd515ea8f41d2965f6166
+sourcePath: docs/specifications/coordination/hub-and-node.md
+sourceUnitVersionIds:
+  - uv_0ca252ae7742030deb52c4b6
+  - uv_27c88e65b02d3a9c133d31e9
+  - uv_43e681f4afd3c5329a0cdb0a
+  - uv_44f83271adced476ef65b263
+  - uv_50d9a940126a8bfae308936d
+  - uv_74ee77deb264053a3130e271
+  - uv_76235b274f9269e19384cce6
+  - uv_85e3e7437388f3fdb46ba1dc
+  - uv_a84f44810c7660eaba29c09b
+  - uv_ced381526e8d744b329f7d2c

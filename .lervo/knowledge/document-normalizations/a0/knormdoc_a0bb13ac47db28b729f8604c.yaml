@@ -1,0 +1,46 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_89dd5e117f39269bf41473df
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3160b97028c016263b5cd0c7
+outputLanguage: en
+outputs:
+  - byteCount: 875
+    contentHash: sha256:12c68710c66ac9797d4eb5ce0d551e07d070eeb45182e4f53b62144b66281d61
+    path: docs/specifications/execution/outcome-supervision/implementation/research-execution.md
+    userRegionHash: sha256:12c68710c66ac9797d4eb5ce0d551e07d070eeb45182e4f53b62144b66281d61
+  - byteCount: 1697
+    contentHash: sha256:db1a650ed672ebb3b6363480a89222ede9aa5d730000123362e6b533133d5375
+    path: docs/specifications/execution/outcome-supervision/implementation/research-execution/independent-acceptance.md
+    userRegionHash: sha256:db1a650ed672ebb3b6363480a89222ede9aa5d730000123362e6b533133d5375
+  - byteCount: 2121
+    contentHash: sha256:e4548eec7d7bd08b21be5766f548cf09b92d76bdd53a76a8c929c4c6adc0f368
+    path: docs/specifications/execution/outcome-supervision/implementation/research-execution/input-and-result-evidence.md
+    userRegionHash: sha256:e4548eec7d7bd08b21be5766f548cf09b92d76bdd53a76a8c929c4c6adc0f368
+  - byteCount: 1401
+    contentHash: sha256:081872cbbfeeca87d6aeb2720e04ad6e9cf1f29aafd627d8992583ef958c5f11
+    path: docs/specifications/execution/outcome-supervision/implementation/research-execution/source-policy.md
+    userRegionHash: sha256:081872cbbfeeca87d6aeb2720e04ad6e9cf1f29aafd627d8992583ef958c5f11
+  - byteCount: 669
+    contentHash: sha256:6d593d784a12d481f782de1c003e3f89abf05ea9404883751d9b852c4dca1339
+    path: docs/specifications/execution/outcome-supervision/implementation/research-execution/verification-and-limits.md
+    userRegionHash: sha256:6d593d784a12d481f782de1c003e3f89abf05ea9404883751d9b852c4dca1339
+profile: specification_document
+recordId: knormdoc_a0bb13ac47db28b729f8604c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:0dd20d05f3fb4ff0bcf1bd2796b49bf8bf25277d854f429ed651e2bb8230ed27
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/research-execution.md
+sourceUnitVersionIds:
+  - uv_45f067f84037338be2cc07a3
+  - uv_46e0209d918ae5b0c9f2791c
+  - uv_4b478c17eeb9c0e7398c608e
+  - uv_69d5a0389cefca75e5b14641
+  - uv_804f74493c50a7f4c5d73ad0

@@ -1,3 +1,4 @@
+import { repositoryPathWithinScope } from "@lervo/work-controller";
 import { isAbsolute } from "node:path";
 
 import { AgentWorkforceError } from "./types.js";
@@ -319,7 +320,7 @@ export function evaluateWorkspaceCleanup(input: WorkspaceCleanupObservation): {
 }
 
 function pathContains(scope: string, path: string): boolean {
-  return scope === "*" || path === scope || path.startsWith(`${scope}/`);
+  return repositoryPathWithinScope(path, scope);
 }
 
 export function partitionWorkspaceChanges(input: {

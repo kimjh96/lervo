@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { LocalRepositoryReplicaPeer } from "../src/repository-replica-coordinator.js";
 import { captureRepositoryReplicaSnapshot } from "../src/repository-replica-git.js";
@@ -40,6 +40,38 @@ afterEach(async () => {
 });
 
 describe("repository replica readiness", () => {
+  it("wakes on an atomic fresh receipt instead of waiting for the polling interval", async () => {
+    const root = await repository();
+    const snapshot = await captureRepositoryReplicaSnapshot(root);
+    const waiting = awaitRepositoryReplicaReadiness({
+      repositoryRoot: root,
+      maximumStalenessMs: 5_000,
+      waitTimeoutMs: 4_000,
+      pollIntervalMs: 3_000,
+    });
+    await vi.waitFor(async () => {
+      const { readFile } = await import("node:fs/promises");
+      expect(
+        JSON.parse(
+          await readFile(join(root, ".lervo/state/repository-replica-request.json"), "utf8"),
+        ).schemaVersion,
+      ).toBe(1);
+    });
+    const began = Date.now();
+    await new LocalRepositoryReplicaPeer().recordReceipt({
+      schemaVersion: 1,
+      replicaId: "fixture",
+      repositoryRoot: root,
+      commonSnapshotHash: snapshot.snapshotHash,
+      localSnapshotHash: snapshot.snapshotHash,
+      peerSnapshotHash: snapshot.snapshotHash,
+      reconciledAt: new Date().toISOString(),
+      status: "current",
+    });
+    expect(await waiting).toBe(snapshot.snapshotHash);
+    expect(Date.now() - began).toBeLessThan(2_000);
+  });
+
   it("admits only a fresh receipt for the exact current worktree snapshot", async () => {
     const root = await repository();
     const snapshot = await captureRepositoryReplicaSnapshot(root);

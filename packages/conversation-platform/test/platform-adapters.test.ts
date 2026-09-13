@@ -671,51 +671,54 @@ describe("authenticated platform conversation adapters", () => {
     expect(identity.inbound).not.toHaveBeenCalled();
   });
 
-  it("does not treat a Discord mention unknown to this agent as an unaddressed turn", async () => {
-    const artifactStore = await artifacts();
-    const identity = identityPort();
-    identity.inbound.mockResolvedValueOnce({
-      projectId: "prj_platform_adapter",
-      conversationId: "cnv_team_general",
-      threadId: null,
-      actor: { kind: "human", participantId: "ptc_external_user", roleId: null },
-      mentions: { roleIds: [], participantIds: [] },
-      replyToEventId: null,
-      automationDepth: 0,
-    });
-    const adapter = new DiscordConversationAdapter({
-      integrationId: "itg_discord03",
-      applicationId: "999999999999999999",
-      allowedGuildIds: ["123456789012345678"],
-      allowDirectMessages: false,
-      gatewayAuthentication: { verifyDispatch: async () => ({ authenticated: true }) },
-      identity: identity.port,
-      artifactStore,
-      delivery: { send: async () => ({ messageId: "1", deliveredAt: now.toISOString() }) },
-      now: () => now,
-    });
-    const body = Buffer.from(
-      JSON.stringify({
-        op: 0,
-        s: 1,
-        t: "MESSAGE_CREATE",
-        d: {
-          id: "323456789012345681",
-          channel_id: "223456789012345678",
-          guild_id: "123456789012345678",
-          author: { id: "523456789012345678", bot: false },
-          content: "<@623456789012345678> answer",
-          mentions: [{ id: "623456789012345678" }],
-          timestamp: now.toISOString(),
-        },
-      }),
-    );
-    await expect(
-      adapter.receiveGatewayDispatch({ sessionHandle: "authenticated-session", body }),
-    ).resolves.toMatchObject({
-      status: "ignored",
-      reason: "addressed_to_unmapped_participant",
-    });
-    expect(identity.recordInbound).not.toHaveBeenCalled();
-  });
+  it.each([true, false])(
+    "does not treat an unmapped Discord address as an unaddressed turn (metadata: %s)",
+    async (metadata) => {
+      const artifactStore = await artifacts();
+      const identity = identityPort();
+      identity.inbound.mockResolvedValueOnce({
+        projectId: "prj_platform_adapter",
+        conversationId: "cnv_team_general",
+        threadId: null,
+        actor: { kind: "human", participantId: "ptc_external_user", roleId: null },
+        mentions: { roleIds: [], participantIds: [] },
+        replyToEventId: null,
+        automationDepth: 0,
+      });
+      const adapter = new DiscordConversationAdapter({
+        integrationId: "itg_discord03",
+        applicationId: "999999999999999999",
+        allowedGuildIds: ["123456789012345678"],
+        allowDirectMessages: false,
+        gatewayAuthentication: { verifyDispatch: async () => ({ authenticated: true }) },
+        identity: identity.port,
+        artifactStore,
+        delivery: { send: async () => ({ messageId: "1", deliveredAt: now.toISOString() }) },
+        now: () => now,
+      });
+      const body = Buffer.from(
+        JSON.stringify({
+          op: 0,
+          s: 1,
+          t: "MESSAGE_CREATE",
+          d: {
+            id: "323456789012345681",
+            channel_id: "223456789012345678",
+            guild_id: "123456789012345678",
+            author: { id: "523456789012345678", bot: false },
+            content: "<@623456789012345678> answer",
+            mentions: metadata ? [{ id: "623456789012345678" }] : [],
+            timestamp: now.toISOString(),
+          },
+        }),
+      );
+      await expect(
+        adapter.receiveGatewayDispatch({ sessionHandle: "authenticated-session", body }),
+      ).resolves.toMatchObject({
+        status: "ignored",
+        reason: "addressed_to_unmapped_participant",
+      });
+      expect(identity.recordInbound).not.toHaveBeenCalled();
+    },
+  );
 });

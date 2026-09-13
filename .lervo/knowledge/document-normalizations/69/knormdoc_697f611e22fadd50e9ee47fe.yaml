@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e73902a3eb1ecee4cf66b239
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_94d20afb1c23a682b5dc75fd
+outputLanguage: en
+outputs:
+  - byteCount: 2962
+    contentHash: sha256:e8998afb845f9ce077f4d770341656ad169eb4785b598c85eca6e38cc425ffcb
+    path: docs/decisions/execution/orchestration/governed-work/0398-outcome-supervision-and-autonomous-team-allocation.md
+    userRegionHash: sha256:e8998afb845f9ce077f4d770341656ad169eb4785b598c85eca6e38cc425ffcb
+profile: decision_record
+recordId: knormdoc_697f611e22fadd50e9ee47fe
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:65f1bcc3c51db3621e14033fce78eade0bc0492b0ca07a517ab91d898dbec38a
+sourcePath: docs/decisions/execution/orchestration/governed-work/0398-outcome-supervision-and-autonomous-team-allocation.md
+sourceUnitVersionIds:
+  - uv_043a66f9b4e8469b0912bd0b
+  - uv_7e6123a2541d401ad12d6001
+  - uv_a1b0d7e16d8270d5b7d621bc
+  - uv_ccff4f7f4e4f390b665f8640
+  - uv_e96d0e957a05316a5e391756

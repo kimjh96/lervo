@@ -1,5 +1,6 @@
 export type EventStoreErrorCode =
   | "closed"
+  | "read_only"
   | "event_id_conflict"
   | "event_schema_unsupported"
   | "integrity_failed"

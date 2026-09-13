@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_098d45783b0815ee6bd292b7
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b238cdc9d7c765dffce68f51
+outputLanguage: en
+outputs:
+  - byteCount: 298
+    contentHash: sha256:5c3cb276a467b86d3c033429fb7cb9eeee5839d648f1632d8df6628f4040c2d2
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/admission-and-readiness.md
+    userRegionHash: sha256:5c3cb276a467b86d3c033429fb7cb9eeee5839d648f1632d8df6628f4040c2d2
+profile: specification_document
+recordId: knormdoc_8a232010d53ff646dda17345
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5c3cb276a467b86d3c033429fb7cb9eeee5839d648f1632d8df6628f4040c2d2
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/admission-and-readiness.md
+sourceUnitVersionIds:
+  - uv_f9ac8fc094f10bcec800ed19

@@ -1,10 +1,12 @@
 import type {
   AssignmentTopologyHistoryChangeV2,
   AssignmentTopologyHistoryV2,
+  AssignmentTopologyPolicyReviewBindingV1,
 } from "@lervo/application-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 
 import { assignmentTopologyDigest } from "./assignment-topology-validation.js";
+import { automaticTopologyReviewerDigest } from "./automatic-topology.js";
 
 interface TopologyNodeEvent {
   changeId: string;
@@ -17,6 +19,7 @@ interface TopologyNodeEvent {
   nodeKey: string;
   assignmentId: string;
   occurredAt: string;
+  policyReview?: AssignmentTopologyPolicyReviewBindingV1;
 }
 
 type TopologyNodeParseResult =
@@ -32,6 +35,24 @@ function topologyNode(event: EventEnvelope, workstreamId: string): TopologyNodeP
   if (event.type !== "assignment.created" || event.payload.workstreamId !== workstreamId)
     return { status: "not_topology" };
   const value = event.payload;
+  const policyFields = [
+    "topologyPolicyReviewVersion",
+    "topologyPolicyDecisionId",
+    "topologyPolicyReviewHash",
+  ];
+  const automatic = policyFields.some((key) => Object.hasOwn(value, key));
+  if (
+    automatic &&
+    (!policyFields.every((key) => Object.hasOwn(value, key)) ||
+      event.schemaVersion !== 3 ||
+      value.topologyPolicyReviewVersion !== 1 ||
+      typeof value.topologyPolicyDecisionId !== "string" ||
+      !/^osd_[a-f0-9]{24}$/u.test(value.topologyPolicyDecisionId) ||
+      typeof value.topologyPolicyReviewHash !== "string" ||
+      !HASH.test(value.topologyPolicyReviewHash) ||
+      value.topologyReviewerIdDigest !== automaticTopologyReviewerDigest)
+  )
+    return { status: "invalid" };
   if (value.topologyContractVersion === undefined) return { status: "not_topology" };
   if (
     value.topologyContractVersion !== 2 ||
@@ -75,6 +96,15 @@ function topologyNode(event: EventEnvelope, workstreamId: string): TopologyNodeP
       nodeKey: value.topologyNodeKey,
       assignmentId: value.assignmentId,
       occurredAt: event.occurredAt,
+      ...(automatic
+        ? {
+            policyReview: {
+              schemaVersion: 1 as const,
+              decisionId: String(value.topologyPolicyDecisionId),
+              reviewHash: String(value.topologyPolicyReviewHash),
+            },
+          }
+        : {}),
     },
   };
 }
@@ -109,7 +139,9 @@ export function projectAssignmentTopologyHistory(input: {
           entry.reviewerIdDigest !== first.reviewerIdDigest ||
           entry.requestHash !== first.requestHash ||
           entry.expectedNodeCount !== first.expectedNodeCount ||
-          entry.nodeSetHash !== first.nodeSetHash,
+          entry.nodeSetHash !== first.nodeSetHash ||
+          assignmentTopologyDigest(entry.policyReview ?? null) !==
+            assignmentTopologyDigest(first.policyReview ?? null),
       )
     ) {
       reasons.add("topology_history_conflict");
@@ -127,6 +159,9 @@ export function projectAssignmentTopologyHistory(input: {
       planIds: [...new Set(entries.map((entry) => entry.planId))].sort(),
       approvalHash: first.approvalHash,
       reviewerIdDigest: first.reviewerIdDigest,
+      ...(first.policyReview === undefined
+        ? {}
+        : { policyReview: structuredClone(first.policyReview) }),
       assignmentIds: [...assignments].sort(),
       occurredAt: entries
         .map((entry) => entry.occurredAt)

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8205338e66986f9591fdd64c
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bf5ea326ce40925b079089f4
+outputLanguage: en
+outputs:
+  - byteCount: 734
+    contentHash: sha256:6f8a9eb8c096056cf4501722b49fc65bca7d7e45fe66be54f0950df7266aad2e
+    path: docs/specifications/execution/provider-adapters/telemetry.md
+    userRegionHash: sha256:6f8a9eb8c096056cf4501722b49fc65bca7d7e45fe66be54f0950df7266aad2e
+profile: specification_document
+recordId: knormdoc_17ec93d9480d79865a74e2fc
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6f8a9eb8c096056cf4501722b49fc65bca7d7e45fe66be54f0950df7266aad2e
+sourcePath: docs/specifications/execution/provider-adapters/telemetry.md
+sourceUnitVersionIds:
+  - uv_660af215bcbbf04b6bdd06c6

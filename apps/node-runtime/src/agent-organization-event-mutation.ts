@@ -49,7 +49,7 @@ export function appendOrganizationEvent(
     payload,
   } as const;
   storage.events.append(
-    storage.writableEventSchemaVersion === 2
+    (storage.writableEventSchemaVersion ?? 1) >= 2
       ? { ...draft, schemaVersion: 2 }
       : { ...draft, schemaVersion: 1 },
   );

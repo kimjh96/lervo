@@ -27,3 +27,23 @@ export * from "./open-ports.js";
 export * from "./process-runtime.js";
 export * from "./trust.js";
 export * from "./workstream-replication.js";
+export { observeMandateInstallationSource } from "./supervision-authority-source.js";
+export { NodeSupervisionError, type NodeSupervisionBinding } from "./supervision-authority.js";
+export { NodeSupervisionStore, type NodeSupervisionSession } from "./supervision-store.js";
+export {
+  openNodeOutcomeSupervisionRuntime,
+  type NodeOutcomeSupervisionPorts,
+  type NodeCanonicalOutcomeSupervisionPorts,
+} from "./outcome-supervision-runtime.js";
+
+export type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-configuration.js";
+export type { NodeSupervisedManagedConfiguration } from "./supervision-managed-effects.js";
+export {
+  observeSupervisionHostIdentity,
+  observeMandateExecutionAuthority,
+} from "./supervision-execution-host.js";
+export {
+  admitSupervisedManagedInvocation,
+  resolveSupervisedManagedWorkspace,
+  type SupervisedManagedInvocation,
+} from "./supervision-managed-admission.js";

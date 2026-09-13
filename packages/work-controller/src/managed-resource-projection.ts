@@ -1,10 +1,10 @@
-import { resourceScopeForRelationship, type WorkCausalityRecord } from "@lervo/execution-contract";
-import type { ResourceGroupObservationV1 } from "@lervo/application-contract";
 import {
-  validateSchema,
-  type EventEnvelope,
-  type ResourceUsageRecordedEventPayload,
-} from "@lervo/schemas";
+  readResourceUsageEventPayload,
+  resourceScopeForRelationship,
+  type WorkCausalityRecord,
+} from "@lervo/execution-contract";
+import type { ResourceGroupObservationV1 } from "@lervo/application-contract";
+import { type EventEnvelope, type ResourceUsageRecordedEventPayload } from "@lervo/schemas";
 
 function resourceCompleteness(
   statuses: readonly ResourceUsageRecordedEventPayload["status"][],
@@ -42,10 +42,10 @@ export function projectManagedResourceGroups(input: {
   const observations = input.events
     .filter((event) => event.type === "resource.usage.recorded" && workRunIds.has(event.runId))
     .map((event) => {
-      if (!validateSchema("resourceUsageRecordedEventPayload", event.payload).valid) {
+      const payload = readResourceUsageEventPayload(event);
+      if (payload === null) {
         throw new TypeError("A governed work resource observation is invalid.");
       }
-      const payload = event.payload as ResourceUsageRecordedEventPayload;
       const provider = event.actor.provider ?? "lervo";
       if (payload.workId !== workByRun.get(event.runId)) {
         throw new TypeError("A governed resource observation differs from its causal work tree.");

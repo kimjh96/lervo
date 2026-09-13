@@ -9,7 +9,7 @@ describe("event reader capabilities", () => {
     expect(capabilities).toEqual({
       schemaVersion: 1,
       capability: "event_reader",
-      readableEventSchemaVersions: [1, 2],
+      readableEventSchemaVersions: [1, 2, 3],
     });
     expect(capabilities).not.toHaveProperty("writableEventSchemaVersion");
     expect(readEventReaderCapabilities(capabilities)).toEqual(capabilities);

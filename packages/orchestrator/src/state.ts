@@ -24,6 +24,7 @@ export class ManagedContextState {
   private generationValue: number;
   private loadedValue: LoadedContext | undefined;
   private repositoryRootValue: string | undefined;
+  private writeRepositoryRootValue: string | undefined;
   private evidence: ContextEvidence[] = [];
   private requiredDocumentsValue: RequiredContextDocument[] = [];
   private activePermit: FileWritePermit | undefined;
@@ -47,6 +48,10 @@ export class ManagedContextState {
 
   get repositoryRoot(): string | undefined {
     return this.repositoryRootValue;
+  }
+
+  get writeRepositoryRoot(): string | undefined {
+    return this.writeRepositoryRootValue;
   }
 
   get injectedProvider(): string | undefined {
@@ -135,10 +140,12 @@ export class ManagedContextState {
     repositoryRoot: string,
     writePolicy: CapabilityDecision,
     expectedPaths: readonly string[],
+    writeRepositoryRoot = repositoryRoot,
   ): void {
     const snapshot = copy(loaded);
     this.loadedValue = snapshot;
     this.repositoryRootValue = repositoryRoot;
+    this.writeRepositoryRootValue = writeRepositoryRoot;
     this.evidence = [...copy(snapshot.evidence)];
     this.requiredDocumentsValue = snapshot.documents
       .filter((document) => document.required)

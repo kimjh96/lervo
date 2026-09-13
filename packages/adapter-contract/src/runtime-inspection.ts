@@ -2,8 +2,7 @@ import { spawn } from "node:child_process";
 
 export type ProviderRuntimeInspectionStatus = "available" | "unavailable" | "unknown";
 
-export interface ProviderRuntimeInspection {
-  provider: "codex" | "claude";
+export interface RuntimeExecutableInspection {
   status: ProviderRuntimeInspectionStatus;
   source: "path" | "bundled" | "configured";
   version: string | null;
@@ -11,12 +10,25 @@ export interface ProviderRuntimeInspection {
     "ready" | "executable_not_found" | "probe_failed" | "probe_timed_out" | "unsupported_platform";
 }
 
-export interface InspectProviderExecutableInput {
-  provider: ProviderRuntimeInspection["provider"];
+export interface InspectRuntimeExecutableInput {
   executable: string;
   arguments?: readonly string[];
-  source: ProviderRuntimeInspection["source"];
+  source: RuntimeExecutableInspection["source"];
   timeoutMs?: number;
+}
+
+export interface ProviderRuntimeInspection extends RuntimeExecutableInspection {
+  provider: "codex" | "claude";
+}
+
+export interface InspectProviderExecutableInput extends InspectRuntimeExecutableInput {
+  provider: ProviderRuntimeInspection["provider"];
+}
+
+export async function inspectProviderExecutable(
+  input: InspectProviderExecutableInput,
+): Promise<ProviderRuntimeInspection> {
+  return { provider: input.provider, ...(await inspectRuntimeExecutable(input)) };
 }
 
 const MAX_VERSION_BYTES = 16 * 1024;
@@ -30,16 +42,16 @@ function cleanedVersion(value: string): string | null {
   return line;
 }
 
-export async function inspectProviderExecutable(
-  input: InspectProviderExecutableInput,
-): Promise<ProviderRuntimeInspection> {
+export async function inspectRuntimeExecutable(
+  input: InspectRuntimeExecutableInput,
+): Promise<RuntimeExecutableInspection> {
   const timeoutMs = input.timeoutMs ?? 5_000;
   return new Promise((resolve) => {
     let settled = false;
     let output = "";
     let outputBytes = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const finish = (result: ProviderRuntimeInspection) => {
+    const finish = (result: RuntimeExecutableInspection) => {
       if (settled) return;
       settled = true;
       if (timer !== undefined) clearTimeout(timer);
@@ -61,7 +73,6 @@ export async function inspectProviderExecutable(
       if (remaining > 0) output += chunk.subarray(0, remaining).toString("utf8");
       child.kill("SIGKILL");
       finish({
-        provider: input.provider,
         status: "unknown",
         source: input.source,
         version: null,
@@ -72,7 +83,6 @@ export async function inspectProviderExecutable(
     child.stderr.on("data", collect);
     child.once("error", (error: NodeJS.ErrnoException) =>
       finish({
-        provider: input.provider,
         status: error.code === "ENOENT" || error.code === "EACCES" ? "unavailable" : "unknown",
         source: input.source,
         version: null,
@@ -85,7 +95,6 @@ export async function inspectProviderExecutable(
     child.once("close", (code) => {
       const version = cleanedVersion(output);
       finish({
-        provider: input.provider,
         status: code === 0 && version !== null ? "available" : "unknown",
         source: input.source,
         version: code === 0 ? version : null,
@@ -95,7 +104,6 @@ export async function inspectProviderExecutable(
     timer = setTimeout(() => {
       child.kill("SIGKILL");
       finish({
-        provider: input.provider,
         status: "unknown",
         source: input.source,
         version: null,

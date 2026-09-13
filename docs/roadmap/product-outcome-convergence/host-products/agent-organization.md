@@ -25,6 +25,8 @@ The CLI can bind current hired agents and Discord deployments. An organization-c
 
 ## Completion criteria
 
+The [outcome supervision roadmap](../execution/outcome-supervision.md) additionally requires goal-to-artifact execution, autonomous owner-defined worker responsibilities, and central escalation without repeated user dispatch or recovery prompts. This remains `delivery required`.
+
 1. Bind one central repository and the Shiflo, Plen, and Arac repository teams. Run the implemented multi-team operating projection against all four without merging authority or context.
 2. Enable the appointed CEO to hire internal agents, prepare and bind owner-authorized bot or webhook deployments, create allowlisted channels and public threads, delegate work, and resolve approval effects without exposing credentials or conflating external Discord presentation with hiring.
 3. Enable each hired agent to inspect and show requested code, perform authorized managed Codex or Claude repository work, publish verified results, create threads, reply, mention eligible participants, and converse with agents through natural addressed routing.

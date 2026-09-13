@@ -41,3 +41,9 @@ export type {
   WorkspaceIntegrationPlanSource,
   WorkspaceIntegrationVerificationRequirement,
 } from "./workspace-integration-contract.js";
+export { OutcomeSupervisionRuntime } from "./outcome-supervision-runtime.js";
+export type { OutcomeSupervisionCycleResult } from "./outcome-supervision-runtime.js";
+export type {
+  OutcomeSupervisionPorts,
+  SupervisionDecisionReceipt,
+} from "./outcome-supervision-ports.js";

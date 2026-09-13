@@ -9,15 +9,13 @@ import {
   createTopologyAssignment,
   listAssignments,
   withAssignmentTopologyLock,
+  topologyAssignmentObservation,
 } from "@lervo/agent-workforce";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { resolveRoleContract } from "@lervo/roles";
 import { assignmentTopologyDigest, createAssignmentTopologyPlan } from "@lervo/work-controller";
 
-import {
-  loadAssignmentTopologySnapshot,
-  topologyAssignmentObservation,
-} from "./assignment-topology-inspection.js";
+import { loadAssignmentTopologySnapshot } from "./assignment-topology-inspection.js";
 import { recordWorkforceEvent } from "./workforce-events.js";
 
 function reviewerDigest(reviewerId: string): string {
@@ -82,6 +80,8 @@ export async function materializeAssignmentTopology(input: {
           throw new Error(`The assignment topology change is ${fresh.status}.`);
         const before = await listAssignments(storage.paths.repositoryRoot);
         const prior = before.filter((item) => item.topology?.changeId === fresh.changeId);
+        if (prior.some((item) => item.topology?.policyReview !== undefined))
+          throw new Error("Manual topology review cannot resume an automatic policy decision.");
         if (prior.some((item) => item.topology?.reviewerIdDigest !== approvedReviewerDigest)) {
           throw new Error("Topology recovery requires the original reviewer identity.");
         }

@@ -9,6 +9,13 @@ if (
 }
 
 const lines = createInterface({ input: process.stdin, crlfDelay: Infinity });
+if (
+  process.argv.includes("--require-isolated-profile") &&
+  (process.env.HOME !== "/fixture/owner-home" ||
+    process.env.CODEX_HOME !== "/fixture/owner-config" ||
+    process.env.LERVO_TEST_INHERITED_CREDENTIAL !== undefined)
+)
+  process.exit(6);
 
 function send(message) {
   process.stdout.write(`${JSON.stringify(message)}\n`);

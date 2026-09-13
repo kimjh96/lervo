@@ -20,6 +20,7 @@ interface PendingRequest {
 }
 
 export interface StdioClientOptions {
+  environment?: Record<string, string>;
   executable: string;
   commandArguments?: readonly string[];
   cwd: string;
@@ -73,7 +74,7 @@ export class CodexStdioAppServerClient implements CodexAppServerClient {
   static async connect(options: StdioClientOptions): Promise<CodexStdioAppServerClient> {
     const child = spawn(options.executable, options.commandArguments ?? ["app-server", "--stdio"], {
       cwd: options.cwd,
-      env: createProviderProcessEnvironment(),
+      env: createProviderProcessEnvironment(options.environment),
       stdio: ["pipe", "pipe", "pipe"],
     });
     const client = new CodexStdioAppServerClient(child, options.requestTimeoutMs);

@@ -20,7 +20,7 @@ export const workstreamSnapshotSchema = {
     schemaVersion: { type: "integer", const: 1 },
     workstreamId: workstreamIdSchema,
     revision: { type: "integer", minimum: 1 },
-    status: { type: "string", enum: ["active", "blocked", "completed"] },
+    status: { type: "string", enum: ["active", "blocked", "completed", "cancelled"] },
     title: { type: "string", minLength: 1, maxLength: 200 },
     objective: { type: "string", minLength: 1, maxLength: 8192 },
     nextActions: {
@@ -139,7 +139,7 @@ export const workstreamSnapshotRecordedEventPayloadSchema = {
   properties: {
     workstreamId: workstreamIdSchema,
     revision: { type: "integer", minimum: 1 },
-    status: { type: "string", enum: ["active", "blocked", "completed"] },
+    status: { type: "string", enum: ["active", "blocked", "completed", "cancelled"] },
     changeKind: {
       type: "string",
       enum: [

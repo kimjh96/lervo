@@ -20,6 +20,7 @@ export interface HubJsonHttpClientOptions {
 }
 
 export interface HubJsonHttpRequest {
+  signal?: AbortSignal;
   url: URL;
   method: "GET" | "POST";
   body?: unknown;
@@ -112,7 +113,10 @@ export class HubJsonHttpClient {
         },
         ...(serialized === undefined ? {} : { body: serialized }),
         redirect: "error",
-        signal: controller.signal,
+        signal:
+          request.signal === undefined
+            ? controller.signal
+            : AbortSignal.any([controller.signal, request.signal]),
       });
       if (!request.acceptedStatuses.includes(response.status)) {
         await response.body?.cancel();

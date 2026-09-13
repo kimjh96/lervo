@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5fbb374891959401b2da3333"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Require trusted verification-suite hash pins and valid local definitions and working directories before Node supervision execution, without claiming verification success."

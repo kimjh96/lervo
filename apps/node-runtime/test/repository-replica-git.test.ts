@@ -4,8 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { watchRepositoryChanges } from "../src/repository-change-watch.js";
+import { settleRepositoryWatch } from "./repository-watch.fixture.js";
 import {
   applyRepositoryReplicaBundle,
   captureRepositoryReplicaSnapshot,
@@ -54,6 +56,54 @@ afterEach(async () => {
 });
 
 describe("Git repository replica", () => {
+  it("preserves split index staging while observing an isolated index", async () => {
+    const root = await repository();
+    await writeFile(join(root, "tracked.ts"), "staged\n");
+    await git(root, "add", "tracked.ts");
+    await git(root, "update-index", "--split-index");
+    const expectedTree = await git(root, "write-tree");
+    await writeFile(join(root, "tracked.ts"), "unstaged\n");
+    const before = await readFile(join(root, ".git/index"));
+    const snapshot = await captureRepositoryReplicaSnapshot(root);
+    expect(snapshot.indexTree).toBe(expectedTree);
+    expect(snapshot.worktreeTree).not.toBe(expectedTree);
+    expect(await readFile(join(root, ".git/index"))).toEqual(before);
+  });
+
+  it("does not create a self-wakeup loop from unchanged snapshot observations", async () => {
+    const root = await repository();
+    await captureRepositoryReplicaSnapshot(root);
+    const notify = vi.fn();
+    const stop = await watchRepositoryChanges(root, notify);
+    try {
+      await vi.waitFor(
+        async () => {
+          await writeFile(join(root, "tracked.ts"), "export const original = true;\n");
+          expect(notify).toHaveBeenCalled();
+        },
+        { timeout: 10_000 },
+      );
+      await settleRepositoryWatch(notify);
+      notify.mockClear();
+      await captureRepositoryReplicaSnapshot(root);
+      await captureRepositoryReplicaSnapshot(root);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(notify).not.toHaveBeenCalled();
+    } finally {
+      stop();
+    }
+  });
+
+  it("does not create export commits during observation and still bundles exact snapshots", async () => {
+    const root = await repository();
+    const before = await git(root, "rev-parse", "HEAD");
+    const observed = await captureRepositoryReplicaSnapshot(root);
+    await expect(git(root, "rev-parse", "--verify", "refs/lervo/replica/export")).rejects.toThrow();
+    expect(await git(root, "rev-parse", "HEAD")).toBe(before);
+    expect((await createRepositoryReplicaBundle(root)).byteLength).toBeGreaterThan(0);
+    expect((await captureRepositoryReplicaSnapshot(root)).snapshotHash).toBe(observed.snapshotHash);
+  });
+
   it("moves incomplete, staged, unstaged, untracked, and deleted bytes without a commit", async () => {
     const source = await repository();
     const target = await clone(source);

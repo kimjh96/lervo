@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_afc8930b7c967d493a9f9de1
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_afa865b86d48d362296d57ad
+outputLanguage: en
+outputs:
+  - byteCount: 3887
+    contentHash: sha256:b0cc2d5aabe2bde012ce115f34d666dd4f5d991074e2dbd8e3eeffd006985cbb
+    path: docs/decisions/execution/orchestration/governed-work/0400-prove-default-model-supervision-budget-comparability.md
+    userRegionHash: sha256:b0cc2d5aabe2bde012ce115f34d666dd4f5d991074e2dbd8e3eeffd006985cbb
+profile: decision_record
+recordId: knormdoc_4f29507db6f7886b71ce5396
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e9a793921110f3cff1c72243d98ab42ed968ff5f4cba56e7575102a28ac48b8e
+sourcePath: docs/decisions/execution/orchestration/governed-work/0400-prove-default-model-supervision-budget-comparability.md
+sourceUnitVersionIds:
+  - uv_0e0e5543f67c8bb0b940685d
+  - uv_40280e5f581de4753ad99dfc
+  - uv_4390e14b2920341f63941050
+  - uv_887ce448b03903eb76d22254
+  - uv_8c30677c8e765b6f6f6cd254
+  - uv_c8b3d0018e1ede503f4cd9bf

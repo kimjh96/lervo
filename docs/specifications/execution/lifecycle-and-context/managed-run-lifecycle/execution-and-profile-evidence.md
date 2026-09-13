@@ -38,3 +38,9 @@ The adapter turn result, `adapter.result.captured`, managed-run result, and `res
 Resource-accounting descriptor v2 names its static configuration coordinate `requestedModel`; it never presents that value as observation. The answer model must occur in the observed set. Configuration, an alias, a null value, and an auxiliary usage identifier never substitute for provider observation.
 
 Conversation resolution and its replay artifact retain the same identity unchanged.
+
+## Observation-only managed turns
+
+A managed-run caller may explicitly set `executionMode: read_only` to narrow an otherwise write-capable role for a reasoning or observation turn. This option cannot widen a role. It requires no expected write paths and rejects a write-approval payload.
+
+The provider start request retains the actual role identity but requests read-only execution. Existing session/result validation and the managed-write boundary still apply; a write-approval requirement is not requested for that turn. Omitting the option retains normal role-derived execution behavior. This option does not itself compose production owner planning or grant any subsequent effect.

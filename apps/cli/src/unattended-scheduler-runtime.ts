@@ -1,3 +1,4 @@
+import { createSchedulerChangeWait } from "./unattended-scheduler-change-wait.js";
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, mkdir, open, readFile, rm } from "node:fs/promises";
@@ -12,6 +13,7 @@ export interface UnattendedSchedulerRuntime {
   schedulerSessionId: string;
   now(): Date;
   sleep(milliseconds: number): Promise<void>;
+  waitForChange?(milliseconds: number): Promise<void>;
   killSwitchEngaged(): Promise<boolean>;
   release(): Promise<void>;
 }
@@ -152,9 +154,11 @@ export async function openUnattendedSchedulerRuntime(input: {
     startedAt: now().toISOString(),
   };
   const ownedContent = await acquireLock(lockPath, lock);
+  const changes = createSchedulerChangeWait(input.repositoryRoot, killSwitchPath);
   return {
     schedulerSessionId,
     now,
+    waitForChange: changes.wait,
     sleep: (milliseconds) =>
       new Promise<void>((resolvePromise) => setTimeout(resolvePromise, milliseconds)),
     killSwitchEngaged: async () => {
@@ -166,6 +170,9 @@ export async function openUnattendedSchedulerRuntime(input: {
         throw error;
       }
     },
-    release: () => releaseOwnedLock(lockPath, ownedContent),
+    release: async () => {
+      changes.close();
+      await releaseOwnedLock(lockPath, ownedContent);
+    },
   };
 }

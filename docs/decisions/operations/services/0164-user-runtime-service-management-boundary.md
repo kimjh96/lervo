@@ -6,7 +6,7 @@
 
 ## Context
 
-Rendered service definitions required manual installation. Activation can start networking and managed commands, so repository implementation and host activation must remain separate.
+Rendered service definitions required manual installation. Because activation can start networking and managed commands, repository implementation and host activation must remain separate.
 
 ## Decision
 
@@ -18,11 +18,13 @@ Rendered service definitions required manual installation. Activation can start 
 
 ### Runtime and provider commands
 
-Standalone JavaScript runtimes may bind `--node-executable <absolute-path>`. When supplied, the canonical service command is the exact Node executable followed by the runtime entry point and configuration argument. The Node executable must be a real executable regular file; the JavaScript entry point must be a real regular file but need not be executable. Omitting the option preserves the direct-executable contract.
+Standalone JavaScript runtimes may bind `--node-executable <absolute-path>`. When supplied, the canonical service command is the exact Node executable followed by the runtime entry point and configuration argument. The Node executable must be a real executable regular file. The JavaScript entry point must be a real regular file but need not be executable. Omitting the option preserves the direct-executable contract.
 
-This avoids ambient `PATH` and shebang resolution without embedding Node in the standalone distribution or introducing a runtime-specific wrapper lifecycle. The renderer composes the command; the manager only validates and applies the exact rendered bytes.
+Repository Node service inspection reads direct-execution and explicit Node-plus-entry-point definitions for systemd and launchd. It retains the interpreter and runtime as separate coordinates, binds the complete definition hash, and rejects relative paths, additional arguments, duplicate invocation declarations, unsafe file permissions, and changed source bytes. Reading these coordinates grants no execution or writer authority.
 
-Provider adapters preserve the host environment but prepend the directory of the currently running Node executable to the child process path. This adapter launch guarantee is not service-manager inference: a configured Codex or Claude entrypoint using `#!/usr/bin/env node` must start identically from an interactive shell, systemd, or launchd, even when the manager supplies only a system path. The adapter does not guess another runtime, rewrite the configured provider executable, or publish environment values.
+This avoids ambient `PATH` and shebang resolution without embedding Node in the standalone distribution or adding a runtime-specific wrapper lifecycle. The renderer composes the command; the manager validates and applies only the exact rendered bytes.
+
+Provider adapters preserve the host environment and prepend the directory of the currently running Node executable to the child process path. This adapter launch guarantee is separate from service-manager inference: a configured Codex or Claude entrypoint using `#!/usr/bin/env node` must start identically from an interactive shell, systemd, or launchd, even when the manager supplies only a system path. The adapter does not guess another runtime, rewrite the configured provider executable, or publish environment values.
 
 ### Targets and conflicts
 

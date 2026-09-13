@@ -1,0 +1,40 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_89dd5e117f39269bf41473df
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_90dcbbc2599ac941882776a7
+outputLanguage: en
+outputs:
+  - byteCount: 285
+    contentHash: sha256:ad7ad04f91971598c6ffa6abc03c5c2af5a952c2d22619e942fbbb95fa1bb8e1
+    path: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/results.md
+    userRegionHash: sha256:ad7ad04f91971598c6ffa6abc03c5c2af5a952c2d22619e942fbbb95fa1bb8e1
+  - byteCount: 750
+    contentHash: sha256:6490e743a825f83e3eeb4071491cdedac8880f34e144f194cb8c10811c48fd19
+    path: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/results/proposals.md
+    userRegionHash: sha256:6490e743a825f83e3eeb4071491cdedac8880f34e144f194cb8c10811c48fd19
+  - byteCount: 418
+    contentHash: sha256:b46d1a0aa7e4687620ed6617c1e593c5d6b3234681f2edb6de4cb9a60432287e
+    path: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/results/reuse.md
+    userRegionHash: sha256:b46d1a0aa7e4687620ed6617c1e593c5d6b3234681f2edb6de4cb9a60432287e
+  - byteCount: 415
+    contentHash: sha256:884f3dd7b4a976fe727305119b2d66862d3bdba21d2b78aa3031e786abf70667
+    path: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/results/usage.md
+    userRegionHash: sha256:884f3dd7b4a976fe727305119b2d66862d3bdba21d2b78aa3031e786abf70667
+profile: specification_document
+recordId: knormdoc_a955dc346c597e1d76d4bb3b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:fdfe46af7d39ee882c6ac6008742ba880b59eb94fd63910dc54586d99cd7c816
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/results.md
+sourceUnitVersionIds:
+  - uv_31282575fd1e0f7c1e97390a
+  - uv_730b0dcce4388225496aa508
+  - uv_7d737b505431d44851f92c9c

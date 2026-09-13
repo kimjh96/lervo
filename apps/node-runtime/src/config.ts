@@ -1,3 +1,4 @@
+import { parseSupervisionStartupConfiguration } from "./supervision-startup-config.js";
 import { dirname, resolve } from "node:path";
 
 import { readOwnerOnlyText, RuntimeSecurityError } from "@lervo/runtime-security";
@@ -52,6 +53,7 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
   exactConfigKeys(
     source,
     [
+      "outcomeSupervision",
       "schemaVersion",
       "repositoryRoot",
       "hub",
@@ -206,6 +208,9 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
   }
   return {
     schemaVersion: 1,
+    ...(source.outcomeSupervision === undefined
+      ? {}
+      : { outcomeSupervision: parseSupervisionStartupConfiguration(source.outcomeSupervision) }),
     repositoryRoot: resolve(baseDirectory, configText(source.repositoryRoot, "repositoryRoot")),
     hub: {
       baseUrl: httpsUrl(hub.baseUrl),

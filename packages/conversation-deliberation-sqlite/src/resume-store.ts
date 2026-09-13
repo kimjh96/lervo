@@ -50,6 +50,16 @@ export class SQLiteConversationDeliberationResumeJobStore implements Conversatio
     this.path = path;
   }
 
+  nextWakeupAt(): number | null {
+    this.assertOpen();
+    const value = this.database
+      .prepare(
+        "SELECT MIN(CASE WHEN state = 'queued' THEN requested_at_ms ELSE lease_expires_at_ms END) AS next_at FROM conversation_deliberation_resume_jobs WHERE state IN ('queued', 'leased')",
+      )
+      .get()?.next_at;
+    return typeof value === "number" ? value : null;
+  }
+
   static async open(options: {
     path: string;
     maxRecords?: number;

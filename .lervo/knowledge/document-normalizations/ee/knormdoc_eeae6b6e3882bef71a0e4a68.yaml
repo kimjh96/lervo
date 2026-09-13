@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_89dd5e117f39269bf41473df
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_72eac600dbfc315a65acc560
+outputLanguage: en
+outputs:
+  - byteCount: 531
+    contentHash: sha256:6df49940beae86bfca4ec134eeed2833a3fa7413669ecbb067776c734c34f412
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup.md
+    userRegionHash: sha256:6df49940beae86bfca4ec134eeed2833a3fa7413669ecbb067776c734c34f412
+profile: specification_document
+recordId: knormdoc_eeae6b6e3882bef71a0e4a68
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d31c083e13463affff651f6e6ddca70a847558417ef716ba5dafd980991a707f
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup.md
+sourceUnitVersionIds:
+  - uv_cd5f28cd404d47510df98bc1

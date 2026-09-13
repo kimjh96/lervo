@@ -1,0 +1,47 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6d3326d725fdb10ee5951e59
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_af08f662ce2acac988f697f3
+outputLanguage: en
+outputs:
+  - byteCount: 712
+    contentHash: sha256:b61699d77d5b278462c998079cbc9ff9e2003dbf6aceb785fd48b3f4b332c2cf
+    path: docs/foundation/event-writer-rollout.md
+    userRegionHash: sha256:b61699d77d5b278462c998079cbc9ff9e2003dbf6aceb785fd48b3f4b332c2cf
+  - byteCount: 2817
+    contentHash: sha256:b722b3738bb55529b65f5eb7bc4643aa6641378cc7536d6506c943297d5af8b0
+    path: docs/foundation/event-writer-rollout/activation.md
+    userRegionHash: sha256:b722b3738bb55529b65f5eb7bc4643aa6641378cc7536d6506c943297d5af8b0
+  - byteCount: 393
+    contentHash: sha256:ba06418ead71b2d17d20975842f25c1c97fed77c685d22b271a7d55171053663
+    path: docs/foundation/event-writer-rollout/recovery.md
+    userRegionHash: sha256:ba06418ead71b2d17d20975842f25c1c97fed77c685d22b271a7d55171053663
+  - byteCount: 802
+    contentHash: sha256:fe1ec58d5982697e3f4db3087d8588a38ad3fdea83cf8052ccac54819bbde2cb
+    path: docs/foundation/event-writer-rollout/rollback.md
+    userRegionHash: sha256:fe1ec58d5982697e3f4db3087d8588a38ad3fdea83cf8052ccac54819bbde2cb
+  - byteCount: 1859
+    contentHash: sha256:479fe2dbc51a2602dec6ed9bb6d800c276245b2b2f8624163f2700053ed5a481
+    path: docs/foundation/event-writer-rollout/safety.md
+    userRegionHash: sha256:479fe2dbc51a2602dec6ed9bb6d800c276245b2b2f8624163f2700053ed5a481
+profile: repository_document
+recordId: knormdoc_ee2c0a8a646e872c79efdac9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6158a0b781998a36f43c55cd46e89d904b9415e0ea72bf42aec49c2480be9ada
+sourcePath: docs/foundation/event-writer-rollout.md
+sourceUnitVersionIds:
+  - uv_07665837cb57cf402210a8c6
+  - uv_18fdc5765103b888e9493a32
+  - uv_27abdd12df7d405eb64e8002
+  - uv_331f0723d420d59e676ca8d7
+  - uv_98a31162aa41a2689f3e4cdd
+  - uv_f72a4fc7a9db1d61c7101d74

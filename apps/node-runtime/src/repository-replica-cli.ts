@@ -1,3 +1,7 @@
+import {
+  publishRepositoryChangeHints,
+  watchReplicaReconciliation,
+} from "./repository-replica-watch.js";
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
@@ -106,21 +110,6 @@ async function readCoordinatorConfig(path: string): Promise<CoordinatorConfig> {
   return value;
 }
 
-async function wait(milliseconds: number, signal?: AbortSignal): Promise<void> {
-  if (signal?.aborted === true) return;
-  await new Promise<void>((resolveWait) => {
-    const timer = setTimeout(resolveWait, milliseconds);
-    signal?.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(timer);
-        resolveWait();
-      },
-      { once: true },
-    );
-  });
-}
-
 async function runCoordinator(
   config: CoordinatorConfig,
   ports: RepositoryReplicaCliPorts,
@@ -134,8 +123,16 @@ async function runCoordinator(
     peer,
   });
   let failed = false;
-  while (true) {
-    for (const repository of config.repositories) {
+  await watchReplicaReconciliation({
+    repositories: config.repositories.map((repository) => ({
+      ...repository,
+      localRoot: resolve(ports.cwd, repository.localRoot),
+    })),
+    peer,
+    fallbackIntervalMs: config.pollIntervalMs,
+    watch,
+    ...(ports.signal === undefined ? {} : { signal: ports.signal }),
+    reconcile: async (repository) => {
       try {
         const result = await coordinator.reconcile({
           replicaId: repository.replicaId,
@@ -158,10 +155,8 @@ async function runCoordinator(
           `Repository replica ${repository.replicaId} failed: ${error instanceof Error ? error.message : "unknown failure"}.\n`,
         );
       }
-    }
-    if (!watch || ports.signal?.aborted === true) break;
-    await wait(config.pollIntervalMs, ports.signal);
-  }
+    },
+  });
   return failed && !watch ? 2 : 0;
 }
 
@@ -170,6 +165,15 @@ export async function runRepositoryReplicaCli(
   ports: RepositoryReplicaCliPorts,
 ): Promise<number> {
   const action = args[0];
+  if (action === "watch") {
+    const root = resolve(ports.cwd, oneOption(args, "--root"));
+    await publishRepositoryChangeHints({
+      root,
+      write: ports.stdout,
+      ...(ports.signal === undefined ? {} : { signal: ports.signal }),
+    });
+    return 0;
+  }
   if (["snapshot", "bundle", "apply", "adopt", "receipt"].includes(action ?? "")) {
     const root = resolve(ports.cwd, oneOption(args, "--root"));
     if (action === "snapshot") {
@@ -213,6 +217,6 @@ export async function runRepositoryReplicaCli(
     return runCoordinator(config, ports, parsed.values.watch === true);
   }
   throw new Error(
-    "Usage: lervo-node repository-replica <snapshot|bundle|apply|adopt|receipt|reconcile> ...",
+    "Usage: lervo-node repository-replica <snapshot|bundle|apply|adopt|receipt|reconcile|watch> ...",
   );
 }

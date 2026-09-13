@@ -111,81 +111,112 @@ afterEach(async () => {
 });
 
 describe("conversation execution result runtime", () => {
-  it("recovers a durable terminal observation and delivers one verified result", async () => {
-    const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-result-"));
-    roots.push(root);
-    const path = resolve(root, "results.sqlite");
-    const artifacts = await FileSystemCas.open(resolve(root, "artifacts"));
-    let store = await SQLiteConversationResultStore.open(path);
-    await expect(store.register(origin)).resolves.toBe("created");
-    await expect(
-      store.observeTerminal({
-        lease: commandLease(),
-        terminal: {
-          acknowledgement: acknowledgement(),
-          observedAt: "2026-09-07T08:00:02.000Z",
-        },
-      }),
-    ).resolves.toBe("ready");
-    store.close();
-
-    store = await SQLiteConversationResultStore.open(path);
-    const delivered = vi.fn<ConversationAdapter["deliver"]>(async (outbound) => ({
-      schemaVersion: 1,
-      outboundId: outbound.outboundId,
-      integrationId: outbound.target.integrationId,
-      deliveryKeyHash: `sha256:${"b".repeat(64)}`,
-      deliveredAt: "2026-09-07T08:00:05.000Z",
-    }));
-    const runtime = new ConversationResultRuntime({
-      workerId: "result-worker",
-      store,
-      artifacts,
-      adapter: {
-        descriptor: {
-          schemaVersion: 1,
-          integrationId: origin.target.integrationId,
-          adapterKind: "discord",
-          instanceIdentityHash: `sha256:${"c".repeat(64)}`,
-          capabilities: ["messages.send"],
-        },
-        deliver: delivered,
-      },
-      source: {
-        read: vi.fn(async ({ runId }) => ({ runId, content: "The requested change is complete." })),
-      },
-      semanticEvaluator: {
-        evaluate: async (request) => ({
-          evaluator: { kind: "model", evaluatorId: "test.semantic-writing" },
-          checks: request.checks.map((check) => ({
-            checkId: check.checkId,
-            status: "passed" as const,
-            violationCount: 0,
-          })),
+  it.each([
+    { content: "The requested change is complete.", retry: false },
+    { content: "현재 자료에서는 두 방식의 차이를 확인했습니다.", retry: false },
+    { content: "A".repeat(2000), retry: false },
+    { content: "The result remains available while delivery is retried.", retry: true },
+  ])(
+    "delivers contextual result bytes across recovery (retry: $retry)",
+    async ({ content: resultText, retry }) => {
+      const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-result-"));
+      roots.push(root);
+      const path = resolve(root, "results.sqlite");
+      const artifacts = await FileSystemCas.open(resolve(root, "artifacts"));
+      let store = await SQLiteConversationResultStore.open(path);
+      await expect(store.register(origin)).resolves.toBe("created");
+      await expect(
+        store.observeTerminal({
+          lease: commandLease(),
+          terminal: {
+            acknowledgement: acknowledgement(),
+            observedAt: "2026-09-07T08:00:02.000Z",
+          },
         }),
-      },
-      now: () => new Date("2026-09-07T08:00:04.000Z"),
-    });
+      ).resolves.toBe("ready");
+      store.close();
 
-    await expect(runtime.runCycle()).resolves.toMatchObject({
-      status: "delivered",
-      deliveryId: origin.deliveryId,
-    });
-    await expect(runtime.runCycle()).resolves.toEqual({ status: "idle" });
-    expect(delivered).toHaveBeenCalledTimes(1);
-    const outbound = delivered.mock.calls[0]![0];
-    const bytes = await artifacts.get(
-      `lervo-cas://sha256/${outbound.content.contentHash.slice("sha256:".length)}`,
-    );
-    const content = new TextDecoder().decode(bytes);
-    expect(content).toContain("The work is complete and passed its required verification.");
-    expect(content).toContain("The requested change is complete.");
-    expect(content).not.toContain(origin.deliveryId);
-    expect(content).not.toContain("run_result_runtime_01");
-    expect(content).not.toContain(origin.assignmentId);
-    await expect(
-      runtime.observe({ lease: commandLease("d"), acknowledgement: acknowledgement("d") }),
-    ).resolves.toBe("duplicate");
-    runtime.close();
-  });
+      store = await SQLiteConversationResultStore.open(path);
+      const delivered = vi.fn<ConversationAdapter["deliver"]>(async (outbound) => ({
+        schemaVersion: 1,
+        outboundId: outbound.outboundId,
+        integrationId: outbound.target.integrationId,
+        deliveryKeyHash: `sha256:${"b".repeat(64)}`,
+        deliveredAt: "2026-09-07T08:00:05.000Z",
+      }));
+      const sourceRead = vi.fn(async ({ runId }: { runId: string }) => ({
+        runId,
+        content: resultText,
+      }));
+      let evaluationCount = 0;
+      let clock = "2026-09-07T08:00:04.000Z";
+      const makeRuntime = () =>
+        new ConversationResultRuntime({
+          workerId: "result-worker",
+          store,
+          artifacts,
+          adapter: {
+            descriptor: {
+              schemaVersion: 1,
+              integrationId: origin.target.integrationId,
+              adapterKind: "discord",
+              instanceIdentityHash: `sha256:${"c".repeat(64)}`,
+              capabilities: ["messages.send"],
+            },
+            deliver: delivered,
+          },
+          source: {
+            read: sourceRead,
+          },
+          semanticEvaluator: {
+            evaluate: async (request) => {
+              evaluationCount++;
+              return {
+                evaluator: { kind: "model", evaluatorId: "test.semantic-writing" },
+                checks: request.checks.map((check) => ({
+                  checkId: check.checkId,
+                  status: "passed" as const,
+                  violationCount: 0,
+                })),
+              };
+            },
+          },
+          now: () => new Date(clock),
+        });
+
+      let runtime = makeRuntime();
+      if (retry) {
+        delivered.mockRejectedValueOnce(new Error("transport_unavailable"));
+        await expect(runtime.runCycle()).resolves.toMatchObject({ status: "retry_scheduled" });
+        expect(sourceRead).toHaveBeenCalledTimes(1);
+        expect(evaluationCount).toBe(1);
+        runtime.close();
+        store = await SQLiteConversationResultStore.open(path);
+        clock = "2026-09-07T08:00:10.000Z";
+        runtime = makeRuntime();
+      }
+      await expect(runtime.runCycle()).resolves.toMatchObject({
+        status: "delivered",
+        deliveryId: origin.deliveryId,
+      });
+      await expect(runtime.runCycle()).resolves.toEqual({ status: "idle" });
+      expect(delivered).toHaveBeenCalledTimes(retry ? 2 : 1);
+      expect(sourceRead).toHaveBeenCalledTimes(1);
+      expect(evaluationCount).toBe(1);
+      if (retry) expect(delivered.mock.calls[1]![0]).toEqual(delivered.mock.calls[0]![0]);
+      const outbound = delivered.mock.calls[0]![0];
+      const bytes = await artifacts.get(
+        `lervo-cas://sha256/${outbound.content.contentHash.slice("sha256:".length)}`,
+      );
+      const content = new TextDecoder().decode(bytes);
+      expect(content).toBe(resultText);
+      expect(content).not.toContain(origin.deliveryId);
+      expect(content).not.toContain("run_result_runtime_01");
+      expect(content).not.toContain(origin.assignmentId);
+      await expect(
+        runtime.observe({ lease: commandLease("d"), acknowledgement: acknowledgement("d") }),
+      ).resolves.toBe("duplicate");
+      runtime.close();
+    },
+  );
 });

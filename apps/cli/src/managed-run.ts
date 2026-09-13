@@ -1,4 +1,14 @@
 import { createHash, randomUUID } from "node:crypto";
+import { isAbsolute } from "node:path";
+import { reserveManagedExecution } from "./managed-execution-reservation.js";
+import {
+  admitSupervisedManagedRun,
+  guardSupervisedProviderStart,
+} from "./supervised-managed-run.js";
+import {
+  resolveSupervisedManagedWorkspace,
+  type SupervisedManagedInvocation,
+} from "@lervo/node-runtime";
 
 import type { ProviderAdapter } from "@lervo/adapter-contract";
 import { assertAssignmentExecutionAuthority } from "@lervo/agent-workforce";
@@ -32,6 +42,7 @@ import {
 } from "./managed-writing-evaluator.js";
 import { finalizeImmediateManagedAssignment } from "./managed-run-assignment-finalization.js";
 import { prepareManagedRunWritingPolicy } from "./managed-run-writing-policy.js";
+import { prepareManagedResearchContext } from "./managed-research-context.js";
 import { recordManagedRoleProfileActivation } from "./managed-role-profile-activation.js";
 import {
   executeManagedLinkedEvidenceCanary,
@@ -64,6 +75,9 @@ export interface ManagedRunRequest {
   expectedPath?: string;
   expectedPaths?: readonly string[];
   instructions: string;
+  executionKey?: string;
+  providerExecutable?: string;
+  supervisedInvocation?: SupervisedManagedInvocation;
   risk: string;
   skillIds?: readonly string[];
   capabilityIds?: readonly string[];
@@ -102,6 +116,7 @@ export interface ManagedRunDependencies {
     resolveArtifact: (uri: string) => Promise<Uint8Array>;
     structuredOutputSchema?: Record<string, unknown>;
     selectionBoundary?: "read_only_no_tools";
+    executable?: string;
   }): ProviderAdapter;
   createId(prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn"): string;
   userSkillRoot?: string;
@@ -114,6 +129,7 @@ export interface ManagedRunDependencies {
     repositoryRoot: string;
     suiteIds: readonly string[];
     artifactStore: ProjectStorage["artifacts"];
+    research?: { inputArtifactHash: string; casRoot: string };
     now?: () => Date;
   }): Promise<PreparedRunVerification>;
   groundProductionRequest?: GroundProductionRequest;
@@ -164,9 +180,11 @@ const defaultDependencies: ManagedRunDependencies = {
     resolveArtifact,
     structuredOutputSchema,
     selectionBoundary,
+    executable,
   }) =>
     provider === "codex"
       ? new CodexAdapter({
+          ...(executable === undefined ? {} : { executable }),
           repositoryRoot,
           resolveArtifact,
           ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
@@ -187,6 +205,7 @@ const defaultDependencies: ManagedRunDependencies = {
             : {}),
         })
       : new ClaudeAdapter({
+          ...(executable === undefined ? {} : { executable }),
           repositoryRoot,
           resolveArtifact,
           ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
@@ -212,6 +231,12 @@ export function createManagedRunExecutor(
     const roleId = request.roleId ?? "developer";
     if (
       instructions.length === 0 ||
+      (request.executionKey !== undefined &&
+        !/^sha256:[a-f0-9]{64}$/u.test(request.executionKey)) ||
+      (request.providerExecutable !== undefined &&
+        (!isAbsolute(request.providerExecutable) ||
+          request.providerExecutable.includes("\0") ||
+          request.providerExecutable.length > 4096)) ||
       request.risk.trim().length === 0 ||
       new Set(verificationSuiteIds).size !== verificationSuiteIds.length ||
       verificationSuiteIds.length === 0 ||
@@ -233,6 +258,26 @@ export function createManagedRunExecutor(
     let executionFailure: unknown;
     try {
       storage = await dependencies.openStorage(request.repositoryRoot);
+      const reserve = () =>
+        reserveManagedExecution(storage!, request, dependencies.now?.() ?? new Date());
+      const identity =
+        request.supervisedInvocation === undefined
+          ? reserve()
+          : await admitSupervisedManagedRun({
+              storage,
+              request,
+              invocation: request.supervisedInvocation,
+              now: () => (dependencies.now?.() ?? new Date()).toISOString(),
+              commit: reserve,
+            });
+      const executionRepositoryRoot =
+        request.supervisedInvocation === undefined
+          ? storage.paths.repositoryRoot
+          : await resolveSupervisedManagedWorkspace(
+              storage.paths.repositoryRoot,
+              request.supervisedInvocation,
+              dependencies.now?.() ?? new Date(),
+            );
       const roleContract = await resolveRoleContract(storage.paths.repositoryRoot, roleId);
       let workforceAgent: WorkforceAgent | undefined;
       if (request.workforce !== undefined) {
@@ -257,8 +302,12 @@ export function createManagedRunExecutor(
           );
       }
       const knowledgePolicy = await loadRepositoryKnowledgePolicy(storage.paths.repositoryRoot);
+      const currentWorkstream = await verifiedCurrentWorkstream(storage);
+      if (request.supervisedInvocation !== undefined && currentWorkstream === null)
+        throw new Error("Supervised execution requires its canonical workstream context.");
       const writingContract = writingContractForLanguage(knowledgePolicy.publication.language);
-      let registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
+      const repositoryRegistry = await loadDocumentRegistry(storage.paths.repositoryRoot);
+      let registry = repositoryRegistry;
       const role =
         roleId === "developer"
           ? createDeveloperRole(skillIds, verificationSuiteIds)
@@ -274,10 +323,27 @@ export function createManagedRunExecutor(
         verifiedAt: storage.manifest.createdAt,
       });
       registry = managedWriting.registry;
+      const research = await prepareManagedResearchContext({
+        repositoryRoot: storage.paths.repositoryRoot,
+        projectId: storage.manifest.projectId,
+        role,
+        roleContractHash: roleContract.contractHash,
+        researchQuestion:
+          request.supervisedInvocation?.effect.responsibility.taskPurpose ?? instructions,
+        expectedPaths,
+        registry,
+        artifacts: storage.artifacts,
+        now: () => (dependencies.now?.() ?? new Date()).toISOString(),
+      });
+      if (research !== null) registry = research.registry;
       const capabilityIds =
         requestedCapabilityIds.length === 0
           ? [...(role.defaultCapabilityPackages ?? [])]
           : requestedCapabilityIds;
+      if (request.supervisedInvocation !== undefined && capabilityIds.length > 0)
+        throw new TypeError(
+          "Supervised execution requires explicitly reviewed capability packages.",
+        );
       const runCapabilities = await resolveRunCapabilities({
         repositoryRoot: storage.paths.repositoryRoot,
         projectId: storage.manifest.projectId,
@@ -286,6 +352,7 @@ export function createManagedRunExecutor(
         capabilityIds,
         query: instructions,
         selectGroundedCapabilityIds: async (candidates) => {
+          if (request.supervisedInvocation !== undefined) return [];
           const grounded = await (
             dependencies.groundProductionRequest ?? defaultDependencies.groundProductionRequest!
           )({
@@ -347,7 +414,6 @@ export function createManagedRunExecutor(
       }
       skillIds = [...new Set([...skillIds, ...runCapabilities.skillIds])].sort();
       role.defaultSkills = [...skillIds];
-      const currentWorkstream = await verifiedCurrentWorkstream(storage);
       const workCausality = resolveManagedRunCausality({
         ...(request.workCausality === undefined ? {} : { requested: request.workCausality }),
         currentWorkstream,
@@ -372,6 +438,14 @@ export function createManagedRunExecutor(
         repositoryRoot: storage.paths.repositoryRoot,
         suiteIds: verificationSuiteIds,
         artifactStore: storage.artifacts,
+        ...(research === null
+          ? {}
+          : {
+              research: {
+                inputArtifactHash: research.binding.inputArtifactHash,
+                casRoot: storage.paths.cas,
+              },
+            }),
         ...(dependencies.now === undefined ? {} : { now: dependencies.now }),
       });
       const preparedSkills = await resolveRunSkills({
@@ -391,6 +465,7 @@ export function createManagedRunExecutor(
       const resolvedSkills = preparedSkills.resolved;
       const providerInstructions = [
         baseProviderInstructions,
+        ...(research === null ? [] : [research.instructions]),
         ...preparedSkills.instructionBlocks.map((skill) =>
           [
             "",
@@ -402,8 +477,8 @@ export function createManagedRunExecutor(
         ),
       ].join("\n");
       const policyVersion = digest(JSON.stringify(role));
-      const runId = dependencies.createId("run");
-      const sessionId = dependencies.createId("ses");
+      const runId = identity?.runId ?? dependencies.createId("run");
+      const sessionId = identity?.sessionId ?? dependencies.createId("ses");
       const searchContext = await prepareManagedSearchContext({
         repositoryRoot: storage.paths.repositoryRoot,
         projectId: storage.manifest.projectId,
@@ -414,7 +489,8 @@ export function createManagedRunExecutor(
         ...(dependencies.createSearchNonce === undefined
           ? {}
           : { nonce: dependencies.createSearchNonce() }),
-        documentRegistry: registry,
+        documentRegistry:
+          request.supervisedInvocation === undefined ? registry : repositoryRegistry,
       });
       if (request.linkedEvidenceCanaryAuthorization !== undefined) {
         const authorization = request.linkedEvidenceCanaryAuthorization;
@@ -445,7 +521,10 @@ export function createManagedRunExecutor(
                 now: dependencies.now ?? (() => new Date()),
               });
         linkedEvidenceSelections = linkedEvidenceCanary.selections;
-      } else if (dependencies.resolveExperimentalLinkedEvidenceSelection !== undefined) {
+      } else if (
+        request.supervisedInvocation === undefined &&
+        dependencies.resolveExperimentalLinkedEvidenceSelection !== undefined
+      ) {
         linkedEvidenceSelections = await dependencies.resolveExperimentalLinkedEvidenceSelection({
           repositoryRoot: storage.paths.repositoryRoot,
           runId,
@@ -454,11 +533,27 @@ export function createManagedRunExecutor(
           graphRecommendations: searchContext.graphRecommendations,
         });
       }
-      const adapter = dependencies.createAdapter({
+      const primaryAdapter = dependencies.createAdapter({
         provider: request.provider,
-        repositoryRoot: storage.paths.repositoryRoot,
+        ...(request.providerExecutable === undefined
+          ? {}
+          : { executable: request.providerExecutable }),
+        repositoryRoot: executionRepositoryRoot,
         resolveArtifact: (uri) => storage!.artifacts.get(uri),
       });
+      const adapter =
+        request.supervisedInvocation === undefined
+          ? primaryAdapter
+          : guardSupervisedProviderStart(primaryAdapter, () =>
+              admitSupervisedManagedRun({
+                storage: storage!,
+                request,
+                invocation: request.supervisedInvocation!,
+                executionRepositoryRoot,
+                now: () => (dependencies.now?.() ?? new Date()).toISOString(),
+                commit: () => undefined,
+              }),
+            );
       const coordinator = new ManagedProviderRunCoordinator({
         adapter,
         artifactStore: storage.artifacts,
@@ -477,8 +572,12 @@ export function createManagedRunExecutor(
         runCapabilities.recommendations.map((recommendation) => recommendation.capabilityId),
       );
       const result = await coordinator.run({
-        repositoryRoot: storage.paths.repositoryRoot,
+        repositoryRoot: executionRepositoryRoot,
+        ...(request.supervisedInvocation === undefined
+          ? {}
+          : { contextRepositoryRoot: storage.paths.repositoryRoot }),
         workCausality,
+        ...(research === null ? {} : { roleInput: research.binding }),
         requestDigest: digest(instructions),
         risk: request.risk.trim(),
         instructions: providerInstructions,
@@ -498,6 +597,7 @@ export function createManagedRunExecutor(
               : { linkedEvidenceSelections }),
           documentRules: {
             ...managedWriting.documentRules,
+            ...(research?.documentRules ?? {}),
             ...(currentWorkstream === null
               ? {}
               : { "repository.workstream": [workstreamDocumentId] }),
@@ -572,19 +672,21 @@ export function createManagedRunExecutor(
           contract: writingContract,
           surface: "chat",
           artifactStore: storage.artifacts,
-          ...(dependencies.semanticEvaluator !== undefined
-            ? { semanticEvaluator: dependencies.semanticEvaluator }
-            : dependencies.createSemanticEvaluator === undefined
-              ? {}
-              : {
-                  semanticEvaluator: dependencies.createSemanticEvaluator({
-                    provider: request.provider,
-                    projectId: storage.manifest.projectId,
-                    createAdapter: dependencies.createAdapter,
-                    createId: dependencies.createId,
-                    now: dependencies.now ?? (() => new Date()),
+          ...(request.supervisedInvocation !== undefined
+            ? {}
+            : dependencies.semanticEvaluator !== undefined
+              ? { semanticEvaluator: dependencies.semanticEvaluator }
+              : dependencies.createSemanticEvaluator === undefined
+                ? {}
+                : {
+                    semanticEvaluator: dependencies.createSemanticEvaluator({
+                      provider: request.provider,
+                      projectId: storage.manifest.projectId,
+                      createAdapter: dependencies.createAdapter,
+                      createId: dependencies.createId,
+                      now: dependencies.now ?? (() => new Date()),
+                    }),
                   }),
-                }),
         },
         dependencies.now === undefined ? {} : { now: dependencies.now },
       );

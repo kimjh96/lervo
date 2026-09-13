@@ -14,7 +14,7 @@ import { canonicalJson } from "@lervo/event-contract";
 import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
 import { Ed25519PolicySigner } from "@lervo/policy";
 import { createPolicySnapshot } from "@lervo/policy-contract";
-import { loadProjectManifest } from "@lervo/project";
+import { createEventWriterActivationId, loadProjectManifest } from "@lervo/project";
 import { Ed25519RemoteCommandSigner } from "@lervo/remote-command";
 import {
   createRemoteCommand,
@@ -112,6 +112,41 @@ async function startHub(path: string, port: number): Promise<HubSyncSQLiteStore>
 }
 
 describe("installed Node sync runtime", () => {
+  it.each([2, 3] as const)(
+    "opens its persistent writer at the selected repository version %i",
+    async (version) => {
+      const root = await temporaryRoot();
+      const fixture = await nodeRuntimeFixture(root, await availablePort());
+      const path = resolve(fixture.repositoryRoot, ".lervo/data/event-contract.json");
+      const coordinate = JSON.parse(await readFile(path, "utf8"));
+      if (version === 3) {
+        coordinate.schemaVersion = 2;
+        coordinate.selectedEventSchemaVersion = 3;
+        for (const reader of coordinate.activationEvidence.readers)
+          reader.capabilities.readableEventSchemaVersions = [1, 2, 3];
+        coordinate.activationEvidence.activationId = createEventWriterActivationId({
+          projectId: coordinate.projectId,
+          observedAt: coordinate.activationEvidence.observedAt,
+          configurationHash: coordinate.activationEvidence.configurationHash,
+          readers: coordinate.activationEvidence.readers,
+          targetEventSchemaVersion: 3,
+        });
+        await writeFile(path, JSON.stringify(coordinate));
+      }
+      const opened = vi.spyOn(SQLiteEventStore, "open");
+      try {
+        const deployment = await openNodeRuntime(await loadNodeRuntimeConfig(fixture.configPath));
+        deployments.push(deployment);
+        const selected = opened.mock.calls.filter(([input]) => input.path === fixture.databasePath);
+        expect(selected.length).toBeGreaterThanOrEqual(2);
+        expect(selected.every(([input]) => input.writableEventSchemaVersion === version)).toBe(
+          true,
+        );
+      } finally {
+        opened.mockRestore();
+      }
+    },
+  );
   it("automatically publishes a workstream and imports it on another authorized repository node", async () => {
     const hubRoot = await temporaryRoot();
     const port = await availablePort();

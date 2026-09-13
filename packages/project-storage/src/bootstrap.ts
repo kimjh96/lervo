@@ -54,9 +54,10 @@ class OpenedProjectStorage implements ProjectStorage {
   constructor(
     readonly manifest: ProjectStorage["manifest"],
     readonly paths: ProjectStorage["paths"],
-    readonly writableEventSchemaVersion: 1 | 2,
+    readonly writableEventSchemaVersion: 1 | 2 | 3,
     readonly events: OutboxStore,
     readonly artifacts: CloseableArtifactStore,
+    readonly readOnly = false,
   ) {}
 
   close(): Promise<void> {
@@ -110,3 +111,38 @@ export function createProjectStorageOpener(
 }
 
 export const openProjectStorage = createProjectStorageOpener(defaultBackends);
+
+/** Observes a peer repository with existing stores; the owning Node retains every write and migration. */
+export async function openReadOnlyProjectStorage(root: string): Promise<ProjectStorage> {
+  const paths = resolveProjectPaths(root);
+  await validateRepositoryRoot(paths);
+  const manifest = await loadProjectManifest(paths.repositoryRoot);
+  await validateProjectStorageLayout(paths);
+  const writer = await inspectEventWriterCoordinate(paths.repositoryRoot);
+  const events = await SQLiteEventStore.openReadOnly({
+    path: paths.eventDatabase,
+    projectId: manifest.projectId,
+  });
+  try {
+    const artifacts = await FileSystemCas.openReadOnly(paths.cas);
+    return new OpenedProjectStorage(
+      manifest,
+      paths,
+      writer.coordinate.selectedEventSchemaVersion,
+      events,
+      artifacts,
+      true,
+    );
+  } catch (openError) {
+    try {
+      await closeResources(events);
+    } catch (cleanupError) {
+      throw new ProjectStorageError(
+        "cleanup_failed",
+        "Read-only artifact storage failed to open, and event storage also failed to close.",
+        { cause: new AggregateError([openError, cleanupError]) },
+      );
+    }
+    throw openError;
+  }
+}

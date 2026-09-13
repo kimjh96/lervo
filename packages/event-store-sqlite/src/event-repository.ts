@@ -25,7 +25,7 @@ export class SQLiteEventRepository {
   constructor(
     private readonly database: DatabaseSync,
     private readonly projectId: string,
-    private readonly writableEventSchemaVersion: 1 | 2,
+    private readonly writableEventSchemaVersion: 1 | 2 | 3,
   ) {}
 
   append(draft: EventDraft): AppendEventResult {
@@ -56,10 +56,10 @@ export class SQLiteEventRepository {
       }
       return { event: existing, inserted: false, redactions: sanitized.redactions };
     }
-    if (this.writableEventSchemaVersion === 1 && draft.schemaVersion !== 1) {
+    if (draft.schemaVersion > this.writableEventSchemaVersion) {
       throw new EventStoreError(
         "event_schema_unsupported",
-        "This writer emits only event schema version 1.",
+        "The requested event schema exceeds this writer activation.",
       );
     }
 

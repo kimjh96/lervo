@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8205338e66986f9591fdd64c
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7a5fc84e27be38ae138436b4
+outputLanguage: en
+outputs:
+  - byteCount: 1421
+    contentHash: sha256:36f33aff9f1d7dbef8f5b4afc7f3c78c39ad9393ac79a8dd79b3fd0a6782c44d
+    path: docs/specifications/execution/provider-adapters/telemetry/selection-only-responses-transport.md
+    userRegionHash: sha256:36f33aff9f1d7dbef8f5b4afc7f3c78c39ad9393ac79a8dd79b3fd0a6782c44d
+profile: specification_document
+recordId: knormdoc_4c5f4c18f6421d7db71c9222
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7dafc77088499fc72bd94224b71dee5b8c1d25e6c7513b6ed27a49dd1ce17b71
+sourcePath: docs/specifications/execution/provider-adapters/telemetry/selection-only-responses-transport.md
+sourceUnitVersionIds:
+  - uv_c81c0385465629415fe09806

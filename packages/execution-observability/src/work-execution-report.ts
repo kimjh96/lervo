@@ -1,9 +1,13 @@
-import { assertExecutionStageSet, validateWorkCausalityHistory } from "@lervo/execution-contract";
+import {
+  assertExecutionStageSet,
+  readResourceUsageEventPayload,
+  validateWorkCausalityHistory,
+  type ReadResourceUsagePayload,
+} from "@lervo/execution-contract";
 import {
   type ExecutionStagesObservedEventPayload,
   type EventEnvelope,
   type ResourceUsage,
-  type ResourceUsageRecordedEventPayload,
   type WorkExecutionReport,
   validateSchema,
 } from "@lervo/schemas";
@@ -108,15 +112,14 @@ export function projectWorkExecutionReport(input: {
 
   const observationById = new Map<
     string,
-    { runId: string; provider: string; payload: ResourceUsageRecordedEventPayload }
+    { runId: string; provider: string; payload: ReadResourceUsagePayload }
   >();
   const descriptorBySource = new Map<string, string>();
   for (const event of workEvents.filter((item) => item.type === "resource.usage.recorded")) {
-    const validation = validateSchema("resourceUsageRecordedEventPayload", event.payload);
-    const payload = event.payload as ResourceUsageRecordedEventPayload;
+    const payload = readResourceUsageEventPayload(event);
     const runProvider = runs.find((run) => run.runId === event.runId)?.provider ?? null;
     if (
-      !validation.valid ||
+      payload === null ||
       payload.workId !== input.workId ||
       (payload.source === "provider_reported" &&
         (event.actor.provider === undefined || event.actor.provider !== runProvider))

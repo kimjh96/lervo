@@ -87,6 +87,33 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
       throw new InteractionSQLiteError("closed", "The Interaction SQLite store is closed.");
   }
 
+  /** Advisory scheduling only; claiming still validates scope, state, and leases. */
+  nextWakeupAt(
+    integrationId: string,
+    bindings?: readonly { policyId: string; roleId: string }[],
+  ): number | null {
+    this.assertOpen();
+    const inbox = bindings === undefined ? [{}] : bindings;
+    const values = inbox.map((binding) => {
+      const scoped = "policyId" in binding;
+      return this.database
+        .prepare(
+          `SELECT MIN(CASE WHEN status = 'pending' THEN available_at_ms ELSE lease_expires_at_ms END) AS next_at FROM conversation_inbox WHERE integration_id = ? AND status IN ('pending', 'leased')${scoped ? " AND policy_id = ? AND role_id = ?" : ""}`,
+        )
+        .get(...(scoped ? [integrationId, binding.policyId, binding.roleId] : [integrationId]))
+        ?.next_at;
+    });
+    values.push(
+      this.database
+        .prepare(
+          "SELECT MIN(CASE WHEN status = 'pending' THEN available_at_ms ELSE lease_expires_at_ms END) AS next_at FROM conversation_outbox WHERE integration_id = ? AND status IN ('pending', 'leased')",
+        )
+        .get(integrationId)?.next_at,
+    );
+    const deadlines = values.filter((value): value is number => typeof value === "number");
+    return deadlines.length === 0 ? null : Math.min(...deadlines);
+  }
+
   async claimInbound(input: {
     event: ConversationInboundEvent;
     policy: ConversationParticipationPolicy;

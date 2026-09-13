@@ -1,3 +1,4 @@
+import type { ConversationAdapter } from "@lervo/conversation-contract";
 import type { ConversationRemoteContinuationPort } from "@lervo/conversation-control";
 import type { DiscordGatewayTransport } from "@lervo/discord-gateway";
 import type { ConversationResponder } from "@lervo/interaction";
@@ -13,6 +14,7 @@ import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-
 
 export interface NodeDiscordConversationRuntime {
   readonly failed: Promise<void>;
+  resultAdapter?(integrationId: string): ConversationAdapter | null;
   observeRemoteAcknowledgement(input: {
     lease: RemoteCommandLease;
     acknowledgement: RemoteCommandDeliveryAcknowledgement;
@@ -48,7 +50,7 @@ export interface NodeDiscordConversationRuntimeOptions {
   agentParticipation?: DiscordAgentParticipation;
   peerAgents?: DiscordPeerAgentBinding[];
   gatewayTransport?: DiscordGatewayTransport;
-  repositoryEvents?: Pick<EventStore, "latest" | "list">;
+  repositoryEvents?: Pick<EventStore, "latest" | "list"> & { readonly path?: string };
   fetch?: typeof globalThis.fetch;
   onError?(error: Error): void;
   onReady(): void | Promise<void>;

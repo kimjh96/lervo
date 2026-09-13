@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_195930275a576a9b30c502b5"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add stable managed execution keys, atomic duplicate admission, bounded stdin requests, explicit multi-file CLI targets, and primary provider executable selection."

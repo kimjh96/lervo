@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_136b3466e2c05777be819025
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_96df329917fdf1f0409fb1f0
+outputLanguage: en
+outputs:
+  - byteCount: 963
+    contentHash: sha256:3998ea0c8f78659034e06e5a902d07283f0e12cc31b5707c8d9866f424127bc6
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/approved-discord-acceptance.md
+    userRegionHash: sha256:3998ea0c8f78659034e06e5a902d07283f0e12cc31b5707c8d9866f424127bc6
+  - byteCount: 1100
+    contentHash: sha256:4e7dde35c802de34eb670567f94badb6c5b8c3bc2acb8730bf202c1c17788677
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/approved-discord-acceptance/corrections.md
+    userRegionHash: sha256:4e7dde35c802de34eb670567f94badb6c5b8c3bc2acb8730bf202c1c17788677
+  - byteCount: 1797
+    contentHash: sha256:005e1339b4b779d6f7aedfcb0e400e9cb79b7ea84c698b385015e021bffd0f16
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/approved-discord-acceptance/receipts.md
+    userRegionHash: sha256:005e1339b4b779d6f7aedfcb0e400e9cb79b7ea84c698b385015e021bffd0f16
+  - byteCount: 3494
+    contentHash: sha256:560df54c52ba658a62d08954d84e980459b0a0f8815364ffcc38bc578e4473bd
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/approved-discord-acceptance/scenario-results.md
+    userRegionHash: sha256:560df54c52ba658a62d08954d84e980459b0a0f8815364ffcc38bc578e4473bd
+profile: repository_document
+recordId: knormdoc_3ba410f89fac2c130dea7775
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2d9ef05dd0371eecd9433a733475e961a1934f9cb39ee198a5be6381c9a8b383
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/approved-discord-acceptance.md
+sourceUnitVersionIds:
+  - uv_1ffabd099852b5662887940e
+  - uv_2c5c34ca7dc45be5176ef140
+  - uv_3c3672ba155fb9cb7921da4b
+  - uv_735a69d105f2c821a4612fd1

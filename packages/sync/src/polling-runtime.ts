@@ -11,6 +11,7 @@ export interface OutboundSyncLoopOptions {
   signal: AbortSignal;
   idlePollIntervalMs?: number;
   wait?: OutboundSyncPollingWaitPort;
+  waitForIdleChange?: (signal: AbortSignal) => Promise<void>;
   nowMilliseconds?: () => number;
   onCycle?: (result: SyncCycleResult) => void | Promise<void>;
 }
@@ -81,7 +82,14 @@ export async function runOutboundSyncLoop(
     cycleCount += 1;
     await options.onCycle?.(structuredClone(lastCycle));
     if (options.signal.aborted) break;
-    await wait.wait(retryDelay(lastCycle, { idlePollIntervalMs, nowMilliseconds }), options.signal);
+    if (lastCycle.status === "idle" && options.waitForIdleChange !== undefined) {
+      await options.waitForIdleChange(options.signal);
+    } else {
+      await wait.wait(
+        retryDelay(lastCycle, { idlePollIntervalMs, nowMilliseconds }),
+        options.signal,
+      );
+    }
   }
   return { status: "stopped", cycleCount, lastCycle };
 }

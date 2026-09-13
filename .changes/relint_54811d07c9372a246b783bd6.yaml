@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_54811d07c9372a246b783bd6"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reuse one verified read-only store during dispatch readiness so retained workspace checks preserve short authority windows without repeating full store audits."

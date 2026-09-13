@@ -49,7 +49,10 @@ export function admitManagedWorkCausality(input: {
   coordinates: ManagedRunCoordinates;
   request?: ManagedWorkCausalityInput;
   occurredAt: string;
-}): { payload: WorkCausalityRecordedEventPayload; spec: ManagedEventSpec } {
+}): {
+  payload: WorkCausalityRecordedEventPayload;
+  spec: ManagedEventSpec & { type: "work.causality.recorded"; schemaVersion: 2 };
+} {
   const payload = resolveManagedWorkCausality(input);
   const eventId = workCausalityEventId(input.coordinates.projectId, input.coordinates.runId);
   const events = collectProjectEventsBounded({

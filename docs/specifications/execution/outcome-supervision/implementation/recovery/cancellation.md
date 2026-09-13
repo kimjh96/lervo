@@ -1,0 +1,15 @@
+# Canonical cancellation reconciliation
+
+The workstream snapshot, recorded snapshot event, and replication head accept `cancelled` alongside `active`, `blocked`, and `completed`. A cancelled workstream records a request to stop admission. The supervision report reaches `cancelled` only after reconciling its scoped assignments and effects. Cancellation does not mean successful acceptance or publication.
+
+Readers may inspect exact installed authority after mandate expiry or revocation. They must still validate repository identity, owner ancestry, role bindings, installation history, source hashes, and the bounded observation interval. Admission uses a separate active-authority reader and continues to reject expired or revoked mandates. Missing authority evidence remains unavailable.
+
+When no decision is unresolved, the serialized owner reconciles one queued or blocked assignment per cycle. Cleanup requires canonical workstream cancellation, membership in the exact mandate work scope, the initial assignment revision, no assignment lease, no managed attempt, and no claim, responsibility binding, or work-causality event for the assignment. Thus, only work that has never acquired execution authority is eligible. Cleanup invokes neither owner reasoning nor a worker. Expired leases and requested runs remain unresolved; neither constitutes absence evidence.
+
+The existing assignment cancellation plan binds the exact revision and dependency state. Its locked mutation rechecks the task and authority sources. The canonical event commit also checks the owner fence, workstream hash, installation event, agents, expected assignment bytes, and unchanged event head. A failed event restores the assignment. After restart, the recorded cancellation is consumed without repetition.
+
+`work.supervision.cancellation` is a version-1 local CAS proof. It requires the supervision, workstream, owner, mandate, and project coordinates; source-revision digest; workstream snapshot hash; causal snapshot event IDs; predecessor assignment hash; and exact cancellation plan. Its hash determines the cancellation event identity and policy coordinate. It contains only identifiers, hashes, statuses, and bounded plan fields—never task prose, paths, credentials, provider output, or usage estimates. The existing `assignment.cancelled` event payload remains unchanged. Missing or changed sources produce no successful cleanup receipt and preserve unresolved work and reservations.
+
+An unstarted cancelled assignment is reconciled only when its current revision and update time match a canonical cancellation event. A cancelled workstream with an expired lease remains `recovering` and emits `cancellation_requires_effect_reconciliation` attention. Provider termination and resource accounting retain their independent evidence contracts.
+
+`cancelled` is an additive status value in the current workstream wire schemas. Older readers that do not recognize it reject the snapshot. Upgrade participating CLI, Node, and Hub readers before transmitting cancellation. Do not translate it to `completed` or overwrite divergent history.

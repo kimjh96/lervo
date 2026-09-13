@@ -18,6 +18,13 @@ function coordinateOf(request: ProjectRegistrationRequest): HubProjectCoordinate
 export class HubRegistrationSQLiteRepository {
   constructor(private readonly database: DatabaseSync) {}
 
+  matchesIdentity(input: HubProjectCoordinate & { repositoryIdentityHash: string }): boolean {
+    const row = this.database
+      .prepare("SELECT identity_hash FROM hub_projects WHERE destination_id = ? AND project_id = ?")
+      .get(input.destinationId, input.projectId);
+    return row?.identity_hash === input.repositoryIdentityHash;
+  }
+
   register(input: {
     request: ProjectRegistrationRequest;
     acceptedAt: string;

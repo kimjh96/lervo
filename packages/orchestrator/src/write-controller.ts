@@ -144,7 +144,7 @@ export class ManagedWriteController {
     }
     let expectedBeforeHash: string | null = null;
     if (capabilityDecision === "allow") {
-      const repositoryRoot = this.state.repositoryRoot;
+      const repositoryRoot = this.state.writeRepositoryRoot;
       if (repositoryRoot === undefined) {
         throw new ManagedContextError(
           "invalid_state",
@@ -207,7 +207,7 @@ export class ManagedWriteController {
     this.state.assertPhase("write_authorized");
     this.state.assertPermit(input.permit);
     const provider = this.state.injectedProvider;
-    const repositoryRoot = this.state.repositoryRoot;
+    const repositoryRoot = this.state.writeRepositoryRoot;
     if (provider === undefined || repositoryRoot === undefined) {
       throw new ManagedContextError(
         "invalid_state",

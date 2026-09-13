@@ -31,6 +31,10 @@ export class ConversationDeliberationOutcomeCoordinator {
     },
   ) {}
 
+  get hasPending(): boolean {
+    return this.pending.size > 0;
+  }
+
   async observe(application: ConversationApplication, result: WorkerResult): Promise<void> {
     if (result.status === "idle") return;
     if (result.status === "uncertain") {

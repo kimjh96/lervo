@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e41a00f43fb22cafe26185b7
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e34b192feeda207af1f676e6
+outputLanguage: en
+outputs:
+  - byteCount: 3442
+    contentHash: sha256:16646ded40ec6a2a67d3fe86ee14670ab8e61179227315fb5ee5c922a97fa088
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/recovery-evidence.md
+    userRegionHash: sha256:16646ded40ec6a2a67d3fe86ee14670ab8e61179227315fb5ee5c922a97fa088
+profile: repository_document
+recordId: knormdoc_4b624908306afc3fedc95c02
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:482a5be77bef3017de47fc7c3f313b78d5b6f605ac8de79cb4f8de55ec21a44b
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/recovery-evidence.md
+sourceUnitVersionIds:
+  - uv_31b91be29feb42ea5237bb19
+  - uv_3e9d2700b5e68940fa3a43af
+  - uv_615d91179d95e603e9f1eb61
+  - uv_a26db1af15477e27ba5b4c07

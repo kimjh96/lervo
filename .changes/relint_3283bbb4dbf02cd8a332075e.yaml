@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3283bbb4dbf02cd8a332075e"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Connect canonical owner-control admission, accepted-goal completion, and durable publication-only retry under exact authority and result evidence."

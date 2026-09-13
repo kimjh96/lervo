@@ -21,6 +21,22 @@ async function repository(): Promise<string> {
 }
 
 describe("unattended scheduler runtime", () => {
+  it("wakes a waiting scheduler when the kill switch appears", async () => {
+    const root = await repository();
+    const runtime = await openUnattendedSchedulerRuntime({
+      repositoryRoot: root,
+      killSwitchPath: ".lervo/state/scheduler.stop",
+    });
+    try {
+      const waiting = runtime.waitForChange!(30_000);
+      await writeFile(resolve(root, ".lervo/state/scheduler.stop"), "stop");
+      await waiting;
+      expect(await runtime.killSwitchEngaged()).toBe(true);
+    } finally {
+      await runtime.release();
+    }
+  }, 5_000);
+
   it("holds one repository scheduler lock and releases only its own lock", async () => {
     const root = await repository();
     const runtime = await openUnattendedSchedulerRuntime({

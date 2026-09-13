@@ -1,3 +1,4 @@
+import { watchLocalEventChanges } from "./local-event-wakeup.js";
 import { resolve } from "node:path";
 
 import type { ConversationApplication } from "@lervo/conversation-app";
@@ -12,7 +13,7 @@ export function startDiscordConversationRepositorySignals(input: {
   config: NodeDiscordConversationConfig;
   projectId: string;
   dataDirectory: string;
-  events: Pick<EventStore, "latest" | "list">;
+  events: Pick<EventStore, "latest" | "list"> & { readonly path?: string };
   artifacts: ArtifactStore;
   application: ConversationApplication;
   onFailure(): void;
@@ -35,8 +36,23 @@ export function startDiscordConversationRepositorySignals(input: {
       await input.application.runDeliveryCycle!(input.config.integrationId);
     },
   });
+  let more = false;
   const loop = new ConversationRepositorySignalLoop({
-    runCycle: () => source.runCycle(),
+    ...(input.events.path === undefined
+      ? {}
+      : {
+          subscribe: (notify: () => void) =>
+            watchLocalEventChanges(
+              { path: input.events.path!, latest: () => input.events.latest() },
+              notify,
+            ),
+        }),
+    nextWakeupAt: () => (more ? Date.now() : null),
+    runCycle: async () => {
+      const result = await source.runCycle();
+      more = result.eventCount === 100;
+      return result;
+    },
     onFailure: input.onFailure,
     intervalMs: configured.pollIntervalMs ?? 2_000,
   });

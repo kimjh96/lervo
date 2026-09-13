@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6d3326d725fdb10ee5951e59
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d159b006528687dcf9d9bd04
+outputLanguage: en
+outputs:
+  - byteCount: 1372
+    contentHash: sha256:491dacd03c58a0055a612aa186c5e331165537772d1d332ce77fd5c00e8b37d9
+    path: docs/specifications/execution/outcome-supervision/contracts/boundaries.md
+    userRegionHash: sha256:491dacd03c58a0055a612aa186c5e331165537772d1d332ce77fd5c00e8b37d9
+profile: specification_document
+recordId: knormdoc_d352ba0cdcbcf2c937aa8554
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:31a5ee7ebe5c01ed14ca66ef30630aa777e22d9e5410527cd01b0d7d01c40b1c
+sourcePath: docs/specifications/execution/outcome-supervision/contracts/boundaries.md
+sourceUnitVersionIds:
+  - uv_3820d0d2064fa31db3bd28d5

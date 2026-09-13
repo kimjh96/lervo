@@ -24,10 +24,25 @@ function envelope(overrides: Record<string, unknown> = {}) {
 }
 
 describe("reader-first event envelope compatibility", () => {
-  it("accepts v1 and v2 envelopes while rejecting an unsupported version", () => {
+  it("accepts supported envelopes while rejecting an unsupported version", () => {
     expect(validateSchema("event", envelope()).valid).toBe(true);
     expect(validateSchema("event", envelope({ schemaVersion: 2 })).valid).toBe(true);
-    expect(validateSchema("event", envelope({ schemaVersion: 3 })).valid).toBe(false);
+    expect(validateSchema("event", envelope({ schemaVersion: 3 })).valid).toBe(true);
+    expect(validateSchema("event", envelope({ schemaVersion: 4 })).valid).toBe(false);
+  });
+
+  it("reserves supervision event types for v3 envelopes", () => {
+    for (const schemaVersion of [1, 2, 3]) {
+      expect(
+        validateSchema(
+          "event",
+          envelope({
+            schemaVersion,
+            type: "work.supervision.decision.recorded",
+          }),
+        ).valid,
+      ).toBe(schemaVersion === 3);
+    }
   });
 
   it("keeps foundation event types unavailable to v1 envelopes", () => {

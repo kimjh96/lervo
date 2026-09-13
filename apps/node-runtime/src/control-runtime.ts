@@ -1,3 +1,5 @@
+import { AuthenticatedHubHttpTransport } from "@lervo/sync";
+import { RuntimeIdleWait } from "./runtime-idle-wait.js";
 import { resolve } from "node:path";
 
 import {
@@ -202,12 +204,24 @@ export async function openNodeRemoteControlRuntime(input: {
       ...(commands.maxLifetimeMs === undefined ? {} : { maxLifetimeMs: commands.maxLifetimeMs }),
       ...(commands.clockSkewMs === undefined ? {} : { clockSkewMs: commands.clockSkewMs }),
     });
+    const idleWait = new RuntimeIdleWait({
+      transport: () =>
+        new AuthenticatedHubHttpTransport({ ...currentHttp(), requestTimeoutMs: 30_000 }),
+      topic: "command",
+      nodeId: commands.nodeId,
+      destinationId: input.config.hub.destinationId,
+      expectedPeerIdentityHash: input.config.hub.hubIdentityHash,
+      fallbackIntervalMs: commands.idlePollIntervalMs ?? 2_000,
+    });
     const openedPolicyStore = policyStore;
     const openedReplayStore = replayStore;
     return {
       run: (signal) =>
         runRemoteControlLoop({
           signal,
+          ...(input.ports.wait === undefined && input.ports.createCommandTransport === undefined
+            ? { waitForIdleChange: (signal: AbortSignal) => idleWait.wait(signal) }
+            : {}),
           runPolicyCycle: () =>
             runPolicySyncCycle({
               destinationId: input.config.hub.destinationId,

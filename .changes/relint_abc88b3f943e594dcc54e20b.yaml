@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_abc88b3f943e594dcc54e20b"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Compose local Node supervision with verified mandate authority and durable owner fencing, and preserve the selected repository event writer version."

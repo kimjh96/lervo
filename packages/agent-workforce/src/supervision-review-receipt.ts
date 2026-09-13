@@ -1,0 +1,75 @@
+import type { EventStore } from "@lervo/storage-contract";
+import { operatingContractHash } from "@lervo/work-controller";
+
+type Event = NonNullable<ReturnType<EventStore["get"]>>;
+
+/** Narrow receipt exception; the concrete inspector still validates exact CAS review bytes. */
+export function isDecisionBoundReviewReceipt(event: Event, decision: Event): boolean {
+  if (
+    decision.payload.actionKind === "escalate" &&
+    event.type === "work.supervision.escalation.recorded"
+  )
+    return (
+      event.schemaVersion === 3 &&
+      event.actor.kind === "system" &&
+      event.runId === decision.runId &&
+      event.eventId ===
+        `evt_${operatingContractHash({ runId: decision.runId, type: event.type, identity: decision.payload.decisionId }).slice(7, 39)}` &&
+      ["supervisionId", "workstreamId", "workstreamRevision", "ownerAgentId", "mandateHash"].every(
+        (key) => event.payload[key] === decision.payload[key],
+      ) &&
+      event.payload.escalationId === decision.payload.decisionId &&
+      event.payload.decisionArtifactHash === decision.payload.planHash &&
+      Array.isArray(event.payload.causationEventIds) &&
+      event.payload.causationEventIds.length === 1 &&
+      event.payload.causationEventIds[0] === decision.eventId
+    );
+  if (
+    (decision.payload.actionKind === "publish_result" &&
+      event.type === "work.supervision.delivery.queued") ||
+    (decision.payload.actionKind === "execute_as_owner" &&
+      ["work.supervision.workspace.prepared", "work.supervision.handoff.accepted"].includes(
+        event.type,
+      )) ||
+    (["request_team_support", "escalate"].includes(String(decision.payload.actionKind)) &&
+      event.type === "work.supervision.handoff.offered")
+  )
+    return (
+      event.schemaVersion === 3 &&
+      event.actor.kind === "system" &&
+      event.runId === decision.runId &&
+      event.eventId ===
+        `evt_${operatingContractHash({ runId: decision.runId, type: event.type, identity: decision.payload.decisionId }).slice(7, 39)}` &&
+      [
+        "supervisionId",
+        "workstreamId",
+        "workstreamRevision",
+        "ownerAgentId",
+        "mandateHash",
+        "decisionId",
+        "planHash",
+      ].every((key) => event.payload[key] === decision.payload[key]) &&
+      Array.isArray(event.payload.causationEventIds) &&
+      event.payload.causationEventIds.length === 1 &&
+      event.payload.causationEventIds[0] === decision.eventId
+    );
+  return (
+    decision.payload.actionKind === "execute_as_owner" &&
+    event.type === "work.supervision.review.recorded" &&
+    event.schemaVersion === 3 &&
+    event.actor.kind === "system" &&
+    event.runId === decision.runId &&
+    event.eventId ===
+      `evt_${operatingContractHash({
+        runId: decision.runId,
+        type: "work.supervision.review.recorded",
+        identity: decision.payload.decisionId,
+      }).slice(7, 39)}` &&
+    ["supervisionId", "workstreamId", "workstreamRevision", "ownerAgentId", "mandateHash"].every(
+      (key) => event.payload[key] === decision.payload[key],
+    ) &&
+    event.payload.reviewerAgentId === decision.payload.ownerAgentId &&
+    Array.isArray(event.payload.causationEventIds) &&
+    event.payload.causationEventIds[0] === decision.eventId
+  );
+}

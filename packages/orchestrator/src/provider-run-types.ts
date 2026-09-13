@@ -1,6 +1,9 @@
 import type { ProviderAdapter } from "@lervo/adapter-contract";
 import type { ContextArtifactPort, ResolvedWritingPolicy } from "@lervo/context-delivery";
-import type { ManagedProjectVerification } from "@lervo/execution-contract";
+import type {
+  ManagedProjectVerification,
+  ManagedProviderResultArtifact,
+} from "@lervo/execution-contract";
 import type {
   AdapterCapabilityActivationRequest,
   ManagedRunApprovalAuthorization,
@@ -84,12 +87,21 @@ export interface ManagedProviderRunOptions extends ManagedContextRunOptions {
 }
 
 export interface ManagedProviderRunInput {
+  /** Exact role inputs prepared by the host; binding proves neither context injection nor use. */
+  roleInput?: { contractId: string; roleContractHash: string; inputArtifactHash: string };
+  /** Narrows an otherwise write-capable role for an observation-only owner turn. */
+  executionMode?: "read_only";
   repositoryRoot: string;
+  /** Explicit governance source; execution, snapshots and verification remain in repositoryRoot. */
+  contextRepositoryRoot?: string;
   requestDigest: string;
   risk: string;
   instructions: string;
   targetTurnId: string;
-  context: Omit<ManagedPrepareContextInput, "repositoryRoot" | "sourceRevision" | "recordedAt">;
+  context: Omit<
+    ManagedPrepareContextInput,
+    "repositoryRoot" | "writeRepositoryRoot" | "sourceRevision" | "recordedAt"
+  >;
   writingPolicy: ResolvedWritingPolicy | null;
   resolvedSkills: readonly ManagedResolvedSkill[];
   resolvedCapabilities?: readonly ManagedResolvedCapability[];
@@ -164,6 +176,7 @@ export interface ManagedProjectVerifier {
     suite: VerificationSuite;
     repositoryRoot: string;
     repositoryRevision: string;
+    producedArtifact?: ManagedProviderResultArtifact;
     signal?: AbortSignal;
   }): Promise<ManagedProjectVerification>;
 }

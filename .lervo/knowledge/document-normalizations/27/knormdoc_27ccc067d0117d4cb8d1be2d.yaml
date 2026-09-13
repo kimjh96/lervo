@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e68bbaa404ac1bb786a9a7f1
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5e4eb9ad975ef50660974c18
+outputLanguage: en
+outputs:
+  - byteCount: 5112
+    contentHash: sha256:b1d2cbc3ce644fe72a59fc2bf919a538b194f9af16720f862c5689fdb804efd7
+    path: docs/decisions/execution/orchestration/0205-conflict-safe-repository-agent-workforce.md
+    userRegionHash: sha256:b1d2cbc3ce644fe72a59fc2bf919a538b194f9af16720f862c5689fdb804efd7
+profile: decision_record
+recordId: knormdoc_27ccc067d0117d4cb8d1be2d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e4294cde7bc3f56b092429d00e2533b08c41c33fe6492b2ee7fbe55675e45133
+sourcePath: docs/decisions/execution/orchestration/0205-conflict-safe-repository-agent-workforce.md
+sourceUnitVersionIds:
+  - uv_15cae2b212a0356060a49c8f
+  - uv_6fdea5f779639f5b9353b31b
+  - uv_82e68da1d802808962f98738
+  - uv_a478ab3ce4ec3ae0334bc776
+  - uv_ce2f9ffb6877ca70acce7130

@@ -71,6 +71,16 @@ describe("Hub workstream replication SQLite", () => {
     await registerStore(store, project);
 
     const first = publication(project, snapshot(1, "Initial workstream"), null);
+    const scope = {
+      topic: "workstream" as const,
+      projectId: project.projectId,
+      repositoryIdentityHash: first.repositoryIdentityHash,
+      destinationId,
+      signal: new AbortController().signal,
+    };
+    const before = await store.waitForRuntimeChange({ ...scope, cursor: null });
+    const wake = store.waitForRuntimeChange({ ...scope, cursor: before.cursor });
+
     await expect(
       handleWorkstreamPublish({
         store,
@@ -79,6 +89,7 @@ describe("Hub workstream replication SQLite", () => {
         publishedAt: "2026-08-24T01:00:00.000Z",
       }),
     ).resolves.toMatchObject({ status: "created", heads: [{ revision: 1 }] });
+    expect((await wake).status).toBe("changed");
     await expect(
       handleWorkstreamPublish({
         store,

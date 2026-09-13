@@ -2,57 +2,14 @@ import { createHash } from "node:crypto";
 import { lstat, readFile } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
 
-export interface NodeServiceCoordinates {
-  executable: string;
-  config: string;
+import {
+  parseNodeServiceCoordinates,
+  type ParsedNodeServiceCoordinates,
+} from "./node-service-coordinate-parser.js";
+export { parseNodeServiceCoordinates } from "./node-service-coordinate-parser.js";
+
+export interface NodeServiceCoordinates extends ParsedNodeServiceCoordinates {
   contentHash: string;
-}
-
-function decodeXml(value: string): string {
-  return value
-    .replaceAll("&quot;", '"')
-    .replaceAll("&apos;", "'")
-    .replaceAll("&lt;", "<")
-    .replaceAll("&gt;", ">")
-    .replaceAll("&amp;", "&");
-}
-
-function decodeSystemd(value: string): string | null {
-  let decoded = "";
-  for (let index = 0; index < value.length; index += 1) {
-    const character = value[index]!;
-    if (character === "\\") {
-      const next = value[index + 1];
-      if (next !== "\\" && next !== '"') return null;
-      decoded += next;
-      index += 1;
-    } else if (character === "%" && value[index + 1] === "%") {
-      decoded += "%";
-      index += 1;
-    } else decoded += character;
-  }
-  return decoded;
-}
-
-export function parseNodeServiceCoordinates(
-  manager: "systemd" | "launchd",
-  content: string,
-): { executable: string; config: string } | null {
-  if (manager === "launchd") {
-    const match =
-      /<key>ProgramArguments<\/key>\s*<array>\s*<string>([^<]+)<\/string>\s*<string>--config<\/string>\s*<string>([^<]+)<\/string>\s*<\/array>/u.exec(
-        content,
-      );
-    return match === null
-      ? null
-      : { executable: decodeXml(match[1]!), config: decodeXml(match[2]!) };
-  }
-  const line = content.split("\n").find((item) => item.startsWith("ExecStart="));
-  const match = /^ExecStart="((?:[^"\\]|\\.)*)" --config "((?:[^"\\]|\\.)*)"$/u.exec(line ?? "");
-  if (match === null) return null;
-  const executable = decodeSystemd(match[1]!);
-  const config = decodeSystemd(match[2]!);
-  return executable === null || config === null ? null : { executable, config };
 }
 
 export async function readNodeServiceCoordinates(input: {
@@ -85,6 +42,9 @@ export async function readNodeServiceCoordinates(input: {
     throw new Error("The repository Node service coordinates are invalid.");
   }
   return {
+    ...(coordinates.nodeExecutable === undefined
+      ? {}
+      : { nodeExecutable: resolve(coordinates.nodeExecutable) }),
     executable: resolve(coordinates.executable),
     config: resolve(coordinates.config),
     contentHash,

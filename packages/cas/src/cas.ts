@@ -7,7 +7,12 @@ import { type ArtifactStore } from "@lervo/storage-contract";
 const uriPattern = /^lervo-cas:\/\/sha256\/([a-f0-9]{64})$/;
 
 export type CasErrorCode =
-  "capacity_exceeded" | "corrupt_object" | "invalid_uri" | "not_found" | "unsafe_path";
+  | "capacity_exceeded"
+  | "corrupt_object"
+  | "invalid_uri"
+  | "not_found"
+  | "unsafe_path"
+  | "read_only";
 
 export class CasError extends Error {
   constructor(
@@ -45,7 +50,10 @@ async function ensureRealDirectory(path: string): Promise<void> {
 export class FileSystemCas implements ArtifactStore {
   readonly root: string;
 
-  private constructor(root: string) {
+  private constructor(
+    root: string,
+    private readonly readOnly = false,
+  ) {
     this.root = root;
   }
 
@@ -55,6 +63,20 @@ export class FileSystemCas implements ArtifactStore {
     await ensureRealDirectory(resolve(absoluteRoot, "sha256"));
     await ensureRealDirectory(resolve(absoluteRoot, ".tmp"));
     return new FileSystemCas(absoluteRoot);
+  }
+
+  static async openReadOnly(root: string): Promise<FileSystemCas> {
+    const absoluteRoot = resolve(root);
+    for (const path of [
+      absoluteRoot,
+      resolve(absoluteRoot, "sha256"),
+      resolve(absoluteRoot, ".tmp"),
+    ]) {
+      const stats = await lstat(path);
+      if (!stats.isDirectory() || stats.isSymbolicLink())
+        throw new CasError("unsafe_path", "A read-only CAS requires existing real directories.");
+    }
+    return new FileSystemCas(absoluteRoot, true);
   }
 
   private objectPath(hash: string): string {
@@ -100,6 +122,11 @@ export class FileSystemCas implements ArtifactStore {
   }
 
   async putStream(chunks: AsyncIterable<string | Uint8Array>): Promise<CasPutResult> {
+    if (this.readOnly)
+      throw new CasError(
+        "read_only",
+        "This artifact handle cannot mutate the observed repository.",
+      );
     const temporary = resolve(this.root, ".tmp", `${randomUUID()}.tmp`);
     const handle = await open(temporary, "wx");
     const hashState = createHash("sha256");

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f91ec569c9637140944fd319"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Reserve keyed managed invocations before provider work and connect fenced Node workers to isolated execution, canonical governance context, and result observations."

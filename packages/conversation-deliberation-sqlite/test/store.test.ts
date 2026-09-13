@@ -43,6 +43,23 @@ function request(
 }
 
 describe("durable conversation deliberation queue", () => {
+  it("schedules queued work and lease expiry without claiming it", async () => {
+    const { store } = await open();
+    try {
+      expect(store.nextWakeupAt()).toBeNull();
+      await new QueuedConversationDeliberationBackend(store).start(request());
+      expect(store.nextWakeupAt()).toBe(Date.parse(request().requestedAt));
+      await store.claim({
+        workerId: "fixture",
+        claimedAt: "2026-08-22T00:01:00.000Z",
+        leaseDurationMs: 10_000,
+      });
+      expect(store.nextWakeupAt()).toBe(Date.parse("2026-08-22T00:01:10.000Z"));
+    } finally {
+      store.close();
+    }
+  });
+
   it("returns one durable job for repeated source events and settles it after restart", async () => {
     const { path, store } = await open();
     let current = store;

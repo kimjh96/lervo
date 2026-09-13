@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5b90dc004ad936d8a2ca8aaa
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c6dd54e70eced3938b73dea4
+outputLanguage: en
+outputs:
+  - byteCount: 1669
+    contentHash: sha256:d2f0b3c5fd47d24e806fd63ae8afff5f1e353e96239dd3166b6d7ae2d2061c41
+    path: docs/distribution/node-runtime-distribution/discord-configuration/execution/conversation-routing.md
+    userRegionHash: sha256:d2f0b3c5fd47d24e806fd63ae8afff5f1e353e96239dd3166b6d7ae2d2061c41
+profile: repository_document
+recordId: knormdoc_a192660dfaddb3c901798976
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7dca53c51ca929acd49f70a9352e637be100536dc155cc3e538b818c3eead94d
+sourcePath: docs/distribution/node-runtime-distribution/discord-configuration/execution/conversation-routing.md
+sourceUnitVersionIds:
+  - uv_efd1c610830073296efd7197

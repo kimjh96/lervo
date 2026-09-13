@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8205338e66986f9591fdd64c
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0f765bc54db4d4c4898838e9
+outputLanguage: en
+outputs:
+  - byteCount: 550
+    contentHash: sha256:465154dd9266d0ed30e57fb754a72367aeae51dd62644578589229987c3c8886
+    path: docs/specifications/execution/provider-adapters/telemetry/native-events-and-usage.md
+    userRegionHash: sha256:465154dd9266d0ed30e57fb754a72367aeae51dd62644578589229987c3c8886
+  - byteCount: 381
+    contentHash: sha256:191023985136b79d0b933fa142ff93c2b709be989acc9cac0e80e1b73b6e958a
+    path: docs/specifications/execution/provider-adapters/telemetry/native-events-and-usage/constrained-results.md
+    userRegionHash: sha256:191023985136b79d0b933fa142ff93c2b709be989acc9cac0e80e1b73b6e958a
+  - byteCount: 1154
+    contentHash: sha256:ccf4fdeb2a44a7a24080aaa27ee8935680b909b09ef3d9a2dbbfa0b863457d3c
+    path: docs/specifications/execution/provider-adapters/telemetry/native-events-and-usage/events-and-usage.md
+    userRegionHash: sha256:ccf4fdeb2a44a7a24080aaa27ee8935680b909b09ef3d9a2dbbfa0b863457d3c
+  - byteCount: 598
+    contentHash: sha256:3e513b6270d6cda946e2be4e2b7436e2c0dc12556d51bebf2612c9bcdb811734
+    path: docs/specifications/execution/provider-adapters/telemetry/native-events-and-usage/stored-login-contexts.md
+    userRegionHash: sha256:3e513b6270d6cda946e2be4e2b7436e2c0dc12556d51bebf2612c9bcdb811734
+profile: specification_document
+recordId: knormdoc_677240fc9f0f5991e6796f76
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1c03c1a8e47a4065989bbed22a9f62c7752e12a6c2a95d6ec280a95ec271f2a8
+sourcePath: docs/specifications/execution/provider-adapters/telemetry/native-events-and-usage.md
+sourceUnitVersionIds:
+  - uv_45595a8775880b0c273cf5e4

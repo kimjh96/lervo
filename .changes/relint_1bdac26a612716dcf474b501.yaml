@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1bdac26a612716dcf474b501"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Prevent unaddressed agent reply acknowledgements from starting another automated Discord response."

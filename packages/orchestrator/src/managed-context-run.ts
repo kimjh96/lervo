@@ -1,3 +1,4 @@
+import { isAbsolute } from "node:path";
 import {
   assertLoadedContextIntegrity,
   prepareContext as prepareContextDocuments,
@@ -111,6 +112,24 @@ export class ManagedContextRun {
 
   private async prepareContextOnce(input: ManagedPrepareContextInput): Promise<LoadedContext> {
     this.state.assertPhase("awaiting_context");
+    if (
+      input.writeRepositoryRoot !== undefined &&
+      (typeof input.writeRepositoryRoot !== "string" ||
+        !isAbsolute(input.writeRepositoryRoot) ||
+        input.writeRepositoryRoot.includes("\0"))
+    )
+      throw new ManagedContextError(
+        "invalid_state",
+        "The managed write repository must be an absolute path.",
+      );
+    if (
+      this.state.writeRepositoryRoot !== undefined &&
+      this.state.writeRepositoryRoot !== (input.writeRepositoryRoot ?? input.repositoryRoot)
+    )
+      throw new ManagedContextError(
+        "invalid_state",
+        "The managed write repository cannot change within a run.",
+      );
     this.state.timestamp(input.recordedAt);
     const loaded = await prepareContextDocuments({
       ...input,
@@ -126,6 +145,7 @@ export class ManagedContextRun {
       input.repositoryRoot,
       input.role.capabilities["filesystem.write"],
       normalizeExpectedWritePaths(input.expectedPaths),
+      input.writeRepositoryRoot,
     );
     return copy(snapshot);
   }

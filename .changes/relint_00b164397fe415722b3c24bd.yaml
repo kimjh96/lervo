@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_00b164397fe415722b3c24bd"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add versioned supervision evidence storage, durable owner fencing, and recovery of unresolved decisions across source changes."

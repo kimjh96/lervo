@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_e73902a3eb1ecee4cf66b239
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9c02c01aeb2bf56274ce96fa
+outputLanguage: en
+outputs:
+  - byteCount: 3261
+    contentHash: sha256:8fcd7279d738128a15f86aed3636e74690e8ce01608a84cccecf204832ea4640
+    path: docs/specifications/execution/stage-observation-and-performance/paired-performance-gate.md
+    userRegionHash: sha256:8fcd7279d738128a15f86aed3636e74690e8ce01608a84cccecf204832ea4640
+profile: specification_document
+recordId: knormdoc_b852cde1bd088bdad0871826
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:67013c247869985546733c0852a17881d90fcc7a3f2a0c3b74f9cdcbdc10ffa3
+sourcePath: docs/specifications/execution/stage-observation-and-performance/paired-performance-gate.md
+sourceUnitVersionIds:
+  - uv_0fd3a10abec6234028ae2608
+  - uv_1f529e3e003aef3ad41ad222
+  - uv_358c28a15c95af49d3b7453d
+  - uv_83f18f533650e9978b0d699f
+  - uv_b3da2ed2d586b6fd0a4d2374

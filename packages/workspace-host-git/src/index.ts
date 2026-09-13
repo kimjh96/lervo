@@ -21,8 +21,10 @@ export class GitWorkspaceHostAdapter implements WorkspaceHostAdapter, WorkspaceC
   } as const;
   private readonly evidence = new GitWorkspaceEvidence({ kind: this.kind, version: this.version });
 
+  constructor(private readonly beforeProvision?: () => Promise<void>) {}
+
   provision(request: WorkspaceProvisionRequest) {
-    return this.evidence.provisionDetached(request);
+    return this.evidence.provisionDetached(request, this.beforeProvision);
   }
 
   inspect = this.evidence.inspect.bind(this.evidence);

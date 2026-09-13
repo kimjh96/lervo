@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -133,8 +133,17 @@ export async function captureRepositoryReplicaSnapshot(
       allowedExitCodes: [0, 1],
     });
     const branch = branchResult.exitCode === 0 ? text(branchResult) : null;
-    const indexTree = text(await git(repositoryRoot, ["write-tree"]));
     const environment = { GIT_INDEX_FILE: temporaryIndex };
+    const indexPath = text(
+      await git(repositoryRoot, ["rev-parse", "--path-format=absolute", "--git-path", "index"]),
+    );
+    try {
+      await copyFile(indexPath, temporaryIndex);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      await git(repositoryRoot, ["read-tree", "--empty"], { environment });
+    }
+    const indexTree = text(await git(repositoryRoot, ["write-tree"], { environment }));
     await git(repositoryRoot, ["read-tree", "HEAD"], { environment });
     await git(repositoryRoot, ["add", "-A", "--", "."], { environment });
     const worktreeTree = text(await git(repositoryRoot, ["write-tree"], { environment }));
@@ -144,7 +153,6 @@ export async function captureRepositoryReplicaSnapshot(
       snapshotHash: calculateRepositoryReplicaSnapshotHash(source),
     };
     assertRepositoryReplicaSnapshot(snapshot);
-    await createExportCommit(repositoryRoot, snapshot);
     return snapshot;
   } catch (error) {
     if (error instanceof RepositoryReplicaGitError) throw error;
@@ -162,7 +170,8 @@ export async function createRepositoryReplicaBundle(repositoryRoot: string): Pro
   const temporaryDirectory = await mkdtemp(join(tmpdir(), "lervo-repository-bundle-"));
   const bundlePath = join(temporaryDirectory, "replica.bundle");
   try {
-    await captureRepositoryReplicaSnapshot(repositoryRoot);
+    const snapshot = await captureRepositoryReplicaSnapshot(repositoryRoot);
+    await createExportCommit(repositoryRoot, snapshot);
     await git(repositoryRoot, ["bundle", "create", bundlePath, EXPORT_REF]);
     return new Uint8Array(await readFile(bundlePath));
   } catch (error) {
@@ -208,6 +217,7 @@ async function applyTrees(
       );
     }
     if (allowHistoryReplacement) {
+      await createExportCommit(repositoryRoot, current);
       await git(repositoryRoot, [
         "update-ref",
         `refs/lervo/replica/recovery/${current.snapshotHash.slice("sha256:".length)}`,

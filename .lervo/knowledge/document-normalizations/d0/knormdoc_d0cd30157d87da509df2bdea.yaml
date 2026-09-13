@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6d3326d725fdb10ee5951e59
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_100fb7b4bd5888ea89e6bad5
+outputLanguage: en
+outputs:
+  - byteCount: 1912
+    contentHash: sha256:6ad3a4151400a71446f134f8c680398528d3d463a8e9792d354276d128d584fa
+    path: docs/specifications/execution/outcome-supervision/contracts/recovery.md
+    userRegionHash: sha256:6ad3a4151400a71446f134f8c680398528d3d463a8e9792d354276d128d584fa
+profile: specification_document
+recordId: knormdoc_d0cd30157d87da509df2bdea
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6ad3a4151400a71446f134f8c680398528d3d463a8e9792d354276d128d584fa
+sourcePath: docs/specifications/execution/outcome-supervision/contracts/recovery.md
+sourceUnitVersionIds:
+  - uv_1afe8c2bf9d7c2a205bde72f

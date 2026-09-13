@@ -29,6 +29,12 @@ export function groupDiscordConversationRuntimes(
   if (runtimes.length === 0) throw new Error("A Discord runtime group cannot be empty.");
   return {
     failed: Promise.race(runtimes.map((runtime) => runtime.failed)),
+    resultAdapter(integrationId) {
+      const adapters = runtimes.flatMap((runtime) => runtime.resultAdapter?.(integrationId) ?? []);
+      if (adapters.length > 1)
+        throw new Error("A result integration has conflicting runtime adapters.");
+      return adapters[0] ?? null;
+    },
     async observeRemoteAcknowledgement(input) {
       const results = await Promise.all(
         runtimes.map((runtime) => runtime.observeRemoteAcknowledgement(input)),

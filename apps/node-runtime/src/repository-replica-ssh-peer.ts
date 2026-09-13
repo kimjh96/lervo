@@ -73,6 +73,56 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     });
   }
 
+  subscribe(repositoryRoot: string, changed: () => void, failed: () => void): () => void {
+    const child = spawn(
+      this.options.executable,
+      this.command(["watch", "--root", repositoryRoot], false),
+      {
+        stdio: ["ignore", "pipe", "ignore"],
+      },
+    );
+    let pending = "";
+    let stopped = false;
+    let watchdog: ReturnType<typeof setTimeout>;
+    const stop = () => {
+      if (stopped) return;
+      stopped = true;
+      clearTimeout(watchdog);
+      child.kill("SIGTERM");
+    };
+    const failure = () => {
+      if (!stopped) {
+        stop();
+        failed();
+      }
+    };
+    watchdog = setTimeout(failure, 75_000);
+    child.stdout.on("data", (chunk: Buffer) => {
+      pending += chunk.toString("utf8");
+      if (pending.length > 1_024) {
+        failure();
+        return;
+      }
+      let newline: number;
+      while ((newline = pending.indexOf("\n")) >= 0) {
+        const line = pending.slice(0, newline).trim();
+        pending = pending.slice(newline + 1);
+        if (line !== '{"schemaVersion":1,"status":"changed"}') {
+          failure();
+          return;
+        }
+        if (!stopped) {
+          clearTimeout(watchdog);
+          watchdog = setTimeout(failure, 75_000);
+          changed();
+        }
+      }
+    });
+    child.once("error", failure);
+    child.once("close", failure);
+    return stop;
+  }
+
   async snapshot(repositoryRoot: string): Promise<RepositoryReplicaSnapshot> {
     const output = await this.execute(["snapshot", "--root", repositoryRoot]);
     const snapshot = JSON.parse(Buffer.from(output).toString("utf8")) as RepositoryReplicaSnapshot;

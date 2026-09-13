@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_00e3f05f2964e25fd8bb5a4f"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Persist canonical workstream cancellation and reconcile unstarted assignments after mandate expiry or revocation without new provider execution."

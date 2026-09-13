@@ -33,14 +33,18 @@ export function readEventWriterCoordinate(
       "The event writer coordinate belongs to another project.",
     );
   }
-  if (coordinate.selectedEventSchemaVersion === 2) {
-    assertEventReaderEvidence(coordinate.activationEvidence.readers);
+  if (coordinate.selectedEventSchemaVersion !== 1) {
+    assertEventReaderEvidence(
+      coordinate.activationEvidence.readers,
+      coordinate.selectedEventSchemaVersion,
+    );
     const activation = coordinate.activationEvidence;
     const expectedId = createEventWriterActivationId({
       projectId: coordinate.projectId,
       observedAt: activation.observedAt,
       configurationHash: activation.configurationHash,
       readers: activation.readers,
+      targetEventSchemaVersion: coordinate.selectedEventSchemaVersion,
     });
     if (activation.activationId !== expectedId) {
       failEventWriterActivation(

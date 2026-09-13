@@ -6,7 +6,7 @@ import {
   type ManagedProviderHostAdapterFactory,
 } from "@lervo/managed-provider-host";
 import type { RoleProfile } from "@lervo/schemas";
-import type { ProviderAdapter } from "@lervo/adapter-contract";
+import type { ProviderAdapter, ProviderLoginContext } from "@lervo/adapter-contract";
 
 import type { NodeRuntimeConfig } from "./config-types.js";
 import type { NodeRemoteCommandPorts } from "./control-runtime.js";
@@ -18,6 +18,7 @@ export interface ManagedProviderRemoteCommandDependencies {
 }
 
 export function createNodeProviderAdapter(input: {
+  loginContext?: ProviderLoginContext;
   provider: "codex" | "claude";
   repositoryRoot: string;
   resolveArtifact: (uri: string) => Promise<Uint8Array>;
@@ -29,6 +30,7 @@ export function createNodeProviderAdapter(input: {
 }): ProviderAdapter {
   return input.provider === "codex"
     ? new CodexAdapter({
+        ...(input.loginContext === undefined ? {} : { loginContext: input.loginContext }),
         repositoryRoot: input.repositoryRoot,
         resolveArtifact: input.resolveArtifact,
         ...(input.executable === undefined ? {} : { executable: input.executable }),
@@ -42,6 +44,7 @@ export function createNodeProviderAdapter(input: {
           : { structuredOutputSchema: input.structuredOutputSchema }),
       })
     : new ClaudeAdapter({
+        ...(input.loginContext === undefined ? {} : { loginContext: input.loginContext }),
         repositoryRoot: input.repositoryRoot,
         resolveArtifact: input.resolveArtifact,
         ...(input.executable === undefined ? {} : { executable: input.executable }),

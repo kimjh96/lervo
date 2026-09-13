@@ -1,5 +1,8 @@
-import { validateWorkCausalityHistory } from "@lervo/execution-contract";
 import type { EventEnvelope } from "@lervo/schemas";
+import {
+  selectWorkstreamCausalRuns,
+  type WorkstreamCausalScope,
+} from "./workstream-causal-scope.js";
 import type {
   ManagedAttemptObservationV1,
   ManagedStageGroupObservationV1,
@@ -37,11 +40,10 @@ function terminalState(events: readonly EventEnvelope[]): {
   };
 }
 
-export function projectManagedAttempts(input: {
-  events: readonly EventEnvelope[];
-  workstreamId: string;
-}): AttemptProjectionV1 {
-  const causality = validateWorkCausalityHistory(input.events);
+export function projectManagedAttempts(input: WorkstreamCausalScope): AttemptProjectionV1 {
+  const causality = new Map(
+    selectWorkstreamCausalRuns(input).map((record) => [record.runId, record]),
+  );
   const attemptRecords = [...causality.values()].filter(
     (record) =>
       record.payload.workstreamId === input.workstreamId &&

@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_afc8930b7c967d493a9f9de1
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_7ad589821f93e8185943bc11
+outputLanguage: en
+outputs:
+  - byteCount: 3222
+    contentHash: sha256:5ed8fed7132f013a4d43173ca0aae88f04b9939d4cd3dec5cd90e06f617455c2
+    path: docs/specifications/execution/resource-and-performance-budgets/managed-resource-accounting.md
+    userRegionHash: sha256:5ed8fed7132f013a4d43173ca0aae88f04b9939d4cd3dec5cd90e06f617455c2
+profile: specification_document
+recordId: knormdoc_370c90f94d8142dba6ad8b75
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9fac40c7b2c171d2b695f10e6399afa8145fb0b5496ecefb4f92a8c8e1491665
+sourcePath: docs/specifications/execution/resource-and-performance-budgets/managed-resource-accounting.md
+sourceUnitVersionIds:
+  - uv_197fcf48eb306596898343e8
+  - uv_2da5b6e40550b0aa9535d733
+  - uv_3273a1c70fa0d03cef630faa
+  - uv_53e7fef21c3101077ced8dc7
+  - uv_ce4b50c5a1fa57867171fd1c

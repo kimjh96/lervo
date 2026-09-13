@@ -1,0 +1,219 @@
+import type {
+  OutcomeSupervisionSnapshotV1,
+  SupervisedAssignmentObservationV1,
+} from "@lervo/application-contract";
+import { describe, expect, it } from "vitest";
+import { projectOutcomeSupervision } from "../src/index.js";
+import { hash, now, owner, responsibility } from "./operating-supervision.fixture.js";
+
+function assignment(): SupervisedAssignmentObservationV1 {
+  const task = responsibility();
+  return {
+    assignmentId: task.assignmentId,
+    revision: 1,
+    executorAgentId: task.executorAgentId,
+    acceptanceOwnerAgentId: owner,
+    responsibilityArtifactHash: hash(),
+    status: "queued",
+    dispatchedAt: null,
+    startedAt: null,
+    startDeadline: task.startDeadline,
+    progressDeadline: task.progressDeadline,
+    completionDeadline: task.completionDeadline,
+    terminalEventId: null,
+    effectDisposition: "not_started",
+    recoveryDecisionCount: 0,
+    artifactHashes: [],
+    requiredVerificationSuiteIds: ["save.restart"],
+    verification: [],
+    review: null,
+    acceptanceHash: hash("b"),
+  };
+}
+function snapshot(): OutcomeSupervisionSnapshotV1 {
+  return {
+    schemaVersion: 1,
+    supervisionId: "supervision.project",
+    projectId: `prj_${"a".repeat(16)}`,
+    workstreamId: `wks_${"a".repeat(24)}`,
+    workstreamRevision: 1,
+    sourceRevisionDigest: hash(),
+    ownerAgentId: owner,
+    mandateHash: hash("b"),
+    causationEventIds: [`evt_${"a".repeat(32)}`],
+    evidenceStatus: "valid",
+    workstreamStatus: "active",
+    authorityStatus: "active",
+    assignments: [assignment()],
+    escalationCount: 0,
+    pendingDecision: false,
+    delivery: "not_attempted",
+  };
+}
+const project = (state: OutcomeSupervisionSnapshotV1, time = now) =>
+  projectOutcomeSupervision({ snapshot: state, now: time, maximumRecoveryDecisions: 3 });
+
+describe("causal outcome supervision without a chat surface", () => {
+  it("dispatches an exactly claimed responsibility before waiting for worker start", () => {
+    const state = snapshot();
+    state.assignments[0]!.status = "leased";
+    expect(project(state).nextAction).toBe("dispatch");
+  });
+  it("preserves unbound canonical work during planning and cancellation", () => {
+    const state = snapshot();
+    const id = state.assignments[0]!.assignmentId;
+    state.assignments = [];
+    state.unboundAssignmentIds = [id];
+    expect(project(state)).toMatchObject({
+      reasonCode: "responsibility_installation_required",
+      assignmentIds: [id],
+      nextAction: "allocate_existing",
+    });
+    state.workstreamStatus = "cancelled";
+    expect(project(state)).toMatchObject({
+      reasonCode: "cancellation_unreconciled",
+      assignmentIds: [id],
+      nextAction: "reconcile_cancellation",
+    });
+    state.workstreamStatus = "completed";
+    expect(project(state).status).toBe("invalid");
+    state.unboundAssignmentIds = [id, id];
+    expect(() => project(state)).toThrow("snapshot is invalid");
+  });
+  it("requires dispatch, start and progress evidence separately, and checks persisted deadlines", () => {
+    const state = snapshot();
+    expect(project(state).nextAction).toBe("dispatch");
+    state.assignments[0]!.dispatchedAt = now;
+    expect(project(state)).toMatchObject({
+      status: "awaiting_start",
+      nextAction: null,
+      nextCheckAt: responsibility().startDeadline,
+    });
+    expect(project(state, responsibility().startDeadline)).toMatchObject({
+      status: "recovering",
+      nextAction: "inspect_uncertain_effect",
+    });
+    state.assignments[0]!.startedAt = now;
+    state.assignments[0]!.status = "leased";
+    expect(project(state)).toMatchObject({ status: "executing", nextAction: null });
+  });
+  it("wakes the accountable owner on a silent failure and bounds safe retries", () => {
+    const state = snapshot();
+    const task = state.assignments[0]!;
+    task.status = "failed";
+    task.effectDisposition = "known_safe_failure";
+    expect(project(state)).toMatchObject({
+      ownerAgentId: owner,
+      status: "recovering",
+      nextAction: "retry_attempt",
+    });
+    task.recoveryDecisionCount = 3;
+    expect(project(state).nextAction).toBe("escalate");
+    task.effectDisposition = "uncertain";
+    expect(project(state).nextAction).toBe("inspect_uncertain_effect");
+    state.attentionPending = true;
+    expect(project(state)).toMatchObject({
+      status: "waiting_decision",
+      reasonCode: "uncertain_effect_attention_pending",
+      nextAction: null,
+      assignmentIds: [task.assignmentId],
+    });
+    state.workstreamStatus = "cancelled";
+    expect(project(state).nextAction).toBe("inspect_uncertain_effect");
+  });
+  it("rejects provider exit and lint as acceptance, binds reviews to exact artifacts and separates delivery", () => {
+    const state = snapshot();
+    const task = state.assignments[0]!;
+    task.status = "completed";
+    task.effectDisposition = "reconciled";
+    task.terminalEventId = `evt_${"b".repeat(32)}`;
+    expect(project(state).nextAction).toBe("review_artifacts");
+    task.artifactHashes = [hash("c")];
+    task.verification = [
+      {
+        suiteId: "save.restart",
+        eventId: `evt_${"c".repeat(32)}`,
+        artifactHashes: [hash("c")],
+        status: "passed",
+      },
+    ];
+    task.review = {
+      verdict: "accepted",
+      reviewerAgentId: owner,
+      acceptanceHash: task.acceptanceHash,
+      artifactHashes: task.artifactHashes,
+      verificationEventIds: [task.verification[0]!.eventId],
+    };
+    expect(project(state).nextAction).toBe("complete_workstream");
+    state.handoffs = {
+      pendingIncoming: [],
+      pendingOutgoing: [hash("e")],
+      nextCheckAt: responsibility().completionDeadline,
+    };
+    expect(project(state).reasonCode).toBe("scoped_handoff_acceptance_pending");
+    expect(project(state).nextAction).toBeNull();
+    state.handoffs.pendingOutgoing = [];
+    state.handoffs.nextCheckAt = null;
+    expect(project(state).nextAction).toBe("complete_workstream");
+    state.workstreamStatus = "completed";
+    state.deliveryRequired = false;
+    expect(project(state)).toMatchObject({
+      status: "completed",
+      reasonCode: "accepted_local_result_available",
+      nextAction: null,
+    });
+    state.delivery = "pending";
+    expect(project(state).reasonCode).toBe("accepted_delivery_queued");
+    state.delivery = "failed";
+    expect(project(state)).toMatchObject({ status: "completed", nextAction: "publish_result" });
+    state.delivery = "delivered";
+    expect(project(state).nextAction).toBeNull();
+    task.artifactHashes = [hash("d")];
+    expect(project(state).status).not.toBe("completed");
+  });
+  it("routes a current blocked owner review instead of repeatedly requesting the same review", () => {
+    const state = snapshot();
+    const task = state.assignments[0]!;
+    task.status = "completed";
+    task.effectDisposition = "reconciled";
+    task.terminalEventId = `evt_${"b".repeat(32)}`;
+    task.artifactHashes = [hash("c")];
+    task.review = {
+      verdict: "blocked",
+      reviewerAgentId: owner,
+      acceptanceHash: task.acceptanceHash,
+      artifactHashes: [...task.artifactHashes],
+      verificationEventIds: [],
+    };
+    expect(project(state)).toMatchObject({
+      status: "waiting_decision",
+      reasonCode: "acceptance_blocked",
+      nextAction: "escalate",
+    });
+    task.artifactHashes = [hash("d")];
+    expect(project(state).nextAction).toBe("review_artifacts");
+  });
+  it("does not hide corrupt evidence or claim cancellation while a worker may still be running", () => {
+    const state = snapshot();
+    state.evidenceStatus = "conflict";
+    expect(project(state)).toMatchObject({ status: "invalid", nextAction: null });
+    state.evidenceStatus = "valid";
+    state.workstreamStatus = "cancelled";
+    expect(project(state).nextAction).toBe("reconcile_cancellation");
+    state.assignments[0]!.status = "cancelled";
+    expect(project(state).status).toBe("cancelled");
+  });
+  it("preserves exact rework and stops new admission after revocation", () => {
+    const state = snapshot();
+    state.assignments[0]!.review = {
+      verdict: "rework",
+      reviewerAgentId: owner,
+      acceptanceHash: hash("b"),
+      artifactHashes: [],
+      verificationEventIds: [],
+    };
+    expect(project(state).nextAction).toBe("request_rework");
+    state.authorityStatus = "revoked";
+    expect(project(state)).toMatchObject({ status: "waiting_decision", nextAction: null });
+  });
+});

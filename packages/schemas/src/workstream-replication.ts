@@ -40,7 +40,7 @@ const replicatedWorkstreamHeadSchema = {
   properties: {
     workstreamId: { type: "string", pattern: "^wks_[a-f0-9]{24}$" },
     revision: { type: "integer", minimum: 1 },
-    status: { type: "string", enum: ["active", "blocked", "completed"] },
+    status: { type: "string", enum: ["active", "blocked", "completed", "cancelled"] },
     snapshotContentHash: sha256Schema,
     previousSnapshotContentHash: { anyOf: [sha256Schema, { type: "null" }] },
     publishedAt: timestampSchema,

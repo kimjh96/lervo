@@ -58,7 +58,11 @@
     "@lervo/sync": "workspace:*",
     "@lervo/sync-contract": "workspace:*",
     "@lervo/workspace-reservation-hub": "workspace:*",
-    "@lervo/writing": "workspace:*"
+    "@lervo/writing": "workspace:*",
+    "@lervo/application-contract": "workspace:*",
+    "@lervo/work-controller": "workspace:*",
+    "@lervo/workspace-host-git": "workspace:*",
+    "@lervo/verification": "workspace:*"
   },
   "devDependencies": {
     "@lervo/hub": "workspace:*",

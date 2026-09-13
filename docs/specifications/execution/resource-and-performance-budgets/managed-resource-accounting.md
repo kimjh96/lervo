@@ -2,7 +2,7 @@
 
 Governed attempt state includes only assignment-authorized root and retry runs. Resource accounting includes every recorded run in the same causal work tree, including subagent, publication-evaluation, deliberation, and improvement-evaluation work. This preserves attempt policy while reporting child provider work.
 
-The execution contract derives resource scope from causal relationships. Each provider-reported observation must match its exact causal work ID, adapter provider, and derived scope. Accounting groups are exact to provider, resource scope, source, accounting mode, and accounting descriptor hash. Totals must not cross these boundaries.
+The execution contract derives resource scope from causal relationships. Each provider-reported observation must match its exact causal work ID, adapter provider, and derived scope. Accounting groups are exact to provider, resource scope, source, accounting mode, and accounting descriptor hash. Reported totals and descriptor-bound governed limits must not cross these boundaries.
 
 Every `adapter.started` run in the governed causal tree must have one final provider-reported resource observation. A missing observation makes an otherwise matching provider-and-scope group `partial` with `resource_observation_missing`. If no group exists, admission finds no exact observation and fails closed as `resource_unobservable`.
 
@@ -21,3 +21,7 @@ Managed duration limits use `--duration-limit <provider>:<scope>:<stage>:<millis
 A reached or unobservable configured threshold prevents the next governed attempt. After an otherwise accepted managed run, policy is reprojected before assignment completion. Reached or unobservable evidence fails assignment finalization with `token_budget_exhausted`, `duration_budget_exhausted`, or `budget_observation_unavailable`.
 
 This policy does not reserve future resources, preempt a running provider call, establish billed cost, or prove task correctness.
+
+## Supervision mandate comparability
+
+[ADR-0400](../../../decisions/execution/orchestration/governed-work/0400-prove-default-model-supervision-budget-comparability.md) defines a separate derived supervision total for exactly two complete primary-provider groups differing only in a default versus explicit requested model. Exact final model observations and descriptor semantics must prove equivalence before addition. This does not merge reporting groups, change descriptor-bound governed limits, infer aliases, combine descendant scopes, or reset historical usage.

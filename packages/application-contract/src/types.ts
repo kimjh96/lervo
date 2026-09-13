@@ -219,7 +219,7 @@ export interface OperatingObjectiveReportV1 {
   projectId: string;
   workstreamId: string;
   workstreamRevision: number;
-  status: "active" | "blocked" | "completed";
+  status: "active" | "blocked" | "completed" | "cancelled";
   title: string;
   objective: string;
   nextActions: string[];

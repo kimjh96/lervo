@@ -29,15 +29,16 @@ export interface ProjectStorageBackends {
   openEventStore(options: {
     path: string;
     projectId: string;
-    writableEventSchemaVersion: 1 | 2;
+    writableEventSchemaVersion: 1 | 2 | 3;
   }): Promise<OutboxStore>;
   openArtifactStore(root: string): Promise<CloseableArtifactStore>;
 }
 
 export interface ProjectStorage {
+  readonly readOnly?: boolean;
   readonly manifest: ProjectManifest;
   readonly paths: LervoProjectPaths;
-  readonly writableEventSchemaVersion?: 1 | 2;
+  readonly writableEventSchemaVersion?: 1 | 2 | 3;
   readonly events: OutboxStore;
   readonly artifacts: CloseableArtifactStore;
   close(): Promise<void>;

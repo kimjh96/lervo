@@ -25,6 +25,7 @@ export interface NodeRuntimeHealthPublisher {
   observeWorkspaceCoordinationFailure(code: string): Promise<void>;
   observeRemoteControl(result: RemoteControlCycleResult): Promise<void>;
   observeConversationReady(): Promise<void>;
+  observeSupervision(health: NodeRuntimeComponentHealth): Promise<void>;
   observeConversationFailure(code: string): Promise<void>;
   stopping(): Promise<void>;
 }
@@ -36,7 +37,8 @@ function aggregate(snapshot: NodeRuntimeHealthSnapshot): NodeRuntimeHealthSnapsh
     snapshot.workstreamReplication.status === "unavailable" ||
     snapshot.workspaceCoordination.status === "unavailable" ||
     snapshot.remoteControl.status === "unavailable" ||
-    snapshot.conversation?.status === "unavailable"
+    snapshot.conversation?.status === "unavailable" ||
+    snapshot.supervision?.status === "unavailable"
   ) {
     return "degraded";
   }
@@ -48,7 +50,10 @@ function aggregate(snapshot: NodeRuntimeHealthSnapshot): NodeRuntimeHealthSnapsh
     (snapshot.remoteControl.status === "ready" || snapshot.remoteControl.status === "disabled") &&
     (snapshot.conversation === undefined ||
       snapshot.conversation.status === "ready" ||
-      snapshot.conversation.status === "disabled")
+      snapshot.conversation.status === "disabled") &&
+    (snapshot.supervision === undefined ||
+      snapshot.supervision.status === "ready" ||
+      snapshot.supervision.status === "disabled")
   ) {
     return "ready";
   }
@@ -102,6 +107,8 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
   readonly path: string;
   private snapshot: NodeRuntimeHealthSnapshot;
   private pending: Promise<void> = Promise.resolve();
+  private publishedContent: string | null = null;
+  private publishedAt = 0;
 
   constructor(
     stateDirectory: string,
@@ -109,6 +116,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
     workspaceCoordinationConfigured: boolean,
     eventReaderIdentity: NodeRuntimeEventReaderIdentity | undefined,
     conversationConfigured: boolean,
+    supervisionConfigured: boolean,
   ) {
     this.path = resolve(stateDirectory, NODE_RUNTIME_HEALTH_FILE);
     const now = new Date().toISOString();
@@ -129,6 +137,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
         : { status: "disabled" },
       remoteControl: remoteControlConfigured ? { status: "pending" } : { status: "disabled" },
       conversation: conversationConfigured ? { status: "pending" } : { status: "disabled" },
+      ...(supervisionConfigured ? { supervision: { status: "pending" as const } } : {}),
     };
   }
 
@@ -143,6 +152,12 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
         { cause: error },
       );
     }
+  }
+
+  observeSupervision(health: NodeRuntimeComponentHealth): Promise<void> {
+    return this.publish(() => {
+      this.snapshot.supervision = structuredClone(health);
+    });
   }
 
   observeSync(result: SyncCycleResult): Promise<void> {
@@ -205,9 +220,19 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
   private publish(update: () => void): Promise<void> {
     const operation = this.pending.then(async () => {
       update();
-      this.snapshot.updatedAt = new Date().toISOString();
       this.snapshot.status = aggregate(this.snapshot);
+      const now = Date.now();
+      const content = JSON.stringify({ ...this.snapshot, updatedAt: null });
+      if (
+        content === this.publishedContent &&
+        now >= this.publishedAt &&
+        now - this.publishedAt < 1_000
+      )
+        return;
+      this.snapshot.updatedAt = new Date(now).toISOString();
       await atomicOwnerOnlyWrite(this.path, this.snapshot);
+      this.publishedContent = content;
+      this.publishedAt = now;
     });
     this.pending = operation.catch(() => undefined);
     return operation;
@@ -220,6 +245,7 @@ export function createNodeRuntimeHealthPublisher(
   workspaceCoordinationConfigured = false,
   eventReaderIdentity?: NodeRuntimeEventReaderIdentity,
   conversationConfigured = false,
+  supervisionConfigured = false,
 ): NodeRuntimeHealthPublisher {
   return new FileNodeRuntimeHealthPublisher(
     stateDirectory,
@@ -227,5 +253,6 @@ export function createNodeRuntimeHealthPublisher(
     workspaceCoordinationConfigured,
     eventReaderIdentity,
     conversationConfigured,
+    supervisionConfigured,
   );
 }

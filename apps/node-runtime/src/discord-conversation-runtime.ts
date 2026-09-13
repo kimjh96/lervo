@@ -28,17 +28,14 @@ import { SQLiteConversationResultStore } from "./conversation-result-store.js";
 import { openManagedConversationReadResponder } from "./conversation-read-responder.js";
 import { NaturalLanguageDiscordConversationResponder } from "./discord-conversation-mode.js";
 import { resolveDiscordAgentParticipation } from "./discord-agent-participation.js";
-import {
-  ConversationInteractionRetryLoop,
-  reportConversationInteractionRetryFailure,
-} from "./conversation-interaction-retry-loop.js";
+import type { ConversationInteractionRetryLoop } from "./conversation-interaction-retry-loop.js";
 import { NodeConversationResponseFailureClassifier } from "./conversation-response-failure-policy.js";
 import { createDiscordConversationEffects } from "./discord-conversation-effects.js";
 import { createDiscordConversationTurnOwnership } from "./discord-conversation-turn-ownership.js";
 import { createDiscordConversationParticipationPolicy } from "./discord-conversation-participation-policy.js";
 import { ConversationRepositorySignalLoop } from "./conversation-repository-signal-loop.js";
 import { DiscordConversationDeliberationRuntime } from "./discord-conversation-deliberation-runtime.js";
-import { startDiscordConversationRepositorySignals } from "./discord-conversation-repository-signals.js";
+import { startDiscordConversationBackground } from "./discord-conversation-background.js";
 import { createDiscordConversationResultRuntime } from "./discord-conversation-result-composition.js";
 import { createDiscordConversationContinuation } from "./discord-conversation-continuation.js";
 import { openDiscordConversationRepositoryWork } from "./discord-conversation-repository-work.js";
@@ -370,33 +367,16 @@ export async function openNodeDiscordConversationRuntime(
       artifacts,
       adapter,
     });
-    interactionRetryLoop = new ConversationInteractionRetryLoop({
-      runCycle: async () => {
-        await openedApplication.runInteractionRetryCycle?.(config.integrationId);
-      },
-      // A failed durable retry belongs to one interaction. Fresh Discord ingress and
-      // other agent bindings must remain available while the leased record is retried.
-      onFailure: (error) => reportConversationInteractionRetryFailure(error, options.onError),
-    });
-    interactionRetryLoop.start();
-    deliberationRuntime?.attach(application, config.deliberation!.pollIntervalMs ?? 2_000);
-    if (config.repositorySignals !== undefined && options.repositoryEvents === undefined) {
-      throw new Error("Repository signals require the Node repository event reader.");
-    }
-    repositorySignalLoop =
-      options.repositoryEvents === undefined
-        ? null
-        : startDiscordConversationRepositorySignals({
-            config,
-            projectId: options.project.projectId,
-            dataDirectory: options.dataDirectory,
-            events: options.repositoryEvents,
-            artifacts,
-            application: openedApplication,
-            onFailure: () => fail("repository_signal_failed"),
-          });
+    ({ interactionRetryLoop, repositorySignalLoop } = startDiscordConversationBackground({
+      options,
+      application: openedApplication,
+      artifacts,
+      deliberation: deliberationRuntime,
+      fail,
+    }));
     return {
       failed: failure,
+      resultAdapter: (integrationId) => (integrationId === config.integrationId ? adapter : null),
       observeRemoteAcknowledgement: (input) => resultRuntime!.observe(input),
       runResultDeliveryCycle: async () => {
         await resultRuntime!.runCycle();

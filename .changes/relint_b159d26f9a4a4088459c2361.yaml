@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b159d26f9a4a4088459c2361"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Recover expired supervised dispatch decisions only after fenced proof that their exact managed run has no events, preserving partial attempts for reconciliation."

@@ -126,11 +126,12 @@ describe("managed provider failure boundaries", () => {
 
   it("retains stop failure as primary while also reporting unmanaged changes", async () => {
     const data = await createManagedFixture();
+    const artifacts = new MemoryArtifactStore();
     const adapter = new FakeManagedAdapter("codex", {
       failStop: true,
       mutate: () => writeFile(resolve(data.root, "src/result.ts"), "unmanaged bytes\n"),
     });
-    const run = coordinator(adapter, data.root, data.store).run({
+    const run = coordinator(adapter, data.root, data.store, undefined, artifacts).run({
       ...providerRunInput(),
       repositoryRoot: data.root,
     });
@@ -149,6 +150,17 @@ describe("managed provider failure boundaries", () => {
     expect(data.store.list({ runId }).at(-1)?.payload).toMatchObject({
       failureCode: "provider_stop_failed",
       retryable: false,
+    });
+    const diagnostic = String(data.store.list({ runId }).at(-1)!.payload.diagnosticDigest);
+    expect(
+      JSON.parse(
+        new TextDecoder().decode(await artifacts.get(`lervo-cas://sha256/${diagnostic.slice(7)}`)),
+      ),
+    ).toMatchObject({
+      failures: expect.arrayContaining([
+        { code: "provider_stop_failed", phase: "adapter_stop", retryable: false },
+        { code: "unmanaged_change_detected", phase: "after_snapshot", retryable: false },
+      ]),
     });
     data.store.close();
   });

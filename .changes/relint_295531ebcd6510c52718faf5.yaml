@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_295531ebcd6510c52718faf5"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Overlap independent final dispatch probes and admission reads while preserving exact authority, five-second freshness checks, and settled reader cleanup."

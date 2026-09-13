@@ -33,6 +33,28 @@ import { FakeManagedAdapter } from "./provider-run-fake-adapter.js";
 afterEach(cleanupManagedFixtures);
 
 describe("managed provider run lifecycle", () => {
+  it("rejects a second launch of one canonical run before starting its provider", async () => {
+    const data = await createManagedFixture();
+    try {
+      await coordinator(new FakeManagedAdapter("codex"), data.root, data.store).run({
+        ...providerRunInput(),
+        repositoryRoot: data.root,
+      });
+      const second = new FakeManagedAdapter("codex");
+      await expect(
+        coordinator(second, data.root, data.store).run({
+          ...providerRunInput(),
+          repositoryRoot: data.root,
+        }),
+      ).rejects.toMatchObject({ code: "contract_validation_failed" });
+      expect(second.calls).toEqual([]);
+      expect(
+        data.store.list({ runId }).filter((event) => event.type === "run.requested"),
+      ).toHaveLength(1);
+    } finally {
+      data.store.close();
+    }
+  });
   it("attributes post-run snapshots separately from provider shutdown", async () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("codex");

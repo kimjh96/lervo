@@ -187,8 +187,11 @@ async function pauseReason(
 async function waitForNextCycle(
   runtime: UnattendedSchedulerRuntime,
   request: UnattendedSchedulerRequest,
+  allowChange = true,
 ): Promise<void> {
-  await runtime.sleep(request.pollIntervalMs);
+  if (allowChange && runtime.waitForChange !== undefined)
+    await runtime.waitForChange(request.pollIntervalMs);
+  else await runtime.sleep(request.pollIntervalMs);
 }
 
 export function createUnattendedSchedulerExecutor(
@@ -260,7 +263,7 @@ export function createUnattendedSchedulerExecutor(
             if (counts.consecutiveFailures >= request.maximumConsecutiveFailures) {
               return finish("attention_required", "consecutive_failure_limit");
             }
-            await waitForNextCycle(runtime, request);
+            await waitForNextCycle(runtime, request, false);
             continue;
           }
           if (await runtime.killSwitchEngaged()) return finish("paused", "kill_switch_engaged");

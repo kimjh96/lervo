@@ -78,7 +78,9 @@ describe("durable conversation deliberation resume queue", () => {
       deliberationId: state.started.deliberationId,
       requestedAt: "2026-08-22T00:03:00.000Z",
     };
+    expect(state.resumes.nextWakeupAt()).toBeNull();
     const first = await state.backend.resume(request);
+    expect(state.resumes.nextWakeupAt()).toBe(Date.parse(request.requestedAt));
     const duplicate = await state.backend.resume({
       ...request,
       requestedAt: "2026-08-22T00:03:01.000Z",
@@ -107,6 +109,7 @@ describe("durable conversation deliberation resume queue", () => {
       }),
     ).resolves.toMatchObject({ status: "settled", deliberationId: first.deliberationId });
     expect(execute).toHaveBeenCalledOnce();
+    expect(resumes.nextWakeupAt()).toBeNull();
     await expect(
       backend.inspect({
         projectId,

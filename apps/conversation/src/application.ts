@@ -1,3 +1,4 @@
+import { watchConversationQueueChanges } from "./queue-change-notifications.js";
 import { resolve } from "node:path";
 
 import { DiscordConversationAdapter } from "@lervo/adapter-discord";
@@ -175,6 +176,15 @@ export async function openConversationApplication(
     }
     discordRuntime.start();
     return {
+      nextInteractionWakeupAt: (integrationId) => interactions?.nextWakeupAt(integrationId) ?? null,
+      nextDeliberationWakeupAt: () => {
+        const deadlines = [deliberationStore?.nextWakeupAt(), resumeStore?.nextWakeupAt()].filter(
+          (at): at is number => typeof at === "number",
+        );
+        return deadlines.length === 0 ? null : Math.min(...deadlines);
+      },
+      subscribeChanges: (kind, notify) =>
+        watchConversationQueueChanges(options.dataDirectory, kind, notify),
       adapters,
       slackAdapters,
       discordAdapters,

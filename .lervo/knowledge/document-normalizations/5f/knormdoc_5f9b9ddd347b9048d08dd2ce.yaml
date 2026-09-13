@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a14d717996208af5ead9f8f3
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6693c5b2eb79dc6961fcac93
+outputLanguage: en
+outputs:
+  - byteCount: 6639
+    contentHash: sha256:98925f0e31c331ed8abebe9e4c3c5a76b7769237840ddb9ccc7794cc4146a6a8
+    path: docs/specifications/execution/dynamic-assignment-topology.md
+    userRegionHash: sha256:98925f0e31c331ed8abebe9e4c3c5a76b7769237840ddb9ccc7794cc4146a6a8
+profile: specification_document
+recordId: knormdoc_5f9b9ddd347b9048d08dd2ce
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:488454cf27ce0e9c585d4a4b4ec3e59d65d739cfe38806f638d0fef398123ee5
+sourcePath: docs/specifications/execution/dynamic-assignment-topology.md
+sourceUnitVersionIds:
+  - uv_40ad4f587ef37b10a16c4fac
+  - uv_430ddd7b9a2c1360924ab9da
+  - uv_46eafee6459238bed423fdcc
+  - uv_56374f097d64d21b34376bc9
+  - uv_ab57de80e4d6d445bbb070c5
+  - uv_ba24766fd020552328ccf2ce
+  - uv_caf8c84cc05d41b745ce4739
+  - uv_ed86c870d1699f37b5d94e48

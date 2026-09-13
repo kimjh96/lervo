@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2d69908b9daca6061fc0d1bb
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4babcd8b039fba82ca3f0e9c
+outputLanguage: en
+outputs:
+  - byteCount: 571
+    contentHash: sha256:df13f76fb8218f2abb0ccf8e00e0fad3d2b5ff4d7e83c95373b7a0adb1120672
+    path: docs/specifications/execution/events-and-privacy/event-envelope-compatibility/payload-contracts/agent-liveness-observed.md
+    userRegionHash: sha256:df13f76fb8218f2abb0ccf8e00e0fad3d2b5ff4d7e83c95373b7a0adb1120672
+profile: specification_document
+recordId: knormdoc_763d6a7546067a608d422a18
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5145b8e8b8c12d733430cfaeb0a9a3bbaee3bc63009036b2383460fa0585507b
+sourcePath: docs/specifications/execution/events-and-privacy/event-envelope-compatibility/payload-contracts/agent-liveness-observed.md
+sourceUnitVersionIds:
+  - uv_329019de12914449f1d59ab3

@@ -20,7 +20,7 @@ import type {
 
 const MAXIMUM_DISCORD_CHARACTERS = 2_000;
 
-const resultWritingContract = {
+export const resultWritingContract = {
   ...adaptiveConversationWritingContract,
   writingPolicyId: "writing_mul-conversation-execution-result",
   surfaces: ["chat"],
@@ -86,13 +86,7 @@ export async function createConversationResultCandidate(input: {
       origin: input.lease.origin,
       runId: acknowledgement.receipt.runId,
     });
-    const content = [
-      input.lease.origin.responseLanguage === "ko"
-        ? "작업을 완료했고 필요한 검증을 통과했습니다."
-        : "The work is complete and passed its required verification.",
-      "",
-      managed.content,
-    ].join("\n");
+    const content = managed.content;
     if ([...content].length > MAXIMUM_DISCORD_CHARACTERS) {
       throw new Error("The verified result exceeds the Discord message limit.");
     }

@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_646980bd4def19cec99e8fb2
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5a21de67834c9b2be43e4c7f
+outputLanguage: en
+outputs:
+  - byteCount: 2851
+    contentHash: sha256:b9fef9a84aea9b91c7e722e487c6aac0fd13d3b5cf447672da616dc7d9916ed2
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/execution-evidence.md
+    userRegionHash: sha256:b9fef9a84aea9b91c7e722e487c6aac0fd13d3b5cf447672da616dc7d9916ed2
+profile: repository_document
+recordId: knormdoc_ef9d636ae4f8a953c051eef1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:00720d9211d4b1dedc266e2859eaabaa69026b53e1142c01afce88803a808f12
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/execution-evidence.md
+sourceUnitVersionIds:
+  - uv_19b8d80afb0b9055e5873488
+  - uv_37ee67bd08fc91c29dba974f
+  - uv_bc189f07d82dab739738369f

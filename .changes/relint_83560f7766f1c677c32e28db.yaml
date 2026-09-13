@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_83560f7766f1c677c32e28db"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Support exact versioned amendments of unstarted assignment acceptance and verification, with fenced rollback and successor claims."

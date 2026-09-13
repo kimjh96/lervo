@@ -12,7 +12,7 @@ export function recordManagedRoleProfileActivation(input: {
   activatedAt: string;
   createEventId: () => string;
 }): boolean {
-  if (input.storage.writableEventSchemaVersion !== 2) return false;
+  if ((input.storage.writableEventSchemaVersion ?? 1) < 2) return false;
 
   const roleProfileContentHash = roleProfileHash(input.roleContract.definition.profile);
   input.storage.events.append({

@@ -85,11 +85,15 @@ export function parseDiscordMessagePayload(value: unknown): ParsedDiscordMessage
   const bot = author.bot === true;
   const webhookId = optionalSnowflake(message.webhook_id, "Discord webhook ID");
   const mentionValues = Array.isArray(message.mentions) ? message.mentions : [];
+  const content = messageContent(message.content);
+  // allowed_mentions can suppress metadata without removing the sender's explicit address.
+  const leadingAddress = /^\s*<@!?(\d{1,32})>(?=\s|$)/u.exec(content)?.[1];
   const reference =
     message.message_reference === undefined || message.message_reference === null
       ? null
       : objectValue(message.message_reference);
-  const referencedAgent = agentParticipantKey(message.referenced_message);
+  const referencedAgent =
+    bot || webhookId !== null ? null : agentParticipantKey(message.referenced_message);
   return {
     kind: "message",
     messageId: snowflake(message.id, "Discord message ID"),
@@ -103,6 +107,7 @@ export function parseDiscordMessagePayload(value: unknown): ParsedDiscordMessage
       ...mentionValues.map(
         (item) => `user:${snowflake(objectValue(item).id, "Discord mentioned user ID")}`,
       ),
+      ...(leadingAddress === undefined ? [] : [`user:${leadingAddress}`]),
       ...(referencedAgent === null ? [] : [referencedAgent]),
     ].filter((value, index, values) => values.indexOf(value) === index),
     actorKindHint: bot || webhookId !== null ? "agent" : "human",
@@ -110,7 +115,7 @@ export function parseDiscordMessagePayload(value: unknown): ParsedDiscordMessage
       reference === null
         ? null
         : optionalSnowflake(reference.message_id, "Discord reply message ID"),
-    content: messageContent(message.content),
+    content,
     occurredAt: isoTimestamp(message.timestamp),
   };
 }

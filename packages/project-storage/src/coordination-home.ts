@@ -63,19 +63,31 @@ async function ensurePrivateDirectory(path: string): Promise<void> {
   if (process.platform !== "win32") await chmod(path, 0o700);
 }
 
-async function gitPath(root: string, argument: "--show-toplevel" | "--git-common-dir") {
+async function gitCoordinates(root: string) {
   try {
-    const arguments_ =
-      argument === "--git-common-dir"
-        ? ["-C", root, "rev-parse", "--path-format=absolute", argument]
-        : ["-C", root, "rev-parse", argument];
+    const arguments_ = [
+      "-C",
+      root,
+      "rev-parse",
+      "--path-format=absolute",
+      "--show-toplevel",
+      "--git-common-dir",
+    ];
     const { stdout } = await execute("git", arguments_, { encoding: "utf8", maxBuffer: 16_384 });
-    const value = stdout.trim();
-    if (value.length === 0 || value.includes("\n") || value.includes("\0"))
+    const values = stdout.trim().split(/\r?\n/u);
+    if (
+      values.length !== 2 ||
+      values.some((value) => value.trim().length === 0 || value.includes("\0"))
+    )
       invalid("Git returned an invalid repository coordinate.");
-    return resolve(value);
+    return { topLevel: resolve(values[0]!.trim()), commonDirectory: resolve(values[1]!.trim()) };
   } catch (error) {
     if (error instanceof ProjectStorageError) throw error;
+    if (
+      typeof (error as { stdout?: unknown }).stdout === "string" &&
+      (error as { stdout: string }).stdout.trim().length > 0
+    )
+      invalid("Git returned incomplete repository coordinates.", error);
     return null;
   }
 }
@@ -84,16 +96,15 @@ async function coordinationRoot(repositoryRoot: string): Promise<{
   root: string;
   storageKind: RepositoryCoordinationHome["storageKind"];
 }> {
-  const topLevel = await gitPath(repositoryRoot, "--show-toplevel");
-  if (topLevel === null)
+  const coordinates = await gitCoordinates(repositoryRoot);
+  if (coordinates === null)
     return {
       root: resolve(repositoryRoot, ".lervo/data/repository-coordination-v1"),
       storageKind: "standalone_checkout",
     };
+  const { topLevel, commonDirectory } = coordinates;
   if ((await realpath(topLevel)) !== (await realpath(repositoryRoot)))
     invalid("The project manifest root must equal the Git worktree root.");
-  const commonDirectory = await gitPath(repositoryRoot, "--git-common-dir");
-  if (commonDirectory === null) invalid("The Git common directory could not be resolved.");
   await inspectRealDirectory(commonDirectory, "Git common directory");
   return {
     root: resolve(commonDirectory, "lervo-coordination-v1"),
@@ -228,11 +239,34 @@ async function migrateWorkforce(source: string, target: string): Promise<void> {
 
 export async function resolveRepositoryCoordinationHome(
   repositoryRoot: string,
-  options: { now?: Date } = {},
+  options: { now?: Date; readOnly?: boolean } = {},
 ): Promise<RepositoryCoordinationHome> {
   const paths = resolveProjectPaths(repositoryRoot);
   const manifest = await loadProjectManifest(paths.repositoryRoot);
   const coordinate = await coordinationRoot(paths.repositoryRoot);
+  if (options.readOnly === true) {
+    await inspectRealDirectory(coordinate.root, "Existing coordination directory");
+    const marker = await readMarker(
+      resolve(coordinate.root, "repository.json"),
+      manifest.projectId,
+    );
+    if (marker.storageKind !== coordinate.storageKind || (await hasEntries(paths.workforce)))
+      invalid(
+        "Read-only coordination inspection requires the owner's completed storage migration.",
+      );
+    const home = coordinationHome(coordinate.root, marker);
+    for (const path of [
+      home.workforce,
+      home.workspaces,
+      home.integrations,
+      home.integrationAttempts,
+      home.cleanupJournals,
+      home.events,
+      home.locks,
+    ])
+      await inspectRealDirectory(path, "Existing coordination collection");
+    return home;
+  }
   if (coordinate.storageKind === "standalone_checkout")
     await ensurePrivateDirectory(dirname(coordinate.root));
   await ensurePrivateDirectory(coordinate.root);
@@ -247,19 +281,7 @@ export async function resolveRepositoryCoordinationHome(
     if (marker.storageKind !== coordinate.storageKind)
       invalid("The repository coordination storage kind changed.");
 
-    const home: RepositoryCoordinationHome = {
-      schemaVersion: 1,
-      repositoryInstanceId: marker.repositoryInstanceId,
-      storageKind: marker.storageKind,
-      root: coordinate.root,
-      workforce: resolve(coordinate.root, "workforce"),
-      workspaces: resolve(coordinate.root, "workspaces"),
-      integrations: resolve(coordinate.root, "integrations"),
-      integrationAttempts: resolve(coordinate.root, "integration-attempts"),
-      cleanupJournals: resolve(coordinate.root, "cleanup-journals"),
-      events: resolve(coordinate.root, "events"),
-      locks: resolve(coordinate.root, "locks"),
-    };
+    const home = coordinationHome(coordinate.root, marker);
     await migrateWorkforce(paths.workforce, home.workforce);
     await Promise.all(
       [
@@ -275,6 +297,22 @@ export async function resolveRepositoryCoordinationHome(
   } finally {
     await release();
   }
+}
+
+function coordinationHome(root: string, marker: CoordinationMarker): RepositoryCoordinationHome {
+  return {
+    schemaVersion: 1,
+    repositoryInstanceId: marker.repositoryInstanceId,
+    storageKind: marker.storageKind,
+    root,
+    workforce: resolve(root, "workforce"),
+    workspaces: resolve(root, "workspaces"),
+    integrations: resolve(root, "integrations"),
+    integrationAttempts: resolve(root, "integration-attempts"),
+    cleanupJournals: resolve(root, "cleanup-journals"),
+    events: resolve(root, "events"),
+    locks: resolve(root, "locks"),
+  };
 }
 
 export function repositoryCoordinateDigest(value: string): string {

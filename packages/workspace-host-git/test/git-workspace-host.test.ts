@@ -46,6 +46,34 @@ afterEach(async () => {
 });
 
 describe("Git workspace host", () => {
+  it.each(["unchanged", "unstaged", "staged", "untracked", "committed"])(
+    "observes base-relative changed paths for %s workspaces",
+    async (state) => {
+      const fixture = await repository();
+      const adapter = new GitWorkspaceHostAdapter();
+      const request = { ...fixture, marker, idempotencyKey: "idk_inspection_fixture_01" };
+      await adapter.provision(request);
+      if (state !== "unchanged")
+        await writeFile(
+          resolve(fixture.workspacePath, state === "untracked" ? "new.txt" : "tracked.txt"),
+          "changed\n",
+        );
+      if (state === "staged" || state === "committed")
+        await execute("git", ["-C", fixture.workspacePath, "add", "tracked.txt"]);
+      if (state === "committed")
+        await execute("git", ["-C", fixture.workspacePath, "commit", "-m", "changed"]);
+      const observed = await adapter.inspect(request);
+      expect(observed).toMatchObject({
+        status: "present",
+        markerMatched: true,
+        clean: state === "unchanged" || state === "committed",
+        changedPaths:
+          state === "unchanged" ? [] : [state === "untracked" ? "new.txt" : "tracked.txt"],
+      });
+      expect(observed.headCommit === fixture.baseCommit).toBe(state !== "committed");
+    },
+  );
+
   it("provisions idempotently, inspects exact evidence, and removes without force", async () => {
     const fixture = await repository();
     const adapter = new GitWorkspaceHostAdapter();

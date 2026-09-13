@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_9e35a27afdb4ad02a2214cad
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_3d0a023605b6ab14ee3a9974
+outputLanguage: en
+outputs:
+  - byteCount: 2066
+    contentHash: sha256:480068a60e965ae68c6a5a0076c8c964e6d3cde74cebd4ae130ecfa545d58017
+    path: docs/roadmap/coordination/repository-node-fleet/idle-runtime.md
+    userRegionHash: sha256:480068a60e965ae68c6a5a0076c8c964e6d3cde74cebd4ae130ecfa545d58017
+profile: roadmap_document
+recordId: knormdoc_a041908b6346f6fa005307e6
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5656882c7acb530cc649802992b071ee955290963a61cd80532abaff07e4ee1a
+sourcePath: docs/roadmap/coordination/repository-node-fleet/idle-runtime.md
+sourceUnitVersionIds:
+  - uv_41efa96ea2554594b1522497

@@ -6,7 +6,7 @@ As of: 2026-09-07
 
 ## Purpose
 
-Lervo extends the current workstream's assignment DAG with reviewed branches and joins. This local-first, provider-neutral feature adds assignments whose dependencies reference current assignments or nodes in the same change. It never rewrites or deletes existing nodes or dependencies.
+Lervo extends the current workstream's assignment DAG with reviewed branches and joins. This local-first, provider-neutral feature adds assignments depending on current assignments or nodes in the same change. It never rewrites or deletes existing nodes or dependencies.
 
 Canonical authority remains in assignment files, workstreams, roles, execution events, verification, leases, and repository state. `WorkGraphV2` and topology history are rebuildable projections, not another graph database.
 
@@ -38,9 +38,11 @@ Existing dependencies cannot be edited, so reviewed additions cannot create back
 
 ## Review, apply, and concurrency
 
-Planning is read-only. Apply requires all of `--apply <plan-id>`, `--approval <approval-hash>`, `--reviewer <id>`, and `--write`. Under the shared assignment-graph materialization lock, Lervo rebuilds the current graph and role contracts, requires the exact plan and approval, and writes deterministic assignments initially as `blocked`.
+The manual v2 path remains independently reviewed. [Automatic supervision topology](outcome-supervision/implementation/automatic-topology.md) uses a separate versioned operating-policy binding and leaves each addition blocked until its responsibility claim.
 
-Only after every expected node exists with exact content and provenance does Lervo activate the set to `queued`. The existing scheduler and manual claim paths use ordinary DAG dependency eligibility. Topology code does not start providers or bypass leases, approvals, resource budgets, cancellation, verification, or completion reconciliation.
+Planning is read-only. Manual apply requires all of `--apply <plan-id>`, `--approval <approval-hash>`, `--reviewer <id>`, and `--write`. Under the shared assignment-graph materialization lock, Lervo rebuilds the current graph and role contracts, requires the exact plan and approval, and writes deterministic assignments initially as `blocked`.
+
+Only after every expected node exists with exact content and provenance does Lervo activate the set to `queued`. Existing scheduler and manual claim paths use ordinary DAG dependency eligibility. Topology code does not start providers or bypass leases, approvals, resource budgets, cancellation, verification, or completion reconciliation.
 
 Routine materialization and dynamic topology share one lock because both append assignment graph nodes. The controller owns pure validation and planning; workforce persistence owns atomic assignment files and state transitions; CLI composition owns role resolution, event recording, exact review, and rendering.
 
@@ -68,7 +70,7 @@ Replay groups events by change ID: an exact complete node set is `valid`, a cons
 - `topology_change_incomplete`: replay observed a recoverable consistent subset.
 - `topology_history_conflict`, `topology_history_duplicate_node`, or `topology_history_malformed`: historical evidence is inconsistent; graph v2 inspection fails closed.
 
-Arbitrary rewiring, node deletion, unbounded graph growth, graph-authored provider execution, automatic review, independent nested-goal mutation, and a second graph store remain unsupported.
+Arbitrary rewiring, node deletion, unbounded graph growth, graph-authored provider execution, unversioned automatic review, independent nested-goal mutation, and a second graph store remain unsupported.
 
 ## References
 

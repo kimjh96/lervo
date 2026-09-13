@@ -1,3 +1,4 @@
+import { nextAssignmentLeaseGeneration } from "@lervo/agent-workforce";
 import { createHash, randomBytes } from "node:crypto";
 
 import {
@@ -116,7 +117,7 @@ export async function claimWorkspaceAssignment(input: {
       assignmentId: assignment.assignmentId,
       workspaceId,
       nodeId: input.nodeId,
-      generation: (assignment.lease?.generation ?? 0) + 1,
+      generation: nextAssignmentLeaseGeneration(assignment),
       baseCommit: input.baseCommit,
       integrationTargetDigest: input.integrationTargetDigest,
       scopes: workspaceReservationScopes(assignment.expectedPaths),
@@ -150,7 +151,7 @@ export async function claimWorkspaceAssignment(input: {
         projectId: assignment.projectId,
         repositoryIdentityHash: input.repositoryIdentityHash!,
         nodeId: input.nodeId!,
-        generation: (assignment.lease?.generation ?? 0) + 1,
+        generation: nextAssignmentLeaseGeneration(assignment),
         releasedAt: now.toISOString(),
       });
     throw error;

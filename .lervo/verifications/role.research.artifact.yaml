@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "role.research.artifact",
+  "stopOnFailure": true,
+  "commands":
+    [
+      {
+        "commandId": "research-artifact",
+        "executable": "node",
+        "arguments": ["/home/jonghyeok/.local/bin/lervo", "research", "verify", "--json"],
+        "cwd": ".",
+        "timeoutMs": 10000,
+        "maxOutputBytes": 8192,
+        "environmentVariableNames":
+          ["LERVO_RESEARCH_ARTIFACT_HASH", "LERVO_RESEARCH_CAS_ROOT", "LERVO_RESEARCH_INPUT_HASH"],
+      },
+    ],
+}

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_f752269d4cd929515315fa53
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_feb20b6f84c6666a2dd4811d
+outputLanguage: en
+outputs:
+  - byteCount: 1507
+    contentHash: sha256:c78e96e016b5e7b7fc59c275f4cea76e161fdb8976636c9b8a5cff48d5a2d847
+    path: docs/specifications/execution/events-and-privacy/event-envelope-compatibility/payload-contracts/resource-usage-recorded.md
+    userRegionHash: sha256:c78e96e016b5e7b7fc59c275f4cea76e161fdb8976636c9b8a5cff48d5a2d847
+profile: specification_document
+recordId: knormdoc_687d231a55d6652ebfb7db52
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2826519993b7418f25b5f2bd0044220828b27be3490859434b42cfe46af8a2dd
+sourcePath: docs/specifications/execution/events-and-privacy/event-envelope-compatibility/payload-contracts/resource-usage-recorded.md
+sourceUnitVersionIds:
+  - uv_1820f3ca6e9d47c38dcefad9

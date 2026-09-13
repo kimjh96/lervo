@@ -3,8 +3,32 @@ import { delimiter, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { CodexStdioAppServerClient } from "../src/index.js";
+import { codexStoredLoginEnvironment } from "../src/index.js";
 
 describe("Codex stdio app-server client", () => {
+  it("uses the selected stored-login environment without parent credentials", async () => {
+    const previous = process.env.LERVO_TEST_INHERITED_CREDENTIAL;
+    process.env.LERVO_TEST_INHERITED_CREDENTIAL = "fixture-secret";
+    try {
+      const client = await CodexStdioAppServerClient.connect({
+        executable: process.execPath,
+        commandArguments: [
+          join(import.meta.dirname, "fixtures/fake-app-server.mjs"),
+          "--require-isolated-profile",
+        ],
+        cwd: process.cwd(),
+        requestTimeoutMs: 1000,
+        environment: codexStoredLoginEnvironment({
+          homeDirectory: "/fixture/owner-home",
+          configurationDirectory: "/fixture/owner-config",
+        }),
+      });
+      await client.close();
+    } finally {
+      if (previous === undefined) delete process.env.LERVO_TEST_INHERITED_CREDENTIAL;
+      else process.env.LERVO_TEST_INHERITED_CREDENTIAL = previous;
+    }
+  });
   it("performs the initialize handshake and preserves the JSONL notification stream", async () => {
     const client = await CodexStdioAppServerClient.connect({
       executable: process.execPath,

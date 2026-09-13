@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "kind": "research.source_policy",
+  "policyId": "repository.product-vision.sources",
+  "version": 1,
+  "projectId": "prj_ab094111596346d7",
+  "allowedPaths": ["docs/product/vision.md"],
+  "maximumSources": 1,
+  "maximumSourceBytes": 32768,
+  "maximumAgeMs": 3600000,
+  "allowNetwork": false
+}

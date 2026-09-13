@@ -25,9 +25,13 @@ import { createManagedRunExecutor, type RunProvider } from "../src/managed-run.j
 import { resolveDefaultManagedLinkedEvidenceSelection } from "../src/managed-linked-evidence-default-selection.js";
 import { collectLocalKnowledgeSources } from "../src/knowledge-sources.js";
 import { runCli } from "../src/main.js";
+import { managedExecutionIdentity } from "@lervo/work-controller";
 import { readCliPackageVersion } from "../src/version-command.js";
 import { registerLinkedSearchContextDocuments } from "./search-context-fixture.js";
-import { activateFixtureEventWriterV2 } from "../../../packages/project/test/fixture-event-writer.js";
+import {
+  activateFixtureEventWriterV2,
+  activateFixtureEventWriterV3,
+} from "../../../packages/project/test/fixture-event-writer.js";
 
 const CLAUDE_SESSION_ID = "11111111-1111-4111-8111-111111111111";
 const CLAUDE_TURN_ID = "22222222-2222-4222-8222-222222222222";
@@ -567,6 +571,61 @@ afterEach(async () => {
 });
 
 describe("lervo run vertical slice", () => {
+  it("binds a supervised attempt to one execution key and the configured primary executable", async () => {
+    const root = await createRepository();
+    const initial = await openProjectStorage(root);
+    const projectId = initial.manifest.projectId;
+    initial.events.close();
+    await activateFixtureEventWriterV3({
+      repositoryRoot: root,
+      projectId,
+      observedAt: new Date().toISOString(),
+    });
+    await writeVerificationSuite(root, "process.exit(0)");
+    const clients: ManagedCodexClient[] = [];
+    const executables: Array<string | undefined> = [];
+    const execute = createManagedRunExecutor({
+      openStorage: openProjectStorage,
+      createId: identifierFactory(),
+      semanticEvaluator: passingSemanticEvaluator,
+      createAdapter: ({ repositoryRoot, resolveArtifact, executable }) => {
+        executables.push(executable);
+        const client = new ManagedCodexClient(root);
+        clients.push(client);
+        return new CodexAdapter({
+          repositoryRoot,
+          resolveArtifact,
+          clientFactory: async () => client,
+        });
+      },
+    });
+    const request = {
+      repositoryRoot: root,
+      provider: "codex" as const,
+      expectedPath: "src/result.ts",
+      instructions: "Implement the supervised file",
+      risk: "low",
+      verificationSuiteIds: ["project.default"],
+      executionKey: `sha256:${"a".repeat(64)}`,
+      providerExecutable: "/configured/bin/codex",
+    };
+    const first = await execute(request);
+    expect(first.runId).toBe(managedExecutionIdentity(first.projectId, request.executionKey).runId);
+    await expect(execute(request)).rejects.toThrow();
+    expect(executables).toEqual([request.providerExecutable]);
+    expect(clients[0]!.startOptions).toHaveLength(1);
+    expect(clients).toHaveLength(1);
+    const storage = await openProjectStorage(root);
+    try {
+      expect(
+        storage.events
+          .list({ runId: first.runId })
+          .filter((event) => event.type === "run.requested"),
+      ).toHaveLength(1);
+    } finally {
+      storage.events.close();
+    }
+  });
   it("executes a repository-specialized role through the managed provider boundary", async () => {
     const root = await createRepository();
     await writeVerificationSuite(root, "process.exit(0)");

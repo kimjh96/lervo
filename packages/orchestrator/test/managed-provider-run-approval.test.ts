@@ -53,6 +53,29 @@ function approvalAuthorization(): ManagedRunApprovalAuthorization {
 afterEach(cleanupManagedFixtures);
 
 describe("managed provider approval", () => {
+  it.each(["allow", "require_approval"] as const)(
+    "narrows a %s write role to an observation-only run without write authorization",
+    async (decision) => {
+      const data = await createManagedFixture();
+      const adapter = new FakeManagedAdapter("codex");
+      const input = providerRunInput();
+      const result = await coordinator(adapter, data.root, data.store).run({
+        ...input,
+        repositoryRoot: data.root,
+        executionMode: "read_only",
+        context: {
+          ...input.context,
+          expectedPaths: [],
+          role: { ...role, capabilities: { ...role.capabilities, "filesystem.write": decision } },
+        },
+      });
+      expect(result.session.executionMode).toBe("read_only");
+      expect(data.store.list({ runId }).filter((event) => event.type === "file.changed")).toEqual(
+        [],
+      );
+      data.store.close();
+    },
+  );
   it("does not start a provider when require_approval evidence is absent", async () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("codex");

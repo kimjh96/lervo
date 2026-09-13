@@ -101,6 +101,9 @@ importers:
       '@lervo/capabilities':
         specifier: workspace:*
         version: link:../../packages/capabilities
+      '@lervo/cas':
+        specifier: workspace:*
+        version: link:../../packages/cas
       '@lervo/context':
         specifier: workspace:*
         version: link:../../packages/context
@@ -431,6 +434,9 @@ importers:
       '@lervo/agent-workforce':
         specifier: workspace:*
         version: link:../../packages/agent-workforce
+      '@lervo/application-contract':
+        specifier: workspace:*
+        version: link:../../packages/application-contract
       '@lervo/cas':
         specifier: workspace:*
         version: link:../../packages/cas
@@ -527,6 +533,15 @@ importers:
       '@lervo/sync-contract':
         specifier: workspace:*
         version: link:../../packages/sync-contract
+      '@lervo/verification':
+        specifier: workspace:*
+        version: link:../../packages/verification
+      '@lervo/work-controller':
+        specifier: workspace:*
+        version: link:../../packages/work-controller
+      '@lervo/workspace-host-git':
+        specifier: workspace:*
+        version: link:../../packages/workspace-host-git
       '@lervo/workspace-reservation-hub':
         specifier: workspace:*
         version: link:../../packages/workspace-reservation-hub
@@ -673,9 +688,15 @@ importers:
 
   packages/agent-workforce:
     dependencies:
+      '@lervo/application-contract':
+        specifier: workspace:*
+        version: link:../application-contract
       '@lervo/capabilities':
         specifier: workspace:*
         version: link:../capabilities
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
       '@lervo/project':
         specifier: workspace:*
         version: link:../project
@@ -688,6 +709,12 @@ importers:
       '@lervo/roles':
         specifier: workspace:*
         version: link:../roles
+      '@lervo/storage-contract':
+        specifier: workspace:*
+        version: link:../storage-contract
+      '@lervo/work-controller':
+        specifier: workspace:*
+        version: link:../work-controller
 
   packages/application-contract: {}
 
@@ -1395,6 +1422,9 @@ importers:
       '@lervo/agent-workforce':
         specifier: workspace:*
         version: link:../agent-workforce
+      '@lervo/application-contract':
+        specifier: workspace:*
+        version: link:../application-contract
       '@lervo/context':
         specifier: workspace:*
         version: link:../context
@@ -1422,6 +1452,9 @@ importers:
       '@lervo/verification-contract':
         specifier: workspace:*
         version: link:../verification-contract
+      '@lervo/work-controller':
+        specifier: workspace:*
+        version: link:../work-controller
       '@lervo/workspace-host':
         specifier: workspace:*
         version: link:../workspace-host

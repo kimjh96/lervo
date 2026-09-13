@@ -2,7 +2,11 @@ import { delimiter, dirname } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { createProviderProcessEnvironment, inspectProviderExecutable } from "../src/index.js";
+import {
+  createProviderProcessEnvironment,
+  inspectProviderExecutable,
+  inspectRuntimeExecutable,
+} from "../src/index.js";
 
 describe("provider runtime inspection", () => {
   it("prepends the current Node runtime to a provider process environment", () => {
@@ -87,5 +91,27 @@ describe("provider runtime inspection", () => {
       version: null,
       reasonCode: "executable_not_found",
     });
+  });
+});
+
+describe("generic executable inspection", () => {
+  it("observes a tool without attributing it to a provider", async () => {
+    const result = await inspectRuntimeExecutable({
+      executable: process.execPath,
+      source: "configured",
+    });
+    expect(result.status).toBe("available");
+    expect(result.version).toBe(process.version);
+    expect(result).not.toHaveProperty("provider");
+  });
+  it("bounds an unresponsive executable", async () => {
+    await expect(
+      inspectRuntimeExecutable({
+        executable: process.execPath,
+        arguments: ["-e", "setInterval(() => {}, 1000)"],
+        source: "configured",
+        timeoutMs: 100,
+      }),
+    ).resolves.toMatchObject({ status: "unknown", reasonCode: "probe_timed_out", version: null });
   });
 });

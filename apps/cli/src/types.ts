@@ -33,7 +33,7 @@ export interface CliIo {
   cwd: string;
   stdout: (message: string) => void;
   stderr: (message: string) => void;
-  stdin?: () => Promise<string>;
+  stdin?: (maximumBytes?: number) => Promise<string>;
 }
 
 export interface CliServices {

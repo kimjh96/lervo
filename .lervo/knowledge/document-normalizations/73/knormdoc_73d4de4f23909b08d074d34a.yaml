@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6d3326d725fdb10ee5951e59
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_59b0234bccda7bab804b0f22
+outputLanguage: en
+outputs:
+  - byteCount: 1358
+    contentHash: sha256:8c07949c81e2fc11ddd3cfa7a961a50edb818506e82fd0885b986abee32c50af
+    path: docs/specifications/execution/outcome-supervision/implementation/storage/owner-fences.md
+    userRegionHash: sha256:8c07949c81e2fc11ddd3cfa7a961a50edb818506e82fd0885b986abee32c50af
+profile: specification_document
+recordId: knormdoc_73d4de4f23909b08d074d34a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:bc3e7c3ef719f44034514539548724cf117c5de940ad50c1d331e20b6c59dc05
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/storage/owner-fences.md
+sourceUnitVersionIds:
+  - uv_0177899c6124625b356b1550

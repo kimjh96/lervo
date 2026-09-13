@@ -26,11 +26,12 @@ import { EventStoreError } from "./errors.js";
 import { SQLiteEventRepository } from "./event-repository.js";
 import { configureDatabase, migrateDatabase } from "./migrations.js";
 import { SQLiteOutboxRepository } from "./outbox.js";
+import { openReadOnlyEventDatabase } from "./read-only-database.js";
 
 export interface OpenEventStoreOptions {
   path: string;
   projectId: ProjectManifest["projectId"];
-  writableEventSchemaVersion?: 1 | 2;
+  writableEventSchemaVersion?: 1 | 2 | 3;
 }
 
 function isThenable(value: unknown): value is PromiseLike<unknown> {
@@ -54,7 +55,8 @@ export class SQLiteEventStore implements OutboxStore {
     path: string,
     projectId: string,
     private readonly database: DatabaseSync,
-    writableEventSchemaVersion: 1 | 2,
+    writableEventSchemaVersion: 1 | 2 | 3,
+    private readonly readOnly = false,
   ) {
     this.path = path;
     this.projectId = projectId;
@@ -63,6 +65,12 @@ export class SQLiteEventStore implements OutboxStore {
   }
 
   static async open(options: OpenEventStoreOptions): Promise<SQLiteEventStore> {
+    if (![1, 2, 3].includes(options.writableEventSchemaVersion ?? 1)) {
+      throw new EventStoreError(
+        "event_schema_unsupported",
+        "The writer activation version is unsupported.",
+      );
+    }
     const path = await ensureDatabasePath(options.path);
     const database = new DatabaseSync(path, {
       enableForeignKeyConstraints: true,
@@ -86,6 +94,20 @@ export class SQLiteEventStore implements OutboxStore {
     }
   }
 
+  static async openReadOnly(
+    options: Pick<OpenEventStoreOptions, "path" | "projectId">,
+  ): Promise<SQLiteEventStore> {
+    const { path, database } = await openReadOnlyEventDatabase(options);
+    try {
+      const store = new SQLiteEventStore(path, options.projectId, database, 3, true);
+      store.verifyIntegrity();
+      return store;
+    } catch (error) {
+      database.close();
+      throw error;
+    }
+  }
+
   private assertOpen(): void {
     if (this.closed) {
       throw new EventStoreError("closed", "A closed event store cannot be used.");
@@ -94,6 +116,11 @@ export class SQLiteEventStore implements OutboxStore {
 
   transact<T>(work: (transaction: OutboxTransaction) => T): T {
     this.assertOpen();
+    if (this.readOnly)
+      throw new EventStoreError(
+        "read_only",
+        "This event handle cannot mutate the observed repository.",
+      );
     if (this.transactionActive) {
       throw new EventStoreError(
         "nested_transaction",

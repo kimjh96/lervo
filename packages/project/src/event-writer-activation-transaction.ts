@@ -31,16 +31,16 @@ export interface EventWriterActivationReceipt {
   receiptKind: "event_writer_activation_applied" | "event_writer_rollback_applied";
   planId: string;
   projectId: string;
-  selectedEventSchemaVersion: 1 | 2;
+  selectedEventSchemaVersion: 1 | 2 | 3;
   coordinateHash: string;
   activationId: string | null;
 }
 
 function coordinateEvidence(coordinate: EventWriterCoordinate): EventWriterActivationEvidence {
-  if (coordinate.selectedEventSchemaVersion !== 2) {
+  if (coordinate.selectedEventSchemaVersion === 1) {
     throw new EventWriterActivationError(
       "event_writer_plan_stale",
-      "The activation plan has no version 2 evidence.",
+      "The activation plan has no higher-version evidence.",
     );
   }
   return {
@@ -72,16 +72,20 @@ export async function applyEventWriterActivationPlan(input: {
     );
   }
   const plannedEvidence = input.plan.activationEvidence;
-  if (plannedEvidence?.schemaVersion === 2) {
+  if (
+    plannedEvidence?.schemaVersion === 2 ||
+    input.plan.desiredCoordinate.selectedEventSchemaVersion === 3
+  ) {
     if (input.currentEvidence === undefined) {
       throw new EventWriterActivationError(
         "reader_inventory_revalidation_required",
-        "Distributed activation requires a current authoritative reader inventory observation.",
+        "This activation requires a current authoritative reader inventory observation.",
       );
     }
     const currentEvidence = readEventWriterActivationEvidence(input.currentEvidence);
     if (
-      currentEvidence.schemaVersion !== 2 ||
+      plannedEvidence === null ||
+      currentEvidence.schemaVersion !== plannedEvidence.schemaVersion ||
       eventWriterActivationObservationHash(currentEvidence) !==
         eventWriterActivationObservationHash(plannedEvidence)
     ) {
@@ -92,9 +96,10 @@ export async function applyEventWriterActivationPlan(input: {
     }
   }
   const current =
-    input.plan.desiredCoordinate.selectedEventSchemaVersion === 2
+    input.plan.desiredCoordinate.selectedEventSchemaVersion !== 1
       ? await planEventWriterActivation({
           repositoryRoot: input.plan.repositoryRoot,
+          targetEventSchemaVersion: input.plan.desiredCoordinate.selectedEventSchemaVersion,
           evidence:
             input.plan.activationEvidence ?? coordinateEvidence(input.plan.desiredCoordinate),
         })
@@ -182,7 +187,7 @@ export async function applyEventWriterActivationPlan(input: {
   return {
     schemaVersion: 1,
     receiptKind:
-      coordinate.selectedEventSchemaVersion === 2
+      coordinate.selectedEventSchemaVersion !== 1
         ? "event_writer_activation_applied"
         : "event_writer_rollback_applied",
     planId: input.plan.planId,
@@ -190,7 +195,7 @@ export async function applyEventWriterActivationPlan(input: {
     selectedEventSchemaVersion: coordinate.selectedEventSchemaVersion,
     coordinateHash: input.plan.desiredContentHash,
     activationId:
-      coordinate.selectedEventSchemaVersion === 2
+      coordinate.selectedEventSchemaVersion !== 1
         ? coordinate.activationEvidence.activationId
         : null,
   };

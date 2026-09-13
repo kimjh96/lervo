@@ -47,6 +47,17 @@ const absentWorkstream = {
 };
 
 describe("Node runtime readiness snapshot", () => {
+  it("does not replace identical health bytes in one burst but publishes changes immediately", async () => {
+    const publisher = createNodeRuntimeHealthPublisher(await stateDirectory(), false);
+    await publisher.initialize();
+    await publisher.observeSync(idleSync);
+    const first = await lstat(publisher.path);
+    await publisher.observeSync(idleSync);
+    expect((await lstat(publisher.path)).ino).toBe(first.ino);
+    await publisher.observeWorkstreamReplicationFailure("local_state_invalid");
+    expect((await snapshot(publisher.path)).status).toBe("degraded");
+  });
+
   it("binds advertised reader capability to repository and destination identity", async () => {
     const identity = {
       projectId: "prj_health_identity",
@@ -77,7 +88,7 @@ describe("Node runtime readiness snapshot", () => {
       eventReader: {
         schemaVersion: 1,
         capability: "event_reader",
-        readableEventSchemaVersions: [1, 2],
+        readableEventSchemaVersions: [1, 2, 3],
       },
       sync: { status: "pending" },
       workstreamReplication: { status: "pending" },
@@ -181,4 +192,26 @@ describe("Node runtime readiness snapshot", () => {
       conversation: { status: "unavailable", failureCode: "authentication_failed" },
     });
   });
+});
+
+it("keeps installed supervision readiness distinct from transport health", async () => {
+  const publisher = createNodeRuntimeHealthPublisher(
+    await stateDirectory(),
+    false,
+    false,
+    undefined,
+    false,
+    true,
+  );
+  await publisher.initialize();
+  await publisher.observeSync(idleSync);
+  await publisher.observeWorkstreamReplication(absentWorkstream);
+  expect((await snapshot(publisher.path)).status).toBe("starting");
+  await publisher.observeSupervision({
+    status: "unavailable",
+    failureCode: "supervision_cycle_failed",
+  });
+  expect((await snapshot(publisher.path)).status).toBe("degraded");
+  await publisher.observeSupervision({ status: "ready" });
+  expect(readNodeRuntimeHealthSnapshot(await snapshot(publisher.path)).status).toBe("ready");
 });

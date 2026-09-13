@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a218d70ad31a7dcefe2ade25"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Verify canonical worker assignments, leases, role ancestry, and actual Git workspace ownership before Node supervision invokes an execution effect."

@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_65f98d8f35898f8811551a71
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_508d0622820ee0ebf652fee0
+outputLanguage: en
+outputs:
+  - byteCount: 2112
+    contentHash: sha256:a6526de9bfa9985a9df6037cc2ba796aaa97568b4d000264b56dc7adffd1f7e3
+    path: docs/specifications/execution/resource-and-performance-budgets/direct-terminal-performance.md
+    userRegionHash: sha256:a6526de9bfa9985a9df6037cc2ba796aaa97568b4d000264b56dc7adffd1f7e3
+profile: specification_document
+recordId: knormdoc_cdc9d51ea857e634bcf80c39
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:926aee0a9d48633060089d111829cc6f07a181791320a88ccc5d67f93bbd0e47
+sourcePath: docs/specifications/execution/resource-and-performance-budgets/direct-terminal-performance.md
+sourceUnitVersionIds:
+  - uv_4b4684bf82f7f42c6ca18305
+  - uv_7a13f5b0f37ba6eea40097e3
+  - uv_7a73a8dd47d13c25aa92d103

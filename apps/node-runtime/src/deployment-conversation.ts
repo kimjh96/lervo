@@ -78,7 +78,7 @@ export async function openDeploymentConversation(input: {
   dataDirectory: string;
   runtimeConfigPath?: string;
   bearerToken(): string;
-  repositoryEvents: Pick<EventStore, "latest" | "list">;
+  repositoryEvents: Pick<EventStore, "latest" | "list"> & { readonly path?: string };
   legacyPorts: NodeRuntimeOpenPorts["discordConversation"];
   deploymentPorts: NodeRuntimeOpenPorts["discordConversations"];
   onReady(): void | Promise<void>;

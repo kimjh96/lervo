@@ -1,3 +1,5 @@
+import { createHubRuntimeChangeHandler } from "./runtime-change-handler.js";
+import type { HubRuntimeChangeSource } from "@lervo/hub-sync";
 import { createServer, type RequestListener, type Server } from "node:http";
 
 import { type HubCommandArtifactCleanupLoopOptions } from "@lervo/hub-command";
@@ -39,6 +41,26 @@ export function createHubTraceServer(options: HubTraceHttpHandlerOptions): Serve
 }
 
 export function createHubRequestListener(options: HubServerOptions): RequestListener {
+  const changesHandler = createHubRuntimeChangeHandler({
+    ...(options.sync === undefined
+      ? {}
+      : {
+          workstream: {
+            ...options.sync,
+            store: options.sync.store as typeof options.sync.store &
+              Partial<HubRuntimeChangeSource>,
+          },
+        }),
+    ...(options.commands === undefined
+      ? {}
+      : {
+          command: {
+            ...options.commands,
+            store: options.commands.store as typeof options.commands.store &
+              Partial<HubRuntimeChangeSource>,
+          },
+        }),
+  });
   const traceHandler = createHubTraceHttpHandler(options.trace);
   const policyHandler =
     options.policy === undefined ? undefined : createHubPolicyHttpHandler(options.policy);
@@ -59,7 +81,9 @@ export function createHubRequestListener(options: HubServerOptions): RequestList
   const webHandler = createHubWebHandler();
   return (request, response) => {
     if (webHandler(request, response)) return;
-    if (request.url?.startsWith("/v1/capabilities/") && capabilityHandler !== undefined) {
+    if (request.url?.startsWith("/v1/runtime-changes/") && changesHandler !== undefined) {
+      void changesHandler(request, response);
+    } else if (request.url?.startsWith("/v1/capabilities/") && capabilityHandler !== undefined) {
       void capabilityHandler(request, response);
     } else if (request.url?.startsWith("/v1/health/") && healthHandler !== undefined) {
       void healthHandler(request, response);

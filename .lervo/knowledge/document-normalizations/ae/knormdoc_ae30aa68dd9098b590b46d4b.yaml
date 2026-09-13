@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6770ef274a38f44dd61fe47f
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2793991480fe9f6e2cb9026e
+outputLanguage: en
+outputs:
+  - byteCount: 2108
+    contentHash: sha256:b60a405c588c92faf3981faf915a0a97835cfccb0eae2f70c2029af64d6afb64
+    path: docs/specifications/coordination/node-idle-reconciliation.md
+    userRegionHash: sha256:b60a405c588c92faf3981faf915a0a97835cfccb0eae2f70c2029af64d6afb64
+  - byteCount: 2954
+    contentHash: sha256:fbb245d914099e173a8f0331f4e1ffe96751d9792043d21f813aec6c071ff781
+    path: docs/specifications/coordination/node-idle-reconciliation/hint-protocol.md
+    userRegionHash: sha256:fbb245d914099e173a8f0331f4e1ffe96751d9792043d21f813aec6c071ff781
+  - byteCount: 1601
+    contentHash: sha256:47879a931e296491d8c017324a19dcb0ba09bda5c0bfd54a7f6cedc58ec93318
+    path: docs/specifications/coordination/node-idle-reconciliation/workstream-integrity.md
+    userRegionHash: sha256:47879a931e296491d8c017324a19dcb0ba09bda5c0bfd54a7f6cedc58ec93318
+profile: specification_document
+recordId: knormdoc_ae30aa68dd9098b590b46d4b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6e5c41e06741b4a00713c90b04ff23f31cbb6d7eb23ed7f7e7d12a7449c3fddd
+sourcePath: docs/specifications/coordination/node-idle-reconciliation.md
+sourceUnitVersionIds:
+  - uv_18aae4cf4eb7a0113e59fef3
+  - uv_66d02dd8a6aa2966023fec29
+  - uv_725ca315626354bc245cb775
+  - uv_8aa77fc39864da201f29b367
+  - uv_a8aeefe8eda1725ab1215317
+  - uv_afe5296f593de5951be00375
+  - uv_b0a48d292627d6aa4a69ea9a
+  - uv_c4b1248b37feca93994e0dbb

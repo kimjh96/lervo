@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_d14761f1d32e0f49bbd90b62
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4e519de4d44a4956fe4969f7
+outputLanguage: en
+outputs:
+  - byteCount: 2784
+    contentHash: sha256:516a9b51d3ce25f79c45e3a7a16b5093347bfafe5171200024339a6f55df9f9e
+    path: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/failed-observations.md
+    userRegionHash: sha256:516a9b51d3ce25f79c45e3a7a16b5093347bfafe5171200024339a6f55df9f9e
+profile: specification_document
+recordId: knormdoc_92d75a7a264adf2c0b7d2b66
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1d431d4b2661b34b57f6c32a566c532ff017c0c520b5ec179f5ec28159a920fb
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/owner-reasoning/failed-observations.md
+sourceUnitVersionIds:
+  - uv_483c318532895cbe11f93a14
+  - uv_4a513b8b8c465f8603191783
+  - uv_568898f3d782d2d8100b5bf1
+  - uv_e3227ba4e1f1ace25fe9b2f9
+  - uv_f025207aafc9fbe038da6a5d

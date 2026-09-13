@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_2d69908b9daca6061fc0d1bb
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_833f17e02321bb42ff4903ad
+outputLanguage: en
+outputs:
+  - byteCount: 731
+    contentHash: sha256:9882a9455a0797c8fe30e2ef1ea83d1f56baa16b5a6bc753a5e495caa44c7900
+    path: docs/specifications/execution/events-and-privacy/event-envelope-compatibility/payload-contracts/execution-stages-observed.md
+    userRegionHash: sha256:9882a9455a0797c8fe30e2ef1ea83d1f56baa16b5a6bc753a5e495caa44c7900
+profile: specification_document
+recordId: knormdoc_a0e661d1fc269cff4db8e8fb
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ffecba5634ae209afbc3552bf6aca2ac3ed8d78216641d4b5f5dfaed6dd78ad0
+sourcePath: docs/specifications/execution/events-and-privacy/event-envelope-compatibility/payload-contracts/execution-stages-observed.md
+sourceUnitVersionIds:
+  - uv_884a1a21c3e1cad6866d5fea

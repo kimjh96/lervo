@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
+import { codexStoredLoginEnvironment } from "./login-inspection.js";
 
 import {
   createAdapterTurnResult,
@@ -58,7 +59,14 @@ export class CodexAdapter implements ProviderAdapter {
   private readonly createReceiptId: () => string;
   private readonly sessions = new CodexSessionRegistry();
 
+  private readonly processEnvironment: Record<string, string> | undefined;
   constructor(private readonly options: CodexAdapterOptions) {
+    if (options.loginContext !== undefined && options.transport?.kind === "responses_api_no_tools")
+      throw new TypeError("Stored login context requires the native app-server transport.");
+    this.processEnvironment =
+      options.loginContext === undefined
+        ? undefined
+        : codexStoredLoginEnvironment(structuredClone(options.loginContext));
     this.descriptor = createCodexAdapterDescriptor();
     this.resourceAccounting = createCodexResourceAccountingDescriptor(options);
     this.repositoryRoot = resolve(options.repositoryRoot);
@@ -555,6 +563,9 @@ export class CodexAdapter implements ProviderAdapter {
       });
     }
     return CodexStdioAppServerClient.connect({
+      ...(this.processEnvironment === undefined
+        ? {}
+        : { environment: { ...this.processEnvironment } }),
       executable: this.options.executable ?? "codex",
       cwd: this.repositoryRoot,
       requestTimeoutMs: this.options.requestTimeoutMs ?? 30_000,

@@ -1,14 +1,15 @@
 import { randomUUID } from "node:crypto";
+import { collectRunEventsBounded } from "@lervo/storage-contract";
 
-import type { EventDraft } from "@lervo/event-contract";
+import type { EventDraft, EventDraftV3 } from "@lervo/event-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 
 import type { ManagedEventStore, ManagedRunCoordinates } from "./types.js";
 
 export interface ManagedEventSpec {
   eventId?: string;
-  type: EventDraft["type"];
-  schemaVersion?: 1 | 2;
+  type: EventDraftV3["type"];
+  schemaVersion?: 1 | 2 | 3;
   occurredAt: string;
   actor: EventDraft["actor"];
   payload: Readonly<Record<string, unknown>>;
@@ -51,13 +52,24 @@ export class ManagedTelemetryRecorder {
           ...values,
         } as EventDraft;
       });
-      return this.events.transact((transaction) =>
-        drafts.map((draft) => {
+      return this.events.transact((transaction) => {
+        if (drafts.some((draft) => draft.type === "run.requested")) {
+          const prior = collectRunEventsBounded({
+            events: this.events,
+            runId: this.coordinates.runId,
+            maximumEvents: 4096,
+          });
+          if (prior.some((event) => event.type === "run.requested"))
+            throw new Error(
+              "The managed run already has canonical execution evidence; inspect it before retrying.",
+            );
+        }
+        return drafts.map((draft) => {
           const result = transaction.append(draft);
           if (result.redactions.length > 0) throw new TelemetryWriteError();
           return result.event;
-        }),
-      );
+        });
+      });
     } catch (error) {
       throw new TelemetryWriteError({ cause: error });
     }

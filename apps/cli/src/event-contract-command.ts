@@ -25,7 +25,7 @@ export interface EventContractCommandPorts {
 
 export const eventContractUsage = `  lervo event-contract status [--root <path>] [--json]
   lervo event-contract evidence [--root <path>] [--json]
-  lervo event-contract activate (--from <path> | --stdin) [--apply <plan-id>] [--root <path>] [--json]
+  lervo event-contract activate (--from <path> | --stdin) [--schema-version <2|3>] [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract rollback [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract recover [--root <path>] [--json]`;
 
@@ -81,6 +81,7 @@ export async function runEventContractCommand(
         apply: { type: "string" },
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
+        "schema-version": { type: "string" },
       },
     });
     if (parsed.values.help) {
@@ -89,6 +90,14 @@ export async function runEventContractCommand(
     }
     if (parsed.positionals.length !== 1) throw new Error("Specify one event-contract action.");
     const action = parsed.positionals[0];
+    const selectedVersion = parsed.values["schema-version"] ?? "2";
+    if (
+      (selectedVersion !== "2" && selectedVersion !== "3") ||
+      (parsed.values["schema-version"] !== undefined && action !== "activate")
+    ) {
+      throw new Error("--schema-version accepts 2 or 3 for activation only.");
+    }
+    const targetEventSchemaVersion = selectedVersion === "3" ? 3 : 2;
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
     if (action === "status") {
       if (parsed.values.from || parsed.values.stdin || parsed.values.apply) {
@@ -110,9 +119,10 @@ export async function runEventContractCommand(
       const evidence = await readEvidence(parsed.values.from, parsed.values.stdin === true, io);
       const suppliedEvidence = readEventWriterActivationEvidence(evidence);
       const manifest = await loadProjectManifest(repositoryRoot);
-      const currentEvidence = manifest.dataPolicy.hubSyncEnabled
-        ? await collectEvidence({ repositoryRoot })
-        : undefined;
+      const currentEvidence =
+        manifest.dataPolicy.hubSyncEnabled || targetEventSchemaVersion === 3
+          ? await collectEvidence({ repositoryRoot })
+          : undefined;
       if (
         currentEvidence !== undefined &&
         eventWriterActivationObservationHash(suppliedEvidence) !==
@@ -120,10 +130,14 @@ export async function runEventContractCommand(
       ) {
         throw new EventWriterActivationError(
           "event_writer_plan_stale",
-          "The supplied distributed reader evidence differs from the current authoritative inventory.",
+          "The supplied reader evidence differs from the current authoritative inventory.",
         );
       }
-      const plan = await planEventWriterActivation({ repositoryRoot, evidence: suppliedEvidence });
+      const plan = await planEventWriterActivation({
+        repositoryRoot,
+        evidence: suppliedEvidence,
+        targetEventSchemaVersion,
+      });
       if (parsed.values.apply === undefined) {
         io.stdout(`${JSON.stringify(publicPlan(plan), null, 2)}\n`);
         return plan.status === "blocked" ? 1 : 0;

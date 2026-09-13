@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_b7dc74f8ac818a79d94e8852
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_4d3777cc686e7c5de6fd5e9c
+outputLanguage: en
+outputs:
+  - byteCount: 1156
+    contentHash: sha256:3635f28093a3caf67a2264ebdf772049fe2453ac78ee57682e333bb38699475f
+    path: docs/specifications/execution/outcome-supervision/implementation/repository-readiness/assignment-and-ancestry.md
+    userRegionHash: sha256:3635f28093a3caf67a2264ebdf772049fe2453ac78ee57682e333bb38699475f
+profile: specification_document
+recordId: knormdoc_379b604539d98f7f048578fa
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:80979d9d37b57a7da950145794636e5d98b181cf47c268aec1de4b2ee77dab78
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/repository-readiness/assignment-and-ancestry.md
+sourceUnitVersionIds:
+  - uv_95fd4e10b134199f77b8b004

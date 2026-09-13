@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_136b3466e2c05777be819025
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_be80d8e2f46061835a4bb059
+outputLanguage: en
+outputs:
+  - byteCount: 1235
+    contentHash: sha256:0cf7fa9c4eee62d10bbac34d076499a0464c5dd101af2ce7d3a2364e8d29788c
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/installed-runtime-and-repositories/local-repositories.md
+    userRegionHash: sha256:0cf7fa9c4eee62d10bbac34d076499a0464c5dd101af2ce7d3a2364e8d29788c
+  - byteCount: 1511
+    contentHash: sha256:f39204cceb4de29abdf95ac5ce9f4b779ae813b0ac16479244e65798e339317b
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/installed-runtime-and-repositories/local-repositories/authentication-and-history.md
+    userRegionHash: sha256:f39204cceb4de29abdf95ac5ce9f4b779ae813b0ac16479244e65798e339317b
+profile: repository_document
+recordId: knormdoc_67e932cd534cac80ec50c5fd
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c0e11c95d59e88454e331e21ccbf60002e534d0c3c728e117fd3fcf213af7a2e
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/installed-runtime-and-repositories/local-repositories.md
+sourceUnitVersionIds:
+  - uv_a995005ff4b0e2cfb3ffb6cc
+  - uv_f654b2c2a98880a12d5a9b40

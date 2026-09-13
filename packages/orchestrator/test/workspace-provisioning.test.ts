@@ -143,4 +143,45 @@ describe("workspace provisioning orchestration", () => {
     ).rejects.toMatchObject({ code: "host_coordinate_invalid" });
     await expect(lstat(current.workspacePath)).rejects.toThrow();
   });
+  it.each(["before_host", "receipt"])(
+    "preserves recovery state when %s authority fails",
+    async (phase) => {
+      const current = await fixture();
+      const host = new GitWorkspaceHostAdapter(
+        phase === "before_host"
+          ? async () => {
+              throw new Error("authority_lost");
+            }
+          : undefined,
+      );
+      const plan = await planWorkspaceProvision({
+        repositoryRoot: current.root,
+        workspacePath: current.workspacePath,
+        assignmentId: current.assignment.assignmentId,
+        agentId: current.agent.agentId,
+        leaseId: current.assignment.lease!.leaseId,
+        provider: "codex",
+        baseCommit: current.baseCommit,
+        integrationTargetDigest: targetDigest,
+        executionKind: "worker",
+        host,
+        now: new Date("2026-08-26T00:00:04Z"),
+      });
+      await expect(
+        applyWorkspaceProvision({
+          plan,
+          host,
+          now: new Date("2026-08-26T00:00:05Z"),
+          recordApplied: async () => {
+            throw new Error("authority_lost");
+          },
+        }),
+      ).rejects.toThrow("authority_lost");
+      expect(await listWorkspaces(current.root)).toMatchObject([
+        { state: "recovery_required", recoveryReason: "host_effect_uncertain" },
+      ]);
+      if (phase === "before_host") await expect(lstat(current.workspacePath)).rejects.toThrow();
+      else expect((await lstat(current.workspacePath)).isDirectory()).toBe(true);
+    },
+  );
 });

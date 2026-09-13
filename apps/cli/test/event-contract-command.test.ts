@@ -75,6 +75,55 @@ afterEach(async () => {
 });
 
 describe("event-contract command", () => {
+  it("selects version 3 explicitly and revalidates local capabilities before applying", async () => {
+    const root = await fixture();
+    const observed = io(root);
+    expect(await runEventContractCommand(["evidence"], observed.value)).toBe(0);
+    const evidence = observed.stdout.join("");
+    const planned = io(root, evidence);
+    expect(
+      await runEventContractCommand(
+        ["activate", "--stdin", "--schema-version", "3"],
+        planned.value,
+      ),
+    ).toBe(0);
+    const plan = JSON.parse(planned.stdout.join(""));
+    expect(plan.desiredCoordinate).toMatchObject({
+      schemaVersion: 2,
+      selectedEventSchemaVersion: 3,
+    });
+    const stale = io(root, evidence);
+    expect(
+      await runEventContractCommand(
+        ["activate", "--stdin", "--schema-version", "3", "--apply", plan.planId],
+        stale.value,
+        {
+          collectEvidence: async () => {
+            const value = JSON.parse(evidence);
+            value.readers[0].capabilities.readableEventSchemaVersions = [1, 2];
+            return value;
+          },
+        },
+      ),
+    ).toBe(1);
+    expect(stale.stderr.join("")).toContain("event_writer_plan_stale");
+    const applied = io(root, evidence);
+    expect(
+      await runEventContractCommand(
+        ["activate", "--stdin", "--schema-version", "3", "--apply", plan.planId],
+        applied.value,
+      ),
+    ).toBe(0);
+    expect(JSON.parse(applied.stdout.join(""))).toMatchObject({ selectedEventSchemaVersion: 3 });
+    for (const args of [
+      ["status", "--schema-version", "3"],
+      ["activate", "--schema-version", "4"],
+    ]) {
+      const invalid = io(root, evidence);
+      expect(await runEventContractCommand(args, invalid.value)).toBe(1);
+      expect(invalid.stderr.join("")).toContain("activation only");
+    }
+  });
   it("reports the implicit version 1 default", async () => {
     const root = await fixture();
     const output = io(root);
@@ -95,7 +144,7 @@ describe("event-contract command", () => {
     const evidence = evidenceOutput.stdout.join("");
     expect(JSON.parse(evidence)).toMatchObject({
       projectId: "prj_cliwriter1",
-      readers: [{ readerKind: "local", capabilities: { readableEventSchemaVersions: [1, 2] } }],
+      readers: [{ readerKind: "local", capabilities: { readableEventSchemaVersions: [1, 2, 3] } }],
     });
 
     const planOutput = io(root, evidence);

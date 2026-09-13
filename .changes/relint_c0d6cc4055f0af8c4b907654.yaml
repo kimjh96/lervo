@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c0d6cc4055f0af8c4b907654"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Preserve historical provider token observations without model identity in governed resource accounting and work reports."

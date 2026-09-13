@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { automaticTopologyReviewerDigest } from "@lervo/work-controller";
 
 import type { WorkforceAssignment, WorkforceAssignmentTopologyProvenance } from "./types.js";
 
@@ -36,7 +37,16 @@ export function validWorkforceTopologyProvenance(
     item.expectedNodeCount <= 32 &&
     HASH.test(item.nodeSetHash) &&
     KEY.test(item.nodeKey) &&
-    item.nodeKey.length <= 100
+    item.nodeKey.length <= 100 &&
+    (item.policyReview === undefined ||
+      (item.policyReview !== null &&
+        typeof item.policyReview === "object" &&
+        !Array.isArray(item.policyReview) &&
+        item.reviewerIdDigest === automaticTopologyReviewerDigest &&
+        Object.keys(item.policyReview).length === 3 &&
+        item.policyReview.schemaVersion === 1 &&
+        /^osd_[a-f0-9]{24}$/u.test(item.policyReview.decisionId) &&
+        HASH.test(item.policyReview.reviewHash)))
   );
 }
 
@@ -94,7 +104,9 @@ export function topologyAssignmentMatches(
     existingTopology.reviewerIdDigest === expected.topology.reviewerIdDigest &&
     existingTopology.expectedNodeCount === expected.topology.expectedNodeCount &&
     existingTopology.nodeSetHash === expected.topology.nodeSetHash &&
-    existingTopology.nodeKey === expected.topology.nodeKey
+    existingTopology.nodeKey === expected.topology.nodeKey &&
+    stableJson(existingTopology.policyReview ?? null) ===
+      stableJson(expected.topology.policyReview ?? null)
   );
 }
 
@@ -110,5 +122,12 @@ export function topologyAssignmentEventCoordinates(assignment: WorkforceAssignme
     topologyExpectedNodeCount: assignment.topology?.expectedNodeCount ?? null,
     topologyNodeSetHash: assignment.topology?.nodeSetHash ?? null,
     topologyNodeKey: assignment.topology?.nodeKey ?? null,
+    ...(assignment.topology?.policyReview === undefined
+      ? {}
+      : {
+          topologyPolicyReviewVersion: assignment.topology.policyReview.schemaVersion,
+          topologyPolicyDecisionId: assignment.topology.policyReview.decisionId,
+          topologyPolicyReviewHash: assignment.topology.policyReview.reviewHash,
+        }),
   };
 }

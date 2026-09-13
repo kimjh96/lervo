@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8841f8467d84ddc2b5c604dc"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Recover expired unstarted workspace preparation only with exact host absence evidence, and allow bounded preparation time for native responsibilities."

@@ -1,26 +1,19 @@
+import { openDeploymentSupervision } from "./deployment-supervision.js";
+import type { NodeSupervisionService } from "./supervision-startup.js";
+import { createSyncCycleObserver } from "./sync-cycle-observer.js";
+import { createNodeDeploymentTransports } from "./deployment-transports.js";
+import { watchLocalEventChanges } from "./local-event-wakeup.js";
 import { lstat } from "node:fs/promises";
 
 import { FileSystemCas } from "@lervo/cas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
-import {
-  AuthenticatedHubHttpTransport,
-  registerProject,
-  runOutboundSyncLoop,
-  runWorkstreamReplicationCycle,
-  type AuthenticatedHubTransport,
-  type AuthenticatedWorkstreamHubTransport,
-  type SyncHttpTransportOptions,
-} from "@lervo/sync";
+import { registerProject, runOutboundSyncLoop } from "@lervo/sync";
 import {
   calculateProjectIdentityHash,
   createProjectRegistrationRequest,
 } from "@lervo/sync-contract";
-import {
-  reconcileHubWorkspaceSummaries,
-  type HubWorkspaceSummaryTransport,
-} from "@lervo/workspace-reservation-hub";
 
 import type { NodeRuntimeConfig } from "./config-types.js";
 import { parseNodeRuntimeConfig } from "./config.js";
@@ -58,6 +51,7 @@ export async function openNodeRuntime(
   let remoteControl: NodeRemoteControlRuntime | undefined;
   let runtimeTrust: ReloadableNodeRuntimeTrust | undefined;
   let conversation: NodeDiscordConversationRuntime | undefined;
+  let supervision: NodeSupervisionService | null = null;
   try {
     const validated = parseNodeRuntimeConfig(config, process.cwd());
     await assertRepositoryRoot(validated.repositoryRoot);
@@ -84,10 +78,12 @@ export async function openNodeRuntime(
         destinationId: validated.hub.destinationId,
       },
       configuredDiscordConversations(validated).length > 0,
+      validated.outcomeSupervision !== undefined,
     );
     store = await SQLiteEventStore.open({
       path: paths.eventDatabase,
       projectId: manifest.projectId,
+      writableEventSchemaVersion: preparedStorage.writableEventSchemaVersion ?? 1,
     });
     const artifacts = await FileSystemCas.open(paths.cas);
     const target = {
@@ -125,72 +121,19 @@ export async function openNodeRuntime(
         trust: runtimeTrust,
       });
     }
-    const transportOptions = (): SyncHttpTransportOptions => ({
-      baseUrl: validated.hub.baseUrl,
-      bearerToken: bearerToken.current(),
-      expectedHubIdentityHash: validated.hub.hubIdentityHash,
-      destinationId: validated.hub.destinationId,
+    const {
+      transportOptions,
+      createTransport,
+      idleWait,
+      transport,
+      workstreamTransport,
+      workspaceTransport,
+    } = createNodeDeploymentTransports({
+      config: validated,
       target,
-      ...(validated.sync.requestTimeoutMs === undefined
-        ? {}
-        : {
-            requestTimeoutMs: validated.sync.requestTimeoutMs,
-          }),
-      ...(validated.sync.maxRequestBytes === undefined
-        ? {}
-        : {
-            maxRequestBytes: validated.sync.maxRequestBytes,
-          }),
-      ...(validated.sync.maxResponseBytes === undefined
-        ? {}
-        : {
-            maxResponseBytes: validated.sync.maxResponseBytes,
-          }),
+      bearerToken: () => bearerToken.current(),
+      ...(ports.createTransport === undefined ? {} : { createTransport: ports.createTransport }),
     });
-    const createTransport =
-      ports.createTransport ?? ((options) => new AuthenticatedHubHttpTransport(options));
-    const transport: AuthenticatedHubTransport = {
-      registerProject(request) {
-        return createTransport(transportOptions()).registerProject(request);
-      },
-      sendEventBatch(batch) {
-        return createTransport(transportOptions()).sendEventBatch(batch);
-      },
-    };
-    const workstreamTransport: AuthenticatedWorkstreamHubTransport = {
-      publishWorkstream(request) {
-        const candidate = createTransport(transportOptions()) as AuthenticatedHubTransport &
-          Partial<AuthenticatedWorkstreamHubTransport>;
-        if (typeof candidate.publishWorkstream !== "function") {
-          throw new Error("The configured Hub transport does not support workstream publication.");
-        }
-        return candidate.publishWorkstream(request);
-      },
-      readWorkstream() {
-        const candidate = createTransport(transportOptions()) as AuthenticatedHubTransport &
-          Partial<AuthenticatedWorkstreamHubTransport>;
-        if (typeof candidate.readWorkstream !== "function") {
-          throw new Error("The configured Hub transport does not support workstream reads.");
-        }
-        return candidate.readWorkstream();
-      },
-    };
-    const workspaceTransport: HubWorkspaceSummaryTransport = {
-      publishWorkspaceSummary(summary) {
-        const candidate = createTransport(transportOptions()) as AuthenticatedHubTransport &
-          Partial<HubWorkspaceSummaryTransport>;
-        if (typeof candidate.publishWorkspaceSummary !== "function")
-          throw new Error("The configured Hub transport does not support workspace summaries.");
-        return candidate.publishWorkspaceSummary(summary);
-      },
-      readWorkspaceSummaries() {
-        const candidate = createTransport(transportOptions()) as AuthenticatedHubTransport &
-          Partial<HubWorkspaceSummaryTransport>;
-        if (typeof candidate.readWorkspaceSummaries !== "function")
-          throw new Error("The configured Hub transport does not support workspace summaries.");
-        return candidate.readWorkspaceSummaries();
-      },
-    };
     const localWorkstreams = new NodeWorkstreamReplicationLocalPort(
       paths.repositoryRoot,
       manifest.projectId,
@@ -237,75 +180,62 @@ export async function openNodeRuntime(
       onReady: () => health.observeConversationReady(),
       onFailure: (code) => health.observeConversationFailure(code),
     });
+    supervision = await openDeploymentSupervision({
+      config: validated,
+      projectId: manifest.projectId,
+      conversation,
+      health,
+    });
     return createNodeRuntimeDeployment(
       store,
-      (signal) =>
-        runOutboundSyncLoop({
-          worker,
-          signal,
-          ...(validated.sync.idlePollIntervalMs === undefined
-            ? {}
-            : {
-                idlePollIntervalMs: validated.sync.idlePollIntervalMs,
-              }),
-          ...(ports.wait === undefined ? {} : { wait: ports.wait }),
-          ...(ports.nowMilliseconds === undefined
-            ? {}
-            : { nowMilliseconds: ports.nowMilliseconds }),
-          onCycle: async (result) => {
-            await health.observeSync(result);
-            if (result.status === "idle" || result.status === "synchronized") {
-              try {
-                const replication = await runWorkstreamReplicationCycle({
-                  local: localWorkstreams,
-                  transport: workstreamTransport,
-                  registration: createProjectRegistrationRequest({
-                    manifest,
-                    destinationId: validated.hub.destinationId,
-                    requestedAt: new Date().toISOString(),
-                  }),
+      async (signal) => {
+        const stopWatching = watchLocalEventChanges(store!, () => idleWait.notify());
+        try {
+          return await runOutboundSyncLoop({
+            worker,
+            signal,
+            ...(ports.wait === undefined
+              ? { waitForIdleChange: (signal: AbortSignal) => idleWait.wait(signal) }
+              : {}),
+            ...(validated.sync.idlePollIntervalMs === undefined
+              ? {}
+              : {
+                  idlePollIntervalMs: validated.sync.idlePollIntervalMs,
+                }),
+            ...(ports.wait === undefined ? {} : { wait: ports.wait }),
+            ...(ports.nowMilliseconds === undefined
+              ? {}
+              : { nowMilliseconds: ports.nowMilliseconds }),
+            onCycle: createSyncCycleObserver({
+              health,
+              workstreams: () => ({
+                local: localWorkstreams,
+                transport: workstreamTransport,
+                registration: createProjectRegistrationRequest({
+                  manifest,
                   destinationId: validated.hub.destinationId,
-                  expectedPeerIdentityHash: validated.hub.hubIdentityHash,
-                });
-                await health.observeWorkstreamReplication(replication);
-              } catch (error) {
-                const code =
-                  typeof error === "object" &&
-                  error !== null &&
-                  "code" in error &&
-                  typeof error.code === "string"
-                    ? error.code
-                    : "workstream_replication_failed";
-                await health.observeWorkstreamReplicationFailure(code);
-              }
-              if (validated.workspaceCoordination !== undefined) {
-                try {
-                  await reconcileHubWorkspaceSummaries({
-                    repositoryRoot: paths.repositoryRoot,
-                    nodeId: validated.workspaceCoordination.nodeId,
-                    repositoryIdentityHash: target.projectIdentityHash,
-                    transport: workspaceTransport,
-                  });
-                  await health.observeWorkspaceCoordination();
-                } catch (error) {
-                  const code =
-                    typeof error === "object" &&
-                    error !== null &&
-                    "code" in error &&
-                    typeof error.code === "string"
-                      ? error.code
-                      : "workspace_coordination_failed";
-                  await health.observeWorkspaceCoordinationFailure(code);
-                }
-              }
-            } else {
-              await health.observeWorkstreamReplicationFailure(result.failureCode);
-              if (validated.workspaceCoordination !== undefined)
-                await health.observeWorkspaceCoordinationFailure(result.failureCode);
-            }
-            await ports.onCycle?.(result);
-          },
-        }),
+                  requestedAt: new Date().toISOString(),
+                }),
+                destinationId: validated.hub.destinationId,
+                expectedPeerIdentityHash: validated.hub.hubIdentityHash,
+              }),
+              ...(validated.workspaceCoordination === undefined
+                ? {}
+                : {
+                    workspaces: {
+                      repositoryRoot: paths.repositoryRoot,
+                      nodeId: validated.workspaceCoordination.nodeId,
+                      repositoryIdentityHash: target.projectIdentityHash,
+                      transport: workspaceTransport,
+                    },
+                  }),
+              ...(ports.onCycle === undefined ? {} : { onCycle: ports.onCycle }),
+            }),
+          });
+        } finally {
+          stopWatching();
+        }
+      },
       remoteControl ?? null,
       conversation ?? null,
       async () => {
@@ -348,9 +278,15 @@ export async function openNodeRuntime(
               });
             },
           }),
+      supervision,
     );
   } catch (error) {
     const cleanupErrors: unknown[] = [];
+    try {
+      await supervision?.close();
+    } catch (cleanupError) {
+      cleanupErrors.push(cleanupError);
+    }
     try {
       await conversation?.close();
     } catch (cleanupError) {

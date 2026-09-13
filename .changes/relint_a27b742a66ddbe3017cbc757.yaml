@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a27b742a66ddbe3017cbc757"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reuse the verified caller store for retained workspace proofs during responsibility claim admission so recovery avoids repeated full-store audits without weakening proof checks."

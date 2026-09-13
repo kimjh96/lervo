@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5fb31ee8d97e056e384057df"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Bound worker authority revalidation so cancellation can finish when a repository observation stalls."

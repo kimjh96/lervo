@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8205338e66986f9591fdd64c
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_24992619c189b39f23690396
+outputLanguage: en
+outputs:
+  - byteCount: 2751
+    contentHash: sha256:b507d32ee9631a892a6786f3aaa8dc545c11e2fe09f46bd48c6426fbfa47722c
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/goal-completion.md
+    userRegionHash: sha256:b507d32ee9631a892a6786f3aaa8dc545c11e2fe09f46bd48c6426fbfa47722c
+profile: specification_document
+recordId: knormdoc_a0c74f9b02c4133868734451
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b981280b144be8c4aa1e57524123b90b62411530b893668c6f92dd144487286c
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/managed-execution/goal-completion.md
+sourceUnitVersionIds:
+  - uv_abf8d171f8d4cbefcb17216e

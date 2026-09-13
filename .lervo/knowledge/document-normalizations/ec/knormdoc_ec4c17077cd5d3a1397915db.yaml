@@ -1,0 +1,42 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_89dd5e117f39269bf41473df
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_eff53933b9e9c167d9f46069
+outputLanguage: en
+outputs:
+  - byteCount: 751
+    contentHash: sha256:e6754959dc3618f29fc24066a20060b2be11ba3b98a5d8ba53e16bdf738ef4b7
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay.md
+    userRegionHash: sha256:e6754959dc3618f29fc24066a20060b2be11ba3b98a5d8ba53e16bdf738ef4b7
+  - byteCount: 1481
+    contentHash: sha256:2b719c296e8bdf7842f59f0f3b964daade6bd995d1ce110f72f4d901ff7a40af
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/native-reasoning-supersession.md
+    userRegionHash: sha256:2b719c296e8bdf7842f59f0f3b964daade6bd995d1ce110f72f4d901ff7a40af
+  - byteCount: 1365
+    contentHash: sha256:14496a1a6d8a604e052f1ff8012b186ccf87720783182b6025960da1567b7ade
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/recording-and-replay.md
+    userRegionHash: sha256:14496a1a6d8a604e052f1ff8012b186ccf87720783182b6025960da1567b7ade
+  - byteCount: 735
+    contentHash: sha256:dd90620858a79ff2d2933ca31d6b83d37cba7a89f34caa34f3d3d2d6792e3732
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/topology-supersession.md
+    userRegionHash: sha256:dd90620858a79ff2d2933ca31d6b83d37cba7a89f34caa34f3d3d2d6792e3732
+  - byteCount: 501
+    contentHash: sha256:6cad30a300fb0f1a24aa910a22ccd644fd597dea7c392eee03e523f99eb783c3
+    path: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay/uncertain-worker-attention.md
+    userRegionHash: sha256:6cad30a300fb0f1a24aa910a22ccd644fd597dea7c392eee03e523f99eb783c3
+profile: specification_document
+recordId: knormdoc_ec4c17077cd5d3a1397915db
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b2bb5cbb6ccf2cedd4b3c3b6470c30abace89c1516b1b15567c13aa5364a3676
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/recovery/decisions-and-replay.md
+sourceUnitVersionIds:
+  - uv_16e00d17057d03fef16971e9

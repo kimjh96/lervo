@@ -1,4 +1,7 @@
-import { readFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { watch, type FSWatcher } from "node:fs";
+import { readFile, writeFile, rename, unlink } from "node:fs/promises";
+import { ChangeWakeup } from "./change-wakeup.js";
 import { resolve } from "node:path";
 
 import { captureRepositoryReplicaSnapshot } from "./repository-replica-git.js";
@@ -35,10 +38,6 @@ async function receipt(repositoryRoot: string): Promise<RepositoryReplicaReceipt
   }
 }
 
-async function wait(milliseconds: number): Promise<void> {
-  await new Promise<void>((resolveWait) => setTimeout(resolveWait, milliseconds));
-}
-
 export async function awaitRepositoryReplicaReadiness(input: {
   repositoryRoot: string;
   maximumStalenessMs: number;
@@ -49,25 +48,66 @@ export async function awaitRepositoryReplicaReadiness(input: {
   const now = input.nowMilliseconds ?? Date.now;
   const deadline = now() + input.waitTimeoutMs;
   let lastFailure: unknown;
-  let polling = true;
-  while (polling) {
-    const currentReceipt = await receipt(input.repositoryRoot);
-    if (
-      currentReceipt !== null &&
-      now() - Date.parse(currentReceipt.reconciledAt) <= input.maximumStalenessMs
-    ) {
-      try {
-        const snapshot = await captureRepositoryReplicaSnapshot(input.repositoryRoot);
-        if (snapshot.snapshotHash === currentReceipt.commonSnapshotHash) {
-          return snapshot.snapshotHash;
+  const wakeup = new ChangeWakeup();
+  let watcher: FSWatcher | undefined;
+  const state = resolve(input.repositoryRoot, ".lervo/state");
+  try {
+    watcher = watch(state, { persistent: false }, (_event, filename) => {
+      if (filename === null || filename.toString() === "repository-replica.json") wakeup.notify();
+    });
+    watcher.on("error", () => {
+      watcher?.close();
+      watcher = undefined;
+      wakeup.notify();
+    });
+    const requestPath = resolve(state, "repository-replica-request.json");
+    const temporary = `${requestPath}.${randomUUID()}.tmp`;
+    try {
+      await writeFile(temporary, JSON.stringify({ schemaVersion: 1, nonce: randomUUID() }), {
+        mode: 0o600,
+        flag: "wx",
+      });
+      await rename(temporary, requestPath);
+    } finally {
+      await unlink(temporary).catch(() => undefined);
+    }
+  } catch {
+    watcher?.close();
+    watcher = undefined;
+  }
+  try {
+    let polling = true;
+    let checkedReceipt: string | undefined;
+    while (polling) {
+      const revision = wakeup.revision;
+      const currentReceipt = await receipt(input.repositoryRoot);
+      if (
+        currentReceipt !== null &&
+        now() - Date.parse(currentReceipt.reconciledAt) <= input.maximumStalenessMs &&
+        JSON.stringify(currentReceipt) !== checkedReceipt
+      ) {
+        try {
+          checkedReceipt = JSON.stringify(currentReceipt);
+          const snapshot = await captureRepositoryReplicaSnapshot(input.repositoryRoot);
+          if (snapshot.snapshotHash === currentReceipt.commonSnapshotHash) {
+            return snapshot.snapshotHash;
+          }
+        } catch (error) {
+          lastFailure = error;
         }
-      } catch (error) {
-        lastFailure = error;
+      }
+      const remainingMilliseconds = deadline - now();
+      if (remainingMilliseconds <= 0) polling = false;
+      else {
+        await wakeup.wait(
+          revision,
+          Math.min(watcher === undefined ? input.pollIntervalMs : 30_000, remainingMilliseconds),
+        );
+        if (wakeup.revision === revision) checkedReceipt = undefined;
       }
     }
-    const remainingMilliseconds = deadline - now();
-    if (remainingMilliseconds <= 0) polling = false;
-    else await wait(Math.min(input.pollIntervalMs, remainingMilliseconds));
+  } finally {
+    watcher?.close();
   }
   throw new RepositoryReplicaReadinessError(
     "The repository replica did not reach a fresh, exact common snapshot before the work deadline.",

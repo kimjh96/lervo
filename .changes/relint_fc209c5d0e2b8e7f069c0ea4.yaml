@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fc209c5d0e2b8e7f069c0ea4"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Recover expired prepared workspaces after admission blocks dispatch before any managed decision, preserving history and authority checks."

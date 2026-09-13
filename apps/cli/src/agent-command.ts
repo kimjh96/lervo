@@ -13,6 +13,7 @@ import {
 import { resolveRoleContract } from "@lervo/roles";
 
 import { agentContextUsage, runAgentContextCommand } from "./agent-context-command.js";
+import { agentMandateUsage, runAgentMandateCommand } from "./agent-mandate-command.js";
 import { agentLivenessUsage, runAgentLivenessCommand } from "./agent-liveness-command.js";
 import type { CliIo } from "./types.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
@@ -25,6 +26,7 @@ export const agentUsage = [
   "  lervo agent role --agent <agent-id> --role <role-id> --revision <n> --write [--root <path>] [--json]",
   agentLivenessUsage,
   agentContextUsage,
+  agentMandateUsage,
 ].join("\n");
 
 function role(value: string | undefined): string {
@@ -48,6 +50,7 @@ function output(io: CliIo, value: unknown, json: boolean | undefined, message: s
 }
 
 export async function runAgentCommand(args: string[], io: CliIo): Promise<number> {
+  if (args[0] === "mandate") return runAgentMandateCommand(args.slice(1), io);
   if (args[0] === "context") return runAgentContextCommand(args.slice(1), io);
   if (["heartbeat", "inspect"].includes(args[0] ?? ""))
     return await runAgentLivenessCommand(args, io);

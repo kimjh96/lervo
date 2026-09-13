@@ -13,7 +13,10 @@ export function eventWriterSha256(value: string): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
-export function assertEventReaderEvidence(readers: readonly EventReaderActivationEvidence[]): void {
+export function assertEventReaderEvidence(
+  readers: readonly EventReaderActivationEvidence[],
+  targetEventSchemaVersion: 2 | 3 = 2,
+): void {
   const ids = new Set<string>();
   let previousId: string | undefined;
   let localReaders = 0;
@@ -28,10 +31,13 @@ export function assertEventReaderEvidence(readers: readonly EventReaderActivatio
     previousId = reader.readerId;
     try {
       const capabilities = readEventReaderCapabilities(reader.capabilities);
-      if (!capabilities.readableEventSchemaVersions.includes(2)) {
+      const required = targetEventSchemaVersion === 3 ? [1, 2, 3] : [2];
+      if (
+        !required.every((version) => capabilities.readableEventSchemaVersions.includes(version))
+      ) {
         failEventWriterActivation(
           "event_writer_activation_blocked",
-          `Configured reader ${reader.readerId} cannot read event schema version 2.`,
+          `Configured reader ${reader.readerId} cannot read the required history through event schema version ${targetEventSchemaVersion}.`,
         );
       }
     } catch (error) {
@@ -83,8 +89,15 @@ export function createEventWriterActivationId(input: {
   observedAt: string;
   configurationHash: string;
   readers: readonly EventReaderActivationEvidence[];
+  targetEventSchemaVersion?: 2 | 3;
 }): string {
-  return `evact_${eventWriterSha256(canonicalJson(input)).slice(7, 31)}`;
+  const { targetEventSchemaVersion, ...evidence } = input;
+  return `evact_${eventWriterSha256(
+    canonicalJson({
+      ...evidence,
+      ...(targetEventSchemaVersion === 3 ? { targetEventSchemaVersion } : {}),
+    }),
+  ).slice(7, 31)}`;
 }
 
 export function eventWriterActivationConfigurationHash(input: {

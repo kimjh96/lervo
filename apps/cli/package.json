@@ -40,6 +40,7 @@
     "@lervo/agent-workforce": "workspace:*",
     "@lervo/application-contract": "workspace:*",
     "@lervo/capabilities": "workspace:*",
+    "@lervo/cas": "workspace:*",
     "@lervo/adapter-contract": "workspace:*",
     "@lervo/adapter-claude": "workspace:*",
     "@lervo/adapter-codex": "workspace:*",

@@ -80,10 +80,24 @@ describe("managed project verification boundary", () => {
     const artifacts = new MemoryArtifactStore();
     const verification = await createVerification(artifacts);
     const events: ManagedEventSpec[] = [];
+    const producedArtifact = {
+      artifactId: `art_${"b".repeat(64)}`,
+      uri: `lervo-cas://sha256/${"b".repeat(64)}`,
+      contentHash: `sha256:${"b".repeat(64)}`,
+      byteCount: 42,
+      mediaType: "text/markdown; charset=utf-8" as const,
+    };
 
     const results = await runManagedProjectVerifications({
       suites: [suite],
-      verifier: { verify: async () => verification },
+      producedArtifact,
+      verifier: {
+        verify: async (request) => {
+          expect(request.producedArtifact).toEqual(producedArtifact);
+          expect(request.producedArtifact).not.toBe(producedArtifact);
+          return verification;
+        },
+      },
       repositoryRoot: "/fixture",
       repositoryRevision,
       artifactStore: artifacts,

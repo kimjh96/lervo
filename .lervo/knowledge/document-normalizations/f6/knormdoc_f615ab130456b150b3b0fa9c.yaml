@@ -1,0 +1,39 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_6770ef274a38f44dd61fe47f
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a5f9d28a85b1f579d6b6cc21
+outputLanguage: en
+outputs:
+  - byteCount: 768
+    contentHash: sha256:1a2415a97a41852d10e1f61a240f310b4d343226347ca0b0c53cce5df72c744f
+    path: docs/evidence/foundation/node-idle-reconciliation-v1.md
+    userRegionHash: sha256:1a2415a97a41852d10e1f61a240f310b4d343226347ca0b0c53cce5df72c744f
+  - byteCount: 1360
+    contentHash: sha256:d91590d4ce953c61c976adc4660f200fe4a2c68ea8ebacd1a45c71a020b6989e
+    path: docs/evidence/foundation/node-idle-reconciliation-v1/installed-wsl.md
+    userRegionHash: sha256:d91590d4ce953c61c976adc4660f200fe4a2c68ea8ebacd1a45c71a020b6989e
+  - byteCount: 3245
+    contentHash: sha256:f73b2cf8376c2598231e2252c81f65dc650e262bd7151f86baa6742bc1b47274
+    path: docs/evidence/foundation/node-idle-reconciliation-v1/macos-benchmark.md
+    userRegionHash: sha256:f73b2cf8376c2598231e2252c81f65dc650e262bd7151f86baa6742bc1b47274
+profile: repository_document
+recordId: knormdoc_f615ab130456b150b3b0fa9c
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2ecd90ed827bc7eb68cb6c3db5e7028bdbfdd463a17fd6f686b2a8a0a7edae64
+sourcePath: docs/evidence/foundation/node-idle-reconciliation-v1.md
+sourceUnitVersionIds:
+  - uv_1b881202a5a2253545fc5505
+  - uv_2d3f8d71950afc014b7658c7
+  - uv_65c89afe8102847a336b238f
+  - uv_84567ef195a5fc7de8c446cc
+  - uv_a284ddc21cbd6f9fe655201c
+  - uv_ccfc3024f8704f4a9152cdb4

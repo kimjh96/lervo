@@ -1,0 +1,27 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_65f98d8f35898f8811551a71
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_47aa25d29d95e8047dc6f9fa
+outputLanguage: en
+outputs:
+  - byteCount: 887
+    contentHash: sha256:c2248e9501635534777bb1523d372e99ef40a7e036fd8cdb105443eb9ea95fef
+    path: docs/specifications/execution/resource-and-performance-budgets.md
+    userRegionHash: sha256:c2248e9501635534777bb1523d372e99ef40a7e036fd8cdb105443eb9ea95fef
+profile: specification_document
+recordId: knormdoc_417febf9a54374793e34176a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c2248e9501635534777bb1523d372e99ef40a7e036fd8cdb105443eb9ea95fef
+sourcePath: docs/specifications/execution/resource-and-performance-budgets.md
+sourceUnitVersionIds:
+  - uv_e046b6c455e6a53e7b8da47b
+  - uv_fc7c5ddccad2ae686263b66d

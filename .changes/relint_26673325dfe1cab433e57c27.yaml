@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_26673325dfe1cab433e57c27"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Support explicit native login profiles and observation-only managed turns without widening role write authority."

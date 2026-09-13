@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ac8bf6c6df004e14c5a4e62a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Require configured provider and verification-tool executable observations on Node supervision preflights while preserving missing or negative authentication and permission evidence."

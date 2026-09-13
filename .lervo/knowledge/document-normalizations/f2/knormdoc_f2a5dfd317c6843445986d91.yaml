@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_65f98d8f35898f8811551a71
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_96b5d20a9b198cd97d6a4a9a
+outputLanguage: en
+outputs:
+  - byteCount: 745
+    contentHash: sha256:e926277a8416373fc37d9e0adbff11baf2f809f1f28b2c4b2b98674d09b98337
+    path: docs/specifications/execution/resource-and-performance-budgets/privacy-and-evidence.md
+    userRegionHash: sha256:e926277a8416373fc37d9e0adbff11baf2f809f1f28b2c4b2b98674d09b98337
+profile: specification_document
+recordId: knormdoc_f2a5dfd317c6843445986d91
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:07348ffbb7242de584231fb7a656a144fc6233003dc8a01ab4299977a47dbbf6
+sourcePath: docs/specifications/execution/resource-and-performance-budgets/privacy-and-evidence.md
+sourceUnitVersionIds:
+  - uv_0902dca773bc1127faec707f

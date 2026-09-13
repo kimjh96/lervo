@@ -139,6 +139,30 @@ export class AuthenticatedHubHttpTransport
     return this.requestJson("workstreams", "POST", request, [200, 201]);
   }
 
+  async waitForRuntimeChange(input: {
+    topic: "workstream" | "command";
+    nodeId?: string;
+    cursor: string | null;
+    signal: AbortSignal;
+  }): Promise<unknown> {
+    const url = new URL(
+      `v1/runtime-changes/projects/${encodeURIComponent(this.target.projectId)}`,
+      this.baseUrl.href.endsWith("/") ? this.baseUrl : new URL(`${this.baseUrl.href}/`),
+    );
+    url.searchParams.set("destinationId", this.destinationId);
+    url.searchParams.set("repositoryIdentityHash", this.target.projectIdentityHash);
+    url.searchParams.set("topic", input.topic);
+    if (input.nodeId !== undefined) url.searchParams.set("nodeId", input.nodeId);
+    if (input.cursor !== null) url.searchParams.set("cursor", input.cursor);
+    return this.client.requestJson({
+      url,
+      method: "GET",
+      acceptedStatuses: [200],
+      credentialMode: "bearer",
+      signal: input.signal,
+    });
+  }
+
   async readWorkstream(): Promise<unknown> {
     return this.requestJson("workstreams", "GET", undefined, [200]);
   }

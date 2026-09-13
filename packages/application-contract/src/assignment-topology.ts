@@ -42,6 +42,13 @@ export interface AssignmentTopologyProvenanceV2 {
   expectedNodeCount: number;
   nodeSetHash: string;
   nodeKey: string;
+  policyReview?: AssignmentTopologyPolicyReviewBindingV1;
+}
+
+export interface AssignmentTopologyPolicyReviewBindingV1 {
+  schemaVersion: 1;
+  decisionId: string;
+  reviewHash: string;
 }
 
 export interface AssignmentTopologyAssignmentObservationV2 {
@@ -127,6 +134,7 @@ export interface AssignmentTopologyHistoryChangeV2 {
   reviewerIdDigest: string;
   assignmentIds: string[];
   occurredAt: string;
+  policyReview?: AssignmentTopologyPolicyReviewBindingV1;
 }
 
 export interface AssignmentTopologyHistoryV2 {

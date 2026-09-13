@@ -48,6 +48,15 @@ describe("Hub command authorship SQLite transaction", () => {
       request: "request referencing the same artifact",
     };
 
+    const scope = {
+      topic: "command" as const,
+      destinationId: common.destinationId,
+      projectId: project.projectId,
+      repositoryIdentityHash: target.projectIdentityHash,
+      signal: new AbortController().signal,
+    };
+    const before = await store.waitForRuntimeChange({ ...scope, cursor: null });
+    const wake = store.waitForRuntimeChange({ ...scope, cursor: before.cursor });
     await expect(authorHubCommand({ ...common, request })).resolves.toMatchObject({
       status: "created",
     });
@@ -57,6 +66,7 @@ describe("Hub command authorship SQLite transaction", () => {
         request: { ...request, idempotencyKey: "idk_command_author_02" },
       }),
     ).resolves.toMatchObject({ status: "created" });
+    expect((await wake).status).toBe("changed");
     await expect(store.auditIntegrity()).resolves.toMatchObject({ valid: true });
 
     const fault = new DatabaseSync(path);
@@ -66,6 +76,7 @@ describe("Hub command authorship SQLite transaction", () => {
       BEGIN SELECT RAISE(ABORT, 'fixture authorship failure'); END;
     `);
     fault.close();
+    const committed = await store.waitForRuntimeChange({ ...scope, cursor: before.cursor });
     await expect(
       authorHubCommand({
         ...common,
@@ -77,6 +88,22 @@ describe("Hub command authorship SQLite transaction", () => {
       }),
     ).rejects.toMatchObject({ code: "write_failed" });
 
+    const cancelled = new AbortController();
+    cancelled.abort();
+    expect(
+      await store.waitForRuntimeChange({
+        ...scope,
+        cursor: committed.cursor,
+        signal: cancelled.signal,
+      }),
+    ).toEqual({ cursor: committed.cursor, status: "timeout" });
+    await expect(
+      store.waitForRuntimeChange({
+        ...scope,
+        repositoryIdentityHash: `sha256:${"f".repeat(64)}`,
+        cursor: null,
+      }),
+    ).rejects.toMatchObject({ code: "registration_required" });
     const inspection = new DatabaseSync(path, { readOnly: true });
     expect(inspection.prepare("SELECT COUNT(*) AS count FROM hub_remote_commands").get()).toEqual({
       count: 2,

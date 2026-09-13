@@ -2,11 +2,11 @@
 
 ## Sources
 
-The scanner walks repository files except explicit VCS, dependency, generated, state, secret, size, and count exclusions. It excludes Python `.venv` and `venv` directories at every depth, like `node_modules`. Finder `.DS_Store` files and regular AppleDouble `._*` sidecars are transport metadata, so scans and internal knowledge registries ignore them. Directories or symbolic links with those names remain subject to normal fail-closed safety checks.
+The scanner walks repository files except explicit VCS, dependency, generated, state, secret, size, and count exclusions. It excludes Python `.venv` and `venv` directories at every depth, like `node_modules`. Scans and internal knowledge registries ignore Finder `.DS_Store` files and regular AppleDouble `._*` sidecars as transport metadata. Directories or symbolic links with those names remain subject to normal fail-closed safety checks.
 
 It classifies documentation, instructions, code, configuration, schemas, tests, automation, skills, workflows, agents, policies, hooks, client and tool configuration, revision identity, verified artifacts, allowlisted events, sensitive logs and traces, and unsupported binaries.
 
-Ordinary bytes may enter structural extraction. Sensitive log bytes never enter publication or external compilation. Secret candidates are excluded before reading. Discovery proves presence only, not loading, trust, injection, or use.
+Ordinary bytes may enter structural extraction. Sensitive log bytes never enter publication or external compilation. Secret candidates are excluded before reading. Discovery proves only presence, not loading, trust, injection, or use.
 
 ## Source units
 
@@ -28,9 +28,9 @@ normalization:
 
 V1 supports only `en`. Language affects generated prose and titles, not identities or user bytes. Neutral localized labels preserve exact encoded paths. Unsupported values fail before planning.
 
-A bounded tracked `normalization.exclude` list may exclude governed user documents from provider rewriting only; structural compilation and query retain them. Exact patterns remain policy-hash inputs and never become scanner exclusions.
+A bounded tracked `normalization.exclude` list may exclude governed user documents only from provider rewriting; structural compilation and query retain them. Exact patterns remain policy-hash inputs and never become scanner exclusions.
 
-`.lervo/knowledge/document-layout.yaml` declares decision roots, leaf bounds, and semantic routes. Explicit ADR metadata outranks title terms. No match or tie blocks migration; there is no implicit `foundation` fallback. Initialization writes a product-neutral taxonomy. Reviewed route changes bind the plan and taxonomy hash.
+`.lervo/knowledge/document-layout.yaml` declares decision roots, leaf bounds, and semantic routes. Explicit ADR metadata outranks title terms. No match or a tie blocks migration; there is no implicit `foundation` fallback. Initialization writes a product-neutral taxonomy. Reviewed route changes bind the plan and taxonomy hash.
 
 `docs/archive/**`, `docs/inherited/**`, and exact repository role paths with `relocation: preserve` are canonical preservation boundaries. Scanning, structural compilation, capacity evaluation, and query retain their sources. Generic layout migration never relocates them, interprets preserved collection frontmatter as current Lervo route metadata, or rewrites archive or inherited collection bytes through reference repair or provider normalization.
 
@@ -55,10 +55,10 @@ A bounded read-only lifecycle inspection may share one prepared scan with instru
 
 The direct-terminal host may cache the resulting knowledge-only issue projection in `.lervo/state`, keyed by exact CLI version, repository snapshot revision, and supplemental-source digest. This disposable derived state is neither a canonical knowledge record nor a completion event.
 
-Inventory displays the structural publication-input snapshot, excluding revision metadata, verification, events, and local-only agent surfaces. Query and normalization may use broader snapshots without making publication stale. Only manifest validation, lint, and the current migration plan determine currency.
+Inventory displays the structural publication-input snapshot, excluding revision metadata, verification, events, and local-only agent surfaces. The same eligible source set supplies all displayed kind counts, byte totals, excluded counts, and unsupported counts. Unequal host histories and Git revision availability cannot change shared publication bytes. Full inventory and query evidence retain those local sources. Query and normalization may use broader snapshots without making publication stale. Only manifest validation, lint, and the current migration plan determine currency.
 
 ## Bounded publication lifecycle
 
 Navigation obeys entry and UTF-8 byte limits. New topics create files; empty categories create no paths. Refresh computes the complete desired set and deletes obsolete output only when the prior generation records its current hash. Edited or unrecorded output conflicts. Cleanup removes empty generated parents.
 
-`.lervo/state/knowledge/current/structural/manifests/current.json` records structural ownership. Refresh replaces it and deletes exact-hash legacy structural manifests and structural outputs during schema-2 migration, but preserves semantic manifests and immutable review and evidence.
+`.lervo/state/knowledge/current/structural/manifests/current.json` records structural ownership. Refresh replaces it and deletes exact-hash legacy structural manifests and structural outputs during schema-2 migration, while preserving semantic manifests and immutable review and evidence.

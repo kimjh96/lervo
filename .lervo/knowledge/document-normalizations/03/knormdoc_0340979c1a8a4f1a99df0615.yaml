@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_be4a2998704140a4a78def38
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b2567d348ca3b74aa361c71c
+outputLanguage: en
+outputs:
+  - byteCount: 615
+    contentHash: sha256:74ed3fb4a8d9cbd29a755386307fae7c9309fffb7a9385303058441be7423aec
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/installed-runtime-and-repositories.md
+    userRegionHash: sha256:74ed3fb4a8d9cbd29a755386307fae7c9309fffb7a9385303058441be7423aec
+profile: repository_document
+recordId: knormdoc_0340979c1a8a4f1a99df0615
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8ac60aeec41e9b6adc70d0e43c1fc0ef81ed808c48179dfa9972f922fb926c44
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/installed-runtime-and-repositories.md
+sourceUnitVersionIds:
+  - uv_93197bcdbb3e100eaae30cd4

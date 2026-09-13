@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_7706c37ff3ac0669aa0849f3"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Wake repository replicas and conversation queues on change, coalesce snapshots, distribute integrity audits, and reduce redundant idle writes without weakening verification."

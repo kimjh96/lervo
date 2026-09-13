@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8205338e66986f9591fdd64c
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ca93f70513901271ee7f2898
+outputLanguage: en
+outputs:
+  - byteCount: 1451
+    contentHash: sha256:a5555e97071cde972494cb700f679fd562337a234eb1147f82df53c53a86444d
+    path: docs/specifications/execution/provider-adapters/telemetry/linked-evidence-selection.md
+    userRegionHash: sha256:a5555e97071cde972494cb700f679fd562337a234eb1147f82df53c53a86444d
+profile: specification_document
+recordId: knormdoc_e4a2d8a9157631e7d5eb4f20
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:37f4abd829eca8563fe1e6703958b60a348d05689b7a6359991670ee1d8ff1af
+sourcePath: docs/specifications/execution/provider-adapters/telemetry/linked-evidence-selection.md
+sourceUnitVersionIds:
+  - uv_ce7f9b527e906c5d6272e7bc

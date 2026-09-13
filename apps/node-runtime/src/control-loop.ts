@@ -40,6 +40,7 @@ export interface RemoteControlLoopOptions {
   idlePollIntervalMs?: number;
   retryDelayMs?: number;
   wait?: RemoteCommandPollingWaitPort;
+  waitForIdleChange?: (signal: AbortSignal) => Promise<void>;
   nowMilliseconds?: () => number;
   onCycle?: (result: RemoteControlCycleResult) => void | Promise<void>;
 }
@@ -119,7 +120,15 @@ export async function runRemoteControlLoop(
       lastCycle.status === "policy_unavailable"
         ? retryDelayMs
         : commandDelay(lastCycle.command, idlePollIntervalMs, nowMilliseconds);
-    await wait.wait(delay, options.signal);
+    if (
+      lastCycle.status === "command_checked" &&
+      lastCycle.command.status === "idle" &&
+      options.waitForIdleChange !== undefined
+    ) {
+      await options.waitForIdleChange(options.signal);
+    } else {
+      await wait.wait(delay, options.signal);
+    }
   }
   return { status: "stopped", cycleCount, lastCycle };
 }

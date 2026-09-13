@@ -128,6 +128,9 @@ export interface ConversationApplicationOptions {
 }
 
 export interface ConversationApplication {
+  nextInteractionWakeupAt?(integrationId: string): number | null;
+  nextDeliberationWakeupAt?(): number | null;
+  subscribeChanges?(kind: "interaction" | "deliberation", notify: () => void): () => void;
   adapters: ReadonlyMap<string, ConversationAdapter>;
   slackAdapters: ReadonlyMap<string, SlackConversationAdapter>;
   discordAdapters: ReadonlyMap<string, DiscordConversationAdapter>;

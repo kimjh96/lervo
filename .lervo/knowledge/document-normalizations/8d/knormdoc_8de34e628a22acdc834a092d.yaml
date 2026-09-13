@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_bc15e8c3d1bb00a48c22dcdd
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5e6d8753c49789762efd332b
+outputLanguage: en
+outputs:
+  - byteCount: 505
+    contentHash: sha256:5b9d30bbe58e37ede909793ecf1b946e89dd5a4242503483c535dbeb5915b8ae
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/ownership-and-persistence/persistence-and-failures.md
+    userRegionHash: sha256:5b9d30bbe58e37ede909793ecf1b946e89dd5a4242503483c535dbeb5915b8ae
+profile: specification_document
+recordId: knormdoc_8de34e628a22acdc834a092d
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1482b88866876f1ab1c9da5ec9ad3b0319078fab4c887138cd72f68c9ccea213
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/node-composition/ownership-and-persistence/persistence-and-failures.md
+sourceUnitVersionIds:
+  - uv_77a4bc93d1578dd81461aedf

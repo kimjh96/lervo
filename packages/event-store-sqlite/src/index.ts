@@ -6,6 +6,7 @@ export {
   type EventDraft,
   type EventDraftV1,
   type EventDraftV2,
+  type EventDraftV3,
 } from "@lervo/event-contract";
 export type {
   AcknowledgeOutboxRequest,

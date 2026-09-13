@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8205338e66986f9591fdd64c
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_58da8144955a97eef5053fbb
+outputLanguage: en
+outputs:
+  - byteCount: 794
+    contentHash: sha256:a0191023b175ff0fac9a0e35c8f92e623e3989e3bb36ff830d5d7c310f2365d1
+    path: docs/specifications/execution/outcome-supervision/implementation/workforce-planning.md
+    userRegionHash: sha256:a0191023b175ff0fac9a0e35c8f92e623e3989e3bb36ff830d5d7c310f2365d1
+  - byteCount: 764
+    contentHash: sha256:586f1dc115d8cbfc6bf9d2b638f4217875ba61fea6498f08537dc216f6b4424b
+    path: docs/specifications/execution/outcome-supervision/implementation/workforce-planning/canonical-task-observations.md
+    userRegionHash: sha256:586f1dc115d8cbfc6bf9d2b638f4217875ba61fea6498f08537dc216f6b4424b
+  - byteCount: 2507
+    contentHash: sha256:fad51bc2a8c4000bd0037435dc6e8a9750c58c20140c7ae19dea64fac843faad
+    path: docs/specifications/execution/outcome-supervision/implementation/workforce-planning/grounded-planning.md
+    userRegionHash: sha256:fad51bc2a8c4000bd0037435dc6e8a9750c58c20140c7ae19dea64fac843faad
+profile: specification_document
+recordId: knormdoc_52a015b3800fa284a604467a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7dd3e5353ea68504d6ea7ac77b4a0cace1b8f9af5c5a05dfa6034cf0afe102d8
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/workforce-planning.md
+sourceUnitVersionIds:
+  - uv_6cdc6a047b3e5a178378559e
+  - uv_d4558f8918dfd5e66607ff3b

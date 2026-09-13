@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_8205338e66986f9591fdd64c
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2b4ee2cfe632d90b3cfef872
+outputLanguage: en
+outputs:
+  - byteCount: 1006
+    contentHash: sha256:abc4f6732fc0019266de268489e3b2dda077c0ace187779e9964582a92c12d82
+    path: docs/specifications/execution/operations-and-recovery/workforce-state.md
+    userRegionHash: sha256:abc4f6732fc0019266de268489e3b2dda077c0ace187779e9964582a92c12d82
+profile: specification_document
+recordId: knormdoc_ebf1e51640daca8a4fad5f42
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:b2245d7bf8349c81234f19b46696c5931e350c6f6b14304158f07605b8a2e522
+sourcePath: docs/specifications/execution/operations-and-recovery/workforce-state.md
+sourceUnitVersionIds:
+  - uv_ea2592654484ffb38ae0eeca

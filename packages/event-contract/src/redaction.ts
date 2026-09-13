@@ -18,11 +18,17 @@ import {
   type VerificationCompletedEventPayload,
   type WorkstreamSnapshotRecordedEventPayload,
 } from "@lervo/schemas";
+import { supervisionPayloadAllowlists, validateSupervisionPayload } from "./supervision-payload.js";
+import { roleInputPayloadFields, validateRoleInputPayload } from "./role-input-payload.js";
+import { validateTopologyPolicyPayload } from "./topology-policy-payload.js";
 
 export type JsonPrimitive = boolean | number | string | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 export const eventPayloadAllowlists = {
+  "managed.execution.reserved": ["executionKey", "requestHash"],
+  "role.input.bound": roleInputPayloadFields,
+  ...supervisionPayloadAllowlists,
   "run.requested": ["requestDigest", "role", "risk"],
   "run.resolved": ["role", "risk", "policyVersion"],
   "run.completed": ["resultDigest", "artifactIds", "verificationStatus"],
@@ -213,6 +219,9 @@ export const eventPayloadAllowlists = {
     "topologyExpectedNodeCount",
     "topologyNodeSetHash",
     "topologyNodeKey",
+    "topologyPolicyReviewVersion",
+    "topologyPolicyDecisionId",
+    "topologyPolicyReviewHash",
     "initialStatus",
     "priority",
     "dependencyIds",
@@ -295,6 +304,27 @@ export const eventPayloadAllowlists = {
     "artifactIds",
     "artifactHashes",
     "failureCode",
+  ],
+  "assignment.amended": [
+    "assignmentId",
+    "assignmentRevision",
+    "assignmentHash",
+    "predecessorAssignmentHash",
+    "predecessorResponsibilityHash",
+    "successorResponsibilityHash",
+  ],
+  "assignment.reopened": [
+    "assignmentId",
+    "assignmentRevision",
+    "assignmentHash",
+    "kind",
+    "predecessorAssignmentHash",
+    "responsibilityHash",
+    "sourceRunId",
+    "terminalEventId",
+    "reviewEventId",
+    "attemptNumber",
+    "predecessorLeaseGeneration",
   ],
   "public_readme.improvement.applied": [
     "operation",
@@ -1101,6 +1131,21 @@ export function sanitizeEventPayload(
     sanitized[key] = sanitizeNested(value, path, redactions, ancestors);
   }
 
+  try {
+    if (
+      type === "managed.execution.reserved" &&
+      (Object.keys(sanitized).length !== 2 ||
+        ![sanitized.executionKey, sanitized.requestHash].every(
+          (value) => typeof value === "string" && /^sha256:[a-f0-9]{64}$/u.test(value),
+        ))
+    )
+      throw new TypeError("The managed execution reservation is invalid.");
+    validateSupervisionPayload(type, sanitized);
+    if (type === "role.input.bound") validateRoleInputPayload(sanitized);
+    validateTopologyPolicyPayload(type, sanitized);
+  } catch {
+    throw new RedactionError("invalid_payload", "$", "The supervision payload is invalid.");
+  }
   const schemaName = eventPayloadSchemas[type];
   const invalidSchema = schemaName !== undefined && !validateSchema(schemaName, sanitized).valid;
   const invalidArtifactCoordinate =
@@ -1208,6 +1253,8 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "context.referenced": "managedContextReferencedEventPayload",
   "run.completed": "runCompletedEventPayload",
   "assignment.completion.prepared": "assignmentCompletionPreparedEventPayload",
+  "assignment.amended": "assignmentAmendedEventPayload",
+  "assignment.reopened": "assignmentReopenedEventPayload",
   "assignment.completion.reconciled": "assignmentCompletionReconciledEventPayload",
   "deliberation.started": "deliberationStartedEventPayload",
   "deliberation.artifact.recorded": "deliberationArtifactRecordedEventPayload",

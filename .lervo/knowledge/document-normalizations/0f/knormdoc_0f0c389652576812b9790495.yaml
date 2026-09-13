@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_136b3466e2c05777be819025
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_83e164b7f03f5be5c2e35a4f
+outputLanguage: en
+outputs:
+  - byteCount: 1862
+    contentHash: sha256:1bdfe47e1b821f48ffdb565ddae26653839a892453436f7c535fd061a1f66746
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl.md
+    userRegionHash: sha256:1bdfe47e1b821f48ffdb565ddae26653839a892453436f7c535fd061a1f66746
+profile: handoff_document
+recordId: knormdoc_0f0c389652576812b9790495
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:727a20f2c1bd1cc1c1834c3df0c916bef5feb4c9a715f2da6dad1778a5279c7f
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl.md
+sourceUnitVersionIds:
+  - uv_0aebd448b7b5554fee1bea1c
+  - uv_69f3fc5ed77175e583f62ed8
+  - uv_a05a1d905cd932f2295fe8d3

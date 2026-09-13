@@ -2,7 +2,7 @@
 
 Workforce events contain only opaque agent, assignment, lease, handoff, artifact, context-event, role/task, role-version, role-contract-hash, status, generation, expiry, and digest coordinates. They exclude role prose and source paths, task prose, acceptance text, repository paths, prompts, outputs, artifact bodies, reasoning, credentials, and provider configuration.
 
-State and event commit together, restoring bytes on event failure. Invalid or stale role contracts, contention, expiry, rejected claims, and unauthorized acknowledgments record no execution success.
+State and event commit together; event failure restores bytes. Invalid or stale role contracts, contention, expiry, rejected claims, and unauthorized acknowledgments record no execution success.
 
 - [Root-agent liveness](workforce-events/root-agent-liveness.md)
 - [Routine assignment provenance](workforce-events/routine-assignment-provenance.md)
@@ -12,3 +12,5 @@ State and event commit together, restoring bytes on event failure. Invalid or st
 - [Completion preparation](workforce-events/completion-preparation.md)
 - [Completion reconciliation](workforce-events/completion-reconciliation.md)
 - [Capability registration and activation](workforce-events/capability-registration-and-activation.md)
+- [Assignment reopening and recovery coordinates](../outcome-supervision/implementation/managed-execution/assignment-recovery.md)
+- [Unstarted assignment amendment coordinates](../outcome-supervision/implementation/assignment-amendments.md)

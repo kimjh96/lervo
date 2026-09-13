@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_19b71389679504e3b307cc4f
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ae6e2af32f0296b496a80b14
+outputLanguage: en
+outputs:
+  - byteCount: 5407
+    contentHash: sha256:27759f97307cea6da27d0985103b744562ec5e2323784c48c3643710d3d74e0c
+    path: docs/specifications/execution/outcome-supervision/implementation/workspace-preparation.md
+    userRegionHash: sha256:27759f97307cea6da27d0985103b744562ec5e2323784c48c3643710d3d74e0c
+profile: specification_document
+recordId: knormdoc_16590095edfd5548c4a6a14b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:81d9cc58972c564b062cb758bffdd3a57f6b8d9081239fee6d5de080d15ed07e
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/workspace-preparation.md
+sourceUnitVersionIds:
+  - uv_12027a04a034e7f68a344cf6
+  - uv_27e09d21a0954155995b6fd6
+  - uv_28fddbee6c6ec1af870c89d5
+  - uv_796a6e3e8cddeabd224a7360
+  - uv_a1ad730823873ff05aadd53a

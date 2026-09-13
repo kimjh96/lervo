@@ -181,9 +181,8 @@ function structuralOverview(input: {
   messages: RepositoryPublicationMessages;
 }): string {
   const counts = new Map<string, number>();
-  const publicationSources = input.scan.sources.filter(
-    (item) => item.status === "included" && repositorySourceCanEnterStructuralPublication(item),
-  );
+  const eligibleSources = input.scan.sources.filter(repositorySourceCanEnterStructuralPublication);
+  const publicationSources = eligibleSources.filter((item) => item.status === "included");
   for (const source of publicationSources) {
     counts.set(source.kind, (counts.get(source.kind) ?? 0) + 1);
   }
@@ -199,8 +198,8 @@ function structuralOverview(input: {
       snapshotId: repositoryKnowledgePublicationSnapshotId(input.scan),
       included: publicationSources.length,
       includedBytes: publicationSources.reduce((total, source) => total + source.byteCount, 0),
-      excluded: input.scan.coverage.excluded,
-      unsupported: input.scan.coverage.unsupported,
+      excluded: eligibleSources.filter((item) => item.status === "excluded").length,
+      unsupported: eligibleSources.filter((item) => item.status === "unsupported").length,
     }),
     "",
     ...[...counts.entries()]

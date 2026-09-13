@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_49d2f765992b7491a9075178"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Bind a reviewed supervision goal to an exact workstream snapshot while preserving prior assignments, resource history, and mandate budget succession."

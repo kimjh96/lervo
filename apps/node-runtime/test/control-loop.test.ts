@@ -110,3 +110,30 @@ describe("Node remote control loop", () => {
     expect(runCommandCycle).not.toHaveBeenCalled();
   });
 });
+
+it("checks policy again after every notification before requesting another command", async () => {
+  const abort = new AbortController();
+  const order: string[] = [];
+  const result = await runRemoteControlLoop({
+    signal: abort.signal,
+    runPolicyCycle: async () => {
+      order.push("policy");
+      return { status: "unchanged", snapshotId: null };
+    },
+    runCommandCycle: async () => {
+      order.push("command");
+      return { status: "idle", leasedCount: 0, acknowledgedCount: 0 };
+    },
+    waitForIdleChange: async () => {
+      order.push("hint");
+      if (order.length === 6) abort.abort();
+    },
+    wait: {
+      wait: async () => {
+        throw new Error("Idle notification was bypassed");
+      },
+    },
+  });
+  expect(result.cycleCount).toBe(2);
+  expect(order).toEqual(["policy", "command", "hint", "policy", "command", "hint"]);
+});
