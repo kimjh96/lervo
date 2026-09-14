@@ -21,6 +21,7 @@ import { readSupervisedReviewFeedback } from "./supervision-review-observation.j
 import { readSupervisionPeerFacts } from "./supervision-peer-facts.js";
 import { readSupervisionHandoffState } from "./supervision-handoff-state.js";
 import { readBoundSupervisionRequest } from "./supervision-bound-request.js";
+import { staleResponsibilityFacts } from "./supervision-goal-revision.js";
 import { readDiscordGoalRequesterProvenance } from "./supervision-discord-request-provenance.js";
 import { observeSupervisionResearchPolicy } from "./supervision-research-policy.js";
 import { readSupervisionResearchEvidence } from "./supervision-research-evidence.js";
@@ -150,6 +151,7 @@ export async function canonicalOwnerReasoningFacts(
   };
   const facts = {
     unstartedWorkspaces,
+    staleResponsibilities: staleResponsibilityFacts(source),
     recoveryObservations,
     researchEvidence,
     researchPolicy,

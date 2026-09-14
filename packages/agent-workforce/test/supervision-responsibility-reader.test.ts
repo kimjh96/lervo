@@ -87,6 +87,7 @@ describe("canonical responsibility history", () => {
       responsibilityArtifactHash: entry.artifact.contentHash,
       responsibilityHash: operatingContractHash(entry.task),
       responsibility: entry.task,
+      workstreamRevision: entry.event.payload.workstreamRevision,
     });
   });
   it("recovers the latest exact predecessor chain and returns null for an unbound assignment", async () => {

@@ -12,6 +12,8 @@ export interface RecordedWorkResponsibility {
   responsibilityArtifactHash: string;
   responsibilityHash: string;
   responsibility: WorkResponsibilityV1;
+  /** The goal revision the binding was recorded against; a later goal revision makes it stale. */
+  workstreamRevision: number;
 }
 
 /** Reads canonical binding history and exact CAS bytes; never installs or authorizes duties. */
@@ -74,6 +76,7 @@ export class SupervisionResponsibilityReader {
         responsibilityArtifactHash: artifactHash,
         responsibilityHash: operatingContractHash(responsibility),
         responsibility,
+        workstreamRevision: revision,
       };
       workstreamRevision = revision;
     }

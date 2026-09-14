@@ -23,6 +23,7 @@ import type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-co
 import type { SupervisionTaskSource } from "./supervision-task-source.js";
 import { assertSupervisionWorkspaceLocation } from "./supervision-workspace-plan.js";
 import { readSupervisionWorkspaceSource } from "./supervision-workspace-source.js";
+import { assertResponsibilityGoalCurrent } from "./supervision-goal-revision.js";
 
 /** Derives workspace preparation and dispatch from the current bound task, never model-supplied lease IDs. */
 export async function materializeNativeDispatch(input: {
@@ -46,6 +47,7 @@ export async function materializeNativeDispatch(input: {
   )?.binding;
   if (binding === null || binding === undefined)
     throw new Error("The native dispatch responsibility is unavailable.");
+  assertResponsibilityGoalCurrent(input.source, assignment.assignmentId);
   const task = binding.responsibility;
   const root = input.storage.paths.repositoryRoot;
   const workspaces = await currentSupervisionWorkspaces(
