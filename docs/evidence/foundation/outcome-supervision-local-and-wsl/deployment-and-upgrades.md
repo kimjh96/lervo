@@ -18,3 +18,4 @@ Lervo Mac/WSL source reconciliation preserved both original bundles and restored
 - [Approved Discord acceptance results](deployment-and-upgrades/approved-discord-acceptance.md): all thirteen logical scenarios, corrections, exact messages, and remaining observations.
 - [Installed runtime and repository upgrades](deployment-and-upgrades/installed-runtime-and-repositories.md): artifacts, service state, and repository state.
 - [Acceptance and dispatch state](deployment-and-upgrades/acceptance-and-dispatch.md): retained historical accounting and independent acceptance limits.
+- [Discord successor preparation](deployment-and-upgrades/discord-successor-preparation.md): installed Hub transition, distinct WSL workstream, scoped plan, and remaining authority and intake gates.
