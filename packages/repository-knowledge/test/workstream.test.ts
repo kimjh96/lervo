@@ -136,6 +136,81 @@ describe("repository workstreams", () => {
     ).toBe("blocked");
   });
 
+  it("starts a distinct goal after a settled cancellation but not after an unsettled one", async () => {
+    const root = await repository();
+    const draft = {
+      schemaVersion: 1,
+      status: "cancelled" as const,
+      title: "Abandoned research goal",
+      objective: "Retire one goal whose worker attempt could not be reconciled.",
+      nextActions: [],
+      blockers: ["The aborted attempt has no terminal event."],
+      notes: [],
+      references: [],
+      updatedAt: "2026-08-24T01:00:00.000Z",
+    };
+    const unsettled = await createWorkstreamStartPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+      draft,
+    });
+    await applyWorkstreamStartPlan({
+      plan: unsettled,
+      now: new Date(),
+      recordApplied: () => undefined,
+    });
+    const successorDraft = {
+      ...draft,
+      status: "active" as const,
+      title: "Retry under a fresh goal",
+      objective: "Prove the corrected worker run under separately reviewed authority.",
+      nextActions: ["Bind one request."],
+      blockers: [],
+      updatedAt: "2026-08-24T02:00:00.000Z",
+    };
+    await expect(
+      createWorkstreamStartPlan({
+        repositoryRoot: root,
+        projectId: "prj_workstream_test",
+        draft: successorDraft,
+      }),
+    ).resolves.toMatchObject({
+      status: "blocked",
+      blockers: [{ code: "current_workstream_exists" }],
+    });
+    const settled = await createWorkstreamUpdatePlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+      snapshot: {
+        ...unsettled.snapshot!,
+        revision: 2,
+        blockers: [],
+        notes: ["The aborted attempt is retired with its exact evidence."],
+        updatedAt: "2026-08-24T01:30:00.000Z",
+      },
+    });
+    await applyWorkstreamUpdatePlan({
+      plan: settled,
+      now: new Date(),
+      recordApplied: () => undefined,
+    });
+    const next = await createWorkstreamStartPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+      draft: successorDraft,
+    });
+    expect(next).toMatchObject({
+      status: "ready",
+      snapshot: {
+        origin: {
+          kind: "successor",
+          predecessorWorkstreamId: unsettled.snapshot!.workstreamId,
+          predecessorSnapshotContentHash: settled.desiredSnapshotContentHash,
+        },
+      },
+    });
+  });
+
   it("starts a distinct goal after a settled completion and retains its predecessor binding", async () => {
     const root = await repository();
     const draft = {

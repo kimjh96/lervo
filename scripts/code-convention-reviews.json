@@ -284,9 +284,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/workstream.ts",
-      "contentHash": "sha256:ade94140be890fd8828b63b5d84a0ade9c5102786f41616a0739125ba2a5160d",
+      "contentHash": "sha256:05fcb9e9eb1a4e78e5bd397243f3397cbd07b371a312ff852a443004294bd401",
       "responsibility": "Revisioned workstream snapshot lifecycle",
-      "rationale": "Current state, continuation import, initial and successor start, update, and replicated import all preserve one WorkstreamSnapshot aggregate, exact origin and predecessor invariants, CAS binding, and durable apply protocol.",
+      "rationale": "Current state, continuation import, initial and successor start (after a settled completed or cancelled predecessor), update, and replicated import all preserve one WorkstreamSnapshot aggregate, exact origin and predecessor invariants, CAS binding, and durable apply protocol.",
       "disposition": "cohesive"
     },
     {

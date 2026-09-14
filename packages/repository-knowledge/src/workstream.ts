@@ -738,8 +738,9 @@ export async function createWorkstreamStartPlan(input: {
   const blockers: WorkstreamStartPlan["blockers"] = [];
   const currentSource = await safeTextFile(root, CURRENT_WORKSTREAM_PATH, 64 * 1024);
   const current = currentSource === null ? null : await readCurrentWorkstreamState(root);
+  // A settled completed or cancelled goal may have an exact-hash successor; active work may not.
   const predecessor =
-    current?.snapshot.status === "completed" &&
+    (current?.snapshot.status === "completed" || current?.snapshot.status === "cancelled") &&
     current.snapshot.blockers.length === 0 &&
     (current.snapshot.pendingDecisions?.length ?? 0) === 0 &&
     (current.snapshot.pendingApprovals?.length ?? 0) === 0
@@ -749,7 +750,7 @@ export async function createWorkstreamStartPlan(input: {
     blockers.push({
       code: "current_workstream_exists",
       message:
-        "The current workstream is not settled and completed; record its next revision with workstream update.",
+        "The current workstream is not settled as completed or cancelled; record its next revision with workstream update.",
     });
   const snapshot = snapshotFromStartDraft(input.projectId, input.draft, predecessor);
   if (snapshot === null)
