@@ -11,7 +11,10 @@ import type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-co
 
 type Readiness = Awaited<ReturnType<OutcomeSupervisionPorts["readWorkerReadiness"]>>;
 
-/** Executable observations supplement, but cannot establish, application permissions or auth. */
+/**
+ * Executable observations supplement, but cannot establish, application permissions or auth.
+ * An operating-system permission denial is an observed failure with evidence, not an unobserved probe.
+ */
 export async function observeSupervisionRuntimeReadiness(input: {
   plan: OperatingActionPlanV1;
   readiness: Readiness;
@@ -81,6 +84,19 @@ export async function observeSupervisionRuntimeReadiness(input: {
         : mapped &&
           observations.tools.length === tools.size &&
           (check.kind !== "cli" || tools.size > 0);
+    if (
+      timely &&
+      covered &&
+      results.some((result) => result?.reasonCode === "executable_permission_denied")
+    )
+      return {
+        ...check,
+        status: "failed",
+        evidenceHash: operatingContractHash({
+          adapter: check.evidenceHash,
+          permissionFailure: { executable: executable ?? null, tools: [...tools], results },
+        }),
+      };
     if (
       !timely ||
       !covered ||

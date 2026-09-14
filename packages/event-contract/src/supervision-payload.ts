@@ -70,6 +70,17 @@ export const supervisionPayloadAllowlists = {
     "status",
     "effectEventIds",
   ],
+  "work.supervision.readiness.failed": [
+    ...common,
+    "decisionId",
+    "planHash",
+    "assignmentId",
+    "executorAgentId",
+    "responsibilityArtifactHash",
+    "sourceRevisionDigest",
+    "readinessEvidenceHash",
+    "reasonCode",
+  ],
   "work.supervision.review.recorded": [
     ...common,
     "assignmentIds",

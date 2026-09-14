@@ -13,6 +13,13 @@ import type {
 
 export type { SupervisionDecisionReceipt } from "@lervo/application-contract";
 
+/** An observed worker readiness failure before any effect invocation for a recorded decision. */
+export interface SupervisionReadinessFailure {
+  responsibility: WorkResponsibilityV1;
+  observation: WorkerReadinessObservationV1;
+  reasonCodes: string[];
+}
+
 /** Only a preflight that has not invoked the effect may report this failure. */
 export class SupervisionPreflightError extends Error {
   readonly code = "supervision_preflight_failed";
@@ -62,5 +69,10 @@ export interface OutcomeSupervisionPorts {
     review: OperatingPolicyReviewV1,
   ): Promise<{ eventIds: string[] }>;
   recordEffect(receipt: SupervisionDecisionReceipt): Promise<void>;
+  /** Canonical safe non-start evidence for an observed (not merely unobserved) readiness failure. */
+  recordReadinessFailure?(
+    receipt: SupervisionDecisionReceipt,
+    failure: SupervisionReadinessFailure,
+  ): Promise<void>;
   recordAttention(report: OutcomeSupervisionReportV1, reasonCodes: string[]): Promise<void>;
 }

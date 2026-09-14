@@ -3,10 +3,14 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { FileSystemCas } from "@lervo/cas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
-import { reviewOperatingAction } from "@lervo/work-controller";
+import { operatingContractHash, reviewOperatingAction } from "@lervo/work-controller";
 import { afterEach, describe, expect, it } from "vitest";
 import { SupervisionDecisionJournal, SQLiteSupervisionOwnerLeaseStore } from "../src/index.js";
 import { hash, mandate, now, plan, snapshot } from "./supervision.fixture.js";
+import {
+  readiness,
+  responsibility,
+} from "../../work-controller/test/operating-supervision.fixture.js";
 
 const roots: string[] = [];
 const stores: (SQLiteEventStore | SQLiteSupervisionOwnerLeaseStore)[] = [];
@@ -56,6 +60,73 @@ async function fixture(writer: 1 | 2 | 3 = 3) {
 afterEach(async () => {
   for (const store of stores.splice(0)) store.close();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+describe("canonical readiness failure evidence", () => {
+  function failure(reasonCodes = ["readiness_provider_failed"]) {
+    const task = responsibility();
+    const observation = readiness();
+    observation.responsibilityArtifactHash = operatingContractHash(task);
+    observation.checks.find((check) => check.kind === "provider")!.status = "failed";
+    return { responsibility: task, observation, reasonCodes };
+  }
+  it("records one time-free failure per decision and exposes it without proving repair", async () => {
+    const f = await fixture();
+    const receipt = await f.journal.recordDecision(f.action, f.review);
+    const first = await f.journal.recordReadinessFailure(receipt, failure());
+    const later = failure();
+    later.observation.observedAt = "2026-09-11T03:00:10.000Z";
+    later.observation.validUntil = "2026-09-11T03:01:10.000Z";
+    later.observation.checks.find((check) => check.kind === "budget")!.evidenceHash = hash("9");
+    expect(await f.journal.recordReadinessFailure(receipt, later)).toBe(first);
+    expect(
+      f.events.list().filter((e) => e.type === "work.supervision.readiness.failed"),
+    ).toHaveLength(1);
+    const failures = f.journal.findReadinessFailures(receipt.decisionId);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatchObject({
+      eventId: first,
+      reasonCode: "readiness_provider_failed",
+      executorAgentId: responsibility().executorAgentId,
+    });
+    const recorded = f.events.get(first)!;
+    expect(recorded.payload).toMatchObject({
+      decisionId: receipt.decisionId,
+      planHash: receipt.planHash,
+      assignmentId: responsibility().assignmentId,
+      causationEventIds: [
+        f.journal["journal"].eventId("work.supervision.decision.recorded", receipt.decisionId),
+      ],
+    });
+    expect(JSON.stringify(recorded.payload)).not.toContain("observedAt");
+    expect(f.journal.findDecision(receipt.decisionId)!.status).toBe("recorded");
+    const changed = failure(["readiness_tools_failed", "readiness_provider_failed"]);
+    changed.observation.checks.find((check) => check.kind === "tools")!.status = "failed";
+    expect(await f.journal.recordReadinessFailure(receipt, changed)).not.toBe(first);
+    expect(f.journal.findReadinessFailures(receipt.decisionId)).toHaveLength(2);
+  });
+  it("rejects unobserved readiness, unbound observations and executed decisions", async () => {
+    const f = await fixture();
+    const receipt = await f.journal.recordDecision(f.action, f.review);
+    await expect(
+      f.journal.recordReadinessFailure(receipt, failure(["readiness_provider_unobserved"])),
+    ).rejects.toThrow(/not bound/u);
+    const unobserved = failure();
+    unobserved.observation.checks.find((check) => check.kind === "provider")!.status = "unobserved";
+    await expect(f.journal.recordReadinessFailure(receipt, unobserved)).rejects.toThrow(
+      /not bound/u,
+    );
+    const foreign = failure();
+    foreign.observation.agentId = `agt_${"c".repeat(24)}`;
+    await expect(f.journal.recordReadinessFailure(receipt, foreign)).rejects.toThrow(/not bound/u);
+    await expect(
+      f.journal.recordReadinessFailure({ ...receipt, decisionId: "dec_missing" }, failure()),
+    ).rejects.toThrow(/not bound/u);
+    f.journal.recordEffect({ ...receipt, status: "uncertain", effectEventIds: [] });
+    await expect(f.journal.recordReadinessFailure(receipt, failure())).rejects.toThrow(
+      /not bound/u,
+    );
+  });
 });
 
 describe("canonical supervision decision recovery", () => {

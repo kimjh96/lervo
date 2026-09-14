@@ -24,6 +24,7 @@ export * from "./workspace-store.js";
 export * from "./workspace-types.js";
 export * from "./supervision-owner-lease.js";
 export * from "./supervision-decision-journal.js";
+export * from "./supervision-readiness-failure-journal.js";
 export * from "./supervision-mandate-journal.js";
 export * from "./supervision-responsibility-reader.js";
 export * from "./repository-supervision-leases.js";

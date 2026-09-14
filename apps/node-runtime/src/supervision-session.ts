@@ -18,6 +18,7 @@ import {
   type WorkforceAssignment,
   type SQLiteSupervisionOwnerLeaseStore,
   type SupervisionOwnerLease,
+  type SupervisionReadinessFailureRecord,
 } from "@lervo/agent-workforce";
 import { type ProjectStorage } from "@lervo/project-storage";
 import { SupervisionAuthorityHistory } from "./supervision-authority-history.js";
@@ -107,6 +108,10 @@ export interface NodeSupervisionSession {
     authorityDigest: string,
   ): Promise<SupervisionDecisionReceipt>;
   recordEffect(receipt: SupervisionDecisionReceipt): void;
+  recordReadinessFailure(
+    receipt: SupervisionDecisionReceipt,
+    failure: SupervisionReadinessFailureRecord,
+  ): Promise<string>;
   /** Renewal invalidates earlier fence coordinates; callers must settle any journal write first. */
   renew(): void;
   /** Storage fence only. The effect adapter still owns exact admission at its commit boundary. */
@@ -360,6 +365,10 @@ export function createNodeSupervisionSession(context: {
       return journal(authority.source.workstreamRevision).recordDecision(plan, review);
     },
     recordEffect: (receipt) => journal().recordEffect(receipt),
+    recordReadinessFailure: (receipt, failure) => {
+      assertOpen();
+      return journal().recordReadinessFailure(receipt, failure);
+    },
     renew: () => {
       assertOpen();
       lease = context.leases.renew(lease, Date.parse(context.now()), 300_000);

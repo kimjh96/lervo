@@ -47,4 +47,5 @@ export type { OutcomeSupervisionCycleResult } from "./outcome-supervision-runtim
 export type {
   OutcomeSupervisionPorts,
   SupervisionDecisionReceipt,
+  SupervisionReadinessFailure,
 } from "./outcome-supervision-ports.js";

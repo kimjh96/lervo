@@ -278,6 +278,15 @@ export class OutcomeSupervisionRuntime {
           now: this.ports.now(),
         });
         if (preflight.status !== "ready") {
+          if (
+            preflight.reasonCodes.some((code) => /^readiness_[a-z_]+_failed$/u.test(code)) &&
+            this.ports.recordReadinessFailure !== undefined
+          )
+            await this.ports.recordReadinessFailure(recorded, {
+              responsibility: readiness.responsibility,
+              observation: readiness.observation,
+              reasonCodes: preflight.reasonCodes,
+            });
           await this.ports.recordAttention(report, preflight.reasonCodes);
           return { disposition: "blocked" as const, report };
         }

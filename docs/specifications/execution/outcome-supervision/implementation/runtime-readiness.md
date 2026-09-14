@@ -32,7 +32,7 @@ Executable availability supplements existing positive provider, tool, and requir
 - Unavailable or unknown executable observations.
 - A probe interval outside zero to five seconds.
 
-Existing failed checks remain failed. No new event or persistent state is introduced.
+Existing failed checks remain failed. A permission-denied executable start instead makes the affected positive check `failed` with a combined evidence hash; the runtime records that observation through [`work.supervision.readiness.failed`](readiness.md#permission-failure-evidence-and-recovery). Other probe outcomes introduce no event or persistent state.
 
 Combined evidence hashes bind prior application evidence, configured executable identities, and normalized probe results. Readiness records expose no raw executable paths, output, credentials, or unrestricted errors. Probes preserve the original readiness observation time; observing a binary cannot refresh stale authentication evidence.
 
@@ -40,6 +40,6 @@ A version response proves only that an executable answered the probe. It proves 
 
 ## Validation and remaining work
 
-Real child-process tests cover bounded output, credential isolation, missing executables, timeout, and provider-neutral tool results. Disposable Git-workspace integration tests cover absent configuration, unavailable provider or tool, missing suite mapping, preservation of negative authentication evidence, a detached configuration snapshot, and an executable removed between preflights. Existing dispatch tests exercise repeated preflight before fenced effects.
+Real child-process tests cover bounded output, credential isolation, missing executables, permission-denied executables, timeout, and provider-neutral tool results. Disposable Git-workspace tests block on a permission-denied provider or tool, record one canonical readiness failure across repeated cycles, and confirm the original decision after the permission is repaired. Disposable Git-workspace integration tests cover absent configuration, unavailable provider or tool, missing suite mapping, preservation of negative authentication evidence, a detached configuration snapshot, and an executable removed between preflights. Existing dispatch tests exercise repeated preflight before fenced effects.
 
 Actual authentication and task-tool permissions, knowledge/source-policy observations, verification execution, budget and process observations, and production responsibility installation remain separate delivery work. These probes cannot establish installed-worker readiness on their own.

@@ -1,4 +1,5 @@
 import type { OutcomeSupervisionSnapshotV1 } from "@lervo/application-contract";
+import { operatingContractHash } from "@lervo/work-controller";
 import { describe, expect, it, vi } from "vitest";
 import type {
   OutcomeSupervisionPorts,
@@ -262,6 +263,53 @@ describe("serialized causal owner decisions", () => {
     ).toBe("blocked");
     expect(f.execute).not.toHaveBeenCalled();
     expect(f.attention).toHaveBeenCalledWith(expect.anything(), ["readiness_write_scope_failed"]);
+  });
+  it("records one canonical readiness failure and resumes the same decision after repair", async () => {
+    const f = new Map();
+    const fx = fixture();
+    const failed = readiness();
+    failed.checks.find((check) => check.kind === "provider")!.status = "failed";
+    let repaired = false;
+    fx.ports.readWorkerReadiness = async () => ({
+      responsibility: responsibility(),
+      observation: repaired ? readiness() : failed,
+      requiredChecks: ["provider"],
+    });
+    const recorded = vi.fn(async (receipt: SupervisionDecisionReceipt, failure) => {
+      f.set(`${receipt.decisionId}:${operatingContractHash(failure.observation.checks)}`, failure);
+    });
+    fx.ports.recordReadinessFailure = recorded;
+    fx.ports.inspectEffect = async () => ({ status: "not_started" });
+    const runtime = new OutcomeSupervisionRuntime(fx.ports);
+    expect((await runtime.runCycle(fx.state.supervisionId)).disposition).toBe("blocked");
+    expect((await runtime.runCycle(fx.state.supervisionId)).disposition).toBe("blocked");
+    expect(recorded).toHaveBeenCalledTimes(2);
+    expect(f.size).toBe(1);
+    expect([...f.values()][0]!.reasonCodes).toEqual(["readiness_provider_failed"]);
+    expect([...fx.decisions.values()][0]!.status).toBe("recorded");
+    expect(fx.execute).not.toHaveBeenCalled();
+    repaired = true;
+    expect((await runtime.runCycle(fx.state.supervisionId)).disposition).toBe("effect_confirmed");
+    expect(fx.execute).toHaveBeenCalledOnce();
+    expect(fx.propose).toHaveBeenCalledOnce();
+    expect(fx.decisions.size).toBe(1);
+  });
+  it("does not record unobserved readiness as a canonical failure", async () => {
+    const fx = fixture();
+    const observation = readiness();
+    observation.checks.find((check) => check.kind === "provider")!.status = "unobserved";
+    fx.ports.readWorkerReadiness = async () => ({
+      responsibility: responsibility(),
+      observation,
+      requiredChecks: ["provider"],
+    });
+    const recorded = vi.fn(async () => undefined);
+    fx.ports.recordReadinessFailure = recorded;
+    expect(
+      (await new OutcomeSupervisionRuntime(fx.ports).runCycle(fx.state.supervisionId)).disposition,
+    ).toBe("blocked");
+    expect(recorded).not.toHaveBeenCalled();
+    expect(fx.attention).toHaveBeenCalledWith(expect.anything(), ["readiness_provider_unobserved"]);
   });
   it.each(["work.artifact_review.v1", "work.unknown.v1"])(
     "maps only an exact artifact review after a blocked verdict (%s)",

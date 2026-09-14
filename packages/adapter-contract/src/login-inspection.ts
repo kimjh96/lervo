@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { isAbsolute } from "node:path";
 import { createProviderProcessEnvironment } from "./provider-process-environment.js";
+import { executableStartReasonCode } from "./runtime-inspection.js";
 
 export interface ProviderLoginContext {
   homeDirectory: string;
@@ -15,6 +16,7 @@ export interface ProviderLoginInspection {
     | "native_login_absent"
     | "unrecognized_response"
     | "executable_not_found"
+    | "executable_permission_denied"
     | "probe_failed"
     | "probe_timed_out";
 }
@@ -80,12 +82,7 @@ export async function inspectProviderLoginProbe(input: {
     child.stdout.on("data", (chunk: Buffer) => collect("stdout", chunk));
     child.stderr.on("data", (chunk: Buffer) => collect("stderr", chunk));
     child.once("error", (error: NodeJS.ErrnoException) =>
-      finish(
-        "unobserved",
-        error.code === "ENOENT" || error.code === "EACCES"
-          ? "executable_not_found"
-          : "probe_failed",
-      ),
+      finish("unobserved", executableStartReasonCode(error.code)),
     );
     child.once("close", (code) => {
       if (settled) return;

@@ -29,6 +29,13 @@ import type {
 } from "./supervision-owner-lease.js";
 
 export type { SupervisionJournalCoordinates } from "./supervision-event-journal.js";
+import {
+  findSupervisionReadinessFailures,
+  recordSupervisionReadinessFailure,
+  supervisionPayloadFromDecision,
+  type SupervisionReadinessFailureRecord,
+} from "./supervision-readiness-failure-journal.js";
+export type { SupervisionReadinessFailureRecord } from "./supervision-readiness-failure-journal.js";
 
 import {
   SupervisionEventJournal,
@@ -263,19 +270,27 @@ export class SupervisionDecisionJournal {
     // Existence and ordering do not establish effect identity; the concrete inspector owns that check.
     this.journal.append(
       "work.supervision.effect.observed",
-      {
-        schemaVersion: 1,
-        projectId: decision.payload.projectId,
-        workstreamId: decision.payload.workstreamId,
-        workstreamRevision: decision.payload.workstreamRevision,
-        supervisionId: decision.payload.supervisionId,
-        ownerAgentId: decision.payload.ownerAgentId,
-        mandateHash: decision.payload.mandateHash,
-        causationEventIds: [decision.eventId],
-        ...receipt,
-      },
+      { ...supervisionPayloadFromDecision(decision), ...receipt },
       operatingContractHash(receipt),
     );
+  }
+
+  /** Canonical safe non-start evidence; see the readiness-failure journal for its bounds. */
+  recordReadinessFailure(
+    receipt: SupervisionDecisionReceipt,
+    failure: SupervisionReadinessFailureRecord,
+  ): Promise<string> {
+    return recordSupervisionReadinessFailure({
+      journal: this.journal,
+      events: this.events,
+      findDecision: (id) => this.findDecision(id),
+      receipt,
+      failure,
+    });
+  }
+
+  findReadinessFailures(decisionId: string) {
+    return findSupervisionReadinessFailures(this.journal, decisionId);
   }
 
   private async readPlan(hash: string): Promise<OperatingActionPlanV1> {

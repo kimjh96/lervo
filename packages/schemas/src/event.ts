@@ -115,6 +115,7 @@ export const supervisionEventTypes = [
   "work.supervision.decision.recorded",
   "work.supervision.decision.superseded",
   "work.supervision.effect.observed",
+  "work.supervision.readiness.failed",
   "work.supervision.review.recorded",
   "work.supervision.workspace.prepared",
   "work.supervision.delivery.queued",

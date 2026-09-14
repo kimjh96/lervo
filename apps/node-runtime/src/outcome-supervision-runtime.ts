@@ -298,6 +298,9 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     },
     findDecision: async (id) => session().findDecision(id),
     recordEffect: async (receipt) => session().recordEffect(receipt),
+    recordReadinessFailure: async (receipt, failure) => {
+      await session().recordReadinessFailure(receipt, failure);
+    },
     execute: async (plan) => {
       const { owner, review, authorityDigest } = await prepareNodeSupervisionEffect({
         plan,

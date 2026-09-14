@@ -103,6 +103,23 @@ describe("provider runtime inspection", () => {
     });
   });
 
+  it("distinguishes a permission-denied executable from a missing one", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-runtime-permission-"));
+    try {
+      const executable = resolve(root, "provider");
+      await writeFile(executable, "#!/bin/sh\necho 1.0.0\n", { mode: 0o000 });
+      await expect(
+        inspectProviderExecutable({ provider: "codex", executable, source: "configured" }),
+      ).resolves.toMatchObject({
+        status: "unavailable",
+        version: null,
+        reasonCode: "executable_permission_denied",
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("distinguishes a missing executable from a working runtime", async () => {
     await expect(
       inspectProviderExecutable({

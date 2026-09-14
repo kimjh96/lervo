@@ -26,6 +26,8 @@ An explicitly invoked Node repair can also settle an interrupted managed run who
 
 The terminal means the old process cannot start a turn after the reboot; it does not claim provider-reported usage. Admission excludes this **proven pre-turn run only** from the population requiring provider usage, while retaining its reservation, events and assignment history. Other started or partial runs still require their exact usage receipts. A separate `SupervisedAssignmentRecoveryV2` decision must reopen the expired leased assignment; this repair alone neither starts a retry nor accepts a result.
 
+A worker permission failure observed before any provider start needs none of these transitions. The recorded decision retains its lease and reservation-free state, [`work.supervision.readiness.failed`](../readiness.md#permission-failure-evidence-and-recovery) records the safe non-start, and the same decision resumes after repair. Only an expired lease enters the unstarted-responsibility revision path.
+
 ## Workspace and attempt lineage
 
 After confirmed recovery, the native owner acquires the exact successor responsibility under its existing mandate. Earlier ready or paused workspace generations with no registered writer are retained. The next lease prepares a distinct checkout under the trusted parent, base and integration target. An active, partially provisioned or recovery-marked predecessor blocks automatic continuation. Retaining a checkout neither proves global process quiescence nor authorizes removal, discard or integration.

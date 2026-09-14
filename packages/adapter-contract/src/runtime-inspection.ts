@@ -8,7 +8,23 @@ export interface RuntimeExecutableInspection {
   source: "path" | "bundled" | "configured";
   version: string | null;
   reasonCode:
-    "ready" | "executable_not_found" | "probe_failed" | "probe_timed_out" | "unsupported_platform";
+    | "ready"
+    | "executable_not_found"
+    | "executable_permission_denied"
+    | "probe_failed"
+    | "probe_timed_out"
+    | "unsupported_platform";
+}
+
+/** Operating-system start failures that prove the executable never ran. */
+export function executableStartReasonCode(
+  code: string | undefined,
+): "executable_not_found" | "executable_permission_denied" | "probe_failed" {
+  return code === "ENOENT"
+    ? "executable_not_found"
+    : code === "EACCES" || code === "EPERM"
+      ? "executable_permission_denied"
+      : "probe_failed";
 }
 
 export interface InspectRuntimeExecutableInput {
@@ -82,17 +98,15 @@ export async function inspectRuntimeExecutable(
     };
     child.stdout.on("data", collect);
     child.stderr.on("data", collect);
-    child.once("error", (error: NodeJS.ErrnoException) =>
+    child.once("error", (error: NodeJS.ErrnoException) => {
+      const reasonCode = executableStartReasonCode(error.code);
       finish({
-        status: error.code === "ENOENT" || error.code === "EACCES" ? "unavailable" : "unknown",
+        status: reasonCode === "probe_failed" ? "unknown" : "unavailable",
         source: input.source,
         version: null,
-        reasonCode:
-          error.code === "ENOENT" || error.code === "EACCES"
-            ? "executable_not_found"
-            : "probe_failed",
-      }),
-    );
+        reasonCode,
+      });
+    });
     child.once("close", (code) => {
       const version = cleanedVersion(output);
       finish({

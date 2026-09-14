@@ -65,6 +65,10 @@ export async function prepareSupervisionWorkforcePlan(input: {
     workforceSourceHash: workforce.sourceHash,
     environment: {
       status,
+      reasonCodes:
+        environment === null
+          ? []
+          : [...new Set(environment.map((observation) => observation.reasonCode))].sort(),
       evidenceHash: operatingContractHash({
         executable: executable ?? null,
         context: loginContext ?? null,

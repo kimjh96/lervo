@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_0c8d64d474bbdc7164d90d16"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Record worker permission-denied readiness as canonical safe non-start evidence and resume the same admitted decision after the host repairs the permission."

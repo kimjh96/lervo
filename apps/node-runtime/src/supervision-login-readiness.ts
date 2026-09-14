@@ -7,6 +7,7 @@ import type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-co
 
 type Readiness = Awaited<ReturnType<OutcomeSupervisionPorts["readWorkerReadiness"]>>;
 
+/** A permission-denied login probe records an observed failure; other misses stay unobserved. */
 export async function observeSupervisionLoginReadiness(input: {
   plan: OperatingActionPlanV1;
   readiness: Readiness;
@@ -29,6 +30,19 @@ export async function observeSupervisionLoginReadiness(input: {
       ? inspectCodexLogin(executable, context)
       : inspectClaudeLogin(executable, context));
     const elapsed = Date.parse(input.now()) - Date.parse(started);
+    if (
+      result.reasonCode === "executable_permission_denied" &&
+      Number.isFinite(elapsed) &&
+      elapsed >= 0 &&
+      elapsed <= 5000
+    ) {
+      check.status = "failed";
+      check.evidenceHash = operatingContractHash({
+        adapter: check.evidenceHash,
+        permissionFailure: { executable, context, result },
+      });
+      return readiness;
+    }
     if (
       result.status !== "login_present" ||
       !Number.isFinite(elapsed) ||

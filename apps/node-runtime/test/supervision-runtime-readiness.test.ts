@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdtemp, rm, symlink } from "node:fs/promises";
+import { chmod, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { openProjectStorage } from "@lervo/project-storage";
 import { openNodeOutcomeSupervisionRuntime } from "../src/outcome-supervision-runtime.js";
 import { snapshotRuntimeReadinessConfiguration } from "../src/supervision-runtime-configuration.js";
 import { dispatchFixture } from "./supervision-dispatch.fixture.js";
@@ -8,6 +9,16 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 const roots: string[] = [];
+async function readReadinessFailures(root: string) {
+  const storage = await openProjectStorage(root);
+  try {
+    return storage.events
+      .list()
+      .filter((event) => event.type === "work.supervision.readiness.failed");
+  } finally {
+    await storage.close();
+  }
+}
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -85,6 +96,57 @@ describe("supervision executable observations", { timeout: 30_000 }, () => {
       await runtime.close();
     }
   });
+
+  it.each(["provider", "tool"] as const)(
+    "records a %s permission denial as canonical failure and resumes after repair",
+    async (subject) => {
+      const f = await dispatchFixture(roots);
+      const directory = await mkdtemp(resolve(tmpdir(), "lervo-runtime-permission-"));
+      roots.push(directory);
+      const executable = resolve(directory, subject);
+      const original =
+        subject === "provider"
+          ? f.runtimeReadiness.providerExecutables.codex!
+          : Object.values(f.runtimeReadiness.verificationTools)[0]![0]!.executable;
+      await writeFile(executable, `#!/bin/sh\nexec "${original}" "$@"\n`, { mode: 0o000 });
+      if (subject === "provider") f.runtimeReadiness.providerExecutables.codex = executable;
+      else Object.values(f.runtimeReadiness.verificationTools)[0]![0]!.executable = executable;
+      const inspect = f.ports.inspectEffect;
+      f.ports.inspectEffect = async (...args) => {
+        const observed = await inspect(...args);
+        return observed.status === "uncertain" ? { status: "not_started" } : observed;
+      };
+      const runtime = await openNodeOutcomeSupervisionRuntime({
+        repositoryRoot: f.root,
+        binding: f.binding,
+        ports: f.ports,
+        runtimeReadiness: f.runtimeReadiness,
+      });
+      try {
+        expect((await runtime.runCycle()).disposition).toBe("blocked");
+        expect((await runtime.runCycle()).disposition).toBe("blocked");
+        expect(f.counts().effects).toBe(0);
+        expect(f.attention.at(-1)).toContain(
+          subject === "provider" ? "readiness_provider_failed" : "readiness_tools_failed",
+        );
+        const before = await readReadinessFailures(f.root);
+        expect(before).toHaveLength(1);
+        expect(before[0]!.payload).toMatchObject({
+          assignmentId: f.task.assignmentId,
+          executorAgentId: f.task.executorAgentId,
+          reasonCode:
+            subject === "provider" ? "readiness_provider_failed" : "readiness_tools_failed",
+        });
+        expect(JSON.stringify(before[0]!.payload)).not.toContain(directory);
+        await chmod(executable, 0o700);
+        expect((await runtime.runCycle()).disposition).toBe("effect_confirmed");
+        expect(f.counts()).toEqual({ proposals: 1, effects: 1 });
+        expect(await readReadinessFailures(f.root)).toHaveLength(1);
+      } finally {
+        await runtime.close();
+      }
+    },
+  );
 
   it("reobserves an executable removed after the first preflight", async () => {
     const f = await dispatchFixture(roots);
