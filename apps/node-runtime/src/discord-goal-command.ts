@@ -7,6 +7,10 @@ import {
 import type { DiscordConversationDeployment } from "@lervo/conversation-app";
 
 import type { DiscordAgentParticipation } from "./discord-agent-participation.js";
+import {
+  discordGoalIntakeStatusMessage,
+  type DiscordGoalIntakeOutcomes,
+} from "./discord-goal-intake-outcomes.js";
 import type { NodeDiscordConversationRuntimeOptions } from "./discord-conversation-runtime-types.js";
 
 export async function registerDiscordGoalCommand(input: {
@@ -31,20 +35,28 @@ export async function registerDiscordGoalCommand(input: {
   return command;
 }
 
-export function goalCommandDeployment(commandRest: DiscordRestGoalCommand): {
+export function goalCommandDeployment(
+  commandRest: DiscordRestGoalCommand,
+  outcomes: DiscordGoalIntakeOutcomes,
+): {
   onGoalCommand: NonNullable<DiscordConversationDeployment["onGoalCommand"]>;
 } {
   return {
-    onGoalCommand: (input) => handleDiscordGoalCommand({ ...input, commandRest }),
+    onGoalCommand: (input) => handleDiscordGoalCommand({ ...input, commandRest, outcomes }),
   };
 }
 
-/** Acknowledge the interaction, then bind its visible message to the canonical request path. */
+/**
+ * Acknowledge the interaction, then bind its visible message to the canonical request path.
+ * The final status edit repeats only the intake outcome the work responder recorded for this
+ * exact event; an unobserved outcome is reported as uncertain, never as a connected request.
+ */
 export async function handleDiscordGoalCommand(input: {
   command: DiscordGoalInteraction;
   adapter: DiscordConversationAdapter;
   process(result: DiscordIngressResult): Promise<void>;
   commandRest: Pick<DiscordRestGoalCommand, "acknowledge" | "update">;
+  outcomes: DiscordGoalIntakeOutcomes;
 }): Promise<void> {
   const receipt = await input.commandRest.acknowledge(input.command);
   const showFailure = async (message: string) => {
@@ -78,14 +90,13 @@ export async function handleDiscordGoalCommand(input: {
   try {
     await input.process(ingress);
   } catch (error) {
-    await showFailure(
-      "요청 처리 상태를 확인하지 못했습니다. 중복 실행을 피하려면 운영 담당자에게 알려 주세요.",
-    );
+    input.outcomes.take(ingress.event.eventId);
+    await showFailure(discordGoalIntakeStatusMessage(null));
     throw error;
   }
   await input.commandRest.update(
     input.command,
     receipt.messageId,
-    "현재 진행 중인 목표에 요청을 연결했습니다. 검증과 완료 결과는 이 대화의 답글로 안내합니다.",
+    discordGoalIntakeStatusMessage(input.outcomes.take(ingress.event.eventId)),
   );
 }

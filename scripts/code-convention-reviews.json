@@ -53,9 +53,9 @@
     },
     {
       "path": "apps/node-runtime/src/discord-conversation-runtime.ts",
-      "contentHash": "sha256:57cae58f2baccc13e73e1daffd8c5f33c5590168da8618468019c581bfe75ea5",
+      "contentHash": "sha256:7fb3aaecd708de13c4c368f274e318262caed51c55e973aca00fbfa9aea97dac",
       "responsibility": "One Discord conversation runtime composition and lifecycle",
-      "rationale": "The entrypoint wires one configured Discord identity and its conversation, publication, result, and background ports. Delivery policy, storage mechanics, native transport, request binding, and supervision decisions live in linked modules; the added result artifact and replay accessors expose existing adapter boundaries without adding independent behavior.",
+      "rationale": "The entrypoint wires one configured Discord identity and its conversation, publication, result, and background ports. Delivery policy, storage mechanics, native transport, request binding, and supervision decisions live in linked modules; the added result artifact and replay accessors expose existing adapter boundaries without adding independent behavior; the goal intake outcome registry is one in-memory hand-off constructed here and passed to the existing work and command compositions.",
       "disposition": "cohesive"
     },
     {

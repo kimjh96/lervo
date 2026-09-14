@@ -1,6 +1,7 @@
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import { openDiscordConversationRepositoryWork } from "./discord-conversation-repository-work.js";
+import type { DiscordGoalIntakeOutcomes } from "./discord-goal-intake-outcomes.js";
 import { DiscordSupervisionWorkResponder } from "./discord-supervision-work-responder.js";
 import type { DiscordAgentParticipation } from "./discord-agent-participation.js";
 import type { NodeDiscordConversationRuntimeOptions } from "./discord-conversation-runtime-types.js";
@@ -16,6 +17,7 @@ export function openDiscordConversationWork(input: {
     roleId: string;
     conversationId: string;
   }[];
+  intakeOutcomes: DiscordGoalIntakeOutcomes;
 }) {
   const { options, participation, artifacts } = input;
   const config = options.config;
@@ -60,6 +62,7 @@ export function openDiscordConversationWork(input: {
               : { agentBinding: participation.agentBinding }),
           },
           authorizedEffectRequesters: input.authorizedEffectRequesters,
+          intakeOutcomes: input.intakeOutcomes,
         })
       : repositoryWork.responder;
   return { repositoryWork, workResponder };

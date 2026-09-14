@@ -14,6 +14,7 @@ import {
 } from "../../cli/src/mandate-installation.js";
 
 import { admitSupervisionRequest } from "../src/supervision-request-intake.js";
+import { NodeSupervisionStore } from "../src/supervision-store.js";
 import { readBoundSupervisionRequest } from "../src/supervision-bound-request.js";
 import { SupervisionTaskSource } from "../src/supervision-task-source.js";
 import { supervisionFixture } from "./supervision.fixture.js";
@@ -76,21 +77,53 @@ it("binds a local request to one installed owner and replays its exact source wi
         contentHash: hash("A conflicting goal."),
       },
     }),
-  ).rejects.toThrow(/conflicts/iu);
+  ).rejects.toMatchObject({ name: "SupervisionRequestRefusedError", code: "identity_conflict" });
   await expect(
     admitSupervisionRequest({
       repositoryRoot: f.root,
       binding: f.binding,
       request: { ...request, sourceId: "request-2" },
     }),
-  ).rejects.toThrow(/already has a supervised request origin/iu);
+  ).rejects.toMatchObject({
+    name: "SupervisionRequestRefusedError",
+    code: "origin_conflict",
+    message: expect.stringMatching(/already has a supervised request origin/iu),
+  });
   await expect(
     admitSupervisionRequest({
       repositoryRoot: f.root,
       binding: f.binding,
       request: { ...request, sourceId: "request-3", contentHash: hash("Different bytes") },
     }),
-  ).rejects.toThrow(/source or content is invalid/iu);
+  ).rejects.toMatchObject({ name: "SupervisionRequestRefusedError", code: "request_invalid" });
+  const store = await NodeSupervisionStore.open({ repositoryRoot: f.root, binding: f.binding });
+  try {
+    let releaseOwner!: () => void;
+    const held = store.withOwner(
+      () => new Promise<void>((resolveHold) => (releaseOwner = resolveHold)),
+    );
+    await new Promise<void>((resolveTick) => setTimeout(resolveTick, 50));
+    await expect(
+      admitSupervisionRequest({
+        repositoryRoot: f.root,
+        binding: f.binding,
+        request: { ...request, sourceId: "request-4" },
+        admissionDeadlineMs: 300,
+      }),
+    ).rejects.toMatchObject({ name: "SupervisionRequestRefusedError", code: "owner_busy" });
+    releaseOwner();
+    await held;
+  } finally {
+    await store.close();
+  }
+  await expect(
+    admitSupervisionRequest({
+      repositoryRoot: f.root,
+      binding: f.binding,
+      request,
+      admissionDeadlineMs: 600_001,
+    }),
+  ).rejects.toMatchObject({ name: "SupervisionRequestRefusedError", code: "request_invalid" });
 });
 
 it("retains the exact Discord result origin within the same canonical request contract", async () => {

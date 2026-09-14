@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -8,7 +9,12 @@ import {
 } from "@lervo/conversation-contract";
 import { afterEach, expect, it, vi } from "vitest";
 
+import {
+  DiscordGoalIntakeOutcomes,
+  discordGoalIntakeStatusMessage,
+} from "../src/discord-goal-intake-outcomes.js";
 import { DiscordSupervisionWorkResponder } from "../src/discord-supervision-work-responder.js";
+import { SupervisionRequestRefusedError } from "../src/supervision-request-refusal.js";
 import type { NodeSupervisionStartupConfiguration } from "../src/supervision-startup-config.js";
 import type { admitSupervisionRequest } from "../src/supervision-request-intake.js";
 
@@ -60,6 +66,7 @@ async function fixture(actor: {
     eventId: `evt_${"e".repeat(32)}`,
     duplicate: false,
   }));
+  const intakeOutcomes = new DiscordGoalIntakeOutcomes();
   const responder = new DiscordSupervisionWorkResponder({
     repositoryRoot: root,
     projectId: event.target.projectId,
@@ -75,15 +82,18 @@ async function fixture(actor: {
       },
     ],
     admitRequest,
+    intakeOutcomes,
   });
-  return { event, responder, admitRequest };
+  return { event, responder, admitRequest, intakeOutcomes };
 }
 
 it("preserves the authenticated requester and exact reply origin at shared intake", async () => {
   const f = await fixture({ kind: "agent", participantId: "ptc_central01", roleId: "manager" });
   await f.responder.respond({ event: f.event } as never);
   expect(f.admitRequest).toHaveBeenCalledOnce();
+  expect(f.intakeOutcomes.take(f.event.eventId)).toEqual({ status: "bound" });
   expect(f.admitRequest.mock.calls[0]![0]).toMatchObject({
+    admissionDeadlineMs: 120_000,
     request: {
       source: "discord",
       sourceId: f.event.eventId,
@@ -104,4 +114,30 @@ it("rejects an unadmitted agent before reading or binding its request", async ()
     /not authorized/iu,
   );
   expect(f.admitRequest).not.toHaveBeenCalled();
+});
+
+it("answers a refused binding with its bounded reason and records the refusal", async () => {
+  const f = await fixture({ kind: "human", participantId: "ptc_human0001", roleId: null });
+  f.admitRequest.mockRejectedValueOnce(
+    new SupervisionRequestRefusedError(
+      "origin_conflict",
+      "The workstream already has a supervised request origin.",
+    ),
+  );
+  const reply = await f.responder.respond({ event: f.event } as never);
+  expect(f.intakeOutcomes.take(f.event.eventId)).toEqual({
+    status: "refused",
+    code: "origin_conflict",
+  });
+  const expected = discordGoalIntakeStatusMessage({ status: "refused", code: "origin_conflict" });
+  expect(reply.content.contentHash).toBe(
+    `sha256:${createHash("sha256").update(expected, "utf8").digest("hex")}`,
+  );
+});
+
+it("records an uncertain outcome and rethrows when intake fails for an unclassified reason", async () => {
+  const f = await fixture({ kind: "human", participantId: "ptc_human0001", roleId: null });
+  f.admitRequest.mockRejectedValueOnce(new Error("sqlite closed"));
+  await expect(f.responder.respond({ event: f.event } as never)).rejects.toThrow("sqlite closed");
+  expect(f.intakeOutcomes.take(f.event.eventId)).toEqual({ status: "uncertain" });
 });

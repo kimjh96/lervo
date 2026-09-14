@@ -4,6 +4,7 @@ import {
   handleDiscordGoalCommand,
   registerDiscordGoalCommand,
 } from "../src/discord-goal-command.js";
+import { DiscordGoalIntakeOutcomes } from "../src/discord-goal-intake-outcomes.js";
 
 const command = {
   interactionId: "123456789012345678",
@@ -15,6 +16,7 @@ const command = {
   request: "Finish the goal.",
 };
 const receipt = { messageId: "523456789012345678", occurredAt: "2026-09-13T00:00:00.000Z" };
+const event = { eventId: `evt_${"a".repeat(32)}` };
 
 it("does not register /goal without a matching installed owner and guild scope", async () => {
   const fetch = vi.fn();
@@ -45,10 +47,12 @@ it("acknowledges before intake and only reports a processed request after the pr
   });
   const receiveGoalResponseMessage = vi.fn(async () => {
     order.push("map");
-    return { status: "accepted", checkpoint: null };
+    return { status: "accepted", event, checkpoint: null };
   });
+  const outcomes = new DiscordGoalIntakeOutcomes();
   const process = vi.fn(async () => {
     order.push("process");
+    outcomes.record(event.eventId, { status: "bound" });
   });
   const update = vi.fn(async () => {
     order.push("update");
@@ -58,6 +62,7 @@ it("acknowledges before intake and only reports a processed request after the pr
     adapter: { receiveGoalResponseMessage } as never,
     process,
     commandRest: { acknowledge, update },
+    outcomes,
   });
   expect(order).toEqual(["acknowledge", "map", "process", "update"]);
   expect(receiveGoalResponseMessage).toHaveBeenCalledWith({ command, ...receipt });
@@ -67,6 +72,45 @@ it("acknowledges before intake and only reports a processed request after the pr
     receipt.messageId,
     expect.stringContaining("현재 진행 중인 목표에 요청을 연결했습니다"),
   );
+  expect(outcomes.take(event.eventId)).toBeNull();
+});
+
+it("reports a refused binding as a refusal even though processing completed", async () => {
+  const outcomes = new DiscordGoalIntakeOutcomes();
+  const update = vi.fn(
+    async (_command: typeof command, _messageId: string, _content: string) => undefined,
+  );
+  await handleDiscordGoalCommand({
+    command,
+    adapter: {
+      receiveGoalResponseMessage: async () => ({ status: "accepted", event, checkpoint: null }),
+    } as never,
+    process: async () => {
+      outcomes.record(event.eventId, { status: "refused", code: "origin_conflict" });
+    },
+    commandRest: { acknowledge: async () => receipt, update },
+    outcomes,
+  });
+  expect(update).toHaveBeenCalledOnce();
+  expect(update.mock.calls[0]![2]).toMatch(/이미 다른 요청이 연결되어 있어/u);
+  expect(update.mock.calls[0]![2]).not.toMatch(/연결했습니다/u);
+});
+
+it("reports an unobserved intake outcome as uncertain rather than connected", async () => {
+  const update = vi.fn(
+    async (_command: typeof command, _messageId: string, _content: string) => undefined,
+  );
+  await handleDiscordGoalCommand({
+    command,
+    adapter: {
+      receiveGoalResponseMessage: async () => ({ status: "accepted", event, checkpoint: null }),
+    } as never,
+    process: async () => undefined,
+    commandRest: { acknowledge: async () => receipt, update },
+    outcomes: new DiscordGoalIntakeOutcomes(),
+  });
+  expect(update.mock.calls[0]![2]).toMatch(/처리 상태를 확인하지 못했습니다/u);
+  expect(update.mock.calls[0]![2]).not.toMatch(/연결했습니다/u);
 });
 
 it("shows failure after a rejected intake without claiming success", async () => {
@@ -84,6 +128,7 @@ it("shows failure after a rejected intake without claiming success", async () =>
       } as never,
       process,
       commandRest: { acknowledge: async () => receipt, update },
+      outcomes: new DiscordGoalIntakeOutcomes(),
     }),
   ).rejects.toThrow("authority expired");
   expect(process).not.toHaveBeenCalled();
@@ -98,12 +143,13 @@ it("keeps an admitted request uncertain when later processing fails", async () =
     handleDiscordGoalCommand({
       command,
       adapter: {
-        receiveGoalResponseMessage: async () => ({ status: "accepted", checkpoint: null }),
+        receiveGoalResponseMessage: async () => ({ status: "accepted", event, checkpoint: null }),
       } as never,
       process: async () => {
         throw new Error("delivery failed");
       },
       commandRest: { acknowledge: async () => receipt, update },
+      outcomes: new DiscordGoalIntakeOutcomes(),
     }),
   ).rejects.toThrow("delivery failed");
   expect(update.mock.calls[0]![2]).toMatch(/처리 상태를 확인하지 못했습니다/u);

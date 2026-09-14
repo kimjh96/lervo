@@ -12,6 +12,7 @@ import {
 } from "./supervision-authority.js";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import { readBoundSupervisionRequest } from "./supervision-bound-request.js";
+import { SupervisionRequestRefusedError } from "./supervision-request-refusal.js";
 import type { SupervisionTaskSource } from "./supervision-task-source.js";
 
 export interface SupervisionRequestInput {
@@ -53,7 +54,10 @@ export async function bindSupervisionRequest(input: {
         request.origin.sourceEventId !== request.sourceId ||
         request.origin.target.projectId !== storage.manifest.projectId))
   )
-    throw new Error("The supervised request source or content is invalid.");
+    throw new SupervisionRequestRefusedError(
+      "request_invalid",
+      "The supervised request source or content is invalid.",
+    );
   const sourceDigest = digest(`${request.source}\0${request.sourceId}`);
   const requesterDigest = digest(request.requesterId);
   const requestArtifact = {
@@ -86,7 +90,10 @@ export async function bindSupervisionRequest(input: {
       prior === null ||
       operatingContractHash(prior) !== operatingContractHash(requestArtifact)
     )
-      throw new Error("The supervised request identity conflicts with canonical evidence.");
+      throw new SupervisionRequestRefusedError(
+        "identity_conflict",
+        "The supervised request identity conflicts with canonical evidence.",
+      );
     return { eventId, duplicate: true };
   }
   const authority = await observeNodeSupervisionAuthority(storage, binding, now);
@@ -97,7 +104,10 @@ export async function bindSupervisionRequest(input: {
     authority.source.workstreamRevision !== source.workstream.revision ||
     authority.installation.mandateHash !== binding.mandateHash
   )
-    throw new Error("The supervised request has no active owned workstream.");
+    throw new SupervisionRequestRefusedError(
+      "workstream_inactive",
+      "The supervised request has no active owned workstream.",
+    );
   if (source.supervisionEvents.some((event) => event.type === "work.supervision.bound")) {
     const bound = await readBoundSupervisionRequest(storage, source, binding);
     const prior = await readSupervisionJsonArtifact(
@@ -109,7 +119,10 @@ export async function bindSupervisionRequest(input: {
     );
     if (bound !== null && operatingContractHash(prior) === operatingContractHash(requestArtifact))
       return { eventId: bound.eventId, duplicate: true };
-    throw new Error("The workstream already has a supervised request origin.");
+    throw new SupervisionRequestRefusedError(
+      "origin_conflict",
+      "The workstream already has a supervised request origin.",
+    );
   }
   const acceptanceArtifact = {
     schemaVersion: 1,
@@ -143,19 +156,28 @@ export async function bindSupervisionRequest(input: {
     currentAuthority.source.sourceRevisionDigest !== authority.source.sourceRevisionDigest ||
     currentSource.sourceRevisionDigest !== source.sourceRevisionDigest
   )
-    throw new Error("The supervised request authority changed before admission.");
+    throw new SupervisionRequestRefusedError(
+      "authority_changed",
+      "The supervised request authority changed before admission.",
+    );
   let duplicate = false;
   input.commit(() => {
     storage.events.transact((transaction) => {
       if (storage.events.latest()?.eventHash !== source.events.at(-1)?.eventHash)
-        throw new Error("The supervised request evidence changed at commit.");
+        throw new SupervisionRequestRefusedError(
+          "evidence_changed",
+          "The supervised request evidence changed at commit.",
+        );
       const existing = storage.events.get(eventId);
       if (existing !== null) {
         if (
           existing.type !== "work.supervision.bound" ||
           canonicalJson(existing.payload) !== canonicalJson(payload)
         )
-          throw new Error("The supervised request identity conflicts with canonical evidence.");
+          throw new SupervisionRequestRefusedError(
+            "identity_conflict",
+            "The supervised request identity conflicts with canonical evidence.",
+          );
         duplicate = true;
         return;
       }
@@ -163,7 +185,10 @@ export async function bindSupervisionRequest(input: {
         (event) => event.type === "work.supervision.bound",
       );
       if (bound.length > 0)
-        throw new Error("The workstream already has a supervised request origin.");
+        throw new SupervisionRequestRefusedError(
+          "origin_conflict",
+          "The workstream already has a supervised request origin.",
+        );
       transaction.append({
         eventId,
         projectId: storage.manifest.projectId,

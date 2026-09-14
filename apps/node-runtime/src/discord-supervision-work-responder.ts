@@ -8,8 +8,17 @@ import type { ConversationAgentBinding } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import { operatingContractHash } from "@lervo/work-controller";
 
+import {
+  discordGoalIntakeStatusMessage,
+  type DiscordGoalIntakeOutcome,
+  type DiscordGoalIntakeOutcomes,
+} from "./discord-goal-intake-outcomes.js";
 import { admitSupervisionRequest } from "./supervision-request-intake.js";
+import { supervisionRequestRefusalCode } from "./supervision-request-refusal.js";
 import type { NodeSupervisionStartupConfiguration } from "./supervision-startup-config.js";
+
+/** One idle owner cycle can hold the fence for about a minute; two cycles bound the Discord wait. */
+const DISCORD_ADMISSION_DEADLINE_MS = 120_000;
 
 /** Converts one admitted Discord work turn into the same canonical goal intake as local supervision. */
 export class DiscordSupervisionWorkResponder implements ConversationResponder {
@@ -27,6 +36,8 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
         conversationId: string;
       }[];
       admitRequest?: typeof admitSupervisionRequest;
+      intakeOutcomes?: DiscordGoalIntakeOutcomes;
+      admissionDeadlineMs?: number;
     },
   ) {}
 
@@ -65,24 +76,40 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
         operatingContractHash(origin)
     )
       throw new Error("The supervised conversation differs from its installed result origin.");
-    const admission = await (this.options.admitRequest ?? admitSupervisionRequest)({
-      repositoryRoot: this.options.repositoryRoot,
-      binding: this.options.configuration.binding,
-      request: {
-        source: "discord",
-        sourceId: event.eventId,
-        requesterId: `${event.actor.participantId}:${event.actor.roleId}`,
-        request,
-        contentHash: event.content.contentHash,
-        origin,
-      },
-    });
+    let outcome: DiscordGoalIntakeOutcome;
+    try {
+      const admission = await (this.options.admitRequest ?? admitSupervisionRequest)({
+        repositoryRoot: this.options.repositoryRoot,
+        binding: this.options.configuration.binding,
+        request: {
+          source: "discord",
+          sourceId: event.eventId,
+          requesterId: `${event.actor.participantId}:${event.actor.roleId}`,
+          request,
+          contentHash: event.content.contentHash,
+          origin,
+        },
+        admissionDeadlineMs: this.options.admissionDeadlineMs ?? DISCORD_ADMISSION_DEADLINE_MS,
+      });
+      outcome = { status: admission.duplicate ? "duplicate" : "bound" };
+    } catch (error) {
+      const code = supervisionRequestRefusalCode(error);
+      if (code === null) {
+        this.options.intakeOutcomes?.record(event.eventId, { status: "uncertain" });
+        throw error;
+      }
+      outcome = { status: "refused", code };
+    }
+    this.options.intakeOutcomes?.record(event.eventId, outcome);
     return createVerifiedConversationControlReply({
       artifactStore: this.options.artifactStore,
       writingContract: realtimeConversationWritingContract,
-      content: admission.duplicate
-        ? "동일한 요청은 이미 담당자의 작업 목표에 연결되어 있습니다."
-        : "요청을 담당자의 현재 작업 목표에 연결했습니다. 검증된 결과는 이 대화로 전달하겠습니다.",
+      content:
+        outcome.status === "bound"
+          ? "요청을 담당자의 현재 작업 목표에 연결했습니다. 검증된 결과는 이 대화로 전달하겠습니다."
+          : outcome.status === "duplicate"
+            ? "동일한 요청은 이미 담당자의 작업 목표에 연결되어 있습니다."
+            : discordGoalIntakeStatusMessage(outcome),
     });
   }
 }

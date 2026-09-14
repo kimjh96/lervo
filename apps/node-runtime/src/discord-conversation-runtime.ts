@@ -42,6 +42,7 @@ import { openDiscordConversationWork } from "./discord-conversation-work.js";
 import { loadDiscordConversationDeliveryCredentials } from "./discord-conversation-webhook-delivery.js";
 import { discordSpeakerParticipantKeys } from "./discord-conversation-speaker.js";
 import { goalCommandDeployment, registerDiscordGoalCommand } from "./discord-goal-command.js";
+import { DiscordGoalIntakeOutcomes } from "./discord-goal-intake-outcomes.js";
 import type {
   NodeDiscordConversationRuntime,
   NodeDiscordConversationRuntimeOptions,
@@ -71,6 +72,7 @@ export async function openNodeDiscordConversationRuntime(
       agentDisplayName: agentParticipation.displayName,
     });
   const goalCommand = await registerDiscordGoalCommand({ options, agentParticipation, token });
+  const goalIntakeOutcomes = new DiscordGoalIntakeOutcomes();
   let failed = false,
     resolveFailure!: () => void;
   const failure = new Promise<void>((resolvePromise) => {
@@ -110,6 +112,7 @@ export async function openNodeDiscordConversationRuntime(
     artifacts,
     participation: agentParticipation,
     policyId: policy.policyId,
+    intakeOutcomes: goalIntakeOutcomes,
     authorizedEffectRequesters: authorizedAgentEffectRequesters,
   });
   const resultStore = await SQLiteConversationResultStore.open(
@@ -258,7 +261,7 @@ export async function openNodeDiscordConversationRuntime(
           allowedGuildIds: config.allowedGuildIds,
           allowDirectMessages: config.allowDirectMessages,
           botToken: token,
-          ...(goalCommand === null ? {} : goalCommandDeployment(goalCommand)),
+          ...(goalCommand === null ? {} : goalCommandDeployment(goalCommand, goalIntakeOutcomes)),
           textualParticipantAliases: [
             ...(agentParticipation.displayName === null
               ? []

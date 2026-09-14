@@ -5,6 +5,7 @@ import type { NodeRuntimeSignalSource } from "./process-runtime.js";
 import { openNodeSupervisionService } from "./supervision-startup.js";
 import { readLocalSupervisionRequest } from "./local-supervision-request.js";
 import { admitSupervisionRequest } from "./supervision-request-intake.js";
+import { supervisionRequestRefusalCode } from "./supervision-request-refusal.js";
 
 interface LocalSupervisionCliPorts {
   cwd: string;
@@ -95,7 +96,13 @@ export async function runLocalSupervisionCli(
       }
     }
   } catch (error) {
-    const code = error instanceof NodeRuntimeError ? error.code : "startup_failed";
+    const refusal = supervisionRequestRefusalCode(error);
+    const code =
+      error instanceof NodeRuntimeError
+        ? error.code
+        : refusal === null
+          ? "startup_failed"
+          : `request_refused_${refusal}`;
     ports.stderr(`Local supervision error (${code}).\n`);
     return 1;
   }
