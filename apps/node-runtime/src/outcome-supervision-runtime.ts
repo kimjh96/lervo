@@ -15,7 +15,11 @@ import type { OperatingActionPlanV1 } from "@lervo/application-contract";
 import { SupervisionResultDelivery } from "./supervision-result-delivery.js";
 import { snapshotRuntimeReadinessConfiguration } from "./supervision-runtime-configuration.js";
 import { OutcomeSupervisionRuntime, type OutcomeSupervisionPorts } from "@lervo/orchestrator";
-import { operatingContractHash, assertOwnerControlReadiness } from "@lervo/work-controller";
+import {
+  operatingContractHash,
+  operatingDecisionId,
+  assertOwnerControlReadiness,
+} from "@lervo/work-controller";
 import { NodeSupervisionError } from "./supervision-authority.js";
 import { NodeSupervisionStore, type NodeSupervisionSession } from "./supervision-store.js";
 import { createSupervisionChangeLoop } from "./supervision-change-loop.js";
@@ -165,8 +169,13 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     configuration,
     sourceBinding,
   });
-  const readWorkerReadiness: OutcomeSupervisionPorts["readWorkerReadiness"] = (plan) =>
-    readNodeDispatchReadiness(dispatchReadinessInput(plan));
+  const knowledgeSnapshots = new Map<string, string>();
+  const readWorkerReadiness: OutcomeSupervisionPorts["readWorkerReadiness"] = async (plan) => {
+    const observed = await readNodeDispatchReadiness(dispatchReadinessInput(plan));
+    if (observed.sourceSnapshotId !== null)
+      knowledgeSnapshots.set(operatingDecisionId(plan), observed.sourceSnapshotId);
+    return observed.readiness;
+  };
   const runtime = new OutcomeSupervisionRuntime({
     ...ports,
     propose: (report) =>
@@ -188,11 +197,15 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
       });
     },
     readSnapshot: async (id) => {
+      knowledgeSnapshots.clear();
+      const pending = await session().findPendingPlan();
       const snapshot =
         "readSnapshot" in ports
           ? await ports.readSnapshot(id)
           : {
-              ...(await session().readTaskSnapshot()),
+              ...(await session().readTaskSnapshot(
+                pending === null ? undefined : operatingDecisionId(pending),
+              )),
               deliveryRequired: delivery !== null,
             };
       const installation = await session().readMandate();
@@ -242,20 +255,38 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     readOwnerControlReadiness,
     inspectEffect: (plan, receipt) =>
       inspectNodeSupervisionEffect({ effects, delivery, ports, plan, receipt, session: session() }),
-    supersedeNotStarted: async (plan, digest) =>
-      plan.effectContract === "assignment.topology.materialize.v1"
-        ? topology.supersede(plan, digest, session())
+    supersedeNotStarted: async (plan, digest) => {
+      const native =
+        plan.effectContract === "assignment.topology.materialize.v1" ||
+        (plan.effectContract === "work.owner_reasoning.v1" && reasoning !== null) ||
+        (plan.effectContract === "work.workspace_preparation.v1" && workspaces !== null) ||
+        (["work.managed_execution.v1", "work.managed_execution.v2"].includes(plan.effectContract) &&
+          managed !== null);
+      let supersessionDigest = digest;
+      if (native) {
+        const [task, authority] = await Promise.all([
+          session().readTaskSnapshot(),
+          session().readRecoveryAuthority(),
+        ]);
+        supersessionDigest = operatingContractHash({
+          authorityDigest: authority.source.sourceRevisionDigest,
+          taskDigest: task.sourceRevisionDigest,
+        });
+      }
+      return plan.effectContract === "assignment.topology.materialize.v1"
+        ? topology.supersede(plan, supersessionDigest, session())
         : plan.effectContract === "work.owner_reasoning.v1" && reasoning !== null
-          ? reasoning.supersede(plan, digest, session())
+          ? reasoning.supersede(plan, supersessionDigest, session())
           : plan.effectContract === "work.workspace_preparation.v1" && workspaces !== null
-            ? workspaces.supersede(plan, digest, session())
+            ? workspaces.supersede(plan, supersessionDigest, session())
             : ["work.managed_execution.v1", "work.managed_execution.v2"].includes(
                   plan.effectContract,
                 ) && managed !== null
-              ? managed.supersede(plan, digest, session(), input.binding)
+              ? managed.supersede(plan, supersessionDigest, session(), input.binding)
               : "supersedeNotStarted" in ports
                 ? (ports.supersedeNotStarted?.(plan, digest, session()) ?? false)
-                : false,
+                : false;
+    },
     findPendingPlan: async () => session().findPendingPlan(),
     recordDecision: async (plan, review) => {
       if (sourceBinding === null)
@@ -272,6 +303,8 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
         readDispatchPreflight: () =>
           readNodeDispatchPreflight({
             ...dispatchReadinessInput(plan),
+            expectedKnowledgeSnapshotId:
+              knowledgeSnapshots.get(operatingDecisionId(plan)) ?? "unobserved",
             readAdmission: () => readAdmission(plan),
           }),
         readAdmission,

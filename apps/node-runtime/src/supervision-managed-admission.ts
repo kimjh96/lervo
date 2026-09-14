@@ -11,6 +11,8 @@ import {
 } from "@lervo/agent-workforce";
 import type { ProjectStorage } from "@lervo/project-storage";
 import { readSupervisionWorkspaceSource } from "./supervision-workspace-source.js";
+import { SupervisionTaskSource } from "./supervision-task-source.js";
+import { hasSupervisionRecoveryAncestor } from "./supervision-recovery-lineage.js";
 import {
   operatingContractHash,
   operatingDecisionId,
@@ -114,6 +116,24 @@ export async function admitSupervisedManagedInvocation<T>(input: {
     )
       throw new Error("The managed worker is outside its assigned workspace.");
     const refreshed = await observeNodeSupervisionAuthority(input.storage, plan, input.now);
+    if (effect.schemaVersion === 2) {
+      const source = await new SupervisionTaskSource(input.storage, plan, input.now).read();
+      const currentBinding = source.responsibilities.find(
+        (item) => item.assignmentId === effect.responsibility.assignmentId,
+      )?.binding;
+      if (
+        currentBinding?.responsibilityHash !== operatingContractHash(effect.responsibility) ||
+        !hasSupervisionRecoveryAncestor({
+          events: source.events,
+          supervisionId: plan.supervisionId,
+          workstreamId: plan.workstreamId,
+          assignmentId: effect.responsibility.assignmentId,
+          currentBindingEventId: currentBinding?.eventId ?? "",
+          recoveryResponsibilityHash: effect.recovery.responsibilityHash,
+        })
+      )
+        throw new Error("The managed retry responsibility has no canonical recovery ancestry.");
+    }
     if (
       refreshed.source.sourceRevisionDigest !== authorityDigest ||
       Date.parse(input.now()) >= Date.parse(plan.deadline)

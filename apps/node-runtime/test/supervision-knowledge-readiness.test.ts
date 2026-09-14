@@ -84,6 +84,31 @@ describe("supervision knowledge observation", { timeout: 30_000 }, () => {
     },
   );
 
+  it("accepts unrelated stale normalization only for an exact scoped source", async () => {
+    const f = await fixture();
+    await mkdir(resolve(f.root, "docs"), { recursive: true });
+    await writeFile(resolve(f.root, "docs/unrelated.md"), "# Unrelated document\n\nUpdated.\n");
+    await applyKnowledgeMigrationPlan(
+      await createKnowledgeMigrationPlan({ repositoryRoot: f.root }),
+      new Date(),
+      () => undefined,
+    );
+    const unrelated = await observeSupervisionKnowledgeReadiness({
+      ...f.input,
+      requiredPaths: ["src/save.ts"],
+    });
+    expect(unrelated.observation.checks.find((item) => item.kind === "knowledge")?.status).toBe(
+      "passed",
+    );
+    const required = await observeSupervisionKnowledgeReadiness({
+      ...f.input,
+      requiredPaths: ["docs"],
+    });
+    expect(required.observation.checks.find((item) => item.kind === "knowledge")?.status).toBe(
+      "unobserved",
+    );
+  });
+
   it("accepts a bounded slow inspection but never refreshes stale application context", async () => {
     const f = await fixture();
     const started = Date.parse(f.ports.now());

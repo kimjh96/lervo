@@ -5,7 +5,7 @@ import {
   lintRepositoryKnowledge,
   scanConfiguredRepositoryKnowledge,
 } from "@lervo/repository-knowledge";
-import { operatingContractHash } from "@lervo/work-controller";
+import { operatingContractHash, repositoryPathWithinScope } from "@lervo/work-controller";
 
 type Readiness = Awaited<ReturnType<OutcomeSupervisionPorts["readWorkerReadiness"]>>;
 
@@ -13,12 +13,14 @@ interface KnowledgeInspection {
   observedAt: string;
   validUntil: string;
   evidenceHash: string | null;
+  sourceSnapshotId: string | null;
 }
 
 /** Expensive source validation precedes the short-lived permission and lease observations. */
 export async function inspectSupervisionKnowledgeReadiness(input: {
   repositoryRoot: string;
   projectId: string;
+  requiredPaths?: readonly string[];
   now(): string;
 }): Promise<KnowledgeInspection> {
   const started = input.now();
@@ -26,6 +28,7 @@ export async function inspectSupervisionKnowledgeReadiness(input: {
     observedAt: started,
     validUntil: new Date(Date.parse(started) + 60_000).toISOString(),
     evidenceHash: null,
+    sourceSnapshotId: null,
   };
   try {
     const before = await scanConfiguredRepositoryKnowledge(input.repositoryRoot);
@@ -38,6 +41,7 @@ export async function inspectSupervisionKnowledgeReadiness(input: {
       preparedNormalization: normalization,
     });
     const after = await scanConfiguredRepositoryKnowledge(input.repositoryRoot);
+    inspection.sourceSnapshotId = after.scan.snapshotId;
     await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: input.repositoryRoot });
     const elapsed = Date.parse(input.now()) - Date.parse(started);
     if (
@@ -48,8 +52,12 @@ export async function inspectSupervisionKnowledgeReadiness(input: {
       before.scan.snapshotId !== after.scan.snapshotId ||
       operatingContractHash(before.policy) !== operatingContractHash(after.policy) ||
       !lint.valid ||
-      lint.issues.length !== 0 ||
-      normalization.pendingDocuments.length !== 0 ||
+      (input.requiredPaths === undefined
+        ? lint.issues.length !== 0 || normalization.pendingDocuments.length !== 0
+        : lint.issues.some((issue) => issue.severity === "error") ||
+          normalization.pendingDocuments.some((path) =>
+            input.requiredPaths!.some((scope) => repositoryPathWithinScope(path, scope)),
+          )) ||
       !Number.isFinite(elapsed) ||
       elapsed < 0 ||
       elapsed > 60_000
@@ -72,6 +80,7 @@ export async function inspectSupervisionKnowledgeReadiness(input: {
 export async function observeSupervisionKnowledgeReadiness(input: {
   repositoryRoot: string;
   projectId: string;
+  requiredPaths?: readonly string[];
   readiness: Readiness;
   now(): string;
   preparedInspection?: KnowledgeInspection;

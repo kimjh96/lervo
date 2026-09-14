@@ -10,8 +10,7 @@ export function supervisedManagedExecutionFields(effect: SupervisedManagedExecut
     Object.keys(effect).length !== (effect.schemaVersion === 1 ? 8 : 10) ||
     (effect.schemaVersion === 2 &&
       (!isAssignmentRecoveryCoordinate(effect.recovery) ||
-        !/^wrk_[a-f0-9]{24}$/u.test(effect.workId) ||
-        effect.responsibility.predecessorBindingHash !== effect.recovery.responsibilityHash)) ||
+        !/^wrk_[a-f0-9]{24}$/u.test(effect.workId))) ||
     effect.kind !== "work.managed_execution" ||
     !/^lse_[a-f0-9]{24}$/u.test(effect.leaseId) ||
     !["codex", "claude"].includes(effect.provider) ||

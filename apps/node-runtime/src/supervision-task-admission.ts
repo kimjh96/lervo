@@ -28,6 +28,7 @@ import { readCanonicalSupervisionTopology } from "./supervision-topology-source.
 import { readCanonicalSupervisionClaim } from "./supervision-claim-source.js";
 import { readCanonicalOwnerReasoning } from "./supervision-reasoning-source.js";
 import type { ProjectStorage } from "@lervo/project-storage";
+import { hasSupervisionRecoveryAncestor } from "./supervision-recovery-lineage.js";
 
 type Source = Awaited<ReturnType<SupervisionTaskSource["read"]>>;
 
@@ -106,14 +107,27 @@ export async function observeSupervisionTaskAdmission(input: {
       throw new Error("The task admission differs from its exact effect.");
     const task = effect.responsibility;
     const assignment = source.assignments.find((item) => item.assignmentId === task.assignmentId);
+    const currentBinding = source.responsibilities.find(
+      (item) => item.assignmentId === task.assignmentId,
+    )?.binding;
     if (
       source.workstream.workstreamId !== plan.workstreamId ||
       source.workstream.revision !== authority.source.workstreamRevision ||
       assignment?.revision !== task.assignmentRevision ||
       assignment.assigneeAgentId !== task.executorAgentId ||
       assignment.lease?.leaseId !== effect.leaseId ||
-      source.responsibilities.find((item) => item.assignmentId === assignment.assignmentId)?.binding
-        ?.responsibilityHash !== fields.responsibilityArtifactHash
+      currentBinding?.responsibilityHash !== fields.responsibilityArtifactHash ||
+      (effect.schemaVersion === 2 &&
+        (operatingContractHash(assignment.recovery ?? null) !==
+          operatingContractHash(effect.recovery) ||
+          !hasSupervisionRecoveryAncestor({
+            events: source.events,
+            supervisionId: input.binding.supervisionId,
+            workstreamId: input.binding.workstreamId,
+            assignmentId: task.assignmentId,
+            currentBindingEventId: currentBinding?.eventId ?? "",
+            recoveryResponsibilityHash: effect.recovery.responsibilityHash,
+          })))
     )
       throw new Error("The task admission responsibility changed.");
 

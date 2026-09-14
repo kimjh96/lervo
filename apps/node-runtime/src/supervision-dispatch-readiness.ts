@@ -32,16 +32,21 @@ interface DispatchReadinessInput {
     | NodeNativeOutcomeSupervisionPorts;
   configuration: NodeRuntimeReadinessConfiguration | undefined;
   sourceBinding: { authorityDigest: string; taskDigest: string; combined: string } | null;
+  expectedKnowledgeSnapshotId?: string;
 }
 
 /** Composes actual context, runtime, verification, login and repository observations for dispatch. */
 export async function readNodeDispatchReadiness(input: DispatchReadinessInput) {
-  return (await readDispatchObservations(input, async () => null)).readiness;
+  const observed = await readDispatchObservations(input, async () => null);
+  return { readiness: observed.readiness, sourceSnapshotId: observed.sourceSnapshotId };
 }
 
 /** Final independent reads share one observation window and must both settle before effects. */
 export function readNodeDispatchPreflight(
-  input: DispatchReadinessInput & { readAdmission(): Promise<OperatingAdmissionSnapshotV1> },
+  input: DispatchReadinessInput & {
+    expectedKnowledgeSnapshotId: string;
+    readAdmission(): Promise<OperatingAdmissionSnapshotV1>;
+  },
 ) {
   return readDispatchObservations(input, input.readAdmission);
 }
@@ -58,8 +63,14 @@ async function readDispatchObservations<Admission>(
     const knowledge = await inspectSupervisionKnowledgeReadiness({
       repositoryRoot: input.repositoryRoot,
       projectId: plan.projectId,
+      requiredPaths: plan.expectedPaths,
       now: input.ports.now,
     });
+    if (
+      input.expectedKnowledgeSnapshotId !== undefined &&
+      knowledge.sourceSnapshotId !== input.expectedKnowledgeSnapshotId
+    )
+      throw new NodeSupervisionError("supervision_readiness_changed");
     const taskReadiness =
       supplied !== null
         ? supplied
@@ -104,6 +115,7 @@ async function readDispatchObservations<Admission>(
           readiness: await observeSupervisionKnowledgeReadiness({
             repositoryRoot: input.repositoryRoot,
             projectId: plan.projectId,
+            requiredPaths: plan.expectedPaths,
             readiness: loggedIn,
             preparedInspection: knowledge,
             now: input.ports.now,
@@ -118,7 +130,11 @@ async function readDispatchObservations<Admission>(
     const [observed, admission] = await Promise.allSettled([finishReadiness(), readAdmission()]);
     if (observed.status === "rejected") throw observed.reason;
     if (admission.status === "rejected") throw admission.reason;
-    return { readiness: observed.value, admission: admission.value };
+    return {
+      readiness: observed.value,
+      admission: admission.value,
+      sourceSnapshotId: knowledge.sourceSnapshotId,
+    };
   } finally {
     await workspaceEvidenceStorage.close();
   }

@@ -307,8 +307,8 @@ export class SupervisionTaskSource {
     return observation;
   }
 
-  async readSnapshot(): Promise<OutcomeSupervisionSnapshotV1> {
-    const source = await this.read();
+  async readSnapshot(excludeDecisionId?: string): Promise<OutcomeSupervisionSnapshotV1> {
+    const source = await this.read(excludeDecisionId);
     const authority = await observeNodeSupervisionRecoveryAuthority(
       this.storage,
       this.binding,

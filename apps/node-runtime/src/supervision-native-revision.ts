@@ -27,11 +27,16 @@ export async function nativeResponsibilityRevision(
   const binding = input.facts.responsibilities.find(
     (item) => item.assignmentId === details.assignmentId,
   )?.binding;
+  const currentTask = input.facts.tasks.assignments.find(
+    (item) => item.assignmentId === details.assignmentId,
+  );
   if (
     assignment === undefined ||
     binding === null ||
     binding === undefined ||
-    assignment.recovery !== undefined ||
+    currentTask?.effectDisposition !== "not_started" ||
+    currentTask.dispatchedAt !== null ||
+    currentTask.terminalEventId !== null ||
     !["queued", "leased"].includes(assignment.status) ||
     (assignment.lease !== null && Date.parse(assignment.lease.expiresAt) > Date.parse(input.now()))
   )
@@ -43,6 +48,8 @@ export async function nativeResponsibilityRevision(
       operatingContractHash(assignment.acceptanceCriteria) ||
     operatingContractHash([...task.verificationSuiteIds].sort()) !==
       operatingContractHash([...assignment.verificationSuiteIds].sort());
+  if (changesCriteria && assignment.recovery !== undefined)
+    throw new Error("A recovered unstarted attempt cannot amend its historical acceptance scope.");
   task.assignmentRevision = assignment.revision + (changesCriteria ? 2 : 1);
   task.predecessorBindingHash = binding.responsibilityHash;
   const planning = await prepareSupervisionWorkforcePlan({

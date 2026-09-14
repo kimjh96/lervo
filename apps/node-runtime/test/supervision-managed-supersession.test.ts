@@ -97,6 +97,16 @@ it.each(
     }
     expect(plan).not.toBeNull();
     const action = plan! as OperatingActionPlanV1;
+    if (change === "absent" && !sharedReader) {
+      const tasks = new SupervisionTaskSource(storage, f.binding, () => action.deadline);
+      const decisionId = operatingDecisionId(action);
+      const replay = await tasks.readSnapshot(decisionId);
+      expect(replay.pendingDecision).toBe(true);
+      expect(replay.sourceRevisionDigest).toBe((await tasks.read(decisionId)).sourceRevisionDigest);
+      expect(replay.sourceRevisionDigest).not.toBe(
+        (await tasks.readSnapshot()).sourceRevisionDigest,
+      );
+    }
     const now = () => new Date(Date.parse(action.deadline) + 1).toISOString();
     const leases = await openRepositorySupervisionLeases(f.root);
     const lease = leases.acquire({

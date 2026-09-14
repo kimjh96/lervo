@@ -31,6 +31,7 @@ import type { NodeOwnerReasoningConfiguration } from "./supervision-reasoning-ef
 import type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-configuration.js";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import { readAdmittedControlDecision } from "./supervision-control-decision.js";
+import { reclaimReservationOnlyLease } from "./supervision-reservation-reclaim.js";
 
 /** Uses durable native judgement, then proposes separate canonically admitted business effects. */
 export class NativeSupervisionOwner {
@@ -130,6 +131,18 @@ export class NativeSupervisionOwner {
         if (recovery !== null) return recovery;
         const claim = await this.automaticClaim(storage, source, base, report.assignmentIds);
         if (claim !== null) return claim;
+      }
+      if (report.reasonCode === "worker_deadline_elapsed") {
+        const reclaimed = await reclaimReservationOnlyLease({
+          storage,
+          source,
+          facts,
+          base,
+          assignmentIds: report.assignmentIds,
+          readiness: this.readiness,
+          now: this.now,
+        });
+        if (reclaimed !== null) return reclaimed;
       }
       const previous = await readReusableOwnerDecision({
         storage,

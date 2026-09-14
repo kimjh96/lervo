@@ -64,7 +64,7 @@ export interface NodeSupervisionSession {
     >["responsibility"];
     workstreamRevision: number;
   }>;
-  readTaskSnapshot(): ReturnType<SupervisionTaskSource["readSnapshot"]>;
+  readTaskSnapshot(excludeDecisionId?: string): ReturnType<SupervisionTaskSource["readSnapshot"]>;
   readTaskAdmission(
     plan: OperatingActionPlanV1,
   ): ReturnType<SupervisionTaskSource["readAdmission"]>;
@@ -224,9 +224,9 @@ export function createNodeSupervisionSession(context: {
         workstreamRevision: source.workstream.revision,
       };
     },
-    readTaskSnapshot: async () => {
+    readTaskSnapshot: async (excludeDecisionId) => {
       assertOpen();
-      const snapshot = await context.tasks.readSnapshot();
+      const snapshot = await context.tasks.readSnapshot(excludeDecisionId);
       assertOpen();
       return snapshot;
     },

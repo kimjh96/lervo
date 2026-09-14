@@ -6,6 +6,11 @@ Previously recorded effects require independent inspection. Only work proven `no
 
 A typed Node preflight failure before effect invocation retains the decision as `recorded` and reports `supervision_preflight_failed`. Repair alone does not authorize replay: the inspector must independently prove `not_started`, then admission and readiness must pass again. This distinction never converts a historical uncertain receipt, missing provider telemetry, or unknown usage into non-execution evidence.
 
+When projecting a pending recorded decision, the task source excludes that decision's own recording event from the causal digest while still exposing it as pending. This keeps an unchanged plan eligible for the same independent effect inspection and fresh admission. Other source changes remain in the digest; a proven unstarted old-source decision must be canonically superseded before replacement planning. The pending marker alone must not suppress the original plan's action during replay.
+
+A pending decision whose deadline has elapsed enters reconciliation even when its source digest has not changed. An `uncertain` receipt cannot be replayed. If the effect inspector proves exact non-start and the effect-specific absence adapter records canonical supersession, the owner may plan anew; uncertain inspection or failed supersession remains blocked. This also covers a launched CLI child that exits before recording a managed reservation.
+For native-effect supersession, the absence adapter receives a fresh full source digest, including the pending decision. This is distinct from the admission digest used to compare the original plan and prevents an exclusion-only digest from being mistaken for the exact current event source.
+
 Adapters must:
 
 - Include all authority, role, assignment, review, delivery, readiness, and resource revisions in the source digest.

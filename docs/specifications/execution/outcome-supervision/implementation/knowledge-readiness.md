@@ -36,7 +36,9 @@ A positive application knowledge check is supplemented only when both scans:
 - Completely cover the configured source set.
 - Agree on source snapshot and policy hashes.
 
-Normalization must have no pending documents. Lint must be valid with zero issues, including warnings. Missing or stale structural materialization may be a lint warning while execution readiness remains unproved.
+For a scoped dispatch, normalization must have no pending document within the plan's expected paths. Lint must be valid with no errors. Warnings about unrelated document normalization or rebuildable structural materialization do not invalidate exact source bytes, but remain visible in knowledge lint. An unscoped observer keeps the stricter zero-pending, zero-issue requirement. Loaded context, required path hashes and later task-specific evidence remain independent checks.
+
+The dispatch and final effect preflight must observe the same complete repository source snapshot. Any source change between them blocks the effect, including a change outside the task's expected paths. A fresh cycle re-observes the repository and does not reuse the prior snapshot.
 
 Any of these conditions changes a positive knowledge check to `unobserved` with a null evidence hash:
 
@@ -44,8 +46,8 @@ Any of these conditions changes a positive knowledge check to `unobserved` with 
 - Incomplete coverage.
 - Changed source or policy.
 - Project mismatch.
-- Pending normalization.
-- Any lint issue.
+- Pending normalization within a required path, or any pending normalization for an unscoped observation.
+- A lint error, or any lint issue for an unscoped observation.
 - An inspection exception.
 - Inspection or subsequent use outside zero to sixty seconds from the first scan.
 

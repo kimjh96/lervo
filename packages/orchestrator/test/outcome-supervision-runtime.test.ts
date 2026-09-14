@@ -118,6 +118,7 @@ describe("serialized causal owner decisions", () => {
     const runtime = new OutcomeSupervisionRuntime(f.ports);
     expect((await runtime.runCycle(f.state.supervisionId)).disposition).toBe("blocked");
     expect([...f.decisions.values()][0]!.status).toBe("recorded");
+    f.state.pendingDecision = true;
     const restarted = new OutcomeSupervisionRuntime(f.ports);
     expect((await restarted.runCycle(f.state.supervisionId)).disposition).toBe("uncertain");
     expect(f.execute).toHaveBeenCalledOnce();
@@ -200,6 +201,33 @@ describe("serialized causal owner decisions", () => {
       expect(f.propose).toHaveBeenCalledTimes(1);
     },
   );
+  it("supersedes a deadline-expired uncertain decision only after exact non-start proof", async () => {
+    const f = fixture();
+    f.execute.mockRejectedValueOnce(
+      new Error("The launched child exited without dispatch evidence."),
+    );
+    expect(
+      (await new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId)).disposition,
+    ).toBe("uncertain");
+    f.ports.now = () => "2026-09-11T03:31:00.000Z";
+    const supersede = vi.fn(async () => {
+      for (const [id, receipt] of f.decisions)
+        f.decisions.set(id, { ...receipt, status: "superseded" });
+      return true;
+    });
+    f.ports.supersedeNotStarted = supersede;
+    f.ports.inspectEffect = async () => ({ status: "uncertain" });
+    expect(
+      (await new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId)).disposition,
+    ).toBe("uncertain");
+    expect(supersede).not.toHaveBeenCalled();
+    f.ports.inspectEffect = async () => ({ status: "not_started" });
+    expect(
+      (await new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId)).disposition,
+    ).toBe("changed");
+    expect(supersede).toHaveBeenCalledOnce();
+    expect(f.execute).toHaveBeenCalledOnce();
+  });
   it("reconciles an old-source uncertain effect before proposing new work, including after revocation", async () => {
     const f = fixture();
     f.execute.mockRejectedValueOnce(new Error("effect_response_lost"));

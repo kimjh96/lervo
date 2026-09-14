@@ -62,20 +62,24 @@ export class OutcomeSupervisionRuntime {
       const mandate = await this.ports.readMandate(snapshot.mandateHash);
       if (operatingContractHash(mandate) !== snapshot.mandateHash)
         throw new Error("The supervision mandate artifact is corrupt.");
+      const pending = await this.ports.findPendingPlan(supervisionId);
+      const replaySnapshot = pending === null ? snapshot : { ...snapshot, pendingDecision: false };
       const report = projectOutcomeSupervision({
         snapshot:
           Date.parse(now) >= Date.parse(mandate.expiresAt)
-            ? { ...snapshot, authorityStatus: "expired" }
-            : snapshot,
+            ? { ...replaySnapshot, authorityStatus: "expired" }
+            : replaySnapshot,
         now,
         maximumRecoveryDecisions: Math.min(3, mandate.maximumAttemptsPerAssignment - 1),
       });
-      const pending = await this.ports.findPendingPlan(supervisionId);
+      const pendingDeadlineElapsed =
+        pending !== null && Date.parse(now) >= Date.parse(pending.deadline);
       if (
         pending !== null &&
         (pending.sourceRevisionDigest !== snapshot.sourceRevisionDigest ||
           pending.mandateHash !== snapshot.mandateHash ||
           pending.ownerAgentId !== snapshot.ownerAgentId ||
+          pendingDeadlineElapsed ||
           report.status === "invalid" ||
           report.nextAction === null)
       ) {
@@ -103,7 +107,8 @@ export class OutcomeSupervisionRuntime {
         }
         if (
           observed.status === "not_started" &&
-          pending.sourceRevisionDigest !== snapshot.sourceRevisionDigest &&
+          (pending.sourceRevisionDigest !== snapshot.sourceRevisionDigest ||
+            pendingDeadlineElapsed) &&
           (await this.ports.supersedeNotStarted?.(pending, snapshot.sourceRevisionDigest)) === true
         ) {
           const superseded = await this.ports.findDecision(decisionId);
