@@ -40,10 +40,11 @@ export async function renewAssignmentLeaseOnce(input: {
     ...assignment.lease!,
     expiresAt: new Date(now.getTime() + duration).toISOString(),
   };
+  // Renewal extends the same lease generation only; the responsibility binding pins the
+  // assignment revision, so a renewal must not advance it.
   const next: WorkforceAssignment = {
     ...assignment,
     lease,
-    revision: assignment.revision + 1,
     updatedAt: now.toISOString(),
   };
   const target = await assignmentPath(input.repositoryRoot, assignment.assignmentId);
