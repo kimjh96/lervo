@@ -8,7 +8,7 @@ Current mandate admission bounds the action, role, capability and path ceiling, 
 
 The native owner may change acceptance criteria and verification suites for an unstarted assignment. Paths may narrow within predecessor scope. Widening paths or changing the bound role requires the corresponding separately authorized topology or role transition.
 
-A live lease, terminal status, recovery coordinate, returned result, handoff, previous managed attempt or any workspace record blocks the amendment. Failed retrieval or missing staff readiness cannot establish capacity.
+A live lease, terminal status, recovery coordinate, returned result, handoff, previous managed attempt or a workspace record without positive unstarted proof blocks the amendment. A prepared checkout that the Node proves unstarted (the same `unstartedWorkspaces` evidence a plain revision requires) is retained; only a new lease generation and workspace may execute. An installed goal that was stopped gracefully right after its claim had such a checkout, and the earlier rule made every owner cycle fail on the same amendment proposal. Failed retrieval or missing staff readiness cannot establish capacity.
 
 Canonical admission verifies exact predecessor bytes, the current responsibility binding, workstream and graph, original acceptance owner and selected executor availability. The scheduler-locked transition clears an expired lease while preserving its generation, replaces explicitly amended fields and increments the assignment revision.
 
