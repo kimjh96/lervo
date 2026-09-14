@@ -361,6 +361,16 @@ export async function openNodeDiscordConversationRuntime(
     return {
       failed: failure,
       resultAdapter: (integrationId) => (integrationId === config.integrationId ? adapter : null),
+      resultArtifacts: (integrationId) =>
+        integrationId === config.integrationId ? artifacts : null,
+      resultReplay: (integrationId, outboundId) =>
+        integrationId === config.integrationId
+          ? openedApplication.inspectDeliveryReplay({
+              platform: "discord",
+              integrationId,
+              outboundId,
+            })
+          : null,
       observeRemoteAcknowledgement: (input) => resultRuntime!.observe(input),
       runResultDeliveryCycle: async () => {
         await resultRuntime!.runCycle();

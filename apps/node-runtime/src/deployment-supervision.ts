@@ -41,8 +41,16 @@ export async function openDeploymentSupervision(input: {
         ? undefined
         : (input.conversation?.resultAdapter?.(ownerConversations[0]!.integrationId) ?? undefined)
       : (input.conversation?.resultAdapter?.(origin.target.integrationId) ?? undefined);
+  const adapterArtifacts =
+    adapter === undefined
+      ? undefined
+      : (input.conversation?.resultArtifacts?.(adapter.descriptor.integrationId) ?? undefined);
   if (ownerConversations.length === 1 && adapter === undefined)
     throw new Error("The installed owner conversation has no result adapter.");
+  if (adapter !== undefined && adapterArtifacts === undefined)
+    throw new Error("The installed owner conversation has no result artifact store.");
+  if (adapter !== undefined && input.conversation?.resultReplay === undefined)
+    throw new Error("The installed owner conversation has no result replay inspection.");
   const ownerParticipation =
     ownerConversations[0] === undefined
       ? null
@@ -61,6 +69,13 @@ export async function openDeploymentSupervision(input: {
     repositoryRoot: input.config.repositoryRoot,
     configuration,
     ...(adapter === undefined ? {} : { deliveryAdapter: adapter }),
+    ...(adapterArtifacts === undefined ? {} : { deliveryArtifacts: adapterArtifacts }),
+    ...(adapter === undefined
+      ? {}
+      : {
+          deliveryReplay: (outboundId: string) =>
+            input.conversation!.resultReplay!(adapter.descriptor.integrationId, outboundId),
+        }),
     ...(ownerConversations[0] === undefined
       ? {}
       : {

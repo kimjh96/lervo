@@ -1,4 +1,5 @@
 import type { ConversationAdapter } from "@lervo/conversation-contract";
+import type { ArtifactStore } from "@lervo/storage-contract";
 import type { NodeRuntimeComponentHealth } from "./health-contract.js";
 import { openNodeOutcomeSupervisionRuntime } from "./outcome-supervision-runtime.js";
 import {
@@ -17,6 +18,10 @@ export async function openNodeSupervisionService(input: {
   repositoryRoot: string;
   configuration: NodeSupervisionStartupConfiguration;
   deliveryAdapter?: ConversationAdapter;
+  deliveryArtifacts?: ArtifactStore;
+  deliveryReplay?: (
+    outboundId: string,
+  ) => "absent" | "sending" | "unknown" | "rejected" | "delivered" | null;
   deliverySpeaker?: { participantId: string; roleId: string; conversationIds: readonly string[] };
   observeHealth(health: NodeRuntimeComponentHealth): Promise<void>;
   now?(): string;
@@ -59,6 +64,10 @@ export async function openNodeSupervisionService(input: {
             ...(config.resultOrigin === undefined ? {} : { origin: config.resultOrigin }),
             ...(input.deliverySpeaker === undefined ? {} : { speaker: input.deliverySpeaker }),
             adapter: input.deliveryAdapter,
+            ...(input.deliveryArtifacts === undefined
+              ? {}
+              : { adapterArtifacts: input.deliveryArtifacts }),
+            ...(input.deliveryReplay === undefined ? {} : { replayStatus: input.deliveryReplay }),
           },
         }),
     ports: {

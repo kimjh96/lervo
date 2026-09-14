@@ -147,6 +147,10 @@ export function projectOutcomeSupervision(input: {
     !["active", "blocked", "completed", "cancelled"].includes(snapshot.workstreamStatus) ||
     !["not_attempted", "pending", "failed", "delivered"].includes(snapshot.delivery) ||
     (snapshot.deliveryRequired !== undefined && typeof snapshot.deliveryRequired !== "boolean") ||
+    (snapshot.deliveryRecoverySafe !== undefined &&
+      typeof snapshot.deliveryRecoverySafe !== "boolean") ||
+    (snapshot.deliveryRecoverySafe === true &&
+      (snapshot.delivery !== "failed" || snapshot.deliveryNextCheckAt !== null)) ||
     (snapshot.attentionPending !== undefined && typeof snapshot.attentionPending !== "boolean") ||
     (snapshot.handoffs !== undefined &&
       (snapshot.handoffs === null ||
@@ -293,7 +297,9 @@ export function projectOutcomeSupervision(input: {
       snapshot.delivery === "failed" &&
       snapshot.deliveryNextCheckAt === null
     )
-      return report("waiting_decision", "result_delivery_recovery_exhausted", null);
+      return snapshot.deliveryRecoverySafe === true
+        ? report("reviewing", "result_delivery_recovery_safe", "publish_result")
+        : report("waiting_decision", "result_delivery_recovery_exhausted", null);
     return snapshot.workstreamStatus === "completed"
       ? report(
           "completed",

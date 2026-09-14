@@ -166,6 +166,15 @@ describe("causal outcome supervision without a chat surface", () => {
     expect(project(state).reasonCode).toBe("accepted_delivery_queued");
     state.delivery = "failed";
     expect(project(state)).toMatchObject({ status: "completed", nextAction: "publish_result" });
+    state.deliveryNextCheckAt = null;
+    expect(project(state).reasonCode).toBe("result_delivery_recovery_exhausted");
+    state.deliveryRecoverySafe = true;
+    expect(project(state)).toMatchObject({
+      status: "reviewing",
+      reasonCode: "result_delivery_recovery_safe",
+      nextAction: "publish_result",
+    });
+    state.deliveryRecoverySafe = false;
     state.delivery = "delivered";
     expect(project(state).nextAction).toBeNull();
     task.artifactHashes = [hash("d")];

@@ -55,6 +55,8 @@ export interface OutcomeSupervisionSnapshotV1 {
   attentionPending?: boolean;
   delivery: "not_attempted" | "pending" | "failed" | "delivered";
   deliveryNextCheckAt?: string | null;
+  /** One exhausted outbound can be replaced only when transport replay proves no send began. */
+  deliveryRecoverySafe?: boolean;
   /** False only for a host that exposes the accepted local result without an external origin. */
   deliveryRequired?: boolean;
   /** Separate scoped receipts; none grants a foreign assignment lease or goal completion. */

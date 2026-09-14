@@ -68,6 +68,23 @@ afterEach(async () => {
 });
 
 describe("SQLite conversation platform state", () => {
+  it("reads exact outbound replay absence without reserving transport", async () => {
+    const store = await SQLiteConversationPlatformStore.open(options(await databasePath()));
+    const coordinate = { platform: "slack", integrationId, outboundId };
+    expect(store.inspectDeliveryReplay(coordinate)).toBe("absent");
+    expect(
+      await store.begin({ ...coordinate, requestHash, attemptedAt: new Date().toISOString() }),
+    ).toEqual({ status: "reserved" });
+    expect(store.inspectDeliveryReplay(coordinate)).toBe("sending");
+    await store.complete({
+      ...coordinate,
+      requestHash,
+      externalMessageKey: "message-1",
+      deliveredAt: new Date().toISOString(),
+    });
+    expect(store.inspectDeliveryReplay(coordinate)).toBe("delivered");
+    store.close();
+  });
   it("migrates version 1 Slack bindings before accepting extensible platform kinds", async () => {
     const path = await databasePath();
     const legacy = new DatabaseSync(path);

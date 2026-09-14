@@ -52,6 +52,13 @@
       "disposition": "cohesive"
     },
     {
+      "path": "apps/node-runtime/src/discord-conversation-runtime.ts",
+      "contentHash": "sha256:57cae58f2baccc13e73e1daffd8c5f33c5590168da8618468019c581bfe75ea5",
+      "responsibility": "One Discord conversation runtime composition and lifecycle",
+      "rationale": "The entrypoint wires one configured Discord identity and its conversation, publication, result, and background ports. Delivery policy, storage mechanics, native transport, request binding, and supervision decisions live in linked modules; the added result artifact and replay accessors expose existing adapter boundaries without adding independent behavior.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "apps/node-runtime/src/discord-hired-agent-deployment.ts",
       "contentHash": "sha256:f15563c4e6a8f3cfdc7ba7355ff35fc2e16a6dd6de1e6e0ae92f214de24a9a01",
       "responsibility": "Discord hired-agent webhook deployment lifecycle",

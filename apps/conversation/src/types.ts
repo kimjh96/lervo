@@ -135,6 +135,11 @@ export interface ConversationApplicationOptions {
 }
 
 export interface ConversationApplication {
+  inspectDeliveryReplay(input: {
+    platform: "discord";
+    integrationId: string;
+    outboundId: string;
+  }): "absent" | "sending" | "unknown" | "rejected" | "delivered";
   nextInteractionWakeupAt?(integrationId: string): number | null;
   nextDeliberationWakeupAt?(): number | null;
   subscribeChanges?(kind: "interaction" | "deliberation", notify: () => void): () => void;

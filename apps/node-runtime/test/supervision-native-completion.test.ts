@@ -8,6 +8,8 @@ import { readSupervisionJsonArtifact } from "../src/supervision-artifact-json.js
 import type { ConversationOutboundMessage } from "@lervo/schemas";
 import type { NodeSupervisionResultDeliveryConfiguration } from "../src/supervision-result-delivery.js";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
+import { FileSystemCas } from "@lervo/cas";
+import { readConversationOutboundText } from "@lervo/conversation-platform";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
@@ -154,10 +156,14 @@ it.each([
       `${login}\n}\nif(process.argv[2]!=="app-server")inspectLogin();\nprocess.env.LERVO_INSTALLED_CAPABILITY_TARGET=process.cwd()+"/src/save.ts";\nprocess.env.LERVO_INSTALLED_CAPABILITY_PROMPT_LOG=${JSON.stringify(promptLog)};\nprocess.env.LERVO_INSTALLED_CAPABILITY_CHANGE_KIND="update";\nprocess.env.LERVO_INSTALLED_CAPABILITY_CONTENT="export const saved = 'verified';\\n";\nprocess.env.LERVO_INSTALLED_CAPABILITY_RESULT="The saved value was updated and verification passed.";\n${provider}`,
     );
     const storage = await openProjectStorage(f.root);
+    const adapterArtifacts = await FileSystemCas.open(
+      resolve(f.root, ".lervo/data/discord-result-artifacts"),
+    );
     let clockOffset = 0;
     const now = () => new Date(Date.parse(f.ports.now()) + clockOffset).toISOString();
     const sent: ConversationOutboundMessage[] = [];
     const resultDelivery: NodeSupervisionResultDeliveryConfiguration = {
+      adapterArtifacts,
       origin: {
         sourceEventId: `cve_${"3".repeat(64)}`,
         policyId: `cpp_${"4".repeat(64)}`,
@@ -178,6 +184,12 @@ it.each([
           capabilities: ["messages.send"],
         },
         deliver: async (outbound) => {
+          expect(
+            await readConversationOutboundText({
+              message: outbound,
+              artifactStore: adapterArtifacts,
+            }),
+          ).toContain("saved value");
           sent.push(structuredClone(outbound));
           if (sent.length === 1) throw new Error("fixture_transport_failure");
           return {

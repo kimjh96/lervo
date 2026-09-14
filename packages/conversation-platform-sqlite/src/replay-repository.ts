@@ -23,6 +23,20 @@ interface ReplayRow {
 export class ConversationPlatformReplayRepository {
   constructor(private readonly database: DatabaseSync) {}
 
+  inspect(input: { platform: string; integrationId: string; outboundId: string }) {
+    assertPlatform(input.platform);
+    assertIdentifier(input.integrationId, "integrationId");
+    assertIdentifier(input.outboundId, "outboundId");
+    const row = this.database
+      .prepare(
+        `SELECT status FROM delivery_replay
+         WHERE platform = ? AND integration_id = ? AND outbound_id = ?`,
+      )
+      .get(input.platform, input.integrationId, input.outboundId) as
+      { status: "sending" | "unknown" | "rejected" | "delivered" } | undefined;
+    return row?.status ?? "absent";
+  }
+
   begin(input: BeginInput): PlatformDeliveryReplayDecision {
     this.validateCoordinate(input);
     assertTimestamp(input.attemptedAt, "attemptedAt");

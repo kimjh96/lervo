@@ -111,6 +111,11 @@ export class SQLiteConversationPlatformStore
     return this.replay.begin(input);
   }
 
+  inspectDeliveryReplay(input: { platform: string; integrationId: string; outboundId: string }) {
+    this.assertOpen();
+    return this.replay.inspect(input);
+  }
+
   async complete(input: Parameters<ConversationPlatformDeliveryReplayPort["complete"]>[0]) {
     this.assertOpen();
     this.replay.complete(input);

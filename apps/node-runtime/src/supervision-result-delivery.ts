@@ -2,6 +2,7 @@ import type { OperatingActionPlanV1, SupervisedResultDelivery } from "@lervo/app
 import type { ConversationAdapter } from "@lervo/conversation-contract";
 import { canonicalJson } from "@lervo/event-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
+import type { ArtifactStore } from "@lervo/storage-contract";
 import { validateSchema, type ConversationOutboundMessage } from "@lervo/schemas";
 import { operatingContractHash, operatingDecisionId } from "@lervo/work-controller";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
@@ -12,9 +13,15 @@ import { readCanonicalResultDelivery } from "./supervision-result-delivery-basis
 import { readResultDeliveryReceipt } from "./supervision-result-delivery-receipt.js";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import { readBoundSupervisionRequest } from "./supervision-bound-request.js";
+import {
+  inspectResultDeliveryRecovery,
+  type ResultReplayStatus,
+} from "./supervision-result-delivery-recovery.js";
 
 export interface NodeSupervisionResultDeliveryConfiguration {
   adapter: ConversationAdapter;
+  adapterArtifacts?: ArtifactStore;
+  replayStatus?: (outboundId: string) => ResultReplayStatus;
   origin?: Pick<ConversationOutboundMessage, "sourceEventId" | "policyId" | "target" | "actor">;
   speaker?: { participantId: string; roleId: string; conversationIds: readonly string[] };
 }
@@ -39,6 +46,23 @@ export class SupervisionResultDelivery {
       plan.effectHash,
     )) as SupervisedResultDelivery;
     const source = await this.tasks.read(excludeDecision ? operatingDecisionId(plan) : undefined);
+    if (
+      !source.supervisionEvents.some(
+        (event) =>
+          event.type === "work.supervision.delivery.queued" &&
+          event.payload.planHash === operatingContractHash(plan),
+      ) &&
+      source.supervisionEvents.some((event) => event.type === "work.supervision.delivery.queued") &&
+      !(await inspectResultDeliveryRecovery({
+        source,
+        artifacts: this.storage.artifacts,
+        events: this.storage.events,
+        ...(this.configuration.replayStatus === undefined
+          ? {}
+          : { replayStatus: this.configuration.replayStatus }),
+      }))
+    )
+      throw new Error("The previous result delivery has no safe recovery evidence.");
     const observed = await observeSupervisionTasks(
       source,
       this.storage.artifacts,
@@ -75,6 +99,16 @@ export class SupervisionResultDelivery {
   }
   async assertReady(plan: OperatingActionPlanV1) {
     await this.publication(plan, true);
+  }
+  async recoverySafe() {
+    return inspectResultDeliveryRecovery({
+      source: await this.tasks.read(),
+      artifacts: this.storage.artifacts,
+      events: this.storage.events,
+      ...(this.configuration.replayStatus === undefined
+        ? {}
+        : { replayStatus: this.configuration.replayStatus }),
+    });
   }
   async inspect(plan: OperatingActionPlanV1) {
     const effect = (await readSupervisionJsonArtifact(
@@ -166,6 +200,14 @@ export class SupervisionResultDelivery {
     let receiptArtifactHash: string | null = null;
     let status: "delivered" | "failed" = "failed";
     try {
+      if (this.configuration.adapterArtifacts !== undefined) {
+        const bytes = await this.storage.artifacts.get(
+          `lervo-cas://sha256/${outbound.content.contentHash.slice(7)}`,
+        );
+        const staged = await this.configuration.adapterArtifacts.put(bytes);
+        if (staged.contentHash !== outbound.content.contentHash)
+          throw new Error("The result content changed across conversation storage.");
+      }
       const receipt = await this.configuration.adapter.deliver(outbound);
       if (
         !validateSchema("conversationDeliveryReceipt", receipt).valid ||

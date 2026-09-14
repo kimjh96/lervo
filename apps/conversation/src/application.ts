@@ -176,6 +176,7 @@ export async function openConversationApplication(
     }
     discordRuntime.start();
     return {
+      inspectDeliveryReplay: (input) => store.inspectDeliveryReplay(input),
       nextInteractionWakeupAt: (integrationId) => interactions?.nextWakeupAt(integrationId) ?? null,
       nextDeliberationWakeupAt: () => {
         const deadlines = [deliberationStore?.nextWakeupAt(), resumeStore?.nextWakeupAt()].filter(

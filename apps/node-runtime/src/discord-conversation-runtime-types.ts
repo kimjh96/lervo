@@ -1,4 +1,5 @@
 import type { ConversationAdapter } from "@lervo/conversation-contract";
+import type { ArtifactStore } from "@lervo/storage-contract";
 import type { ConversationRemoteContinuationPort } from "@lervo/conversation-control";
 import type { DiscordGatewayTransport } from "@lervo/discord-gateway";
 import type { ConversationResponder } from "@lervo/interaction";
@@ -16,6 +17,11 @@ import type { NodeSupervisionStartupConfiguration } from "./supervision-startup-
 export interface NodeDiscordConversationRuntime {
   readonly failed: Promise<void>;
   resultAdapter?(integrationId: string): ConversationAdapter | null;
+  resultArtifacts?(integrationId: string): ArtifactStore | null;
+  resultReplay?(
+    integrationId: string,
+    outboundId: string,
+  ): "absent" | "sending" | "unknown" | "rejected" | "delivered" | null;
   observeRemoteAcknowledgement(input: {
     lease: RemoteCommandLease;
     acknowledgement: RemoteCommandDeliveryAcknowledgement;

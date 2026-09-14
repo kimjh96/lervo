@@ -35,6 +35,20 @@ export function groupDiscordConversationRuntimes(
         throw new Error("A result integration has conflicting runtime adapters.");
       return adapters[0] ?? null;
     },
+    resultArtifacts(integrationId) {
+      const stores = runtimes.flatMap((runtime) => runtime.resultArtifacts?.(integrationId) ?? []);
+      if (stores.length > 1)
+        throw new Error("A result integration has conflicting runtime artifact stores.");
+      return stores[0] ?? null;
+    },
+    resultReplay(integrationId, outboundId) {
+      const states = runtimes.flatMap(
+        (runtime) => runtime.resultReplay?.(integrationId, outboundId) ?? [],
+      );
+      if (states.length > 1)
+        throw new Error("A result integration has conflicting runtime replay states.");
+      return states[0] ?? null;
+    },
     async observeRemoteAcknowledgement(input) {
       const results = await Promise.all(
         runtimes.map((runtime) => runtime.observeRemoteAcknowledgement(input)),

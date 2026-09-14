@@ -65,6 +65,8 @@ export async function nativeResultPublication(
     ...structuredClone(origin),
     content: candidate.content,
     publicationPermit: candidate.publicationPermit,
+    deliveryRelation: (input.facts.boundRequest?.source === "discord" ? "reply" : "standalone") as
+      "reply" | "standalone",
     automationDepth: 1,
     createdAt: input.now(),
   };

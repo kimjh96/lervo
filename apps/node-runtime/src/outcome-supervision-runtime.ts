@@ -208,6 +208,8 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
               )),
               deliveryRequired: delivery !== null,
             };
+      const deliveryRecoverySafe =
+        snapshot.delivery === "failed" && delivery !== null ? await delivery.recoverySafe() : false;
       const installation = await session().readMandate();
       mandateExpiresAt = Date.parse(installation.mandate.expiresAt);
       if (
@@ -232,6 +234,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
         sourceBinding = { ...digests, combined: operatingContractHash(digests) };
         return {
           ...snapshot,
+          deliveryRecoverySafe,
           sourceRevisionDigest: sourceBinding.combined,
           authorityStatus: installation.revoked
             ? "revoked"
