@@ -6,6 +6,16 @@ import { readResultDeliveryReceipt } from "./supervision-result-delivery-receipt
 
 export type ResultReplayStatus = "absent" | "sending" | "unknown" | "rejected" | "delivered" | null;
 
+export function hasExactRecoveryQueues(
+  planHashes: readonly string[],
+  replacementPlanHash?: string,
+): boolean {
+  return (
+    planHashes.length === (replacementPlanHash === undefined ? 1 : 2) &&
+    (replacementPlanHash === undefined || planHashes[1] === replacementPlanHash)
+  );
+}
+
 export function canReplaceExhaustedDelivery(input: {
   queuedCount: number;
   workstreamCompleted: boolean;
@@ -30,13 +40,20 @@ export async function inspectResultDeliveryRecovery(input: {
   artifacts: ArtifactStore;
   events: EventStore;
   replayStatus?: (outboundId: string) => ResultReplayStatus;
+  replacementPlanHash?: string;
 }): Promise<boolean> {
   if (input.replayStatus === undefined || input.source.workstream.status !== "completed")
     return false;
   const queued = input.source.supervisionEvents.filter(
     (event) => event.type === "work.supervision.delivery.queued",
   );
-  if (queued.length !== 1) return false;
+  if (
+    !hasExactRecoveryQueues(
+      queued.map((event) => String(event.payload.planHash)),
+      input.replacementPlanHash,
+    )
+  )
+    return false;
   const plan = (await readSupervisionJsonArtifact(
     input.artifacts,
     String(queued[0]!.payload.planHash),
@@ -51,7 +68,7 @@ export async function inspectResultDeliveryRecovery(input: {
     effect.outboundArtifactHash,
   )) as { outboundId: string };
   return canReplaceExhaustedDelivery({
-    queuedCount: queued.length,
+    queuedCount: 1,
     workstreamCompleted: input.source.workstream.status === "completed",
     status: state.status,
     attempt: state.attempt,

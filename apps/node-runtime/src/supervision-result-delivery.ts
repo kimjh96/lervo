@@ -46,17 +46,18 @@ export class SupervisionResultDelivery {
       plan.effectHash,
     )) as SupervisedResultDelivery;
     const source = await this.tasks.read(excludeDecision ? operatingDecisionId(plan) : undefined);
+    const planHash = operatingContractHash(plan);
+    const queued = source.supervisionEvents.filter(
+      (event) => event.type === "work.supervision.delivery.queued",
+    );
+    const planQueued = queued.some((event) => event.payload.planHash === planHash);
     if (
-      !source.supervisionEvents.some(
-        (event) =>
-          event.type === "work.supervision.delivery.queued" &&
-          event.payload.planHash === operatingContractHash(plan),
-      ) &&
-      source.supervisionEvents.some((event) => event.type === "work.supervision.delivery.queued") &&
+      queued.length > (planQueued ? 1 : 0) &&
       !(await inspectResultDeliveryRecovery({
         source,
         artifacts: this.storage.artifacts,
         events: this.storage.events,
+        ...(planQueued ? { replacementPlanHash: planHash } : {}),
         ...(this.configuration.replayStatus === undefined
           ? {}
           : { replayStatus: this.configuration.replayStatus }),
