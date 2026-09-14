@@ -18,3 +18,26 @@ export function supervisionAttentionReasonCodes(
       : code,
   );
 }
+
+const CODE_PATTERN = /^[a-z][a-z0-9_]{0,63}$/u;
+
+/** One bounded code for a failed owner cycle so health and the journal can name it. */
+export function supervisionCycleFailureCode(error: unknown): string {
+  const code = (error as { code?: unknown } | null)?.code;
+  if (typeof code === "string" && CODE_PATTERN.test(code)) return code;
+  const name = error instanceof Error ? error.name : "";
+  const derived = name
+    .replace(/Error$/u, "")
+    .replace(/([a-z0-9])([A-Z])/gu, "$1_$2")
+    .toLowerCase();
+  return derived.length > 0 && CODE_PATTERN.test(derived) ? derived : "cycle_error_unclassified";
+}
+
+/** Journal line for a failed cycle: bounded code, error name, and the message's first 200 characters. */
+export function supervisionCycleFailureLine(error: unknown): string {
+  const message = (error instanceof Error ? error.message : String(error))
+    .replace(/[\r\n\0]+/gu, " ")
+    .slice(0, 200);
+  const name = error instanceof Error ? error.name : "unknown";
+  return `Lervo supervision cycle failed (${supervisionCycleFailureCode(error)}): ${name}: ${message}`;
+}

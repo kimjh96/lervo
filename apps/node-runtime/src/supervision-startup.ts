@@ -1,6 +1,10 @@
 import type { ConversationAdapter } from "@lervo/conversation-contract";
 import type { ArtifactStore } from "@lervo/storage-contract";
-import { supervisionAttentionReasonCodes } from "./supervision-attention-health.js";
+import {
+  supervisionAttentionReasonCodes,
+  supervisionCycleFailureCode,
+  supervisionCycleFailureLine,
+} from "./supervision-attention-health.js";
 import type { NodeRuntimeComponentHealth } from "./health-contract.js";
 import { openNodeOutcomeSupervisionRuntime } from "./outcome-supervision-runtime.js";
 import {
@@ -26,6 +30,8 @@ export async function openNodeSupervisionService(input: {
   deliverySpeaker?: { participantId: string; roleId: string; conversationIds: readonly string[] };
   observeHealth(health: NodeRuntimeComponentHealth): Promise<void>;
   now?(): string;
+  /** Receives one bounded line per failed owner cycle; defaults to the process error stream. */
+  log?(line: string): void;
 }): Promise<NodeSupervisionService> {
   const config = parseSupervisionStartupConfiguration(input.configuration);
   if (
@@ -90,8 +96,15 @@ export async function openNodeSupervisionService(input: {
     failed,
     start: () =>
       runtime.start({
-        onFailure: () => {
-          void observe({ status: "unavailable", failureCode: "supervision_cycle_failed" });
+        onFailure: (error) => {
+          (input.log ?? ((line: string) => process.stderr.write(`${line}\n`)))(
+            supervisionCycleFailureLine(error),
+          );
+          void observe({
+            status: "unavailable",
+            failureCode: "supervision_cycle_failed",
+            reasonCodes: [supervisionCycleFailureCode(error)],
+          });
         },
         onCycle: async (cycle) => {
           const reasonCodes = attention;
