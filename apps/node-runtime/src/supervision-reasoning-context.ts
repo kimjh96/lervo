@@ -116,8 +116,41 @@ export async function canonicalOwnerReasoningFacts(
     });
     if (proof !== null) unstartedWorkspaces.push(proof);
   }
+  const assignmentIds = new Set(source.assignments.map((item) => item.assignmentId));
+  const recoveryObservations = {
+    // Canonical safe non-starts and lease extensions; each proves only its own recorded fact.
+    readinessFailures: source.events
+      .filter(
+        (event) =>
+          event.type === "work.supervision.readiness.failed" &&
+          event.payload.supervisionId === binding.supervisionId &&
+          assignmentIds.has(String(event.payload.assignmentId)),
+      )
+      .map((event) => ({
+        eventId: event.eventId,
+        assignmentId: String(event.payload.assignmentId),
+        executorAgentId: String(event.payload.executorAgentId),
+        decisionId: String(event.payload.decisionId),
+        reasonCode: String(event.payload.reasonCode),
+        occurredAt: event.occurredAt,
+      })),
+    leaseRenewals: source.events
+      .filter(
+        (event) =>
+          event.type === "assignment.lease.renewed" &&
+          assignmentIds.has(String(event.payload.assignmentId)),
+      )
+      .map((event) => ({
+        eventId: event.eventId,
+        assignmentId: String(event.payload.assignmentId),
+        leaseId: String(event.payload.leaseId),
+        expiresAt: String(event.payload.expiresAt),
+        occurredAt: event.occurredAt,
+      })),
+  };
   const facts = {
     unstartedWorkspaces,
+    recoveryObservations,
     researchEvidence,
     researchPolicy,
     writingContract: writingContractForLanguage(policy.publication.language),

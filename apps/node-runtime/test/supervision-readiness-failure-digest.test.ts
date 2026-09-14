@@ -11,6 +11,7 @@ import { operatingContractHash, workerReadinessKinds } from "@lervo/work-control
 import { openNodeOutcomeSupervisionRuntime } from "../src/outcome-supervision-runtime.js";
 import { supervisionJournalCoordinates } from "../src/supervision-authority.js";
 import { SupervisionTaskSource } from "../src/supervision-task-source.js";
+import { canonicalOwnerReasoningFacts } from "../src/supervision-reasoning-context.js";
 import { dispatchFixture } from "./supervision-dispatch.fixture.js";
 
 const roots: string[] = [];
@@ -90,6 +91,20 @@ it("keeps the task source digest and pending decision stable across recorded rea
     expect(after.sourceRevisionDigest).toBe(before.sourceRevisionDigest);
     expect(after.pendingDecision).toBe(true);
     expect(journal.findDecision(decisionId)!.status).toBe("recorded");
+    const { facts } = await canonicalOwnerReasoningFacts(
+      storage,
+      f.binding,
+      await tasks.read(),
+      now,
+    );
+    expect(facts.recoveryObservations.readinessFailures).toHaveLength(2);
+    expect(facts.recoveryObservations.readinessFailures[0]).toMatchObject({
+      assignmentId: f.task.assignmentId,
+      executorAgentId: f.task.executorAgentId,
+      decisionId,
+      reasonCode: "readiness_tools_failed",
+    });
+    expect(facts.recoveryObservations.leaseRenewals).toEqual([]);
     await chmod(tool, 0o700);
   } finally {
     leases.close();
