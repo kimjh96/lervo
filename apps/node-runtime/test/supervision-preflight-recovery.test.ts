@@ -38,7 +38,10 @@ it("resumes the recorded decision after repairing a final preflight failure and 
   try {
     expect((await runtime.runCycle()).disposition).toBe("blocked");
     expect(f.counts()).toEqual({ proposals: 1, effects: 0 });
-    expect(f.attention.at(-1)).toEqual(["supervision_preflight_failed"]);
+    expect(f.attention.at(-1)).toEqual([
+      "supervision_preflight_failed",
+      "supervision_readiness_changed",
+    ]);
     await runtime.close();
     await symlink(original, executable);
     runtime = await open();

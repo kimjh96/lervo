@@ -23,10 +23,20 @@ export interface SupervisionReadinessFailure {
 /** Only a preflight that has not invoked the effect may report this failure. */
 export class SupervisionPreflightError extends Error {
   readonly code = "supervision_preflight_failed";
+  /** The failure code plus the bounded identifier code of its cause, when the cause carries one. */
+  readonly reasonCodes: string[];
 
   constructor(options?: ErrorOptions) {
     super("Supervision preflight failed before effect invocation.", options);
     this.name = "SupervisionPreflightError";
+    const cause = options?.cause as { code?: unknown } | undefined;
+    const causeCode =
+      typeof cause?.code === "string" &&
+      /^[a-z][a-z0-9_]{0,63}$/u.test(cause.code) &&
+      cause.code !== this.code
+        ? cause.code
+        : "preflight_cause_unclassified";
+    this.reasonCodes = [this.code, causeCode];
   }
 }
 

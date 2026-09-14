@@ -48,6 +48,7 @@ export function assertNodeSupervisionReadiness(input: {
     sourceRevisionDigest: input.sourceRevisionDigest,
     now: input.now,
   });
-  if (!Number.isFinite(age) || age < 0 || age > 5000 || result.status !== "ready")
-    throw new NodeSupervisionError("supervision_readiness_changed");
+  if (!Number.isFinite(age) || age < 0 || age > 5000)
+    throw new NodeSupervisionError("supervision_readiness_stale");
+  if (result.status !== "ready") throw new NodeSupervisionError("supervision_readiness_changed");
 }

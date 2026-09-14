@@ -304,7 +304,7 @@ export class OutcomeSupervisionRuntime {
         return { disposition: "effect_confirmed" as const, report };
       } catch (error) {
         if (error instanceof SupervisionPreflightError) {
-          await this.ports.recordAttention(report, [error.code]);
+          await this.ports.recordAttention(report, error.reasonCodes);
           return { disposition: "blocked" as const, report };
         }
         await this.ports.recordEffect({ ...recorded, status: "uncertain", effectEventIds: [] });

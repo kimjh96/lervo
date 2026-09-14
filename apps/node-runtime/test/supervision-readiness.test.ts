@@ -58,7 +58,7 @@ describe("Node task readiness binding", () => {
         sourceRevisionDigest: hash("f"),
         now: "2026-09-11T03:00:06.000Z",
       }),
-    ).toThrow("supervision_readiness_changed");
+    ).toThrow("supervision_readiness_stale");
     bound.observation.validUntil = now;
     expect(() =>
       assertNodeSupervisionReadiness({ readiness: bound, sourceRevisionDigest: hash("f"), now }),

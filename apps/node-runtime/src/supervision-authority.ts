@@ -22,7 +22,9 @@ export class NodeSupervisionError extends Error {
       | "supervision_authority_unavailable"
       | "supervision_authority_changed"
       | "supervision_session_closed"
-      | "supervision_readiness_changed",
+      | "supervision_readiness_changed"
+      | "supervision_readiness_stale"
+      | "supervision_knowledge_snapshot_changed",
   ) {
     super(`Node supervision failed: ${code}.`);
     this.name = "NodeSupervisionError";

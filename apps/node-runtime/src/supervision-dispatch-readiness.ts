@@ -70,7 +70,7 @@ async function readDispatchObservations<Admission>(
       input.expectedKnowledgeSnapshotId !== undefined &&
       knowledge.sourceSnapshotId !== input.expectedKnowledgeSnapshotId
     )
-      throw new NodeSupervisionError("supervision_readiness_changed");
+      throw new NodeSupervisionError("supervision_knowledge_snapshot_changed");
     const taskReadiness =
       supplied !== null
         ? supplied
