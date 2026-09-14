@@ -13,7 +13,7 @@ import { RepositoryKnowledgeError } from "./types.js";
 export const EXECUTION_EVENT_SOURCE_ADAPTER = "execution-event-v1+event-chain";
 
 const MAX_EVENT_SEQUENCE = 100_000;
-export const EXECUTION_EVENT_SOURCE_MAX_EVENTS = 8_192;
+export const EXECUTION_EVENT_SOURCE_MAX_EVENTS = 32_768;
 const MAX_EVENT_BYTES = 256 * 1024;
 const MAX_TOTAL_EVENT_BYTES = 16 * 1024 * 1024;
 

@@ -45,7 +45,7 @@ function store(value: EventEnvelope): Pick<EventStore, "latest" | "list" | "veri
 
 describe("execution event knowledge source", () => {
   it("retains a bounded complete-event capacity for successive managed evaluations", () => {
-    expect(EXECUTION_EVENT_SOURCE_MAX_EVENTS).toBe(8_192);
+    expect(EXECUTION_EVENT_SOURCE_MAX_EVENTS).toBe(32_768);
   });
 
   it("turns one validated privacy-allowlisted chain event into a canonical supplemental unit", async () => {
