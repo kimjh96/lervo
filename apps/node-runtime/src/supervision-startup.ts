@@ -1,6 +1,7 @@
 import type { ConversationAdapter } from "@lervo/conversation-contract";
 import type { ArtifactStore } from "@lervo/storage-contract";
-import { boundedHealthReasonCodes, type NodeRuntimeComponentHealth } from "./health-contract.js";
+import { supervisionAttentionReasonCodes } from "./supervision-attention-health.js";
+import type { NodeRuntimeComponentHealth } from "./health-contract.js";
 import { openNodeOutcomeSupervisionRuntime } from "./outcome-supervision-runtime.js";
 import {
   parseSupervisionStartupConfiguration,
@@ -79,10 +80,8 @@ export async function openNodeSupervisionService(input: {
         }),
     ports: {
       now: input.now ?? (() => new Date().toISOString()),
-      recordAttention: async (_report, reasonCodes) => {
-        attention = boundedHealthReasonCodes(reasonCodes)
-          ? [...reasonCodes]
-          : ["reason_codes_unbounded"];
+      recordAttention: async (report, reasonCodes) => {
+        attention = supervisionAttentionReasonCodes(report, reasonCodes);
         await observe(attentionHealth(attention));
       },
     },
