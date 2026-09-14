@@ -6,7 +6,17 @@ import type { EventReaderCapabilities } from "@lervo/schemas";
 import { NodeRuntimeError } from "./errors.js";
 
 export type NodeRuntimeComponentHealth =
-  { status: "pending" | "ready" | "disabled" } | { status: "unavailable"; failureCode: string };
+  | { status: "pending" | "ready" | "disabled" }
+  | { status: "unavailable"; failureCode: string; reasonCodes?: string[] };
+
+/** Bounded identifier codes only; never prose, paths, or provider output. */
+export function boundedHealthReasonCodes(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= 16 &&
+    value.every((code) => typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(code))
+  );
+}
 
 export interface NodeRuntimeEventReaderIdentity {
   projectId: string;
@@ -32,16 +42,17 @@ export interface NodeRuntimeHealthSnapshot {
 
 function componentHealth(value: unknown): value is NodeRuntimeComponentHealth {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
-  const component = value as { status?: unknown; failureCode?: unknown };
+  const component = value as { status?: unknown; failureCode?: unknown; reasonCodes?: unknown };
   if (["pending", "ready", "disabled"].includes(component.status as string)) {
-    return component.failureCode === undefined;
+    return component.failureCode === undefined && component.reasonCodes === undefined;
   }
   return (
     component.status === "unavailable" &&
     typeof component.failureCode === "string" &&
     component.failureCode.length > 0 &&
     component.failureCode.length <= 128 &&
-    !/[\0\r\n]/u.test(component.failureCode)
+    !/[\0\r\n]/u.test(component.failureCode) &&
+    (component.reasonCodes === undefined || boundedHealthReasonCodes(component.reasonCodes))
   );
 }
 

@@ -95,6 +95,14 @@ it("starts and closes the local service without a Hub and observes unavailable w
   } finally {
     await service.close();
   }
+  const unavailable = health.filter((observation) => observation.status === "unavailable");
+  expect(unavailable.length).toBeGreaterThan(0);
+  for (const observation of unavailable) {
+    expect(observation).toMatchObject({ failureCode: "supervision_attention_required" });
+    expect(observation.reasonCodes).toBeDefined();
+    expect(observation.reasonCodes!.length).toBeGreaterThan(0);
+    for (const code of observation.reasonCodes!) expect(code).toMatch(/^[a-z][a-z0-9_]{0,63}$/u);
+  }
   const storage = await openProjectStorage(f.root);
   try {
     const source = await new SupervisionTaskSource(storage, f.binding, f.ports.now).read();

@@ -1,6 +1,6 @@
 import type { ConversationAdapter } from "@lervo/conversation-contract";
 import type { ArtifactStore } from "@lervo/storage-contract";
-import type { NodeRuntimeComponentHealth } from "./health-contract.js";
+import { boundedHealthReasonCodes, type NodeRuntimeComponentHealth } from "./health-contract.js";
 import { openNodeOutcomeSupervisionRuntime } from "./outcome-supervision-runtime.js";
 import {
   parseSupervisionStartupConfiguration,
@@ -50,6 +50,13 @@ export async function openNodeSupervisionService(input: {
     input.observeHealth(health).catch(() => {
       fail();
     });
+  /** Codes from the latest attention in the current cycle; the cycle observation carries them. */
+  let attention: string[] | null = null;
+  const attentionHealth = (reasonCodes: string[] | null): NodeRuntimeComponentHealth => ({
+    status: "unavailable",
+    failureCode: "supervision_attention_required",
+    ...(reasonCodes === null ? {} : { reasonCodes: [...reasonCodes] }),
+  });
   const runtime = await openNodeOutcomeSupervisionRuntime({
     repositoryRoot: input.repositoryRoot,
     binding: config.binding,
@@ -72,8 +79,12 @@ export async function openNodeSupervisionService(input: {
         }),
     ports: {
       now: input.now ?? (() => new Date().toISOString()),
-      recordAttention: async () =>
-        observe({ status: "unavailable", failureCode: "supervision_attention_required" }),
+      recordAttention: async (_report, reasonCodes) => {
+        attention = boundedHealthReasonCodes(reasonCodes)
+          ? [...reasonCodes]
+          : ["reason_codes_unbounded"];
+        await observe(attentionHealth(attention));
+      },
     },
   });
   return {
@@ -84,10 +95,12 @@ export async function openNodeSupervisionService(input: {
           void observe({ status: "unavailable", failureCode: "supervision_cycle_failed" });
         },
         onCycle: async (cycle) => {
+          const reasonCodes = attention;
+          attention = null;
           if (cycle.report === null) return;
           await observe(
             cycle.disposition === "blocked" || cycle.disposition === "uncertain"
-              ? { status: "unavailable", failureCode: "supervision_attention_required" }
+              ? attentionHealth(reasonCodes)
               : { status: "ready" },
           );
         },

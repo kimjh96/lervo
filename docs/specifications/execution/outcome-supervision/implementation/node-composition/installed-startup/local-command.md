@@ -14,6 +14,6 @@ The command installs SIGINT and SIGTERM handlers before opening the service. If 
 
 ## Health and privacy
 
-Each observed service health update writes one JSON line containing `schemaVersion: 1`, `component: "supervision"`, `status`, and a `failureCode` only when health is unavailable. These process observations are neither canonical events nor acceptance receipts. A ready observation proves service operation, not goal completion. Blocked or uncertain work remains unavailable under the existing service contract. Idle cycles without a fresh report do not create a health observation.
+Each observed service health update writes one JSON line containing `schemaVersion: 1`, `component: "supervision"`, `status`, and, only when health is unavailable, a `failureCode` plus the bounded attention `reasonCodes` of the blocked or uncertain cycle. These process observations are neither canonical events nor acceptance receipts. A ready observation proves service operation, not goal completion. Blocked or uncertain work remains unavailable under the existing service contract. Idle cycles without a fresh report do not create a health observation.
 
 Diagnostics contain bounded failure codes and exclude prompts, task prose, filesystem paths, credentials, provider errors, and configuration bodies. A failed health write fails the service. The command adds no event schema, authority source, polling loop, persistent registry, or automatic service installation.
