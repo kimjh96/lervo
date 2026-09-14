@@ -13,6 +13,28 @@ export interface SupervisedManagedProcessConfiguration {
   environment: Readonly<Record<string, string>>;
 }
 
+export type SupervisedManagedProcessFailureCode =
+  | "managed_launch_failed"
+  | "managed_process_failed"
+  | "managed_output_bound_exceeded"
+  | "managed_revalidation_failed"
+  | "managed_deadline_elapsed"
+  | "managed_cancelled"
+  | "managed_stdin_failed"
+  | "managed_dispatch_evidence_missing"
+  | "managed_outcome_unreconciled";
+
+/** Carries only a bounded failure code; child output, paths, and provider errors stay out. */
+export class SupervisedManagedProcessError extends Error {
+  constructor(
+    readonly code: SupervisedManagedProcessFailureCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = "SupervisedManagedProcessError";
+  }
+}
+
 /** Runs the managed CLI boundary. Process exit alone never proves dispatch or acceptance. */
 export async function runSupervisedManagedProcess(input: {
   repositoryRoot: string;
@@ -62,20 +84,25 @@ export async function runSupervisedManagedProcess(input: {
           ),
         );
       } catch {
-        reject(new Error("The managed worker could not be launched."));
+        reject(
+          new SupervisedManagedProcessError(
+            "managed_launch_failed",
+            "The managed worker could not be launched.",
+          ),
+        );
         return;
       }
-      let interrupted = false;
+      let interrupted: SupervisedManagedProcessFailureCode | null = null;
       let settled = false;
       let bytes = 0;
       let killTimer: ReturnType<typeof setTimeout> | undefined;
-      const abort = () => {
-        if (interrupted || settled) return;
-        interrupted = true;
+      const abort = (code: SupervisedManagedProcessFailureCode) => {
+        if (interrupted !== null || settled) return;
+        interrupted = code;
         child.kill("SIGTERM");
         killTimer = setTimeout(() => child.kill("SIGKILL"), 5000);
       };
-      const deadline = setTimeout(abort, timeout);
+      const deadline = setTimeout(() => abort("managed_deadline_elapsed"), timeout);
       let checking = false;
       const renewal = setInterval(() => {
         if (checking || settled) return;
@@ -83,39 +110,51 @@ export async function runSupervisedManagedProcess(input: {
         monitor = Promise.resolve()
           .then(() => revalidateWithinAuthorityWindow(input.revalidate))
           .then(() => {
-            if (!settled && !interrupted) input.fence.renew();
+            if (!settled && interrupted === null) input.fence.renew();
           })
-          .catch(abort)
+          .catch(() => abort("managed_revalidation_failed"))
           .finally(() => {
             checking = false;
           });
       }, 60_000);
-      input.signal?.addEventListener("abort", abort, { once: true });
+      const cancel = () => abort("managed_cancelled");
+      input.signal?.addEventListener("abort", cancel, { once: true });
       const cleanup = () => {
         settled = true;
         clearTimeout(deadline);
         clearInterval(renewal);
         if (killTimer !== undefined) clearTimeout(killTimer);
-        input.signal?.removeEventListener("abort", abort);
+        input.signal?.removeEventListener("abort", cancel);
       };
       const collect = (chunk: Buffer) => {
         bytes += chunk.byteLength;
-        if (bytes > 1024 * 1024) abort();
+        if (bytes > 1024 * 1024) abort("managed_output_bound_exceeded");
       };
       child.stdout!.on("data", collect);
       child.stderr!.on("data", collect);
-      child.stdin!.on("error", () => abort());
+      child.stdin!.on("error", () => abort("managed_stdin_failed"));
       child.once("error", () => {
         cleanup();
-        reject(new Error("The managed worker process failed."));
+        reject(
+          new SupervisedManagedProcessError(
+            "managed_process_failed",
+            "The managed worker process failed.",
+          ),
+        );
       });
       child.once("close", () => {
         cleanup();
-        if (interrupted) reject(new Error("The managed worker outcome requires reconciliation."));
+        if (interrupted !== null)
+          reject(
+            new SupervisedManagedProcessError(
+              interrupted,
+              "The managed worker outcome requires reconciliation.",
+            ),
+          );
         else resolve();
       });
       child.stdin!.end(body);
-      if (input.signal?.aborted) abort();
+      if (input.signal?.aborted) cancel();
     });
   } finally {
     await monitor;
@@ -134,9 +173,15 @@ export async function runSupervisedManagedProcess(input: {
     cause?.payload.assignmentId !== invocation.effect.responsibility.assignmentId ||
     reserved.payload.executionKey !== operatingContractHash(invocation.plan)
   )
-    throw new Error("The managed worker has no exact canonical dispatch evidence.");
+    throw new SupervisedManagedProcessError(
+      "managed_dispatch_evidence_missing",
+      "The managed worker has no exact canonical dispatch evidence.",
+    );
   if (observedSupervisionRunTermination(events) === null)
-    throw new Error("The managed worker outcome requires reconciliation.");
+    throw new SupervisedManagedProcessError(
+      "managed_outcome_unreconciled",
+      "The managed worker outcome requires reconciliation.",
+    );
   return { eventIds: [reserved.eventId, requested.eventId] };
 }
 

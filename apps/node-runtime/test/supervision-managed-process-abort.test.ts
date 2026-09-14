@@ -1,0 +1,81 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { afterEach, expect, it } from "vitest";
+import { SQLiteEventStore } from "@lervo/event-store-sqlite";
+import {
+  runSupervisedManagedProcess,
+  SupervisedManagedProcessError,
+} from "../src/supervision-managed-process.js";
+
+const roots: string[] = [];
+const stores: SQLiteEventStore[] = [];
+afterEach(async () => {
+  for (const store of stores.splice(0)) store.close();
+  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+async function fixture(script: string, deadlineMs = 60_000) {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-managed-abort-"));
+  roots.push(root);
+  const cliBundle = resolve(root, "fake-cli.mjs");
+  await writeFile(cliBundle, script);
+  const projectId = `prj_${"a".repeat(16)}`;
+  const events = await SQLiteEventStore.open({
+    path: resolve(root, "events.sqlite"),
+    projectId,
+    writableEventSchemaVersion: 3,
+  });
+  stores.push(events);
+  const now = () => new Date().toISOString();
+  const invocation = {
+    plan: {
+      projectId,
+      deadline: new Date(Date.now() + deadlineMs).toISOString(),
+      effectHash: `sha256:${"b".repeat(64)}`,
+    },
+    effect: { responsibility: { assignmentId: `asn_${"c".repeat(24)}` } },
+  } as unknown as Parameters<typeof runSupervisedManagedProcess>[0]["invocation"];
+  return {
+    run: (revalidate: () => Promise<void> = async () => undefined, signal?: AbortSignal) =>
+      runSupervisedManagedProcess({
+        repositoryRoot: root,
+        invocation,
+        configuration: {
+          nodeExecutable: process.execPath,
+          cliBundle,
+          providerExecutable: process.execPath,
+          environment: { PATH: process.env.PATH ?? "" },
+        },
+        events,
+        fence: { commit: (effect) => effect(), renew: () => undefined },
+        now,
+        revalidate,
+        ...(signal === undefined ? {} : { signal }),
+      }),
+  };
+}
+
+it("reports an output bound abort with a bounded code and no child output", async () => {
+  const f = await fixture(
+    `process.stdin.resume(); const chunk = "x".repeat(65536); let n = 0;
+     const tick = () => { if (n++ < 40) { process.stdout.write(chunk); setTimeout(tick, 5); } else setTimeout(tick, 1000); };
+     tick();`,
+  );
+  const error = await f.run().catch((cause: unknown) => cause);
+  expect(error).toBeInstanceOf(SupervisedManagedProcessError);
+  expect((error as SupervisedManagedProcessError).code).toBe("managed_output_bound_exceeded");
+  expect((error as Error).message).not.toContain("xxxx");
+});
+
+it("reports cancellation and a missing dispatch record distinctly", async () => {
+  const cancelled = await fixture(`process.stdin.resume(); setInterval(() => {}, 1000);`);
+  const controller = new AbortController();
+  const pending = cancelled.run(async () => undefined, controller.signal);
+  setTimeout(() => controller.abort(), 200);
+  await expect(pending).rejects.toMatchObject({ code: "managed_cancelled" });
+  const silent = await fixture(
+    `process.stdin.resume(); process.stdin.on("end", () => process.exit(0));`,
+  );
+  await expect(silent.run()).rejects.toMatchObject({ code: "managed_dispatch_evidence_missing" });
+});

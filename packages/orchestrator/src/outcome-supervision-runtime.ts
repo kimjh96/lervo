@@ -38,6 +38,12 @@ function assertReceipt(
   }
 }
 
+/** The effect adapter's bounded identifier code, if it carries one; never its message. */
+function boundedErrorCode(error: unknown): string[] {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(code) ? [code] : [];
+}
+
 /** Composes canonical sources and effects; contains no provider or chat routing. */
 export class OutcomeSupervisionRuntime {
   private readonly cursors = new Map<string, { digest: string; nextCheckAt: string | null }>();
@@ -308,7 +314,10 @@ export class OutcomeSupervisionRuntime {
           return { disposition: "blocked" as const, report };
         }
         await this.ports.recordEffect({ ...recorded, status: "uncertain", effectEventIds: [] });
-        await this.ports.recordAttention(report, ["effect_outcome_uncertain"]);
+        await this.ports.recordAttention(report, [
+          "effect_outcome_uncertain",
+          ...boundedErrorCode(error),
+        ]);
         return { disposition: "uncertain" as const, report };
       }
     });
