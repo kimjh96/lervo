@@ -51,6 +51,24 @@ export class SupervisionManagedEffects {
       if (context === undefined || providerExecutable === undefined)
         throw new Error("The managed provider has no exact configured login and executable.");
       const invocation = fence.managedInvocation(plan, effect);
+      // A run that outlives its claim window keeps the exact lease alive; the plan deadline and
+      // the responsibility completion deadline still bound every renewal. The first renewal
+      // happens before launch so a late dispatch cannot expire before the first periodic check.
+      const renewLease = async () => {
+        let leaseDurationMs: number;
+        try {
+          leaseDurationMs = supervisionClaimDuration(effect.responsibility, this.now());
+        } catch {
+          return;
+        }
+        await fence.renewWorkerLease({
+          assignmentId: effect.responsibility.assignmentId,
+          agentId: effect.responsibility.executorAgentId,
+          leaseId: effect.leaseId,
+          leaseDurationMs,
+        });
+      };
+      await renewLease();
       return await runSupervisedManagedProcess({
         repositoryRoot: this.repositoryRoot,
         invocation,
@@ -73,20 +91,7 @@ export class SupervisionManagedEffects {
             now: this.now,
             commit: () => undefined,
           });
-          // A run that outlives its claim window keeps the exact lease alive; the plan deadline
-          // and the responsibility completion deadline still bound the renewal.
-          let leaseDurationMs: number;
-          try {
-            leaseDurationMs = supervisionClaimDuration(effect.responsibility, this.now());
-          } catch {
-            return;
-          }
-          await fence.renewWorkerLease({
-            assignmentId: effect.responsibility.assignmentId,
-            agentId: effect.responsibility.executorAgentId,
-            leaseId: effect.leaseId,
-            leaseDurationMs,
-          });
+          await renewLease();
         },
       });
     } finally {
