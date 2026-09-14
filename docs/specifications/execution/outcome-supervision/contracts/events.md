@@ -31,6 +31,10 @@ Exclude raw user text, prompts, reasoning, paths, external message identifiers, 
 | `work.supervision.delivery.queued` | decision ID, plan hash, completion event ID, result artifact hash, candidate artifact hash, outbound artifact hash | Exact admitted publication is queued; this is not delivery success. |
 | `work.supervision.delivery.observed` | decision ID, plan hash, outbound ID, attempt number, status, receipt artifact hash or null, reason code, next check time or null | One to four transport attempts; `delivered` requires a matching receipt and no next check. Failed attempts retain the outbound, exclude raw errors, and may schedule another attempt before expiry. Attempt four has no next check. |
 
+## Reader compatibility
+
+Every stored event must satisfy a readable event schema of the reader that opens the store. Adding `work.supervision.readiness.failed` to envelope version 3 means CLI, Node, and Hub bundles built before this event type reject a journal that contains it with `integrity_failed` (`The stored event does not satisfy a readable event schema.`), and Hub replication stops at the preceding sequence. Deploy the managed CLI bundle, the Node bundle, and the Hub from one revision that knows the event before an installed owner can record it; a mixed deployment is a non-start, not data loss.
+
 ## Idempotency and recovery
 
 Keyed managed invocation also uses envelope-version-3 `managed.execution.reserved`, a generic managed-execution event outside the supervision journal. Required payload fields `executionKey` and `requestHash` are SHA-256 digests. It records one prelude reservation before any provider call and excludes the request, paths, credentials, and owner token. A reservation without a causal/request record means an unresolved invocation, not safe absence or successful dispatch.
