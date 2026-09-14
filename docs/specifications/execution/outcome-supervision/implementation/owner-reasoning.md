@@ -2,6 +2,8 @@
 
 The explicit Node factory can supply an owner proposal path when the host omits application planning/effect ports and configures native owner reasoning. It reads the canonical goal, mandate, registered staff and roles, responsibilities, current task artifacts, required instructions and bounded retrieved sources, storing the exact context in CAS. Source text and results remain outside operational event fields.
 
+For a Discord-bound goal, the context distinguishes the outbound product-owner speaker from the requester. A separate read-only check of the durable native ingress supplies human `goal.requested` provenance only when its event ID, content, target, policy and owner mention match the bound request; absent or conflicting evidence cannot satisfy a human-intake criterion.
+
 - [Invocation and authority](owner-reasoning/invocation.md)
 - [Results, usage and reuse](owner-reasoning/results.md)
 - [Verification](owner-reasoning/verification.md)

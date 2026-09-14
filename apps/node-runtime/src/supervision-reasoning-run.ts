@@ -79,6 +79,7 @@ export async function runManagedOwnerReasoning(input: {
     targetTurnId: `turn_${operatingContractHash(plan).slice(7, 39)}`,
     instructions: [
       "Act as the registered product owner. Read the canonical goal, prior sources, staff, task contracts and result evidence below.",
+      "For a Discord boundRequest, origin.actor is the outbound result speaker, not the requester. Only facts.requesterProvenance.status=verified with ingressKind=goal.requested and requesterKind=human proves native human slash-command intake; a missing proof does not.",
       "Return one JSON decision only. This is an observation-only planning turn: do not change files, dispatch workers, send messages, or claim an effect occurred.",
       `Observed UTC time: ${input.now()}. Compare mandate and lease deadlines with this timestamp; a local calendar date does not establish expiry. Canonical admission owns the final deadline check.`,
       `Current lifecycle permits these operations: ${supervisionReasoningDecisionSchema(context).properties.operation.enum.join(", ")}. A completed assignment has already passed its writing completion gate; review its artifacts instead of preparing completion again.`,

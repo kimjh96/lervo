@@ -21,6 +21,7 @@ import { readSupervisedReviewFeedback } from "./supervision-review-observation.j
 import { readSupervisionPeerFacts } from "./supervision-peer-facts.js";
 import { readSupervisionHandoffState } from "./supervision-handoff-state.js";
 import { readBoundSupervisionRequest } from "./supervision-bound-request.js";
+import { readDiscordGoalRequesterProvenance } from "./supervision-discord-request-provenance.js";
 import { observeSupervisionResearchPolicy } from "./supervision-research-policy.js";
 import { readSupervisionResearchEvidence } from "./supervision-research-evidence.js";
 import { readCompletedResearchReviewEvidence } from "./supervision-research-review-evidence.js";
@@ -97,6 +98,8 @@ export async function canonicalOwnerReasoningFacts(
     );
   }
   const policy = await loadRepositoryKnowledgePolicy(storage.paths.repositoryRoot);
+  const boundRequest = await readBoundSupervisionRequest(storage, source, binding);
+  const requesterProvenance = await readDiscordGoalRequesterProvenance(storage, boundRequest);
   const unstartedWorkspaces = [];
   for (const workspace of await listWorkspaces(storage.paths.repositoryRoot)) {
     const assignment = source.assignments.find(
@@ -120,7 +123,8 @@ export async function canonicalOwnerReasoningFacts(
     writingContract: writingContractForLanguage(policy.publication.language),
     resultWritingContract,
     acceptedGoal: await readAcceptedSupervisionGoal(storage, source),
-    boundRequest: await readBoundSupervisionRequest(storage, source, binding),
+    boundRequest,
+    requesterProvenance,
     mandate,
     workstream: source.workstream,
     agents: source.agents,
