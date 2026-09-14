@@ -16,6 +16,7 @@ import {
   supervisedResponsibilityClaimFields,
 } from "@lervo/work-controller";
 import { materializeNativeDispatch } from "./supervision-native-dispatch.js";
+import { staleResponsibilityFacts } from "./supervision-goal-revision.js";
 import { SupervisionTaskSource } from "./supervision-task-source.js";
 import {
   observeNodeSupervisionAuthority,
@@ -102,11 +103,13 @@ export class NativeSupervisionOwner {
           Math.min(Date.parse(this.now()) + 120_000, Date.parse(facts.mandate.expiresAt)),
         ).toISOString(),
       };
+      const stale = staleResponsibilityFacts(source).map((item) => item.assignmentId);
       if (
         report.nextAction === "dispatch" &&
         source.assignments.some(
           (assignment) =>
             report.assignmentIds.includes(assignment.assignmentId) &&
+            !stale.includes(assignment.assignmentId) &&
             assignment.lease !== null &&
             Date.parse(assignment.lease.expiresAt) > Date.parse(this.now()),
         )

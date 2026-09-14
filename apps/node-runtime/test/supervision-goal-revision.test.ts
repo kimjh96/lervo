@@ -63,7 +63,7 @@ it("lists only non-terminal responsibilities bound before the current goal revis
   ]);
 });
 
-it("refuses workspace preparation and dispatch for a stale responsibility only", () => {
+it("still exposes the stale check for a stale responsibility only", () => {
   const stale = source({
     revision: 3,
     bindings: [{ assignmentId: `asn_${"a".repeat(24)}`, boundRevision: 1 }],
