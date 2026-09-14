@@ -24,7 +24,7 @@ type ApplicationPorts = Omit<
 
 export interface NodeSupervisionEffectSession extends Pick<
   NodeSupervisionSession,
-  "commit" | "renew"
+  "commit" | "renew" | "renewWorkerLease"
 > {
   recordGoalCompletion(
     plan: Parameters<NodeSupervisionSession["recordGoalCompletion"]>[0],

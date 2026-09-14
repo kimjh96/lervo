@@ -322,6 +322,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
           owner.recordGoalCompletion(action, effect, authorityDigest),
         commit: owner.commit,
         renew: owner.renew,
+        renewWorkerLease: (lease) => owner.renewWorkerLease(lease),
         recordArtifactReview: (action, effect) =>
           owner.recordArtifactReview(action, effect, authorityDigest),
         managedInvocation: (action, effect) =>

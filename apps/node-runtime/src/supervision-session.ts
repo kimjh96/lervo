@@ -20,6 +20,7 @@ import {
   type SupervisionOwnerLease,
   type SupervisionReadinessFailureRecord,
 } from "@lervo/agent-workforce";
+import { createSessionResponsibilityOperations } from "./supervision-session-responsibility.js";
 import { type ProjectStorage } from "@lervo/project-storage";
 import { SupervisionAuthorityHistory } from "./supervision-authority-history.js";
 import { SupervisionTaskSource } from "./supervision-task-source.js";
@@ -96,6 +97,13 @@ export interface NodeSupervisionSession {
     authorityDigest: string,
     revalidate: (assignment: WorkforceAssignment) => Promise<void>,
   ): ReturnType<SupervisionResponsibilityClaimer["claim"]>;
+  /** Extends the executor's exact live lease during an observed managed run; never claims. */
+  renewWorkerLease(input: {
+    assignmentId: string;
+    agentId: string;
+    leaseId: string;
+    leaseDurationMs: number;
+  }): Promise<WorkforceAssignment | null>;
   readResponsibility(assignmentId: string): ReturnType<SupervisionResponsibilityReader["current"]>;
   readMandate(): ReturnType<typeof readInstalledNodeMandate>;
   readAuthority(): ReturnType<typeof observeNodeSupervisionAuthority>;
@@ -152,6 +160,15 @@ export function createNodeSupervisionSession(context: {
       context.now,
       { store: context.leases, lease },
     );
+  const responsibility = createSessionResponsibilityOperations({
+    storage: context.storage,
+    leases: context.leases,
+    binding: context.binding,
+    now: context.now,
+    assertOpen,
+    currentLease: () => lease,
+    readAuthority: () => session.readAuthority(),
+  });
   const session: NodeSupervisionSession = {
     bindRequest: (request) => {
       assertOpen();
@@ -277,56 +294,7 @@ export function createNodeSupervisionSession(context: {
       assertOpen();
       return topologyMaterializer(authority.source.workstreamRevision).inspect(effect, plan);
     },
-    claimResponsibility: async (claim, authorityDigest, revalidate) => {
-      assertOpen();
-      claim = structuredClone(claim);
-      const authority = await session.readAuthority();
-      assertOpen();
-      if (
-        authority.source.sourceRevisionDigest !== authorityDigest ||
-        claim.maximumDeadlineMs !== authority.installation.mandate.maximumDeadlineMs ||
-        Date.parse(claim.responsibility.completionDeadline) >
-          Date.parse(authority.installation.mandate.expiresAt) ||
-        claim.responsibility.reviewerAgentId !== context.binding.ownerAgentId ||
-        !authority.source.causationEventIds.every((id) => claim.causationEventIds.includes(id))
-      )
-        throw new NodeSupervisionError("supervision_authority_changed");
-      const claimer = new SupervisionResponsibilityClaimer(
-        context.storage.paths.repositoryRoot,
-        context.storage.events,
-        context.storage.artifacts,
-        supervisionJournalCoordinates(
-          context.storage,
-          context.binding,
-          authority.source.workstreamRevision,
-        ),
-        context.now,
-        { store: context.leases, lease },
-      );
-      return claimer.claim(claim, async (assignment) => {
-        assertOpen();
-        await revalidate(assignment);
-        const current = await session.readAuthority();
-        assertOpen();
-        if (current.source.sourceRevisionDigest !== authorityDigest)
-          throw new NodeSupervisionError("supervision_authority_changed");
-      });
-    },
-    readResponsibility: async (assignmentId) => {
-      assertOpen();
-      const authority = await session.readAuthority();
-      assertOpen();
-      return new SupervisionResponsibilityReader(
-        context.storage.events,
-        context.storage.artifacts,
-        supervisionJournalCoordinates(
-          context.storage,
-          context.binding,
-          authority.source.workstreamRevision,
-        ),
-        context.now,
-      ).current(assignmentId);
-    },
+    ...responsibility,
     readMandate: async () => {
       assertOpen();
       return readInstalledNodeMandate(context.storage, context.binding, context.now);

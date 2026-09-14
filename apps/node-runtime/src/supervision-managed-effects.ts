@@ -16,6 +16,7 @@ import {
 import type { NodeSupervisionEffectSession } from "./outcome-supervision-runtime.js";
 import type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-configuration.js";
 import { runSupervisedManagedProcess } from "./supervision-managed-process.js";
+import { supervisionClaimDuration } from "./supervision-claim-duration.js";
 import { admitSupervisedManagedInvocation } from "./supervision-managed-admission.js";
 import { supersedeUnstartedManagedExecution } from "./supervision-managed-supersession.js";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
@@ -65,13 +66,28 @@ export class SupervisionManagedEffects {
         fence,
         now: this.now,
         signal: this.cancellation.signal,
-        revalidate: () =>
-          admitSupervisedManagedInvocation({
+        revalidate: async () => {
+          await admitSupervisedManagedInvocation({
             storage,
             invocation,
             now: this.now,
             commit: () => undefined,
-          }),
+          });
+          // A run that outlives its claim window keeps the exact lease alive; the plan deadline
+          // and the responsibility completion deadline still bound the renewal.
+          let leaseDurationMs: number;
+          try {
+            leaseDurationMs = supervisionClaimDuration(effect.responsibility, this.now());
+          } catch {
+            return;
+          }
+          await fence.renewWorkerLease({
+            assignmentId: effect.responsibility.assignmentId,
+            agentId: effect.responsibility.executorAgentId,
+            leaseId: effect.leaseId,
+            leaseDurationMs,
+          });
+        },
       });
     } finally {
       await storage.close();
