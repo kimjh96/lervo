@@ -83,6 +83,7 @@ const eventLabels = {
   "work.supervision.decision.recorded": "Owner decision recorded",
   "work.supervision.decision.superseded": "Unstarted owner decision superseded",
   "work.supervision.effect.observed": "Owner decision effect observed",
+  "work.supervision.readiness.failed": "Worker readiness failure recorded",
   "work.supervision.review.recorded": "Outcome review recorded",
   "work.supervision.workspace.prepared": "Worker workspace prepared",
   "work.supervision.delivery.queued": "Accepted result delivery queued",

@@ -176,7 +176,10 @@ export class SupervisionTaskSource {
         assignmentEvents: events
           .filter((event) => assignmentIds.has(String(event.payload.assignmentId)))
           .map((event) => event.eventHash),
-        supervisionEvents: supervisionEvents.map((event) => event.eventHash),
+        // A readiness failure describes a recorded decision's preflight; it changes no task source.
+        supervisionEvents: supervisionEvents
+          .filter((event) => event.type !== "work.supervision.readiness.failed")
+          .map((event) => event.eventHash),
         executionEvents: events
           .filter((event) => executionRuns.has(event.runId))
           .map((event) => event.eventHash),
