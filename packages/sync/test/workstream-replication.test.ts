@@ -208,6 +208,63 @@ describe("workstream replication cycle", () => {
     });
   });
 
+  it("imports a separate successor only when it names the completed local head", async () => {
+    const registration = createProjectRegistrationRequest({
+      manifest,
+      destinationId,
+      requestedAt: "2026-08-24T00:00:00.000Z",
+    });
+    const completed = { ...snapshot(1), status: "completed" as const };
+    const successor: WorkstreamSnapshot = {
+      ...snapshot(1),
+      workstreamId: "wks_abcdefabcdefabcdefabcdef",
+      origin: {
+        kind: "successor",
+        sourceArtifactId: null,
+        sourceContentHash: null,
+        sourcePathDigest: null,
+        predecessorWorkstreamId: completed.workstreamId,
+        predecessorSnapshotContentHash: firstHash,
+      },
+    };
+    const state = local([
+      { snapshot: completed, snapshotContentHash: firstHash, previousSnapshotContentHash: null },
+    ]);
+    const transport: AuthenticatedWorkstreamHubTransport = {
+      publishWorkstream: async (request) =>
+        response({
+          schemaVersion: 1,
+          status: "duplicate",
+          projectId: request.projectId,
+          repositoryIdentityHash: request.repositoryIdentityHash,
+          heads: [head(successor, secondHash, firstHash)],
+        }),
+      readWorkstream: async () =>
+        response({
+          schemaVersion: 1,
+          status: "current",
+          projectId: registration.project.projectId,
+          repositoryIdentityHash: registration.projectIdentityHash,
+          heads: [head(successor, secondHash, firstHash)],
+          snapshot: successor,
+        }),
+    };
+    await expect(
+      runWorkstreamReplicationCycle({
+        local: state,
+        transport,
+        registration,
+        destinationId,
+        expectedPeerIdentityHash: peerIdentityHash,
+      }),
+    ).resolves.toMatchObject({ status: "imported", imported: true });
+    expect(state.importCurrent).toHaveBeenCalledWith({
+      snapshot: successor,
+      snapshotContentHash: secondHash,
+      previousSnapshotContentHash: firstHash,
+    });
+  });
+
   it("preserves divergent heads and never imports a winner", async () => {
     const registration = createProjectRegistrationRequest({
       manifest,

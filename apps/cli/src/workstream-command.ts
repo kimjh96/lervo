@@ -114,6 +114,7 @@ async function runStart(args: string[], io: CliIo): Promise<number> {
   const root = resolve(io.cwd, parsed.values.root ?? ".");
   const storage = await openProjectStorage(root);
   try {
+    await verifiedCurrentWorkstream(storage);
     const plan = await createWorkstreamStartPlan({
       repositoryRoot: root,
       projectId: storage.manifest.projectId,
@@ -176,7 +177,7 @@ async function runStart(args: string[], io: CliIo): Promise<number> {
               changeKind: applied.operation,
               snapshotArtifactId: `art_${applied.snapshotContentHash.slice("sha256:".length)}`,
               snapshotContentHash: applied.snapshotContentHash,
-              previousSnapshotContentHash: null,
+              previousSnapshotContentHash: applied.previousSnapshotContentHash,
               sourceArtifactId: null,
               sourceContentHash: null,
               recordedAt: applied.appliedAt,

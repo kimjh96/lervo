@@ -34,13 +34,20 @@ async function fixture() {
   await mkdir(resolve(projection, ".."), { recursive: true });
   let parent: string | null = null;
   let revision = 0;
-  const append = async () => {
+  const append = async (options?: {
+    completed?: boolean;
+    nextGoal?: boolean;
+    invalidOrigin?: boolean;
+  }) => {
+    if (options?.nextGoal) revision = 0;
     revision += 1;
     const snapshot: WorkstreamSnapshot = {
       schemaVersion: 1,
-      workstreamId: "wks_1234567890abcdef12345678",
+      workstreamId: options?.nextGoal
+        ? "wks_abcdefabcdefabcdefabcdef"
+        : "wks_1234567890abcdef12345678",
       revision,
-      status: "active",
+      status: options?.completed ? "completed" : "active",
       title: "Incremental replication",
       objective: "Verify bounded workstream history reads.",
       nextActions: ["Continue verification."],
@@ -49,18 +56,29 @@ async function fixture() {
       references: [],
       pendingDecisions: [],
       pendingApprovals: [],
-      origin: {
-        kind: "created",
-        sourceArtifactId: null,
-        sourceContentHash: null,
-        sourcePathDigest: null,
-      },
+      origin: options?.nextGoal
+        ? {
+            kind: "successor",
+            sourceArtifactId: null,
+            sourceContentHash: null,
+            sourcePathDigest: null,
+            predecessorWorkstreamId: "wks_1234567890abcdef12345678",
+            predecessorSnapshotContentHash: options.invalidOrigin
+              ? `sha256:${"f".repeat(64)}`
+              : parent!,
+          }
+        : {
+            kind: "created",
+            sourceArtifactId: null,
+            sourceContentHash: null,
+            sourcePathDigest: null,
+          },
       updatedAt: "2026-09-11T00:00:00.000Z",
     };
     const content = `${canonicalJson(snapshot)}\n`;
     const artifact = await artifacts.put(content);
     events.append({
-      eventId: `evt_workstream_read_${revision}`,
+      eventId: `evt_workstream_read_${options?.nextGoal ? "next_" : ""}${revision}`,
       projectId: nodeRuntimeProjectId,
       runId: "run_workstream_read_01",
       sessionId: "ses_workstream_read_01",
@@ -108,6 +126,21 @@ async function fixture() {
 }
 
 describe("incremental workstream verification", () => {
+  it("retains a completed goal before its exact successor and rejects forged successor origins", async () => {
+    const valid = await fixture();
+    await valid.append({ completed: true });
+    await valid.append({ nextGoal: true });
+    expect((await valid.reader.readRevisionChain()).map((item) => item.snapshot.status)).toEqual([
+      "completed",
+      "active",
+    ]);
+
+    const forged = await fixture();
+    await forged.append({ completed: true });
+    await forged.append({ nextGoal: true, invalidOrigin: true });
+    await expect(forged.reader.readRevisionChain()).rejects.toThrow("ancestry is invalid");
+  });
+
   it("reads each new artifact once, skips unchanged ancestry, and rebuilds after restart", async () => {
     const f = await fixture();
     for (let i = 0; i < 12; i += 1) await f.append();

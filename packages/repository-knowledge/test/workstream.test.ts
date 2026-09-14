@@ -136,6 +136,76 @@ describe("repository workstreams", () => {
     ).toBe("blocked");
   });
 
+  it("starts a distinct goal after a settled completion and retains its predecessor binding", async () => {
+    const root = await repository();
+    const draft = {
+      schemaVersion: 1,
+      status: "completed" as const,
+      title: "Accepted local research",
+      objective: "Answer and independently accept one local research request.",
+      nextActions: [],
+      blockers: [],
+      notes: [],
+      references: [],
+      updatedAt: "2026-08-24T01:00:00.000Z",
+    };
+    const first = await createWorkstreamStartPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+      draft,
+    });
+    await applyWorkstreamStartPlan({
+      plan: first,
+      now: new Date(),
+      recordApplied: () => undefined,
+    });
+    const next = await createWorkstreamStartPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+      draft: {
+        ...draft,
+        status: "active",
+        title: "Discord acceptance",
+        objective: "Accept a separate authenticated Discord goal.",
+        nextActions: ["Bind the new request."],
+        updatedAt: "2026-08-24T02:00:00.000Z",
+      },
+    });
+    expect(next).toMatchObject({
+      status: "ready",
+      currentSnapshotContentHash: first.desiredSnapshotContentHash,
+      snapshot: {
+        revision: 1,
+        origin: {
+          kind: "successor",
+          predecessorWorkstreamId: first.snapshot!.workstreamId,
+          predecessorSnapshotContentHash: first.desiredSnapshotContentHash,
+        },
+      },
+      operations: [{ action: "update", expectedCurrentHash: first.desiredSnapshotContentHash }],
+    });
+    expect(next.snapshot!.workstreamId).not.toBe(first.snapshot!.workstreamId);
+    await expect(
+      createReplicatedWorkstreamImportPlan({
+        repositoryRoot: root,
+        projectId: "prj_workstream_test",
+        snapshot: next.snapshot!,
+        snapshotContentHash: next.desiredSnapshotContentHash!,
+        previousSnapshotContentHash: first.desiredSnapshotContentHash!,
+      }),
+    ).resolves.toMatchObject({ status: "ready" });
+    const receipt = await applyWorkstreamStartPlan({
+      plan: next,
+      now: new Date(),
+      recordApplied: () => undefined,
+    });
+    expect(receipt.previousSnapshotContentHash).toBe(first.desiredSnapshotContentHash);
+    expect(await readCurrentWorkstream(root)).toMatchObject({
+      workstreamId: next.snapshot!.workstreamId,
+      status: "active",
+    });
+  });
+
   it("atomically replaces a root HANDOFF with structured current state and retires its lifecycle record", async () => {
     const root = await repository();
     const handoff = [

@@ -218,5 +218,56 @@ describe("workstream CLI", () => {
     expect(JSON.parse(finalOutput.join(""))).toMatchObject({
       workstream: { revision: 2, status: "completed" },
     });
+    const nextDraft = JSON.stringify({
+      schemaVersion: 1,
+      status: "active",
+      title: "New Discord goal",
+      objective: "Bind a new authenticated source without replacing the completed goal.",
+      nextActions: ["Verify the new source."],
+      blockers: [],
+      notes: [],
+      references: [],
+      updatedAt: "2026-08-24T04:00:00.000Z",
+    });
+    const nextOutput: string[] = [];
+    expect(
+      await runCli(["workstream", "start", "--stdin", "--json"], {
+        ...quiet,
+        stdin: async () => nextDraft,
+        stdout: (message) => nextOutput.push(message),
+      }),
+    ).toBe(0);
+    const nextPlan = JSON.parse(nextOutput.join("")) as { planId: string };
+    expect(
+      await runCli(["workstream", "start", "--stdin", "--apply", nextPlan.planId], {
+        ...quiet,
+        stdin: async () => nextDraft,
+      }),
+    ).toBe(0);
+    const successorOutput: string[] = [];
+    expect(
+      await runCli(["workstream", "current", "--json"], {
+        ...quiet,
+        stdout: (message) => successorOutput.push(message),
+      }),
+    ).toBe(0);
+    expect(JSON.parse(successorOutput.join(""))).toMatchObject({
+      workstream: {
+        revision: 1,
+        status: "active",
+        origin: { kind: "successor", predecessorWorkstreamId: current.workstream.workstreamId },
+      },
+    });
+    const successorStorage = await openProjectStorage(root);
+    try {
+      const recordings = successorStorage.events
+        .list()
+        .filter((item) => item.type === "workstream.snapshot.recorded");
+      expect(recordings.at(-1)?.payload.previousSnapshotContentHash).toBe(
+        recordings.at(-2)?.payload.snapshotContentHash,
+      );
+    } finally {
+      await successorStorage.close();
+    }
   });
 });

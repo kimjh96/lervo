@@ -1,4 +1,5 @@
 import {
+  hasWorkstreamPredecessor,
   validateSchema,
   type ProjectRegistrationRequest,
   type WorkstreamReplicationPublishRequest,
@@ -200,11 +201,17 @@ export async function runWorkstreamReplicationCycle(input: {
       headCount: 1,
     };
   }
-  if (
+  const sameWorkstreamAdvance =
     localCurrent !== null &&
-    (remote.snapshot.workstreamId !== localCurrent.snapshot.workstreamId ||
-      remote.snapshot.revision <= localCurrent.snapshot.revision)
-  ) {
+    remote.snapshot.workstreamId === localCurrent.snapshot.workstreamId &&
+    remote.snapshot.revision > localCurrent.snapshot.revision;
+  const successorAdvance =
+    localCurrent !== null &&
+    hasWorkstreamPredecessor(remote.snapshot, {
+      ...localCurrent.snapshot,
+      snapshotContentHash: localCurrent.snapshotContentHash,
+    });
+  if (localCurrent !== null && !sameWorkstreamAdvance && !successorAdvance) {
     throw new WorkstreamReplicationCycleError(
       "replication_conflict",
       "A unique Hub head does not safely advance the local workstream.",

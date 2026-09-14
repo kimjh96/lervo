@@ -4,6 +4,7 @@ import { canonicalJson, computeEventHash, eventWithoutHash } from "@lervo/event-
 import type { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
 import {
+  isWorkstreamSuccessorRoot,
   validateSchema,
   type EventEnvelope,
   type WorkstreamSnapshotRecordedEventPayload,
@@ -124,7 +125,22 @@ export class WorkstreamRevisionReader {
       nextHash = payload.previousSnapshotContentHash;
     }
     this.auditedAt ??= at;
-    this.chain = { head: current.contentHash, revisions: reverse.reverse() };
+    const revisions = reverse.reverse();
+    for (let index = 1; index < revisions.length; index += 1) {
+      const parent = revisions[index - 1]!;
+      const child = revisions[index]!;
+      const sameWorkstream =
+        child.snapshot.workstreamId === parent.snapshot.workstreamId &&
+        child.snapshot.revision === parent.snapshot.revision + 1 &&
+        canonicalJson(child.snapshot.origin) === canonicalJson(parent.snapshot.origin);
+      const successor = isWorkstreamSuccessorRoot(child.snapshot, {
+        ...parent.snapshot,
+        snapshotContentHash: parent.snapshotContentHash,
+      });
+      if (!sameWorkstream && !successor)
+        throw new Error("The local workstream revision ancestry is invalid.");
+    }
+    this.chain = { head: current.contentHash, revisions };
     const result = structuredClone(this.chain.revisions);
     if (this.recorded.size > maximumCachedRevisions || this.cachedBytes > maximumCachedBytes)
       this.reset();

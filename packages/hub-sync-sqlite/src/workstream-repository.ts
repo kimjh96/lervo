@@ -4,6 +4,7 @@ import { type DatabaseSync } from "node:sqlite";
 import { canonicalJson } from "@lervo/event-contract";
 import { HubWorkstreamReplicationError } from "@lervo/hub-sync";
 import {
+  isWorkstreamSuccessorRoot,
   validateSchema,
   type ReplicatedWorkstreamHead,
   type WorkstreamReplicationPublishRequest,
@@ -102,7 +103,7 @@ export class HubWorkstreamSQLiteRepository {
     const total = this.countRevisions(request.projectId, request.repositoryIdentityHash);
     let parent: RevisionRow | undefined;
     if (request.previousSnapshotContentHash === null) {
-      if (request.snapshot.revision !== 1) {
+      if (request.snapshot.revision !== 1 || request.snapshot.origin.kind === "successor") {
         throw new HubWorkstreamReplicationError(
           "unknown_parent",
           "A root workstream snapshot must be revision 1.",
@@ -121,14 +122,20 @@ export class HubWorkstreamSQLiteRepository {
         );
       }
       const parentSnapshot = JSON.parse(parent.snapshot_json) as WorkstreamSnapshot;
-      if (
-        parent.workstream_id !== request.snapshot.workstreamId ||
-        request.snapshot.revision !== parent.revision + 1 ||
-        canonicalJson(parentSnapshot.origin) !== canonicalJson(request.snapshot.origin)
-      ) {
+      const sameWorkstream =
+        parent.workstream_id === request.snapshot.workstreamId &&
+        request.snapshot.revision === parent.revision + 1 &&
+        canonicalJson(parentSnapshot.origin) === canonicalJson(request.snapshot.origin);
+      const nextWorkstream =
+        parent.is_head === 1 &&
+        isWorkstreamSuccessorRoot(request.snapshot, {
+          ...parentSnapshot,
+          snapshotContentHash: request.previousSnapshotContentHash,
+        });
+      if (!sameWorkstream && !nextWorkstream) {
         throw new HubWorkstreamReplicationError(
           "workstream_conflict",
-          "A workstream revision cannot change identity, origin, or skip a revision.",
+          "A workstream revision must continue its identity or exactly succeed a completed head.",
         );
       }
     }

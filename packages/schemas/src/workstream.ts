@@ -105,13 +105,35 @@ export const workstreamSnapshotSchema = {
     origin: {
       type: "object",
       properties: {
-        kind: { type: "string", enum: ["legacy_handoff", "legacy_continuation", "created"] },
+        kind: {
+          type: "string",
+          enum: ["legacy_handoff", "legacy_continuation", "created", "successor"],
+        },
         sourceArtifactId: { anyOf: [artifactIdSchema, { type: "null" }] },
         sourceContentHash: { anyOf: [sha256Schema, { type: "null" }] },
         sourcePathDigest: { anyOf: [sha256Schema, { type: "null" }] },
+        predecessorWorkstreamId: workstreamIdSchema,
+        predecessorSnapshotContentHash: sha256Schema,
       },
       required: ["kind", "sourceArtifactId", "sourceContentHash", "sourcePathDigest"],
       additionalProperties: false,
+      if: { properties: { kind: { const: "successor" } }, required: ["kind"] },
+      then: {
+        required: ["predecessorWorkstreamId", "predecessorSnapshotContentHash"],
+        properties: {
+          predecessorWorkstreamId: workstreamIdSchema,
+          predecessorSnapshotContentHash: sha256Schema,
+          sourceArtifactId: { type: "null" },
+          sourceContentHash: { type: "null" },
+          sourcePathDigest: { type: "null" },
+        },
+      },
+      else: {
+        properties: {
+          predecessorWorkstreamId: false,
+          predecessorSnapshotContentHash: false,
+        },
+      },
     },
     updatedAt: timestampSchema,
   },
@@ -175,6 +197,27 @@ export const workstreamSnapshotRecordedEventPayloadSchema = {
 } as const;
 
 export type WorkstreamSnapshot = FromSchema<typeof workstreamSnapshotSchema>;
+export function hasWorkstreamPredecessor(
+  snapshot: WorkstreamSnapshot,
+  predecessor: WorkstreamSnapshot & { snapshotContentHash: string },
+): boolean {
+  return (
+    predecessor.status === "completed" &&
+    predecessor.blockers.length === 0 &&
+    (predecessor.pendingDecisions?.length ?? 0) === 0 &&
+    (predecessor.pendingApprovals?.length ?? 0) === 0 &&
+    snapshot.origin.kind === "successor" &&
+    snapshot.workstreamId !== predecessor.workstreamId &&
+    snapshot.origin.predecessorWorkstreamId === predecessor.workstreamId &&
+    snapshot.origin.predecessorSnapshotContentHash === predecessor.snapshotContentHash
+  );
+}
+export function isWorkstreamSuccessorRoot(
+  snapshot: WorkstreamSnapshot,
+  predecessor: WorkstreamSnapshot & { snapshotContentHash: string },
+): boolean {
+  return snapshot.revision === 1 && hasWorkstreamPredecessor(snapshot, predecessor);
+}
 export type WorkstreamSnapshotRecordedEventPayload = FromSchema<
   typeof workstreamSnapshotRecordedEventPayloadSchema
 >;

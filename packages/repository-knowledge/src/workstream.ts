@@ -2,7 +2,7 @@ import { constants } from "node:fs";
 import { lstat, mkdir, open, rename, rm } from "node:fs/promises";
 import { basename, dirname, posix, relative, resolve, sep } from "node:path";
 
-import { validateSchema, type WorkstreamSnapshot } from "@lervo/schemas";
+import { hasWorkstreamPredecessor, validateSchema, type WorkstreamSnapshot } from "@lervo/schemas";
 import {
   applyDurableKnowledgeOperations,
   type DurableKnowledgeDeleteOperation,
@@ -162,6 +162,7 @@ export interface WorkstreamStartPlan {
   status: "ready" | "blocked";
   projectId: string;
   repositoryRoot: string;
+  currentSnapshotContentHash: string | null;
   desiredSnapshotContentHash: string | null;
   snapshot: WorkstreamSnapshot | null;
   blockers: Array<{ code: "current_workstream_exists" | "invalid_draft"; message: string }>;
@@ -178,7 +179,7 @@ export interface WorkstreamStartReceipt {
   revision: 1;
   status: WorkstreamSnapshot["status"];
   snapshotContentHash: string;
-  previousSnapshotContentHash: null;
+  previousSnapshotContentHash: string | null;
   appliedAt: string;
 }
 
@@ -675,7 +676,11 @@ function pendingCoordinatesValid(snapshot: WorkstreamSnapshot): boolean {
   });
 }
 
-function snapshotFromStartDraft(projectId: string, value: unknown): WorkstreamSnapshot | null {
+function snapshotFromStartDraft(
+  projectId: string,
+  value: unknown,
+  predecessor: { workstreamId: string; contentHash: string } | null,
+): WorkstreamSnapshot | null {
   if (!isRecord(value)) return null;
   const allowed = new Set([
     "schemaVersion",
@@ -698,13 +703,24 @@ function snapshotFromStartDraft(projectId: string, value: unknown): WorkstreamSn
   };
   const snapshot = {
     ...normalizedDraft,
-    workstreamId: stableId("wks", { projectId, draft: normalizedDraft }),
+    workstreamId: stableId(
+      "wks",
+      predecessor === null
+        ? { projectId, draft: normalizedDraft }
+        : { projectId, draft: normalizedDraft, predecessor },
+    ),
     revision: 1,
     origin: {
-      kind: "created" as const,
+      kind: predecessor === null ? ("created" as const) : ("successor" as const),
       sourceArtifactId: null,
       sourceContentHash: null,
       sourcePathDigest: null,
+      ...(predecessor === null
+        ? {}
+        : {
+            predecessorWorkstreamId: predecessor.workstreamId,
+            predecessorSnapshotContentHash: predecessor.contentHash,
+          }),
     },
   };
   return validateSchema("workstreamSnapshot", snapshot).valid &&
@@ -721,13 +737,21 @@ export async function createWorkstreamStartPlan(input: {
   const root = resolve(input.repositoryRoot);
   const blockers: WorkstreamStartPlan["blockers"] = [];
   const currentSource = await safeTextFile(root, CURRENT_WORKSTREAM_PATH, 64 * 1024);
-  if (currentSource !== null)
+  const current = currentSource === null ? null : await readCurrentWorkstreamState(root);
+  const predecessor =
+    current?.snapshot.status === "completed" &&
+    current.snapshot.blockers.length === 0 &&
+    (current.snapshot.pendingDecisions?.length ?? 0) === 0 &&
+    (current.snapshot.pendingApprovals?.length ?? 0) === 0
+      ? { workstreamId: current.snapshot.workstreamId, contentHash: current.contentHash }
+      : null;
+  if (currentSource !== null && predecessor === null)
     blockers.push({
       code: "current_workstream_exists",
       message:
-        "A current workstream already exists; record its next revision with workstream update.",
+        "The current workstream is not settled and completed; record its next revision with workstream update.",
     });
-  const snapshot = snapshotFromStartDraft(input.projectId, input.draft);
+  const snapshot = snapshotFromStartDraft(input.projectId, input.draft, predecessor);
   if (snapshot === null)
     blockers.push({
       code: "invalid_draft",
@@ -747,11 +771,12 @@ export async function createWorkstreamStartPlan(input: {
       ? [
           {
             path: CURRENT_WORKSTREAM_PATH,
-            action: "create",
+            action: currentSource === null ? "create" : "update",
             ownership: "lervo_generated",
             mediaType: "application/json",
             content: snapshotContent,
             desiredHash: desiredSnapshotContentHash,
+            ...(currentSource === null ? {} : { expectedCurrentHash: currentSource.contentHash }),
           },
         ]
       : [];
@@ -762,6 +787,7 @@ export async function createWorkstreamStartPlan(input: {
     status: blockers.length === 0 ? "ready" : "blocked",
     projectId: input.projectId,
     repositoryRoot: root,
+    currentSnapshotContentHash: currentSource?.contentHash ?? null,
     desiredSnapshotContentHash,
     snapshot,
     blockers,
@@ -824,7 +850,7 @@ export async function applyWorkstreamStartPlan(input: {
     revision: 1,
     status: current.snapshot.status,
     snapshotContentHash: current.desiredSnapshotContentHash,
-    previousSnapshotContentHash: null,
+    previousSnapshotContentHash: current.currentSnapshotContentHash,
     appliedAt: input.now.toISOString(),
   };
   return applyDurableKnowledgeOperations({
@@ -1459,19 +1485,23 @@ export async function createReplicatedWorkstreamImportPlan(input: {
   }
   const current = await readCurrentWorkstreamState(root);
   if (current !== null && valid && current.contentHash !== input.snapshotContentHash) {
-    if (current.snapshot.workstreamId !== snapshot.workstreamId) {
+    const successor = hasWorkstreamPredecessor(snapshot, {
+      ...current.snapshot,
+      snapshotContentHash: current.contentHash,
+    });
+    if (current.snapshot.workstreamId !== snapshot.workstreamId && !successor) {
       blockers.push({
         code: "identity_changed",
         message: "A replicated workstream cannot replace a different current workstream.",
       });
     }
-    if (canonicalJson(current.snapshot.origin) !== canonicalJson(snapshot.origin)) {
+    if (!successor && canonicalJson(current.snapshot.origin) !== canonicalJson(snapshot.origin)) {
       blockers.push({
         code: "origin_changed",
         message: "A replicated workstream cannot rewrite origin evidence.",
       });
     }
-    if (snapshot.revision <= current.snapshot.revision) {
+    if (!successor && snapshot.revision <= current.snapshot.revision) {
       blockers.push({
         code: "non_advancing_revision",
         message: "A replicated workstream must advance the local revision.",

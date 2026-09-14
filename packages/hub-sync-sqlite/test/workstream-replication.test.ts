@@ -166,4 +166,110 @@ describe("Hub workstream replication SQLite", () => {
     ).rejects.toMatchObject({ code: "registration_required" });
     await store.close();
   });
+
+  it("fast-forwards a completed workstream into a distinct successor without a divergent head", async () => {
+    const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
+    const project = manifest("prj_workstream_hub_03");
+    await registerStore(store, project);
+    const completed = publication(
+      project,
+      { ...snapshot(1, "Accepted local goal"), status: "completed" },
+      null,
+    );
+    await handleWorkstreamPublish({
+      store,
+      destinationId,
+      request: completed,
+      publishedAt: "2026-08-24T01:00:00.000Z",
+    });
+    const successor: WorkstreamSnapshot = {
+      ...snapshot(1, "Discord goal"),
+      workstreamId: "wks_abcdefabcdefabcdefabcdef",
+      origin: {
+        kind: "successor",
+        sourceArtifactId: null,
+        sourceContentHash: null,
+        sourcePathDigest: null,
+        predecessorWorkstreamId: completed.snapshot.workstreamId,
+        predecessorSnapshotContentHash: completed.snapshotContentHash,
+      },
+    };
+    const falsified = publication(
+      project,
+      {
+        ...successor,
+        workstreamId: "wks_ffffffffffffffffffffffff",
+        origin: {
+          ...successor.origin,
+          predecessorSnapshotContentHash: `sha256:${"f".repeat(64)}`,
+        },
+      },
+      completed.snapshotContentHash,
+    );
+    await expect(
+      handleWorkstreamPublish({
+        store,
+        destinationId,
+        request: falsified,
+        publishedAt: "2026-08-24T01:00:30.000Z",
+      }),
+    ).rejects.toMatchObject({ code: "workstream_conflict" });
+    await expect(
+      handleWorkstreamPublish({
+        store,
+        destinationId,
+        request: publication(project, successor, completed.snapshotContentHash),
+        publishedAt: "2026-08-24T01:01:00.000Z",
+      }),
+    ).resolves.toMatchObject({
+      status: "fast_forwarded",
+      heads: [{ workstreamId: successor.workstreamId }],
+    });
+    await expect(
+      handleWorkstreamRead({
+        store,
+        destinationId,
+        projectId: project.projectId,
+        repositoryIdentityHash: completed.repositoryIdentityHash,
+      }),
+    ).resolves.toMatchObject({
+      status: "current",
+      heads: [{ workstreamId: successor.workstreamId }],
+    });
+    await store.close();
+  });
+
+  it("rejects succession of an active head even when the origin hash matches", async () => {
+    const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
+    const project = manifest("prj_workstream_hub_04");
+    await registerStore(store, project);
+    const active = publication(project, snapshot(1, "Still active"), null);
+    await handleWorkstreamPublish({
+      store,
+      destinationId,
+      request: active,
+      publishedAt: "2026-08-24T01:00:00.000Z",
+    });
+    const successor: WorkstreamSnapshot = {
+      ...snapshot(1, "Premature goal"),
+      workstreamId: "wks_abcdefabcdefabcdefabcdef",
+      origin: {
+        kind: "successor",
+        sourceArtifactId: null,
+        sourceContentHash: null,
+        sourcePathDigest: null,
+        predecessorWorkstreamId: active.snapshot.workstreamId,
+        predecessorSnapshotContentHash: active.snapshotContentHash,
+      },
+    };
+    await expect(
+      handleWorkstreamPublish({
+        store,
+        destinationId,
+        request: publication(project, successor, active.snapshotContentHash),
+        publishedAt: "2026-08-24T01:01:00.000Z",
+      }),
+    ).rejects.toMatchObject({ code: "workstream_conflict" });
+    await store.close();
+  });
 });

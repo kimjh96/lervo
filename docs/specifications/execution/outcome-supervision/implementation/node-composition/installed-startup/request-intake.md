@@ -12,4 +12,6 @@ The installed owner registers a guild-scoped `/goal request:<text>` application 
 
 Binding an unrelated request to an existing objective is not a goal amendment. A new objective, revised acceptance criteria, or additional recipient needs a separate workstream and authority transition. Installed production acceptance must observe the real ingress, owner cycle, permission recovery, accepted result and delivery under settled authority.
 
+Once the original workstream is settled and completed, a successor workstream may start with a new ID and exact predecessor hash. This preserves the prior local or Discord source binding while giving a later request a distinct goal identity. The successor still needs its own reviewed mandate and installed owner binding; workstream succession alone grants no execution or publication authority.
+
 The `/goal` command description and acknowledgement identify the current installed goal. They do not imply creation of an unrelated goal.
