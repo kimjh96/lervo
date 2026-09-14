@@ -16,7 +16,7 @@ The existing envelope-version-3 `work.supervision.review.recorded` payload remai
 
 Exact repeated recording is idempotent. A read-only inspector recovers the plan, policy, rationale, and expected event across database connections. Lost ownership, changed authority, stale sources, corrupt artifacts, or inconsistent event bytes reject the write or observation. The generic decision journal permits this narrowly decision-bound review event as effect evidence. A decision cannot confirm itself; other supervision records do not become execution evidence.
 
-A bare review event without its exact admitted decision does not establish task acceptance. Current `blocked` reviews route `acceptance_blocked` to a bounded owner decision instead of indefinitely requesting the same review. The owner may record a separate review of the same artifact only when newly available exact canonical evidence resolves the recorded blocker; otherwise it escalates. A stale blocked review does not block a different result.
+A bare review event without its exact admitted decision does not establish task acceptance. Current `blocked` reviews route `acceptance_blocked` to a bounded owner decision instead of indefinitely requesting the same review. The orchestrator maps only the exact `work.artifact_review.v1` control effect from that reason to `execute_as_owner`; unknown contracts remain blocked, and ordinary admission and readiness still apply. The owner may record a separate review of the same artifact only when newly available exact canonical evidence resolves the recorded blocker; otherwise it escalates. A stale blocked review does not block a different result.
 
 ## Admission and readiness
 

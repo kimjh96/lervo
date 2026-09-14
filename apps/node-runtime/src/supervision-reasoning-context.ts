@@ -90,6 +90,7 @@ export async function canonicalOwnerReasoningFacts(
         ? await readCompletedResearchReviewEvidence({
             evidence,
             artifacts: storage.artifacts,
+            events: storage.events,
             researchPolicy,
           })
         : evidence,

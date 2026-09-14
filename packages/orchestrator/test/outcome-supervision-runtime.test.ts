@@ -263,6 +263,43 @@ describe("serialized causal owner decisions", () => {
     expect(f.execute).not.toHaveBeenCalled();
     expect(f.attention).toHaveBeenCalledWith(expect.anything(), ["readiness_write_scope_failed"]);
   });
+  it.each(["work.artifact_review.v1", "work.unknown.v1"])(
+    "maps only an exact artifact review after a blocked verdict (%s)",
+    async (contract) => {
+      const f = fixture();
+      const assignment = f.state.assignments[0]!;
+      assignment.status = "completed";
+      assignment.terminalEventId = `evt_${"c".repeat(32)}`;
+      assignment.effectDisposition = "reconciled";
+      assignment.artifactHashes = [hash("c")];
+      assignment.review = {
+        verdict: "blocked",
+        reviewerAgentId: owner,
+        acceptanceHash: assignment.acceptanceHash,
+        artifactHashes: [...assignment.artifactHashes],
+        verificationEventIds: [],
+      };
+      f.propose.mockResolvedValue({
+        ...plan(),
+        actionKind: "execute_as_owner",
+        effectContract: contract as ReturnType<typeof plan>["effectContract"],
+      });
+      const admission = vi.fn(async () => {
+        throw new Error("Reached independent admission after effect mapping.");
+      });
+      f.ports.readAdmission = admission;
+      const cycle = new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId);
+      if (contract === "work.artifact_review.v1") {
+        await expect(cycle).rejects.toThrow("Reached independent admission");
+        expect(admission).toHaveBeenCalledOnce();
+        expect(f.attention).not.toHaveBeenCalled();
+      } else {
+        expect((await cycle).disposition).toBe("blocked");
+        expect(admission).not.toHaveBeenCalled();
+        expect(f.attention).toHaveBeenCalledWith(expect.anything(), ["effect_mapping_unavailable"]);
+      }
+    },
+  );
   it("executes once, does no idle model work, and reconciles after runtime restart", async () => {
     const f = fixture();
     const runtime = new OutcomeSupervisionRuntime(f.ports);

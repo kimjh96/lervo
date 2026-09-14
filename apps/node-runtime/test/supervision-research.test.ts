@@ -124,6 +124,10 @@ it.each(["passed", "failed"] as const)(
             verificationEventId: events.find((event) => event.type === "verification.completed")
               ?.eventId,
             verificationReport: { status: "passed" },
+            recordedExecutionBoundary: {
+              executionMode: "read_only",
+              capabilities: { fileChanges: "unsupported" },
+            },
             capturedSourceMeasurements: [
               {
                 path: "src/save.ts",

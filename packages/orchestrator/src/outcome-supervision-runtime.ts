@@ -194,12 +194,18 @@ export class OutcomeSupervisionRuntime {
         report.nextAction !== "reconcile_cancellation" &&
         plan.actionKind === "escalate" &&
         plan.effectContract === "work.owner_attention.v1";
+      const blockedArtifactReview =
+        report.reasonCode === "acceptance_blocked" &&
+        report.nextAction === "escalate" &&
+        plan.actionKind === "execute_as_owner" &&
+        plan.effectContract === "work.artifact_review.v1";
       if (
         !ownerReasoning &&
         !workspacePreparation &&
         !successorClaim &&
         !scopedHandoff &&
         !ownerAttention &&
+        !blockedArtifactReview &&
         !allowedActions.includes(plan.actionKind)
       ) {
         await this.ports.recordAttention(report, ["effect_mapping_unavailable"]);
