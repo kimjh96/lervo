@@ -73,6 +73,11 @@ export class SupervisionWorkspaceEffects {
     const storage = await openProjectStorage(this.root);
     try {
       const result = await inspectSupervisionWorkspaceReceipt(storage, plan);
+      if (result.status === "not_started") {
+        const now = Date.parse(this.now());
+        if (!Number.isFinite(now) || now < Date.parse(plan.deadline))
+          return { status: "uncertain" as const };
+      }
       if (result.status !== "uncertain" || session === undefined) return result;
       return await recoverPreparedWorkspace({
         storage,
