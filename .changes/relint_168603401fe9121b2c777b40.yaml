@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_168603401fe9121b2c777b40"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Retain supervised request and review evidence across approved mandate successors."

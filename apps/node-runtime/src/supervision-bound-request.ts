@@ -5,6 +5,7 @@ import { operatingContractHash } from "@lervo/work-controller";
 
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
+import { hasInstalledMandateLineage } from "./supervision-mandate-lineage.js";
 import type { SupervisionTaskSource } from "./supervision-task-source.js";
 
 type Source = Awaited<ReturnType<SupervisionTaskSource["read"]>>;
@@ -38,7 +39,13 @@ export async function readBoundSupervisionRequest(
     event.schemaVersion !== 3 ||
     event.actor.kind !== "system" ||
     event.payload.ownerAgentId !== binding.ownerAgentId ||
-    event.payload.mandateHash !== binding.mandateHash
+    !(await hasInstalledMandateLineage({
+      events: storage.events,
+      artifacts: storage.artifacts,
+      projectId: storage.manifest.projectId,
+      binding,
+      candidate: event,
+    }))
   )
     throw new Error("The supervised request binding is invalid.");
   const artifact = await readSupervisionJsonArtifact(

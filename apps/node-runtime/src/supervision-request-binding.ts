@@ -11,6 +11,7 @@ import {
   type NodeSupervisionBinding,
 } from "./supervision-authority.js";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
+import { readBoundSupervisionRequest } from "./supervision-bound-request.js";
 import type { SupervisionTaskSource } from "./supervision-task-source.js";
 
 export interface SupervisionRequestInput {
@@ -55,6 +56,16 @@ export async function bindSupervisionRequest(input: {
     throw new Error("The supervised request source or content is invalid.");
   const sourceDigest = digest(`${request.source}\0${request.sourceId}`);
   const requesterDigest = digest(request.requesterId);
+  const requestArtifact = {
+    schemaVersion: 1,
+    kind: "work.supervision.request",
+    source: request.source,
+    sourceDigest,
+    requesterDigest,
+    contentHash: request.contentHash,
+    request: request.request,
+    origin: request.origin ?? null,
+  } as const;
   const identity = operatingContractHash({ binding, sourceDigest });
   const runId = `run_${operatingContractHash({ supervisionId: binding.supervisionId }).slice(7, 39)}`;
   const eventId = `evt_${operatingContractHash({ runId, type: "work.supervision.bound", identity }).slice(7, 39)}`;
@@ -73,17 +84,7 @@ export async function bindSupervisionRequest(input: {
       existing.payload.mandateHash !== binding.mandateHash ||
       typeof prior !== "object" ||
       prior === null ||
-      operatingContractHash(prior) !==
-        operatingContractHash({
-          schemaVersion: 1,
-          kind: "work.supervision.request",
-          source: request.source,
-          sourceDigest,
-          requesterDigest,
-          contentHash: request.contentHash,
-          request: request.request,
-          origin: request.origin ?? null,
-        })
+      operatingContractHash(prior) !== operatingContractHash(requestArtifact)
     )
       throw new Error("The supervised request identity conflicts with canonical evidence.");
     return { eventId, duplicate: true };
@@ -97,16 +98,19 @@ export async function bindSupervisionRequest(input: {
     authority.installation.mandateHash !== binding.mandateHash
   )
     throw new Error("The supervised request has no active owned workstream.");
-  const requestArtifact = {
-    schemaVersion: 1,
-    kind: "work.supervision.request",
-    source: request.source,
-    sourceDigest,
-    requesterDigest,
-    contentHash: request.contentHash,
-    request: request.request,
-    origin: request.origin ?? null,
-  } as const;
+  if (source.supervisionEvents.some((event) => event.type === "work.supervision.bound")) {
+    const bound = await readBoundSupervisionRequest(storage, source, binding);
+    const prior = await readSupervisionJsonArtifact(
+      storage.artifacts,
+      String(
+        source.supervisionEvents.find((event) => event.eventId === bound?.eventId)?.payload
+          .requestArtifactHash,
+      ),
+    );
+    if (bound !== null && operatingContractHash(prior) === operatingContractHash(requestArtifact))
+      return { eventId: bound.eventId, duplicate: true };
+    throw new Error("The workstream already has a supervised request origin.");
+  }
   const acceptanceArtifact = {
     schemaVersion: 1,
     kind: "work.supervision.acceptance",

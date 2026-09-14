@@ -8,6 +8,7 @@ import type {
 import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 import { assertSupervisedReviewBasis, operatingContractHash } from "@lervo/work-controller";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
+import { hasInstalledMandateLineage } from "./supervision-mandate-lineage.js";
 
 async function readJson(artifacts: ArtifactStore, hash: string) {
   if (!/^sha256:[a-f0-9]{64}$/u.test(hash)) throw new Error("The review artifact hash is invalid.");
@@ -29,6 +30,16 @@ async function readReview(input: {
 }) {
   const { candidate, events, artifacts, authority } = input;
   if (candidate === undefined) return null;
+  if (
+    !(await hasInstalledMandateLineage({
+      events,
+      artifacts,
+      projectId: candidate.projectId,
+      binding: authority,
+      candidate,
+    }))
+  )
+    throw new Error("The owner review mandate has no installed successor lineage.");
   const decision = events.get(String((candidate.payload.causationEventIds as string[])[0]));
   if (decision?.type !== "work.supervision.decision.recorded") return null;
   const plan = (await readJson(
@@ -41,6 +52,7 @@ async function readReview(input: {
     artifacts,
     {
       ...authority,
+      mandateHash: String(candidate.payload.mandateHash),
       projectId: candidate.projectId,
       workstreamRevision: Number(candidate.payload.workstreamRevision),
       sessionId: candidate.sessionId,

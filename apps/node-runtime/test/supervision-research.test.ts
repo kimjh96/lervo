@@ -4,7 +4,9 @@ import { afterEach, expect, it } from "vitest";
 import { listAssignments } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
 import { readSupervisionJsonArtifact } from "../src/supervision-artifact-json.js";
+import { canonicalOwnerReasoningFacts } from "../src/supervision-reasoning-context.js";
 import { openNodeOutcomeSupervisionRuntime } from "../src/outcome-supervision-runtime.js";
+import { SupervisionTaskSource } from "../src/supervision-task-source.js";
 import { researchAcceptanceFixture } from "./supervision-research.fixture.js";
 
 const roots: string[] = [];
@@ -104,6 +106,41 @@ it.each(["passed", "failed"] as const)(
         ).toMatchObject([{ payload: { verdict: "rework" } }]);
       } else {
         expect(await listAssignments(f.root)).toMatchObject([{ status: "completed" }]);
+        const source = await new SupervisionTaskSource(storage, f.binding, f.ports.now).read();
+        const { facts } = await canonicalOwnerReasoningFacts(
+          storage,
+          f.binding,
+          source,
+          f.ports.now,
+        );
+        expect(facts.researchEvidence).toMatchObject([
+          {
+            assignmentId: f.assignment.assignmentId,
+            resultContentHash: source.events.find(
+              (event) =>
+                event.runId === source.execution.attempts[0]?.runId &&
+                event.type === "run.completed",
+            )?.payload.resultDigest,
+            verificationEventId: events.find((event) => event.type === "verification.completed")
+              ?.eventId,
+            verificationReport: { status: "passed" },
+            capturedSourceMeasurements: [
+              {
+                path: "src/save.ts",
+                byteCount: Buffer.byteLength("export const saved = true;\n"),
+                maximumSourceBytes: 4096,
+              },
+            ],
+            currentSourceContinuity: [{ path: "src/save.ts", matchesCapturedNow: true }],
+          },
+        ]);
+        const completedEvidence = facts.researchEvidence[0];
+        if (!completedEvidence || !("capturedSourceMeasurements" in completedEvidence))
+          throw new Error("Completed research review evidence is missing.");
+        const measurements = completedEvidence.capturedSourceMeasurements;
+        if (!Array.isArray(measurements))
+          throw new Error("Completed research source measurements are missing.");
+        expect(measurements[0]?.measuredContentHash).toBe(measurements[0]?.contentHash);
         const plans = await Promise.all(
           events
             .filter((event) => event.type === "work.supervision.decision.recorded")

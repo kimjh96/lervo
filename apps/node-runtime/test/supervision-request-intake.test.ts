@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 import { rm } from "node:fs/promises";
 import { afterEach, expect, it } from "vitest";
 import { openProjectStorage } from "@lervo/project-storage";
+import {
+  createRepositoryMandatePlan,
+  installRepositoryMandate,
+} from "../../cli/src/mandate-installation.js";
 
 import { admitSupervisionRequest } from "../src/supervision-request-intake.js";
 import { readBoundSupervisionRequest } from "../src/supervision-bound-request.js";
@@ -123,4 +127,73 @@ it("retains the exact Discord result origin within the same canonical request co
   } finally {
     await storage.close();
   }
+});
+
+it("retains the original request through approved mandate successors", async () => {
+  const f = await supervisionFixture(roots, undefined, "developer", ["allocate_existing"]);
+  const request = "Complete the existing bounded goal.";
+  const admitted = await admitSupervisionRequest({
+    repositoryRoot: f.root,
+    binding: f.binding,
+    request: {
+      source: "local",
+      sourceId: "successor-request",
+      requesterId: "local_process_owner",
+      request,
+      contentHash: hash(request),
+    },
+  });
+  let binding = f.binding;
+  for (const version of [2, 3]) {
+    const plan = await createRepositoryMandatePlan({
+      root: f.root,
+      mandate: {
+        ...f.mandate,
+        version,
+        maximumAggregateTokens: f.mandate.maximumAggregateTokens + version * 100,
+      },
+      supervisionId: binding.supervisionId,
+      reviewerId: f.mandate.appointingAuthorityId,
+    });
+    const installed = await installRepositoryMandate({
+      root: f.root,
+      plan,
+      approval: plan.approvalHash,
+      reviewerId: f.mandate.appointingAuthorityId,
+    });
+    binding = { ...binding, mandateHash: installed.mandateHash };
+  }
+  const storage = await openProjectStorage(f.root);
+  try {
+    const source = await new SupervisionTaskSource(storage, binding, f.ports.now).read();
+    expect(await readBoundSupervisionRequest(storage, source, binding)).toMatchObject({
+      eventId: admitted.eventId,
+      request,
+      origin: null,
+    });
+    expect(
+      source.supervisionEvents.filter((event) => event.type === "work.supervision.bound"),
+    ).toHaveLength(1);
+    await expect(
+      readBoundSupervisionRequest(storage, source, {
+        ...binding,
+        mandateHash: hash("unrelated mandate"),
+      }),
+    ).rejects.toThrow("supervision_binding_invalid");
+  } finally {
+    await storage.close();
+  }
+  expect(
+    await admitSupervisionRequest({
+      repositoryRoot: f.root,
+      binding,
+      request: {
+        source: "local",
+        sourceId: "successor-request",
+        requesterId: "local_process_owner",
+        request,
+        contentHash: hash(request),
+      },
+    }),
+  ).toEqual({ eventId: admitted.eventId, duplicate: true });
 });

@@ -133,7 +133,6 @@ export async function observeSupervisionTasks(
         (event.payload.assignmentIds as string[])[0] === assignment.assignmentId &&
         event.schemaVersion === 3 &&
         event.actor.kind === "system" &&
-        event.payload.mandateHash === authority.mandateHash &&
         event.payload.ownerAgentId === authority.ownerAgentId,
     );
     const observation: SupervisedAssignmentObservationV1 = {

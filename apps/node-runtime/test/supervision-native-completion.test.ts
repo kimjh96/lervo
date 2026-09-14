@@ -13,6 +13,10 @@ import { resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { listAssignments, listWorkspaces } from "@lervo/agent-workforce";
 import {
+  createRepositoryMandatePlan,
+  installRepositoryMandate,
+} from "../../cli/src/mandate-installation.js";
+import {
   loadRepositoryKnowledgePolicy,
   createKnowledgeMigrationPlan,
   applyKnowledgeMigrationPlan,
@@ -21,6 +25,8 @@ import {
 import { openProjectStorage } from "@lervo/project-storage";
 import { openNodeOutcomeSupervisionRuntime } from "../src/outcome-supervision-runtime.js";
 import { SupervisionTaskSource } from "../src/supervision-task-source.js";
+import { observeSupervisionTasks } from "../src/supervision-task-observation.js";
+import { readSupervisedReviewFeedback } from "../src/supervision-review-observation.js";
 import { dispatchFixture } from "./supervision-dispatch.fixture.js";
 
 const roots: string[] = [];
@@ -213,6 +219,43 @@ it.each([
               .list({ limit: 1000 })
               .filter((event) => event.type === "assignment.completion.prepared"),
           ).toEqual([]);
+          await runtime.close();
+          const plan = await createRepositoryMandatePlan({
+            root: f.root,
+            mandate: {
+              ...f.mandate,
+              version: f.mandate.version + 1,
+              maximumAttemptsPerAssignment: f.mandate.maximumAttemptsPerAssignment + 1,
+            },
+            supervisionId: f.binding.supervisionId,
+            reviewerId: f.mandate.appointingAuthorityId,
+          });
+          const successor = await installRepositoryMandate({
+            root: f.root,
+            plan,
+            approval: plan.approvalHash,
+            reviewerId: f.mandate.appointingAuthorityId,
+          });
+          const binding = { ...f.binding, mandateHash: successor.mandateHash };
+          const successorSource = await new SupervisionTaskSource(storage, binding, now).read();
+          const observed = await observeSupervisionTasks(
+            successorSource,
+            storage.artifacts,
+            binding,
+            storage.events,
+          );
+          expect(observed.assignments[0]?.review).toMatchObject({ verdict: "rework" });
+          const review = successorSource.supervisionEvents.findLast(
+            (event) => event.type === "work.supervision.review.recorded",
+          )!;
+          expect(
+            await readSupervisedReviewFeedback({
+              events: storage.events,
+              artifacts: storage.artifacts,
+              candidate: review,
+              authority: binding,
+            }),
+          ).toMatchObject({ reviewEventId: review.eventId, verdict: "rework" });
           return;
         }
         if (i === 1 && scenario.startsWith("late_")) {

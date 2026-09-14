@@ -23,6 +23,7 @@ import { readSupervisionHandoffState } from "./supervision-handoff-state.js";
 import { readBoundSupervisionRequest } from "./supervision-bound-request.js";
 import { observeSupervisionResearchPolicy } from "./supervision-research-policy.js";
 import { readSupervisionResearchEvidence } from "./supervision-research-evidence.js";
+import { readCompletedResearchReviewEvidence } from "./supervision-research-review-evidence.js";
 
 type Source = Awaited<ReturnType<SupervisionTaskSource["read"]>>;
 
@@ -48,11 +49,21 @@ export async function canonicalOwnerReasoningFacts(
     roleIds.map((roleId) => resolveRoleContract(storage.paths.repositoryRoot, roleId)),
   );
   const tasks = await observeSupervisionTasks(source, storage.artifacts, binding, storage.events);
+  const researchPolicy = roles.some((role) =>
+    role.definition.profile.contextPolicy.requiredDocumentRuleIds.includes(
+      "research.source-policy",
+    ),
+  )
+    ? await observeSupervisionResearchPolicy(
+        storage.paths.repositoryRoot,
+        storage.manifest.projectId,
+      )
+    : null;
   const researchEvidence = [];
   for (const assignment of source.assignments) {
     const role = roles.find((item) => item.roleId === assignment.roleId);
     if (
-      assignment.status !== "leased" ||
+      !["leased", "completed"].includes(assignment.status) ||
       !role?.definition.profile.contextPolicy.requiredDocumentRuleIds.includes(
         "research.source-policy",
       )
@@ -69,12 +80,19 @@ export async function canonicalOwnerReasoningFacts(
       storage.events.get(task.terminalEventId)?.type !== "run.completed"
     )
       continue;
+    const evidence = await readSupervisionResearchEvidence({
+      storage,
+      responsibility,
+      terminalEventId: task.terminalEventId,
+    });
     researchEvidence.push(
-      await readSupervisionResearchEvidence({
-        storage,
-        responsibility,
-        terminalEventId: task.terminalEventId,
-      }),
+      assignment.status === "completed"
+        ? await readCompletedResearchReviewEvidence({
+            evidence,
+            artifacts: storage.artifacts,
+            researchPolicy,
+          })
+        : evidence,
     );
   }
   const policy = await loadRepositoryKnowledgePolicy(storage.paths.repositoryRoot);
@@ -97,16 +115,7 @@ export async function canonicalOwnerReasoningFacts(
   const facts = {
     unstartedWorkspaces,
     researchEvidence,
-    researchPolicy: roles.some((role) =>
-      role.definition.profile.contextPolicy.requiredDocumentRuleIds.includes(
-        "research.source-policy",
-      ),
-    )
-      ? await observeSupervisionResearchPolicy(
-          storage.paths.repositoryRoot,
-          storage.manifest.projectId,
-        )
-      : null,
+    researchPolicy,
     writingContract: writingContractForLanguage(policy.publication.language),
     resultWritingContract,
     acceptedGoal: await readAcceptedSupervisionGoal(storage, source),

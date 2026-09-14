@@ -3,6 +3,7 @@ import { afterEach, expect, it } from "vitest";
 import { operatingContractHash, projectOutcomeSupervision } from "@lervo/work-controller";
 import { NodeSupervisionStore } from "../src/supervision-store.js";
 import { readNodeDispatchPreflight } from "../src/supervision-dispatch-readiness.js";
+import { inspectSupervisionKnowledgeReadiness } from "../src/supervision-knowledge-readiness.js";
 import { dispatchFixture } from "./supervision-dispatch.fixture.js";
 
 const roots: string[] = [];
@@ -21,6 +22,14 @@ it.each(["success", "admission_failure", "probe_failure"])(
     });
     const combined = operatingContractHash("preflight combined source");
     const plan = { ...(await f.ports.propose(report))!, sourceRevisionDigest: combined };
+    const knowledge = await inspectSupervisionKnowledgeReadiness({
+      repositoryRoot: f.root,
+      projectId: plan.projectId,
+      requiredPaths: plan.expectedPaths,
+      now: f.ports.now,
+    });
+    const knowledgeSnapshotId = knowledge.sourceSnapshotId;
+    if (knowledgeSnapshotId === null) throw new Error("The fixture has no knowledge snapshot.");
     const store = await NodeSupervisionStore.open({
       repositoryRoot: f.root,
       binding: f.binding,
@@ -54,6 +63,7 @@ it.each(["success", "admission_failure", "probe_failure"])(
           session: observedSession,
           ports: f.ports,
           configuration: f.runtimeReadiness,
+          expectedKnowledgeSnapshotId: knowledgeSnapshotId,
           sourceBinding: {
             authorityDigest: operatingContractHash("preflight authority"),
             taskDigest: f.observation.sourceRevisionDigest,

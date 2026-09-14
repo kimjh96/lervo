@@ -6,6 +6,8 @@ The Node reconstructs research evidence from the producer's ordered input-bindin
 
 Owner reasoning receives the captured source texts and returned brief. Its `prepare_completion` verdict adds `researchChecks`, each with exactly `checkId` and `status`. Required semantic checks preserve citation meaning and require direct support for each major conclusion. The evaluator runs separately from the producer and cannot replace failed checks with deterministic success.
 
+The same exact source, input, result and checker originals remain available to the owner after assignment completion. The reader supplies the recomputed verification report, each captured source's measured SHA-256 and byte count against its source-policy limit, and a fresh comparison between captured and current source hashes. The fresh comparison proves equality at observation time, not that no transient write ever occurred. A completed assignment does not erase research evidence before the separate artifact review. If a prior `blocked` review lacked those originals, its verdict remains historical; the owner must examine the newly available canonical evidence and record a separate admitted review before acceptance.
+
 ## Completion admission and replay
 
 `work.assignment_completion.v2` adds `roleEvaluationArtifactHash` to the existing completion effect. The artifact uses the established role-evaluation contract, combining exact deterministic originals and the independently recorded owner result.
