@@ -2,6 +2,7 @@ import { rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { openProjectStorage } from "@lervo/project-storage";
+import { FileSystemCas } from "@lervo/cas";
 import { createLoginFixture } from "../../../packages/adapter-contract/test/login.fixture.js";
 import { supervisionFixture } from "./supervision.fixture.js";
 import { parseSupervisionStartupConfiguration } from "../src/supervision-startup-config.js";
@@ -136,11 +137,14 @@ it("uses the durable owner's role for a configured Discord result speaker", asyn
       },
     },
   } as NodeRuntimeConfig;
+  const artifacts = await FileSystemCas.open(resolve(f.root, "fixture-conversation-artifacts"));
   const service = await openDeploymentSupervision({
     config,
     projectId: f.owner.projectId,
     conversation: {
       resultAdapter: () => ({ descriptor: { integrationId: "itg_startupresult" } }),
+      resultArtifacts: () => artifacts,
+      resultReplay: () => "absent",
     } as unknown as NodeDiscordConversationRuntime,
     health: { observeSupervision: async () => undefined } as unknown as NodeRuntimeHealthPublisher,
   });
