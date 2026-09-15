@@ -178,7 +178,7 @@
       },
       {
         "path": "packages/repository-knowledge/src/execution-event-source.ts",
-        "digest": "sha256:19e0c1d9672bf369298d76269e1e89db9b75ee9727e7ac1940bd7fbf417d8369"
+        "digest": "sha256:2f97089781ef55f4b67251318f9f8da1bdff00c082668f90027161a1af9617e1"
       },
       {
         "path": "scripts/run-linked-evidence-managed-canary-v18.mjs",

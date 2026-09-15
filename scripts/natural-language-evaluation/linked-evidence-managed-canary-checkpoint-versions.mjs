@@ -121,7 +121,7 @@ const descriptors = [
   [
     18,
     "benchmarks/search/linked-evidence-managed-canary-v18.json",
-    "sha256:ad6d08709fbeac4559c989831d62c1981f7a37a22419a8b7c4726cb70f955e4a",
+    "sha256:ec9a29c6b2433dd84f15207dcefeeffb64304a602739b8e726458a6162ebe4bd",
     "linked-evidence-managed-canary-v18-event-capacity-safe-20260830",
     "ADR-0300",
   ],
