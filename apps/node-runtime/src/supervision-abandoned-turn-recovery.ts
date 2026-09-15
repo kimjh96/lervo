@@ -32,7 +32,12 @@ export async function recoverAbandonedTurn(input: {
   runId: string;
   unit: string;
   now?: () => string;
+  /** Host observation ports; the defaults read this machine's service manager and journal. */
+  observeWitness?: typeof observeAbandonedTurnWitness;
+  currentInvocation?: typeof currentUnitInvocationId;
 }): Promise<{ eventId: string; diagnosticDigest: string }> {
+  const observeWitness = input.observeWitness ?? observeAbandonedTurnWitness;
+  const currentInvocation = input.currentInvocation ?? currentUnitInvocationId;
   if (!RUN_ID.test(input.runId)) throw new Error("The recovery run ID is invalid.");
   const now = input.now ?? (() => new Date().toISOString());
   const owner = await NodeSupervisionStore.open({
@@ -94,7 +99,7 @@ export async function recoverAbandonedTurn(input: {
         )
           throw new Error("The abandoned run differs from its admitted decision.");
         const observedAt = now();
-        const witness = observeAbandonedTurnWitness({
+        const witness = observeWitness({
           unit: input.unit,
           incidentAt: events.at(-1)!.occurredAt,
           observedAt,
@@ -149,7 +154,7 @@ export async function recoverAbandonedTurn(input: {
             if (
               age < 0 ||
               age > 5000 ||
-              currentUnitInvocationId(input.unit) !== witness.currentInvocationId ||
+              currentInvocation(input.unit) !== witness.currentInvocationId ||
               storage.events.latest()?.eventHash !== head.eventHash ||
               currentRun.length !== events.length ||
               currentRun.some((event, index) => event.eventHash !== events[index]?.eventHash)
