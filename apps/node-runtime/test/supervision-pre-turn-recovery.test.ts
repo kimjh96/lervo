@@ -71,11 +71,18 @@ it("settles a pre-turn interruption fenced by a completed host boot", async () =
     } finally {
       await runtime.close();
     }
-    expect(plan).not.toBeNull();
+    // A callback assignment does not narrow the declared type, so guard instead of asserting.
+    if (plan === null) throw new Error("The fixture recorded no managed decision.");
     const action = plan as OperatingActionPlanV1;
     const identity = managedExecutionIdentity(action.projectId, operatingContractHash(action));
     const at = (offsetMs: number) => new Date(STARTED + offsetMs).toISOString();
-    const append = (index: number, type: string, offsetMs: number, payload: object) =>
+    type Draft = Parameters<typeof storage.events.append>[0];
+    const append = (
+      index: number,
+      type: Draft["type"],
+      offsetMs: number,
+      payload: Draft["payload"],
+    ) =>
       storage.events.append({
         eventId: `evt_${operatingContractHash({ kind: type, index, ...identity }).slice(7, 39)}`,
         projectId: action.projectId,

@@ -68,7 +68,13 @@ export async function recordAbandonedManagedRun(input: {
   const action = plan as OperatingActionPlanV1;
   const identity = managedExecutionIdentity(action.projectId, operatingContractHash(action));
   const at = (offsetMs: number) => new Date(input.startedAt + offsetMs).toISOString();
-  const append = (index: number, type: string, offsetMs: number, payload: object) =>
+  type Draft = Parameters<typeof storage.events.append>[0];
+  const append = (
+    index: number,
+    type: Draft["type"],
+    offsetMs: number,
+    payload: Draft["payload"],
+  ) =>
     storage.events.append({
       eventId: `evt_${operatingContractHash({ kind: type, index, ...identity }).slice(7, 39)}`,
       projectId: action.projectId,
