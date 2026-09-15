@@ -39,6 +39,57 @@ it("does not register /goal without a matching installed owner and guild scope",
   expect(fetch).not.toHaveBeenCalled();
 });
 
+it.each([
+  ["undeclared", {}],
+  ["declined", { goalCommand: { announce: false } }],
+] as const)(
+  "does not register /goal for a matching owner whose announcement is %s",
+  async (_label, declaration) => {
+    const fetch = vi.fn();
+    const options = {
+      config: {
+        applicationId: command.applicationId,
+        allowedGuildIds: [command.guildId],
+        routing: {},
+      },
+      outcomeSupervision: { binding: { ownerAgentId: "agt_owner" }, ...declaration },
+      fetch,
+    } as never;
+    await expect(
+      registerDiscordGoalCommand({
+        options,
+        agentParticipation: { agentId: "agt_owner" } as never,
+        token: `discord.${"b".repeat(40)}`,
+      }),
+    ).resolves.toBeNull();
+    // Guild commands are per application, so an undeclared deployment must advertise nothing rather
+    // than race another installed owner for the same guild-wide `/goal`.
+    expect(fetch).not.toHaveBeenCalled();
+  },
+);
+
+it("tells an out-of-scope channel how the same intake is reached", async () => {
+  const update = vi.fn(
+    async (_command: typeof command, _messageId: string, _content: string) => undefined,
+  );
+  const process = vi.fn();
+  await handleDiscordGoalCommand({
+    command,
+    adapter: {
+      receiveGoalResponseMessage: async () => ({
+        status: "ignored",
+        reason: "outside_conversation_scope",
+        checkpoint: null,
+      }),
+    } as never,
+    process,
+    commandRest: { acknowledge: async () => receipt, update },
+    outcomes: new DiscordGoalIntakeOutcomes(),
+  });
+  expect(process).not.toHaveBeenCalled();
+  expect(update.mock.calls[0]![2]).toMatch(/담당자에게 직접 말씀하시면 같은 경로로 접수됩니다/u);
+});
+
 it("acknowledges before intake and only reports a processed request after the processor returns", async () => {
   const order: string[] = [];
   const acknowledge = vi.fn(async () => {

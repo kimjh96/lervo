@@ -22,7 +22,11 @@ export async function registerDiscordGoalCommand(input: {
   if (
     config.routing === undefined ||
     config.allowedGuildIds.length === 0 ||
-    input.options.outcomeSupervision?.binding.ownerAgentId !== input.agentParticipation.agentId
+    input.options.outcomeSupervision?.binding.ownerAgentId !== input.agentParticipation.agentId ||
+    // Guild commands are registered per application and a deployment can only read its own, so no
+    // node can detect a second owner announcing `/goal` in the same guild. The announcement is
+    // therefore declared rather than inferred, and an undeclared deployment advertises nothing.
+    input.options.outcomeSupervision.goalCommand?.announce !== true
   )
     return null;
   const command = new DiscordRestGoalCommand({
@@ -83,7 +87,7 @@ export async function handleDiscordGoalCommand(input: {
     await input.commandRest.update(
       input.command,
       receipt.messageId,
-      "이 채널은 담당자의 목표 접수 대상이 아닙니다. 지정된 작업 채널에서 다시 요청해 주세요.",
+      "이 채널은 이 담당자의 목표 접수 대상이 아닙니다. 목표는 그 저장소를 맡은 담당자의 채널에서 담당자에게 직접 말씀하시면 같은 경로로 접수됩니다.",
     );
     return;
   }
