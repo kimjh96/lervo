@@ -189,6 +189,7 @@ export interface NodeDiscordConversationConfig {
   deliberation?: {
     cliExecutable: string;
     workerId: string;
+    defaultPolicyId?: string;
     principals: Array<{
       participantId: string;
       principalId: string;

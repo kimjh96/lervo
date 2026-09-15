@@ -390,6 +390,50 @@ describe("natural-language Discord conversation mode", () => {
       { kind: "discord_public_thread_create", name: "Release review" },
       { effectRequesterAuthorized: true },
     );
+
+    const deliberationAction = {
+      availableEffects: ["deliberation_start" as const],
+      respond: vi.fn(async () => candidate("Deliberation started.")),
+    };
+    const naturalDeliberation = new NaturalLanguageDiscordConversationResponder({
+      applicationId,
+      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "product-owner" },
+      repositoryRoot: process.cwd(),
+      artifactStore,
+      history: { recent: async () => [] },
+      resolutionStore: { read: async () => null, record: async () => undefined },
+      managedTurnResolver: {
+        resolve: async () => ({
+          ...(await agentWorkResolver.resolve()),
+          effect: {
+            kind: "deliberation_start",
+            argument: "Review the repository knowledge conflict strategy.",
+          },
+        }),
+      },
+      surfaceEffects: [
+        {
+          effectId: "deliberation_start",
+          description: "Start a governed deliberation.",
+          argumentDescription: "Topic.",
+          maximumArgumentCharacters: 4_096,
+        },
+      ],
+      participationPolicy,
+      readOnly: readOnly as ConversationResponder,
+      continuation: continuation as ConversationResponder,
+      platformAction: deliberationAction,
+    });
+    const humanDeliberation = await input("cevt_test0010");
+    await naturalDeliberation.respond(humanDeliberation);
+    expect(deliberationAction.respond).toHaveBeenCalledWith(
+      expect.any(Object),
+      {
+        kind: "deliberation_start",
+        specification: "Review the repository knowledge conflict strategy.",
+      },
+      { effectRequesterAuthorized: true },
+    );
   });
 });
 

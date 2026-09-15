@@ -68,6 +68,7 @@ Replace every identifier and path with reviewed deployment coordinates. Store th
     "deliberation": {
       "cliExecutable": "/absolute/bin/lervo",
       "workerId": "discord-deliberation",
+      "defaultPolicyId": "deliberation_architecture-review",
       "principals": [
         {
           "participantId": "ptc_operator01",
@@ -81,7 +82,7 @@ Replace every identifier and path with reviewed deployment coordinates. Store th
       ],
       "pollIntervalMs": 2000,
       "leaseDurationMs": 300000,
-      "processTimeoutMs": 900000
+      "processTimeoutMs": 3600000
     }
   }
 }

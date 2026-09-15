@@ -141,7 +141,7 @@ function execute(
         "--stdin",
       ],
       stdin,
-      timeoutMs: options.processTimeoutMs ?? 900_000,
+      timeoutMs: options.processTimeoutMs ?? 3_600_000,
     })
     .then((result) => parseSummary(result, job.deliberationId));
 }
@@ -248,7 +248,7 @@ export function createConversationDeliberationCliExecutionPorts(options: {
               "--json",
             ],
             stdin: "",
-            timeoutMs: Math.min(options.processTimeoutMs ?? 900_000, 60_000),
+            timeoutMs: Math.min(options.processTimeoutMs ?? 3_600_000, 60_000),
           });
         } catch {
           return { status: "not_confirmed", reason: "source_inconsistent" };

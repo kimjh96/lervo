@@ -21,7 +21,7 @@ it("sleeps when idle, wakes for changes and deadlines, and disposes subscription
   });
   loop.start();
   await vi.advanceTimersByTimeAsync(0);
-  await vi.advanceTimersByTimeAsync(20_000);
+  await vi.advanceTimersByTimeAsync(120_000);
   expect(cycle).toHaveBeenCalledTimes(1);
   deadline = Date.now() + 500;
   notify();

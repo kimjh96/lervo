@@ -212,11 +212,13 @@ export class NaturalLanguageDiscordConversationResponder
             ? { kind: managed.effect.kind, name: managed.effect.argument! }
             : managed.effect.kind === "workforce_agent_hire"
               ? { kind: managed.effect.kind, specification: managed.effect.argument! }
-              : managed.effect.kind === "repository_work"
-                ? { kind: "repository_work" }
-                : managed.effect.kind === "supervision_goal_request"
-                  ? { kind: "supervision_goal_request" }
-                  : { kind: "none" };
+              : managed.effect.kind === "deliberation_start"
+                ? { kind: managed.effect.kind, specification: managed.effect.argument! }
+                : managed.effect.kind === "repository_work"
+                  ? { kind: "repository_work" }
+                  : managed.effect.kind === "supervision_goal_request"
+                    ? { kind: "supervision_goal_request" }
+                    : { kind: "none" };
       const resolution: ConversationIntentResolution = {
         intent: managed.intent,
         confidence: managed.confidence,

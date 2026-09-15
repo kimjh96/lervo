@@ -21,9 +21,9 @@ Proactive production requires a participation policy that explicitly uses `proac
 
 ### Installed deliberation
 
-Installed deliberation uses the existing platform-neutral durable queue and explicit `/lervo deliberate` commands. Exact human participant bindings separately grant start, read, and resume permissions. Explicit commands bypass model intent classification and enter the queue immediately; ordinary natural language cannot start deliberation.
+Installed deliberation uses the existing platform-neutral durable queue. Exact human participant bindings separately grant start, read, and resume permissions. Explicit `/lervo deliberate` commands bypass model intent classification and enter the queue immediately. ADR-0415 additionally permits natural-language start through the same port when a deployment explicitly selects a default policy.
 
-Node owns queue polling and invokes an executable adapter instead of importing CLI application code. The adapter passes the topic only on stdin and supplies the queue-assigned deliberation ID, expected project ID, repository root, and operation as separate bounded coordinates. The internal assigned-worker CLI calls the existing managed deliberation lifecycle, preserving repository search, context evidence, Codex or Claude provider adapters, verification, CAS artifacts, event recording, leases, and exact project checks.
+Node owns change-driven queue execution and invokes an executable adapter instead of importing CLI application code. Durable change notifications and exact lease or reconciliation deadlines wake the worker; startup recovery performs one initial scan. The adapter passes the topic only on stdin and supplies the queue-assigned deliberation ID, expected project ID, repository root, and operation as separate bounded coordinates. The internal assigned-worker CLI calls the existing managed deliberation lifecycle, preserving repository search, context evidence, Codex or Claude provider adapters, verification, CAS artifacts, event recording, leases, and exact project checks.
 
 Only a matching terminal status and artifact count settle the queue. Spawn failure, timeout, oversized or malformed output, non-terminal output, and coordinate mismatch become `deliberation_execution_uncertain`; they never automatically replay an unprovable provider execution.
 

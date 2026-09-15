@@ -13,7 +13,8 @@ export type ConversationRequestedEffect =
   | { kind: "discord_guild_text_channel_create"; name: string }
   | { kind: "discord_public_thread_create"; name: string }
   | { kind: "workforce_agent_hire"; specification: string }
-  | { kind: "workforce_task_delegate"; specification: string };
+  | { kind: "workforce_task_delegate"; specification: string }
+  | { kind: "deliberation_start"; specification: string };
 
 export interface ConversationIntentResolution {
   intent: ConversationIntent;
@@ -78,11 +79,12 @@ const responseSchema = {
             "discord_guild_text_channel_create",
             "discord_public_thread_create",
             "workforce_agent_hire",
+            "deliberation_start",
           ],
         },
         nickname: { type: ["string", "null"], maxLength: 32 },
         name: { type: ["string", "null"], maxLength: 100 },
-        specification: { type: ["string", "null"], maxLength: 512 },
+        specification: { type: ["string", "null"], maxLength: 4_096 },
       },
       required: ["kind", "nickname", "name", "specification"],
     },
@@ -100,8 +102,9 @@ const instruction = [
   "Set effect.kind to discord_guild_text_channel_create only when the user asks this agent to create a text channel in the current server. Put the requested lowercase Discord channel name in effect.name.",
   "Set effect.kind to discord_public_thread_create only when the user asks this agent to create a public thread under the current Discord channel. Put the requested thread name in effect.name.",
   "Set effect.kind to workforce_agent_hire only when this product owner should hire a repository child agent. Put a compact JSON object with exactly name, roleId, and provider in effect.specification. Use an explicit human-style name, an installed repository role, and provider codex, claude, or any.",
+  "Set effect.kind to deliberation_start only when it is available and the human explicitly asks the installed participants to deliberate, debate, or independently challenge a topic. Put only the complete topic in effect.specification; the deployment supplies the governed policy.",
   "Use clarify instead of inventing a requested Discord nickname or channel/thread name, or selecting an unavailable external action. A product owner may choose a suitable child-agent name, role, and provider when hiring is the requested or clearly necessary next action.",
-  "For answer and clarify, set effect.kind to none. Set effect.nickname only for discord_current_member_nickname_set, effect.name only for a channel or thread creation effect, and effect.specification only for workforce_agent_hire; otherwise set all three to null.",
+  "For answer and clarify, set effect.kind to none. Set effect.nickname only for discord_current_member_nickname_set, effect.name only for a channel or thread creation effect, and effect.specification only for workforce_agent_hire or deliberation_start; otherwise set all three to null.",
   "A short instruction to proceed may select continue_work only when currentWorkstream or priorTurns gives it one unambiguous target.",
   "Use clarify when the requested effect or target is ambiguous, conflicting, or lacks enough conversational context.",
   "A Discord mention is an optional attention signal. Its presence or absence never determines intent.",
@@ -142,6 +145,7 @@ function parseResolution(
       "discord_guild_text_channel_create",
       "discord_public_thread_create",
       "workforce_agent_hire",
+      "deliberation_start",
     ].includes(effectRecord.kind as string) ||
     (effectRecord.nickname !== null && typeof effectRecord.nickname !== "string") ||
     (effectRecord.name !== null && typeof effectRecord.name !== "string") ||
@@ -182,7 +186,13 @@ function parseResolution(
         [...specification].length < 1 ||
         [...specification].length > 1_024 ||
         specification.includes("\0"))) ||
-    (!["workforce_agent_hire", "workforce_task_delegate"].includes(kind) && specification !== null)
+    (kind === "deliberation_start" &&
+      (typeof specification !== "string" ||
+        [...specification].length < 1 ||
+        [...specification].length > 4_096 ||
+        specification.includes("\0"))) ||
+    (!["workforce_agent_hire", "workforce_task_delegate", "deliberation_start"].includes(kind) &&
+      specification !== null)
   ) {
     throw new TypeError("The conversation intent and requested effect are inconsistent.");
   }
@@ -195,7 +205,9 @@ function parseResolution(
         ? { kind, nickname: nickname as string }
         : kind === "discord_guild_text_channel_create" || kind === "discord_public_thread_create"
           ? { kind, name: name as string }
-          : kind === "workforce_agent_hire" || kind === "workforce_task_delegate"
+          : kind === "workforce_agent_hire" ||
+              kind === "workforce_task_delegate" ||
+              kind === "deliberation_start"
             ? { kind, specification: specification as string }
             : { kind },
   };

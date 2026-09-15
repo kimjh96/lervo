@@ -9,6 +9,7 @@ import {
   ConversationDeliberationResponder,
   type ConversationDeliberationPort,
 } from "@lervo/conversation-control";
+import type { ManagedConversationSurfaceEffect } from "@lervo/conversation-responder";
 import { fixedConversationStatusWritingContract } from "@lervo/core";
 import type { ConversationResponder } from "@lervo/interaction";
 import type { ArtifactStore } from "@lervo/storage-contract";
@@ -17,9 +18,13 @@ import { createConversationDeliberationCliExecutionPorts } from "./conversation-
 import { ConversationDeliberationLoop } from "./conversation-deliberation-loop.js";
 import { ConversationDeliberationOutcomeCoordinator } from "./conversation-deliberation-outcomes.js";
 import type { NodeDiscordConversationConfig } from "./config-types.js";
+import { ConversationDeliberationActionResponder } from "./conversation-deliberation-action-responder.js";
+import type { DiscordPlatformActionResponder } from "./discord-conversation-mode.js";
 
 export class DiscordConversationDeliberationRuntime {
   readonly responder: ConversationResponder;
+  readonly naturalLanguageEffect: ManagedConversationSurfaceEffect | null;
+  readonly actionResponder: DiscordPlatformActionResponder;
   readonly applicationOptions: NonNullable<ConversationApplicationOptions["deliberations"]>;
   private deliberations: ConversationDeliberationPort | null = null;
   private loop: ConversationDeliberationLoop | null = null;
@@ -53,6 +58,23 @@ export class DiscordConversationDeliberationRuntime {
       ...(config.leaseDurationMs === undefined ? {} : { leaseDurationMs: config.leaseDurationMs }),
       ...(config.maxRecords === undefined ? {} : { maxRecords: config.maxRecords }),
     };
+    const action =
+      config.defaultPolicyId === undefined
+        ? null
+        : new ConversationDeliberationActionResponder({
+            policyId: config.defaultPolicyId,
+            artifactStore,
+            deliberations: () => this.deliberations,
+          });
+    this.naturalLanguageEffect = action?.surfaceEffect ?? null;
+    this.actionResponder =
+      action ??
+      ({
+        availableEffects: [],
+        respond: () => {
+          throw new Error("Natural-language deliberation is not configured.");
+        },
+      } satisfies DiscordPlatformActionResponder);
     this.outcomes = new ConversationDeliberationOutcomeCoordinator({
       projectId,
       integrationId,

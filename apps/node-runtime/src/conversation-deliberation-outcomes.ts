@@ -5,7 +5,7 @@ import {
 } from "@lervo/conversation-contract";
 import type {
   ConversationDeliberationResumeWorkerCycleResult,
-  ConversationDeliberationStatus,
+  ConversationDeliberationSummary,
   ConversationDeliberationWorkerCycleResult,
 } from "@lervo/conversation-control";
 import type { ArtifactStore } from "@lervo/storage-contract";
@@ -41,7 +41,7 @@ export class ConversationDeliberationOutcomeCoordinator {
       this.pending.set(result.deliberationId, { attempts: 0 });
       return;
     }
-    await this.notify(application, result.deliberationId, result.summary.status);
+    await this.notify(application, result.summary);
   }
 
   async reconcilePending(application: ConversationApplication): Promise<void> {
@@ -52,7 +52,7 @@ export class ConversationDeliberationOutcomeCoordinator {
       });
       if (result?.status === "reconciled" || result?.status === "not_uncertain") {
         this.pending.delete(deliberationId);
-        await this.notify(application, deliberationId, result.summary.status);
+        await this.notify(application, result.summary);
         continue;
       }
       pending.attempts += 1;
@@ -70,9 +70,9 @@ export class ConversationDeliberationOutcomeCoordinator {
 
   private async notify(
     application: ConversationApplication,
-    deliberationId: string,
-    status: ConversationDeliberationStatus,
+    summary: ConversationDeliberationSummary,
   ): Promise<void> {
+    const { deliberationId, status } = summary;
     if (!["interrupted", "converged", "no_consensus", "failed"].includes(status)) {
       throw new Error("The deliberation notification outcome is not terminal or resumable.");
     }
@@ -86,7 +86,17 @@ export class ConversationDeliberationOutcomeCoordinator {
       failed:
         "The managed deliberation ended with a verified failure. Review its recorded evidence before deciding the next action.",
     }[status as "interrupted" | "converged" | "no_consensus" | "failed"];
-    await this.dispatch(application, deliberationId, "deliberation.completed", description);
+    const evidence = ` Published artifact count: ${summary.artifactCount}.`;
+    const recovery =
+      status === "failed"
+        ? " Quarantined/recoverable artifacts, if any, remain separate and are visible through deliberation status, doctor, and trace inspection."
+        : "";
+    await this.dispatch(
+      application,
+      deliberationId,
+      "deliberation.completed",
+      `${description}${evidence}${recovery}`,
+    );
   }
 
   private async dispatch(

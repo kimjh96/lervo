@@ -36,6 +36,10 @@ export function createDiscordConversationEffects(input: {
     peers: readonly DiscordPeerAgentBinding[];
     dispatch(event: ConversationInboundEvent): Promise<void>;
   };
+  deliberation?: {
+    effect: ManagedConversationSurfaceEffect;
+    responder: DiscordPlatformActionResponder;
+  };
   fetch?: typeof globalThis.fetch;
 }): {
   surfaceEffects: ManagedConversationSurfaceEffect[];
@@ -98,6 +102,7 @@ export function createDiscordConversationEffects(input: {
             maximumArgumentCharacters: 1_024,
           },
         ]),
+    ...(input.deliberation === undefined ? [] : [input.deliberation.effect]),
   ];
   const administration = new DiscordRestAdministration({
     applicationId: input.config.applicationId,
@@ -175,6 +180,11 @@ export function createDiscordConversationEffects(input: {
         });
   return {
     surfaceEffects,
-    platformAction: new ConversationPlatformActionRouter(discord, workforce, delegate),
+    platformAction: new ConversationPlatformActionRouter(
+      discord,
+      workforce,
+      delegate,
+      input.deliberation?.responder,
+    ),
   };
 }

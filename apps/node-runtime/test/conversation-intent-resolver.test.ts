@@ -126,4 +126,29 @@ describe("conversation intent provider contract", () => {
       effect: { kind: "none" },
     });
   });
+
+  it("routes an explicit natural-language debate through the governed deliberation effect", async () => {
+    const topic = "저장소 지식 충돌 전략을 독립적으로 검토하고 결론을 내려 주세요.";
+    const resolver = createConversationIntentResolver({
+      providerId: "codex",
+      model: null,
+      resolve: async () => ({
+        intent: "continue_work",
+        confidence: "high",
+        participation: "relevant",
+        effect: {
+          kind: "deliberation_start",
+          nickname: null,
+          name: null,
+          specification: topic,
+        },
+      }),
+    });
+    await expect(
+      resolver.resolve({
+        ...turn,
+        availableEffects: ["none", "repository_work", "deliberation_start"],
+      }),
+    ).resolves.toMatchObject({ effect: { kind: "deliberation_start", specification: topic } });
+  });
 });

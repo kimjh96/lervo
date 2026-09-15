@@ -5,3 +5,5 @@
 It excludes provider output, prompts, transcripts, source bodies, paths, unrestricted errors, and credentials.
 
 The event means the provider result remains quarantined in CAS and recoverable with `lervo deliberate artifact --content-hash`; it is not a published deliberation artifact. Repository verification and writing publication remain independent facts.
+
+A terminal `failed` outcome is structurally valid even when it has no published deliberation artifact. `doctor --deliberation` and `trace --deliberation` report `artifactCount` and `publishedArtifactCount` as the published count, and report `quarantinedArtifactCount` plus `failedPublications` separately. A quarantined artifact must never be added to the published count merely to make terminal history appear complete.

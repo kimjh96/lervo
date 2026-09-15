@@ -186,6 +186,7 @@ describe("Node runtime configuration", () => {
       deliberation: {
         cliExecutable: "bin/lervo",
         workerId: "discord-deliberation",
+        defaultPolicyId: "deliberation_architecture-review",
         principals: [
           {
             participantId: "ptc_operator01",
@@ -235,7 +236,7 @@ describe("Node runtime configuration", () => {
         policy: {
           mode: "proactive",
           respondTo: ["agent", "human", "system"],
-          unaddressedHumanMessages: "respond",
+          unaddressedHumanMessages: "evaluate",
           signalCodes: ["deliberation.attention", "deliberation.completed", "work.completed"],
           maxResponseAttempts: 2,
         },
@@ -252,6 +253,7 @@ describe("Node runtime configuration", () => {
         deliberation: {
           cliExecutable: `${root}/bin/lervo`,
           workerId: "discord-deliberation",
+          defaultPolicyId: "deliberation_architecture-review",
           principals: [
             {
               participantId: "ptc_operator01",

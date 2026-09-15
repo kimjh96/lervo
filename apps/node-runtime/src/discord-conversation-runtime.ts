@@ -178,6 +178,14 @@ export async function openNodeDiscordConversationRuntime(
               },
             },
           }),
+      ...(deliberationRuntime === null || deliberationRuntime.naturalLanguageEffect === null
+        ? {}
+        : {
+            deliberation: {
+              effect: deliberationRuntime.naturalLanguageEffect,
+              responder: deliberationRuntime.actionResponder,
+            },
+          }),
       ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
     });
     const surfaceEffects =

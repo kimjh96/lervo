@@ -19,6 +19,8 @@ function report(
     phase: "completed",
     completionStatus: "converged",
     artifactCount: 5,
+    publishedArtifactCount: 5,
+    quarantinedArtifactCount: 0,
     failedPublications: [],
     lastRound: 1,
     checkpoint: "readable",

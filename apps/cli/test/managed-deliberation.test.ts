@@ -6,6 +6,7 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createManagedDeliberationExecutor } from "../src/managed-deliberation.js";
+import { inspectManagedDeliberation } from "../src/deliberation-inspection.js";
 import { parseSemanticEvaluation } from "../src/managed-deliberation-runner.js";
 import type { RunProvider } from "../src/managed-run.js";
 import { prepareRunVerification } from "../src/run-verification.js";
@@ -138,5 +139,79 @@ describe("managed CLI deliberation convergence", () => {
       resolve(root, ".lervo/state/deliberations", deliberationRoots[0]!),
     );
     expect(entries.filter((entry) => entry.startsWith("artifact-"))).toHaveLength(4);
+  });
+
+  it("keeps a terminal publication failure consistent and exposes quarantined artifacts", async () => {
+    const root = await repository();
+    const failedEvaluation = JSON.stringify({
+      checks: defaultEnglishWritingContract.verification.semanticChecks.map((check, index) => ({
+        checkId: check.checkId,
+        status: index === 0 ? "failed" : "passed",
+        violationCount: index === 0 ? 1 : 0,
+      })),
+    });
+    const queues: Record<RunProvider, string[]> = {
+      codex: [
+        "The proposal is recoverable even when both publication attempts are blocked.",
+        "The proposal is recoverable even when both publication attempts are blocked.",
+      ],
+      claude: [failedEvaluation, failedEvaluation],
+    };
+    const nextId = sequence();
+    const now = clock();
+    const executor = createManagedDeliberationExecutor({
+      openStorage: openProjectStorage,
+      createId: nextId,
+      now,
+      runner: {
+        createAdapter: ({ provider }) => {
+          const content = queues[provider].shift();
+          if (content === undefined)
+            throw new Error(`The ${provider} fixture response is missing.`);
+          return new FixtureDeliberationAdapter(
+            provider,
+            `provider-session-${nextId("session")}`,
+            content,
+            nextId("ctx"),
+          );
+        },
+        createId: nextId,
+        now,
+        prepareVerification: prepareRunVerification,
+      },
+    });
+
+    await expect(
+      executor({
+        repositoryRoot: root,
+        proposerProvider: "codex",
+        reviewerProvider: "claude",
+        verificationSuiteIds: ["project.default"],
+        topic: "Preserve evidence from a failed publication.",
+      }),
+    ).rejects.toMatchObject({ code: "artifact_publication_failed" });
+
+    const storage = await openProjectStorage(root);
+    const completed = storage.events
+      .list({ limit: 1_000 })
+      .find((event) => event.type === "deliberation.completed");
+    const report = await inspectManagedDeliberation({
+      storage,
+      deliberationId: String(completed?.payload.deliberationId),
+    });
+    expect(report).toMatchObject({
+      sourceStatus: "consistent",
+      phase: "completed",
+      completionStatus: "failed",
+      artifactCount: 0,
+      publishedArtifactCount: 0,
+      quarantinedArtifactCount: 1,
+      issues: [],
+    });
+    expect(report.failedPublications).toHaveLength(2);
+    expect(
+      report.failedPublications.every((item) => item.recoveryCommand.includes(item.contentHash)),
+    ).toBe(true);
+    await storage.close();
   });
 });

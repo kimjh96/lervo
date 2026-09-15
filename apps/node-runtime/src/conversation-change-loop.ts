@@ -105,12 +105,8 @@ export class ConversationChangeLoop {
     if (this.unsubscribe !== undefined && !failed) {
       try {
         const deadline = this.options.nextWakeupAt?.() ?? null;
-        delay =
-          deadline === null
-            ? 30_000
-            : deadline <= Date.now()
-              ? this.options.intervalMs
-              : Math.min(30_000, deadline - Date.now());
+        if (deadline === null) return;
+        delay = deadline <= Date.now() ? this.options.intervalMs : deadline - Date.now();
       } catch {
         delay = this.options.intervalMs;
       }

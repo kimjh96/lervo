@@ -23,6 +23,7 @@ export function parseDiscordConversationDeliberation(
     [
       "cliExecutable",
       "workerId",
+      "defaultPolicyId",
       "principals",
       "pollIntervalMs",
       "leaseDurationMs",
@@ -81,6 +82,19 @@ export function parseDiscordConversationDeliberation(
   if (!/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u.test(workerId)) {
     throw new NodeRuntimeError("invalid_config", "Discord deliberation worker ID is invalid.");
   }
+  const defaultPolicyId =
+    source.defaultPolicyId === undefined
+      ? undefined
+      : configText(source.defaultPolicyId, "discordConversation.deliberation.defaultPolicyId");
+  if (
+    defaultPolicyId !== undefined &&
+    !/^deliberation_[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u.test(defaultPolicyId)
+  ) {
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "The Discord deliberation default policy ID is invalid.",
+    );
+  }
   const integer = (key: string, minimum: number, maximum: number) =>
     optionalConfigInteger(source, key, minimum, maximum, "discordConversation.deliberation");
   const pollIntervalMs = integer("pollIntervalMs", 100, 60_000);
@@ -113,6 +127,7 @@ export function parseDiscordConversationDeliberation(
       configText(source.cliExecutable, "discordConversation.deliberation.cliExecutable"),
     ),
     workerId,
+    ...(defaultPolicyId === undefined ? {} : { defaultPolicyId }),
     principals,
     ...(pollIntervalMs === undefined ? {} : { pollIntervalMs }),
     ...(leaseDurationMs === undefined ? {} : { leaseDurationMs }),

@@ -18,7 +18,10 @@ export interface DeliberationInspectionReport {
   sourceStatus: "consistent" | "incomplete" | "inconsistent";
   phase: "rounds" | "running_after_approval" | "interrupted_after_approval" | "completed";
   completionStatus: "converged" | "no_consensus" | "failed" | null;
+  /** Published deliberation artifacts. Retained as the v1 compatibility field. */
   artifactCount: number;
+  publishedArtifactCount: number;
+  quarantinedArtifactCount: number;
   failedPublications: Array<{
     artifactId: string;
     contentHash: string;
@@ -115,7 +118,7 @@ export async function inspectManagedDeliberation(input: {
   const structurallyInvalid =
     started.length !== 1 ||
     completed.length > 1 ||
-    (completed.length === 1 && artifacts.length === 0) ||
+    (completed.length === 1 && terminalStatus !== "failed" && artifacts.length === 0) ||
     !validTerminalStatus;
   const issues: DeliberationInspectionReport["issues"] = [];
   if (structurallyInvalid) {
@@ -154,6 +157,9 @@ export async function inspectManagedDeliberation(input: {
     const round = event.type === "deliberation.artifact.recorded" ? event.payload.round : null;
     return typeof round === "number" ? Math.max(maximum ?? 0, round) : maximum;
   }, null);
+  const quarantinedArtifactCount = new Set(
+    failedPublications.map((event) => String(event.payload.contentHash)),
+  ).size;
   return {
     schemaVersion: 1,
     projectId: input.storage.manifest.projectId,
@@ -166,6 +172,8 @@ export async function inspectManagedDeliberation(input: {
     phase,
     completionStatus,
     artifactCount: artifacts.length,
+    publishedArtifactCount: artifacts.length,
+    quarantinedArtifactCount,
     failedPublications: failedPublications.map((event) => ({
       artifactId: String(event.payload.artifactId),
       contentHash: String(event.payload.contentHash),
@@ -205,7 +213,8 @@ export function formatDeliberationInspection(report: DeliberationInspectionRepor
   const lines = [
     `Deliberation inspection: ${report.deliberationId}`,
     `Status: ${phase}`,
-    `Recorded artifacts: ${report.artifactCount}${report.lastRound === null ? "" : ` · last round ${report.lastRound}`}`,
+    `Published artifacts: ${report.publishedArtifactCount}${report.lastRound === null ? "" : ` · last round ${report.lastRound}`}`,
+    `Quarantined/recoverable artifacts: ${report.quarantinedArtifactCount}`,
     `Source check: ${report.sourceStatus === "consistent" ? "consistent" : report.sourceStatus === "incomplete" ? "completion needs confirmation" : "inconsistent"}`,
     `Resume assessment: ${report.resume === "candidate" ? "revalidate every source when resuming" : report.resume === "blocked_running" ? "blocked because a process is active" : report.resume === "completed" ? "unavailable because deliberation completed" : "unavailable because no approved checkpoint exists"}`,
   ];

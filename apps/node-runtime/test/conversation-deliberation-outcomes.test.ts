@@ -71,6 +71,7 @@ describe("conversation deliberation outcome coordinator", () => {
       await artifactStore.get(`lervo-cas://sha256/${events[0]!.content!.contentHash.slice(7)}`),
     );
     expect(content).toContain("verified decision");
+    expect(content).toContain("Published artifact count: 4");
     expect(content).not.toContain("dlb_queue0001");
     expect(deliver).toHaveBeenCalledWith("itg_discord01");
   });
