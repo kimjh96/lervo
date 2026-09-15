@@ -1,11 +1,39 @@
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile, rename } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { promisify } from "node:util";
 import { expect, it, vi } from "vitest";
-import { watchRepositoryChanges } from "../src/repository-change-watch.js";
-import { settleRepositoryWatch } from "./repository-watch.fixture.js";
+
+const { watched } = vi.hoisted(() => ({ watched: new Set<string>() }));
+
+// Recording which directories are watched proves the ignore boundary directly. Counting
+// notifications cannot: one edit raises a variable number of native events, so an unchanged
+// count only ever means the next one has not arrived yet.
+vi.mock("node:fs", async (importActual) => {
+  const actual = await importActual<typeof import("node:fs")>();
+  const record = (directory: string, options: unknown, listener: unknown) => {
+    const open = actual.watch as (
+      path: string,
+      options: unknown,
+      listener: unknown,
+    ) => ReturnType<typeof actual.watch>;
+    const watcher = open(directory, options, listener);
+    watched.add(directory);
+    const close = watcher.close.bind(watcher);
+    watcher.close = () => {
+      watched.delete(directory);
+      close();
+    };
+    return watcher;
+  };
+  return { ...actual, default: actual, watch: record as unknown as typeof actual.watch };
+});
+
+const { watchRepositoryChanges } = await import("../src/repository-change-watch.js");
+
+const watchedUnder = (directory: string) =>
+  [...watched].filter((path) => path === directory || path.startsWith(`${directory}${sep}`));
 
 it("observes nested source edits and replica requests without watching ignored file contents", async () => {
   const root = await mkdtemp(join(tmpdir(), "lervo-watch-"));
@@ -29,21 +57,38 @@ it("observes nested source edits and replica requests without watching ignored f
       },
       { timeout: 10_000 },
     );
-    await settleRepositoryWatch(notify);
+    // A rename naming a watched directory itself makes the watcher close and re-register it, so
+    // being watched is transient and must be waited for. Never being watched is invariant: an
+    // ignored directory is never put in the set at all, so sampling it at any instant is sound.
+    await vi.waitFor(() => expect(watched.has(join(root, "source/nested"))).toBe(true), {
+      timeout: 10_000,
+    });
+    expect(watchedUnder(join(root, "cache"))).toEqual([]);
     notify.mockClear();
-    await writeFile(join(root, "source/nested/file.ts"), "second");
-    await vi.waitFor(() => expect(notify).toHaveBeenCalled(), { timeout: 10_000 });
-    await settleRepositoryWatch(notify);
-    notify.mockClear();
-    await writeFile(join(root, "cache/file"), "second");
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    expect(notify).not.toHaveBeenCalled();
-    await writeFile(join(root, ".lervo/state/request.next"), "hint");
-    await rename(
-      join(root, ".lervo/state/request.next"),
-      join(root, ".lervo/state/repository-replica-request.json"),
+    // A rename can close this directory's own watcher moments before the write, losing that one
+    // notification for good, so repeat the stimulus inside the wait instead of writing once.
+    await vi.waitFor(
+      async () => {
+        await writeFile(join(root, "source/nested/file.ts"), "second");
+        expect(notify).toHaveBeenCalled();
+      },
+      { timeout: 10_000 },
     );
-    await vi.waitFor(() => expect(notify).toHaveBeenCalled(), { timeout: 10_000 });
+    // An ignored edit re-runs the tracked-path scan, which must not widen the watched set.
+    await writeFile(join(root, "cache/file"), "second");
+    notify.mockClear();
+    await vi.waitFor(
+      async () => {
+        await writeFile(join(root, ".lervo/state/request.next"), "hint");
+        await rename(
+          join(root, ".lervo/state/request.next"),
+          join(root, ".lervo/state/repository-replica-request.json"),
+        );
+        expect(notify).toHaveBeenCalled();
+      },
+      { timeout: 10_000 },
+    );
+    expect(watchedUnder(join(root, "cache"))).toEqual([]);
   } finally {
     stop?.();
     await rm(root, { recursive: true, force: true });

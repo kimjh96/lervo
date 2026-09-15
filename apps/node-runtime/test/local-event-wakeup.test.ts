@@ -1,5 +1,8 @@
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { computeEventHash, eventWithoutHash } from "@lervo/event-contract";
 import { afterEach, expect, it, vi } from "vitest";
@@ -12,14 +15,13 @@ import {
 } from "./fixture.js";
 
 afterEach(removeTemporaryRoots);
-it("observes a WAL commit from another process, ignores unchanged heads, and closes the watcher", async () => {
+
+it("reads a commit written to the shared database by another process", async () => {
   const f = await nodeRuntimeFixture(await temporaryRoot(), 1);
   const store = await SQLiteEventStore.open({
     path: f.databasePath,
     projectId: nodeRuntimeProjectId,
   });
-  const notify = vi.fn();
-  const close = watchLocalEventChanges(store, notify);
   try {
     const previous = store.latest()!;
     const event = {
@@ -42,17 +44,51 @@ it("observes a WAL commit from another process, ignores unchanged heads, and clo
       f.databasePath,
       JSON.stringify(event),
     ]);
-    await vi.waitFor(() => expect(notify).toHaveBeenCalledTimes(1));
     expect(store.latest()?.eventHash).toBe(event.eventHash);
+    // Queueing for a destination is not a new head, so it cannot be mistaken for fresh work.
     store.enqueue({
       eventId: event.eventId,
       destinationId: "hub:other",
       enqueuedAt: event.occurredAt,
     });
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(store.latest()?.eventHash).toBe(event.eventHash);
+  } finally {
+    store.close();
+  }
+});
+
+it("notifies once per observed head change and stops once closed", async () => {
+  // A WAL append is a content-only change that need not surface as a directory entry at all, so
+  // the guaranteed contract is the head comparison. Drive it from a notification we control.
+  const directory = await mkdtemp(join(tmpdir(), "lervo-wakeup-"));
+  const path = join(directory, "events.sqlite");
+  let head = "sha256:first";
+  const notify = vi.fn();
+  const close = watchLocalEventChanges(
+    { path, latest: () => ({ eventHash: head }) } as unknown as Parameters<
+      typeof watchLocalEventChanges
+    >[0],
+    notify,
+  );
+  try {
+    head = "sha256:second";
+    await vi.waitFor(
+      async () => {
+        await writeFile(path, `${Date.now()}`);
+        expect(notify).toHaveBeenCalledTimes(1);
+      },
+      { timeout: 10_000 },
+    );
+    // An unchanged head never notifies, however many notifications the host delivers.
+    await writeFile(path, "unchanged-head");
+    await writeFile(path, "unchanged-head-again");
+    expect(notify).toHaveBeenCalledTimes(1);
+    close();
+    head = "sha256:third";
+    await writeFile(path, "after-close");
     expect(notify).toHaveBeenCalledTimes(1);
   } finally {
     close();
-    store.close();
+    await rm(directory, { recursive: true, force: true });
   }
 });

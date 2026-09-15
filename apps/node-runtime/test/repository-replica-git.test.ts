@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -7,7 +7,6 @@ import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { watchRepositoryChanges } from "../src/repository-change-watch.js";
-import { settleRepositoryWatch } from "./repository-watch.fixture.js";
 import {
   applyRepositoryReplicaBundle,
   captureRepositoryReplicaSnapshot,
@@ -75,6 +74,18 @@ describe("Git repository replica", () => {
     await captureRepositoryReplicaSnapshot(root);
     const notify = vi.fn();
     const stop = await watchRepositoryChanges(root, notify);
+    // The watcher reacts to these Git files and to root entries, so comparing their exact bytes
+    // proves an observation cannot wake itself. Waiting for a notification that must never
+    // arrive could only ever prove that it had not arrived yet.
+    const watchedBytes = async () =>
+      JSON.stringify([
+        (await readdir(root)).sort(),
+        await Promise.all(
+          ["HEAD", "index", "packed-refs", "config"].map((name) =>
+            readFile(join(root, ".git", name), "base64").catch(() => null),
+          ),
+        ),
+      ]);
     try {
       await vi.waitFor(
         async () => {
@@ -83,12 +94,10 @@ describe("Git repository replica", () => {
         },
         { timeout: 10_000 },
       );
-      await settleRepositoryWatch(notify);
-      notify.mockClear();
+      const before = await watchedBytes();
       await captureRepositoryReplicaSnapshot(root);
       await captureRepositoryReplicaSnapshot(root);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      expect(notify).not.toHaveBeenCalled();
+      expect(await watchedBytes()).toBe(before);
     } finally {
       stop();
     }
