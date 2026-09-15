@@ -63,6 +63,14 @@ it("snapshots exact startup authority and rejects unknown fields or mismatched t
   expect(parseSupervisionStartupConfiguration({ ...parsed, resultOrigin }).resultOrigin).toEqual(
     resultOrigin,
   );
+  const { binding: root, ...rest } = configuration;
+  const standing = parseSupervisionStartupConfiguration({ ...rest, standing: root });
+  expect(standing).toMatchObject({ binding: root, standing: true });
+  expect(parseSupervisionStartupConfiguration(standing)).toEqual(standing);
+  expect(() => parseSupervisionStartupConfiguration({ ...configuration, standing: root })).toThrow(
+    /exactly one/iu,
+  );
+  expect(() => parseSupervisionStartupConfiguration(rest)).toThrow(/exactly one/iu);
   await expect(
     openNodeSupervisionService({
       repositoryRoot: f.root,

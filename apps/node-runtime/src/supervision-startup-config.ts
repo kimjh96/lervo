@@ -51,13 +51,15 @@ export function parseSupervisionStartupConfiguration(
     ],
     "outcomeSupervision",
   );
-  if ((source.binding === undefined) === (source.standing === undefined))
+  // An already parsed configuration carries the lineage root under `binding` with `standing: true`.
+  const parsed = source.standing === true && source.binding !== undefined;
+  if (!parsed && (source.binding === undefined) === (source.standing === undefined))
     throw new NodeRuntimeError(
       "invalid_config",
       "Supervision requires exactly one of outcomeSupervision.binding or outcomeSupervision.standing.",
     );
-  const standing = source.standing !== undefined;
-  const bindingKey = standing ? "standing" : "binding";
+  const standing = parsed || source.standing !== undefined;
+  const bindingKey = standing && !parsed ? "standing" : "binding";
   const binding = configRecord(source[bindingKey], `outcomeSupervision.${bindingKey}`);
   exactConfigKeys(
     binding,
