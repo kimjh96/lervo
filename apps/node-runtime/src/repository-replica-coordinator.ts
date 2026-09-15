@@ -177,6 +177,8 @@ export class LocalRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
 }
 
 export class RepositoryReplicaCoordinator {
+  private stateUpdateTail = Promise.resolve();
+
   constructor(
     private readonly options: {
       stateFile: string;
@@ -185,6 +187,19 @@ export class RepositoryReplicaCoordinator {
       now?: () => Date;
     },
   ) {}
+
+  private async recordReconciliation(
+    replicaId: string,
+    entry: RepositoryReplicaCoordinatorState["replicas"][string],
+  ): Promise<void> {
+    const update = this.stateUpdateTail.then(async () => {
+      const state = await readState(this.options.stateFile);
+      state.replicas[replicaId] = entry;
+      await writeState(this.options.stateFile, state);
+    });
+    this.stateUpdateTail = update.catch(() => {});
+    await update;
+  }
 
   async reconcile(input: {
     replicaId: string;
@@ -267,11 +282,10 @@ export class RepositoryReplicaCoordinator {
       );
     }
     const reconciledAt = (this.options.now ?? (() => new Date()))().toISOString();
-    state.replicas[input.replicaId] = {
+    await this.recordReconciliation(input.replicaId, {
       commonSnapshotHash: verifiedLocal.snapshotHash,
       reconciledAt,
-    };
-    await writeState(this.options.stateFile, state);
+    });
     const receipt = (repositoryRoot: string): RepositoryReplicaReceipt => ({
       schemaVersion: 1,
       replicaId: input.replicaId,

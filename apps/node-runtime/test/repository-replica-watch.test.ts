@@ -101,3 +101,48 @@ it("does not let a busy peer postpone another repository's recovery sweep", asyn
     await running;
   }
 });
+
+it("does not let one slow repository block reconciliation for the others", async () => {
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  vi.spyOn(peer, "subscribe").mockImplementation((_root, notify) => {
+    notify();
+    return () => {};
+  });
+  const abort = new AbortController();
+  let releaseFirst = () => {};
+  const firstBlocked = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  const reconcile = vi.fn(async (repository: { replicaId: string }) => {
+    if (repository.replicaId === "first") await firstBlocked;
+  });
+  const running = watchReplicaReconciliation({
+    repositories: [
+      { replicaId: "first", localRoot: "/first", peerRoot: "/peer/first" },
+      { replicaId: "second", localRoot: "/second", peerRoot: "/peer/second" },
+    ],
+    peer,
+    fallbackIntervalMs: 1_000,
+    watch: true,
+    signal: abort.signal,
+    reconcile,
+  });
+  try {
+    await vi.waitFor(() =>
+      expect(reconcile.mock.calls.map(([repository]) => repository.replicaId)).toEqual([
+        "first",
+        "second",
+      ]),
+    );
+  } finally {
+    releaseFirst();
+    abort.abort();
+    await running;
+  }
+});

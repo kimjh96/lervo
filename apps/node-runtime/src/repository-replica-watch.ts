@@ -9,6 +9,26 @@ type WatchedRepository = {
   conflictPolicy?: "hold" | "prefer_local" | "prefer_peer";
 };
 
+const MAX_CONCURRENT_RECONCILIATIONS = 4;
+
+async function reconcileRepositories(
+  repositories: WatchedRepository[],
+  reconcile: (repository: WatchedRepository) => Promise<void>,
+  signal?: AbortSignal,
+): Promise<void> {
+  let nextIndex = 0;
+  const worker = async () => {
+    while (!signal?.aborted) {
+      const repository = repositories[nextIndex++];
+      if (repository === undefined) return;
+      await reconcile(repository);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(MAX_CONCURRENT_RECONCILIATIONS, repositories.length) }, worker),
+  );
+}
+
 export async function watchReplicaReconciliation(input: {
   repositories: WatchedRepository[];
   peer: SshRepositoryReplicaPeer;
@@ -75,10 +95,7 @@ export async function watchReplicaReconciliation(input: {
       const selected = input.repositories.filter((repository) =>
         dirty.delete(repository.replicaId),
       );
-      for (const repository of selected) {
-        if (input.signal?.aborted) break;
-        await input.reconcile(repository);
-      }
+      await reconcileRepositories(selected, input.reconcile, input.signal);
       if (!input.watch || input.signal?.aborted) break;
       const revision = wakeup.revision;
       if (dirty.size === 0) {

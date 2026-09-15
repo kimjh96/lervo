@@ -48,6 +48,35 @@ afterEach(async () => {
 });
 
 describe("repository replica coordinator", () => {
+  it("preserves every replica entry when independent reconciliations complete concurrently", async () => {
+    const first = await repositories();
+    const second = await repositories();
+    const coordinator = new RepositoryReplicaCoordinator({
+      stateFile: first.stateFile,
+      local: new LocalRepositoryReplicaPeer(),
+      peer: new LocalRepositoryReplicaPeer(),
+      now: () => new Date("2026-09-16T00:00:00.000Z"),
+    });
+
+    await Promise.all([
+      coordinator.reconcile({
+        replicaId: "first",
+        localRoot: first.local,
+        peerRoot: first.peer,
+      }),
+      coordinator.reconcile({
+        replicaId: "second",
+        localRoot: second.local,
+        peerRoot: second.peer,
+      }),
+    ]);
+
+    const state = JSON.parse(await readFile(first.stateFile, "utf8")) as {
+      replicas: Record<string, unknown>;
+    };
+    expect(Object.keys(state.replicas).sort()).toEqual(["first", "second"]);
+  });
+
   it("continues exact uncommitted bytes in both directions and blocks dual divergence", async () => {
     const fixture = await repositories();
     const coordinator = new RepositoryReplicaCoordinator({
