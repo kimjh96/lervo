@@ -15,6 +15,7 @@ One real channel with one person and at least two hired agents in distinct roles
 - Use threads, replies, and mentions as needed.
 - Complete a bounded discussion and stop at its declared terminal condition.
 - Route a task to the hired agent whose role owns it, without the person naming that agent, and let that agent answer from its own context.
+- Let one non-source agent autonomously join a materially relevant human or agent turn without a mention, while irrelevant peers observe and bounded chains terminate.
 - Preserve every participant, role, provider-model, and agent-context coordinate across restart.
 - Produce no unauthorized repository or external effect.
 
@@ -33,4 +34,5 @@ The same scenario must be replayable through a non-Discord test surface over sha
 - [ADR-0395](../../../../decisions/coordination/conversations/0395-resumable-native-repository-work-turns.md)
 - [ADR-0396](../../../../decisions/coordination/conversations/0396-conflict-safe-repository-replica-continuation.md)
 - [ADR-0408](../../../../decisions/coordination/conversations/0408-conversation-task-delegation-to-hired-agents.md)
+- [ADR-0411](../../../../decisions/coordination/conversations/agent-organization/0411-governed-agent-memory-and-autonomous-participation.md)
 - [Cross-provider deliberation runtime](../../../../decisions/execution/providers/0029-cross-provider-deliberation-runtime.md)

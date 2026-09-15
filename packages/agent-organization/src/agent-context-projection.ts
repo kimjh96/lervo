@@ -1,18 +1,16 @@
 import { agentContextEvent } from "./agent-context-event-validation.js";
 import {
+  agentContextReviewAttests,
+  hasCompleteGovernedAgentContextMetadata,
+  hasGovernedAgentContextMetadata,
+} from "./agent-context-review.js";
+import {
   AgentContextError,
   type AgentContextEventEnvelope,
   type AgentContextProjection,
   type AgentContextWorkforceIdentity,
   type ProjectedAgentContextEntry,
 } from "./agent-context-types.js";
-
-const reviewEventTypes = new Set([
-  "knowledge.candidate.reviewed",
-  "knowledge.reconciliation.reviewed",
-  "knowledge.verified",
-  "verification.completed",
-]);
 
 function conflict(message: string): never {
   throw new AgentContextError("agent_context_state_conflict", message);
@@ -22,13 +20,18 @@ function artifactId(contentHash: string): string {
   return `art_${contentHash.slice("sha256:".length)}`;
 }
 
-function passedVerification(event: AgentContextEventEnvelope): boolean {
-  if (event.type !== "verification.completed") return true;
+const legacyReviewEventTypes = new Set([
+  "knowledge.candidate.reviewed",
+  "knowledge.reconciliation.reviewed",
+  "knowledge.verified",
+  "verification.completed",
+]);
+
+function legacyReviewQualifies(review: AgentContextEventEnvelope): boolean {
+  const payload = review.payload as Record<string, unknown>;
   return (
-    typeof event.payload === "object" &&
-    event.payload !== null &&
-    "status" in event.payload &&
-    event.payload.status === "passed"
+    legacyReviewEventTypes.has(review.type) &&
+    (review.type !== "verification.completed" || payload.status === "passed")
   );
 }
 
@@ -42,13 +45,21 @@ function assertSourceAndReview(
     conflict("The promoted context summary artifact coordinate is invalid.");
   }
   const review = eventsById.get(payload.reviewEventId);
+  const metadata = payload as Record<string, unknown>;
+  const governed = hasCompleteGovernedAgentContextMetadata(metadata);
   if (
+    (hasGovernedAgentContextMetadata(metadata) && !governed) ||
     review === undefined ||
     review.eventHash !== payload.reviewEventHash ||
-    !reviewEventTypes.has(review.type) ||
-    !passedVerification(review)
+    (governed
+      ? !agentContextReviewAttests({
+          review,
+          summaryContentHash: payload.summaryContentHash,
+          agentId: payload.agentId,
+        })
+      : !legacyReviewQualifies(review))
   ) {
-    conflict("The context promotion review evidence is missing or ineligible.");
+    conflict("The context promotion review does not attest the exact summary and agent.");
   }
   if (payload.source.kind === "event") {
     const source = eventsById.get(payload.source.sourceId);
@@ -98,6 +109,14 @@ export function projectAgentContext(input: {
     if (event.type === "agent.context.promoted") {
       assertSourceAndReview(envelope, eventsById);
       const payload = event.payload;
+      if (
+        payload.reviewBindingVersion === 2 &&
+        (Date.parse(payload.observedAt!) > Date.parse(payload.promotedAt) ||
+          (payload.expiresAt !== null &&
+            Date.parse(payload.expiresAt!) <= Date.parse(payload.observedAt!)))
+      ) {
+        conflict("The context observation, expiry, and promotion times are inconsistent.");
+      }
       if (entries.some((entry) => entry.contextEntryId === payload.contextEntryId)) {
         conflict("An agent context entry ID cannot be reused.");
       }
@@ -116,6 +135,17 @@ export function projectAgentContext(input: {
           );
         }
         prior.status = "superseded";
+      }
+      const sameSubject = entries.find(
+        (entry) =>
+          entry.agentId === payload.agentId &&
+          entry.layer === payload.layer &&
+          payload.subjectKey !== undefined &&
+          entry.subjectKey === payload.subjectKey &&
+          entry.status === "active",
+      );
+      if (sameSubject !== undefined) {
+        conflict("An active context subject must be explicitly superseded before replacement.");
       }
       entries.push({ ...structuredClone(payload), status: "active" });
       continue;

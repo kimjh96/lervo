@@ -18,12 +18,43 @@ const contextHandoffIdSchema = {
   pattern: "^ach_[a-f0-9]{24}$",
 } as const;
 
+const contextSubjectKeySchema = {
+  type: "string",
+  minLength: 1,
+  maxLength: 160,
+  pattern: "^[a-z0-9][a-z0-9._:/-]*$",
+} as const;
+
 export const agentContextPromotedEventPayloadSchema = {
   type: "object",
   properties: {
     contextEntryId: contextEntryIdSchema,
     agentId: workforceAgentIdSchema,
     layer: { type: "string", enum: ["work", "relationship", "expertise"] },
+    memoryKind: {
+      type: "string",
+      enum: [
+        "work_outcome",
+        "working_preference",
+        "decision_rationale",
+        "relationship",
+        "expertise",
+      ],
+    },
+    subjectKey: contextSubjectKeySchema,
+    audience: { type: "string", const: "agent" },
+    sensitivity: { type: "string", enum: ["internal", "restricted"] },
+    confidence: { type: "string", enum: ["medium", "high"] },
+    retrievalDigests: {
+      type: "array",
+      minItems: 1,
+      maxItems: 24,
+      uniqueItems: true,
+      items: sha256Schema,
+    },
+    observedAt: timestampSchema,
+    expiresAt: { anyOf: [timestampSchema, { type: "null" }] },
+    reviewBindingVersion: { type: "integer", const: 2 },
     source: {
       type: "object",
       properties: {

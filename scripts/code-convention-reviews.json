@@ -102,9 +102,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:12ce24b434c5721add107f3df169dff01d9d37d9879de656399d42cab1f776f5",
+      "contentHash": "sha256:31763909e07a3820ab5c68c75132f91720c6e1bddfce9818bf4e3e263559d532",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns one event payload privacy boundary with a declarative allowlist catalog and exact coordinate validation. New role input fields remain identifiers, hashes and byte counts; their strict shape validator is delegated to role-input-payload. Source text, prompts, filesystem roots and provider output are excluded.",
+      "rationale": "The module owns one event payload privacy boundary with a declarative allowlist catalog and exact coordinate validation. Agent-memory additions are bounded classifications, times, identifiers, and opaque retrieval hashes; semantic review binding remains in agent-organization. Source text, prompts, filesystem roots and provider output are excluded.",
       "disposition": "cohesive"
     },
     {

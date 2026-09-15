@@ -193,7 +193,7 @@ export function parseDiscordConversationBehavior(input: {
     policy?.unaddressedHumanMessages === undefined
       ? routing === undefined
         ? undefined
-        : "respond"
+        : "evaluate"
       : configText(
           policy.unaddressedHumanMessages,
           "discordConversation.policy.unaddressedHumanMessages",

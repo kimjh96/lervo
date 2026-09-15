@@ -16,9 +16,7 @@ export function createDiscordConversationParticipationPolicy(input: {
     conversationIds: config.conversations.map((binding) => binding.conversationId),
     mode: config.policy?.mode ?? (config.routing === undefined ? "mention_only" : "relevant"),
     respondTo: config.policy?.respondTo ?? ["human"],
-    unaddressedHumanMessages:
-      config.policy?.unaddressedHumanMessages ??
-      (config.routing === undefined ? "evaluate" : "respond"),
+    unaddressedHumanMessages: config.policy?.unaddressedHumanMessages ?? "evaluate",
     signalCodes: config.policy?.signalCodes ?? [],
     cooldownSeconds: config.policy?.cooldownSeconds ?? 0,
     maxResponsesPerHour:

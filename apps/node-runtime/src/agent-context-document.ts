@@ -1,13 +1,22 @@
+import { createHash } from "node:crypto";
+
 import type {
   AgentContextProjection,
   AgentOrganizationProjection,
+  GovernedAgentContextEntry,
   ProjectedAgentContextEntry,
 } from "@lervo/agent-organization";
+import { hasCompleteGovernedAgentContextMetadata } from "@lervo/agent-organization";
 
 export interface AgentContextDocumentEntry {
   contextEntryId: string;
   ownerAgentId: string;
   layer: ProjectedAgentContextEntry["layer"];
+  memoryKind: GovernedAgentContextEntry["memoryKind"];
+  subjectKey: string;
+  confidence: GovernedAgentContextEntry["confidence"];
+  observedAt: string;
+  expiresAt: string | null;
   source: ProjectedAgentContextEntry["source"];
   promotedAt: string;
   summary: string;
@@ -16,16 +25,47 @@ export interface AgentContextDocumentEntry {
 export function selectAgentContextEntries(
   context: AgentContextProjection,
   maximumEntries: number,
-): ProjectedAgentContextEntry[] {
+  input: { query: string; at: Date },
+): GovernedAgentContextEntry[] {
   const selected = [...context.entries.filter((entry) => entry.status === "active")];
   for (const entry of context.inheritedEntries) {
     if (!selected.some((candidate) => candidate.contextEntryId === entry.contextEntryId)) {
       selected.push(entry);
     }
   }
+  const normalizedQuery = input.query.normalize("NFKC").toLocaleLowerCase("en-US");
+  const queryTerms = new Set([
+    normalizedQuery,
+    ...(normalizedQuery.match(/[\p{L}\p{N}._/-]+/gu) ?? []),
+  ]);
+  const queryDigests = new Set(
+    [...queryTerms].map((term) => `sha256:${createHash("sha256").update(term).digest("hex")}`),
+  );
+  const score = (entry: GovernedAgentContextEntry): number => {
+    let value = entry.confidence === "high" ? 1 : 0;
+    for (const digest of entry.retrievalDigests) if (queryDigests.has(digest)) value += 12;
+    return value;
+  };
   return selected
-    .sort((left, right) => right.promotedAt.localeCompare(left.promotedAt))
-    .slice(0, maximumEntries);
+    .filter((entry): entry is GovernedAgentContextEntry =>
+      hasCompleteGovernedAgentContextMetadata(entry as unknown as Record<string, unknown>),
+    )
+    .filter(
+      (entry) =>
+        entry.audience === "agent" &&
+        entry.sensitivity === "internal" &&
+        (entry.expiresAt === null || Date.parse(entry.expiresAt) > input.at.getTime()),
+    )
+    .map((entry) => ({ entry, score: score(entry) }))
+    .filter((item) => item.score > (item.entry.confidence === "high" ? 1 : 0))
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        right.entry.observedAt.localeCompare(left.entry.observedAt) ||
+        left.entry.contextEntryId.localeCompare(right.entry.contextEntryId),
+    )
+    .slice(0, maximumEntries)
+    .map((item) => item.entry);
 }
 
 export function renderAgentContextDocument(input: {

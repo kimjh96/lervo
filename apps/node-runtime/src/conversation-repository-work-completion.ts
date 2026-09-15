@@ -11,6 +11,11 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { lintRepositoryKnowledge } from "@lervo/repository-knowledge";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
 
+import {
+  createVerifiedConversationWorkMemoryDraft,
+  prepareConversationWorkMemory,
+} from "./conversation-agent-memory.js";
+
 export interface ConversationRepositoryWorkCompletionBaseline {
   workstreamId: string | null;
   workstreamRevision: number | null;
@@ -73,7 +78,7 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
   requestedModel: string | null;
   requestedReasoningEffort: RepositoryWorkReasoningEffort | null;
   requestContentHash: string;
-  result: { contentHash: string; byteCount: number };
+  result: { contentHash: string; byteCount: number; summary: string };
   completedAt: string;
   replicaConfigured: boolean;
 }): Promise<void> {
@@ -114,13 +119,17 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
   try {
     const alreadyRecorded = storage.events
       .list()
-      .some(
+      .find(
         (event) =>
           event.type === "conversation.repository_work.completed" &&
           event.payload.sourceConversationEventId === input.sourceConversationEventId &&
           event.payload.repositoryRevisionAfter === repository.revision,
       );
-    if (alreadyRecorded) return;
+    const preparedMemory = await prepareConversationWorkMemory({
+      artifacts: storage.artifacts,
+      summary: input.result.summary,
+      changedPaths: input.changedPaths,
+    });
     const coordinate = sha256(input.sourceConversationEventId).slice("sha256:".length, 31);
     const payload = {
       sourceConversationEventId: input.sourceConversationEventId,
@@ -155,7 +164,28 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
       policyVersion: CONVERSATION_REPOSITORY_WORK_POLICY_VERSION,
       payload,
     };
-    storage.events.append(draft);
+    if (alreadyRecorded !== undefined) {
+      storage.events.append(
+        createVerifiedConversationWorkMemoryDraft({
+          projectId: storage.manifest.projectId,
+          completion: alreadyRecorded,
+          workerAgentId: input.workerAgentId,
+          prepared: preparedMemory,
+        }),
+      );
+    } else {
+      storage.events.transact((transaction) => {
+        const completion = transaction.append(draft).event;
+        transaction.append(
+          createVerifiedConversationWorkMemoryDraft({
+            projectId: storage.manifest.projectId,
+            completion,
+            workerAgentId: input.workerAgentId,
+            prepared: preparedMemory,
+          }),
+        );
+      });
+    }
   } finally {
     await storage.close();
   }

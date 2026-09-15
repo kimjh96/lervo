@@ -244,7 +244,7 @@ export async function openManagedConversationReadResponder(input: {
         responseProvider: input.config.routing.response,
         surfaceEffects: input.surfaceEffects,
         conversationTurnContract: 2,
-        agentContextContract: 1,
+        agentContextContract: 2,
       }),
     );
     const semanticEvaluator =
@@ -290,7 +290,12 @@ export async function openManagedConversationReadResponder(input: {
           }),
       });
       const agentContext =
-        input.agentId === null ? null : await agentContextMaterializer.materialize(input.agentId);
+        input.agentId === null
+          ? null
+          : await agentContextMaterializer.materialize(input.agentId, {
+              query: repositoryContext.query,
+              observedAt: new Date(),
+            });
       if (agentContext !== null) {
         repositoryContext.role.contextPolicy.requiredDocumentRuleIds.push("agent.context");
         repositoryContext.documentRules["agent.context"] = [agentContext.documentId];

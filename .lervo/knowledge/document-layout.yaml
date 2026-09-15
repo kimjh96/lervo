@@ -140,6 +140,14 @@ routes:
     minimumTitleTermMatches: 1
     titleTerms:
       - deliberation
+  - id: coordination.conversations.agent-organization
+    path: coordination/conversations/agent-organization
+    priority: 84
+    minimumTitleTermMatches: 1
+    titleTerms:
+      - agent memory
+      - agent context
+      - autonomous participation
   - id: coordination.conversations
     path: coordination/conversations
     priority: 83

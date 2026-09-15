@@ -24,13 +24,6 @@ export function createDiscordConversationTurnOwnership(input: {
   };
   return {
     owns({ event }) {
-      if (
-        event.actor.kind === "agent" &&
-        event.mentions.participantIds.length === 0 &&
-        event.mentions.roleIds.length === 0
-      ) {
-        return false;
-      }
       const candidates = [
         ...(input.conversationIds.includes(event.target.conversationId) ? [current] : []),
         ...input.peers.flatMap((peer) =>

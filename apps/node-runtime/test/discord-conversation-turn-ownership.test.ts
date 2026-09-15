@@ -188,7 +188,7 @@ describe("Discord multi-agent turn ownership", () => {
     expect(ceo.owns({ event: event("itg_discord02"), policy: policy("ceo") })).toBe(true);
   });
 
-  it("does not turn an unaddressed agent report into unsolicited bot chatter", () => {
+  it("selects one non-source owner for an unaddressed agent contribution", () => {
     const ownership = createDiscordConversationTurnOwnership({
       participantId: "ptc_lervoagent01",
       roleId: "product-owner",
@@ -208,7 +208,7 @@ describe("Discord multi-agent turn ownership", () => {
       automationDepth: 1,
     });
 
-    expect(ownership.owns({ event: report, policy: policy("product-owner") })).toBe(false);
+    expect(ownership.owns({ event: report, policy: policy("product-owner") })).toBe(true);
   });
 
   it("releases a captured conversation after the addressed exchange goes idle", () => {

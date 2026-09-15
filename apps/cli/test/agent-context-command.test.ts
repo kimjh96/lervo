@@ -48,7 +48,7 @@ describe("agent context CLI", () => {
     let reviewEventHash: string;
     const storage = await openProjectStorage(root);
     try {
-      const result = await storage.artifacts.put("verification passed");
+      const result = await storage.artifacts.put("Prefer exact source-bound evidence.");
       const appended = storage.events.append({
         eventId: "evt_contextreview01",
         projectId: storage.manifest.projectId,
@@ -87,6 +87,12 @@ describe("agent context CLI", () => {
         owner.agentId,
         "--layer",
         "expertise",
+        "--kind",
+        "expertise",
+        "--subject",
+        "evidence-binding",
+        "--retrieval-term",
+        "evidence",
         "--source-kind",
         "event",
         "--source-id",

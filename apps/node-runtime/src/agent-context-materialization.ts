@@ -14,7 +14,7 @@ import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 
 import { renderAgentContextDocument, selectAgentContextEntries } from "./agent-context-document.js";
 
-const maximumEntries = 32;
+const maximumEntries = 8;
 const maximumMaterializedBytes = 32_768;
 
 function artifactUri(contentHash: string): string {
@@ -57,7 +57,10 @@ export class AgentContextMaterializer {
     }
   }
 
-  async materialize(agentId: string): Promise<ContextDocumentCandidate> {
+  async materialize(
+    agentId: string,
+    retrieval: { query: string; observedAt: Date },
+  ): Promise<ContextDocumentCandidate> {
     this.refreshEvents();
     const agents = await listAgents(this.options.repositoryRoot);
     const context = projectAgentContext({
@@ -70,12 +73,20 @@ export class AgentContextMaterializer {
       projectId: this.options.projectId,
       events: this.events.filter((event) => event.type.startsWith("organization.")),
     });
-    const selected = selectAgentContextEntries(context, maximumEntries);
+    const selected = selectAgentContextEntries(context, maximumEntries, {
+      query: retrieval.query,
+      at: retrieval.observedAt,
+    });
     const entries = await Promise.all(
       selected.map(async (entry) => ({
         contextEntryId: entry.contextEntryId,
         ownerAgentId: entry.agentId,
         layer: entry.layer,
+        memoryKind: entry.memoryKind,
+        subjectKey: entry.subjectKey,
+        confidence: entry.confidence,
+        observedAt: entry.observedAt,
+        expiresAt: entry.expiresAt,
         source: entry.source,
         promotedAt: entry.promotedAt,
         summary: await verifiedSummary(this.options.artifacts, entry),

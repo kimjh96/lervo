@@ -44,7 +44,7 @@ const review = {
   projectId,
   seq: 2,
   type: "knowledge.verified",
-  payload: {},
+  payload: { candidateContentHash: hash("4") },
   eventId: "evt_review0001",
   eventHash: hash("2"),
 };
@@ -57,6 +57,15 @@ const promotion = {
     contextEntryId: entryId,
     agentId: ownerAgentId,
     layer: "expertise",
+    memoryKind: "expertise",
+    subjectKey: "provider-boundary",
+    audience: "agent",
+    sensitivity: "internal",
+    confidence: "high",
+    retrievalDigests: [hash("7")],
+    observedAt: "2026-09-08T00:00:00.000Z",
+    expiresAt: null,
+    reviewBindingVersion: 2,
     source: { kind: "event", sourceId: source.eventId, contentHash: source.eventHash },
     summaryArtifactId: `art_${"4".repeat(64)}`,
     summaryContentHash: hash("4"),
@@ -121,7 +130,7 @@ describe("agent context projection", () => {
     const failedReview = {
       ...review,
       type: "verification.completed",
-      payload: { status: "failed" },
+      payload: { status: "failed", resultContentHash: hash("4") },
     };
     expect(() =>
       projectAgentContext({

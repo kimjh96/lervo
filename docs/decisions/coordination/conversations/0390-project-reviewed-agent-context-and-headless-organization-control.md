@@ -20,6 +20,8 @@ Only reviewed material enters durable context. `agent.context.promoted` requires
 - An exact qualifying review event and hash. A `verification.completed` review qualifies only if it passed.
 - Promotion time.
 
+[ADR-0411](agent-organization/0411-governed-agent-memory-and-autonomous-participation.md) strengthens this contract: the review must attest the exact summary hash, promotions carry subject, kind, audience, sensitivity, confidence, opaque retrieval, observation, and expiry coordinates, and Node injects only bounded relevant internal entries. Verified managed repository-work results may enter automatically as expiring medium-confidence work history; shared repository facts still use repository knowledge.
+
 An optional supersession coordinate must identify the same agent and layer. Raw prompts, hidden reasoning, credentials, and provider-native session state are not promoted.
 
 `agent.context.handoff.recorded` requires distinct source and active successor agents, one to 32 exact source-owned entry IDs, a content-addressed manifest, and record time. Retirement makes the namespace read-only. Nothing is inherited implicitly from a role, parent, team, provider, or prior bot; a successor sees only an explicit handoff.

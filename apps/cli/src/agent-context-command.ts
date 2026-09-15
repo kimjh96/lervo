@@ -1,8 +1,10 @@
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import {
   organizationIdentityHash,
+  agentContextReviewAttests,
   projectAgentContextFromEventSource,
 } from "@lervo/agent-organization";
 import { listAgents, type WorkforceAgent } from "@lervo/agent-workforce";
@@ -17,16 +19,9 @@ import type { CliIo } from "./types.js";
 
 export const agentContextUsage = [
   "  lervo agent context inspect --agent <agent-id> [--root <path>] [--json]",
-  "  lervo agent context promote --agent <agent-id> --layer <work|relationship|expertise> --source-kind <event|artifact> --source-id <id> --source-hash <sha256> --review-event <event-id> --summary-stdin [--supersedes <entry-id>] --write [--root <path>] [--json]",
+  "  lervo agent context promote --agent <agent-id> --layer <work|relationship|expertise> --kind <memory-kind> --subject <key> --retrieval-term <term> --source-kind <event|artifact> --source-id <id> --source-hash <sha256> --review-event <event-id> --summary-stdin [--confidence <medium|high>] [--sensitivity <internal|restricted>] [--observed-at <time>] [--expires-at <time>] [--supersedes <entry-id>] --write [--root <path>] [--json]",
   "  lervo agent context handoff --from-agent <id> --to-agent <id> --entry <context-entry-id> --write [--root <path>] [--json]",
 ].join("\n");
-
-const qualifyingReviewTypes = new Set([
-  "knowledge.candidate.reviewed",
-  "knowledge.reconciliation.reviewed",
-  "knowledge.verified",
-  "verification.completed",
-]);
 
 function artifactId(contentHash: string): string {
   return `art_${contentHash.slice("sha256:".length)}`;
@@ -94,6 +89,13 @@ export async function runAgentContextCommand(args: string[], io: CliIo): Promise
       help: { type: "boolean", short: "h" },
       agent: { type: "string" },
       layer: { type: "string" },
+      kind: { type: "string" },
+      subject: { type: "string" },
+      "retrieval-term": { type: "string", multiple: true },
+      confidence: { type: "string" },
+      sensitivity: { type: "string" },
+      "observed-at": { type: "string" },
+      "expires-at": { type: "string" },
       "source-kind": { type: "string" },
       "source-id": { type: "string" },
       "source-hash": { type: "string" },
@@ -136,12 +138,33 @@ export async function runAgentContextCommand(args: string[], io: CliIo): Promise
     const sourceId = parsed.values["source-id"];
     const sourceHash = parsed.values["source-hash"];
     const reviewEventId = parsed.values["review-event"];
+    const memoryKind = parsed.values.kind;
+    const subjectKey = parsed.values.subject;
+    const retrievalTerms = [...new Set(parsed.values["retrieval-term"] ?? [])].sort();
+    const confidence = parsed.values.confidence ?? "medium";
+    const sensitivity = parsed.values.sensitivity ?? "internal";
     if (
       !parsed.values.write ||
       !parsed.values["summary-stdin"] ||
       parsed.values.agent === undefined ||
       !["work", "relationship", "expertise"].includes(layer ?? "") ||
       !["event", "artifact"].includes(sourceKind ?? "") ||
+      ![
+        "work_outcome",
+        "working_preference",
+        "decision_rationale",
+        "relationship",
+        "expertise",
+      ].includes(memoryKind ?? "") ||
+      subjectKey === undefined ||
+      !/^[a-z0-9][a-z0-9._:/-]{0,159}$/u.test(subjectKey) ||
+      retrievalTerms.length === 0 ||
+      retrievalTerms.length > 24 ||
+      retrievalTerms.some(
+        (term) => term.trim() !== term || term.length > 100 || /[\u0000-\u001f\u007f]/u.test(term),
+      ) ||
+      !["medium", "high"].includes(confidence) ||
+      !["internal", "restricted"].includes(sensitivity) ||
       sourceId === undefined ||
       !/^sha256:[a-f0-9]{64}$/u.test(sourceHash ?? "") ||
       reviewEventId === undefined
@@ -158,14 +181,8 @@ export async function runAgentContextCommand(args: string[], io: CliIo): Promise
     const result = await mutateAgentOrganization(root, async (storage) => {
       const agents = await listAgents(root);
       activeAgent(agents, parsed.values.agent!);
+      const current = projection(storage, agents, parsed.values.agent!);
       const review = storage.events.get(reviewEventId);
-      if (
-        review === null ||
-        !qualifyingReviewTypes.has(review.type) ||
-        (review.type === "verification.completed" && review.payload.status !== "passed")
-      ) {
-        throw new Error("The context promotion requires an exact qualifying review event.");
-      }
       if (sourceKind === "event") {
         const source = storage.events.get(sourceId);
         if (source === null || source.eventHash !== sourceHash) {
@@ -179,11 +196,72 @@ export async function runAgentContextCommand(args: string[], io: CliIo): Promise
           throw new Error("The context source artifact does not exist.");
         }
       }
-      const artifact = await storage.artifacts.put(summary);
+      const summaryContentHash = `sha256:${createHash("sha256").update(summary).digest("hex")}`;
+      if (
+        review === null ||
+        !agentContextReviewAttests({
+          review,
+          summaryContentHash,
+          agentId: parsed.values.agent!,
+        })
+      ) {
+        throw new Error("The review does not attest the exact context summary and agent.");
+      }
       const promotedAt = new Date().toISOString();
+      const observedAt = parsed.values["observed-at"] ?? promotedAt;
+      const expiresAt = parsed.values["expires-at"] ?? null;
+      if (
+        !Number.isFinite(Date.parse(observedAt)) ||
+        Date.parse(observedAt) > Date.parse(promotedAt) ||
+        (expiresAt !== null &&
+          (!Number.isFinite(Date.parse(expiresAt)) ||
+            Date.parse(expiresAt) <= Date.parse(observedAt)))
+      ) {
+        throw new Error("The context observation, expiry, and promotion times are inconsistent.");
+      }
+      const superseded =
+        parsed.values.supersedes === undefined
+          ? undefined
+          : current.entries.find(
+              (entry) =>
+                entry.contextEntryId === parsed.values.supersedes && entry.status === "active",
+            );
+      if (
+        (parsed.values.supersedes !== undefined &&
+          (superseded === undefined || superseded.layer !== layer)) ||
+        current.entries.some(
+          (entry) =>
+            entry.status === "active" &&
+            entry.layer === layer &&
+            entry.subjectKey === subjectKey &&
+            entry.contextEntryId !== parsed.values.supersedes,
+        )
+      ) {
+        throw new Error("The context subject requires one exact same-layer supersession.");
+      }
+      const retrievalDigests = [
+        ...new Set(
+          retrievalTerms.map(
+            (term) =>
+              `sha256:${createHash("sha256")
+                .update(term.normalize("NFKC").toLocaleLowerCase("en-US"))
+                .digest("hex")}`,
+          ),
+        ),
+      ].sort();
+      const artifact = await storage.artifacts.put(summary);
       const content = {
         agentId: parsed.values.agent!,
         layer: layer as AgentContextPromotedEventPayload["layer"],
+        memoryKind: memoryKind as NonNullable<AgentContextPromotedEventPayload["memoryKind"]>,
+        subjectKey,
+        audience: "agent" as const,
+        sensitivity: sensitivity as NonNullable<AgentContextPromotedEventPayload["sensitivity"]>,
+        confidence: confidence as NonNullable<AgentContextPromotedEventPayload["confidence"]>,
+        retrievalDigests,
+        observedAt,
+        expiresAt,
+        reviewBindingVersion: 2 as const,
         source: {
           kind: sourceKind as AgentContextPromotedEventPayload["source"]["kind"],
           sourceId,

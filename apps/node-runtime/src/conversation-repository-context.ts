@@ -69,6 +69,7 @@ export async function prepareConversationRepositoryContext(input: {
     });
   }
   return {
+    query: message,
     role,
     documentRules,
     additionalCandidates: mergeCandidates(search.additionalCandidates, requiredCandidates),

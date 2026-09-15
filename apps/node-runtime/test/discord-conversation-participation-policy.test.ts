@@ -59,7 +59,7 @@ describe("Discord conversation participation policy", () => {
       }),
     ).toMatchObject({
       mode: "relevant",
-      unaddressedHumanMessages: "respond",
+      unaddressedHumanMessages: "evaluate",
       maxResponsesPerHour: 60,
       maxAutomationDepth: 8,
     });

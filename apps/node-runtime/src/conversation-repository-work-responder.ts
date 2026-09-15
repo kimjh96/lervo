@@ -250,7 +250,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
         requestedModel: this.options.models?.[provider] ?? null,
         requestedReasoningEffort: this.options.reasoningEfforts?.[provider] ?? null,
         requestContentHash: input.event.content.contentHash,
-        result: { contentHash: stored.contentHash, byteCount: stored.byteCount },
+        result: { contentHash: stored.contentHash, byteCount: stored.byteCount, summary: content },
         completedAt: result.completedAt,
         replicaConfigured: this.options.repositoryReplica !== undefined,
       });

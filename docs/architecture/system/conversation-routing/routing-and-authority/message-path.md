@@ -13,7 +13,7 @@ The turn returns `answer`, `continue_work`, or `clarify` with confidence, one st
 
 ## Participation and limits
 
-Mapped natural-language deployments default `unaddressedHumanMessages` to `respond`: an eligible human message enters its deterministic owner's managed response path without spending or depending on a semantic relevance call. Its `owned_human_message` decision records `relevance=not_checked`, not a model relevance judgment. Selective shared-channel deployments may choose `evaluate`.
+Mapped natural-language deployments default `unaddressedHumanMessages` to `evaluate`: the deterministic owner judges whether it has a materially useful role-specific contribution before responding. A deployment may still select `respond` for a dedicated human dialogue where every mapped message must receive an answer; that decision records `relevance=not_checked`. In shared channels, the owner can delegate a bounded task to an eligible specialist without requiring the human to name that agent.
 
 Unaddressed agent messages always retain semantic participation gating. Uncorrelated agent messages enter at maximum automation depth unless the exact participant binding is a reviewed automation-chain starter. That starter begins at depth zero without bypassing other participation or authority checks.
 

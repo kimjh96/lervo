@@ -28,6 +28,21 @@ export interface ProjectedAgentContextEntry extends AgentContextPromotedEventPay
   status: "active" | "superseded";
 }
 
+export type GovernedAgentContextEntry = ProjectedAgentContextEntry & {
+  [
+    Key in
+      | "memoryKind"
+      | "subjectKey"
+      | "audience"
+      | "sensitivity"
+      | "confidence"
+      | "retrievalDigests"
+      | "observedAt"
+      | "expiresAt"
+      | "reviewBindingVersion"
+  ]-?: Exclude<ProjectedAgentContextEntry[Key], undefined>;
+};
+
 export interface AgentContextProjection {
   schemaVersion: 1;
   projectId: string;

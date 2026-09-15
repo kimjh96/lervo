@@ -17,7 +17,7 @@ Ownership follows these rules:
 - A role mention selects one candidate per mentioned role.
 - An unaddressed message or subscribed signal selects one stable candidate across the conversation, filtered first by the highest reviewed unaddressed priority. Node composition gives a CEO priority over ordinary project participants, so general conversation does not rotate between POs on every message.
 - Deterministic rendezvous scoring lets independently deployed bots reach the same result despite different integration and normalized event IDs.
-- The source actor is never a candidate for its own turn.
+- The source actor is never a candidate for its own turn. An unaddressed agent-authored turn uses the same non-source deterministic owner and then semantic relevance, rather than being suppressed solely because no mention was present. Automation depth, rate limits, cooldown, and effect authorization still bound the exchange.
 
 A unique explicit participant or role address also becomes the deployment's bounded in-memory owner for that conversation and thread. Subsequent unaddressed human turns stay with that interlocutor instead of reverting to the general-channel winner. That hold is bounded by idle conversation time rather than held until restart: each retained turn renews it, and a gap longer than the reviewed idle interval releases the conversation back to the general unaddressed rule. The bound reads the normalized event time, not a process clock, so peers reading the same events release it identically. Every peer observes the same explicit address and reaches the same sticky choice. Discord normalizes a reply to a configured bot or webhook as an explicit participant address. Restart discards this transient state and safely restores deterministic stable ownership; durable agent and provider context remain unchanged.
 
@@ -29,7 +29,7 @@ Discord deployments ignore a turn containing external mentions when none of thos
 
 ## Consequences
 
-Unaddressed human and agent messages produce at most one automatic responder per role scope, while explicit participant addressing remains natural. Non-owning bots neither flash a typing indicator nor invoke relevance and response providers. Automation depth, cooldown, hourly limits, self-message suppression, and deliberation termination remain independent bounds.
+Unaddressed human and agent messages produce at most one automatic responder per role scope, while explicit participant addressing remains natural. Natural-language deployments evaluate unaddressed human turns by default, so ownership is eligibility rather than a forced response. Non-owning bots neither flash a typing indicator nor invoke relevance and response providers. Automation depth, cooldown, hourly limits, self-message suppression, and deliberation termination remain independent bounds.
 
 This decision does not provision a second Discord application, create a proactive signal, or grant mutation authority. These remain separate deployment, signal-source, and effect transitions.
 
