@@ -104,6 +104,35 @@ export async function observeNodeSupervisionAuthority(
 }
 
 /** Observes exact authority after expiry or revocation; never grants new effect admission. */
+/**
+ * Authority to settle a historical run under an installed mandate. Writing a terminal for a run
+ * that never ended grants no execution, reopens no assignment and publishes nothing, so it does
+ * not require the run's goal to still be current. It requires an unrevoked, unexpired installation
+ * for the exact supervision and owner, and an installation that does not change while it is read.
+ */
+export async function observeNodeSupervisionSettlementAuthority(
+  storage: ProjectStorage,
+  binding: NodeSupervisionBinding,
+  now: () => string,
+) {
+  const started = Date.parse(now());
+  const installation = await readInstalledNodeMandate(storage, binding, now);
+  const confirmed = await readInstalledNodeMandate(storage, binding, now);
+  const observedAt = now();
+  const elapsed = Date.parse(observedAt) - started;
+  if (
+    !Number.isFinite(elapsed) ||
+    elapsed < 0 ||
+    elapsed > 5000 ||
+    confirmed.latestEventId !== installation.latestEventId ||
+    installation.revoked ||
+    installation.mandate.ownerAgentId !== binding.ownerAgentId ||
+    Date.parse(observedAt) >= Date.parse(installation.mandate.expiresAt)
+  )
+    throw new NodeSupervisionError("supervision_authority_changed");
+  return { installation, observedAt };
+}
+
 export async function observeNodeSupervisionRecoveryAuthority(
   storage: ProjectStorage,
   binding: NodeSupervisionBinding,

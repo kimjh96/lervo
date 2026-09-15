@@ -19,7 +19,10 @@ import {
   observeAbandonedTurnWitness,
 } from "./supervision-invocation-witness.js";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
-import type { NodeSupervisionBinding } from "./supervision-authority.js";
+import {
+  observeNodeSupervisionSettlementAuthority,
+  type NodeSupervisionBinding,
+} from "./supervision-authority.js";
 import { NodeSupervisionStore } from "./supervision-store.js";
 
 const RUN_ID = /^run_[a-f0-9]{32}$/u;
@@ -49,13 +52,13 @@ export async function recoverAbandonedTurn(input: {
     const result = await owner.withOwner(async (session) => {
       const storage = await openProjectStorage(input.repositoryRoot);
       try {
-        const authority = await session.readRecoveryAuthority();
-        if (
-          authority.installation.revoked ||
-          !authority.source.eligible ||
-          Date.parse(now()) >= Date.parse(authority.installation.mandate.expiresAt)
-        )
-          throw new Error("The recovery owner authority is ineligible.");
+        // Settling a historical run needs an installed, unrevoked mandate for this exact
+        // supervision, not a goal that is still current; a stranded run outlives its goal.
+        const authority = await observeNodeSupervisionSettlementAuthority(
+          storage,
+          input.binding,
+          now,
+        );
         const events = collectRunEventsBounded({
           events: storage.events,
           runId: input.runId,
@@ -135,12 +138,12 @@ export async function recoverAbandonedTurn(input: {
         } as EventEnvelope;
         if (!isProvenAbandonedTurnFailure([...events, terminal], diagnostic))
           throw new Error("The abandoned turn proof failed before terminal admission.");
-        const confirmed = await session.readRecoveryAuthority();
-        if (
-          confirmed.installation.latestEventId !== authority.installation.latestEventId ||
-          confirmed.source.sourceRevisionDigest !== authority.source.sourceRevisionDigest ||
-          !confirmed.source.eligible
-        )
+        const confirmed = await observeNodeSupervisionSettlementAuthority(
+          storage,
+          input.binding,
+          now,
+        );
+        if (confirmed.installation.latestEventId !== authority.installation.latestEventId)
           throw new Error("The recovery authority changed before commit.");
         session.commit(() =>
           storage.events.transact((transaction) => {
