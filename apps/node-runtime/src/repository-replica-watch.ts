@@ -2,13 +2,20 @@ import { ChangeWakeup } from "./change-wakeup.js";
 import { watchRepositoryChanges } from "./repository-change-watch.js";
 import type { SshRepositoryReplicaPeer } from "./repository-replica-ssh-peer.js";
 
+type WatchedRepository = {
+  replicaId: string;
+  localRoot: string;
+  peerRoot: string;
+  conflictPolicy?: "hold" | "prefer_local" | "prefer_peer";
+};
+
 export async function watchReplicaReconciliation(input: {
-  repositories: Array<{ replicaId: string; localRoot: string; peerRoot: string }>;
+  repositories: WatchedRepository[];
   peer: SshRepositoryReplicaPeer;
   fallbackIntervalMs: number;
   watch: boolean;
   signal?: AbortSignal;
-  reconcile(repository: { replicaId: string; localRoot: string; peerRoot: string }): Promise<void>;
+  reconcile(repository: WatchedRepository): Promise<void>;
 }): Promise<void> {
   const wakeup = new ChangeWakeup();
   const dirty = new Set(input.repositories.map((repository) => repository.replicaId));

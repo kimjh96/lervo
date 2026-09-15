@@ -14,6 +14,7 @@ import {
 } from "./repository-replica-git.js";
 import {
   mergeRepositoryReplicaBundle,
+  type RepositoryReplicaConflictPolicy,
   type RepositoryReplicaMergeResult,
 } from "./repository-replica-merge.js";
 
@@ -35,6 +36,7 @@ export interface RepositoryReplicaPeerPort {
     repositoryRoot: string;
     bundle: Uint8Array;
     expectedCurrentSnapshotHash: string;
+    conflictPolicy?: RepositoryReplicaConflictPolicy;
   }): Promise<RepositoryReplicaMergeResult>;
 }
 
@@ -188,6 +190,7 @@ export class RepositoryReplicaCoordinator {
     replicaId: string;
     localRoot: string;
     peerRoot: string;
+    conflictPolicy?: RepositoryReplicaConflictPolicy;
   }): Promise<RepositoryReplicaCycleResult> {
     if (!REPLICA_ID.test(input.replicaId)) {
       throw new RepositoryReplicaCoordinatorError(
@@ -213,6 +216,7 @@ export class RepositoryReplicaCoordinator {
         repositoryRoot: input.localRoot,
         bundle: await this.options.peer.bundle(input.peerRoot),
         expectedCurrentSnapshotHash: local.snapshotHash,
+        ...(input.conflictPolicy === undefined ? {} : { conflictPolicy: input.conflictPolicy }),
       });
       if (merged.status === "conflict") {
         return {

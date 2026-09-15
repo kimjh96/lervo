@@ -18,6 +18,7 @@ import {
   captureRepositoryReplicaSnapshot,
   createRepositoryReplicaBundle,
 } from "./repository-replica-git.js";
+import type { RepositoryReplicaConflictPolicy } from "./repository-replica-merge.js";
 import { SshRepositoryReplicaPeer } from "./repository-replica-ssh-peer.js";
 
 export interface RepositoryReplicaCliPorts {
@@ -41,9 +42,15 @@ interface CoordinatorConfig {
     remoteRuntimeExecutable: string;
     remoteCommandPrefix?: string[];
   };
-  repositories: Array<{ replicaId: string; localRoot: string; peerRoot: string }>;
+  repositories: Array<{
+    replicaId: string;
+    localRoot: string;
+    peerRoot: string;
+    conflictPolicy?: RepositoryReplicaConflictPolicy;
+  }>;
 }
 
+const CONFLICT_POLICIES = ["hold", "prefer_local", "prefer_peer"];
 const MAXIMUM_REPOSITORY_REPLICA_BUNDLE_BYTES = 512 * 1024 * 1024;
 
 function oneOption(args: readonly string[], name: string): string {
@@ -102,7 +109,8 @@ async function readCoordinatorConfig(path: string): Promise<CoordinatorConfig> {
       (item) =>
         typeof item.replicaId !== "string" ||
         typeof item.localRoot !== "string" ||
-        typeof item.peerRoot !== "string",
+        typeof item.peerRoot !== "string" ||
+        (item.conflictPolicy !== undefined && !CONFLICT_POLICIES.includes(item.conflictPolicy)),
     )
   ) {
     throw new Error("The repository replica coordinator configuration is invalid.");
@@ -138,6 +146,9 @@ async function runCoordinator(
           replicaId: repository.replicaId,
           localRoot: resolve(ports.cwd, repository.localRoot),
           peerRoot: repository.peerRoot,
+          ...(repository.conflictPolicy === undefined
+            ? {}
+            : { conflictPolicy: repository.conflictPolicy }),
         });
         if (result.status === "divergent") {
           failed = true;

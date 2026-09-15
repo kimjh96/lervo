@@ -31,6 +31,16 @@ const MERGE_AUTHOR_ENVIRONMENT = {
 };
 const MAXIMUM_REPORTED_CONFLICT_PATHS = 16;
 
+/** How textual conflicts outside generated knowledge are resolved; `hold` writes nothing. */
+export type RepositoryReplicaConflictPolicy = "hold" | "prefer_local" | "prefer_peer";
+
+/** Rebuildable Lervo knowledge projections; a conflict confined to them resolves to the local side. */
+const GENERATED_PATH_PREFIXES = [".lervo/knowledge/", ".lervo/generated/"];
+
+function generatedOnly(paths: readonly string[]): boolean {
+  return paths.every((path) => GENERATED_PATH_PREFIXES.some((prefix) => path.startsWith(prefix)));
+}
+
 export type RepositoryReplicaMergeResult =
   | { status: "merged"; snapshot: RepositoryReplicaSnapshot; mergeCommit: string | null }
   | {
@@ -45,10 +55,19 @@ async function mergeTrees(
   repositoryRoot: string,
   ours: string,
   theirs: string,
+  strategy?: "ours" | "theirs",
 ): Promise<{ tree: string } | { paths: string[]; pathCount: number }> {
   const result = await git(
     repositoryRoot,
-    ["merge-tree", "--write-tree", "--name-only", "--no-messages", ours, theirs],
+    [
+      "merge-tree",
+      "--write-tree",
+      "--name-only",
+      "--no-messages",
+      ...(strategy === undefined ? [] : [`-X${strategy}`]),
+      ours,
+      theirs,
+    ],
     { allowedExitCodes: [0, 1] },
   );
   const lines = result.stdout
@@ -63,6 +82,39 @@ async function mergeTrees(
   return { paths: paths.slice(0, MAXIMUM_REPORTED_CONFLICT_PATHS), pathCount: paths.length };
 }
 
+/** Retries a conflicting merge with the side the policy allows; generated-only conflicts always resolve locally. */
+async function mergeTreesWithPolicy(
+  repositoryRoot: string,
+  ours: string,
+  theirs: string,
+  policy: RepositoryReplicaConflictPolicy,
+): Promise<{ tree: string } | { paths: string[]; pathCount: number }> {
+  const first = await mergeTrees(repositoryRoot, ours, theirs);
+  if ("tree" in first) return first;
+  const allPaths =
+    first.pathCount === first.paths.length
+      ? first.paths
+      : (
+          await git(
+            repositoryRoot,
+            ["merge-tree", "--write-tree", "--name-only", "--no-messages", ours, theirs],
+            { allowedExitCodes: [0, 1] },
+          )
+        ).stdout
+          .toString("utf8")
+          .split("\n")
+          .filter((line) => line.length > 0)
+          .slice(1);
+  const strategy =
+    generatedOnly(allPaths) || policy === "prefer_local"
+      ? "ours"
+      : policy === "prefer_peer"
+        ? "theirs"
+        : undefined;
+  if (strategy === undefined) return first;
+  return mergeTrees(repositoryRoot, ours, theirs, strategy);
+}
+
 /**
  * Merges the peer's exact replica into this repository when both sides changed. Committed history
  * gains one merge commit on the current branch (or fast-forwards); uncommitted work from both sides
@@ -73,7 +125,9 @@ export async function mergeRepositoryReplicaBundle(input: {
   repositoryRoot: string;
   bundle: Uint8Array;
   expectedCurrentSnapshotHash: string;
+  conflictPolicy?: RepositoryReplicaConflictPolicy;
 }): Promise<RepositoryReplicaMergeResult> {
+  const policy = input.conflictPolicy ?? "hold";
   const temporaryDirectory = await mkdtemp(join(tmpdir(), "lervo-repository-merge-"));
   const bundlePath = join(temporaryDirectory, "replica.bundle");
   const root = input.repositoryRoot;
@@ -106,7 +160,7 @@ export async function mergeRepositoryReplicaBundle(input: {
       head = theirs.head;
       committedTree = text(await git(root, ["rev-parse", `${theirs.head}^{tree}`]));
     } else {
-      const committed = await mergeTrees(root, current.head, theirs.head);
+      const committed = await mergeTreesWithPolicy(root, current.head, theirs.head, policy);
       if ("paths" in committed)
         return { status: "conflict", reason: "conflicting_paths", ...committed };
       committedTree = committed.tree;
@@ -119,7 +173,7 @@ export async function mergeRepositoryReplicaBundle(input: {
       head = mergeCommit;
     }
     await createExportCommit(root, current);
-    const worktree = await mergeTrees(root, EXPORT_REF, INCOMING_REF);
+    const worktree = await mergeTreesWithPolicy(root, EXPORT_REF, INCOMING_REF, policy);
     if ("paths" in worktree)
       return { status: "conflict", reason: "conflicting_paths", ...worktree };
     const source = {

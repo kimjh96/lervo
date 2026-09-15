@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -148,5 +148,41 @@ describe("repository replica coordinator", () => {
     expect(localReceipt.status).toBe("merged");
     expect(peerReceipt.status).toBe("pushed");
     await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({ status: "current" });
+  }, 20_000);
+
+  it("resolves generated knowledge conflicts locally and honours a prefer_local policy elsewhere", async () => {
+    const fixture = await repositories();
+    const coordinator = new RepositoryReplicaCoordinator({
+      stateFile: fixture.stateFile,
+      local: new LocalRepositoryReplicaPeer(),
+      peer: new LocalRepositoryReplicaPeer(),
+      now: () => new Date("2026-09-15T00:00:00.000Z"),
+    });
+    const hold = { replicaId: "project", localRoot: fixture.local, peerRoot: fixture.peer };
+    await expect(coordinator.reconcile(hold)).resolves.toMatchObject({ status: "current" });
+    await mkdir(join(fixture.local, ".lervo/knowledge"), { recursive: true });
+    await writeFile(join(fixture.local, ".gitignore"), ".lervo/state/\n");
+    await writeFile(join(fixture.local, ".lervo/knowledge/index.yaml"), "seed: 0\n");
+    await git(fixture.local, "add", ".");
+    await git(fixture.local, "commit", "-m", "knowledge seed");
+    await expect(coordinator.reconcile(hold)).resolves.toMatchObject({ status: "pushed" });
+
+    await writeFile(join(fixture.local, ".lervo/knowledge/index.yaml"), "seed: 1\n");
+    await writeFile(join(fixture.peer, ".lervo/knowledge/index.yaml"), "seed: 2\n");
+    await expect(coordinator.reconcile(hold)).resolves.toMatchObject({ status: "merged" });
+    expect(await readFile(join(fixture.peer, ".lervo/knowledge/index.yaml"), "utf8")).toBe(
+      "seed: 1\n",
+    );
+
+    await writeFile(join(fixture.local, "source.ts"), "local wins\n");
+    await writeFile(join(fixture.peer, "source.ts"), "peer loses\n");
+    await expect(coordinator.reconcile(hold)).resolves.toMatchObject({
+      status: "divergent",
+      conflict: { paths: ["source.ts"] },
+    });
+    await expect(
+      coordinator.reconcile({ ...hold, conflictPolicy: "prefer_local" }),
+    ).resolves.toMatchObject({ status: "merged" });
+    expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe("local wins\n");
   }, 20_000);
 });
