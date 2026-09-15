@@ -19,6 +19,8 @@ Readers settle a proven abandoned run so it stops holding the concurrency slot a
 
 A goal stranded by a restart during dispatch can continue after one explicit repair, and the interrupted assignment may be reopened through the ordinary reviewed rework path under its attempt ceiling. The recovery never claims the turn is safe to repeat: the terminal is not retryable, and the failure observation classifies it as requiring inspection rather than a known safe failure. It refuses a writable adapter, any proven work progress, any effect event, any usage receipt, and any run whose incident invocation is not uniquely observable in the journal, all of which still require human inspection.
 
+The repair reaches a run stranded in the goal that is still current. A run stranded in a goal that has since been settled or superseded stays unreachable, because the authority path validates a version-3 mandate's work scope against the current canonical workstream rather than against the binding, so the superseded mandate no longer observes its own anchor. Whether such a run should remain repairable after its goal settles is a separate reviewed question; until it is answered, settle the stranded run before abandoning its goal.
+
 ## References
 
 - [ADR-0402](0402-settle-boot-fenced-pre-turn-managed-interruptions.md)
