@@ -17,6 +17,8 @@ Treat the count cap as a secondary guard under the byte cap: at the observed ave
 
 Installed supervision on a long-lived repository keeps working past 8,192 execution events without dropping evidence. Every reader built before this revision (CLI worker bundle, Node bundle, Hub) rejects the same repository once it crosses 8,192 events, so all bundles that open the knowledge source must be deployed from one revision at or after this one. The bound still fails closed, so growth remains observable rather than silent.
 
+The managed linked-evidence canary v18 checkpoint pins the exact bytes of `packages/repository-knowledge/src/execution-event-source.ts` as a reviewed execution-boundary source, and that checkpoint certifies event-capacity safety. Raising the cap changes those bytes, so its contract test fails until the checkpoint is re-reviewed. The reviewed digest is left untouched here: whether the existing checkpoint is refreshed or a successor checkpoint is recorded is a separate review, not a consequence this decision may assume.
+
 ## Verification
 
 - The execution-event source test asserts the 32,768-event cap while the byte, sequence, and per-event bounds stay unchanged.
