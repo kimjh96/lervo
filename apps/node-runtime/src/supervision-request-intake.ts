@@ -7,14 +7,14 @@ import {
   startStandingSuccessor,
 } from "./supervision-standing.js";
 import { openProjectStorage } from "@lervo/project-storage";
+import { ChangeWakeup } from "./change-wakeup.js";
 
 const DEFAULT_ADMISSION_DEADLINE_MS = 30_000;
 const MAXIMUM_ADMISSION_DEADLINE_MS = 600_000;
 
 /**
  * Both local and conversation ingress use the same installed owner lease and canonical writer.
- * The owner loop holds that lease for a whole cycle, so admission polls until `admissionDeadlineMs`
- * elapses and then refuses with `owner_busy` without writing anything.
+ * Lease/WAL changes wake a fenced retry; a one-second recovery wake covers missed notifications.
  */
 export async function admitSupervisionRequest(input: {
   repositoryRoot: string;
@@ -38,19 +38,26 @@ export async function admitSupervisionRequest(input: {
     binding: input.binding,
     ...(input.now === undefined ? {} : { now: input.now }),
   });
+  const wakeup = new ChangeWakeup();
+  const unsubscribe = store.subscribeOwnerChanges(() => wakeup.notify());
   try {
     const deadline = Date.now() + deadlineMs;
-    let result = await store.withOwner((owner) => owner.bindRequest(input.request));
-    while (result === null && Date.now() < deadline) {
-      await new Promise<void>((resolve) => setTimeout(resolve, 100));
-      result = await store.withOwner((owner) => owner.bindRequest(input.request));
+    let first = true;
+    while (first || Date.now() < deadline) {
+      first = false;
+      const revision = wakeup.revision;
+      const result = await store.withOwner((owner) => owner.bindRequest(input.request));
+      if (result !== null) return result;
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
+      await wakeup.wait(revision, Math.min(1_000, remaining));
     }
-    if (result !== null) return result;
     throw new SupervisionRequestRefusedError(
       "owner_busy",
       "The installed supervision owner is busy; request admission was not recorded.",
     );
   } finally {
+    unsubscribe();
     await store.close();
   }
 }

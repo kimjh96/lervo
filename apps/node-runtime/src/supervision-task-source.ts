@@ -143,8 +143,7 @@ export class SupervisionTaskSource {
       operatingContractHash(await listAssignments(this.storage.paths.repositoryRoot)) !==
         operatingContractHash(allAssignments) ||
       operatingContractHash(await listAgents(this.storage.paths.repositoryRoot)) !==
-        operatingContractHash(agents) ||
-      this.storage.events.latest()?.eventHash !== events.at(-1)?.eventHash
+        operatingContractHash(agents)
     )
       throw new Error("The supervision task sources changed during observation.");
     const executionRuns = new Set(execution.attempts.map((attempt) => attempt.runId));
@@ -259,7 +258,6 @@ export class SupervisionTaskSource {
                 });
     if (
       authority.source.workstreamRevision !== source.workstream.revision ||
-      this.storage.events.latest()?.eventHash !== source.events.at(-1)?.eventHash ||
       (await this.read(decisionId)).sourceRevisionDigest !== source.sourceRevisionDigest
     )
       throw new Error("The owner control source changed during observation.");
@@ -304,10 +302,7 @@ export class SupervisionTaskSource {
       binding: this.binding,
       now: this.now(),
     });
-    if (
-      this.storage.events.latest()?.eventHash !== source.events.at(-1)?.eventHash ||
-      (await this.read(decisionId)).sourceRevisionDigest !== source.sourceRevisionDigest
-    )
+    if ((await this.read(decisionId)).sourceRevisionDigest !== source.sourceRevisionDigest)
       throw new Error("The supervision admission changed during observation.");
     return observation;
   }
@@ -328,7 +323,7 @@ export class SupervisionTaskSource {
     );
     if (
       authority.source.workstreamRevision !== source.workstream.revision ||
-      this.storage.events.latest()?.eventHash !== source.events.at(-1)?.eventHash
+      (await this.read(excludeDecisionId)).sourceRevisionDigest !== source.sourceRevisionDigest
     )
       throw new Error("The supervision observation changed while reading result evidence.");
     const decisions = new Map<string, string>();

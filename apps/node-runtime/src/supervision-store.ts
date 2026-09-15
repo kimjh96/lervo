@@ -75,6 +75,17 @@ export class NodeSupervisionStore {
     return unsubscribe;
   }
 
+  subscribeOwnerChanges(notify: () => void): () => void {
+    if (this.closing) throw new NodeSupervisionError("supervision_session_closed");
+    const stop = this.leases.subscribeChanges(notify);
+    const unsubscribe = () => {
+      stop();
+      this.subscriptions.delete(unsubscribe);
+    };
+    this.subscriptions.add(unsubscribe);
+    return unsubscribe;
+  }
+
   nextAuthorityAuditAt(): number | null {
     const times = [this.authorityHistory.nextAuditAt(), this.tasks.nextAuditAt()].filter(
       (time): time is number => time !== null,

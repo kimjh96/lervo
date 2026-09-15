@@ -67,4 +67,26 @@ describe("durable supervision owner fencing", () => {
     expect(second.acquire(input)).toBeNull();
     expect(first.commit(renewed, 1600, () => "committed")).toBe("committed");
   });
+
+  it("publishes an advisory change when an owner lease is released", async () => {
+    const { first, second } = await fixture();
+    const lease = first.acquire(input)!;
+    let stop = () => {};
+    const notified = new Promise<void>((resolveNotification) => {
+      stop = second.subscribeChanges(resolveNotification);
+    });
+    first.release(lease);
+    try {
+      await expect(
+        Promise.race([
+          notified.then(() => "notified"),
+          new Promise<string>((resolveTimeout) =>
+            setTimeout(() => resolveTimeout("timeout"), 1_000),
+          ),
+        ]),
+      ).resolves.toBe("notified");
+    } finally {
+      stop();
+    }
+  });
 });

@@ -126,6 +126,36 @@ it("binds a local request to one installed owner and replays its exact source wi
   ).rejects.toMatchObject({ name: "SupervisionRequestRefusedError", code: "request_invalid" });
 });
 
+it("wakes request admission when the installed owner lease is released", async () => {
+  const f = await supervisionFixture(roots, undefined, "developer", ["allocate_existing"]);
+  const store = await NodeSupervisionStore.open({ repositoryRoot: f.root, binding: f.binding });
+  let releaseOwner!: () => void;
+  const held = store.withOwner(
+    () => new Promise<void>((resolveHold) => (releaseOwner = resolveHold)),
+  );
+  await new Promise<void>((resolveTick) => setTimeout(resolveTick, 50));
+  const admission = admitSupervisionRequest({
+    repositoryRoot: f.root,
+    binding: f.binding,
+    request: {
+      source: "local",
+      sourceId: "lease-release-request",
+      requesterId: "local_process_owner",
+      request: "Start after the current owner cycle releases its lease.",
+      contentHash: hash("Start after the current owner cycle releases its lease."),
+    },
+    admissionDeadlineMs: 3_000,
+  });
+  await new Promise<void>((resolveTick) => setTimeout(resolveTick, 400));
+  releaseOwner();
+  await held;
+  try {
+    await expect(admission).resolves.toMatchObject({ duplicate: false });
+  } finally {
+    await store.close();
+  }
+});
+
 it("retains the exact Discord result origin within the same canonical request contract", async () => {
   const f = await supervisionFixture(roots, undefined, "developer", ["allocate_existing"]);
   const target = {

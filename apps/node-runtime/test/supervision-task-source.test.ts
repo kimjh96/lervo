@@ -43,4 +43,36 @@ describe("canonical supervision task source", () => {
       await storage.close();
     }
   });
+
+  it("rejects a relevant assignment change that arrives during a composed observation", async () => {
+    const f = await supervisionFixture(roots);
+    const storage = await openProjectStorage(f.root);
+    try {
+      const source = new SupervisionTaskSource(storage, f.binding, () => new Date().toISOString());
+      const read = source.read.bind(source);
+      let injected = false;
+      vi.spyOn(source, "read").mockImplementation(async (excludedDecisionId) => {
+        const snapshot = await read(excludedDecisionId);
+        if (!injected) {
+          injected = true;
+          await createAssignment({
+            repositoryRoot: f.root,
+            workstreamId: f.binding.workstreamId,
+            roleId: f.owner.roleId,
+            taskType: "implementation",
+            expectedPaths: ["src"],
+            acceptanceCriteria: ["Concurrent assignment is observed."],
+            verificationSuiteIds: ["assignment.concurrent"],
+          });
+        }
+        return snapshot;
+      });
+
+      await expect(source.readSnapshot()).rejects.toThrow(
+        /supervision observation changed while reading result evidence/u,
+      );
+    } finally {
+      await storage.close();
+    }
+  });
 });

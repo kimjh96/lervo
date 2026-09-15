@@ -1,8 +1,15 @@
 import { randomUUID } from "node:crypto";
+import { watch, type FSWatcher } from "node:fs";
+import { basename, dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { SupervisionProcessLock } from "./supervision-process-lock.js";
 
 const PROCESS_LOCK_TOKEN_PREFIX = "sop1:";
+const processLeaseListeners = new Map<string, Set<() => void>>();
+
+function publishLeaseChange(path: string): void {
+  for (const listener of [...(processLeaseListeners.get(path) ?? [])]) listener();
+}
 
 export interface SupervisionOwnerLease {
   supervisionId: string;
@@ -31,6 +38,7 @@ export class SupervisionLeaseError extends Error {
 /** Durable coordination only. Expiry never establishes that an external effect stopped. */
 export class SQLiteSupervisionOwnerLeaseStore {
   private readonly processLocks = new Map<string, SupervisionProcessLock>();
+  private readonly subscriptions = new Set<() => void>();
 
   private constructor(
     private readonly database: DatabaseSync,
@@ -139,7 +147,10 @@ export class SQLiteSupervisionOwnerLeaseStore {
         return lease;
       });
       if (acquired === null) processLock.release();
-      else this.processLocks.set(input.supervisionId, processLock);
+      else {
+        this.processLocks.set(input.supervisionId, processLock);
+        publishLeaseChange(this.path);
+      }
       return acquired;
     } catch (error) {
       processLock.release();
@@ -200,14 +211,58 @@ export class SQLiteSupervisionOwnerLeaseStore {
     });
     this.processLocks.get(lease.supervisionId)?.release();
     this.processLocks.delete(lease.supervisionId);
+    publishLeaseChange(this.path);
+  }
+
+  /** Advisory SQLite/WAL change notification; every waiter reattempts the fenced acquisition. */
+  subscribeChanges(notify: () => void): () => void {
+    let watcher: FSWatcher | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const filename = basename(this.path);
+    const processListeners = processLeaseListeners.get(this.path) ?? new Set<() => void>();
+    processListeners.add(notify);
+    processLeaseListeners.set(this.path, processListeners);
+    const stop = () => {
+      if (timer !== undefined) clearTimeout(timer);
+      watcher?.close();
+      processListeners.delete(notify);
+      if (processListeners.size === 0) processLeaseListeners.delete(this.path);
+      this.subscriptions.delete(stop);
+    };
+    try {
+      watcher = watch(dirname(this.path), { persistent: false }, (_event, changed) => {
+        if (
+          changed !== null &&
+          ![filename, `${filename}-wal`, `${filename}-shm`].includes(changed.toString())
+        )
+          return;
+        if (timer !== undefined) return;
+        timer = setTimeout(() => {
+          timer = undefined;
+          notify();
+        }, 10);
+      });
+      watcher.on("error", () => {
+        watcher?.close();
+        watcher = undefined;
+        notify();
+      });
+    } catch {
+      // The admission deadline retains a bounded missed-notification recovery wake.
+    }
+    this.subscriptions.add(stop);
+    return stop;
   }
 
   close(): void {
+    const releasedProcessLock = this.processLocks.size > 0;
     try {
+      for (const stop of [...this.subscriptions]) stop();
       this.database.close();
     } finally {
       for (const processLock of this.processLocks.values()) processLock.release();
       this.processLocks.clear();
+      if (releasedProcessLock) publishLeaseChange(this.path);
     }
   }
 

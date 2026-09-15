@@ -1,4 +1,5 @@
 import { ChangeWakeup } from "./change-wakeup.js";
+import { RepositoryReconciliationPool } from "./repository-reconciliation-pool.js";
 import { watchRepositoryChanges } from "./repository-change-watch.js";
 import type { SshRepositoryReplicaPeer } from "./repository-replica-ssh-peer.js";
 
@@ -11,24 +12,6 @@ type WatchedRepository = {
 
 const MAX_CONCURRENT_RECONCILIATIONS = 4;
 
-async function reconcileRepositories(
-  repositories: WatchedRepository[],
-  reconcile: (repository: WatchedRepository) => Promise<void>,
-  signal?: AbortSignal,
-): Promise<void> {
-  let nextIndex = 0;
-  const worker = async () => {
-    while (!signal?.aborted) {
-      const repository = repositories[nextIndex++];
-      if (repository === undefined) return;
-      await reconcile(repository);
-    }
-  };
-  await Promise.all(
-    Array.from({ length: Math.min(MAX_CONCURRENT_RECONCILIATIONS, repositories.length) }, worker),
-  );
-}
-
 export async function watchReplicaReconciliation(input: {
   repositories: WatchedRepository[];
   peer: SshRepositoryReplicaPeer;
@@ -38,14 +21,20 @@ export async function watchReplicaReconciliation(input: {
   reconcile(repository: WatchedRepository): Promise<void>;
 }): Promise<void> {
   const wakeup = new ChangeWakeup();
-  const dirty = new Set(input.repositories.map((repository) => repository.replicaId));
+  const pool = new RepositoryReconciliationPool(input.repositories, {
+    concurrency: MAX_CONCURRENT_RECONCILIATIONS,
+    coalesceMs: 250,
+    reconcile: input.reconcile,
+    notify: () => wakeup.notify(),
+  });
   const localStops: Array<() => void> = [];
   const remote = new Map<string, { stop: () => void; ready: boolean; retryAt: number }>();
   let localAvailable = true;
   let reconcileBy = Date.now() + 60_000;
+  let fallbackBy: number | null = null;
+  let startup = true;
   const changed = (id: string) => {
-    dirty.add(id);
-    wakeup.notify();
+    pool.notify(id);
   };
   try {
     if (input.watch) {
@@ -68,8 +57,12 @@ export async function watchReplicaReconciliation(input: {
     }
     while (!input.signal?.aborted) {
       if (Date.now() >= reconcileBy) {
-        for (const repository of input.repositories) dirty.add(repository.replicaId);
+        pool.notifyAll();
         reconcileBy = Date.now() + 60_000;
+      }
+      if (fallbackBy !== null && Date.now() >= fallbackBy) {
+        pool.notifyAll();
+        fallbackBy = Date.now() + input.fallbackIntervalMs;
       }
       if (input.watch) {
         for (const repository of input.repositories) {
@@ -92,34 +85,35 @@ export async function watchReplicaReconciliation(input: {
           );
         }
       }
-      const selected = input.repositories.filter((repository) =>
-        dirty.delete(repository.replicaId),
-      );
-      await reconcileRepositories(selected, input.reconcile, input.signal);
-      if (!input.watch || input.signal?.aborted) break;
-      const revision = wakeup.revision;
-      if (dirty.size === 0) {
-        const available = localAvailable && [...remote.values()].every((entry) => entry.ready);
-        await wakeup.wait(
-          revision,
-          Math.min(
-            available ? 60_000 : input.fallbackIntervalMs,
-            Math.max(0, reconcileBy - Date.now()),
-          ),
-          input.signal,
-        );
-        if (wakeup.revision === revision) {
-          for (const repository of input.repositories) dirty.add(repository.replicaId);
-          reconcileBy = Date.now() + 60_000;
-        }
+      if (startup) {
+        pool.notifyAll();
+        startup = false;
       }
-      // One bounded batch absorbs editor save bursts; hints during reconciliation stay pending.
-      await new ChangeWakeup().wait(0, 250, input.signal);
+      pool.startReady();
+      if (!input.watch) {
+        if (pool.idle() || input.signal?.aborted) break;
+        const revision = wakeup.revision;
+        await wakeup.wait(revision, 60_000, input.signal);
+        continue;
+      }
+      if (pool.error() !== null) throw pool.error();
+      const available = localAvailable && [...remote.values()].every((entry) => entry.ready);
+      fallbackBy = available ? null : (fallbackBy ?? Date.now() + input.fallbackIntervalMs);
+      const revision = wakeup.revision;
+      const due = [
+        reconcileBy,
+        fallbackBy,
+        pool.nextReadyAt(),
+        ...[...remote.values()].filter((entry) => !entry.ready).map((entry) => entry.retryAt),
+      ].filter((value): value is number => value !== null);
+      await wakeup.wait(revision, Math.max(0, Math.min(...due) - Date.now()), input.signal);
     }
   } finally {
     for (const stop of localStops) stop();
     for (const entry of remote.values()) entry.stop();
+    await pool.settle();
   }
+  if (pool.error() !== null) throw pool.error();
 }
 
 export async function publishRepositoryChangeHints(input: {

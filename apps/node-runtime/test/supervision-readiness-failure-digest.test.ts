@@ -1,7 +1,7 @@
 import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { openProjectStorage } from "@lervo/project-storage";
 import {
   openRepositorySupervisionLeases,
@@ -105,6 +105,30 @@ it("keeps the task source digest and pending decision stable across recorded rea
       reasonCode: "readiness_tools_failed",
     });
     expect(facts.recoveryObservations.leaseRenewals).toEqual([]);
+    const read = tasks.read.bind(tasks);
+    let injected = false;
+    vi.spyOn(tasks, "read").mockImplementation(async (excludedDecisionId) => {
+      const source = await read(excludedDecisionId);
+      if (!injected) {
+        injected = true;
+        await journal.recordReadinessFailure(receipt, {
+          responsibility: f.task,
+          observation: {
+            ...observation,
+            checks: observation.checks.map((check) =>
+              check.status === "failed"
+                ? { ...check, evidenceHash: operatingContractHash("concurrent") }
+                : check,
+            ),
+          },
+          reasonCodes: ["readiness_provider_failed"],
+        });
+      }
+      return source;
+    });
+    const concurrent = await tasks.readSnapshot(decisionId);
+    expect(concurrent.sourceRevisionDigest).toBe(before.sourceRevisionDigest);
+    expect(journal.findReadinessFailures(decisionId)).toHaveLength(3);
     await chmod(tool, 0o700);
   } finally {
     leases.close();

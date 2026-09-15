@@ -146,3 +146,53 @@ it("does not let one slow repository block reconciliation for the others", async
     await running;
   }
 });
+
+it("starts a new hint when capacity is free without waiting for the active batch", async () => {
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  const signals = new Map<string, () => void>();
+  vi.spyOn(peer, "subscribe").mockImplementation((root, notify) => {
+    signals.set(root, notify);
+    notify();
+    return () => {};
+  });
+  const abort = new AbortController();
+  let releaseSlow = () => {};
+  const slow = new Promise<void>((resolve) => {
+    releaseSlow = resolve;
+  });
+  const reconcile = vi.fn(async (repository: { replicaId: string }) => {
+    if (repository.replicaId !== "fast") await slow;
+  });
+  const running = watchReplicaReconciliation({
+    repositories: [
+      { replicaId: "slow_a", localRoot: "/slow-a", peerRoot: "/peer/slow-a" },
+      { replicaId: "slow_b", localRoot: "/slow-b", peerRoot: "/peer/slow-b" },
+      { replicaId: "slow_c", localRoot: "/slow-c", peerRoot: "/peer/slow-c" },
+      { replicaId: "fast", localRoot: "/fast", peerRoot: "/peer/fast" },
+    ],
+    peer,
+    fallbackIntervalMs: 1_000,
+    watch: true,
+    signal: abort.signal,
+    reconcile,
+  });
+  try {
+    await vi.waitFor(() => expect(reconcile).toHaveBeenCalledTimes(4));
+    signals.get("/peer/fast")!();
+    await vi.waitFor(() =>
+      expect(
+        reconcile.mock.calls.filter(([repository]) => repository.replicaId === "fast"),
+      ).toHaveLength(2),
+    );
+  } finally {
+    releaseSlow();
+    abort.abort();
+    await running;
+  }
+});
