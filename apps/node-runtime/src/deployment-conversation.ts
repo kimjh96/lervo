@@ -4,6 +4,7 @@ import type { ProjectManifest } from "@lervo/schemas";
 import type { EventStore } from "@lervo/storage-contract";
 
 import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
+import type { NodeDiscordConversationRuntimeOptions } from "./discord-conversation-runtime-types.js";
 import { configuredDiscordConversations } from "./discord-conversation-deployments-config.js";
 import { groupDiscordConversationRuntimes } from "./discord-conversation-group-runtime.js";
 import {
@@ -81,6 +82,7 @@ export async function openDeploymentConversation(input: {
   repositoryEvents: Pick<EventStore, "latest" | "list"> & { readonly path?: string };
   legacyPorts: NodeRuntimeOpenPorts["discordConversation"];
   deploymentPorts: NodeRuntimeOpenPorts["discordConversations"];
+  supervisionControl?: NodeDiscordConversationRuntimeOptions["supervisionControl"];
   onReady(): void | Promise<void>;
   onFailure(code: string): void | Promise<void>;
 }): Promise<NodeDiscordConversationRuntime | undefined> {
@@ -129,6 +131,9 @@ export async function openDeploymentConversation(input: {
           ...(input.config.outcomeSupervision === undefined
             ? {}
             : { outcomeSupervision: input.config.outcomeSupervision }),
+          ...(input.supervisionControl === undefined
+            ? {}
+            : { supervisionControl: input.supervisionControl }),
           ...(input.config.repositoryReplica === undefined
             ? {}
             : { repositoryReplica: input.config.repositoryReplica }),

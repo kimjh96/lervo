@@ -1,3 +1,4 @@
+import type { ConversationResponder } from "@lervo/interaction";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import { openDiscordConversationRepositoryWork } from "./discord-conversation-repository-work.js";
@@ -46,7 +47,7 @@ export function openDiscordConversationWork(input: {
       ? {}
       : { executor: options.repositoryWorkExecutor }),
   });
-  const workResponder =
+  const supervision =
     options.outcomeSupervision?.binding.ownerAgentId === participation.agentId
       ? new DiscordSupervisionWorkResponder({
           repositoryRoot: options.repositoryRoot,
@@ -63,7 +64,20 @@ export function openDiscordConversationWork(input: {
           },
           authorizedEffectRequesters: input.authorizedEffectRequesters,
           intakeOutcomes: input.intakeOutcomes,
+          ...(options.supervisionControl === undefined
+            ? {}
+            : { onRebound: (binding) => options.supervisionControl!.onRebound(binding) }),
         })
-      : repositoryWork.responder;
+      : null;
+  // Only an authenticated /goal enters supervised intake; ordinary work keeps the managed route.
+  const workResponder: ConversationResponder =
+    supervision === null
+      ? repositoryWork.responder
+      : {
+          respond: (input) =>
+            input.event.kind === "goal.requested"
+              ? supervision.respond(input)
+              : repositoryWork.responder.respond(input),
+        };
   return { repositoryWork, workResponder };
 }

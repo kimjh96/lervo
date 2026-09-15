@@ -59,6 +59,11 @@ export interface OperatingMandateV3 extends Omit<OperatingMandateV2, "schemaVers
     snapshotEventHash: string;
     excludedAssignments: { assignmentId: string; contentHash: string }[];
   };
+  /**
+   * Reviewed standing grant: the owner may install up to this many derived successor mandates,
+   * one per successor goal, each identical in bounds and scoped to that goal's start snapshot.
+   */
+  successorAuthority?: { schemaVersion: 1; maximumSuccessors: number };
 }
 
 export type OperatingMandate = OperatingMandateV1 | OperatingMandateV2 | OperatingMandateV3;

@@ -51,10 +51,18 @@ async function fixture() {
   const failed = new Promise<void>((resolve) => {
     fail = resolve;
   });
+  const binding = {
+    supervisionId: "supervision.fixture",
+    workstreamId: `wks_${"b".repeat(24)}`,
+    ownerAgentId: `agt_${"c".repeat(24)}`,
+    mandateHash: `sha256:${"d".repeat(64)}`,
+  };
   const openService = vi.fn<typeof openNodeSupervisionService>(async () => ({
     start,
     close,
     failed,
+    rebind: async () => undefined,
+    currentBinding: () => binding,
   }));
   return {
     root,
@@ -210,7 +218,18 @@ it("reports actual service health and drains shutdown once across duplicate sign
 
 it("closes a service opened after a stop request without starting its owner loop", async () => {
   const f = await fixture();
-  const service = { start: f.start, close: f.close, failed: new Promise<void>(() => undefined) };
+  const service = {
+    start: f.start,
+    close: f.close,
+    failed: new Promise<void>(() => undefined),
+    rebind: async () => undefined,
+    currentBinding: () => ({
+      supervisionId: "supervision.fixture",
+      workstreamId: `wks_${"b".repeat(24)}`,
+      ownerAgentId: `agt_${"c".repeat(24)}`,
+      mandateHash: `sha256:${"d".repeat(64)}`,
+    }),
+  };
   let opened!: (value: typeof service) => void;
   f.openService.mockImplementation(
     () =>

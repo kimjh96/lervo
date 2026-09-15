@@ -4,7 +4,10 @@ import { loadLocalSupervisionConfig } from "./local-supervision-config.js";
 import type { NodeRuntimeSignalSource } from "./process-runtime.js";
 import { openNodeSupervisionService } from "./supervision-startup.js";
 import { readLocalSupervisionRequest } from "./local-supervision-request.js";
-import { admitSupervisionRequest } from "./supervision-request-intake.js";
+import {
+  admitStandingSupervisionRequest,
+  admitSupervisionRequest,
+} from "./supervision-request-intake.js";
 import { supervisionRequestRefusalCode } from "./supervision-request-refusal.js";
 
 interface LocalSupervisionCliPorts {
@@ -40,11 +43,18 @@ export async function runLocalSupervisionCli(
     }
     if (args[2] === "--request-stdin") {
       const request = await readLocalSupervisionRequest(ports.stdin ?? process.stdin);
-      const admission = await (ports.admitRequest ?? admitSupervisionRequest)({
-        repositoryRoot: configuration.repositoryRoot,
-        binding: configuration.configuration.binding,
-        request: { source: "local", ...request },
-      });
+      const admission = configuration.configuration.standing
+        ? await admitStandingSupervisionRequest({
+            repositoryRoot: configuration.repositoryRoot,
+            root: configuration.configuration.binding,
+            request: { source: "local", ...request },
+            provider: configuration.configuration.ownerReasoning.provider,
+          })
+        : await (ports.admitRequest ?? admitSupervisionRequest)({
+            repositoryRoot: configuration.repositoryRoot,
+            binding: configuration.configuration.binding,
+            request: { source: "local", ...request },
+          });
       ports.stdout(
         JSON.stringify({
           schemaVersion: 1,

@@ -13,7 +13,11 @@ import {
   type DiscordGoalIntakeOutcome,
   type DiscordGoalIntakeOutcomes,
 } from "./discord-goal-intake-outcomes.js";
-import { admitSupervisionRequest } from "./supervision-request-intake.js";
+import {
+  admitStandingSupervisionRequest,
+  admitSupervisionRequest,
+} from "./supervision-request-intake.js";
+import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import { supervisionRequestRefusalCode } from "./supervision-request-refusal.js";
 import type { NodeSupervisionStartupConfiguration } from "./supervision-startup-config.js";
 
@@ -36,8 +40,11 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
         conversationId: string;
       }[];
       admitRequest?: typeof admitSupervisionRequest;
+      admitStandingRequest?: typeof admitStandingSupervisionRequest;
       intakeOutcomes?: DiscordGoalIntakeOutcomes;
       admissionDeadlineMs?: number;
+      /** Standing lineage: the runtime follows the binding a successor transition returns. */
+      onRebound?(binding: NodeSupervisionBinding): Promise<void>;
     },
   ) {}
 
@@ -77,20 +84,37 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
     )
       throw new Error("The supervised conversation differs from its installed result origin.");
     let outcome: DiscordGoalIntakeOutcome;
+    const requestInput = {
+      source: "discord" as const,
+      sourceId: event.eventId,
+      requesterId: `${event.actor.participantId}:${event.actor.roleId}`,
+      request,
+      contentHash: event.content.contentHash,
+      origin,
+    };
+    const admissionDeadlineMs = this.options.admissionDeadlineMs ?? DISCORD_ADMISSION_DEADLINE_MS;
     try {
-      const admission = await (this.options.admitRequest ?? admitSupervisionRequest)({
-        repositoryRoot: this.options.repositoryRoot,
-        binding: this.options.configuration.binding,
-        request: {
-          source: "discord",
-          sourceId: event.eventId,
-          requesterId: `${event.actor.participantId}:${event.actor.roleId}`,
-          request,
-          contentHash: event.content.contentHash,
-          origin,
-        },
-        admissionDeadlineMs: this.options.admissionDeadlineMs ?? DISCORD_ADMISSION_DEADLINE_MS,
-      });
+      let admission: { eventId: string; duplicate: boolean };
+      if (this.options.configuration.standing) {
+        const standing = await (
+          this.options.admitStandingRequest ?? admitStandingSupervisionRequest
+        )({
+          repositoryRoot: this.options.repositoryRoot,
+          root: this.options.configuration.binding,
+          request: requestInput,
+          provider: this.options.configuration.ownerReasoning.provider,
+          admissionDeadlineMs,
+        });
+        if (standing.rebound) await this.options.onRebound?.(standing.binding);
+        admission = standing;
+      } else {
+        admission = await (this.options.admitRequest ?? admitSupervisionRequest)({
+          repositoryRoot: this.options.repositoryRoot,
+          binding: this.options.configuration.binding,
+          request: requestInput,
+          admissionDeadlineMs,
+        });
+      }
       outcome = { status: admission.duplicate ? "duplicate" : "bound" };
     } catch (error) {
       const code = supervisionRequestRefusalCode(error);

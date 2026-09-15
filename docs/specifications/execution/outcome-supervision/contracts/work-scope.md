@@ -25,6 +25,10 @@ Task observation retains the complete assignment set alongside the scoped task s
 
 A successor mandate cannot change or remove an installed scope, including after revocation. A workstream-wide predecessor must be revoked before version 3 is adopted. A new scope requires a separate reviewed installation. The autonomous owner cannot reset its own budget by proposing a later anchor.
 
+## Standing successor authority
+
+Version 3 may carry an optional reviewed `successorAuthority` with `schemaVersion: 1` and `maximumSuccessors` between 1 and 1024 ([ADR-0405](../../../../decisions/execution/orchestration/governed-work/0405-standing-supervision-lineage.md)). It lets the installed owner derive one mandate per successor goal without a new review. A derived mandate is a separate installation with supervision and mandate IDs `<parent>.s<n>`, version 1, the parent's owner, host, bounds, ceilings, expiry and revocation prefix, a work scope anchored to the successor goal's start snapshot with no exclusions, and `maximumSuccessors` one lower or absent. The installation plan's `derivation` names the parent installation event, parent mandate hash and successor index inside the approval hash; installation recomputes the derivation and rejects a widened, re-anchored, re-indexed or revoked-parent child. The owner cannot reset a running goal's budget this way because derivation requires the current goal to be settled and always anchors a new workstream.
+
 ## Failure, privacy, and verification
 
 The existing exact mandate installation artifact and event bind the scope. No new event type or credential field is introduced. Events retain existing mandate and review hashes. The artifact contains only bounded opaque assignment and event coordinates and hashes. It must not contain task prose, source bodies, provider output, or credentials.

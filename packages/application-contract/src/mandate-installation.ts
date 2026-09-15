@@ -23,6 +23,13 @@ export interface MandateInstallationPlan {
   predecessorEventId: string | null;
   predecessorMandateHash: string | null;
   reviewerIdDigest: string;
+  /** Present only for a successor mandate the owner derived under a reviewed standing grant. */
+  derivation?: {
+    schemaVersion: 1;
+    parentInstallationEventId: string;
+    parentMandateHash: string;
+    successorIndex: number;
+  };
   approvalHash: string;
 }
 

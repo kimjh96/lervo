@@ -12,6 +12,7 @@ import type { ConversationIntentResolver } from "./conversation-intent-resolver.
 import type { DiscordAgentParticipation } from "./discord-agent-participation.js";
 import type { DiscordPeerAgentBinding } from "./discord-conversation-composition.js";
 import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
+import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import type { NodeSupervisionStartupConfiguration } from "./supervision-startup-config.js";
 
 export interface NodeDiscordConversationRuntime {
@@ -42,6 +43,8 @@ export interface NodeDiscordConversationRuntimeOptions {
   repositoryRoot: string;
   repositoryReplica?: NodeRuntimeConfig["repositoryReplica"];
   outcomeSupervision?: NodeSupervisionStartupConfiguration;
+  /** Standing supervision only: lets the goal intake hand the runtime its next lineage binding. */
+  supervisionControl?: { onRebound(binding: NodeSupervisionBinding): Promise<void> };
   dataDirectory: string;
   runtimeConfigPath?: string;
   bearerToken(): string;

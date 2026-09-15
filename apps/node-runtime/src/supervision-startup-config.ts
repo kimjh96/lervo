@@ -20,7 +20,13 @@ import {
 
 /** Trusted host launch material selects an installed mandate; it cannot install or widen authority. */
 export interface NodeSupervisionStartupConfiguration {
+  /** The pinned owner binding, or the lineage root when `standing` is true. */
   binding: NodeSupervisionBinding;
+  /**
+   * Standing supervision: the binding names the lineage root and the runtime follows the latest
+   * successor goal the owner installed under the root mandate's reviewed successor grant.
+   */
+  standing?: boolean;
   runtimeReadiness: NodeRuntimeReadinessConfiguration;
   ownerReasoning: NodeOwnerReasoningConfiguration;
   managedExecution: NodeSupervisedManagedConfiguration;
@@ -36,6 +42,7 @@ export function parseSupervisionStartupConfiguration(
     source,
     [
       "binding",
+      "standing",
       "runtimeReadiness",
       "ownerReasoning",
       "managedExecution",
@@ -44,11 +51,18 @@ export function parseSupervisionStartupConfiguration(
     ],
     "outcomeSupervision",
   );
-  const binding = configRecord(source.binding, "outcomeSupervision.binding");
+  if ((source.binding === undefined) === (source.standing === undefined))
+    throw new NodeRuntimeError(
+      "invalid_config",
+      "Supervision requires exactly one of outcomeSupervision.binding or outcomeSupervision.standing.",
+    );
+  const standing = source.standing !== undefined;
+  const bindingKey = standing ? "standing" : "binding";
+  const binding = configRecord(source[bindingKey], `outcomeSupervision.${bindingKey}`);
   exactConfigKeys(
     binding,
     ["supervisionId", "workstreamId", "ownerAgentId", "mandateHash"],
-    "outcomeSupervision.binding",
+    `outcomeSupervision.${bindingKey}`,
   );
   assertNodeSupervisionBinding(binding as unknown as NodeSupervisionBinding);
   const owner = configRecord(source.ownerReasoning, "outcomeSupervision.ownerReasoning");
@@ -125,6 +139,7 @@ export function parseSupervisionStartupConfiguration(
   }
   return {
     binding: structuredClone(binding) as unknown as NodeSupervisionBinding,
+    ...(standing ? { standing: true } : {}),
     runtimeReadiness: configuration,
     ownerReasoning: structuredClone(owner) as unknown as NodeOwnerReasoningConfiguration,
     managedExecution: structuredClone(managed) as unknown as NodeSupervisedManagedConfiguration,

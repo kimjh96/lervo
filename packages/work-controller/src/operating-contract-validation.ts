@@ -89,6 +89,9 @@ export function assertOperatingMandate(value: OperatingMandate): void {
       "revocationCoordinate",
       ...([2, 3].includes(value?.schemaVersion) ? ["executionAuthority"] : []),
       ...(value?.schemaVersion === 3 ? ["workScope"] : []),
+      ...(value?.schemaVersion === 3 && Object.hasOwn(value, "successorAuthority")
+        ? ["successorAuthority"]
+        : []),
     ]) ||
     ![1, 2, 3].includes(value.schemaVersion) ||
     (value.schemaVersion !== 1 &&
@@ -117,7 +120,11 @@ export function assertOperatingMandate(value: OperatingMandate): void {
             !operatingHashPattern.test(item.contentHash),
         ) ||
         new Set(value.workScope.excludedAssignments.map((item) => item.assignmentId)).size !==
-          value.workScope.excludedAssignments.length)) ||
+          value.workScope.excludedAssignments.length ||
+        (value.successorAuthority !== undefined &&
+          (!object(value.successorAuthority, ["schemaVersion", "maximumSuccessors"]) ||
+            value.successorAuthority.schemaVersion !== 1 ||
+            !operatingInteger(value.successorAuthority.maximumSuccessors, 1, 1024))))) ||
     !ID.test(value.mandateId) ||
     !operatingInteger(value.version, 1) ||
     !ID.test(value.appointingAuthorityId) ||

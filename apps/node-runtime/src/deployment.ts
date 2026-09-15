@@ -1,4 +1,5 @@
 import { openDeploymentSupervision } from "./deployment-supervision.js";
+import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import type { NodeSupervisionService } from "./supervision-startup.js";
 import { createSyncCycleObserver } from "./sync-cycle-observer.js";
 import { createNodeDeploymentTransports } from "./deployment-transports.js";
@@ -164,7 +165,14 @@ export async function openNodeRuntime(
           }),
     };
     await health.initialize();
+    // Standing supervision hands successor bindings from goal intake to the owner service.
+    const supervisionControl = {
+      onRebound: async (_binding: NodeSupervisionBinding): Promise<void> => {
+        throw new Error("Standing supervision is not running.");
+      },
+    };
     conversation = await openDeploymentConversation({
+      supervisionControl,
       config: validated,
       project: manifest,
       projectIdentityHash: target.projectIdentityHash,
@@ -186,6 +194,10 @@ export async function openNodeRuntime(
       conversation,
       health,
     });
+    if (supervision !== null) {
+      const service = supervision;
+      supervisionControl.onRebound = (binding) => service.rebind(binding);
+    }
     return createNodeRuntimeDeployment(
       store,
       async (signal) => {

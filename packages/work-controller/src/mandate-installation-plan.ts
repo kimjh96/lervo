@@ -45,8 +45,9 @@ export function planMandateInstallation(input: {
   previous: InstalledOperatingMandate | null;
   reviewerId: string;
   now: string;
+  derivation?: MandateInstallationPlan["derivation"];
 }): MandateInstallationPlan {
-  const { mandate, source, previous } = structuredClone(input);
+  const { mandate, source, previous, derivation } = structuredClone(input);
   assertOperatingMandate(mandate);
   assertMandateExecutionSuccession(previous, mandate);
   if (
@@ -91,6 +92,7 @@ export function planMandateInstallation(input: {
     predecessorEventId: previous?.latestEventId ?? null,
     predecessorMandateHash: previous?.mandateHash ?? null,
     reviewerIdDigest: operatingContractHash({ reviewerId: input.reviewerId }),
+    ...(derivation === undefined ? {} : { derivation }),
   };
   return { ...content, approvalHash: operatingContractHash(content) };
 }
@@ -105,6 +107,7 @@ export function assertMandateInstallationPlan(plan: MandateInstallationPlan): vo
     previous: null,
     reviewerId: plan.mandate.appointingAuthorityId,
     now: plan.mandate.issuedAt,
+    ...(plan.derivation === undefined ? {} : { derivation: plan.derivation }),
   });
   const { approvalHash: _initialApproval, ...initial } = rebuilt;
   const expected = {
@@ -125,7 +128,15 @@ export function assertMandateInstallationPlan(plan: MandateInstallationPlan): vo
     plan.reviewerIdDigest !==
       operatingContractHash({ reviewerId: plan.mandate.appointingAuthorityId }) ||
     !plan.source.eligible ||
-    plan.source.reasonCodes.length !== 0
+    plan.source.reasonCodes.length !== 0 ||
+    (plan.derivation !== undefined &&
+      (plan.derivation.schemaVersion !== 1 ||
+        !/^evt_[a-f0-9]{32}$/u.test(plan.derivation.parentInstallationEventId) ||
+        !operatingHashPattern.test(plan.derivation.parentMandateHash) ||
+        !Number.isSafeInteger(plan.derivation.successorIndex) ||
+        plan.derivation.successorIndex < 1 ||
+        plan.derivation.successorIndex > 1024 ||
+        plan.predecessorEventId !== null))
   )
     throw new Error("The mandate installation differs from its exact reviewed plan.");
 }

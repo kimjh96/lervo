@@ -9,9 +9,12 @@ import {
 } from "@lervo/storage-contract";
 import { assertCanonicalSupervisionIdentity } from "./supervision-identity.js";
 import {
+  assertDerivedMandate,
   assertMandateInstallationPlan,
   assertMandateExecutionSuccession,
   operatingContractHash,
+  successorId,
+  successorIndexOf,
 } from "@lervo/work-controller";
 import {
   SupervisionEventJournal,
@@ -47,6 +50,7 @@ export class SupervisionMandateJournal {
         )) as MandateInstallationPlan;
         assertMandateInstallationPlan(plan);
         assertMandateExecutionSuccession(current, plan.mandate);
+        if (plan.derivation !== undefined) await this.assertDerivation(plan);
         const mandate = await this.journal.read(String(event.payload.mandateArtifactHash));
         if (
           operatingContractHash(mandate) !== plan.mandateHash ||
@@ -107,6 +111,7 @@ export class SupervisionMandateJournal {
     plan = structuredClone(plan);
     assertMandateInstallationPlan(plan);
     this.assertBinding(plan);
+    if (plan.derivation !== undefined) await this.assertDerivation(plan, true);
     if (
       plan.mandate.ownerAgentId !== this.coordinates.ownerAgentId ||
       plan.source.workstreamRevision !== this.coordinates.workstreamRevision
@@ -195,6 +200,48 @@ export class SupervisionMandateJournal {
       () => this.assertHead(current.latestEventId),
     );
     return (await this.current())!;
+  }
+
+  /**
+   * A derived successor plan is admitted only by the exact reviewed grant of its parent
+   * installation: same lineage, next index, identical bounds, and an unrevoked parent.
+   */
+  private async assertDerivation(
+    plan: MandateInstallationPlan,
+    requireUnrevokedParent = false,
+  ): Promise<void> {
+    const derivation = plan.derivation!;
+    const parent = this.events.get(derivation.parentInstallationEventId);
+    if (
+      parent === null ||
+      parent.type !== "work.supervision.mandate.installed" ||
+      parent.projectId !== this.coordinates.projectId ||
+      parent.payload.mandateHash !== derivation.parentMandateHash ||
+      parent.payload.ownerAgentId !== plan.mandate.ownerAgentId
+    )
+      throw new Error("The mandate derivation has no exact parent installation.");
+    const parentPlan = (await this.journal.read(
+      String(parent.payload.installationReviewHash),
+    )) as MandateInstallationPlan;
+    assertMandateInstallationPlan(parentPlan);
+    if (
+      parentPlan.mandateHash !== derivation.parentMandateHash ||
+      parentPlan.supervisionId !== String(parent.payload.supervisionId) ||
+      successorIndexOf(parentPlan.supervisionId) !== derivation.successorIndex - 1 ||
+      plan.supervisionId !== successorId(parentPlan.supervisionId, derivation.successorIndex) ||
+      plan.source.workstreamId === parentPlan.source.workstreamId
+    )
+      throw new Error("The mandate derivation does not continue its parent lineage.");
+    assertDerivedMandate(parentPlan.mandate, plan.mandate, derivation);
+    if (
+      requireUnrevokedParent &&
+      collectProjectEventsBounded({ events: this.events, maximumEvents: 100_000 }).some(
+        (event) =>
+          event.type === "work.supervision.mandate.revoked" &&
+          event.payload.mandateHash === derivation.parentMandateHash,
+      )
+    )
+      throw new Error("The mandate derivation parent is revoked.");
   }
 
   private assertBinding(plan: MandateInstallationPlan): void {

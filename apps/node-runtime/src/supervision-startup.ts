@@ -7,6 +7,9 @@ import {
 } from "./supervision-attention-health.js";
 import type { NodeRuntimeComponentHealth } from "./health-contract.js";
 import { openNodeOutcomeSupervisionRuntime } from "./outcome-supervision-runtime.js";
+import { openProjectStorage } from "@lervo/project-storage";
+import type { NodeSupervisionBinding } from "./supervision-authority.js";
+import { resolveStandingSupervisionBinding } from "./supervision-standing.js";
 import {
   parseSupervisionStartupConfiguration,
   type NodeSupervisionStartupConfiguration,
@@ -16,6 +19,10 @@ export interface NodeSupervisionService {
   readonly failed: Promise<void>;
   start(): void;
   close(): Promise<void>;
+  /** Standing supervision: follow the next lineage binding a successor transition installed. */
+  rebind(binding: NodeSupervisionBinding): Promise<void>;
+  /** The binding the running owner currently follows. */
+  currentBinding(): NodeSupervisionBinding;
 }
 
 /** Starts one installed owner through the existing durable, serial change loop, with no Hub dependency. */
@@ -64,59 +71,94 @@ export async function openNodeSupervisionService(input: {
     failureCode: "supervision_attention_required",
     ...(reasonCodes === null ? {} : { reasonCodes: [...reasonCodes] }),
   });
-  const runtime = await openNodeOutcomeSupervisionRuntime({
-    repositoryRoot: input.repositoryRoot,
-    binding: config.binding,
-    runtimeReadiness: config.runtimeReadiness,
-    ownerReasoning: config.ownerReasoning,
-    managedExecution: config.managedExecution,
-    ...(config.handoffPeers === undefined ? {} : { handoffPeers: config.handoffPeers }),
-    ...(input.deliveryAdapter === undefined
-      ? {}
-      : {
-          resultDelivery: {
-            ...(config.resultOrigin === undefined ? {} : { origin: config.resultOrigin }),
-            ...(input.deliverySpeaker === undefined ? {} : { speaker: input.deliverySpeaker }),
-            adapter: input.deliveryAdapter,
-            ...(input.deliveryArtifacts === undefined
-              ? {}
-              : { adapterArtifacts: input.deliveryArtifacts }),
-            ...(input.deliveryReplay === undefined ? {} : { replayStatus: input.deliveryReplay }),
-          },
-        }),
-    ports: {
-      now: input.now ?? (() => new Date().toISOString()),
-      recordAttention: async (report, reasonCodes) => {
-        attention = supervisionAttentionReasonCodes(report, reasonCodes);
-        await observe(attentionHealth(attention));
+  const now = input.now ?? (() => new Date().toISOString());
+  const log = input.log ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const openRuntime = (binding: NodeSupervisionBinding) =>
+    openNodeOutcomeSupervisionRuntime({
+      repositoryRoot: input.repositoryRoot,
+      binding,
+      runtimeReadiness: config.runtimeReadiness,
+      ownerReasoning: config.ownerReasoning,
+      managedExecution: config.managedExecution,
+      ...(config.handoffPeers === undefined ? {} : { handoffPeers: config.handoffPeers }),
+      ...(input.deliveryAdapter === undefined
+        ? {}
+        : {
+            resultDelivery: {
+              ...(config.resultOrigin === undefined ? {} : { origin: config.resultOrigin }),
+              ...(input.deliverySpeaker === undefined ? {} : { speaker: input.deliverySpeaker }),
+              adapter: input.deliveryAdapter,
+              ...(input.deliveryArtifacts === undefined
+                ? {}
+                : { adapterArtifacts: input.deliveryArtifacts }),
+              ...(input.deliveryReplay === undefined ? {} : { replayStatus: input.deliveryReplay }),
+            },
+          }),
+      ports: {
+        now,
+        recordAttention: async (report, reasonCodes) => {
+          attention = supervisionAttentionReasonCodes(report, reasonCodes);
+          await observe(attentionHealth(attention));
+        },
       },
-    },
-  });
+    });
+  const resolveBinding = async (): Promise<NodeSupervisionBinding> => {
+    if (!config.standing) return config.binding;
+    const storage = await openProjectStorage(input.repositoryRoot);
+    try {
+      return (await resolveStandingSupervisionBinding(storage, config.binding, now)).binding;
+    } finally {
+      await storage.close();
+    }
+  };
+  let binding = await resolveBinding();
+  let runtime = await openRuntime(binding);
+  let started = false;
+  let switching: Promise<void> = Promise.resolve();
+  const start = (target: typeof runtime) =>
+    target.start({
+      onFailure: (error) => {
+        log(supervisionCycleFailureLine(error));
+        void observe({
+          status: "unavailable",
+          failureCode: "supervision_cycle_failed",
+          reasonCodes: [supervisionCycleFailureCode(error)],
+        });
+      },
+      onCycle: async (cycle) => {
+        const reasonCodes = attention;
+        attention = null;
+        if (cycle.report === null) return;
+        await observe(
+          cycle.disposition === "blocked" || cycle.disposition === "uncertain"
+            ? attentionHealth(reasonCodes)
+            : { status: "ready" },
+        );
+      },
+    });
   return {
     failed,
-    start: () =>
-      runtime.start({
-        onFailure: (error) => {
-          (input.log ?? ((line: string) => process.stderr.write(`${line}\n`)))(
-            supervisionCycleFailureLine(error),
-          );
-          void observe({
-            status: "unavailable",
-            failureCode: "supervision_cycle_failed",
-            reasonCodes: [supervisionCycleFailureCode(error)],
-          });
-        },
-        onCycle: async (cycle) => {
-          const reasonCodes = attention;
-          attention = null;
-          if (cycle.report === null) return;
-          await observe(
-            cycle.disposition === "blocked" || cycle.disposition === "uncertain"
-              ? attentionHealth(reasonCodes)
-              : { status: "ready" },
-          );
-        },
-      }),
-    close: () => runtime.close(),
+    start: () => {
+      started = true;
+      start(runtime);
+    },
+    close: async () => {
+      await switching;
+      await runtime.close();
+    },
+    currentBinding: () => structuredClone(binding),
+    rebind: (next) => {
+      // Serialize switches: close the owner on the settled goal, then run the successor's owner.
+      switching = switching.then(async () => {
+        if (!config.standing) throw new Error("Only standing supervision can rebind.");
+        if (next.supervisionId === binding.supervisionId) return;
+        await runtime.close();
+        binding = structuredClone(next);
+        runtime = await openRuntime(binding);
+        void observe({ status: "pending" });
+        if (started) start(runtime);
+      });
+      return switching;
+    },
   };
 }

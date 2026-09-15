@@ -102,3 +102,4 @@ export * from "./scoped-work-handoff.js";
 export * from "./supervised-owner-attention.js";
 
 export * from "./managed-execution-absence.js";
+export * from "./mandate-successor.js";
