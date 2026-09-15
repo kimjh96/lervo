@@ -35,6 +35,7 @@ export async function dispatchFixture(
     maximumAttemptTokens?: number;
   },
   leaseDurationMs?: number,
+  completionDeadlineMs?: number,
 ) {
   const login = await createLoginFixture(roots);
   const suites =
@@ -166,9 +167,13 @@ export async function dispatchFixture(
     requiredCapabilities: taskContract?.requiredCapabilities ?? ["filesystem.write"],
     verificationSuiteIds: suites.map((suite) => suite.suiteId),
     taskPurpose: taskContract?.taskPurpose ?? responsibility().taskPurpose,
-    startDeadline: new Date(Date.now() + 300_000).toISOString(),
-    progressDeadline: new Date(Date.now() + 600_000).toISOString(),
-    completionDeadline: new Date(Date.now() + 1200_000).toISOString(),
+    startDeadline: new Date(
+      Date.now() + Math.min(300_000, Math.floor((completionDeadlineMs ?? 1200_000) / 3)),
+    ).toISOString(),
+    progressDeadline: new Date(
+      Date.now() + Math.min(600_000, Math.floor(((completionDeadlineMs ?? 1200_000) * 2) / 3)),
+    ).toISOString(),
+    completionDeadline: new Date(Date.now() + (completionDeadlineMs ?? 1200_000)).toISOString(),
   };
   const responsibilityHash = operatingContractHash(task);
   if (bindResponsibility)

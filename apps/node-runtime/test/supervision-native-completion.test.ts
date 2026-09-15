@@ -106,6 +106,9 @@ it.each([
       ],
       undefined,
       scenario.startsWith("late_") ? 20_000 : undefined,
+      // A near completion deadline keeps the pre-launch renewal from extending the lease,
+      // so the owner still prepares completion after its original execution authority ended.
+      scenario.startsWith("late_") ? 30_000 : undefined,
     );
     const log = resolve(f.login.context.homeDirectory, "native-operations.log");
     const promptLog = resolve(f.login.context.homeDirectory, "worker-prompt.log");
