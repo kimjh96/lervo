@@ -16,6 +16,7 @@ import {
   readSupervisionClaimReceiptBasis,
 } from "./supervision-claim-receipt.js";
 import { observeSupervisionWorkforce } from "./supervision-workforce-source.js";
+import { supersedeUnstartedResponsibilityClaim } from "./supervision-claim-supersession.js";
 
 /** Acquires one exact responsibility under current owner authority; dispatch remains independent. */
 export class SupervisionClaimEffects {
@@ -34,6 +35,21 @@ export class SupervisionClaimEffects {
     } finally {
       await storage.close();
     }
+  }
+  /** A never-bound claim is superseded once its source changed or its deadline passed. */
+  async supersede(
+    plan: OperatingActionPlanV1,
+    sourceRevisionDigest: string,
+    session: Pick<NodeSupervisionEffectSession, "commit">,
+  ) {
+    return supersedeUnstartedResponsibilityClaim({
+      repositoryRoot: this.root,
+      binding: this.binding,
+      plan,
+      sourceRevisionDigest,
+      session,
+      now: this.now,
+    });
   }
   async execute(plan: OperatingActionPlanV1, session: NodeSupervisionEffectSession) {
     const storage = await openProjectStorage(this.root);

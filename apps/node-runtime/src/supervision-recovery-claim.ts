@@ -62,6 +62,12 @@ export async function materializeSuccessorClaim(input: {
     input.storage,
     plan,
   );
+  // A successor window that can no longer hold a bounded lease leaves the owner to decide again.
+  if (
+    Date.parse(basis.effect.responsibility.completionDeadline) - Date.parse(input.now()) <
+    CLAIM_ADMISSION_MARGIN_MS + 5000
+  )
+    return null;
   const rationale = await input.storage.artifacts.put(
     canonicalJson(
       `Acquire successor duties from admitted assignment transition ${operatingContractHash(plan)}. Earlier artifacts remain preserved.`,
@@ -79,4 +85,7 @@ export async function materializeSuccessorClaim(input: {
   await input.storage.artifacts.put(canonicalJson(effect));
   return { ...input.base, ...supervisedResponsibilityClaimFields(effect) };
 }
-import { supervisionClaimDuration } from "./supervision-claim-duration.js";
+import {
+  CLAIM_ADMISSION_MARGIN_MS,
+  supervisionClaimDuration,
+} from "./supervision-claim-duration.js";

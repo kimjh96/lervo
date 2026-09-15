@@ -45,7 +45,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
   )
     throw new NodeSupervisionError("supervision_readiness_changed");
   const effects = createNodeSupervisionEffects(input, configuration);
-  const { handoffs, managed, topology, workspaces, hiring, reasoning } = effects;
+  const { handoffs, managed, topology, workspaces, hiring, reasoning, claims } = effects;
   const binding = structuredClone(input.binding);
   const { ports } = input;
   if (!("propose" in ports) && input.ownerReasoning === undefined)
@@ -261,6 +261,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     supersedeNotStarted: async (plan, digest) => {
       const native =
         plan.effectContract === "assignment.topology.materialize.v1" ||
+        plan.effectContract === "work.responsibility_claim.v1" ||
         (plan.effectContract === "work.owner_reasoning.v1" && reasoning !== null) ||
         (plan.effectContract === "work.workspace_preparation.v1" && workspaces !== null) ||
         (["work.managed_execution.v1", "work.managed_execution.v2"].includes(plan.effectContract) &&
@@ -286,9 +287,11 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
                   plan.effectContract,
                 ) && managed !== null
               ? managed.supersede(plan, supersessionDigest, session(), input.binding)
-              : "supersedeNotStarted" in ports
-                ? (ports.supersedeNotStarted?.(plan, digest, session()) ?? false)
-                : false;
+              : plan.effectContract === "work.responsibility_claim.v1"
+                ? claims.supersede(plan, supersessionDigest, session())
+                : "supersedeNotStarted" in ports
+                  ? (ports.supersedeNotStarted?.(plan, digest, session()) ?? false)
+                  : false;
     },
     findPendingPlan: async () => session().findPendingPlan(),
     recordDecision: async (plan, review) => {

@@ -2,6 +2,9 @@ import type { WorkResponsibilityV1 } from "@lervo/application-contract";
 import type { NativeOwnerPlanInput } from "./supervision-native-plans.js";
 
 /** Parses the model's bounded staffing requirement; no assignment or lease is created here. */
+/** Floor for one responsibility's completion window, unless the mandate deadline is shorter. */
+export const MINIMUM_COMPLETION_WINDOW_MS = 600_000;
+
 export function nativeTaskRequirement(
   input: NativeOwnerPlanInput,
   details: Record<string, unknown>,
@@ -44,7 +47,11 @@ export function nativeTaskRequirement(
   if (role === undefined)
     throw new Error("The owner allocation role is outside its installed mandate.");
   const now = Date.parse(input.now());
-  const duration = Number(details.completionSeconds) * 1000;
+  // A worker turn needs a full bounded lease plus admission latency; the owner cannot go below it.
+  const duration = Math.max(
+    Number(details.completionSeconds) * 1000,
+    Math.min(MINIMUM_COMPLETION_WINDOW_MS, facts.mandate.maximumDeadlineMs),
+  );
   const task: WorkResponsibilityV1 = {
     schemaVersion: 1,
     assignmentId: `asn_${"0".repeat(24)}`,

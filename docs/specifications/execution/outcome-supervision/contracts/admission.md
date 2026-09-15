@@ -14,7 +14,7 @@ Supported action kinds are `allocate_existing`, `execute_as_owner`, `hire_worker
 
 ## Responsibility artifacts
 
-A responsibility artifact requires a task purpose, deliverables, acceptance criteria, decision latitude, expected paths, required capabilities and verification, reviewer, handoff recipients, and finite start, progress, and completion deadlines. The mandate bounds deadline selection. Rescheduling records a new decision; hints cannot silently postpone deadlines.
+A responsibility artifact requires a task purpose, deliverables, acceptance criteria, decision latitude, expected paths, required capabilities and verification, reviewer, handoff recipients, and finite start, progress, and completion deadlines. The mandate bounds deadline selection from above; the native owner's completion window is floored at ten minutes, or the mandate's maximum deadline when shorter, because a worker turn needs a full bounded lease plus admission latency, and a shorter owner proposal is raised to that floor. Rescheduling records a new decision; hints cannot silently postpone deadlines.
 
 ## Review compatibility
 

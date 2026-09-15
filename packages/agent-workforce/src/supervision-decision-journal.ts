@@ -19,6 +19,7 @@ import {
   operatingContractHash,
   operatingDecisionId,
   isOwnerReasoningAbsence,
+  isResponsibilityClaimAbsence,
   isWorkspacePreparationAbsence,
   supervisedWorkspacePreparationFields,
 } from "@lervo/work-controller";
@@ -190,23 +191,29 @@ export class SupervisionDecisionJournal {
                     maximumEvents: 4096,
                   }),
                 )
-              : inspection.schemaVersion === 3
-                ? await this.validWorkspaceAbsence(
+              : inspection.schemaVersion === 7
+                ? isResponsibilityClaimAbsence(
                     inspection,
                     plan,
                     String(supersession.payload.sourceRevisionDigest),
                   )
-                : isOwnerReasoningAbsence(
-                    inspection,
-                    plan,
-                    String(supersession.payload.sourceRevisionDigest),
-                  ) &&
-                  collectRunEventsBounded({
-                    events: this.events,
-                    runId: managedExecutionIdentity(plan.projectId, operatingContractHash(plan))
-                      .runId,
-                    maximumEvents: 4096,
-                  }).length === 0)
+                : inspection.schemaVersion === 3
+                  ? await this.validWorkspaceAbsence(
+                      inspection,
+                      plan,
+                      String(supersession.payload.sourceRevisionDigest),
+                    )
+                  : isOwnerReasoningAbsence(
+                      inspection,
+                      plan,
+                      String(supersession.payload.sourceRevisionDigest),
+                    ) &&
+                    collectRunEventsBounded({
+                      events: this.events,
+                      runId: managedExecutionIdentity(plan.projectId, operatingContractHash(plan))
+                        .runId,
+                      maximumEvents: 4096,
+                    }).length === 0)
         )
           throw new Error("The superseded decision inspection is inconsistent.");
         continue;
