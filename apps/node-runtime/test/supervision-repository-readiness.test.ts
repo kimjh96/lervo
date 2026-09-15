@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
-import { renewAssignmentLease } from "@lervo/agent-workforce";
+import { claimAssignment } from "@lervo/agent-workforce";
 import { afterEach, describe, expect, it } from "vitest";
 import { openNodeOutcomeSupervisionRuntime } from "../src/outcome-supervision-runtime.js";
 import { dispatchFixture } from "./supervision-dispatch.fixture.js";
@@ -14,16 +14,18 @@ afterEach(async () => {
 });
 
 describe("canonical repository readiness probes", () => {
-  it.each(["lease_revision", "workspace_absent", "marker_drift", "foreign_path"])(
+  it.each(["lease_generation", "workspace_absent", "marker_drift", "foreign_path"])(
     "rejects positive adapter claims after %s changes",
     async (change) => {
       const f = await dispatchFixture(roots);
-      if (change === "lease_revision")
-        await renewAssignmentLease({
+      // A renewal keeps the same lease; only a claim past its expiry changes the authority.
+      if (change === "lease_generation")
+        await claimAssignment({
           repositoryRoot: f.root,
           assignmentId: f.assignment.assignmentId,
-          agentId: f.owner.agentId,
-          leaseId: f.assignment.lease!.leaseId,
+          agentId: f.assignment.assigneeAgentId,
+          sessionId: "ses_readiness_reclaim",
+          now: new Date(Date.parse(f.assignment.lease!.expiresAt) + 1000),
         });
       if (change === "workspace_absent") await rm(f.workspacePath, { recursive: true });
       if (change === "marker_drift") {

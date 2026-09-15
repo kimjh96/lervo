@@ -10,7 +10,6 @@ import {
   listWorkspaceIntegrationQueue,
   readWorkspace,
   registerAgent,
-  renewAssignmentLease,
   updateWorkspace,
 } from "@lervo/agent-workforce";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
@@ -234,18 +233,19 @@ describe("workspace sealing orchestration", () => {
       host: current.host,
       now: new Date("2026-08-26T00:00:09Z"),
     });
-    await renewAssignmentLease({
+    // A renewal keeps the same lease; only a new claim after expiry changes the authority.
+    await claimAssignment({
       repositoryRoot: current.root,
       assignmentId: current.assignment.assignmentId,
       agentId: current.agent.agentId,
-      leaseId: current.assignment.lease!.leaseId,
-      now: new Date("2026-08-26T00:00:10Z"),
+      sessionId: "ses_workspace_reclaim",
+      now: new Date("2026-08-26T00:06:00Z"),
     });
     await expect(
       applyWorkspaceSeal({
         plan,
         host: current.host,
-        now: new Date("2026-08-26T00:00:11Z"),
+        now: new Date("2026-08-26T00:06:01Z"),
       }),
     ).rejects.toMatchObject({ code: "host_effect_uncertain" });
     expect(

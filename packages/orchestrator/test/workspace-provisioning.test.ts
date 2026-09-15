@@ -114,7 +114,7 @@ describe("workspace provisioning orchestration", () => {
     ).toEqual(applied);
   });
 
-  it("rejects a plan after the assignment lease revision changes", async () => {
+  it("rejects a plan after the assignment lease generation changes", async () => {
     const current = await fixture();
     const host = new GitWorkspaceHostAdapter();
     const plan = await planWorkspaceProvision({
@@ -130,6 +130,38 @@ describe("workspace provisioning orchestration", () => {
       host,
       now: new Date("2026-08-26T00:00:04Z"),
     });
+    // A renewal keeps the same lease; only a new claim after expiry changes the authority.
+    await claimAssignment({
+      repositoryRoot: current.root,
+      assignmentId: current.assignment.assignmentId,
+      agentId: current.agent.agentId,
+      sessionId: "ses_workspace_reclaim",
+      now: new Date("2026-08-26T00:06:00Z"),
+    });
+
+    await expect(
+      applyWorkspaceProvision({ plan, host, now: new Date("2026-08-26T00:06:01Z") }),
+    ).rejects.toMatchObject({ code: "host_coordinate_invalid" });
+    await expect(lstat(current.workspacePath)).rejects.toThrow();
+  });
+
+  it("applies a plan after a plain lease renewal", async () => {
+    const current = await fixture();
+    const host = new GitWorkspaceHostAdapter();
+    const plan = await planWorkspaceProvision({
+      repositoryRoot: current.root,
+      workspacePath: current.workspacePath,
+      assignmentId: current.assignment.assignmentId,
+      agentId: current.agent.agentId,
+      leaseId: current.assignment.lease!.leaseId,
+      provider: "codex",
+      baseCommit: current.baseCommit,
+      integrationTargetDigest: targetDigest,
+      executionKind: "worker",
+      host,
+      now: new Date("2026-08-26T00:00:04Z"),
+    });
+    // The responsibility binding pins the assignment revision, so renewal must not invalidate it.
     await renewAssignmentLease({
       repositoryRoot: current.root,
       assignmentId: current.assignment.assignmentId,
@@ -138,10 +170,8 @@ describe("workspace provisioning orchestration", () => {
       now: new Date("2026-08-26T00:00:05Z"),
     });
 
-    await expect(
-      applyWorkspaceProvision({ plan, host, now: new Date("2026-08-26T00:00:06Z") }),
-    ).rejects.toMatchObject({ code: "host_coordinate_invalid" });
-    await expect(lstat(current.workspacePath)).rejects.toThrow();
+    await applyWorkspaceProvision({ plan, host, now: new Date("2026-08-26T00:00:06Z") });
+    await expect(lstat(current.workspacePath)).resolves.toBeDefined();
   });
   it.each(["before_host", "receipt"])(
     "preserves recovery state when %s authority fails",
