@@ -43,6 +43,7 @@ import {
   supervisedAssignmentCompletionFields,
   supervisedWorkerHireFields,
 } from "@lervo/work-controller";
+import { readProvenAbandonedTurnFailure } from "./supervision-abandoned-turn-failure-source.js";
 import { readSupervisionJsonArtifact as exactJson } from "./supervision-artifact-json.js";
 import type { SupervisionTaskSource } from "./supervision-task-source.js";
 
@@ -66,9 +67,27 @@ export async function observeSupervisionTaskResources(input: {
       )
     )
       preTurnFailures.add(runId);
-  const accountedRunIds = [...workRuns].filter((runId) => !preTurnFailures.has(runId));
+  // A proven abandoned turn is settled but did start a session, so it stays charged as reserved
+  // spend and only leaves the observation population, which can never gain its usage receipt.
+  const abandonedFailures = new Set<string>();
+  for (const runId of workRuns)
+    if (
+      await readProvenAbandonedTurnFailure(
+        source.events.filter((event) => event.runId === runId),
+        artifacts,
+      )
+    )
+      abandonedFailures.add(runId);
+  const accountedRunIds = [...workRuns].filter(
+    (runId) => !preTurnFailures.has(runId) && !abandonedFailures.has(runId),
+  );
   const allStartedObserved = source.events
-    .filter((event) => event.type === "adapter.started" && workRuns.has(event.runId))
+    .filter(
+      (event) =>
+        event.type === "adapter.started" &&
+        workRuns.has(event.runId) &&
+        !abandonedFailures.has(event.runId),
+    )
     .every((event) =>
       source.events.some(
         (usage) =>
@@ -260,13 +279,26 @@ export async function observeSupervisionTaskResources(input: {
       continue;
     const identity = managedExecutionIdentity(plan.projectId, operatingContractHash(recorded));
     const run = source.events.filter((item) => item.runId === identity.runId);
+    const abandoned = abandonedFailures.has(identity.runId);
     const finished =
-      preTurnFailures.has(identity.runId) || observedSupervisionRunTermination(run) !== null;
+      preTurnFailures.has(identity.runId) ||
+      abandoned ||
+      observedSupervisionRunTermination(run) !== null;
     if (!finished) reservedRuns.add(identity.runId);
-    if (event.payload.decisionId !== currentDecision && (!finished || !completeUsage)) {
-      observedAggregateTokens = null;
-      reservedAggregateTokens =
-        reservedAggregateTokens === null ? null : reservedAggregateTokens + recorded.reservedTokens;
+    if (event.payload.decisionId !== currentDecision) {
+      // An abandoned turn keeps its reservation charged; treating it as zero would erase spend.
+      if (abandoned)
+        reservedAggregateTokens =
+          reservedAggregateTokens === null
+            ? null
+            : reservedAggregateTokens + recorded.reservedTokens;
+      else if (!finished || !completeUsage) {
+        observedAggregateTokens = null;
+        reservedAggregateTokens =
+          reservedAggregateTokens === null
+            ? null
+            : reservedAggregateTokens + recorded.reservedTokens;
+      }
     }
   }
   const activeRuns = new Set(

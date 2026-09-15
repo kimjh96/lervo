@@ -262,14 +262,24 @@ it("makes a running standing service follow a successor another process started"
       mandate: raised,
       reviewerId: raised.appointingAuthorityId,
     });
-    const raisedInstall = await installRepositoryMandate({
-      root: f.root,
-      plan: raisedPlan,
-      approval: raisedPlan.approvalHash,
-      reviewerId: raised.appointingAuthorityId,
-    });
+    // The running owner holds the exclusive fence during a cycle, exactly as in production, so
+    // the reviewed installation waits for it rather than assuming it lands between cycles.
+    let raisedInstall: Awaited<ReturnType<typeof installRepositoryMandate>> | null = null;
+    for (let attempt = 0; attempt < 60 && raisedInstall === null; attempt += 1)
+      try {
+        raisedInstall = await installRepositoryMandate({
+          root: f.root,
+          plan: raisedPlan,
+          approval: raisedPlan.approvalHash,
+          reviewerId: raised.appointingAuthorityId,
+        });
+      } catch (error) {
+        if (!/requires reconciliation before installation/u.test(String(error))) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    expect(raisedInstall).not.toBeNull();
     await vi.waitFor(
-      () => expect(service.currentBinding().mandateHash).toBe(raisedInstall.mandateHash),
+      () => expect(service.currentBinding().mandateHash).toBe(raisedInstall!.mandateHash),
       { timeout: 30_000 },
     );
     expect(service.currentBinding().supervisionId).toBe(admitted.binding.supervisionId);

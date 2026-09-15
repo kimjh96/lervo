@@ -4,10 +4,17 @@ import { runNodeRuntimeCli } from "./cli.js";
 import { runDiscordWorkforceReconciliationCli } from "./discord-workforce-reconciliation-cli.js";
 import { runRepositoryReplicaCli } from "./repository-replica-cli.js";
 import { runLocalSupervisionCli } from "./local-supervision-cli.js";
+import { runAbandonedTurnRecoveryCli } from "./supervision-abandoned-turn-recovery-cli.js";
 import { runPreTurnRecoveryCli } from "./supervision-pre-turn-recovery-cli.js";
 
 const args = process.argv.slice(2);
-if (args[0] === "recover-pre-turn") {
+if (args[0] === "recover-abandoned-turn") {
+  process.exitCode = await runAbandonedTurnRecoveryCli(args.slice(1), {
+    cwd: process.cwd(),
+    stdout: (message) => process.stdout.write(message),
+    stderr: (message) => process.stderr.write(message),
+  });
+} else if (args[0] === "recover-pre-turn") {
   process.exitCode = await runPreTurnRecoveryCli(args.slice(1), {
     cwd: process.cwd(),
     stdout: (message) => process.stdout.write(message),
