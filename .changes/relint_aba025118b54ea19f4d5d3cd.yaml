@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_aba025118b54ea19f4d5d3cd"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Start successor goals automatically under a reviewed standing supervision grant instead of a manual mandate transition per request."
