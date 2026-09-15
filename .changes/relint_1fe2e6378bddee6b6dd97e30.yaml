@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1fe2e6378bddee6b6dd97e30"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep a hash-valid version-one captured result syncable when it predates provider-observed model identity, so Hub integrity audits stop failing on recorded history."

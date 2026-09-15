@@ -22,7 +22,7 @@ type BatchContent = Omit<OutboundEventBatch, "batchId">;
 
 function isLegacyModelIdentityPayload(event: EventEnvelope): boolean {
   if (
-    event.schemaVersion !== 2 ||
+    ![1, 2].includes(event.schemaVersion) ||
     !["adapter.result.captured", "resource.usage.recorded"].includes(event.type) ||
     Object.hasOwn(event.payload, "modelIdentity") ||
     event.actor.kind !== "provider"

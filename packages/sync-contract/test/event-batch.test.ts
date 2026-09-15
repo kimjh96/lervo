@@ -160,21 +160,26 @@ describe("outbound event batch contract", () => {
       const project = manifest();
       const source = eventChain(project.projectId, 1)[0]!;
       const { eventHash: _eventHash, ...sourceWithoutHash } = source;
-      const withoutHash: Omit<EventEnvelope, "eventHash"> = {
-        ...sourceWithoutHash,
-        schemaVersion: 2,
-        type,
-        actor: { kind: "provider", provider: "codex" },
-        payload,
-      };
-      const legacy: EventEnvelope = { ...withoutHash, eventHash: computeEventHash(withoutHash) };
+      // Both recorded versions of a captured result predate provider-observed model identity;
+      // recorded usage only exists from version 2.
+      const versions = type === "adapter.result.captured" ? ([1, 2] as const) : ([2] as const);
+      for (const schemaVersion of versions) {
+        const withoutHash: Omit<EventEnvelope, "eventHash"> = {
+          ...sourceWithoutHash,
+          schemaVersion,
+          type,
+          actor: { kind: "provider", provider: "codex" },
+          payload,
+        };
+        const legacy: EventEnvelope = { ...withoutHash, eventHash: computeEventHash(withoutHash) };
 
-      const batch = createOutboundEventBatch({
-        registration: registration(project),
-        events: [legacy],
-      });
-      expect(batch.events[0]!.payload).toEqual(payload);
-      expect(batch.events[0]!.payload).not.toHaveProperty("modelIdentity");
+        const batch = createOutboundEventBatch({
+          registration: registration(project),
+          events: [legacy],
+        });
+        expect(batch.events[0]!.payload).toEqual(payload);
+        expect(batch.events[0]!.payload).not.toHaveProperty("modelIdentity");
+      }
     },
   );
 });
