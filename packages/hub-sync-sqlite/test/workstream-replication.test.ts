@@ -240,6 +240,9 @@ describe("Hub workstream replication SQLite", () => {
       status: "current",
       heads: [{ workstreamId: successor.workstreamId }],
     });
+    // The stored successor root links a different workstream at revision one, so the ancestry
+    // audit must read that binding as succession rather than as a broken revision chain.
+    await expect(store.auditIntegrity()).resolves.toMatchObject({ valid: true });
     await store.close();
   });
 

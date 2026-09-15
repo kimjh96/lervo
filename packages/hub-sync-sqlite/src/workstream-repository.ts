@@ -307,11 +307,19 @@ export class HubWorkstreamSQLiteRepository {
         const parent = rowByKey.get(parentKey);
         if (parent === undefined) throw new Error("A Hub workstream parent revision is missing.");
         const parentSnapshot = JSON.parse(parent.snapshot_json) as WorkstreamSnapshot;
-        if (
-          parent.workstream_id !== row.workstream_id ||
-          parent.revision + 1 !== row.revision ||
-          canonicalJson(parentSnapshot.origin) !== canonicalJson(typed.origin)
-        )
+        const sameWorkstream =
+          parent.workstream_id === row.workstream_id &&
+          parent.revision + 1 === row.revision &&
+          canonicalJson(parentSnapshot.origin) === canonicalJson(typed.origin);
+        // ADR-0199: a successor root links the exact settled predecessor head instead of a prior
+        // revision of its own identity, so its parent is a different workstream. Publication also
+        // required that head to be current, which the successor then replaces; head position is a
+        // publication precondition and not a property the stored ancestry keeps.
+        const nextWorkstream = isWorkstreamSuccessorRoot(typed, {
+          ...parentSnapshot,
+          snapshotContentHash: parent.snapshot_content_hash,
+        });
+        if (!sameWorkstream && !nextWorkstream)
           throw new Error("A Hub workstream ancestry binding is invalid.");
       }
       if (row.is_head === 1) {
