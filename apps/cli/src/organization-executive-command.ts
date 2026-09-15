@@ -22,6 +22,7 @@ import { inspectOrganizationPortfolio } from "./organization-portfolio-command.j
 import { SQLiteOrganizationExecutiveEffectReplay } from "./organization-executive-replay.js";
 import type { CliIo } from "./types.js";
 import { DiscordWebhookCredentialFileSink } from "./discord-webhook-credential-sink.js";
+import { RepositoryOrganizationExecutiveEffectAdapter } from "./repository-organization-executive-effects.js";
 
 function record(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -38,14 +39,13 @@ export async function runOrganizationExecutiveCommand(input: {
   policyPath: string;
   requestPath: string;
   effectPath: string;
-  configPath: string;
+  configPath: string | undefined;
   json: boolean | undefined;
 }): Promise<number> {
-  const [policy, request, effect, config, organization] = await Promise.all([
+  const [policy, request, effect, organization] = await Promise.all([
     readOrganizationCommandJson(resolve(input.io.cwd, input.policyPath), "The executive policy"),
     readOrganizationCommandJson(resolve(input.io.cwd, input.requestPath), "The executive request"),
     readOrganizationCommandJson(resolve(input.io.cwd, input.effectPath), "The executive effect"),
-    loadNodeRuntimeConfig(resolve(input.io.cwd, input.configPath)),
     inspectOrganizationPortfolio({
       cwd: input.io.cwd,
       organizationId: input.organizationId,
@@ -53,45 +53,17 @@ export async function runOrganizationExecutiveCommand(input: {
     }),
   ]);
   const typedEffect = effect as OrganizationExecutiveEffect;
-  const parameters = record(typedEffect.parameters);
-  const integrationId = String(parameters.integrationId);
-  const deployment = configuredDiscordConversations(config).find(
-    (candidate) => candidate.integrationId === integrationId,
-  );
-  if (deployment === undefined)
-    throw new Error("The executive effect integration is not deployed.");
-  const requiredAction =
-    typedEffect.action === "conversation.channel.create"
-      ? "guild_text_channel.create"
-      : typedEffect.action === "conversation.thread.create"
-        ? "public_thread.create"
-        : typedEffect.action === "agent.deployment.prepare"
-          ? "incoming_webhook.create"
-          : null;
-  if (
-    requiredAction === null ||
-    !deployment.administration?.allowedActions.includes(requiredAction)
-  ) {
-    throw new Error("The executive effect is not allowlisted by the deployed adapter.");
-  }
-  const token = await loadDiscordBotToken(deployment.botTokenFile);
-  const adapter = new DiscordOrganizationExecutiveEffectAdapter(
-    new DiscordRestAdministration({
-      applicationId: deployment.applicationId,
-      botToken: token,
-      allowedGuildIds: deployment.allowedGuildIds,
-      allowedChannelIds: deployment.conversations.map((item) => item.conversationKey),
-      ...(deployment.http?.requestTimeoutMs === undefined
-        ? {}
-        : { requestTimeoutMs: deployment.http.requestTimeoutMs }),
-      ...(deployment.http?.maxResponseBytes === undefined
-        ? {}
-        : { maxResponseBytes: deployment.http.maxResponseBytes }),
-    }),
-    deployment.administration?.webhookCredentialDirectory === undefined
-      ? undefined
-      : new DiscordWebhookCredentialFileSink(deployment.administration.webhookCredentialDirectory),
-  );
+  const adapter =
+    typedEffect.adapterId === "repository_organization_v1"
+      ? new RepositoryOrganizationExecutiveEffectAdapter({
+          cwd: input.io.cwd,
+          allowedRepositoryRoots: input.teamRoots,
+        })
+      : await discordExecutiveAdapter({
+          cwd: input.io.cwd,
+          configPath: input.configPath,
+          effect: typedEffect,
+        });
   const storage = await openProjectStorage(input.root);
   const replayPath = resolve(storage.paths.state, "organization-executive-effects.sqlite");
   await storage.close();
@@ -118,4 +90,54 @@ export async function runOrganizationExecutiveCommand(input: {
   } finally {
     replay.close();
   }
+}
+
+async function discordExecutiveAdapter(input: {
+  cwd: string;
+  configPath: string | undefined;
+  effect: OrganizationExecutiveEffect;
+}): Promise<DiscordOrganizationExecutiveEffectAdapter> {
+  if (input.configPath === undefined) {
+    throw new Error("Discord executive effects require a deployment config.");
+  }
+  const config = await loadNodeRuntimeConfig(resolve(input.cwd, input.configPath));
+  const parameters = record(input.effect.parameters);
+  const integrationId = String(parameters.integrationId);
+  const deployment = configuredDiscordConversations(config).find(
+    (candidate) => candidate.integrationId === integrationId,
+  );
+  if (deployment === undefined)
+    throw new Error("The executive effect integration is not deployed.");
+  const requiredAction =
+    input.effect.action === "conversation.channel.create"
+      ? "guild_text_channel.create"
+      : input.effect.action === "conversation.thread.create"
+        ? "public_thread.create"
+        : input.effect.action === "agent.deployment.prepare"
+          ? "incoming_webhook.create"
+          : null;
+  if (
+    requiredAction === null ||
+    !deployment.administration?.allowedActions.includes(requiredAction)
+  ) {
+    throw new Error("The executive effect is not allowlisted by the deployed adapter.");
+  }
+  const token = await loadDiscordBotToken(deployment.botTokenFile);
+  return new DiscordOrganizationExecutiveEffectAdapter(
+    new DiscordRestAdministration({
+      applicationId: deployment.applicationId,
+      botToken: token,
+      allowedGuildIds: deployment.allowedGuildIds,
+      allowedChannelIds: deployment.conversations.map((item) => item.conversationKey),
+      ...(deployment.http?.requestTimeoutMs === undefined
+        ? {}
+        : { requestTimeoutMs: deployment.http.requestTimeoutMs }),
+      ...(deployment.http?.maxResponseBytes === undefined
+        ? {}
+        : { maxResponseBytes: deployment.http.maxResponseBytes }),
+    }),
+    deployment.administration?.webhookCredentialDirectory === undefined
+      ? undefined
+      : new DiscordWebhookCredentialFileSink(deployment.administration.webhookCredentialDirectory),
+  );
 }

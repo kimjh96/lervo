@@ -27,6 +27,7 @@
         "shell.execute": "allow",
         "network.access": "require_approval",
         "external.message": "deny",
+        "computer.use": "deny",
         "deploy": "require_approval",
         "data.mutate": "require_approval"
       },

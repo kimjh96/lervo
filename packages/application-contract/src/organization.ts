@@ -1,5 +1,6 @@
 export type OrganizationAction =
   | "team.propose"
+  | "team.create"
   | "agent.hire"
   | "assignment.delegate"
   | "deliberation.convene"

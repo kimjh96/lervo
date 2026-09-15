@@ -15,6 +15,7 @@ const TEAM_ID = /^team_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 const REQUEST_ID = /^ceor_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 const actions = new Set([
   "team.propose",
+  "team.create",
   "agent.hire",
   "assignment.delegate",
   "deliberation.convene",

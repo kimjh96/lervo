@@ -38,6 +38,7 @@ const profile: RoleProfile = {
     "shell.execute": "deny",
     "network.access": "require_approval",
     "external.message": "deny",
+    "computer.use": "deny",
     deploy: "deny",
     "data.mutate": "deny",
   },

@@ -21,7 +21,7 @@ export const agentOrganizationUsage = [
   "  lervo organization bind-runtime --organization <id> --team <id> --config <node-config> --write [--root <path>] [--json]",
   "  lervo organization portfolio --organization <id> --team-root <path> [--team-root <path>...] [--json]",
   "  lervo organization ceo-evaluate --policy <file> --request <file> --report <file> [--json]",
-  "  lervo organization executive-execute --organization <id> --team-root <path> [--team-root <path>...] --policy <file> --request <file> --effect <file> --config <node-config> --write [--root <path>] [--json]",
+  "  lervo organization executive-execute --organization <id> --team-root <path> [--team-root <path>...] --policy <file> --request <file> --effect <file> [--config <node-config>] --write [--root <path>] [--json]",
 ].join("\n");
 
 function identifier(value: string | undefined, kind: "organization" | "team"): string {
@@ -67,11 +67,10 @@ export async function runAgentOrganizationCommand(args: string[], io: CliIo): Pr
       !parsed.values.write ||
       parsed.values.policy === undefined ||
       parsed.values.request === undefined ||
-      parsed.values.effect === undefined ||
-      parsed.values.config === undefined
+      parsed.values.effect === undefined
     ) {
       throw new Error(
-        "Organization executive execution requires policy, request, effect, deployment config, team roots, and --write.",
+        "Organization executive execution requires policy, request, effect, team roots, and --write.",
       );
     }
     return runOrganizationExecutiveCommand({

@@ -29,6 +29,8 @@ describe("built-in multi-discipline roles", () => {
     expect(marketer.profile.capabilities["external.message"]).toBe("require_approval");
     expect(designer.profile.capabilities["filesystem.write"]).toBe("require_approval");
     expect(ceo.profile.capabilities["external.message"]).toBe("require_approval");
+    expect(ceo.profile.capabilities["computer.use"]).toBe("require_approval");
+    expect(ceo.profile.capabilities["shell.execute"]).toBe("allow");
     expect(researcher.evaluation.checks.map((check) => check.category)).toEqual([
       "artifact_schema",
       "citation_integrity",

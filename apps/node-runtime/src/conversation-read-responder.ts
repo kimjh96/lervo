@@ -81,6 +81,7 @@ function readOnlyRole(roleId: string, writingContract: WritingContract): RolePro
       "shell.execute": "deny",
       "network.access": "deny",
       "external.message": "deny",
+      "computer.use": "deny",
       deploy: "deny",
       "data.mutate": "deny",
     },

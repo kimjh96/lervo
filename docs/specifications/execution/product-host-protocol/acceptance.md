@@ -19,6 +19,6 @@ Using only CLI commands, it then:
 9. Routes one reviewed direct-message artifact through exact plan/apply, proves source-event replay is current, records acknowledgment for the exact recipient-agent coordinate, and confirms delivery remains unobserved through protocol v4.
 10. Invokes the installed bounded scheduler once, observes it claim one queued assignment at the exact revision and execute it through managed execution, and verifies completion without a Hub or another manual trigger.
 11. Applies one reviewed four-node graph-v2 topology, replays one valid branch and join, invokes the installed scheduler, and verifies dependency-ordered completion of all four canonical assignments.
-12. Discovers named-agent hire and rename, exact team reclassification, multi-team inspection, and replay-safe organization-executive effect routes through protocol v7.
+12. Discovers named-agent hire and rename, exact team creation and reclassification, multi-team inspection, and replay-safe organization-executive effect routes through protocol v7.
 
-Acceptance uses no Hub, provider, network route, or live connector effect. Focused adapter and replay tests verify Discord request scoping, exact response validation, durable receipts, and fail-closed uncertain outcomes. Cross-platform release matrices remain responsible for broader installation evidence.
+Acceptance uses no Hub, provider, network route, or live connector effect. Focused adapter and replay tests verify repository-root allowlisting, Discord request scoping, exact response validation, durable receipts, and fail-closed uncertain outcomes. Cross-platform release matrices remain responsible for broader installation evidence.

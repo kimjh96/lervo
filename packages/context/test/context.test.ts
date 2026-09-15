@@ -66,6 +66,7 @@ function role(
       "shell.execute": "allow",
       "network.access": "deny",
       "external.message": "deny",
+      "computer.use": "deny",
       deploy: "deny",
       "data.mutate": "deny",
     },

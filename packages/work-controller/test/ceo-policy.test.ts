@@ -11,7 +11,12 @@ const policy: CeoPolicy = {
   policyId: "ceop_lervoowner01",
   organizationId: "org_lervo0001",
   appointedAgentId: agentId,
-  allowedActions: ["agent.hire", "conversation.channel.create", "deliberation.convene"],
+  allowedActions: [
+    "team.create",
+    "agent.hire",
+    "conversation.channel.create",
+    "deliberation.convene",
+  ],
   approvalRequiredActions: ["conversation.channel.create"],
   allowedTeamIds: ["team_central0001", "team_project0001"],
   maximumAutomationDepth: 2,
@@ -83,6 +88,16 @@ describe("CEO policy", () => {
         organization,
       }),
     ).toMatchObject({ status: "denied", reason: "appointment_mismatch" });
+  });
+
+  it("authorizes a new team coordinate before that team exists in the projection", () => {
+    expect(
+      decideCeoCommand({
+        policy,
+        request: request({ action: "team.create" }),
+        organization,
+      }),
+    ).toMatchObject({ status: "allowed", reason: "policy_allows" });
   });
 
   it("rejects a tampered operating projection before authority evaluation", () => {

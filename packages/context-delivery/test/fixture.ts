@@ -100,6 +100,7 @@ export async function createDeliveryFixture(): Promise<DeliveryFixture> {
       "shell.execute": "deny",
       "network.access": "deny",
       "external.message": "deny",
+      "computer.use": "deny",
       deploy: "deny",
       "data.mutate": "deny",
     },

@@ -297,13 +297,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/roles/src/repository.ts",
-      "contentHash": "sha256:df8040e28d58a8fee8c0f8c293b865376c7ffdd56409a2ed9132154601900858",
-      "responsibility": "Versioned repository role resolution",
-      "rationale": "Source validation, built-in and custom contract construction, conservative composition, listing, resolution, and binding all own one role-contract aggregate.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/schemas/src/adapter.ts",
       "contentHash": "sha256:f715e26177c86ddbe74c59fcddb0c98ac1174fdb8f6e3cd36c3777c2cc1cdd48",
       "responsibility": "Managed provider adapter schema catalog",

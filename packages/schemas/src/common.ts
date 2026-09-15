@@ -251,6 +251,7 @@ export const capabilityNames = [
   "shell.execute",
   "network.access",
   "external.message",
+  "computer.use",
   "deploy",
   "data.mutate",
 ] as const;

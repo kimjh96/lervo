@@ -25,9 +25,10 @@ const profile: RoleProfile = {
   capabilities: {
     "filesystem.read": "allow",
     "filesystem.write": "require_approval",
-    "shell.execute": "deny",
+    "shell.execute": "allow",
     "network.access": "require_approval",
     "external.message": "require_approval",
+    "computer.use": "require_approval",
     deploy: "require_approval",
     "data.mutate": "require_approval",
   },

@@ -34,6 +34,7 @@ function researcherRole(allowedRoleIds = ["marketer"]): RoleProfile {
       "shell.execute": "allow",
       "network.access": "allow",
       "external.message": "deny",
+      "computer.use": "deny",
       deploy: "deny",
       "data.mutate": "deny",
     },

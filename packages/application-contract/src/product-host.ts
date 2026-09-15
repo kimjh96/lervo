@@ -46,7 +46,8 @@ export interface ProductHostRouteV1 {
   resultContract: ProductHostResultContractV1;
   command: string[];
   output: "json" | "html";
-  effect: "none" | "repository_write" | "managed_provider" | "external_delivery";
+  effect:
+    "none" | "repository_write" | "managed_provider" | "external_delivery" | "installed_effect";
   authority:
     | "read_only"
     | "explicit_write"

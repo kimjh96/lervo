@@ -2,11 +2,15 @@ import { lstat, readFile, readdir } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 
 import { canonicalJson } from "@lervo/event-contract";
-import type { CapabilityDecision, RoleEvaluationCheck, RoleProfile } from "@lervo/schemas";
+import type { RoleEvaluationCheck, RoleProfile } from "@lervo/schemas";
 
 import { assertRoleDefinition } from "./definition.js";
 import { roleProfileHash, roleSha256 } from "./integrity.js";
 import { defineRole } from "./profile-builder.js";
+import {
+  composeRepositoryRoleProfile,
+  mergeRepositoryRoleChecks,
+} from "./repository-role-composition.js";
 import {
   getBuiltInRoleDefinition,
   listBuiltInRoleDefinitions,
@@ -50,6 +54,7 @@ const CAPABILITY_KEYS = new Set([
   "shell.execute",
   "network.access",
   "external.message",
+  "computer.use",
   "deploy",
   "data.mutate",
 ]);
@@ -69,23 +74,6 @@ export interface RepositoryRoleSource {
   checks: RoleEvaluationCheck[];
 }
 
-export function renderRepositoryRoleSource(source: RepositoryRoleSource): string {
-  const parsed = parseRepositoryRoleSource(source, source.roleId);
-  return `${JSON.stringify(
-    {
-      schemaVersion: parsed.schemaVersion,
-      kind: parsed.kind,
-      roleId: parsed.roleId,
-      version: parsed.version,
-      extends: parsed.extends,
-      profile: parsed.profile,
-      checks: parsed.checks,
-    },
-    null,
-    2,
-  )}\n`;
-}
-
 function fail(
   code: "role_profile_invalid" | "role_not_found" | "role_contract_stale",
   message: string,
@@ -100,14 +88,6 @@ function record(value: unknown): value is Record<string, unknown> {
 
 function exactKeys(value: Record<string, unknown>, allowed: Set<string>): boolean {
   return Object.keys(value).every((key) => allowed.has(key));
-}
-
-function sortedUnique(values: readonly string[]): string[] {
-  return [...new Set(values)].sort();
-}
-
-function same(left: unknown, right: unknown): boolean {
-  return canonicalJson(left) === canonicalJson(right);
 }
 
 function strings(value: unknown): value is string[] {
@@ -216,220 +196,6 @@ export function parseRepositoryRoleSource(
   return structuredClone(value) as unknown as RepositoryRoleSource;
 }
 
-function capabilityRank(value: CapabilityDecision): number {
-  return value === "deny" ? 2 : value === "require_approval" ? 1 : 0;
-}
-
-function restrictive(left: CapabilityDecision, right: CapabilityDecision): CapabilityDecision {
-  return capabilityRank(left) >= capabilityRank(right) ? left : right;
-}
-
-function mergeInputs(
-  groups: ReadonlyArray<ReadonlyArray<RoleProfile["requiredInputs"][number]>>,
-): RoleProfile["requiredInputs"] {
-  const inputs = new Map<string, RoleProfile["requiredInputs"][number]>();
-  for (const group of groups) {
-    for (const input of group) {
-      const previous = inputs.get(input.name);
-      if (previous !== undefined && !same(previous, input))
-        fail(
-          "role_profile_invalid",
-          `Role input ${input.name} has incompatible inherited contracts.`,
-        );
-      inputs.set(input.name, structuredClone(input));
-    }
-  }
-  return [...inputs.values()].sort((left, right) => left.name.localeCompare(right.name));
-}
-
-function mergeChecks(
-  groups: ReadonlyArray<ReadonlyArray<RoleEvaluationCheck>>,
-): RoleEvaluationCheck[] {
-  const checks = new Map<string, RoleEvaluationCheck>();
-  for (const group of groups) {
-    for (const check of group) {
-      const previous = checks.get(check.checkId);
-      if (previous !== undefined && !same(previous, check))
-        fail(
-          "role_profile_invalid",
-          `Role evaluation check ${check.checkId} has incompatible inherited contracts.`,
-        );
-      checks.set(check.checkId, structuredClone(check));
-    }
-  }
-  return [...checks.values()].sort((left, right) => left.checkId.localeCompare(right.checkId));
-}
-
-function mergedBaseProfile(roleId: string, bases: ResolvedRoleContract[]): Partial<RoleProfile> {
-  if (bases.length === 0) return { schemaVersion: 1, roleId };
-  const profiles = bases.map((base) => base.definition.profile);
-  const first = profiles[0]!;
-  const outputContracts = profiles.map((profile) => profile.outputContract);
-  if (
-    profiles.length > 1 &&
-    outputContracts.some((contract) => !same(contract, outputContracts[0]))
-  ) {
-    return {
-      schemaVersion: 1,
-      roleId,
-      requestTypes: sortedUnique(profiles.flatMap((profile) => profile.requestTypes)),
-      requiredInputs: mergeInputs(profiles.map((profile) => profile.requiredInputs)),
-      contextPolicy: {
-        requiredDocumentRuleIds: sortedUnique(
-          profiles.flatMap((profile) => profile.contextPolicy.requiredDocumentRuleIds),
-        ),
-        minimumAssurance: "E3",
-        referencesRequired: profiles.some((profile) => profile.contextPolicy.referencesRequired),
-      },
-      capabilities: Object.fromEntries(
-        Object.keys(first.capabilities).map((key) => [
-          key,
-          profiles
-            .slice(1)
-            .reduce(
-              (decision, profile) =>
-                restrictive(
-                  decision,
-                  profile.capabilities[key as keyof typeof profile.capabilities],
-                ),
-              first.capabilities[key as keyof typeof first.capabilities],
-            ),
-        ]),
-      ) as RoleProfile["capabilities"],
-      defaultSkills: sortedUnique(profiles.flatMap((profile) => profile.defaultSkills)),
-      defaultCapabilityPackages: sortedUnique(
-        profiles.flatMap((profile) => profile.defaultCapabilityPackages ?? []),
-      ),
-      verification: {
-        suiteIds: sortedUnique(profiles.flatMap((profile) => profile.verification.suiteIds)),
-        failureDisposition: profiles.some(
-          (profile) => profile.verification.failureDisposition === "fail_run",
-        )
-          ? "fail_run"
-          : "require_review",
-      },
-      handoff: {
-        allowedRoleIds: sortedUnique(profiles.flatMap((profile) => profile.handoff.allowedRoleIds)),
-        evidenceLinksRequired: true,
-        sharedContextRequired: true,
-      },
-    };
-  }
-  return {
-    schemaVersion: 1,
-    roleId,
-    name: first.name,
-    description: first.description,
-    requestTypes: sortedUnique(profiles.flatMap((profile) => profile.requestTypes)),
-    requiredInputs: mergeInputs(profiles.map((profile) => profile.requiredInputs)),
-    contextPolicy: {
-      requiredDocumentRuleIds: sortedUnique(
-        profiles.flatMap((profile) => profile.contextPolicy.requiredDocumentRuleIds),
-      ),
-      minimumAssurance: "E3",
-      referencesRequired: profiles.some((profile) => profile.contextPolicy.referencesRequired),
-    },
-    capabilities: Object.fromEntries(
-      Object.keys(first.capabilities).map((key) => [
-        key,
-        profiles
-          .slice(1)
-          .reduce(
-            (decision, profile) =>
-              restrictive(decision, profile.capabilities[key as keyof typeof profile.capabilities]),
-            first.capabilities[key as keyof typeof first.capabilities],
-          ),
-      ]),
-    ) as RoleProfile["capabilities"],
-    defaultSkills: sortedUnique(profiles.flatMap((profile) => profile.defaultSkills)),
-    defaultCapabilityPackages: sortedUnique(
-      profiles.flatMap((profile) => profile.defaultCapabilityPackages ?? []),
-    ),
-    outputContract: structuredClone(first.outputContract),
-    verification: {
-      suiteIds: sortedUnique(profiles.flatMap((profile) => profile.verification.suiteIds)),
-      failureDisposition: profiles.some(
-        (profile) => profile.verification.failureDisposition === "fail_run",
-      )
-        ? "fail_run"
-        : "require_review",
-    },
-    handoff: {
-      allowedRoleIds: sortedUnique(profiles.flatMap((profile) => profile.handoff.allowedRoleIds)),
-      evidenceLinksRequired: true,
-      sharedContextRequired: true,
-    },
-  };
-}
-
-function applyPatch(
-  roleId: string,
-  base: Partial<RoleProfile>,
-  patch: RoleProfilePatch,
-): RoleProfile {
-  const result: Partial<RoleProfile> = { ...structuredClone(base), schemaVersion: 1, roleId };
-  if (patch.name !== undefined) result.name = patch.name;
-  if (patch.description !== undefined) result.description = patch.description;
-  if (patch.requestTypes !== undefined)
-    result.requestTypes = sortedUnique([...(result.requestTypes ?? []), ...patch.requestTypes]);
-  if (patch.requiredInputs !== undefined)
-    result.requiredInputs = mergeInputs([result.requiredInputs ?? [], patch.requiredInputs]);
-  if (patch.contextPolicy !== undefined)
-    result.contextPolicy = {
-      requiredDocumentRuleIds: sortedUnique([
-        ...(result.contextPolicy?.requiredDocumentRuleIds ?? []),
-        ...patch.contextPolicy.requiredDocumentRuleIds,
-      ]),
-      minimumAssurance: "E3",
-      referencesRequired:
-        (result.contextPolicy?.referencesRequired ?? false) ||
-        patch.contextPolicy.referencesRequired,
-    };
-  if (patch.capabilities !== undefined) {
-    const inherited = result.capabilities;
-    result.capabilities = Object.fromEntries(
-      Object.entries(patch.capabilities).map(([key, decision]) => [
-        key,
-        inherited === undefined
-          ? decision
-          : restrictive(inherited[key as keyof typeof inherited], decision),
-      ]),
-    ) as RoleProfile["capabilities"];
-    if (inherited !== undefined) result.capabilities = { ...inherited, ...result.capabilities };
-  }
-  if (patch.defaultSkills !== undefined)
-    result.defaultSkills = sortedUnique([...(result.defaultSkills ?? []), ...patch.defaultSkills]);
-  if (patch.defaultCapabilityPackages !== undefined)
-    result.defaultCapabilityPackages = sortedUnique([
-      ...(result.defaultCapabilityPackages ?? []),
-      ...patch.defaultCapabilityPackages,
-    ]);
-  if (patch.outputContract !== undefined)
-    result.outputContract = structuredClone(patch.outputContract);
-  if (patch.verification !== undefined)
-    result.verification = {
-      suiteIds: sortedUnique([
-        ...(result.verification?.suiteIds ?? []),
-        ...patch.verification.suiteIds,
-      ]),
-      failureDisposition:
-        result.verification?.failureDisposition === "fail_run" ||
-        patch.verification.failureDisposition === "fail_run"
-          ? "fail_run"
-          : "require_review",
-    };
-  if (patch.handoff !== undefined)
-    result.handoff = {
-      allowedRoleIds: sortedUnique([
-        ...(result.handoff?.allowedRoleIds ?? []),
-        ...patch.handoff.allowedRoleIds,
-      ]),
-      evidenceLinksRequired: true,
-      sharedContextRequired: true,
-    };
-  return result as RoleProfile;
-}
-
 function builtInContract(roleId: BuiltInRoleId): ResolvedRoleContract {
   const definition = getBuiltInRoleDefinition(roleId);
   assertRoleDefinition(definition);
@@ -460,15 +226,8 @@ function customContract(
       "A composed role must explicitly define its name, description, and output contract.",
     );
   }
-  const profile = applyPatch(
-    source.roleId,
-    mergedBaseProfile(source.roleId, bases),
-    source.profile,
-  );
-  const checks = mergeChecks([
-    ...bases.map((base) => base.definition.evaluation.checks),
-    source.checks,
-  ]);
+  const profile = composeRepositoryRoleProfile(source.roleId, bases, source.profile);
+  const checks = mergeRepositoryRoleChecks(bases, source.checks);
   const definition = defineRole(profile, checks);
   assertRoleDefinition(definition);
   const ancestry = bases.map(({ roleId, version, contractHash }) => ({

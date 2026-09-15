@@ -35,6 +35,7 @@ function isRemoteManagedRole(profile: RoleProfile): boolean {
     profile.capabilities["shell.execute"] === "allow" &&
     profile.capabilities["network.access"] === "deny" &&
     profile.capabilities["external.message"] === "deny" &&
+    profile.capabilities["computer.use"] === "deny" &&
     profile.capabilities.deploy === "deny" &&
     profile.capabilities["data.mutate"] === "deny"
   );
