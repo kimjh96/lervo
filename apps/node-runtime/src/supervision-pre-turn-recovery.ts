@@ -27,7 +27,12 @@ export async function recoverInterruptedPreTurn(input: {
   binding: NodeSupervisionBinding;
   runId: string;
   now?: () => string;
+  /** Host observation ports; the defaults read this machine's kernel boot identity and journal. */
+  observeWitness?: typeof observePreTurnBootWitness;
+  currentBoot?: typeof currentLinuxBootId;
 }): Promise<{ eventId: string; diagnosticDigest: string }> {
+  const observeWitness = input.observeWitness ?? observePreTurnBootWitness;
+  const currentBoot = input.currentBoot ?? currentLinuxBootId;
   if (!RUN_ID.test(input.runId)) throw new Error("The recovery run ID is invalid.");
   const now = input.now ?? (() => new Date().toISOString());
   const owner = await NodeSupervisionStore.open({
@@ -89,7 +94,7 @@ export async function recoverInterruptedPreTurn(input: {
         )
           throw new Error("The interrupted run differs from its admitted decision.");
         const observedAt = now();
-        const witness = observePreTurnBootWitness(events[4]!.occurredAt, observedAt);
+        const witness = observeWitness(events[4]!.occurredAt, observedAt);
         const diagnostic: PreTurnFailureDiagnostic = {
           schemaVersion: 1,
           kind: "work.managed_pre_turn_failure",
@@ -141,7 +146,7 @@ export async function recoverInterruptedPreTurn(input: {
             if (
               age < 0 ||
               age > 5000 ||
-              currentLinuxBootId() !== witness.currentBootId ||
+              currentBoot() !== witness.currentBootId ||
               storage.events.latest()?.eventHash !== head.eventHash ||
               currentRun.length !== 5 ||
               currentRun.some((event, index) => event.eventHash !== events[index]?.eventHash)
