@@ -11,9 +11,9 @@ import { openProjectStorage } from "@lervo/project-storage";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import {
   resolveStandingSupervisionBinding,
-  scanForStandingSuccessor,
+  scanForStandingLineageChange,
 } from "./supervision-standing.js";
-import { successorIndexOf } from "@lervo/work-controller";
+import { successorId, successorIndexOf } from "@lervo/work-controller";
 import {
   parseSupervisionStartupConfiguration,
   type NodeSupervisionStartupConfiguration,
@@ -119,22 +119,28 @@ export async function openNodeSupervisionService(input: {
   let runtime = await openRuntime(binding);
   let started = false;
   let switching: Promise<void> = Promise.resolve();
-  /** Event sequence already scanned for a successor another process installed under the grant. */
+  /** The successor identifier one step past the binding the runtime currently follows. */
+  const nextSupervisionId = (root: NodeSupervisionBinding, current: NodeSupervisionBinding) =>
+    successorId(root.supervisionId, successorIndexOf(current.supervisionId) + 1);
+  /** Event sequence already scanned for a lineage installation under the reviewed grant. */
   let scannedSeq = 0;
   const followLineage = async (): Promise<void> => {
     if (!config.standing) return;
     const storage = await openProjectStorage(input.repositoryRoot);
     try {
-      const scan = scanForStandingSuccessor(
+      const scan = scanForStandingLineageChange(
         storage,
         config.binding,
-        successorIndexOf(binding.supervisionId) + 1,
+        [nextSupervisionId(config.binding, binding), binding.supervisionId],
         scannedSeq,
       );
       scannedSeq = scan.seq;
       if (!scan.found) return;
       const resolution = await resolveStandingSupervisionBinding(storage, config.binding, now);
-      if (resolution.index > successorIndexOf(binding.supervisionId))
+      if (
+        resolution.index > successorIndexOf(binding.supervisionId) ||
+        resolution.binding.mandateHash !== binding.mandateHash
+      )
         void rebind(resolution.binding);
     } finally {
       await storage.close();
@@ -172,7 +178,9 @@ export async function openNodeSupervisionService(input: {
     // Serialize switches: close the owner on the settled goal, then run the successor's owner.
     switching = switching.then(async () => {
       if (!config.standing) throw new Error("Only standing supervision can rebind.");
-      if (successorIndexOf(next.supervisionId) <= successorIndexOf(binding.supervisionId)) return;
+      if (successorIndexOf(next.supervisionId) < successorIndexOf(binding.supervisionId)) return;
+      if (next.supervisionId === binding.supervisionId && next.mandateHash === binding.mandateHash)
+        return;
       await runtime.close();
       binding = structuredClone(next);
       runtime = await openRuntime(binding);

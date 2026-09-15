@@ -246,6 +246,33 @@ it("makes a running standing service follow a successor another process started"
     // The old owner's cycles may fail while the successor is installed; the lineage walk may not.
     expect(logs.filter((line) => /lineage/u.test(line))).toEqual([]);
     expect(service.currentBinding()).toEqual(admitted.binding);
+    // A reviewed later version of the goal the service is already running must be followed live,
+    // or every cycle fails closed against the binding it pinned when it opened.
+    const installed = await readInstalledNodeMandate(storage, admitted.binding, () =>
+      new Date().toISOString(),
+    );
+    const raised = {
+      ...(installed.mandate as OperatingMandateV3),
+      version: installed.mandate.version + 1,
+      maximumAttemptsPerAssignment: 4,
+    };
+    const raisedPlan = await createRepositoryMandatePlan({
+      root: f.root,
+      supervisionId: admitted.binding.supervisionId,
+      mandate: raised,
+      reviewerId: raised.appointingAuthorityId,
+    });
+    const raisedInstall = await installRepositoryMandate({
+      root: f.root,
+      plan: raisedPlan,
+      approval: raisedPlan.approvalHash,
+      reviewerId: raised.appointingAuthorityId,
+    });
+    await vi.waitFor(
+      () => expect(service.currentBinding().mandateHash).toBe(raisedInstall.mandateHash),
+      { timeout: 30_000 },
+    );
+    expect(service.currentBinding().supervisionId).toBe(admitted.binding.supervisionId);
   } finally {
     await service.close();
     await storage.close();
