@@ -8,6 +8,7 @@ import {
   queryRepositoryKnowledge,
   scanConfiguredRepositoryKnowledge,
 } from "@lervo/repository-knowledge";
+import { productDefaultRepositoryKnowledgeRanker } from "@lervo/repository-context";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { runKnowledgeCompilationCommand } from "./knowledge-compilation-command.js";
 import { runDocumentNormalizationCommand } from "./document-normalization-command.js";
@@ -199,7 +200,12 @@ export async function runKnowledgeCommand(
       if (query === "") throw new Error("A query sentence is required.");
       const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
       const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
-      const result = await queryRepositoryKnowledge({ repositoryRoot, query, supplementalSources });
+      const result = await queryRepositoryKnowledge({
+        repositoryRoot,
+        query,
+        supplementalSources,
+        ranker: productDefaultRepositoryKnowledgeRanker,
+      });
       io.stdout(
         parsed.values.json
           ? `${JSON.stringify(result, null, 2)}\n`

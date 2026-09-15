@@ -5,6 +5,7 @@ import {
 import type { DocumentRegistry } from "@lervo/schemas";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
+import { productDefaultRepositoryKnowledgeRanker } from "./repository-knowledge-ranker.js";
 
 interface PreparedRevision {
   key: string;
@@ -67,6 +68,7 @@ export class RevisionedRepositoryKnowledgeQuery {
           repositoryRoot: input.repositoryRoot,
           supplementalSources,
           sourceUnitFailureMode: "file_only",
+          ranker: productDefaultRepositoryKnowledgeRanker,
         }),
       );
     this.pending = { generation, key, index };

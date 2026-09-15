@@ -18,6 +18,8 @@ import {
 import type {
   KnowledgeQueryHit,
   KnowledgeQueryResult,
+  PreparedRepositoryKnowledgeQueryRanker,
+  RepositoryKnowledgeQueryRanker,
   RepositoryKnowledgeScanOptions,
 } from "./types.js";
 
@@ -46,6 +48,7 @@ interface PreparedKnowledgeEntry {
   titleTerms: ReadonlySet<string>;
   pathTerms: ReadonlySet<string>;
   bodyTerms: ReadonlySet<string>;
+  searchText: string;
 }
 
 interface PreparedKnowledgeQueryData {
@@ -56,6 +59,7 @@ interface PreparedKnowledgeQueryData {
   entries: readonly PreparedKnowledgeEntry[];
   concepts: readonly RelationConceptCoordinate[];
   relations: Awaited<ReturnType<typeof loadStoredRelations>>;
+  ranker?: PreparedRepositoryKnowledgeQueryRanker;
 }
 
 export class RepositoryKnowledgeQueryIndex {
@@ -65,6 +69,7 @@ export class RepositoryKnowledgeQueryIndex {
     repositoryRoot: string;
     supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
     sourceUnitFailureMode?: RepositoryKnowledgeScanOptions["sourceUnitFailureMode"];
+    ranker?: RepositoryKnowledgeQueryRanker;
   }): Promise<RepositoryKnowledgeQueryIndex> {
     const root = resolve(input.repositoryRoot);
     await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root });
@@ -138,6 +143,7 @@ export class RepositoryKnowledgeQueryIndex {
         freshness,
         deprecated: false,
       });
+      const searchText = `${content}\n${linkedClaims.map((claim) => claim.statement).join("\n")}`;
       entries.push({
         hit: {
           conceptId: concept.conceptId,
@@ -150,9 +156,8 @@ export class RepositoryKnowledgeQueryIndex {
         },
         titleTerms: textTerms(concept.title),
         pathTerms: textTerms(concept.path),
-        bodyTerms: textTerms(
-          `${content}\n${linkedClaims.map((claim) => claim.statement).join("\n")}`,
-        ),
+        bodyTerms: textTerms(searchText),
+        searchText,
       });
     }
     const conceptSidecarSetHash = sha256(
@@ -175,6 +180,16 @@ export class RepositoryKnowledgeQueryIndex {
         ),
       ),
     );
+    const ranker = await input.ranker?.prepare(
+      entries.map((entry) => ({
+        conceptId: entry.hit.conceptId,
+        title: entry.hit.title,
+        path: entry.hit.path,
+        contentHash: entry.hit.contentHash,
+        labels: [entry.hit.ownership, entry.hit.assurance, entry.hit.freshness],
+        text: entry.searchText,
+      })),
+    );
     return new RepositoryKnowledgeQueryIndex({
       sourceSnapshotId: scan.snapshotId,
       impactReportId: impact.reportId,
@@ -183,6 +198,7 @@ export class RepositoryKnowledgeQueryIndex {
       entries,
       concepts: resolvedConcepts,
       relations: storedRelations,
+      ...(ranker === undefined ? {} : { ranker }),
     });
   }
 
@@ -191,36 +207,77 @@ export class RepositoryKnowledgeQueryIndex {
     limit?: number;
     documentRegistry?: DocumentRegistry;
   }): KnowledgeQueryResult {
+    const rankedHits: KnowledgeQueryHit[] = [];
     const queryTerms = terms(input.query);
-    const hits: KnowledgeQueryHit[] = [];
-    for (const entry of this.data.entries) {
-      const matchedTerms = queryTerms.filter(
+    const toHit = (entry: PreparedKnowledgeEntry, score: number): KnowledgeQueryHit => ({
+      ...entry.hit,
+      score,
+      matchedTerms: queryTerms.filter(
         (term) =>
           hasLexicalTerm(entry.titleTerms, term) ||
           hasLexicalTerm(entry.pathTerms, term) ||
           hasLexicalTerm(entry.bodyTerms, term),
-      );
-      if (matchedTerms.length === 0) continue;
-      const score = matchedTerms.reduce(
-        (total, term) =>
-          total +
-          (hasLexicalTerm(entry.titleTerms, term) ? 8 : 0) +
-          (hasLexicalTerm(entry.pathTerms, term) ? 4 : 0) +
-          (hasLexicalTerm(entry.bodyTerms, term) ? 1 : 0),
-        0,
-      );
-      hits.push({ ...entry.hit, score, matchedTerms });
+      ),
+    });
+    if (this.data.ranker !== undefined) {
+      const byConcept = new Map(this.data.entries.map((entry) => [entry.hit.conceptId, entry]));
+      const ranked = this.data.ranker.rank({
+        query: input.query,
+        limit: input.limit ?? 20,
+      });
+      const observed = new Set<string>();
+      for (const item of ranked) {
+        const entry = byConcept.get(item.conceptId);
+        if (
+          entry === undefined ||
+          observed.has(item.conceptId) ||
+          !Number.isSafeInteger(item.score) ||
+          item.score <= 0
+        ) {
+          throw new TypeError("The repository knowledge ranker returned an invalid result.");
+        }
+        observed.add(item.conceptId);
+        rankedHits.push(toHit(entry, item.score));
+      }
+    } else {
+      for (const entry of this.data.entries) {
+        const matchedTerms = queryTerms.filter(
+          (term) =>
+            hasLexicalTerm(entry.titleTerms, term) ||
+            hasLexicalTerm(entry.pathTerms, term) ||
+            hasLexicalTerm(entry.bodyTerms, term),
+        );
+        if (matchedTerms.length === 0) continue;
+        const score = matchedTerms.reduce(
+          (total, term) =>
+            total +
+            (hasLexicalTerm(entry.titleTerms, term) ? 8 : 0) +
+            (hasLexicalTerm(entry.pathTerms, term) ? 4 : 0) +
+            (hasLexicalTerm(entry.bodyTerms, term) ? 1 : 0),
+          0,
+        );
+        rankedHits.push({ ...entry.hit, score, matchedTerms });
+      }
     }
-    hits.sort((left, right) => right.score - left.score || left.path.localeCompare(right.path));
-    const strongestScore = hits[0]?.score ?? 0;
-    const relativeRelevanceFloor = Math.max(1, Math.ceil(strongestScore / 10));
-    const selectedHits = hits
-      .filter((hit) => hit.score >= relativeRelevanceFloor)
-      .slice(0, input.limit ?? 20);
+    const selectedHits =
+      this.data.ranker === undefined
+        ? rankedHits
+            .sort((left, right) => right.score - left.score || left.path.localeCompare(right.path))
+            .filter((hit) => hit.score >= Math.max(1, Math.ceil((rankedHits[0]?.score ?? 0) / 10)))
+            .slice(0, input.limit ?? 20)
+        : rankedHits;
     return {
       schemaVersion: 1,
       query: input.query,
       semantics: "recommended",
+      ...(this.data.ranker === undefined
+        ? {}
+        : {
+            ranking: {
+              engine: { ...this.data.ranker.engine },
+              adapterBuildId: this.data.ranker.adapterBuildId,
+            },
+          }),
       sourceSnapshotId: this.data.sourceSnapshotId,
       impactReportId: this.data.impactReportId,
       hits: selectedHits,
@@ -248,12 +305,14 @@ export async function queryRepositoryKnowledge(input: {
   limit?: number;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
   documentRegistry?: DocumentRegistry;
+  ranker?: RepositoryKnowledgeQueryRanker;
 }): Promise<KnowledgeQueryResult> {
   const index = await RepositoryKnowledgeQueryIndex.prepare({
     repositoryRoot: input.repositoryRoot,
     ...(input.supplementalSources === undefined
       ? {}
       : { supplementalSources: input.supplementalSources }),
+    ...(input.ranker === undefined ? {} : { ranker: input.ranker }),
   });
   return index.query({
     query: input.query,

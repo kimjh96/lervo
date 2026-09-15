@@ -190,6 +190,7 @@ describe("lervo repository knowledge CLI", () => {
     expect(await runCli(["knowledge", "query", "--json", "repository"], io)).toBe(0);
     expect(JSON.parse(messages.join(""))).toMatchObject({
       semantics: "recommended",
+      ranking: { engine: { id: "lexical", version: 2 } },
       hits: [expect.objectContaining({ path: "docs/knowledge/index.md" })],
     });
 

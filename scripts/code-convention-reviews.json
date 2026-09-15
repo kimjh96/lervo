@@ -32,7 +32,7 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:3a67569cd8481c2f0a348a3c38768e68cb7cc04be91a9c1e479ce039eac9b67c",
+      "contentHash": "sha256:94e737d0c45ca50d0383423b67f608151a33df9e4b6edeff5785efd6a7ec26cf",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The CLI composes one managed run from admission through writing publication and finalization. Research source capture and checker environment validation are delegated to dedicated CLI adapters; the entrypoint adds only ordered preparation and port coordinates. Capability, skill, provider and storage policies remain behind their existing boundaries.",
       "disposition": "cohesive"
@@ -277,7 +277,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:b1d291b21aacb32f65bb4fcb0015b9afe8f8e2d5f555f583c3e17022e640e2d6",
+      "contentHash": "sha256:6c4d9227c45bd8741a3355278eeaa746206ccfa179ae5c8017d786d2e268eb12",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "The module exposes one package-level contract surface for repository scans, plans, operations, lifecycle results, diagnostics, and typed domain failures without owning their implementations.",
       "disposition": "cohesive"

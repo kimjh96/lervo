@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  managedSearchQuery,
-  summarizeManagedSearchContext,
-} from "../src/managed-search-context.js";
+import { managedSearchQuery, summarizeManagedSearchContext } from "../src/repository-context.js";
 
 describe("managed search query projection", () => {
   it("bounds a long task without changing the managed run request", () => {

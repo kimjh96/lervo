@@ -13,7 +13,8 @@ import { LocalLinkedEvidenceShadowStore } from "@lervo/search-local";
 import type { SearchRecommendationBatch } from "@lervo/search";
 
 import { observeManagedLinkedEvidenceShadow } from "../src/managed-linked-evidence-shadow.js";
-import { prepareManagedSearchContext } from "../src/managed-search-context.js";
+import { prepareManagedSearchContext } from "../src/repository-context.js";
+import { productDefaultSearchEngine } from "../src/product-default-search.js";
 import { createDeveloperRole } from "../src/developer-role.js";
 
 const roots: string[] = [];
@@ -48,11 +49,20 @@ describe("managed repository knowledge context", () => {
       nonce: "d".repeat(32),
       documentRegistry,
       expectedPaths: ["src/result.ts"],
+      productDefault: productDefaultSearchEngine,
     } as const;
     const prepared = await prepareManagedSearchContext(searchInput);
 
     expect(prepared.attempts).toHaveLength(2);
     expect(prepared.knowledgeAttempt.attemptId).not.toBe(prepared.attempt.attemptId);
+    expect(prepared.attempt).toMatchObject({
+      engine: { id: "lexical", version: 2 },
+      productQualificationId: productDefaultSearchEngine.qualificationId,
+    });
+    expect(prepared.knowledgeAttempt).toMatchObject({
+      engine: { id: "lexical", version: 2 },
+      productQualificationId: productDefaultSearchEngine.qualificationId,
+    });
     expect(prepared.recommendationBatches).toHaveLength(2);
     expect(prepared.additionalCandidates.length).toBeGreaterThan(0);
     expect(prepared.additionalCandidates).toEqual(

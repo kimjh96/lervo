@@ -142,7 +142,8 @@ export function recoveringCandidateEngine(
         async search(query, limit) {
           const response = lexical.search(query, limit);
           if (query !== recoveredQuery) return { ...response, engine: CANDIDATE_ENGINE, indexId };
-          const source = sources.find((item) => item.sourceId === sourceId)!;
+          const source = sources.find((item) => item.sourceId === sourceId);
+          if (source === undefined) return { ...response, engine: CANDIDATE_ENGINE, indexId };
           const hits: SearchHit[] = [
             {
               source: {

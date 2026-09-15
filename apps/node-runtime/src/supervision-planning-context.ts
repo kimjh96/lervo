@@ -7,7 +7,7 @@ import {
 } from "@lervo/context";
 import { loadDocumentRegistry } from "@lervo/project";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
-import { prepareManagedSearchContext } from "@lervo/repository-context";
+import { prepareManagedSearchContext, productDefaultSearchEngine } from "@lervo/repository-context";
 import { operatingContractHash } from "@lervo/work-controller";
 
 /** Loads exact planning sources; provider injection and use require later execution evidence. */
@@ -36,6 +36,7 @@ export async function loadSupervisionPlanningContext(input: {
     query: input.purpose,
     fallbackQuery: input.expectedPaths.join(" "),
     observedAt: new Date(input.now()),
+    productDefault: productDefaultSearchEngine,
     documentRegistry: registry,
     expectedPaths: input.expectedPaths,
   });

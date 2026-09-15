@@ -1,7 +1,7 @@
 # Search and context boundaries
 
 Status: `active`
-As of: 2026-09-03
+As of: 2026-09-16
 
 ## Evidence boundary
 
@@ -49,6 +49,8 @@ Production terminal projection opens one capability-free provider runner and per
 
 The operational plan resolver first checks an explicit local selection. Without one, it resolves the shipped product qualification, rebuilds the current repository-knowledge Markdown corpus, verifies the registered engine and projector builds, executes independent queries through `SearchEnginePort`, fuses validated coordinates, and maps selected paths to current concepts. A different local candidate still reads a content-bound bundle from `.lervo/search-retrieval-plan-bundles`, verifies immutable transitions, and requires its exact reviewed corpus. A legacy activation of the exact product-default plan no longer pins the current corpus to that historical review. Both v2 and the v1 rollback baseline remain local and require neither a Hub nor a provider credential.
 
+Repository-knowledge ranking uses a separate provider-neutral prepare-once/query-many port because the knowledge compiler cannot depend on a concrete search adapter. Product CLI, managed local execution, supervision planning, direct-terminal fallback, and long-running conversation composition install the qualified Lexical v2 adapter. The managed secondary knowledge ranking follows the same explicit or product-default engine selection as its operational search. Long-running hosts cache the prepared projection only for the exact repository source revision and share concurrent preparation; source-revision change invalidates it. The result exposes engine and adapter-build coordinates, while compatibility callers that deliberately omit the port retain the legacy exact-term ranker. See ADR-0413.
+
 Built-in adapters may remain in process. Third-party adapters require a future versioned out-of-process protocol and exact installation lock. Search must never dynamically resolve arbitrary modules, paths, packages, or URLs. External data export, environment targets, network, credentials, retention, and cost require separate authorization. Exact deterministic replay is the initial activation class.
 
 ## Linked-context disposition
@@ -71,4 +73,5 @@ Ordinary managed Codex and Claude runs do not project, select, load, or inject d
 - [Projected-plan qualification](../decisions/search/engines/0320-qualify-projected-lexical-v2-without-engine-activation.md)
 - [Retrieval-plan activation](../decisions/search/engines/0321-activate-lexical-v2-through-retrieval-plan-selection.md)
 - [Product-default Lexical v2](../decisions/search/engines/0328-make-qualified-lexical-v2-the-product-default.md)
+- [Product-default surface convergence](../decisions/search/engines/0413-close-product-default-lexical-v2-surface-gaps.md)
 - [Direct terminal query projection](../decisions/execution/providers/hooks/0353-remove-redundant-terminal-query-admission.md)

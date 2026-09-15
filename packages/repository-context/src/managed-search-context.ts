@@ -25,6 +25,7 @@ import type { DocumentRegistry } from "@lervo/schemas";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { observeManagedLinkedEvidenceShadow } from "./managed-linked-evidence-shadow.js";
 import { searchCandidateRegistry } from "./search-candidate-registry.js";
+import { productDefaultRepositoryKnowledgeRanker } from "./repository-knowledge-ranker.js";
 
 export interface PreparedManagedSearchContext {
   attempt: SearchAttempt;
@@ -116,7 +117,11 @@ export async function prepareManagedSearchContext(input: {
     input.knowledgeQuery ??
     (async (knowledgeInput) => {
       const supplementalSources = await collectLocalKnowledgeSources(knowledgeInput.repositoryRoot);
-      return queryRepositoryKnowledge({ ...knowledgeInput, supplementalSources });
+      return queryRepositoryKnowledge({
+        ...knowledgeInput,
+        supplementalSources,
+        ranker: productDefaultRepositoryKnowledgeRanker,
+      });
     });
   const knowledge = await knowledgeQuery({
     repositoryRoot: input.repositoryRoot,
@@ -167,13 +172,20 @@ export async function prepareManagedSearchContext(input: {
       };
     }),
   );
-  const knowledgeResponse = new LexicalSearchIndex(knowledgeSources).search(query, 5);
+  const knowledgeIndex =
+    operational.selection.mode === "baseline"
+      ? new LexicalSearchIndex(knowledgeSources)
+      : await (input.registry ?? searchCandidateRegistry)
+          .resolve(operational.selection.candidateId)
+          .buildIndex(knowledgeSources);
+  const knowledgeResponse = await knowledgeIndex.search(query, 5);
   const knowledgeAttempt = createSearchAttempt({
     projectId: input.projectId,
     observedAt: input.observedAt,
     nonce: derivedNonce(nonce),
     response: knowledgeResponse,
-    selectionTransitionId: null,
+    selectionTransitionId: operational.selectionTransitionId,
+    productQualificationId: operational.productQualificationId,
   });
   await store.recordAttempt(knowledgeAttempt);
   const recommendationBatch = createSearchRecommendationBatch({

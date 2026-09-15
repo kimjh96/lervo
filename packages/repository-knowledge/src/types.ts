@@ -323,6 +323,27 @@ export interface KnowledgeQueryHit {
   contentHash: string;
 }
 
+export interface RepositoryKnowledgeRankerEntry {
+  conceptId: string;
+  title: string;
+  path: string;
+  contentHash: string;
+  labels: string[];
+  text: string;
+}
+
+export interface PreparedRepositoryKnowledgeQueryRanker {
+  engine: { id: string; version: number };
+  adapterBuildId: string;
+  rank(input: { query: string; limit: number }): Array<{ conceptId: string; score: number }>;
+}
+
+export interface RepositoryKnowledgeQueryRanker {
+  prepare(
+    entries: readonly RepositoryKnowledgeRankerEntry[],
+  ): PreparedRepositoryKnowledgeQueryRanker | Promise<PreparedRepositoryKnowledgeQueryRanker>;
+}
+
 export interface KnowledgeRelationRecommendation {
   schemaVersion: 1;
   recommendationId: string;
@@ -362,6 +383,10 @@ export interface KnowledgeQueryResult {
   schemaVersion: 1;
   query: string;
   semantics: "recommended";
+  ranking?: {
+    engine: { id: string; version: number };
+    adapterBuildId: string;
+  };
   sourceSnapshotId: string;
   impactReportId: string;
   hits: KnowledgeQueryHit[];

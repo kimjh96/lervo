@@ -1,7 +1,7 @@
 # Repository knowledge query
 
 Status: `active`
-As of: 2026-08-30
+As of: 2026-09-16
 
 ## Scope
 
@@ -17,7 +17,11 @@ User-authored Markdown and reviewed semantic sidecars are canonical. Unreviewed 
 
 Impact compares stored and current versions, marking subjects `current`, `stale`, or `unknown`. Query ranks direct concepts using title, path, and body evidence, then applies a deterministic relative relevance floor derived from the strongest current result. This prevents an isolated weak overlap from loading beside a substantially stronger task match.
 
-The floor uses no language-specific keyword, alias, synonym, or stop-word mapping. Query results are `recommended`; later evidence is required before selection, loading, injection, reference, or use.
+The compatibility exact-term floor uses no language-specific keyword, alias, synonym, or stop-word mapping. Product composition supplies the qualified Lexical v2 implementation through a provider-neutral prepare-once/query-many ranker port. An explicit repository engine selection remains authoritative for the secondary knowledge ranking within a managed search turn. Long-running hosts may reuse a prepared index only while the exact repository source revision is unchanged; indexes are rebuildable projections rather than canonical records.
+
+Ranked results expose the applied `{ id, version }` engine and `adapterBuildId`. The metadata contains no query text, source bytes, credential, provider identity, or personal data. Missing metadata means a compatibility caller omitted the ranker. Invalid, duplicate, unknown, non-positive, or unsafe-score results fail closed. A fuzzy engine hit may have no legacy literal `matchedTerms`; that list reports literal overlap only and does not prove why the engine ranked a result.
+
+Query results are `recommended`; ranking and cache evidence do not prove selection, loading, injection, reference, or use.
 
 ## Reviewed relation projection
 

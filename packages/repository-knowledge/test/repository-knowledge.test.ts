@@ -358,6 +358,29 @@ describe("repository knowledge migration", () => {
     expect(query.hits.some((hit) => hit.path === "README.md")).toBe(false);
   });
 
+  it("rejects invalid prepared ranker results instead of silently falling back", async () => {
+    const root = await repository();
+    await writeFile(resolve(root, "README.md"), "# Search contract\n\nRanked knowledge.\n");
+    await initialize(root);
+    await applyKnowledgeMigrationPlan(
+      await createKnowledgeMigrationPlan({ repositoryRoot: root }),
+      new Date(),
+      () => undefined,
+    );
+    const index = await RepositoryKnowledgeQueryIndex.prepare({
+      repositoryRoot: root,
+      ranker: {
+        prepare: () => ({
+          engine: { id: "fixture", version: 1 },
+          adapterBuildId: "sebuild_fixture",
+          rank: () => [{ conceptId: "concept_unknown", score: 1 }],
+        }),
+      },
+    });
+
+    expect(() => index.query({ query: "search" })).toThrow(/ranker returned an invalid result/u);
+  });
+
   it("adopts legacy structural manifests after machine artifacts are sharded", async () => {
     const root = await repository();
     await writeFile(resolve(root, "README.md"), "# Product\n\nLegacy generation fixture.\n");

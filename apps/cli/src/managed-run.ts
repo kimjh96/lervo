@@ -55,6 +55,7 @@ import { resolveDeterministicManagedLinkedEvidenceSelection } from "./managed-li
 import type { resolveDefaultManagedLinkedEvidenceSelection } from "./managed-linked-evidence-default-selection.js";
 import {
   prepareManagedSearchContext,
+  productDefaultSearchEngine,
   summarizeManagedSearchContext,
   type ManagedSearchContextSummary,
 } from "./repository-context.js";
@@ -483,6 +484,7 @@ export function createManagedRunExecutor(
         repositoryRoot: storage.paths.repositoryRoot,
         projectId: storage.manifest.projectId,
         observedAt: dependencies.now?.() ?? new Date(),
+        productDefault: productDefaultSearchEngine,
         query: instructions,
         fallbackQuery: expectedPaths[0]!,
         expectedPaths,

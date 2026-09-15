@@ -15,6 +15,7 @@ import { resolveOperationalSearchRetrievalPlan } from "@lervo/search-local";
 
 import { createRepositoryKnowledgeSearchCorpus } from "./repository-search-corpus.js";
 import { productDefaultSearchRetrievalPlan } from "./product-default-search.js";
+import { productDefaultRepositoryKnowledgeRanker } from "./repository-context.js";
 import { searchCandidateRegistry } from "./search-candidate-registry.js";
 import type { RunProvider } from "./managed-run.js";
 
@@ -164,6 +165,7 @@ export async function selectTerminalContextCandidates(input: {
         query,
         limit: 50,
         supplementalSources: input.supplementalSources,
+        ranker: productDefaultRepositoryKnowledgeRanker,
       }),
     ),
   );

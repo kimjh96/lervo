@@ -17,7 +17,7 @@ import {
 } from "@lervo/search-local";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { prepareManagedSearchContext } from "../src/managed-search-context.js";
+import { prepareManagedSearchContext } from "../src/repository-context.js";
 import {
   bundle,
   CANDIDATE_ENGINE,
