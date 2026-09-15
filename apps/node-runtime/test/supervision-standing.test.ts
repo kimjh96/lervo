@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
 import { rm } from "node:fs/promises";
+import { resolve } from "node:path";
 import type { OperatingMandateV3 } from "@lervo/application-contract";
 import { openProjectStorage } from "@lervo/project-storage";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
 import { collectProjectEventsBounded } from "@lervo/storage-contract";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import {
   createRepositoryMandatePlan,
@@ -12,10 +13,13 @@ import {
 } from "../../cli/src/mandate-installation.js";
 import { runCli } from "../../cli/src/main.js";
 import { installationFixture } from "../../cli/test/mandate-installation.fixture.js";
+import { createLoginFixture } from "../../../packages/adapter-contract/test/login.fixture.js";
+import type { NodeRuntimeComponentHealth } from "../src/health-contract.js";
 import { observeSupervisionHostIdentity } from "../src/supervision-execution-host.js";
 import { admitStandingSupervisionRequest } from "../src/supervision-request-intake.js";
 import { readInstalledNodeMandate } from "../src/supervision-authority.js";
 import { resolveStandingSupervisionBinding } from "../src/supervision-standing.js";
+import { openNodeSupervisionService } from "../src/supervision-startup.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -56,7 +60,7 @@ async function completeCurrentGoal(root: string): Promise<void> {
     throw new Error(errors.join(""));
 }
 
-it("starts successor goals under a standing grant and follows the lineage binding", async () => {
+async function installStandingRoot(maximumSuccessors: number) {
   const f = await installationFixture(roots);
   const storage = await openProjectStorage(f.root);
   const anchor = collectProjectEventsBounded({
@@ -79,7 +83,7 @@ it("starts successor goals under a standing grant and follows the lineage bindin
       snapshotEventHash: anchor.eventHash,
       excludedAssignments: [],
     },
-    successorAuthority: { schemaVersion: 1, maximumSuccessors: 2 },
+    successorAuthority: { schemaVersion: 1, maximumSuccessors },
   };
   const plan = await createRepositoryMandatePlan({
     root: f.root,
@@ -106,6 +110,11 @@ it("starts successor goals under a standing grant and follows the lineage bindin
     request: text,
     contentHash: hash(text),
   });
+  return { f, storage, root, rootMandate, request };
+}
+
+it("starts successor goals under a standing grant and follows the lineage binding", async () => {
+  const { f, storage, root, rootMandate, request } = await installStandingRoot(2);
   expect(
     await resolveStandingSupervisionBinding(storage, root, () => new Date().toISOString()),
   ).toMatchObject({
@@ -185,4 +194,60 @@ it("starts successor goals under a standing grant and follows the lineage bindin
     }),
   ).rejects.toMatchObject({ code: "workstream_inactive" });
   await storage.close();
+}, 60_000);
+
+it("makes a running standing service follow a successor another process started", async () => {
+  const { f, storage, root, request } = await installStandingRoot(1);
+  const login = await createLoginFixture(roots);
+  const health: NodeRuntimeComponentHealth[] = [];
+  const logs: string[] = [];
+  const service = await openNodeSupervisionService({
+    repositoryRoot: f.root,
+    configuration: {
+      binding: root,
+      standing: true,
+      runtimeReadiness: {
+        providerExecutables: { codex: login.executable },
+        providerLoginContexts: { codex: login.context },
+        verificationTools: {},
+        workerWorkspace: {
+          parentDirectory: resolve(f.root, "workers"),
+          baseCommit: "a".repeat(40),
+          integrationTargetDigest: `sha256:${"b".repeat(64)}`,
+        },
+      },
+      ownerReasoning: { provider: "codex", reservedTokens: 100 },
+      managedExecution: {
+        nodeExecutable: process.execPath,
+        cliBundle: resolve("apps/cli/dist/bin.js"),
+      },
+    },
+    observeHealth: async (observation) => {
+      health.push(observation);
+    },
+    log: (line) => logs.push(line),
+  });
+  try {
+    expect(service.currentBinding()).toEqual(root);
+    service.start();
+    await vi.waitFor(() => expect(health.length).toBeGreaterThan(0), { timeout: 10_000 });
+    await completeCurrentGoal(f.root);
+    const admitted = await admitStandingSupervisionRequest({
+      repositoryRoot: f.root,
+      root,
+      request: request("Started outside the running service.", "request-external"),
+      provider: "codex",
+    });
+    expect(admitted.rebound).toBe(true);
+    await vi.waitFor(
+      () => expect(service.currentBinding().supervisionId).toBe("supervision.standing.s1"),
+      { timeout: 30_000 },
+    );
+    // The old owner's cycles may fail once while the successor is installed; nothing else may.
+    expect(logs.filter((line) => !/workstream changed/u.test(line))).toEqual([]);
+    expect(service.currentBinding()).toEqual(admitted.binding);
+  } finally {
+    await service.close();
+    await storage.close();
+  }
 }, 60_000);

@@ -99,6 +99,37 @@ export async function resolveStandingSupervisionBinding(
   return current;
 }
 
+/**
+ * Incrementally looks for the installation of successor `index` among events after `afterSeq`,
+ * so a running service can notice a successor another process started under the same grant.
+ */
+export function scanForStandingSuccessor(
+  storage: ProjectStorage,
+  root: NodeSupervisionBinding,
+  index: number,
+  afterSeq: number,
+): { found: boolean; seq: number } {
+  const supervisionId = successorId(root.supervisionId, index);
+  let seq = afterSeq;
+  let found = false;
+  while (true) {
+    const events = storage.events.list({ afterSeq: seq, limit: 1000 });
+    if (events.length === 0) break;
+    for (const event of events) {
+      seq = event.seq;
+      if (
+        event.type === "work.supervision.mandate.installed" &&
+        event.projectId === storage.manifest.projectId &&
+        event.payload.supervisionId === supervisionId &&
+        event.payload.ownerAgentId === root.ownerAgentId
+      )
+        found = true;
+    }
+    if (events.length < 1000) break;
+  }
+  return { found, seq };
+}
+
 function successorTitle(request: string): string {
   const line = request.replace(/\s+/gu, " ").trim().slice(0, 96);
   return line.length > 0 ? line : "Supervised request";

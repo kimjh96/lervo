@@ -9,7 +9,11 @@ import type { NodeRuntimeComponentHealth } from "./health-contract.js";
 import { openNodeOutcomeSupervisionRuntime } from "./outcome-supervision-runtime.js";
 import { openProjectStorage } from "@lervo/project-storage";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
-import { resolveStandingSupervisionBinding } from "./supervision-standing.js";
+import {
+  resolveStandingSupervisionBinding,
+  scanForStandingSuccessor,
+} from "./supervision-standing.js";
+import { successorIndexOf } from "@lervo/work-controller";
 import {
   parseSupervisionStartupConfiguration,
   type NodeSupervisionStartupConfiguration,
@@ -115,10 +119,35 @@ export async function openNodeSupervisionService(input: {
   let runtime = await openRuntime(binding);
   let started = false;
   let switching: Promise<void> = Promise.resolve();
+  /** Event sequence already scanned for a successor another process installed under the grant. */
+  let scannedSeq = 0;
+  const followLineage = async (): Promise<void> => {
+    if (!config.standing) return;
+    const storage = await openProjectStorage(input.repositoryRoot);
+    try {
+      const scan = scanForStandingSuccessor(
+        storage,
+        config.binding,
+        successorIndexOf(binding.supervisionId) + 1,
+        scannedSeq,
+      );
+      scannedSeq = scan.seq;
+      if (!scan.found) return;
+      const resolution = await resolveStandingSupervisionBinding(storage, config.binding, now);
+      if (resolution.index > successorIndexOf(binding.supervisionId))
+        void rebind(resolution.binding);
+    } finally {
+      await storage.close();
+    }
+  };
   const start = (target: typeof runtime) =>
     target.start({
       onFailure: (error) => {
         log(supervisionCycleFailureLine(error));
+        // A settled goal whose successor another process started fails the old owner's cycle.
+        void followLineage().catch((followError: unknown) => {
+          log(supervisionCycleFailureLine(followError));
+        });
         void observe({
           status: "unavailable",
           failureCode: "supervision_cycle_failed",
@@ -128,6 +157,9 @@ export async function openNodeSupervisionService(input: {
       onCycle: async (cycle) => {
         const reasonCodes = attention;
         attention = null;
+        await followLineage().catch((error: unknown) => {
+          log(supervisionCycleFailureLine(error));
+        });
         if (cycle.report === null) return;
         await observe(
           cycle.disposition === "blocked" || cycle.disposition === "uncertain"
@@ -136,6 +168,19 @@ export async function openNodeSupervisionService(input: {
         );
       },
     });
+  const rebind = (next: NodeSupervisionBinding): Promise<void> => {
+    // Serialize switches: close the owner on the settled goal, then run the successor's owner.
+    switching = switching.then(async () => {
+      if (!config.standing) throw new Error("Only standing supervision can rebind.");
+      if (successorIndexOf(next.supervisionId) <= successorIndexOf(binding.supervisionId)) return;
+      await runtime.close();
+      binding = structuredClone(next);
+      runtime = await openRuntime(binding);
+      void observe({ status: "pending" });
+      if (started) start(runtime);
+    });
+    return switching;
+  };
   return {
     failed,
     start: () => {
@@ -147,18 +192,6 @@ export async function openNodeSupervisionService(input: {
       await runtime.close();
     },
     currentBinding: () => structuredClone(binding),
-    rebind: (next) => {
-      // Serialize switches: close the owner on the settled goal, then run the successor's owner.
-      switching = switching.then(async () => {
-        if (!config.standing) throw new Error("Only standing supervision can rebind.");
-        if (next.supervisionId === binding.supervisionId) return;
-        await runtime.close();
-        binding = structuredClone(next);
-        runtime = await openRuntime(binding);
-        void observe({ status: "pending" });
-        if (started) start(runtime);
-      });
-      return switching;
-    },
+    rebind,
   };
 }
