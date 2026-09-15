@@ -251,3 +251,44 @@ it("makes a running standing service follow a successor another process started"
     await storage.close();
   }
 }, 60_000);
+
+it("keeps the lineage resolvable after a later reviewed version of a successor mandate", async () => {
+  const { f, storage, root, request } = await installStandingRoot(1);
+  const clock = () => new Date().toISOString();
+  await completeCurrentGoal(f.root);
+  const admitted = await admitStandingSupervisionRequest({
+    repositoryRoot: f.root,
+    root,
+    request: request("Work that needs a wider attempt ceiling.", "request-version"),
+    provider: "codex",
+  });
+  expect(admitted.binding.supervisionId).toBe("supervision.standing.s1");
+  const installed = await readInstalledNodeMandate(storage, admitted.binding, clock);
+  // A reviewed later version of the successor's own mandate is an ordinary succession, not a
+  // second derivation, so the lineage walk must follow it instead of failing closed.
+  const raised = {
+    ...(installed.mandate as OperatingMandateV3),
+    version: installed.mandate.version + 1,
+    // Four attempts is the contract ceiling for one assignment.
+    maximumAttemptsPerAssignment: 4,
+  };
+  const plan = await createRepositoryMandatePlan({
+    root: f.root,
+    supervisionId: admitted.binding.supervisionId,
+    mandate: raised,
+    reviewerId: raised.appointingAuthorityId,
+  });
+  const next = await installRepositoryMandate({
+    root: f.root,
+    plan,
+    approval: plan.approvalHash,
+    reviewerId: raised.appointingAuthorityId,
+  });
+  const resolved = await resolveStandingSupervisionBinding(storage, root, clock);
+  expect(resolved.index).toBe(1);
+  expect(resolved.binding.workstreamId).toBe(admitted.binding.workstreamId);
+  expect(resolved.binding.mandateHash).toBe(next.mandateHash);
+  expect(resolved.installation.mandate.maximumAttemptsPerAssignment).toBe(4);
+  expect(resolved.binding.mandateHash).not.toBe(installed.mandateHash);
+  await storage.close();
+}, 60_000);

@@ -23,7 +23,7 @@ describe("canonical repository readiness probes", () => {
         await claimAssignment({
           repositoryRoot: f.root,
           assignmentId: f.assignment.assignmentId,
-          agentId: f.assignment.assigneeAgentId,
+          agentId: f.assignment.assigneeAgentId!,
           sessionId: "ses_readiness_reclaim",
           now: new Date(Date.parse(f.assignment.lease!.expiresAt) + 1000),
         });

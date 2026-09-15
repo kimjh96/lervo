@@ -52,6 +52,9 @@ export async function resolveStandingSupervisionBinding(
   for (let index = 1; index <= MAXIMUM_SUCCESSORS; index += 1) {
     const supervisionId = successorId(root.supervisionId, index);
     let candidate: { workstreamId: string; mandateHash: string } | null = null;
+    // The creating installation carries the derivation; later reviewed versions of the same
+    // successor supervision are ordinary successions and must not break the lineage walk.
+    let creationReviewHash: string | null = null;
     let afterSeq = 0;
     while (true) {
       const events = storage.events.list({ afterSeq, limit: 1000 });
@@ -63,11 +66,13 @@ export async function resolveStandingSupervisionBinding(
           event.projectId === storage.manifest.projectId &&
           event.payload.supervisionId === supervisionId &&
           event.payload.ownerAgentId === root.ownerAgentId
-        )
+        ) {
+          creationReviewHash ??= String(event.payload.installationReviewHash);
           candidate = {
             workstreamId: String(event.payload.workstreamId),
             mandateHash: String(event.payload.mandateHash),
           };
+        }
       }
       if (events.length < 1000) break;
     }
@@ -80,18 +85,24 @@ export async function resolveStandingSupervisionBinding(
     };
     const installation = await readInstalledNodeMandate(storage, binding, now);
     const derivation = (
-      (await readSupervisionJsonArtifact(
-        storage.artifacts,
-        installation.installationReviewHash,
-      )) as { derivation?: unknown }
+      (await readSupervisionJsonArtifact(storage.artifacts, creationReviewHash!)) as {
+        derivation?: unknown;
+      }
     ).derivation as
       | { parentInstallationEventId: string; parentMandateHash: string; successorIndex: number }
       | undefined;
+    const parentSupervisionId =
+      index === 1 ? root.supervisionId : successorId(root.supervisionId, index - 1);
+    const parent =
+      derivation === undefined ? null : storage.events.get(derivation.parentInstallationEventId);
     if (
       derivation === undefined ||
-      derivation.parentInstallationEventId !== current.installation.eventId ||
-      derivation.parentMandateHash !== current.installation.mandateHash ||
-      derivation.successorIndex !== index
+      derivation.successorIndex !== index ||
+      parent === null ||
+      parent.type !== "work.supervision.mandate.installed" ||
+      parent.projectId !== storage.manifest.projectId ||
+      parent.payload.supervisionId !== parentSupervisionId ||
+      parent.payload.ownerAgentId !== root.ownerAgentId
     )
       throw new Error("The standing supervision lineage is broken at a successor installation.");
     current = { binding, index, installation };
