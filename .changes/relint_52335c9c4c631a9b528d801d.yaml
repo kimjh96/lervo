@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_52335c9c4c631a9b528d801d"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Store a cancelled workstream status in the Hub replication schema so a successor of a settled cancelled goal can publish."

@@ -21,12 +21,16 @@ function hash(value: string): string {
   return `sha256:${createHash("sha256").update(value, "utf8").digest("hex")}`;
 }
 
-function snapshot(revision: number, title: string): WorkstreamSnapshot {
+function snapshot(
+  revision: number,
+  title: string,
+  status: WorkstreamSnapshot["status"] = "active",
+): WorkstreamSnapshot {
   return {
     schemaVersion: 1,
     workstreamId: "wks_0123456789abcdef01234567",
     revision,
-    status: "active",
+    status,
     title,
     objective: "Continue the same repository task across authorized nodes.",
     nextActions: ["Run the next bounded implementation step."],
@@ -270,6 +274,43 @@ describe("Hub workstream replication SQLite", () => {
         publishedAt: "2026-08-24T01:01:00.000Z",
       }),
     ).rejects.toMatchObject({ code: "workstream_conflict" });
+    await store.close();
+  });
+});
+
+describe("Hub workstream cancelled continuation", () => {
+  it("accepts a settled cancelled revision so its successor can replicate", async () => {
+    const path = await databasePath();
+    const project = manifest("prj_workstream_hub_02");
+    const store = await HubSyncSQLiteStore.open({ path });
+    await registerStore(store, project);
+
+    const opened = publication(project, snapshot(1, "Goal opened"), null);
+    await expect(
+      handleWorkstreamPublish({
+        store,
+        destinationId,
+        request: opened,
+        publishedAt: "2026-09-15T01:00:00.000Z",
+      }),
+    ).resolves.toMatchObject({ status: "created", heads: [{ revision: 1 }] });
+
+    // Standing supervision cancels a goal whose worker attempt cannot be reconciled, and
+    // ADR-0199 links a successor to that settled head, so the Hub must store the status.
+    const cancelled = publication(
+      project,
+      snapshot(2, "Goal cancelled", "cancelled"),
+      opened.snapshotContentHash,
+    );
+    await expect(
+      handleWorkstreamPublish({
+        store,
+        destinationId,
+        request: cancelled,
+        publishedAt: "2026-09-15T01:01:00.000Z",
+      }),
+    ).resolves.toMatchObject({ status: "fast_forwarded", heads: [{ revision: 2 }] });
+
     await store.close();
   });
 });

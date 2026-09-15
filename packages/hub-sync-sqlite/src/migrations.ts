@@ -675,6 +675,58 @@ const migrations = [
       BEFORE DELETE ON hub_workspace_summary_audit
       BEGIN SELECT RAISE(ABORT, 'hub workspace summary audit is append-only'); END;
   `,
+  `
+    DROP TRIGGER hub_workstream_revisions_identity_immutable;
+    DROP TRIGGER hub_workstream_revisions_no_delete;
+    CREATE TABLE hub_workstream_revisions_next (
+      project_id TEXT NOT NULL,
+      repository_identity_hash TEXT NOT NULL,
+      snapshot_content_hash TEXT NOT NULL,
+      previous_snapshot_content_hash TEXT,
+      workstream_id TEXT NOT NULL,
+      revision INTEGER NOT NULL CHECK (revision >= 1),
+      status TEXT NOT NULL
+        CHECK (status IN ('active', 'blocked', 'completed', 'cancelled')),
+      snapshot_json TEXT NOT NULL,
+      published_at TEXT NOT NULL,
+      is_head INTEGER NOT NULL CHECK (is_head IN (0, 1)),
+      PRIMARY KEY (
+        project_id, repository_identity_hash, snapshot_content_hash
+      )
+    ) STRICT;
+    INSERT INTO hub_workstream_revisions_next
+      SELECT project_id, repository_identity_hash, snapshot_content_hash,
+        previous_snapshot_content_hash, workstream_id, revision, status,
+        snapshot_json, published_at, is_head
+      FROM hub_workstream_revisions;
+    DROP TABLE hub_workstream_revisions;
+    ALTER TABLE hub_workstream_revisions_next RENAME TO hub_workstream_revisions;
+    CREATE INDEX hub_workstream_revisions_heads
+      ON hub_workstream_revisions (
+        project_id, repository_identity_hash, is_head,
+        revision, snapshot_content_hash
+      );
+    CREATE INDEX hub_workstream_revisions_parent
+      ON hub_workstream_revisions (
+        project_id, repository_identity_hash,
+        previous_snapshot_content_hash
+      );
+    CREATE TRIGGER hub_workstream_revisions_identity_immutable
+      BEFORE UPDATE ON hub_workstream_revisions
+      WHEN OLD.project_id != NEW.project_id
+        OR OLD.repository_identity_hash != NEW.repository_identity_hash
+        OR OLD.snapshot_content_hash != NEW.snapshot_content_hash
+        OR OLD.previous_snapshot_content_hash IS NOT NEW.previous_snapshot_content_hash
+        OR OLD.workstream_id != NEW.workstream_id
+        OR OLD.revision != NEW.revision
+        OR OLD.status != NEW.status
+        OR OLD.snapshot_json != NEW.snapshot_json
+        OR OLD.published_at != NEW.published_at
+      BEGIN SELECT RAISE(ABORT, 'hub workstream revision identity is immutable'); END;
+    CREATE TRIGGER hub_workstream_revisions_no_delete
+      BEFORE DELETE ON hub_workstream_revisions
+      BEGIN SELECT RAISE(ABORT, 'hub workstream revisions are append-only'); END;
+  `,
 ] as const;
 
 export const hubSyncSchemaVersion = migrations.length;

@@ -109,7 +109,7 @@
     },
     {
       "path": "packages/hub-sync-sqlite/src/migrations.ts",
-      "contentHash": "sha256:db345d6cda627b83165ebef83b6923017be49567761413fd302d501f9681112e",
+      "contentHash": "sha256:4423552a0e2117bc55067ff1ed5863121e10bf484da2984fc92c7a6933b2a74f",
       "responsibility": "Hub synchronization SQLite schema migration",
       "rationale": "The declarative migration catalog and migration runner own one versioned SQLite schema boundary; length is driven by schema history rather than mixed runtime policy.",
       "disposition": "cohesive"
