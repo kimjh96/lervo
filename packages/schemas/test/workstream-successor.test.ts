@@ -47,7 +47,7 @@ describe("successor workstream origin", () => {
     ).toBe(false);
   });
 
-  it("does not treat an active predecessor as a completed goal", () => {
+  it("succeeds a settled completed or cancelled predecessor and rejects the rest", () => {
     const predecessor = {
       ...first,
       workstreamId: "wks_abcdefabcdefabcdefabcdef",
@@ -68,5 +68,16 @@ describe("successor workstream origin", () => {
         { ...predecessor, status: "completed" },
       ),
     ).toBe(false);
+    // Standing supervision opens the next goal after an honest cancellation, so a settled
+    // cancelled head links a successor exactly like a completed one; an unsettled one does not.
+    expect(isWorkstreamSuccessorRoot(first, { ...predecessor, status: "cancelled" })).toBe(true);
+    expect(
+      isWorkstreamSuccessorRoot(first, {
+        ...predecessor,
+        status: "cancelled",
+        blockers: ["The cancelled worker attempt is unreconciled."],
+      }),
+    ).toBe(false);
+    expect(isWorkstreamSuccessorRoot(first, { ...predecessor, status: "blocked" })).toBe(false);
   });
 });

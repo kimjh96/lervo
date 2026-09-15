@@ -201,8 +201,9 @@ export function hasWorkstreamPredecessor(
   snapshot: WorkstreamSnapshot,
   predecessor: WorkstreamSnapshot & { snapshotContentHash: string },
 ): boolean {
+  // ADR-0199: a settled completed or cancelled head may be exactly succeeded; unsettled may not.
   return (
-    predecessor.status === "completed" &&
+    (predecessor.status === "completed" || predecessor.status === "cancelled") &&
     predecessor.blockers.length === 0 &&
     (predecessor.pendingDecisions?.length ?? 0) === 0 &&
     (predecessor.pendingApprovals?.length ?? 0) === 0 &&

@@ -135,7 +135,7 @@ export class HubWorkstreamSQLiteRepository {
       if (!sameWorkstream && !nextWorkstream) {
         throw new HubWorkstreamReplicationError(
           "workstream_conflict",
-          "A workstream revision must continue its identity or exactly succeed a completed head.",
+          "A workstream revision must continue its identity or exactly succeed a settled head.",
         );
       }
     }
