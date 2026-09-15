@@ -32,12 +32,6 @@ export interface NodeSupervisionStartupConfiguration {
   managedExecution: NodeSupervisedManagedConfiguration;
   resultOrigin?: NodeSupervisionResultDeliveryConfiguration["origin"];
   handoffPeers?: NodeSupervisionPeerConfiguration[];
-  /**
-   * Announcing the guild-scoped `/goal` command. A node cannot see another node's registration, so
-   * every deployment that advertises the command declares it; an absent declaration announces
-   * nothing and leaves intake reachable by addressing the owner in its own channel.
-   */
-  goalCommand?: { announce: boolean };
 }
 
 export function parseSupervisionStartupConfiguration(
@@ -54,7 +48,6 @@ export function parseSupervisionStartupConfiguration(
       "managedExecution",
       "resultOrigin",
       "handoffPeers",
-      "goalCommand",
     ],
     "outcomeSupervision",
   );
@@ -139,17 +132,6 @@ export function parseSupervisionStartupConfiguration(
         "Handoff routes must identify distinct peer projects.",
       );
   }
-  let goalCommand: { announce: boolean } | undefined;
-  if (source.goalCommand !== undefined) {
-    const declared = configRecord(source.goalCommand, "outcomeSupervision.goalCommand");
-    exactConfigKeys(declared, ["announce"], "outcomeSupervision.goalCommand");
-    if (typeof declared.announce !== "boolean")
-      throw new NodeRuntimeError(
-        "invalid_config",
-        "The supervision goal command announcement must be declared as a boolean.",
-      );
-    goalCommand = { announce: declared.announce };
-  }
   if (source.resultOrigin !== undefined) {
     if (!validateSchema("conversationOutboundOrigin", source.resultOrigin).valid)
       throw new NodeRuntimeError("invalid_config", "The supervision result origin is invalid.");
@@ -165,6 +147,5 @@ export function parseSupervisionStartupConfiguration(
     managedExecution: structuredClone(managed) as unknown as NodeSupervisedManagedConfiguration,
     ...(resultOrigin === undefined ? {} : { resultOrigin }),
     ...(handoffPeers === undefined ? {} : { handoffPeers }),
-    ...(goalCommand === undefined ? {} : { goalCommand }),
   };
 }

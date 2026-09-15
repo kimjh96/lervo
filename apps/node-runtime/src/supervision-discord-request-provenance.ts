@@ -11,11 +11,45 @@ import type { BoundSupervisionRequest } from "./supervision-bound-request.js";
 
 export interface VerifiedDiscordGoalRequester {
   status: "verified";
-  ingressKind: "goal.requested";
+  ingressKind: "goal.requested" | "message.created";
   requesterKind: "human";
   sourceEventId: string;
   sourceEventKeyHash: string;
   contentHash: string;
+}
+
+function hasNaturalGoalIntent(path: string, event: ConversationInboundEvent): boolean {
+  const database = new DatabaseSync(path, { readOnly: true, allowExtension: false });
+  try {
+    const row = database
+      .prepare(
+        `SELECT message_hash, intent, confidence, participation, effect_json
+           FROM conversation_intent_resolutions WHERE event_id = ?`,
+      )
+      .get(event.eventId) as Record<string, unknown> | undefined;
+    if (row === undefined) return false;
+    let effect: unknown;
+    try {
+      effect = JSON.parse(String(row.effect_json));
+    } catch {
+      throw new Error("The Discord goal intent evidence is invalid.");
+    }
+    if (
+      row.message_hash !== event.content.contentHash ||
+      row.intent !== "continue_work" ||
+      !["high", "medium"].includes(String(row.confidence)) ||
+      row.participation !== "relevant" ||
+      typeof effect !== "object" ||
+      effect === null ||
+      Array.isArray(effect) ||
+      Object.keys(effect).length !== 1 ||
+      (effect as { kind?: unknown }).kind !== "supervision_goal_request"
+    )
+      throw new Error("The Discord goal intent evidence is invalid.");
+    return true;
+  } finally {
+    database.close();
+  }
 }
 
 /** Reads native ingress; the bound origin actor is the outbound speaker. */
@@ -70,18 +104,37 @@ export async function readDiscordGoalRequesterProvenance(
     row.project_id !== origin.target.projectId ||
     row.conversation_id !== origin.target.conversationId ||
     event.eventId !== origin.sourceEventId ||
-    event.kind !== "goal.requested" ||
+    (event.kind !== "goal.requested" && event.kind !== "message.created") ||
     event.actor.kind !== "human" ||
     event.automationDepth !== 0 ||
     event.content.contentHash !== request.contentHash ||
     canonicalJson(event.target) !== canonicalJson(origin.target) ||
-    !event.mentions.participantIds.includes(origin.actor.participantId) ||
-    !event.mentions.roleIds.includes(origin.actor.roleId)
+    (event.kind === "goal.requested" &&
+      (!event.mentions.participantIds.includes(origin.actor.participantId) ||
+        !event.mentions.roleIds.includes(origin.actor.roleId)))
   )
     throw new Error("The Discord ingress differs from its supervised request.");
+  if (event.kind === "message.created") {
+    const intentPath = resolve(
+      storage.paths.data,
+      "conversation",
+      origin.target.integrationId,
+      "intent-resolutions.sqlite",
+    );
+    let intentMetadata;
+    try {
+      intentMetadata = await lstat(intentPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw error;
+    }
+    if (!intentMetadata.isFile() || intentMetadata.isSymbolicLink())
+      throw new Error("The Discord goal intent store is unsafe.");
+    if (!hasNaturalGoalIntent(intentPath, event)) return null;
+  }
   return {
     status: "verified",
-    ingressKind: "goal.requested",
+    ingressKind: event.kind,
     requesterKind: "human",
     sourceEventId: event.eventId,
     sourceEventKeyHash: event.sourceEventKeyHash,

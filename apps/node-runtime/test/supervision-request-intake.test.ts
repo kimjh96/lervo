@@ -136,7 +136,7 @@ it("retains the exact Discord result origin within the same canonical request co
   };
   const requestText = "Complete the current bounded goal.";
   const ingress = createConversationInboundEvent({
-    kind: "goal.requested",
+    kind: "message.created",
     actor: { kind: "human", participantId: "ptc_requester01", roleId: null },
     target,
     content: {
@@ -149,7 +149,7 @@ it("retains the exact Discord result origin within the same canonical request co
     occurredAt: "2026-09-14T05:37:09.720Z",
     replyToEventId: null,
     signalCode: null,
-    mentions: { participantIds: ["ptc_supervisionowner"], roleIds: [f.owner.roleId] },
+    mentions: { participantIds: [], roleIds: [] },
     automationDepth: 0,
   });
   const origin = {
@@ -208,9 +208,31 @@ it("retains the exact Discord result origin within the same canonical request co
       expect(
         (await canonicalOwnerReasoningFacts(storage, f.binding, source, f.ports.now)).facts
           .requesterProvenance,
+      ).toBeNull();
+      const intentDatabase = new DatabaseSync(resolve(directory, "intent-resolutions.sqlite"));
+      try {
+        intentDatabase.exec(
+          "CREATE TABLE conversation_intent_resolutions (event_id TEXT PRIMARY KEY, message_hash TEXT, intent TEXT, confidence TEXT, participation TEXT, effect_json TEXT)",
+        );
+        intentDatabase
+          .prepare("INSERT INTO conversation_intent_resolutions VALUES (?, ?, ?, ?, ?, ?)")
+          .run(
+            ingress.eventId,
+            ingress.content.contentHash,
+            "continue_work",
+            "high",
+            "relevant",
+            JSON.stringify({ kind: "supervision_goal_request" }),
+          );
+      } finally {
+        intentDatabase.close();
+      }
+      expect(
+        (await canonicalOwnerReasoningFacts(storage, f.binding, source, f.ports.now)).facts
+          .requesterProvenance,
       ).toEqual({
         status: "verified",
-        ingressKind: "goal.requested",
+        ingressKind: "message.created",
         requesterKind: "human",
         sourceEventId: ingress.eventId,
         sourceEventKeyHash: ingress.sourceEventKeyHash,

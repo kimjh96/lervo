@@ -66,6 +66,42 @@ describe("managed conversation turn output contract", () => {
     );
     expect(instructions).toContain("Read-only native work may complete with zero changed paths.");
   });
+
+  it("distinguishes a durable supervised goal from one bounded repository task", () => {
+    const effect = {
+      effectId: "supervision_goal_request",
+      description: "Ask the installed owner to govern a durable multi-step outcome.",
+      argumentDescription: null,
+    };
+    expect(
+      parseManagedConversationTurn(
+        {
+          schemaVersion: 2,
+          intent: "continue_work",
+          confidence: "high",
+          participation: "relevant",
+          effect: { kind: "supervision_goal_request", argument: null },
+          deliveryRelation: "standalone",
+          reply: null,
+        },
+        [effect],
+        2_000,
+      ),
+    ).toMatchObject({ effect: { kind: "supervision_goal_request", argument: null } });
+
+    const instructions = managedConversationTurnInstructions({
+      request: {
+        event: { actor: { kind: "human" } },
+        mentioned: false,
+        respondingAgent: { agentId: null, roleId: "product-owner" },
+        policy: { roleId: "product-owner" },
+        surfaceEffects: [effect],
+      } as never,
+      message: "Take this through implementation, verification, and deployment.",
+      plan: { role: { roleId: "product-owner" }, executionIdentity: {} } as never,
+    });
+    expect(instructions).toContain("durable multi-step outcome");
+  });
 });
 
 function findUntypedProperties(schema: unknown, path = "$schema"): string[] {

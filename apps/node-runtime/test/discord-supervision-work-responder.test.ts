@@ -10,10 +10,9 @@ import {
 import { afterEach, expect, it, vi } from "vitest";
 
 import {
-  DiscordGoalIntakeOutcomes,
-  discordGoalIntakeStatusMessage,
-} from "../src/discord-goal-intake-outcomes.js";
-import { DiscordSupervisionWorkResponder } from "../src/discord-supervision-work-responder.js";
+  DiscordSupervisionWorkResponder,
+  discordSupervisionIntakeStatusMessage,
+} from "../src/discord-supervision-work-responder.js";
 import { SupervisionRequestRefusedError } from "../src/supervision-request-refusal.js";
 import type { NodeSupervisionStartupConfiguration } from "../src/supervision-startup-config.js";
 import type { admitSupervisionRequest } from "../src/supervision-request-intake.js";
@@ -66,7 +65,6 @@ async function fixture(actor: {
     eventId: `evt_${"e".repeat(32)}`,
     duplicate: false,
   }));
-  const intakeOutcomes = new DiscordGoalIntakeOutcomes();
   const responder = new DiscordSupervisionWorkResponder({
     repositoryRoot: root,
     projectId: event.target.projectId,
@@ -82,16 +80,14 @@ async function fixture(actor: {
       },
     ],
     admitRequest,
-    intakeOutcomes,
   });
-  return { event, responder, admitRequest, intakeOutcomes };
+  return { event, responder, admitRequest };
 }
 
 it("preserves the authenticated requester and exact reply origin at shared intake", async () => {
   const f = await fixture({ kind: "agent", participantId: "ptc_central01", roleId: "manager" });
   await f.responder.respond({ event: f.event } as never);
   expect(f.admitRequest).toHaveBeenCalledOnce();
-  expect(f.intakeOutcomes.take(f.event.eventId)).toEqual({ status: "bound" });
   expect(f.admitRequest.mock.calls[0]![0]).toMatchObject({
     admissionDeadlineMs: 120_000,
     request: {
@@ -116,7 +112,7 @@ it("rejects an unadmitted agent before reading or binding its request", async ()
   expect(f.admitRequest).not.toHaveBeenCalled();
 });
 
-it("answers a refused binding with its bounded reason and records the refusal", async () => {
+it("answers a refused binding with its bounded reason", async () => {
   const f = await fixture({ kind: "human", participantId: "ptc_human0001", roleId: null });
   f.admitRequest.mockRejectedValueOnce(
     new SupervisionRequestRefusedError(
@@ -125,19 +121,17 @@ it("answers a refused binding with its bounded reason and records the refusal", 
     ),
   );
   const reply = await f.responder.respond({ event: f.event } as never);
-  expect(f.intakeOutcomes.take(f.event.eventId)).toEqual({
+  const expected = discordSupervisionIntakeStatusMessage({
     status: "refused",
     code: "origin_conflict",
   });
-  const expected = discordGoalIntakeStatusMessage({ status: "refused", code: "origin_conflict" });
   expect(reply.content.contentHash).toBe(
     `sha256:${createHash("sha256").update(expected, "utf8").digest("hex")}`,
   );
 });
 
-it("records an uncertain outcome and rethrows when intake fails for an unclassified reason", async () => {
+it("rethrows when intake fails for an unclassified reason", async () => {
   const f = await fixture({ kind: "human", participantId: "ptc_human0001", roleId: null });
   f.admitRequest.mockRejectedValueOnce(new Error("sqlite closed"));
   await expect(f.responder.respond({ event: f.event } as never)).rejects.toThrow("sqlite closed");
-  expect(f.intakeOutcomes.take(f.event.eventId)).toEqual({ status: "uncertain" });
 });

@@ -98,4 +98,32 @@ describe("conversation intent provider contract", () => {
       ).resolves.toMatchObject({ effect: { kind, name } });
     }
   });
+
+  it("admits a semantic supervision goal only when that owner effect is available", async () => {
+    const resolver = createConversationIntentResolver({
+      providerId: "codex",
+      model: null,
+      resolve: async () => ({
+        intent: "continue_work",
+        confidence: "high",
+        participation: "relevant",
+        effect: {
+          kind: "supervision_goal_request",
+          nickname: null,
+          name: null,
+          specification: null,
+        },
+      }),
+    });
+    await expect(
+      resolver.resolve({
+        ...turn,
+        availableEffects: ["none", "repository_work", "supervision_goal_request"],
+      }),
+    ).resolves.toMatchObject({ effect: { kind: "supervision_goal_request" } });
+    await expect(resolver.resolve(turn)).resolves.toMatchObject({
+      intent: "clarify",
+      effect: { kind: "none" },
+    });
+  });
 });

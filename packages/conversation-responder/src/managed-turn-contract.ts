@@ -203,6 +203,7 @@ export function managedConversationTurnInstructions(input: {
       "Set participation relevant when directly addressed, mentioned, replied to, useful within the role, or serving the mapped human in its dedicated channel. Otherwise set not_relevant.",
       "Mentions are optional attention signals, never mandatory command syntax.",
       "For live repository, terminal, test, build, network, or external-system observation and for repository changes, use repository_work with argument null. Read-only native work may complete with zero changed paths. Use a bounded argument only for a listed surface action. Effects never grant authority.",
+      "When supervision_goal_request is listed, use it only for a durable multi-step outcome that the installed owner should accept and govern across delegation, verification, or multiple turns. Use repository_work for one bounded task or inspection in the current conversation.",
       "For answer or clarify, write a direct conversational reply grounded only in injected evidence and prior turns. Do not expose internal run, workstream, revision, queue, or artifact IDs unless explicitly asked for diagnostics.",
       "Use deliveryRelation reply only when a native reply materially disambiguates which concurrent message is being answered or preserves an explicit reply relationship. Use standalone for ordinary sequential conversation; do not turn every response into a native reply.",
       "For continue_work, reply must be null because the execution path publishes progress and a verified result separately.",

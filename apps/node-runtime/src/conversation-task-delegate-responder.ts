@@ -15,6 +15,9 @@ import type { ConversationRequestedEffect } from "./conversation-intent-resolver
 import type { DiscordPeerAgentBinding } from "./discord-conversation-composition.js";
 import type { DiscordPlatformActionResponder } from "./discord-conversation-mode.js";
 
+type NonPlatformEffect =
+  { kind: "none" } | { kind: "repository_work" } | { kind: "supervision_goal_request" };
+
 /** The reviewed automation chain bound a delegated turn must stay inside. */
 const maximumAutomationDepth = 8;
 
@@ -66,7 +69,7 @@ export class ConversationTaskDelegateResponder implements DiscordPlatformActionR
 
   async respond(
     input: Parameters<ConversationResponder["respond"]>[0],
-    effect: Exclude<ConversationRequestedEffect, { kind: "none" | "repository_work" }>,
+    effect: Exclude<ConversationRequestedEffect, NonPlatformEffect>,
     authorization: { effectRequesterAuthorized: boolean },
   ) {
     if (!authorization.effectRequesterAuthorized || effect.kind !== "workforce_task_delegate") {

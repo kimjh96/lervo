@@ -25,6 +25,7 @@ It returns exactly one transient intent (`answer`, `continue_work`, or `clarify`
 
 - `answer` delegates to `ManagedConversationResponder`.
 - Medium- or high-confidence human `continue_work` with `repository_work` delegates to the signed exact-workstream Hub command path.
+- When the responding durable agent is the installed supervision owner, medium- or high-confidence `continue_work` with `supervision_goal_request` enters the canonical goal-admission writer. The resolver uses this effect for a durable multi-step outcome and keeps one bounded task or inspection on `repository_work`; neither effect grants authority.
 - An explicitly allowlisted Discord platform effect delegates to its scoped adapter and never enters repository continuation.
 - Agent-authored mutation requests stay with the read-only responder unless the exact configured agent participant, role, tenant, and mapped conversation separately opt in to effect requests. Admitted requests enter the same signed continuation or scoped platform-effect boundary; routing grants no command role, effect kind, repository permission, or provider capability.
 - `clarify`, low confidence, and unavailable effects stay with the read-only responder.
@@ -45,6 +46,8 @@ Participant bindings distinguish mapped humans from mapped agents. Optional `dis
 The participation role is independent of `command.roleId`: a researcher may converse while a developer command role performs an explicitly authorized continuation. Agent participation is disabled by default and requires `agent` in `policy.respondTo`. The role template never becomes an actor.
 
 Future `@agent`, `@role`, and deliberation-group routing can resolve eligible participants without changing the normalized event or natural-language intent port. Deliberation identity, turn ownership, automation depth, hourly limits, self-message suppression, and explicit effect authority must prevent uncontrolled agent loops. Write-capable remote continuation remains human by default; a reviewed coordinating agent may request it only through the separate exact effect-requester opt-in above.
+
+[ADR-0410](../../execution/orchestration/governed-work/0410-intent-routed-supervision-goal-intake.md) removes the guild `/goal` registration. Historical `goal.requested` records remain valid evidence, while new goal intake is selected from an ordinary normalized message by the same managed intent boundary.
 
 A `discordConversations` deployment requires one distinct active hired agent per speaker deployment. It automatically maps peer bot or webhook authors and bot mention identities as specified by [ADR-0394](0394-webhook-backed-discord-agent-identities.md).
 

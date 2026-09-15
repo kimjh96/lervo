@@ -9,11 +9,6 @@ import type { ArtifactStore } from "@lervo/storage-contract";
 import { operatingContractHash } from "@lervo/work-controller";
 
 import {
-  discordGoalIntakeStatusMessage,
-  type DiscordGoalIntakeOutcome,
-  type DiscordGoalIntakeOutcomes,
-} from "./discord-goal-intake-outcomes.js";
-import {
   admitStandingSupervisionRequest,
   admitSupervisionRequest,
 } from "./supervision-request-intake.js";
@@ -23,6 +18,37 @@ import type { NodeSupervisionStartupConfiguration } from "./supervision-startup-
 
 /** One idle owner cycle can hold the fence for about a minute; two cycles bound the Discord wait. */
 const DISCORD_ADMISSION_DEADLINE_MS = 120_000;
+
+type DiscordSupervisionIntakeOutcome =
+  | { status: "bound" }
+  | { status: "duplicate" }
+  | { status: "refused"; code: NonNullable<ReturnType<typeof supervisionRequestRefusalCode>> };
+
+const REFUSAL_MESSAGES: Partial<
+  Record<NonNullable<ReturnType<typeof supervisionRequestRefusalCode>>, string>
+> = {
+  origin_conflict:
+    "현재 목표에는 이미 다른 요청이 연결되어 있어 이 요청을 연결하지 않았습니다. 새 요청은 별도 목표로 접수해야 합니다.",
+  workstream_inactive: "연결할 활성 목표가 없어 요청을 연결하지 않았습니다.",
+  owner_busy:
+    "담당자가 작업 중이어서 제한 시간 안에 요청을 연결하지 못했습니다. 요청은 기록되지 않았으니 잠시 후 다시 시도해 주세요.",
+};
+
+export function discordSupervisionIntakeStatusMessage(
+  outcome: DiscordSupervisionIntakeOutcome,
+): string {
+  switch (outcome.status) {
+    case "bound":
+      return "요청을 담당자의 현재 작업 목표에 연결했습니다. 검증된 결과는 이 대화로 전달하겠습니다.";
+    case "duplicate":
+      return "동일한 요청은 이미 담당자의 작업 목표에 연결되어 있습니다.";
+    case "refused":
+      return (
+        REFUSAL_MESSAGES[outcome.code] ??
+        `요청을 현재 목표에 연결하지 않았습니다. 사유 코드는 ${outcome.code}입니다.`
+      );
+  }
+}
 
 /** Converts one admitted Discord work turn into the same canonical goal intake as local supervision. */
 export class DiscordSupervisionWorkResponder implements ConversationResponder {
@@ -41,7 +67,6 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
       }[];
       admitRequest?: typeof admitSupervisionRequest;
       admitStandingRequest?: typeof admitStandingSupervisionRequest;
-      intakeOutcomes?: DiscordGoalIntakeOutcomes;
       admissionDeadlineMs?: number;
       /** Standing lineage: the runtime follows the binding a successor transition returns. */
       onRebound?(binding: NodeSupervisionBinding): Promise<void>;
@@ -83,7 +108,7 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
         operatingContractHash(origin)
     )
       throw new Error("The supervised conversation differs from its installed result origin.");
-    let outcome: DiscordGoalIntakeOutcome;
+    let outcome: DiscordSupervisionIntakeOutcome;
     const requestInput = {
       source: "discord" as const,
       sourceId: event.eventId,
@@ -118,22 +143,13 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
       outcome = { status: admission.duplicate ? "duplicate" : "bound" };
     } catch (error) {
       const code = supervisionRequestRefusalCode(error);
-      if (code === null) {
-        this.options.intakeOutcomes?.record(event.eventId, { status: "uncertain" });
-        throw error;
-      }
+      if (code === null) throw error;
       outcome = { status: "refused", code };
     }
-    this.options.intakeOutcomes?.record(event.eventId, outcome);
     return createVerifiedConversationControlReply({
       artifactStore: this.options.artifactStore,
       writingContract: realtimeConversationWritingContract,
-      content:
-        outcome.status === "bound"
-          ? "요청을 담당자의 현재 작업 목표에 연결했습니다. 검증된 결과는 이 대화로 전달하겠습니다."
-          : outcome.status === "duplicate"
-            ? "동일한 요청은 이미 담당자의 작업 목표에 연결되어 있습니다."
-            : discordGoalIntakeStatusMessage(outcome),
+      content: discordSupervisionIntakeStatusMessage(outcome),
     });
   }
 }

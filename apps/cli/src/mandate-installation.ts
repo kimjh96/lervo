@@ -1,5 +1,9 @@
 import type { MandateInstallationPlan, OperatingMandate } from "@lervo/application-contract";
-import { openRepositorySupervisionLeases, SupervisionMandateJournal } from "@lervo/agent-workforce";
+import {
+  listAssignments,
+  openRepositorySupervisionLeases,
+  SupervisionMandateJournal,
+} from "@lervo/agent-workforce";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
 import { loadProjectManifest } from "@lervo/project";
@@ -9,6 +13,7 @@ import {
   assertOperatingMandate,
   operatingContractHash,
   planMandateInstallation,
+  selectOperatingWorkScope,
 } from "@lervo/work-controller";
 import { observeMandateInstallationSource } from "./mandate-installation-source.js";
 
@@ -36,6 +41,37 @@ function journal(
     () => new Date().toISOString(),
     fence,
   );
+}
+
+export async function selectRepositoryMandateWorkScope(input: {
+  root: string;
+  workstreamId?: string;
+}) {
+  const storage = await openProjectStorage(input.root);
+  try {
+    const current = await readCurrentWorkstreamState(input.root);
+    const workstreamId = input.workstreamId ?? current?.snapshot.workstreamId;
+    if (workstreamId === undefined)
+      throw new Error("Work-scope selection requires a workstream coordinate.");
+    const events: ReturnType<ProjectStorage["events"]["list"]> = [];
+    let afterSeq = 0;
+    while (true) {
+      const page = storage.events.list({ afterSeq, limit: 1_000 });
+      if (page.length === 0) break;
+      events.push(...page);
+      afterSeq = page.at(-1)!.seq;
+      if (events.length > 32_768)
+        throw new Error("Work-scope selection exceeds the complete event-source bound.");
+    }
+    return selectOperatingWorkScope({
+      projectId: storage.manifest.projectId,
+      workstreamId,
+      events,
+      assignments: await listAssignments(input.root),
+    });
+  } finally {
+    await storage.close();
+  }
 }
 
 export async function createRepositoryMandatePlan(input: {

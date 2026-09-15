@@ -2,6 +2,7 @@
 
 ```text
 lervo agent mandate host --json
+lervo agent mandate scope [--workstream <workstream-id>] --json
 lervo agent mandate plan --from mandate.json --supervision supervision.project --reviewer user.founder --json
 lervo agent mandate install --from reviewed-plan.json --approve <approval-hash> --reviewer user.founder --write --json
 lervo agent mandate inspect --supervision supervision.project --json

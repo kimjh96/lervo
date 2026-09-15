@@ -3,7 +3,10 @@ import type { ConversationResponder } from "@lervo/interaction";
 import type { ConversationRequestedEffect } from "./conversation-intent-resolver.js";
 import type { DiscordPlatformActionResponder } from "./discord-conversation-mode.js";
 
-type ActionEffect = Exclude<ConversationRequestedEffect, { kind: "none" | "repository_work" }>;
+type ActionEffect = Exclude<
+  ConversationRequestedEffect,
+  { kind: "none" } | { kind: "repository_work" } | { kind: "supervision_goal_request" }
+>;
 
 export class ConversationPlatformActionRouter implements DiscordPlatformActionResponder {
   readonly availableEffects: ConversationRequestedEffect["kind"][];

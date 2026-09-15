@@ -31,6 +31,13 @@ describe("reviewed local mandate installation", () => {
       stdout: (text: string) => output.push(text),
       stderr: () => undefined,
     };
+    await expect(runAgentMandateCommand(["scope", "--json"], io)).resolves.toBe(0);
+    expect(JSON.parse(output.join(""))).toMatchObject({
+      schemaVersion: 1,
+      workstreamId: plan.source.workstreamId,
+      excludedAssignments: [],
+    });
+    output.length = 0;
     await expect(
       runAgentMandateCommand(
         ["install", "--from", path, "--approve", plan.approvalHash, "--reviewer", reviewerId],

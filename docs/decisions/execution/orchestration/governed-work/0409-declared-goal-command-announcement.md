@@ -1,6 +1,6 @@
 # ADR-0409: Declare which deployment announces the goal command
 
-- Status: accepted
+- Status: superseded by [ADR-0410](0410-intent-routed-supervision-goal-intake.md)
 - Decision date: 2026-09-16
 
 ## Context

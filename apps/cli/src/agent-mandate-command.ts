@@ -7,12 +7,14 @@ import {
   inspectRepositoryMandate,
   installRepositoryMandate,
   revokeRepositoryMandate,
+  selectRepositoryMandateWorkScope,
 } from "./mandate-installation.js";
 import type { CliIo } from "./types.js";
 import { observeSupervisionHostIdentity } from "@lervo/node-runtime";
 
 export const agentMandateUsage = [
   "  lervo agent mandate host [--json]",
+  "  lervo agent mandate scope [--workstream <id>] [--root <path>] [--json]",
   "  lervo agent mandate plan --from <mandate.json> --supervision <id> --reviewer <id> [--root <path>] [--json]",
   "  lervo agent mandate install --from <plan.json> --approve <hash> --reviewer <id> --write [--root <path>] [--json]",
   "  lervo agent mandate inspect --supervision <id> [--workstream <id>] [--root <path>] [--json]",
@@ -47,22 +49,24 @@ export async function runAgentMandateCommand(args: string[], io: CliIo): Promise
   const allowed =
     action === "host"
       ? []
-      : action === "plan"
-        ? ["from", "supervision", "reviewer"]
-        : action === "install"
-          ? ["from", "approve", "reviewer", "write"]
-          : action === "inspect"
-            ? ["supervision", "workstream"]
-            : action === "revoke"
-              ? [
-                  "supervision",
-                  "workstream",
-                  "mandate-hash",
-                  "installation-event",
-                  "reviewer",
-                  "write",
-                ]
-              : null;
+      : action === "scope"
+        ? ["workstream"]
+        : action === "plan"
+          ? ["from", "supervision", "reviewer"]
+          : action === "install"
+            ? ["from", "approve", "reviewer", "write"]
+            : action === "inspect"
+              ? ["supervision", "workstream"]
+              : action === "revoke"
+                ? [
+                    "supervision",
+                    "workstream",
+                    "mandate-hash",
+                    "installation-event",
+                    "reviewer",
+                    "write",
+                  ]
+                : null;
   if (
     allowed === null ||
     Object.keys(values).some((key) => !["root", "json", ...allowed].includes(key))
@@ -78,6 +82,11 @@ export async function runAgentMandateCommand(args: string[], io: CliIo): Promise
   let result: unknown;
   if (action === "host") {
     result = await observeSupervisionHostIdentity();
+  } else if (action === "scope") {
+    result = await selectRepositoryMandateWorkScope({
+      root,
+      ...(values.workstream === undefined ? {} : { workstreamId: values.workstream }),
+    });
   } else if (action === "plan" || action === "install") {
     if (action === "install" && !values.write)
       throw new Error("Mandate installation requires --write.");

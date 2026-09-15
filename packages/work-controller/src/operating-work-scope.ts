@@ -11,6 +11,50 @@ type Assignment = AssignmentGraphSourceV1 & {
   handoffs: readonly unknown[];
 };
 
+/** Chooses the newest snapshot that the exact work-scope validator can safely admit. */
+export function selectOperatingWorkScope<T extends Assignment>(input: {
+  projectId: string;
+  workstreamId: string;
+  events: readonly EventEnvelope[];
+  assignments: readonly T[];
+}): Scope {
+  const anchors = input.events
+    .filter(
+      (event) =>
+        event.type === "workstream.snapshot.recorded" &&
+        event.projectId === input.projectId &&
+        event.payload.workstreamId === input.workstreamId,
+    )
+    .sort((left, right) => right.seq - left.seq);
+  for (const anchor of anchors) {
+    const scope: Scope = {
+      schemaVersion: 1,
+      workstreamId: input.workstreamId,
+      snapshotEventId: anchor.eventId,
+      snapshotEventHash: anchor.eventHash,
+      excludedAssignments: input.assignments
+        .filter(
+          (assignment) =>
+            assignment.workstreamId === input.workstreamId &&
+            Number.isFinite(Date.parse(assignment.createdAt)) &&
+            Date.parse(assignment.createdAt) <= Date.parse(anchor.occurredAt),
+        )
+        .map((assignment) => ({
+          assignmentId: assignment.assignmentId,
+          contentHash: operatingContractHash(assignment),
+        }))
+        .sort((left, right) => left.assignmentId.localeCompare(right.assignmentId)),
+    };
+    try {
+      observeOperatingWorkScope({ ...input, scope });
+      return scope;
+    } catch {
+      // An earlier snapshot may precede unresolved work that the current anchor cannot exclude.
+    }
+  }
+  throw new Error("No canonical workstream snapshot can safely anchor the reviewed work scope.");
+}
+
 /** Validates an exact reviewed historical boundary without accepting or rewriting prior work. */
 export function observeOperatingWorkScope<T extends Assignment>(input: {
   scope: Scope;

@@ -34,7 +34,11 @@ function validCurrentProvider(
 function validEffect(value: unknown): value is ConversationIntentResolution["effect"] {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const effect = value as Record<string, unknown>;
-  if (effect.kind === "none" || effect.kind === "repository_work") {
+  if (
+    effect.kind === "none" ||
+    effect.kind === "repository_work" ||
+    effect.kind === "supervision_goal_request"
+  ) {
     return Object.keys(effect).length === 1;
   }
   if (effect.kind === "discord_current_member_nickname_set") {

@@ -4,6 +4,7 @@ import {
   assertOperatingMandate,
   assertMandateExecutionSuccession,
   observeOperatingWorkScope,
+  selectOperatingWorkScope,
   operatingContractHash,
   projectWorkstreamResources,
 } from "../src/index.js";
@@ -49,6 +50,35 @@ describe("reviewed operating work scope", () => {
     });
     expect(JSON.stringify(f.input)).toBe(before);
     expect(() => assertOperatingMandate(f.mandate)).not.toThrow();
+  });
+
+  it("selects the newest safe anchor before unresolved prior work", () => {
+    const f = fixture();
+    const active = assignment("b", {
+      status: "queued",
+      createdAt: "2026-09-01T00:00:11.000Z",
+      updatedAt: "2026-09-01T00:00:11.000Z",
+    });
+    const later = event(12, "workstream.snapshot.recorded", "run_scope_later", {
+      workstreamId,
+      snapshotContentHash: hash("2"),
+    });
+    later.eventId = `evt_${"b".repeat(32)}`;
+    const selected = selectOperatingWorkScope({
+      projectId,
+      workstreamId,
+      events: [f.anchor, later],
+      assignments: [f.prior, active],
+    });
+    expect(selected).toEqual(f.scope);
+    expect(() =>
+      selectOperatingWorkScope({
+        projectId,
+        workstreamId,
+        events: [later],
+        assignments: [active],
+      }),
+    ).toThrow(/No canonical workstream snapshot/iu);
   });
 
   it.each(["changed_hash", "active", "live_lease", "handoff", "omitted", "dependency", "anchor"])(

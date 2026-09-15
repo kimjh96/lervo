@@ -36,12 +36,16 @@ describe("natural-language Discord conversation mode", () => {
     let effect = { kind: "none" as const } as
       | { kind: "none" }
       | { kind: "repository_work" }
+      | { kind: "supervision_goal_request" }
       | { kind: "discord_current_member_nickname_set"; nickname: string };
     const readOnly = {
       respond: vi.fn<ConversationResponder["respond"]>(async () => candidate("Read-only answer.")),
     };
     const continuation = {
       respond: vi.fn<ConversationResponder["respond"]>(async () => candidate("Work was queued.")),
+    };
+    const goal = {
+      respond: vi.fn<ConversationResponder["respond"]>(async () => candidate("Goal accepted.")),
     };
     const platformAction = {
       availableEffects: [
@@ -134,6 +138,13 @@ describe("natural-language Discord conversation mode", () => {
       participationPolicy,
       readOnly: readOnly as ConversationResponder,
       continuation: continuation as ConversationResponder,
+      goal: goal as ConversationResponder,
+      availableEffects: [
+        "none",
+        "repository_work",
+        "supervision_goal_request",
+        "discord_current_member_nickname_set",
+      ],
       platformAction,
     });
     const input = async (eventId: string) => {
@@ -186,6 +197,13 @@ describe("natural-language Discord conversation mode", () => {
     expect(resolveIntent.mock.calls[1]![0].priorTurns).toHaveLength(2);
     expect(continuation.respond.mock.calls[0]![0].context?.priorTurns).toHaveLength(2);
 
+    effect = { kind: "supervision_goal_request" };
+    message = "Own this multi-stage release goal through verification and deployment.";
+    const supervised = await input("cevt_test0009");
+    await responder.respond(supervised);
+    expect(goal.respond).toHaveBeenCalledOnce();
+    await expect(responder.mode(supervised.event)).resolves.toBe("goal");
+
     effect = { kind: "discord_current_member_nickname_set", nickname: "Lervo" };
     message = "Change your server nickname to Lervo.";
     const third = await input("cevt_test0003");
@@ -213,7 +231,7 @@ describe("natural-language Discord conversation mode", () => {
       },
     });
     await restarted.respond(first);
-    expect(resolveIntent).toHaveBeenCalledTimes(3);
+    expect(resolveIntent).toHaveBeenCalledTimes(4);
     expect(readOnly.respond).toHaveBeenCalledTimes(2);
 
     const managedReply = await candidate("One managed turn resolved and answered this message.");

@@ -21,13 +21,16 @@ import type { ConversationHistoryPort } from "./conversation-history.js";
 import type { ConversationIntentResolutionStore } from "./conversation-intent-store.js";
 
 export type DiscordConversationMode =
-  "read_only" | "work" | "continuation" | "platform_action" | "clarify" | "control";
+  "read_only" | "work" | "goal" | "continuation" | "platform_action" | "clarify" | "control";
+
+type NonPlatformEffect =
+  { kind: "none" } | { kind: "repository_work" } | { kind: "supervision_goal_request" };
 
 export interface DiscordPlatformActionResponder {
   readonly availableEffects: readonly ConversationRequestedEffect["kind"][];
   respond(
     input: Parameters<ConversationResponder["respond"]>[0],
-    effect: Exclude<ConversationRequestedEffect, { kind: "none" | "repository_work" }>,
+    effect: Exclude<ConversationRequestedEffect, NonPlatformEffect>,
     authorization: { effectRequesterAuthorized: boolean },
   ): ReturnType<ConversationResponder["respond"]>;
 }
@@ -43,7 +46,9 @@ function modeFor(resolution: ConversationIntentResolution): DiscordConversationM
   return resolution.intent === "continue_work" && resolution.confidence !== "low"
     ? resolution.effect.kind === "repository_work"
       ? "work"
-      : "platform_action"
+      : resolution.effect.kind === "supervision_goal_request"
+        ? "goal"
+        : "platform_action"
     : resolution.intent === "clarify" || resolution.confidence === "low"
       ? "clarify"
       : "read_only";
@@ -78,10 +83,12 @@ export class NaturalLanguageDiscordConversationResponder
       intentResolver?: ConversationIntentResolver;
       managedTurnResolver?: ManagedConversationTurnResolverPort;
       surfaceEffects?: readonly ManagedConversationSurfaceEffect[];
+      availableEffects?: readonly ConversationRequestedEffect["kind"][];
       participationPolicy: Parameters<ConversationRelevanceEvaluator["evaluate"]>[0]["policy"];
       readOnly: ConversationResponder;
       continuation: ConversationResponder;
       work?: ConversationResponder;
+      goal?: ConversationResponder;
       platformAction: DiscordPlatformActionResponder;
       explicitControl?: ConversationResponder;
     },
@@ -92,6 +99,7 @@ export class NaturalLanguageDiscordConversationResponder
     resolution: ConversationIntentResolution,
   ): DiscordConversationMode {
     const mode = modeFor(resolution);
+    if (mode === "goal" && this.options.goal === undefined) return "clarify";
     if (
       !["work", "continuation", "platform_action"].includes(mode) ||
       event.actor.kind === "human"
@@ -145,7 +153,7 @@ export class NaturalLanguageDiscordConversationResponder
         intent: "continue_work",
         confidence: "high",
         participation: "relevant",
-        effect: { kind: "repository_work" },
+        effect: { kind: "supervision_goal_request" },
         provider: { providerId: "lervo_goal", model: null, adapterVersion: "1" },
         resultDigest: event.content.contentHash,
       };
@@ -206,7 +214,9 @@ export class NaturalLanguageDiscordConversationResponder
               ? { kind: managed.effect.kind, specification: managed.effect.argument! }
               : managed.effect.kind === "repository_work"
                 ? { kind: "repository_work" }
-                : { kind: "none" };
+                : managed.effect.kind === "supervision_goal_request"
+                  ? { kind: "supervision_goal_request" }
+                  : { kind: "none" };
       const resolution: ConversationIntentResolution = {
         intent: managed.intent,
         confidence: managed.confidence,
@@ -254,7 +264,8 @@ export class NaturalLanguageDiscordConversationResponder
         current === null
           ? null
           : { title: current.title, objective: current.objective, status: current.status },
-      availableEffects: this.options.platformAction.availableEffects,
+      availableEffects:
+        this.options.availableEffects ?? this.options.platformAction.availableEffects,
     });
     await this.options.resolutionStore.record({
       event,
@@ -275,14 +286,13 @@ export class NaturalLanguageDiscordConversationResponder
     if (resolution.mode === "control") return this.options.explicitControl!.respond(request);
     if (
       resolution.mode === "platform_action" &&
-      !["none", "repository_work"].includes(resolution.resolution.effect.kind)
+      !["none", "repository_work", "supervision_goal_request"].includes(
+        resolution.resolution.effect.kind,
+      )
     ) {
       return this.options.platformAction.respond(
         request,
-        resolution.resolution.effect as Exclude<
-          ConversationRequestedEffect,
-          { kind: "none" | "repository_work" }
-        >,
+        resolution.resolution.effect as Exclude<ConversationRequestedEffect, NonPlatformEffect>,
         { effectRequesterAuthorized: this.effectRequesterAuthorized(input.event) },
       );
     }
@@ -292,6 +302,7 @@ export class NaturalLanguageDiscordConversationResponder
     if (resolution.mode === "work") {
       return (this.options.work ?? this.options.continuation).respond(request);
     }
+    if (resolution.mode === "goal") return this.options.goal!.respond(request);
     return (
       resolution.mode === "continuation" ? this.options.continuation : this.options.readOnly
     ).respond(request);

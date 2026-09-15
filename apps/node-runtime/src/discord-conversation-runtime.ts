@@ -38,11 +38,9 @@ import { DiscordConversationDeliberationRuntime } from "./discord-conversation-d
 import { startDiscordConversationBackground } from "./discord-conversation-background.js";
 import { createDiscordConversationResultRuntime } from "./discord-conversation-result-composition.js";
 import { createDiscordConversationContinuation } from "./discord-conversation-continuation.js";
-import { openDiscordConversationWork } from "./discord-conversation-work.js";
+import { openDiscordConversationWork, supervisionGoalEffect } from "./discord-conversation-work.js";
 import { loadDiscordConversationDeliveryCredentials } from "./discord-conversation-webhook-delivery.js";
 import { discordSpeakerParticipantKeys } from "./discord-conversation-speaker.js";
-import { goalCommandDeployment, registerDiscordGoalCommand } from "./discord-goal-command.js";
-import { DiscordGoalIntakeOutcomes } from "./discord-goal-intake-outcomes.js";
 import type {
   NodeDiscordConversationRuntime,
   NodeDiscordConversationRuntimeOptions,
@@ -71,8 +69,6 @@ export async function openNodeDiscordConversationRuntime(
       config,
       agentDisplayName: agentParticipation.displayName,
     });
-  const goalCommand = await registerDiscordGoalCommand({ options, agentParticipation, token });
-  const goalIntakeOutcomes = new DiscordGoalIntakeOutcomes();
   let failed = false,
     resolveFailure!: () => void;
   const failure = new Promise<void>((resolvePromise) => {
@@ -107,12 +103,11 @@ export async function openNodeDiscordConversationRuntime(
     agentParticipation,
   });
   const artifacts = await FileSystemCas.open(resolve(options.dataDirectory, "artifacts"));
-  const { repositoryWork, workResponder } = openDiscordConversationWork({
+  const { repositoryWork, workResponder, goalResponder, goalStore } = openDiscordConversationWork({
     options,
     artifacts,
     participation: agentParticipation,
     policyId: policy.policyId,
-    intakeOutcomes: goalIntakeOutcomes,
     authorizedEffectRequesters: authorizedAgentEffectRequesters,
   });
   const resultStore = await SQLiteConversationResultStore.open(
@@ -152,7 +147,7 @@ export async function openNodeDiscordConversationRuntime(
   let modeResponder: NaturalLanguageDiscordConversationResponder | null = null;
   let responder: ConversationResponder = continuationResponder;
   if (config.routing !== undefined) {
-    const { surfaceEffects, platformAction } = createDiscordConversationEffects({
+    const { surfaceEffects: platformEffects, platformAction } = createDiscordConversationEffects({
       config,
       botToken: token,
       artifactStore: artifacts,
@@ -185,6 +180,8 @@ export async function openNodeDiscordConversationRuntime(
           }),
       ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
     });
+    const surfaceEffects =
+      goalResponder === null ? platformEffects : [...platformEffects, supervisionGoalEffect];
     const readOnly =
       options.readOnlyResponder ??
       (readRuntime = await openManagedConversationReadResponder({
@@ -245,10 +242,15 @@ export async function openNodeDiscordConversationRuntime(
         ? {}
         : { managedTurnResolver: readRuntime.turnResolver }),
       surfaceEffects,
+      availableEffects: [
+        ...platformAction.availableEffects,
+        ...(goalResponder === null ? [] : (["supervision_goal_request"] as const)),
+      ],
       participationPolicy: policy,
       readOnly,
       continuation: continuationResponder,
       work: workResponder!,
+      ...(goalResponder === null ? {} : { goal: goalResponder }),
       platformAction,
       ...(deliberationRuntime === null ? {} : { explicitControl: deliberationRuntime.responder }),
     });
@@ -258,7 +260,7 @@ export async function openNodeDiscordConversationRuntime(
     artifactStore: artifacts,
     resolveWritingContract: async ({ event }) =>
       modeResponder !== null &&
-      ["read_only", "clarify", "work"].includes(await modeResponder.mode(event))
+      ["read_only", "clarify", "work", "goal"].includes(await modeResponder.mode(event))
         ? config.routing?.evaluation === undefined
           ? realtimeConversationWritingContract
           : adaptiveConversationWritingContract
@@ -283,7 +285,6 @@ export async function openNodeDiscordConversationRuntime(
           allowedGuildIds: config.allowedGuildIds,
           allowDirectMessages: config.allowDirectMessages,
           botToken: token,
-          ...(goalCommand === null ? {} : goalCommandDeployment(goalCommand, goalIntakeOutcomes)),
           textualParticipantAliases: [
             ...(agentParticipation.displayName === null
               ? []
@@ -415,6 +416,7 @@ export async function openNodeDiscordConversationRuntime(
         resultRuntime!.close();
         readRuntime?.close();
         repositoryWork?.responder.close();
+        goalStore?.close();
         intentStore?.close();
       },
     };
@@ -426,6 +428,7 @@ export async function openNodeDiscordConversationRuntime(
     resultRuntime?.close();
     readRuntime?.close();
     repositoryWork?.responder.close();
+    goalStore?.close();
     intentStore?.close();
     if (resultRuntime === null) resultStore.close();
     throw error;

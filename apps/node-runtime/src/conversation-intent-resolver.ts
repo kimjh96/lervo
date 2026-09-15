@@ -8,6 +8,7 @@ export type ConversationIntent = "answer" | "continue_work" | "clarify";
 export type ConversationRequestedEffect =
   | { kind: "none" }
   | { kind: "repository_work" }
+  | { kind: "supervision_goal_request" }
   | { kind: "discord_current_member_nickname_set"; nickname: string }
   | { kind: "discord_guild_text_channel_create"; name: string }
   | { kind: "discord_public_thread_create"; name: string }
@@ -72,6 +73,7 @@ const responseSchema = {
           enum: [
             "none",
             "repository_work",
+            "supervision_goal_request",
             "discord_current_member_nickname_set",
             "discord_guild_text_channel_create",
             "discord_public_thread_create",
@@ -93,6 +95,7 @@ const instruction = [
   "Use answer only when an information, explanation, status, review, or discussion request can be answered from the injected context without live repository, terminal, test, build, network, or external-system observation.",
   "Use continue_work when the user clearly asks to start, continue, complete, change, fix, publish, deploy, release, inspect, verify, test, build, or otherwise perform live work. Read-only live work is still continue_work even when it is expected to leave repository bytes unchanged.",
   "For continue_work, set effect.kind to repository_work when repository, deployment, terminal, test, build, network, or external-system work or observation is requested.",
+  "Set effect.kind to supervision_goal_request only when it is available and the user asks the installed owner to accept responsibility for a durable multi-step outcome whose completion may span delegation, verification, or multiple turns. Use repository_work for one bounded task or inspection within the current conversation.",
   "Set effect.kind to discord_current_member_nickname_set only when the user asks this Discord agent to change its own nickname in the current server. Resolve the intended nickname from the current message or priorTurns and place it in effect.nickname.",
   "Set effect.kind to discord_guild_text_channel_create only when the user asks this agent to create a text channel in the current server. Put the requested lowercase Discord channel name in effect.name.",
   "Set effect.kind to discord_public_thread_create only when the user asks this agent to create a public thread under the current Discord channel. Put the requested thread name in effect.name.",
@@ -134,6 +137,7 @@ function parseResolution(
     ![
       "none",
       "repository_work",
+      "supervision_goal_request",
       "discord_current_member_nickname_set",
       "discord_guild_text_channel_create",
       "discord_public_thread_create",

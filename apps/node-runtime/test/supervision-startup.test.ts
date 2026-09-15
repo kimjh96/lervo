@@ -41,23 +41,11 @@ async function fixture() {
   };
   return { f, configuration };
 }
-it("carries a declared goal command announcement and rejects an ill-formed declaration", async () => {
+it("rejects the removed goal command announcement configuration", async () => {
   const { configuration } = await fixture();
-  expect(
-    parseSupervisionStartupConfiguration({ ...configuration, goalCommand: { announce: true } })
-      .goalCommand,
-  ).toEqual({ announce: true });
-  // An absent declaration stays absent: a deployment advertises `/goal` only when it says so.
-  expect(parseSupervisionStartupConfiguration({ ...configuration }).goalCommand).toBeUndefined();
   expect(() =>
-    parseSupervisionStartupConfiguration({ ...configuration, goalCommand: { announce: "yes" } }),
-  ).toThrow(/announcement must be declared as a boolean/u);
-  expect(() =>
-    parseSupervisionStartupConfiguration({
-      ...configuration,
-      goalCommand: { announce: true, guilds: [] },
-    }),
-  ).toThrow();
+    parseSupervisionStartupConfiguration({ ...configuration, goalCommand: { announce: true } }),
+  ).toThrow(/unknown fields/iu);
 });
 
 it("snapshots exact startup authority and rejects unknown fields or mismatched transport origin", async () => {

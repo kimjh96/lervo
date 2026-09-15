@@ -10,6 +10,9 @@ import type { ArtifactStore } from "@lervo/storage-contract";
 import type { ConversationRequestedEffect } from "./conversation-intent-resolver.js";
 import type { DiscordPlatformActionResponder } from "./discord-conversation-mode.js";
 
+type NonPlatformEffect =
+  { kind: "none" } | { kind: "repository_work" } | { kind: "supervision_goal_request" };
+
 export class DiscordConversationAdministrationResponder implements DiscordPlatformActionResponder {
   readonly availableEffects: ConversationRequestedEffect["kind"][];
   private readonly targetsByConversation = new Map<
@@ -49,7 +52,7 @@ export class DiscordConversationAdministrationResponder implements DiscordPlatfo
 
   async respond(
     input: Parameters<ConversationResponder["respond"]>[0],
-    effect: Exclude<ConversationRequestedEffect, { kind: "none" | "repository_work" }>,
+    effect: Exclude<ConversationRequestedEffect, NonPlatformEffect>,
     authorization: { effectRequesterAuthorized: boolean },
   ) {
     if (!authorization.effectRequesterAuthorized) {
