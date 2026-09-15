@@ -36,6 +36,7 @@ export type ManagedProviderRunFailureCode =
   | "provider_stop_failed"
   | "provider_stream_failed"
   | "provider_turn_failed"
+  | "provider_model_unavailable"
   | "provider_write_failed"
   | "provider_result_failed"
   | "repository_snapshot_failed"

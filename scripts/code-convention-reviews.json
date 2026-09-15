@@ -74,7 +74,7 @@
     },
     {
       "path": "packages/adapter-codex/src/codex-adapter.ts",
-      "contentHash": "sha256:a0d6736503d4e5e9bba15c31b30a363c4e24783a5a066da0c3c4832b035effeb",
+      "contentHash": "sha256:610ad2458f589e3478e5e02b167e50f6cbdf41167225afdf6efb970e9ce3d027",
       "responsibility": "Codex managed-provider adapter",
       "rationale": "The class owns the Codex provider boundary, selects one injected native transport, and translates thread, turn, telemetry, stop, and result behavior into common adapter contracts; transport parsing and the accounting declaration remain linked modules. The explicit login profile is snapshotted for this same provider-session lifecycle; environment construction and native process transport remain separate modules.",
       "disposition": "cohesive"
@@ -130,7 +130,7 @@
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:15720ed81c54d620ab2ef45ce9bf3212af238f71ff27545b01d270a036e3b9cb",
+      "contentHash": "sha256:95d09a4cdda7612cfe65382755ae027ac0d4b1fb3f98103b44dba323b025e78f",
       "responsibility": "Managed provider-run coordinator",
       "rationale": "The coordinator owns one provider-neutral run lifecycle and failure ledger. Role input validation and binding use a dedicated preparation module before provider creation; exact produced artifact coordinates flow through the existing verifier port after shutdown and CAS validation. No research, filesystem source policy, checker process, or provider-specific behavior is introduced here.",
       "disposition": "cohesive"

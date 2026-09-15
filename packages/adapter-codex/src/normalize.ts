@@ -24,6 +24,8 @@ export interface CodexEventNormalizerOptions {
   adapterVersion: string;
   now: () => Date;
   createEventId: () => string;
+  /** Reports the model observed for this session, or null when the provider never named one. */
+  observedModel?: () => string | null;
 }
 
 export class CodexEventNormalizer {
@@ -112,11 +114,15 @@ export class CodexEventNormalizer {
     const providerTurnId = text(turn?.id);
     if (providerTurnId === undefined) return null;
     if (turn?.status === "failed") {
+      // A turn that fails without the provider ever naming a model is a transient capacity or
+      // availability result, not a rejected request. The code stays provider-neutral so the
+      // run coordinator reads a contract code rather than a Codex-specific one.
+      const modelObserved = this.options.observedModel?.() ?? null;
       return this.event(
         "provider.turn.failed",
         {
           providerTurnId,
-          failureCode: "codex_turn_failed",
+          failureCode: modelObserved === null ? "provider_model_unavailable" : "codex_turn_failed",
           diagnosticDigest: digest(turn.error),
         },
         eventTime(message, params, this.options.now),

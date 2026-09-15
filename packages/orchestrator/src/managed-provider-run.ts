@@ -534,7 +534,12 @@ export class ManagedProviderRunCoordinator {
           }),
         ]);
         if (terminal.type === "provider.turn.failed") {
-          throw new ManagedProviderRunError("provider_turn_failed", "The provider turn failed.");
+          throw terminal.payload.failureCode === "provider_model_unavailable"
+            ? new ManagedProviderRunError(
+                "provider_model_unavailable",
+                "The provider never named a model for the turn.",
+              )
+            : new ManagedProviderRunError("provider_turn_failed", "The provider turn failed.");
         }
         if (expectedPath !== null) state.writeBridge.assertTurnSettled(expectedPath);
         monitor.throwIfFailed();

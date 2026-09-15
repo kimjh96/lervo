@@ -428,6 +428,7 @@ export class CodexAdapter implements ProviderAdapter {
       adapterVersion: CODEX_ADAPTER_VERSION,
       now: this.now,
       createEventId: this.createEventId,
+      observedModel: () => state.sessionObservedModel,
     });
     try {
       for await (const notification of state.client.notifications(signal)) {

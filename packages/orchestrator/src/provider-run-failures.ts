@@ -31,13 +31,15 @@ const priority: Record<ManagedProviderRunFailureCode, number> = {
   context_preparation_failed: 50,
   provider_stream_failed: 40,
   provider_turn_failed: 40,
+  provider_model_unavailable: 40,
   provider_result_failed: 40,
   provider_start_failed: 40,
   cancelled: 30,
 };
 
 function retryable(code: ManagedProviderRunFailureCode): boolean {
-  return code === "artifact_storage_failed";
+  // A provider that never named a model reported capacity, not a rejected request.
+  return code === "artifact_storage_failed" || code === "provider_model_unavailable";
 }
 
 function failureCodeForPhase(phase: ManagedProviderRunPhase): ManagedProviderRunFailureCode {

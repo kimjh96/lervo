@@ -967,4 +967,34 @@ describe("Codex managed adapter", () => {
     });
     expect(JSON.stringify(event)).not.toContain('"outputTokens":0');
   });
+
+  it("separates a turn that failed without an observed model from a rejected turn", async () => {
+    const client = new FakeCodexClient();
+    const session = await started(adapter(client));
+    const normalizerFor = (observed: string | null) =>
+      new CodexEventNormalizer({
+        session,
+        repositoryRoot: "/repo",
+        adapterVersion: "0.1.0",
+        now: () => new Date("2026-09-15T00:00:00Z"),
+        createEventId: () => "evt_modelunavailable",
+        observedModel: () => observed,
+      });
+    const failed = {
+      method: "turn/completed",
+      params: {
+        threadId: session.providerSessionId,
+        turn: { id: "codex-turn-9", status: "failed", error: { code: "overloaded" } },
+      },
+    };
+
+    expect(normalizerFor(null).normalize(failed)).toMatchObject({
+      type: "provider.turn.failed",
+      payload: { failureCode: "provider_model_unavailable" },
+    });
+    expect(normalizerFor("gpt-6-astra").normalize(failed)).toMatchObject({
+      type: "provider.turn.failed",
+      payload: { failureCode: "codex_turn_failed" },
+    });
+  });
 });
