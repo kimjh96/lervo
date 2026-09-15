@@ -11,7 +11,8 @@ export type ConversationRequestedEffect =
   | { kind: "discord_current_member_nickname_set"; nickname: string }
   | { kind: "discord_guild_text_channel_create"; name: string }
   | { kind: "discord_public_thread_create"; name: string }
-  | { kind: "workforce_agent_hire"; specification: string };
+  | { kind: "workforce_agent_hire"; specification: string }
+  | { kind: "workforce_task_delegate"; specification: string };
 
 export interface ConversationIntentResolution {
   intent: ConversationIntent;
@@ -172,7 +173,12 @@ function parseResolution(
         [...specification].length < 1 ||
         [...specification].length > 512 ||
         specification.includes("\0"))) ||
-    (kind !== "workforce_agent_hire" && specification !== null)
+    (kind === "workforce_task_delegate" &&
+      (typeof specification !== "string" ||
+        [...specification].length < 1 ||
+        [...specification].length > 1_024 ||
+        specification.includes("\0"))) ||
+    (!["workforce_agent_hire", "workforce_task_delegate"].includes(kind) && specification !== null)
   ) {
     throw new TypeError("The conversation intent and requested effect are inconsistent.");
   }
@@ -185,7 +191,7 @@ function parseResolution(
         ? { kind, nickname: nickname as string }
         : kind === "discord_guild_text_channel_create" || kind === "discord_public_thread_create"
           ? { kind, name: name as string }
-          : kind === "workforce_agent_hire"
+          : kind === "workforce_agent_hire" || kind === "workforce_task_delegate"
             ? { kind, specification: specification as string }
             : { kind },
   };

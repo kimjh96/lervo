@@ -11,9 +11,14 @@ export class ConversationPlatformActionRouter implements DiscordPlatformActionRe
   constructor(
     private readonly discord: DiscordPlatformActionResponder,
     private readonly workforce?: DiscordPlatformActionResponder,
+    private readonly delegate?: DiscordPlatformActionResponder,
   ) {
     this.availableEffects = [
-      ...new Set([...discord.availableEffects, ...(workforce?.availableEffects ?? [])]),
+      ...new Set([
+        ...discord.availableEffects,
+        ...(workforce?.availableEffects ?? []),
+        ...(delegate?.availableEffects ?? []),
+      ]),
     ];
   }
 
@@ -24,7 +29,9 @@ export class ConversationPlatformActionRouter implements DiscordPlatformActionRe
   ) {
     return effect.kind === "workforce_agent_hire"
       ? this.requireWorkforce().respond(input, effect, authorization)
-      : this.discord.respond(input, effect, authorization);
+      : effect.kind === "workforce_task_delegate"
+        ? this.requireDelegate().respond(input, effect, authorization)
+        : this.discord.respond(input, effect, authorization);
   }
 
   private requireWorkforce(): DiscordPlatformActionResponder {
@@ -32,5 +39,12 @@ export class ConversationPlatformActionRouter implements DiscordPlatformActionRe
       throw new Error("The conversation workforce action is not configured.");
     }
     return this.workforce;
+  }
+
+  private requireDelegate(): DiscordPlatformActionResponder {
+    if (this.delegate === undefined) {
+      throw new Error("The conversation delegation action is not configured.");
+    }
+    return this.delegate;
   }
 }

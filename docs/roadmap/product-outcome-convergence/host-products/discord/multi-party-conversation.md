@@ -14,6 +14,7 @@ One real channel with one person and at least two hired agents in distinct roles
 - Inspect requested code and complete authorized real work.
 - Use threads, replies, and mentions as needed.
 - Complete a bounded discussion and stop at its declared terminal condition.
+- Route a task to the hired agent whose role owns it, without the person naming that agent, and let that agent answer from its own context.
 - Preserve every participant, role, provider-model, and agent-context coordinate across restart.
 - Produce no unauthorized repository or external effect.
 
@@ -31,4 +32,5 @@ The same scenario must be replayable through a non-Discord test surface over sha
 - [ADR-0394](../../../../decisions/coordination/conversations/0394-webhook-backed-discord-agent-identities.md)
 - [ADR-0395](../../../../decisions/coordination/conversations/0395-resumable-native-repository-work-turns.md)
 - [ADR-0396](../../../../decisions/coordination/conversations/0396-conflict-safe-repository-replica-continuation.md)
+- [ADR-0408](../../../../decisions/coordination/conversations/0408-conversation-task-delegation-to-hired-agents.md)
 - [Cross-provider deliberation runtime](../../../../decisions/execution/providers/0029-cross-provider-deliberation-runtime.md)

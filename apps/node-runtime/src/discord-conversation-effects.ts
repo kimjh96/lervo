@@ -2,7 +2,11 @@ import { DiscordRestAdministration } from "@lervo/adapter-discord";
 import type { ManagedConversationSurfaceEffect } from "@lervo/conversation-responder";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
+import type { ConversationInboundEvent } from "@lervo/schemas";
+
 import type { NodeDiscordConversationConfig } from "./config-types.js";
+import { ConversationTaskDelegateResponder } from "./conversation-task-delegate-responder.js";
+import type { DiscordPeerAgentBinding } from "./discord-conversation-composition.js";
 import type { DiscordPlatformActionResponder } from "./discord-conversation-mode.js";
 import { ConversationPlatformActionRouter } from "./conversation-platform-action-router.js";
 import {
@@ -25,6 +29,13 @@ export function createDiscordConversationEffects(input: {
   repositoryWorkStore?: SQLiteConversationRepositoryWorkStore;
   runtimeConfigPath?: string;
   onDeploymentPrepared?(sourceEventId: string): void;
+  delegation?: {
+    projectId: string;
+    parentParticipantId: string;
+    parentAgentBinding?: ConversationInboundEvent["actor"]["agentBinding"];
+    peers: readonly DiscordPeerAgentBinding[];
+    dispatch(event: ConversationInboundEvent): Promise<void>;
+  };
   fetch?: typeof globalThis.fetch;
 }): {
   surfaceEffects: ManagedConversationSurfaceEffect[];
@@ -75,6 +86,18 @@ export function createDiscordConversationEffects(input: {
           },
         ]
       : []),
+    ...(input.delegation === undefined
+      ? []
+      : [
+          {
+            effectId: "workforce_task_delegate",
+            description:
+              "Hand one bounded task to an agent already hired into this conversation so that agent answers and performs it from its own context, instead of doing the work yourself. Prefer this whenever a hired agent owns the subject.",
+            argumentDescription:
+              "Compact JSON with exactly roleId and task, where task states the bounded request in the conversation language.",
+            maximumArgumentCharacters: 1_024,
+          },
+        ]),
   ];
   const administration = new DiscordRestAdministration({
     applicationId: input.config.applicationId,
@@ -141,8 +164,17 @@ export function createDiscordConversationEffects(input: {
             }),
       })
     : undefined;
+  const delegate =
+    input.delegation === undefined
+      ? undefined
+      : new ConversationTaskDelegateResponder({
+          artifactStore: input.artifactStore,
+          integrationId: input.config.integrationId,
+          parentRoleId: input.parentRoleId,
+          ...input.delegation,
+        });
   return {
     surfaceEffects,
-    platformAction: new ConversationPlatformActionRouter(discord, workforce),
+    platformAction: new ConversationPlatformActionRouter(discord, workforce, delegate),
   };
 }

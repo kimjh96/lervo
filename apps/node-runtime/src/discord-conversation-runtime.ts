@@ -124,6 +124,9 @@ export async function openNodeDiscordConversationRuntime(
   let intentStore: SQLiteConversationIntentResolutionStore | null = null;
   let interactionRetryLoop: ConversationInteractionRetryLoop | null = null;
   let repositorySignalLoop: ConversationRepositorySignalLoop | null = null;
+  // Effects are composed before the application opens, yet a delegated turn must re-enter through
+  // that same application, so the dispatcher reads this handle at call time rather than at wiring.
+  let inboundApplication: Awaited<ReturnType<typeof openConversationApplication>> | null = null;
   const deliberationRuntime =
     config.deliberation === undefined
       ? null
@@ -161,6 +164,25 @@ export async function openNodeDiscordConversationRuntime(
         ? {}
         : { runtimeConfigPath: options.runtimeConfigPath }),
       onDeploymentPrepared: (sourceEventId) => reconfigurationEvents.add(sourceEventId),
+      ...(peerAgents.length === 0
+        ? {}
+        : {
+            delegation: {
+              projectId: options.project.projectId,
+              parentParticipantId: config.agentParticipantId,
+              ...(agentParticipation.agentBinding === undefined
+                ? {}
+                : { parentAgentBinding: agentParticipation.agentBinding }),
+              peers: peerAgents,
+              dispatch: async (event) => {
+                if (inboundApplication?.handleInboundEvent == null) {
+                  throw new Error("The conversation delegation dispatcher is unavailable.");
+                }
+                await inboundApplication.handleInboundEvent(event);
+                await inboundApplication.runDeliveryCycle?.(config.integrationId);
+              },
+            },
+          }),
       ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
     });
     const readOnly =
@@ -341,6 +363,7 @@ export async function openNodeDiscordConversationRuntime(
       ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
     });
     const openedApplication = application;
+    inboundApplication = openedApplication;
     const adapter = openedApplication.discordAdapters.get(config.integrationId);
     if (adapter === undefined) throw new Error("The Discord result adapter is unavailable.");
     resultRuntime = createDiscordConversationResultRuntime({
