@@ -148,11 +148,22 @@ describe("abandoned managed turn proof", () => {
       },
     };
     expect(isProvenAbandonedTurnFailure(events, same)).toBe(false);
+    // A partitioned window ends exactly where its successor starts, which is the normal case.
+    const adjoining = {
+      ...diagnostic,
+      witness: {
+        ...diagnostic.witness,
+        incidentInvocationLastAt: diagnostic.witness.successorInvocationFirstAt,
+      },
+    };
+    expect(isProvenAbandonedTurnFailure(events, adjoining)).toBe(true);
     const overlapping = {
       ...diagnostic,
       witness: {
         ...diagnostic.witness,
-        successorInvocationFirstAt: diagnostic.witness.incidentInvocationLastAt,
+        successorInvocationFirstAt: new Date(
+          Date.parse(diagnostic.witness.incidentInvocationLastAt) - 1000,
+        ).toISOString(),
       },
     };
     expect(isProvenAbandonedTurnFailure(events, overlapping)).toBe(false);

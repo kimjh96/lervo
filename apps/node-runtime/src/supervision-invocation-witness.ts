@@ -52,9 +52,16 @@ export function observeAbandonedTurnWitness(input: {
     const window = windows.get(id) ?? { first: at, last: at };
     windows.set(id, { first: Math.min(window.first, at), last: Math.max(window.last, at) });
   }
-  const ordered = [...windows.entries()]
+  // A unit's invocations are sequential, so an invocation owns the quiet gap after its last log
+  // line until the next invocation starts. Bounding by logged lines alone would leave a run that
+  // happened during silence inside no window at all.
+  const logged = [...windows.entries()]
     .map(([id, window]) => ({ id, ...window }))
     .sort((left, right) => left.first - right.first);
+  const ordered = logged.map((window, index) => ({
+    ...window,
+    last: logged[index + 1] === undefined ? window.last : logged[index + 1]!.first,
+  }));
   const incident = Date.parse(input.incidentAt);
   if (!Number.isFinite(incident)) throw new Error("The incident time is invalid.");
   const candidates = ordered.filter(
@@ -69,7 +76,7 @@ export function observeAbandonedTurnWitness(input: {
     successor === undefined ||
     current === candidates[0]!.id ||
     ordered.at(-1)?.id !== current ||
-    candidates[0]!.last >= successor.first ||
+    candidates[0]!.last > successor.first ||
     successor.first > Date.parse(input.observedAt)
   )
     throw new Error("The abandoned turn has no observed successor invocation fence.");

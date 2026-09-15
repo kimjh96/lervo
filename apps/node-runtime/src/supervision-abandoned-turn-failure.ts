@@ -146,7 +146,7 @@ export function isProvenAbandonedTurnFailure(
     ![incident, first, last, successor, observed, terminalAt].every(Number.isFinite) ||
     first > incident ||
     incident > last ||
-    last >= successor ||
+    last > successor ||
     successor > observed ||
     observed > terminalAt ||
     terminalAt - observed > 5_000 ||
