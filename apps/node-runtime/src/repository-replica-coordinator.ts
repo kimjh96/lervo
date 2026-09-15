@@ -12,6 +12,10 @@ import {
   captureRepositoryReplicaSnapshot,
   createRepositoryReplicaBundle,
 } from "./repository-replica-git.js";
+import {
+  mergeRepositoryReplicaBundle,
+  type RepositoryReplicaMergeResult,
+} from "./repository-replica-merge.js";
 
 const REPLICA_ID = /^[a-z][a-z0-9_-]{1,63}$/u;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
@@ -26,6 +30,12 @@ export interface RepositoryReplicaPeerPort {
     allowHistoryReplacement?: boolean;
   }): Promise<RepositoryReplicaSnapshot>;
   recordReceipt(input: RepositoryReplicaReceipt): Promise<void>;
+  /** Local side only: merges the peer's bundle when both sides changed. */
+  merge?(input: {
+    repositoryRoot: string;
+    bundle: Uint8Array;
+    expectedCurrentSnapshotHash: string;
+  }): Promise<RepositoryReplicaMergeResult>;
 }
 
 export interface RepositoryReplicaReceipt {
@@ -36,7 +46,7 @@ export interface RepositoryReplicaReceipt {
   localSnapshotHash: string;
   peerSnapshotHash: string;
   reconciledAt: string;
-  status: "current" | "pushed" | "pulled";
+  status: "current" | "pushed" | "pulled" | "merged";
 }
 
 interface RepositoryReplicaCoordinatorState {
@@ -45,13 +55,22 @@ interface RepositoryReplicaCoordinatorState {
 }
 
 export type RepositoryReplicaCycleResult =
-  | { replicaId: string; status: "current" | "pushed" | "pulled"; snapshotHash: string }
+  | {
+      replicaId: string;
+      status: "current" | "pushed" | "pulled" | "merged";
+      snapshotHash: string;
+    }
   | {
       replicaId: string;
       status: "divergent";
       localHash: string;
       peerHash: string;
       commonHash: string | null;
+      conflict?: {
+        reason: "no_common_history" | "conflicting_paths";
+        paths: string[];
+        pathCount: number;
+      };
     };
 
 export class RepositoryReplicaCoordinatorError extends Error {
@@ -138,6 +157,14 @@ export class LocalRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     return applyRepositoryReplicaBundle(input);
   }
 
+  merge(input: {
+    repositoryRoot: string;
+    bundle: Uint8Array;
+    expectedCurrentSnapshotHash: string;
+  }) {
+    return mergeRepositoryReplicaBundle(input);
+  }
+
   async recordReceipt(input: RepositoryReplicaReceipt): Promise<void> {
     const path = resolve(input.repositoryRoot, ".lervo/state/repository-replica.json");
     await mkdir(dirname(path), { recursive: true, mode: 0o700 });
@@ -176,11 +203,36 @@ export class RepositoryReplicaCoordinator {
     assertRepositoryReplicaSnapshot(local);
     assertRepositoryReplicaSnapshot(peer);
     const common = state.replicas[input.replicaId]?.commonSnapshotHash ?? null;
-    const decision = reconcileRepositoryReplicas({ local, peer, commonSnapshotHash: common });
+    let decision = reconcileRepositoryReplicas({ local, peer, commonSnapshotHash: common });
+    let status: "current" | "pushed" | "pulled" | "merged" = "current";
     if (decision.status === "divergent") {
-      return { replicaId: input.replicaId, ...decision };
+      // Both sides changed: merge the peer into the local side, then push the merged result.
+      if (this.options.local.merge === undefined)
+        return { replicaId: input.replicaId, ...decision };
+      const merged = await this.options.local.merge({
+        repositoryRoot: input.localRoot,
+        bundle: await this.options.peer.bundle(input.peerRoot),
+        expectedCurrentSnapshotHash: local.snapshotHash,
+      });
+      if (merged.status === "conflict") {
+        return {
+          replicaId: input.replicaId,
+          ...decision,
+          conflict: { reason: merged.reason, paths: merged.paths, pathCount: merged.pathCount },
+        };
+      }
+      decision = reconcileRepositoryReplicas({
+        local: merged.snapshot,
+        peer,
+        commonSnapshotHash: peer.snapshotHash,
+      });
+      if (decision.status !== "push")
+        throw new RepositoryReplicaCoordinatorError(
+          "repository_replica_verification_failed",
+          "The merged repository replica did not become the push source.",
+        );
+      status = "merged";
     }
-    let status: "current" | "pushed" | "pulled" = "current";
     if (decision.status === "push") {
       const bundle = await this.options.local.bundle(input.localRoot);
       await this.options.peer.apply({
@@ -189,7 +241,7 @@ export class RepositoryReplicaCoordinator {
         expectedCurrentSnapshotHash: decision.expectedPeerHash,
         allowHistoryReplacement: true,
       });
-      status = "pushed";
+      if (status !== "merged") status = "pushed";
     } else if (decision.status === "pull") {
       const bundle = await this.options.peer.bundle(input.peerRoot);
       await this.options.local.apply({
@@ -228,7 +280,11 @@ export class RepositoryReplicaCoordinator {
     });
     await Promise.all([
       this.options.local.recordReceipt(receipt(input.localRoot)),
-      this.options.peer.recordReceipt(receipt(input.peerRoot)),
+      // The peer imported the merged result, so its receipt keeps the established push status.
+      this.options.peer.recordReceipt({
+        ...receipt(input.peerRoot),
+        status: status === "merged" ? "pushed" : status,
+      }),
     ]);
     return { replicaId: input.replicaId, status, snapshotHash: verifiedLocal.snapshotHash };
   }

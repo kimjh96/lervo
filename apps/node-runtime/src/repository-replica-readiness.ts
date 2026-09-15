@@ -28,7 +28,7 @@ async function receipt(repositoryRoot: string): Promise<RepositoryReplicaReceipt
       value.localSnapshotHash !== value.commonSnapshotHash ||
       value.peerSnapshotHash !== value.commonSnapshotHash ||
       !Number.isFinite(Date.parse(value.reconciledAt)) ||
-      !["current", "pushed", "pulled"].includes(value.status)
+      !["current", "pushed", "pulled", "merged"].includes(value.status)
     ) {
       return null;
     }

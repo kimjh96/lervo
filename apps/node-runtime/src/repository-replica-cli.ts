@@ -141,8 +141,14 @@ async function runCoordinator(
         });
         if (result.status === "divergent") {
           failed = true;
+          const conflict =
+            result.conflict === undefined
+              ? "no merge attempted"
+              : result.conflict.reason === "no_common_history"
+                ? "no common history"
+                : `${result.conflict.pathCount} conflicting path(s): ${result.conflict.paths.join(", ")}`;
           ports.stderr(
-            `Repository replica ${result.replicaId} is divergent (${result.localHash} != ${result.peerHash}; common ${result.commonHash ?? "none"}).\n`,
+            `Repository replica ${result.replicaId} is divergent (${result.localHash} != ${result.peerHash}; common ${result.commonHash ?? "none"}; ${conflict}).\n`,
           );
         } else if (result.status !== "current") {
           ports.stdout(

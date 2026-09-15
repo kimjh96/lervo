@@ -11,9 +11,9 @@ import {
 } from "@lervo/sync";
 
 const MAXIMUM_GIT_OUTPUT_BYTES = 512 * 1024 * 1024;
-const EXPORT_REF = "refs/lervo/replica/export";
-const INCOMING_REF = "refs/lervo/replica/incoming";
-const FIXED_GIT_ENVIRONMENT = {
+export const EXPORT_REF = "refs/lervo/replica/export";
+export const INCOMING_REF = "refs/lervo/replica/incoming";
+export const FIXED_GIT_ENVIRONMENT = {
   GIT_AUTHOR_NAME: "Lervo Repository Replica",
   GIT_AUTHOR_EMAIL: "repository-replica@lervo.local",
   GIT_AUTHOR_DATE: "2000-01-01T00:00:00Z",
@@ -43,7 +43,7 @@ interface GitResult {
   exitCode: number;
 }
 
-async function git(
+export async function git(
   repositoryRoot: string,
   args: readonly string[],
   options: {
@@ -90,7 +90,7 @@ async function git(
   });
 }
 
-function text(result: GitResult): string {
+export function text(result: GitResult): string {
   return result.stdout.toString("utf8").trim();
 }
 
@@ -98,7 +98,7 @@ function snapshotSource(snapshot: RepositoryReplicaSnapshot): string {
   return `${JSON.stringify(snapshot)}\n`;
 }
 
-async function createExportCommit(
+export async function createExportCommit(
   repositoryRoot: string,
   snapshot: RepositoryReplicaSnapshot,
 ): Promise<void> {
@@ -186,7 +186,7 @@ export async function createRepositoryReplicaBundle(repositoryRoot: string): Pro
   }
 }
 
-async function isAncestor(repositoryRoot: string, ancestor: string, descendant: string) {
+export async function isAncestor(repositoryRoot: string, ancestor: string, descendant: string) {
   return (
     (
       await git(repositoryRoot, ["merge-base", "--is-ancestor", ancestor, descendant], {
@@ -196,7 +196,7 @@ async function isAncestor(repositoryRoot: string, ancestor: string, descendant: 
   );
 }
 
-async function applyTrees(
+export async function applyTrees(
   repositoryRoot: string,
   current: RepositoryReplicaSnapshot,
   desired: RepositoryReplicaSnapshot,
@@ -260,7 +260,7 @@ async function applyTrees(
   }
 }
 
-function parseIncomingSnapshot(message: string): RepositoryReplicaSnapshot {
+export function parseIncomingSnapshot(message: string): RepositoryReplicaSnapshot {
   const lines = message.trim().split("\n");
   if (lines[0] !== "lervo-repository-replica-worktree-v1" || lines[1] === undefined) {
     throw new Error("The incoming repository replica commit has no supported envelope.");
@@ -270,7 +270,7 @@ function parseIncomingSnapshot(message: string): RepositoryReplicaSnapshot {
   return snapshot;
 }
 
-async function verifyIncomingCommit(
+export async function verifyIncomingCommit(
   repositoryRoot: string,
   snapshot: RepositoryReplicaSnapshot,
 ): Promise<void> {

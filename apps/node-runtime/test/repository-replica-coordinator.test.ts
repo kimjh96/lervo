@@ -89,8 +89,64 @@ describe("repository replica coordinator", () => {
     await writeFile(join(fixture.peer, "source.ts"), "peer\n");
     await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({
       status: "divergent",
+      conflict: { reason: "conflicting_paths", paths: ["source.ts"], pathCount: 1 },
     });
     expect(await readFile(join(fixture.local, "source.ts"), "utf8")).toBe("local\n");
     expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe("peer\n");
   }, 15_000);
+
+  it("merges non-conflicting changes from both sides and keeps uncommitted work uncommitted", async () => {
+    const fixture = await repositories();
+    const coordinator = new RepositoryReplicaCoordinator({
+      stateFile: fixture.stateFile,
+      local: new LocalRepositoryReplicaPeer(),
+      peer: new LocalRepositoryReplicaPeer(),
+      now: () => new Date("2026-09-15T00:00:00.000Z"),
+    });
+    const coordinates = { replicaId: "project", localRoot: fixture.local, peerRoot: fixture.peer };
+    await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({ status: "current" });
+
+    await writeFile(join(fixture.local, "local-committed.ts"), "export const local = 1;\n");
+    await git(fixture.local, "add", "local-committed.ts");
+    await git(fixture.local, "commit", "-m", "local work");
+    await writeFile(join(fixture.local, "local-draft.ts"), "const draft =");
+    await writeFile(join(fixture.peer, "peer-committed.ts"), "export const peer = 1;\n");
+    await git(fixture.peer, "add", "peer-committed.ts");
+    await git(fixture.peer, "commit", "-m", "peer work");
+    await writeFile(join(fixture.peer, "source.ts"), "const initial = false;\n");
+
+    await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({ status: "merged" });
+    for (const root of [fixture.local, fixture.peer]) {
+      expect(await readFile(join(root, "local-committed.ts"), "utf8")).toBe(
+        "export const local = 1;\n",
+      );
+      expect(await readFile(join(root, "peer-committed.ts"), "utf8")).toBe(
+        "export const peer = 1;\n",
+      );
+      expect(await readFile(join(root, "local-draft.ts"), "utf8")).toBe("const draft =");
+      expect(await readFile(join(root, "source.ts"), "utf8")).toBe("const initial = false;\n");
+      const status = (
+        await execute("git", ["-C", root, "status", "--porcelain"], { encoding: "utf8" })
+      ).stdout;
+      expect(status).toContain("?? local-draft.ts");
+      expect(status).toContain(" M source.ts");
+      const parents = (
+        await execute("git", ["-C", root, "show", "-s", "--format=%P", "HEAD"], {
+          encoding: "utf8",
+        })
+      ).stdout
+        .trim()
+        .split(" ");
+      expect(parents).toHaveLength(2);
+    }
+    const localReceipt = JSON.parse(
+      await readFile(join(fixture.local, ".lervo/state/repository-replica.json"), "utf8"),
+    ) as { status: string };
+    const peerReceipt = JSON.parse(
+      await readFile(join(fixture.peer, ".lervo/state/repository-replica.json"), "utf8"),
+    ) as { status: string };
+    expect(localReceipt.status).toBe("merged");
+    expect(peerReceipt.status).toBe("pushed");
+    await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({ status: "current" });
+  }, 20_000);
 });
