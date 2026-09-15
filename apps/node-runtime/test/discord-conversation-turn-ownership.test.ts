@@ -21,7 +21,11 @@ const peer = {
   conversationIds: ["cnv_operator01"],
 };
 
-function event(integrationId: string, participantIds: string[] = []) {
+function event(
+  integrationId: string,
+  participantIds: string[] = [],
+  occurredAt = "2026-09-09T00:00:00.000Z",
+) {
   return createConversationInboundEvent({
     sourceEventKeyHash: hashConversationSourceEventKey("discord-message-42"),
     target: {
@@ -42,7 +46,7 @@ function event(integrationId: string, participantIds: string[] = []) {
     replyToEventId: null,
     signalCode: null,
     automationDepth: 0,
-    occurredAt: "2026-09-09T00:00:00.000Z",
+    occurredAt,
   });
 }
 
@@ -205,5 +209,72 @@ describe("Discord multi-agent turn ownership", () => {
     });
 
     expect(ownership.owns({ event: report, policy: policy("product-owner") })).toBe(false);
+  });
+
+  it("releases a captured conversation after the addressed exchange goes idle", () => {
+    const pair = () => {
+      const first = createDiscordConversationTurnOwnership({
+        participantId: "ptc_lervoagent01",
+        roleId: "developer",
+        conversationIds: ["cnv_operator01"],
+        peers: [peer],
+      });
+      const second = createDiscordConversationTurnOwnership({
+        participantId: peer.participantId,
+        roleId: peer.roleId,
+        conversationIds: ["cnv_operator01"],
+        peers: [
+          {
+            ...peer,
+            participantKeys: ["bot:999999999999999991", "user:999999999999999991"],
+            participantId: "ptc_lervoagent01",
+            roleId: "developer",
+          },
+        ],
+      });
+      return { first, second };
+    };
+    const unaddressed = (at: string) => {
+      const source = event("itg_discord01", [], at);
+      const { schemaVersion: _version, eventId: _id, ...content } = source;
+      return {
+        first: source,
+        second: createConversationInboundEvent({
+          ...content,
+          target: { ...source.target, integrationId: "itg_discord02" },
+        }),
+      };
+    };
+
+    const captured = pair();
+    const addressed = event("itg_discord01", [peer.participantId]);
+    const { schemaVersion: _schemaVersion, eventId: _eventId, ...addressedContent } = addressed;
+    captured.first.owns({ event: addressed, policy: policy("developer") });
+    captured.second.owns({
+      event: createConversationInboundEvent({
+        ...addressedContent,
+        target: { ...addressed.target, integrationId: "itg_discord02" },
+      }),
+      policy: policy("researcher"),
+    });
+
+    // The exchange continues, so the addressed interlocutor keeps the turn and renews its hold.
+    const soon = unaddressed("2026-09-09T00:20:00.000Z");
+    expect(captured.first.owns({ event: soon.first, policy: policy("developer") })).toBe(false);
+    expect(captured.second.owns({ event: soon.second, policy: policy("researcher") })).toBe(true);
+
+    // Renewal moved the bound, so a turn 25 minutes later is still inside it.
+    const later = unaddressed("2026-09-09T00:45:00.000Z");
+    expect(captured.second.owns({ event: later.second, policy: policy("researcher") })).toBe(true);
+
+    // After an idle gap the capture lapses and the general unaddressed rule decides again.
+    const idle = unaddressed("2026-09-09T01:30:00.000Z");
+    const fresh = pair();
+    expect(captured.first.owns({ event: idle.first, policy: policy("developer") })).toBe(
+      fresh.first.owns({ event: idle.first, policy: policy("developer") }),
+    );
+    expect(captured.second.owns({ event: idle.second, policy: policy("researcher") })).toBe(
+      fresh.second.owns({ event: idle.second, policy: policy("researcher") }),
+    );
   });
 });

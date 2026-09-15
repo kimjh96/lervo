@@ -12,7 +12,11 @@ export function createDiscordConversationTurnOwnership(input: {
   conversationIds: readonly string[];
   peers: readonly DiscordPeerAgentBinding[];
 }): ConversationTurnOwnershipEvaluator {
-  const stickyOwners = new Map<string, string>();
+  // ADR-0391 keeps a bounded in-memory owner. Bound it by idle event time so one explicit
+  // address does not capture the conversation forever, and so every peer, reading the same
+  // events, expires it identically.
+  const stickyOwnerIdleMs = 30 * 60_000;
+  const stickyOwners = new Map<string, { participantId: string; atMs: number }>();
   const current: ConversationTurnCandidate = {
     participantId: input.participantId,
     roleId: input.roleId,
@@ -45,15 +49,25 @@ export function createDiscordConversationTurnOwnership(input: {
       const explicitlyAddressed =
         event.mentions.participantIds.length > 0 || event.mentions.roleIds.length > 0;
       const resolved = resolveConversationTurnOwnership({ event, candidates });
+      const atMs = Date.parse(event.occurredAt);
       if (explicitlyAddressed && resolved.ownerParticipantIds.length === 1) {
         if (stickyOwners.size >= 1_024 && !stickyOwners.has(addressKey)) {
           stickyOwners.delete(stickyOwners.keys().next().value!);
         }
-        stickyOwners.set(addressKey, resolved.ownerParticipantIds[0]!);
+        stickyOwners.set(addressKey, { participantId: resolved.ownerParticipantIds[0]!, atMs });
       }
-      const sticky = explicitlyAddressed ? null : stickyOwners.get(addressKey);
+      const retained = explicitlyAddressed ? undefined : stickyOwners.get(addressKey);
+      // An unparsable time never expires an owner; it falls back to the retained selection.
+      const expired =
+        retained !== undefined &&
+        Number.isFinite(atMs) &&
+        Number.isFinite(retained.atMs) &&
+        atMs - retained.atMs > stickyOwnerIdleMs;
+      if (expired) stickyOwners.delete(addressKey);
+      const sticky = expired ? undefined : retained;
+      if (sticky !== undefined && Number.isFinite(atMs)) sticky.atMs = atMs;
       return (
-        sticky === null || sticky === undefined ? resolved.ownerParticipantIds : [sticky]
+        sticky === undefined ? resolved.ownerParticipantIds : [sticky.participantId]
       ).includes(input.participantId);
     },
   };

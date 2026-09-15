@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b5b4f7eb8b7218cbbd7c8d3f"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Release a captured Discord conversation after the addressed exchange goes idle so one mention no longer keeps every later unaddressed message with the same agent."
