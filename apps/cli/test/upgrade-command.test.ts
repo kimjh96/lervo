@@ -249,6 +249,104 @@ describe("lervo upgrade", () => {
     ]);
   }, 20_000);
 
+  it("applies a repository role refresh only with its exact displayed approval", async () => {
+    const root = await repository();
+    const roleDirectory = resolve(root, ".lervo/roles");
+    const rolePath = resolve(roleDirectory, "release-developer.json");
+    await mkdir(roleDirectory, { recursive: true });
+    const roleSource = (description: string) =>
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          kind: "lervo_repository_role",
+          roleId: "release-developer",
+          version: "1.0.0",
+          extends: [{ roleId: "developer", version: "1.0.0" }],
+          profile: { name: "Release Developer", description },
+          checks: [],
+        },
+        null,
+        2,
+      )}\n`;
+    await writeFile(rolePath, roleSource("Prepares verified release artifacts."));
+    const agent = await registerAgent({ repositoryRoot: root, roleId: "release-developer" });
+    await writeFile(rolePath, roleSource("Prepares verified and reproducible release artifacts."));
+    const preservedRoleSource = await readFile(rolePath, "utf8");
+
+    const output: string[] = [];
+    const errors: string[] = [];
+    expect(await runCli(["upgrade", "--json"], io(root, output, errors)), errors.join("\n")).toBe(
+      0,
+    );
+    const plan = JSON.parse(output.splice(0).join("")) as {
+      planId: string;
+      status: string;
+      stages: {
+        workforce: {
+          disposition: string;
+          requiredApprovals: Array<{
+            operationId: string;
+            approvalHash: string;
+            roleId: string;
+          }>;
+        };
+      };
+    };
+    expect(plan.stages.workforce).toMatchObject({
+      disposition: "pending_authority",
+      requiredApprovals: [
+        {
+          roleId: "release-developer",
+          operationId: expect.stringMatching(/^wrbop_[a-f0-9]{24}$/u),
+          approvalHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+        },
+      ],
+    });
+    const required = plan.stages.workforce.requiredApprovals[0]!;
+    const humanOutput: string[] = [];
+    expect(await runCli(["upgrade"], io(root, humanOutput, errors)), errors.join("\n")).toBe(0);
+    expect(humanOutput.join("\n")).toContain(
+      `--approve-role-binding ${required.operationId}=${required.approvalHash}`,
+    );
+    expect(
+      await runCli(
+        [
+          "upgrade",
+          "--apply",
+          "--approval",
+          plan.planId,
+          "--approve-role-binding",
+          `${required.operationId}=sha256:${"0".repeat(64)}`,
+        ],
+        io(root, [], errors),
+      ),
+    ).toBe(1);
+    expect(errors.join("\n")).toContain("not in the approved upgrade plan");
+    errors.length = 0;
+
+    expect(
+      await runCli(
+        [
+          "upgrade",
+          "--apply",
+          "--approval",
+          plan.planId,
+          "--approve-role-binding",
+          `${required.operationId}=${required.approvalHash}`,
+          "--json",
+        ],
+        io(root, output, errors),
+      ),
+      errors.join("\n"),
+    ).toBe(0);
+    const receipt = JSON.parse(output.join("")) as { appliedStages: string[] };
+    expect(receipt.appliedStages).toContain("workforce_role_bindings");
+    expect(await listAgents(root)).toEqual([
+      expect.objectContaining({ agentId: agent.agentId, revision: agent.revision + 1 }),
+    ]);
+    expect(await readFile(rolePath, "utf8")).toBe(preservedRoleSource);
+  }, 20_000);
+
   it("applies every generated-only stage, migrates loose skills, lints, and stops at authority boundaries", async () => {
     const root = await repository();
     const skill = resolve(root, ".agents/skills/reviewer");

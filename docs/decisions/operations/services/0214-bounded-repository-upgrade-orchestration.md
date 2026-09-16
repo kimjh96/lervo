@@ -18,16 +18,16 @@ Installed Lervo releases could initialize or migrate individual subsystems, but 
 - Exact capability and knowledge observations.
 - Any registered repository Node plan.
 
-`--apply --approval <plan-id>` first recreates that exact plan. It may then refresh content-bound stale built-in workforce role bindings and execute at most sixteen newly revalidated, generated-only knowledge stages under the approved orchestration policy, followed by knowledge lint. Every inner stage retains its exact current plan and durable apply contract.
+`--apply --approval <plan-id>` first recreates that exact plan. It may then refresh content-bound stale built-in workforce role bindings and execute at most sixteen newly revalidated, generated-only knowledge stages under the approved orchestration policy, followed by knowledge lint. A displayed repository-role operation may additionally be authorized with repeated `--approve-role-binding <operation-id>=<approval-hash>` values; the outer plan binds those exact approval coordinates. Every inner stage retains its exact current plan and durable apply contract.
 
 The command automatically:
 
 - Copies byte-preserved loose skills into immutable project capability packages.
-- Refreshes stale generated agent and assignment bindings only for shipped built-in roles, with one canonical event per atomic record transition.
+- Refreshes stale generated agent and assignment bindings for shipped built-in roles, plus only the repository-role groups carrying exact approvals from the current outer plan, with one canonical event per atomic record transition.
 - Refreshes Lervo-generated knowledge and hook runtime bytes.
 - Transactionally reconciles a registered repository Node.
 
-It never automatically rewrites user-owned documents, rebinds a repository-defined role, changes provider-owned configuration, grants Codex hook trust, chooses a normalization provider, transitions a legacy singleton, issues credentials, or publishes to a Hub. Those stages remain `pending_authority` or blocked with their existing exact approval surface.
+It never automatically rewrites user-owned documents, rebinds a repository-defined role without its displayed exact approval, changes provider-owned configuration, grants Codex hook trust, chooses a normalization provider, transitions a legacy singleton, issues credentials, or publishes to a Hub. Those stages remain `pending_authority` or blocked with their existing exact approval surface.
 
 ### Repository Node
 
@@ -41,7 +41,7 @@ The running CLI coordinates repository migration. Acquiring or globally installi
 
 ## Privacy and evidence
 
-The plan and receipt are local output. They include repository root, project ID, plan IDs, build hash, stage dispositions, counts, config-path digest, and service-target hash. They exclude credentials, provider content, service bodies, prompts, model output, and package-manager tokens.
+The plan and receipt are local output. They include repository root, project ID, plan IDs, build hash, stage dispositions, counts, bounded repository-role IDs, versions, contract hashes, approval coordinates, config-path digest, and service-target hash. They exclude role prose and source paths, credentials, provider content, service bodies, prompts, model output, and package-manager tokens.
 
 No new durable wrapper event is emitted. Capability, knowledge, terminal, and Node operations retain their existing canonical events or receipts; a wrapper event would duplicate evidence and could imply completion of a pending stage. `repository_upgrade` output proves only orchestration observations and successfully returned inner receipts. It does not prove CLI acquisition, provider activation, semantic use, Hub availability, or Node readiness unless the corresponding inner contract proves it.
 
@@ -59,7 +59,7 @@ Agents can handle ordinary repository upgrades through one idempotent product co
 
 ## Verification
 
-CLI tests cover read-only planning, stale approval, bounded generated-stage apply, loose-skill migration, lint, pending authority, and the uninitialized-repository boundary. Repository-layout and onboarding regressions cover generated AGENTS routing. Service tests retain coverage of same-version content-addressed upgrade, inactive-predecessor recovery, rollback, complete readiness, and bounded offline upgrade readiness.
+CLI tests cover read-only planning, stale approval, exact repository-role approval, source preservation, bounded generated-stage apply, loose-skill migration, lint, pending authority, and the uninitialized-repository boundary. Repository-layout and onboarding regressions cover generated AGENTS routing. Service tests retain coverage of same-version content-addressed upgrade, inactive-predecessor recovery, rollback, complete readiness, and bounded offline upgrade readiness.
 
 ## References
 

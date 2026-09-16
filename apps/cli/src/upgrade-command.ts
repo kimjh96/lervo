@@ -21,7 +21,7 @@ import { readCliPackageVersion } from "./version-command.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 
 export const upgradeUsage =
-  "  lervo upgrade [--root <path>] [--apply --approval <plan-id>] [--json]";
+  "  lervo upgrade [--root <path>] [--apply --approval <plan-id> [--approve-role-binding <operation-id>=<sha256> ...]] [--json]";
 
 type StageDisposition = "current" | "safe_apply" | "deferred" | "pending_authority" | "blocked";
 
@@ -40,6 +40,15 @@ interface WorkforceStage {
   staleAssignmentCount: number;
   status: string;
   reason: string;
+  requiredApprovals: Array<{
+    operationId: string;
+    approvalHash: string;
+    roleId: string;
+    roleVersion: string;
+    roleContractHash: string;
+    staleAgentCount: number;
+    staleAssignmentCount: number;
+  }>;
 }
 
 export interface RepositoryUpgradePlan {
@@ -186,12 +195,19 @@ async function inspectWorkforce(root: string): Promise<WorkforceStage> {
   const plan = await createWorkforceRoleBindingMigrationPlan(root);
   return {
     disposition:
-      plan.status === "ready" ? "safe_apply" : plan.status === "blocked" ? "blocked" : "current",
+      plan.status === "ready"
+        ? "safe_apply"
+        : plan.status === "review_required"
+          ? "pending_authority"
+          : plan.status === "blocked"
+            ? "blocked"
+            : "current",
     planId: plan.planId,
     staleAgentCount: plan.staleAgentCount,
     staleAssignmentCount: plan.staleAssignmentCount,
     status: plan.status,
     reason: plan.reason,
+    requiredApprovals: plan.requiredApprovals,
   };
 }
 
@@ -212,6 +228,7 @@ async function createInternalUpgradePlan(root: string): Promise<InternalUpgradeP
           staleAssignmentCount: 0,
           status: "deferred",
           reason: "capability_migration_must_apply_first",
+          requiredApprovals: [],
         })
       : inspectWorkforce(repositoryRoot),
     capabilityDisposition === "safe_apply"
@@ -279,6 +296,17 @@ export async function createRepositoryUpgradePlan(root: string): Promise<Reposit
   return (await createInternalUpgradePlan(root)).publicPlan;
 }
 
+function parseRoleBindingApprovals(
+  values: string[] | undefined,
+): Array<{ operationId: string; approvalHash: string }> {
+  return (values ?? []).map((value) => {
+    const match = /^(wrbop_[a-f0-9]{24})=(sha256:[a-f0-9]{64})$/u.exec(value);
+    if (match === null)
+      throw new Error("--approve-role-binding must use <operation-id>=<sha256-approval-hash>.");
+    return { operationId: match[1]!, approvalHash: match[2]! };
+  });
+}
+
 async function applyKnowledgeStage(root: string, stage: KnowledgeStage): Promise<void> {
   if (stage.planId === null)
     throw new Error("A generated-only knowledge stage has no exact plan ID.");
@@ -308,7 +336,14 @@ async function lintKnowledge(root: string): Promise<{ valid: boolean; issueCount
 }
 
 export async function runUpgradeCommand(args: string[], io: CliIo): Promise<number> {
-  let values: { root?: string; apply?: boolean; approval?: string; json?: boolean; help?: boolean };
+  let values: {
+    root?: string;
+    apply?: boolean;
+    approval?: string;
+    "approve-role-binding"?: string[];
+    json?: boolean;
+    help?: boolean;
+  };
   try {
     values = parseArgs({
       args,
@@ -318,6 +353,7 @@ export async function runUpgradeCommand(args: string[], io: CliIo): Promise<numb
         root: { type: "string" },
         apply: { type: "boolean" },
         approval: { type: "string" },
+        "approve-role-binding": { type: "string", multiple: true },
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
@@ -334,8 +370,13 @@ export async function runUpgradeCommand(args: string[], io: CliIo): Promise<numb
     io.stderr(`Upgrade apply requires both --apply and --approval.\n${upgradeUsage}\n`);
     return 1;
   }
+  if (values.apply !== true && (values["approve-role-binding"]?.length ?? 0) > 0) {
+    io.stderr(`--approve-role-binding must be used with --apply.\n${upgradeUsage}\n`);
+    return 1;
+  }
   const root = resolve(io.cwd, values.root ?? ".");
   try {
+    const roleBindingApprovals = parseRoleBindingApprovals(values["approve-role-binding"]);
     const initial = await createInternalUpgradePlan(root);
     if (!values.apply) {
       io.stdout(
@@ -349,6 +390,16 @@ export async function runUpgradeCommand(args: string[], io: CliIo): Promise<numb
       throw new Error("--approval must equal the exact current repository upgrade plan ID.");
     if (initial.publicPlan.status === "blocked")
       throw new Error("The current repository upgrade plan is blocked and cannot be applied.");
+    for (const approval of roleBindingApprovals) {
+      if (
+        !initial.publicPlan.stages.workforce.requiredApprovals.some(
+          (required) =>
+            required.operationId === approval.operationId &&
+            required.approvalHash === approval.approvalHash,
+        )
+      )
+        throw new Error("A workforce role-binding approval is not in the approved upgrade plan.");
+    }
 
     const appliedStages: string[] = [];
     if (initial.publicPlan.stages.capabilities.disposition === "safe_apply") {
@@ -362,15 +413,19 @@ export async function runUpgradeCommand(args: string[], io: CliIo): Promise<numb
     const workforce = await inspectWorkforce(initial.publicPlan.repositoryRoot);
     if (workforce.disposition === "blocked")
       throw new Error(`Workforce role-binding migration is blocked (${workforce.reason}).`);
-    if (workforce.disposition === "safe_apply") {
-      await mutateWorkforceState(initial.publicPlan.repositoryRoot, (recordEvent) =>
-        applyWorkforceRoleBindingMigration({
-          repositoryRoot: initial.publicPlan.repositoryRoot,
-          approval: workforce.planId!,
-          recordEvent,
-        }),
+    if (workforce.disposition === "safe_apply" || workforce.disposition === "pending_authority") {
+      const migrated = await mutateWorkforceState(
+        initial.publicPlan.repositoryRoot,
+        (recordEvent) =>
+          applyWorkforceRoleBindingMigration({
+            repositoryRoot: initial.publicPlan.repositoryRoot,
+            approval: workforce.planId!,
+            approvedRoleBindings: roleBindingApprovals,
+            recordEvent,
+          }),
       );
-      appliedStages.push("workforce_role_bindings");
+      if (migrated.migratedAgentCount + migrated.migratedAssignmentCount > 0)
+        appliedStages.push("workforce_role_bindings");
     }
 
     for (let index = 0; index < initial.publicPlan.policy.maximumKnowledgeStages; index += 1) {
@@ -451,7 +506,20 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
     `knowledge: ${plan.stages.knowledge.disposition} (${plan.stages.knowledge.reason})`,
     `repository Node: ${plan.stages.node.disposition} (${plan.stages.node.reason})`,
   ];
-  if (plan.status === "ready") lines.push(`Re-run with --apply --approval ${plan.planId}.`);
+  for (const approval of plan.stages.workforce.requiredApprovals)
+    lines.push(
+      `  role approval: ${approval.roleId}@${approval.roleVersion} · ${approval.operationId}=${approval.approvalHash}`,
+    );
+  if (plan.status === "ready" && plan.stages.workforce.requiredApprovals.length === 0)
+    lines.push(`Re-run with --apply --approval ${plan.planId}.`);
+  if (plan.stages.workforce.requiredApprovals.length > 0)
+    lines.push(
+      `Apply the displayed role decision with --apply --approval ${plan.planId} ${plan.stages.workforce.requiredApprovals
+        .map(
+          (approval) => `--approve-role-binding ${approval.operationId}=${approval.approvalHash}`,
+        )
+        .join(" ")}.`,
+    );
   if (plan.status === "pending_authority")
     lines.push(
       "A user-owned or provider-owned boundary requires its separately displayed exact approval before the upgrade can become current.",

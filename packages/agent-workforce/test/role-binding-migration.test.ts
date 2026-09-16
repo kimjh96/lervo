@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -126,5 +126,101 @@ describe("workforce role-binding migration", () => {
         recordEvent: () => undefined,
       }),
     ).rejects.toMatchObject({ code: "agent_state_conflict" });
+  });
+
+  it("requires an exact approval before refreshing repository role bindings", async () => {
+    const root = await repository();
+    const rolePath = resolve(root, ".lervo/roles/release-developer.json");
+    await mkdir(resolve(root, ".lervo/roles"), { recursive: true });
+    const roleSource = (description: string) =>
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          kind: "lervo_repository_role",
+          roleId: "release-developer",
+          version: "1.0.0",
+          extends: [{ roleId: "developer", version: "1.0.0" }],
+          profile: { name: "Release Developer", description },
+          checks: [],
+        },
+        null,
+        2,
+      )}\n`;
+    await writeFile(rolePath, roleSource("Prepares verified release artifacts."));
+    const agent = await registerAgent({ repositoryRoot: root, roleId: "release-developer" });
+    const assignment = await createAssignment({
+      repositoryRoot: root,
+      taskType: "implementation",
+      roleId: "release-developer",
+      acceptanceCriteria: ["The release artifact is verified."],
+      verificationSuiteIds: ["project.quick"],
+      expectedPaths: ["dist/release.js"],
+    });
+    await writeFile(rolePath, roleSource("Prepares verified and reproducible release artifacts."));
+    const preservedRoleSource = await readFile(rolePath, "utf8");
+
+    const plan = await createWorkforceRoleBindingMigrationPlan(root);
+    expect(plan).toMatchObject({
+      status: "review_required",
+      staleAgentCount: 1,
+      staleAssignmentCount: 1,
+      conflictCount: 0,
+      requiredApprovals: [
+        {
+          roleId: "release-developer",
+          roleVersion: "1.0.0",
+          staleAgentCount: 1,
+          staleAssignmentCount: 1,
+        },
+      ],
+    });
+    await expect(
+      applyWorkforceRoleBindingMigration({
+        repositoryRoot: root,
+        approval: plan.planId,
+        recordEvent: () => undefined,
+      }),
+    ).resolves.toEqual({ migratedAgentCount: 0, migratedAssignmentCount: 0 });
+    expect((await createWorkforceRoleBindingMigrationPlan(root)).status).toBe("review_required");
+
+    const required = plan.requiredApprovals[0]!;
+    await expect(
+      applyWorkforceRoleBindingMigration({
+        repositoryRoot: root,
+        approval: plan.planId,
+        approvedRoleBindings: [
+          { operationId: required.operationId, approvalHash: `sha256:${"0".repeat(64)}` },
+        ],
+        recordEvent: () => undefined,
+      }),
+    ).rejects.toMatchObject({ code: "agent_state_conflict" });
+
+    const events: WorkforceEvent[] = [];
+    await expect(
+      applyWorkforceRoleBindingMigration({
+        repositoryRoot: root,
+        approval: plan.planId,
+        approvedRoleBindings: [required],
+        now: new Date("2026-09-16T01:00:00.000Z"),
+        recordEvent: (event) => {
+          events.push(event);
+        },
+      }),
+    ).resolves.toEqual({ migratedAgentCount: 1, migratedAssignmentCount: 1 });
+    expect(await createWorkforceRoleBindingMigrationPlan(root)).toMatchObject({
+      status: "current",
+      requiredApprovals: [],
+    });
+    expect(await listAgents(root)).toEqual([
+      expect.objectContaining({ agentId: agent.agentId, revision: agent.revision + 1 }),
+    ]);
+    expect(await listAssignments(root)).toEqual([
+      expect.objectContaining({ assignmentId: assignment.assignmentId, revision: 2 }),
+    ]);
+    expect(events.map((event) => event.type)).toEqual([
+      "assignment.role.binding.changed",
+      "agent.identity.changed",
+    ]);
+    expect(await readFile(rolePath, "utf8")).toBe(preservedRoleSource);
   });
 });

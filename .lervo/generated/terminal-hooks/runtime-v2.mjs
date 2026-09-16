@@ -35603,6 +35603,7 @@ var capabilityNames = [
   "shell.execute",
   "network.access",
   "external.message",
+  "computer.use",
   "deploy",
   "data.mutate"
 ];
@@ -37159,12 +37160,42 @@ var contextHandoffIdSchema = {
   type: "string",
   pattern: "^ach_[a-f0-9]{24}$"
 };
+var contextSubjectKeySchema = {
+  type: "string",
+  minLength: 1,
+  maxLength: 160,
+  pattern: "^[a-z0-9][a-z0-9._:/-]*$"
+};
 var agentContextPromotedEventPayloadSchema = {
   type: "object",
   properties: {
     contextEntryId: contextEntryIdSchema,
     agentId: workforceAgentIdSchema,
     layer: { type: "string", enum: ["work", "relationship", "expertise"] },
+    memoryKind: {
+      type: "string",
+      enum: [
+        "work_outcome",
+        "working_preference",
+        "decision_rationale",
+        "relationship",
+        "expertise"
+      ]
+    },
+    subjectKey: contextSubjectKeySchema,
+    audience: { type: "string", const: "agent" },
+    sensitivity: { type: "string", enum: ["internal", "restricted"] },
+    confidence: { type: "string", enum: ["medium", "high"] },
+    retrievalDigests: {
+      type: "array",
+      minItems: 1,
+      maxItems: 24,
+      uniqueItems: true,
+      items: sha256Schema
+    },
+    observedAt: timestampSchema,
+    expiresAt: { anyOf: [timestampSchema, { type: "null" }] },
+    reviewBindingVersion: { type: "integer", const: 2 },
     source: {
       type: "object",
       properties: {
@@ -37655,7 +37686,7 @@ var conversationInboundEventSchema = {
     eventId: conversationEventIdSchema,
     sourceEventKeyHash: sha256Schema,
     target: conversationTargetSchema,
-    kind: { type: "string", enum: ["message.created", "signal.raised"] },
+    kind: { type: "string", enum: ["message.created", "goal.requested", "signal.raised"] },
     actor: {
       type: "object",
       properties: {
@@ -37721,6 +37752,10 @@ var conversationInboundEventSchema = {
   allOf: [
     {
       if: { properties: { kind: { const: "message.created" } }, required: ["kind"] },
+      then: { properties: { signalCode: { type: "null" } } }
+    },
+    {
+      if: { properties: { kind: { const: "goal.requested" } }, required: ["kind"] },
       then: { properties: { signalCode: { type: "null" } } }
     },
     {
@@ -40398,6 +40433,7 @@ var eventTypesV1 = [
   "assignment.completion.prepared",
   "assignment.completion.reconciled",
   "assignment.completed",
+  "assignment.role.binding.changed",
   "assignment.amended",
   "assignment.reopened",
   "public_readme.improvement.applied",
@@ -40436,6 +40472,7 @@ var supervisionEventTypes = [
   "work.supervision.decision.recorded",
   "work.supervision.decision.superseded",
   "work.supervision.effect.observed",
+  "work.supervision.readiness.failed",
   "work.supervision.review.recorded",
   "work.supervision.workspace.prepared",
   "work.supervision.delivery.queued",
@@ -44985,6 +45022,7 @@ var roleProfileSchema = {
         "shell.execute": capabilityDecisionSchema,
         "network.access": capabilityDecisionSchema,
         "external.message": capabilityDecisionSchema,
+        "computer.use": capabilityDecisionSchema,
         deploy: capabilityDecisionSchema,
         "data.mutate": capabilityDecisionSchema
       },
@@ -44994,6 +45032,7 @@ var roleProfileSchema = {
         "shell.execute",
         "network.access",
         "external.message",
+        "computer.use",
         "deploy",
         "data.mutate"
       ],
@@ -47449,13 +47488,35 @@ var workstreamSnapshotSchema = {
     origin: {
       type: "object",
       properties: {
-        kind: { type: "string", enum: ["legacy_handoff", "legacy_continuation", "created"] },
+        kind: {
+          type: "string",
+          enum: ["legacy_handoff", "legacy_continuation", "created", "successor"]
+        },
         sourceArtifactId: { anyOf: [artifactIdSchema, { type: "null" }] },
         sourceContentHash: { anyOf: [sha256Schema, { type: "null" }] },
-        sourcePathDigest: { anyOf: [sha256Schema, { type: "null" }] }
+        sourcePathDigest: { anyOf: [sha256Schema, { type: "null" }] },
+        predecessorWorkstreamId: workstreamIdSchema2,
+        predecessorSnapshotContentHash: sha256Schema
       },
       required: ["kind", "sourceArtifactId", "sourceContentHash", "sourcePathDigest"],
-      additionalProperties: false
+      additionalProperties: false,
+      if: { properties: { kind: { const: "successor" } }, required: ["kind"] },
+      then: {
+        required: ["predecessorWorkstreamId", "predecessorSnapshotContentHash"],
+        properties: {
+          predecessorWorkstreamId: workstreamIdSchema2,
+          predecessorSnapshotContentHash: sha256Schema,
+          sourceArtifactId: { type: "null" },
+          sourceContentHash: { type: "null" },
+          sourcePathDigest: { type: "null" }
+        }
+      },
+      else: {
+        properties: {
+          predecessorWorkstreamId: false,
+          predecessorSnapshotContentHash: false
+        }
+      }
     },
     updatedAt: timestampSchema
   },
@@ -48025,6 +48086,17 @@ var supervisionPayloadAllowlists = {
     "status",
     "effectEventIds"
   ],
+  "work.supervision.readiness.failed": [
+    ...common,
+    "decisionId",
+    "planHash",
+    "assignmentId",
+    "executorAgentId",
+    "responsibilityArtifactHash",
+    "sourceRevisionDigest",
+    "readinessEvidenceHash",
+    "reasonCode"
+  ],
   "work.supervision.review.recorded": [
     ...common,
     "assignmentIds",
@@ -48487,6 +48559,17 @@ var eventPayloadAllowlists = {
     "artifactHashes",
     "failureCode"
   ],
+  "assignment.role.binding.changed": [
+    "assignmentId",
+    "previousRoleVersion",
+    "previousRoleContractHash",
+    "previousRequiredCapabilityHash",
+    "roleId",
+    "roleVersion",
+    "roleContractHash",
+    "requiredCapabilityHash",
+    "revision"
+  ],
   "assignment.amended": [
     "assignmentId",
     "assignmentRevision",
@@ -48863,6 +48946,15 @@ var eventPayloadAllowlists = {
     "contextEntryId",
     "agentId",
     "layer",
+    "memoryKind",
+    "subjectKey",
+    "audience",
+    "sensitivity",
+    "confidence",
+    "retrievalDigests",
+    "observedAt",
+    "expiresAt",
+    "reviewBindingVersion",
     "source",
     "summaryArtifactId",
     "summaryContentHash",
@@ -52474,21 +52566,9 @@ async function resolveRepositoryCoordinationHome(repositoryRoot, options = {}) {
   const manifest = await loadProjectManifest(paths.repositoryRoot);
   const coordinate = await coordinationRoot(paths.repositoryRoot);
   if (options.readOnly === true) {
-    await inspectRealDirectory(coordinate.root, "Existing coordination directory");
-    const marker = await readMarker(resolve11(coordinate.root, "repository.json"), manifest.projectId);
-    if (marker.storageKind !== coordinate.storageKind || await hasEntries(paths.workforce))
-      invalid2("Read-only coordination inspection requires the owner's completed storage migration.");
-    const home = coordinationHome(coordinate.root, marker);
-    for (const path of [
-      home.workforce,
-      home.workspaces,
-      home.integrations,
-      home.integrationAttempts,
-      home.cleanupJournals,
-      home.events,
-      home.locks
-    ])
-      await inspectRealDirectory(path, "Existing coordination collection");
+    const home = await inspectRepositoryCoordinationHome(paths.repositoryRoot);
+    if (home === null)
+      invalid2("Existing coordination directory could not be inspected.");
     return home;
   }
   if (coordinate.storageKind === "standalone_checkout")
@@ -52518,6 +52598,34 @@ async function resolveRepositoryCoordinationHome(repositoryRoot, options = {}) {
   } finally {
     await release();
   }
+}
+async function inspectRepositoryCoordinationHome(repositoryRoot) {
+  const paths = resolveProjectPaths(repositoryRoot);
+  const manifest = await loadProjectManifest(paths.repositoryRoot);
+  const coordinate = await coordinationRoot(paths.repositoryRoot);
+  try {
+    await lstat9(coordinate.root);
+  } catch (error) {
+    if (error.code === "ENOENT")
+      return null;
+    invalid2("Existing coordination directory could not be inspected.", error);
+  }
+  await inspectRealDirectory(coordinate.root, "Existing coordination directory");
+  const marker = await readMarker(resolve11(coordinate.root, "repository.json"), manifest.projectId);
+  if (marker.storageKind !== coordinate.storageKind || await hasEntries(paths.workforce))
+    invalid2("Read-only coordination inspection requires the owner's completed storage migration.");
+  const home = coordinationHome(coordinate.root, marker);
+  for (const path of [
+    home.workforce,
+    home.workspaces,
+    home.integrations,
+    home.integrationAttempts,
+    home.cleanupJournals,
+    home.events,
+    home.locks
+  ])
+    await inspectRealDirectory(path, "Existing coordination collection");
+  return home;
 }
 function coordinationHome(root2, marker) {
   return {
@@ -65804,9 +65912,10 @@ var profile2 = {
   capabilities: {
     "filesystem.read": "allow",
     "filesystem.write": "require_approval",
-    "shell.execute": "deny",
+    "shell.execute": "allow",
     "network.access": "require_approval",
     "external.message": "require_approval",
+    "computer.use": "require_approval",
     deploy: "require_approval",
     "data.mutate": "require_approval"
   },
@@ -65857,6 +65966,7 @@ var profile3 = {
     "shell.execute": "allow",
     "network.access": "deny",
     "external.message": "deny",
+    "computer.use": "deny",
     deploy: "deny",
     "data.mutate": "deny"
   },
@@ -65925,6 +66035,7 @@ var profile4 = {
     "shell.execute": "deny",
     "network.access": "deny",
     "external.message": "deny",
+    "computer.use": "deny",
     deploy: "deny",
     "data.mutate": "deny"
   },
@@ -66002,6 +66113,7 @@ var profile5 = {
     "shell.execute": "deny",
     "network.access": "deny",
     "external.message": "deny",
+    "computer.use": "deny",
     deploy: "deny",
     "data.mutate": "deny"
   },
@@ -66092,6 +66204,7 @@ var profile6 = {
     "shell.execute": "deny",
     "network.access": "deny",
     "external.message": "require_approval",
+    "computer.use": "deny",
     deploy: "deny",
     "data.mutate": "deny"
   },
@@ -66179,6 +66292,7 @@ var profile7 = {
     "shell.execute": "deny",
     "network.access": "require_approval",
     "external.message": "deny",
+    "computer.use": "deny",
     deploy: "deny",
     "data.mutate": "deny"
   },
@@ -66264,6 +66378,7 @@ var profile8 = {
     "shell.execute": "deny",
     "network.access": "deny",
     "external.message": "deny",
+    "computer.use": "deny",
     deploy: "deny",
     "data.mutate": "deny"
   },
@@ -66323,112 +66438,16 @@ function listBuiltInRoleDefinitions() {
 // packages/roles/dist/repository.js
 import { lstat as lstat18, readFile as readFile11, readdir as readdir9 } from "node:fs/promises";
 import { basename as basename8, resolve as resolve26 } from "node:path";
-var ROLE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
-var VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
-var BUILT_IN_VERSION = "1.0.0";
-var MAXIMUM_ROLE_FILES = 256;
-var MAXIMUM_ROLE_BYTES = 128 * 1024;
-var MAXIMUM_COMPOSITION_DEPTH = 8;
-var PROFILE_KEYS = /* @__PURE__ */ new Set([
-  "name",
-  "description",
-  "requestTypes",
-  "requiredInputs",
-  "contextPolicy",
-  "capabilities",
-  "defaultSkills",
-  "outputContract",
-  "verification",
-  "handoff",
-  "defaultCapabilityPackages"
-]);
-var SOURCE_KEYS = /* @__PURE__ */ new Set([
-  "schemaVersion",
-  "kind",
-  "roleId",
-  "version",
-  "extends",
-  "profile",
-  "checks"
-]);
-var REFERENCE_KEYS = /* @__PURE__ */ new Set(["roleId", "version"]);
-var CAPABILITY_KEYS = /* @__PURE__ */ new Set([
-  "filesystem.read",
-  "filesystem.write",
-  "shell.execute",
-  "network.access",
-  "external.message",
-  "deploy",
-  "data.mutate"
-]);
-var CONTEXT_KEYS = /* @__PURE__ */ new Set(["requiredDocumentRuleIds", "minimumAssurance", "referencesRequired"]);
-var VERIFICATION_KEYS = /* @__PURE__ */ new Set(["suiteIds", "failureDisposition"]);
-var HANDOFF_KEYS = /* @__PURE__ */ new Set(["allowedRoleIds", "evidenceLinksRequired", "sharedContextRequired"]);
-function renderRepositoryRoleSource(source) {
-  const parsed = parseRepositoryRoleSource(source, source.roleId);
-  return `${JSON.stringify({
-    schemaVersion: parsed.schemaVersion,
-    kind: parsed.kind,
-    roleId: parsed.roleId,
-    version: parsed.version,
-    extends: parsed.extends,
-    profile: parsed.profile,
-    checks: parsed.checks
-  }, null, 2)}
-`;
-}
-function fail7(code, message, cause) {
-  throw new RoleContractError(code, message, cause === void 0 ? void 0 : { cause });
-}
-function record(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-function exactKeys(value, allowed) {
-  return Object.keys(value).every((key2) => allowed.has(key2));
+
+// packages/roles/dist/repository-role-composition.js
+function fail7(message) {
+  throw new RoleContractError("role_profile_invalid", message);
 }
 function sortedUnique2(values) {
   return [...new Set(values)].sort();
 }
 function same(left, right) {
   return canonicalJson(left) === canonicalJson(right);
-}
-function strings(value) {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
-}
-function validProfilePatch(value) {
-  if (value.name !== void 0 && typeof value.name !== "string")
-    return false;
-  if (value.description !== void 0 && typeof value.description !== "string")
-    return false;
-  if (value.requestTypes !== void 0 && !strings(value.requestTypes))
-    return false;
-  if (value.requiredInputs !== void 0 && !Array.isArray(value.requiredInputs))
-    return false;
-  if (value.defaultSkills !== void 0 && !strings(value.defaultSkills))
-    return false;
-  if (value.defaultCapabilityPackages !== void 0 && !strings(value.defaultCapabilityPackages))
-    return false;
-  if (value.outputContract !== void 0 && !record(value.outputContract))
-    return false;
-  if (value.contextPolicy !== void 0 && (!record(value.contextPolicy) || !exactKeys(value.contextPolicy, CONTEXT_KEYS) || !strings(value.contextPolicy.requiredDocumentRuleIds) || value.contextPolicy.minimumAssurance !== "E3" || typeof value.contextPolicy.referencesRequired !== "boolean"))
-    return false;
-  if (value.capabilities !== void 0 && (!record(value.capabilities) || !exactKeys(value.capabilities, CAPABILITY_KEYS) || !Object.values(value.capabilities).every((decision) => ["allow", "deny", "require_approval"].includes(String(decision)))))
-    return false;
-  if (value.verification !== void 0 && (!record(value.verification) || !exactKeys(value.verification, VERIFICATION_KEYS) || !strings(value.verification.suiteIds) || !["fail_run", "require_review"].includes(String(value.verification.failureDisposition))))
-    return false;
-  if (value.handoff !== void 0 && (!record(value.handoff) || !exactKeys(value.handoff, HANDOFF_KEYS) || !strings(value.handoff.allowedRoleIds) || value.handoff.evidenceLinksRequired !== true || value.handoff.sharedContextRequired !== true))
-    return false;
-  return true;
-}
-function parseRepositoryRoleSource(value, expectedRoleId) {
-  if (!record(value) || !exactKeys(value, SOURCE_KEYS) || value.schemaVersion !== 1 || value.kind !== "lervo_repository_role" || typeof value.roleId !== "string" || !ROLE_ID.test(value.roleId) || value.roleId.length > 100 || typeof value.version !== "string" || !VERSION.test(value.version) || value.version.length > 100 || !Array.isArray(value.extends) || value.extends.length > 8 || !record(value.profile) || !exactKeys(value.profile, PROFILE_KEYS) || !validProfilePatch(value.profile) || !Array.isArray(value.checks) || value.checks.length > 32 || expectedRoleId !== void 0 && value.roleId !== expectedRoleId) {
-    fail7("role_profile_invalid", "The repository role source does not satisfy the bounded v1 contract.");
-  }
-  const references = value.extends;
-  if (!references.every((item) => record(item) && exactKeys(item, REFERENCE_KEYS) && typeof item.roleId === "string" && ROLE_ID.test(item.roleId) && typeof item.version === "string" && VERSION.test(item.version)) || new Set(references.map((item) => `${item.roleId}@${item.version}`)).size !== references.length || references.some((item) => item.roleId === value.roleId)) {
-    fail7("role_profile_invalid", "The repository role ancestry is invalid, duplicated, or self-referential.");
-  }
-  return structuredClone(value);
 }
 function capabilityRank(value) {
   return value === "deny" ? 2 : value === "require_approval" ? 1 : 0;
@@ -66441,8 +66460,9 @@ function mergeInputs(groups) {
   for (const group of groups) {
     for (const input of group) {
       const previous2 = inputs.get(input.name);
-      if (previous2 !== void 0 && !same(previous2, input))
-        fail7("role_profile_invalid", `Role input ${input.name} has incompatible inherited contracts.`);
+      if (previous2 !== void 0 && !same(previous2, input)) {
+        fail7(`Role input ${input.name} has incompatible inherited contracts.`);
+      }
       inputs.set(input.name, structuredClone(input));
     }
   }
@@ -66453,8 +66473,9 @@ function mergeChecks(groups) {
   for (const group of groups) {
     for (const check of group) {
       const previous2 = checks.get(check.checkId);
-      if (previous2 !== void 0 && !same(previous2, check))
-        fail7("role_profile_invalid", `Role evaluation check ${check.checkId} has incompatible inherited contracts.`);
+      if (previous2 !== void 0 && !same(previous2, check)) {
+        fail7(`Role evaluation check ${check.checkId} has incompatible inherited contracts.`);
+      }
       checks.set(check.checkId, structuredClone(check));
     }
   }
@@ -66466,39 +66487,9 @@ function mergedBaseProfile(roleId, bases) {
   const profiles2 = bases.map((base) => base.definition.profile);
   const first = profiles2[0];
   const outputContracts = profiles2.map((profile9) => profile9.outputContract);
-  if (profiles2.length > 1 && outputContracts.some((contract) => !same(contract, outputContracts[0]))) {
-    return {
-      schemaVersion: 1,
-      roleId,
-      requestTypes: sortedUnique2(profiles2.flatMap((profile9) => profile9.requestTypes)),
-      requiredInputs: mergeInputs(profiles2.map((profile9) => profile9.requiredInputs)),
-      contextPolicy: {
-        requiredDocumentRuleIds: sortedUnique2(profiles2.flatMap((profile9) => profile9.contextPolicy.requiredDocumentRuleIds)),
-        minimumAssurance: "E3",
-        referencesRequired: profiles2.some((profile9) => profile9.contextPolicy.referencesRequired)
-      },
-      capabilities: Object.fromEntries(Object.keys(first.capabilities).map((key2) => [
-        key2,
-        profiles2.slice(1).reduce((decision, profile9) => restrictive(decision, profile9.capabilities[key2]), first.capabilities[key2])
-      ])),
-      defaultSkills: sortedUnique2(profiles2.flatMap((profile9) => profile9.defaultSkills)),
-      defaultCapabilityPackages: sortedUnique2(profiles2.flatMap((profile9) => profile9.defaultCapabilityPackages ?? [])),
-      verification: {
-        suiteIds: sortedUnique2(profiles2.flatMap((profile9) => profile9.verification.suiteIds)),
-        failureDisposition: profiles2.some((profile9) => profile9.verification.failureDisposition === "fail_run") ? "fail_run" : "require_review"
-      },
-      handoff: {
-        allowedRoleIds: sortedUnique2(profiles2.flatMap((profile9) => profile9.handoff.allowedRoleIds)),
-        evidenceLinksRequired: true,
-        sharedContextRequired: true
-      }
-    };
-  }
-  return {
+  const shared = {
     schemaVersion: 1,
     roleId,
-    name: first.name,
-    description: first.description,
     requestTypes: sortedUnique2(profiles2.flatMap((profile9) => profile9.requestTypes)),
     requiredInputs: mergeInputs(profiles2.map((profile9) => profile9.requiredInputs)),
     contextPolicy: {
@@ -66512,7 +66503,6 @@ function mergedBaseProfile(roleId, bases) {
     ])),
     defaultSkills: sortedUnique2(profiles2.flatMap((profile9) => profile9.defaultSkills)),
     defaultCapabilityPackages: sortedUnique2(profiles2.flatMap((profile9) => profile9.defaultCapabilityPackages ?? [])),
-    outputContract: structuredClone(first.outputContract),
     verification: {
       suiteIds: sortedUnique2(profiles2.flatMap((profile9) => profile9.verification.suiteIds)),
       failureDisposition: profiles2.some((profile9) => profile9.verification.failureDisposition === "fail_run") ? "fail_run" : "require_review"
@@ -66522,6 +66512,15 @@ function mergedBaseProfile(roleId, bases) {
       evidenceLinksRequired: true,
       sharedContextRequired: true
     }
+  };
+  if (profiles2.length > 1 && outputContracts.some((contract) => !same(contract, outputContracts[0]))) {
+    return shared;
+  }
+  return {
+    ...shared,
+    name: first.name,
+    description: first.description,
+    outputContract: structuredClone(first.outputContract)
   };
 }
 function applyPatch(roleId, base, patch) {
@@ -66580,6 +66579,103 @@ function applyPatch(roleId, base, patch) {
     };
   return result;
 }
+function composeRepositoryRoleProfile(roleId, bases, patch) {
+  return applyPatch(roleId, mergedBaseProfile(roleId, bases), patch);
+}
+function mergeRepositoryRoleChecks(bases, checks) {
+  return mergeChecks([...bases.map((base) => base.definition.evaluation.checks), checks]);
+}
+
+// packages/roles/dist/repository.js
+var ROLE_ID = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
+var VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
+var BUILT_IN_VERSION = "1.0.0";
+var MAXIMUM_ROLE_FILES = 256;
+var MAXIMUM_ROLE_BYTES = 128 * 1024;
+var MAXIMUM_COMPOSITION_DEPTH = 8;
+var PROFILE_KEYS = /* @__PURE__ */ new Set([
+  "name",
+  "description",
+  "requestTypes",
+  "requiredInputs",
+  "contextPolicy",
+  "capabilities",
+  "defaultSkills",
+  "outputContract",
+  "verification",
+  "handoff",
+  "defaultCapabilityPackages"
+]);
+var SOURCE_KEYS = /* @__PURE__ */ new Set([
+  "schemaVersion",
+  "kind",
+  "roleId",
+  "version",
+  "extends",
+  "profile",
+  "checks"
+]);
+var REFERENCE_KEYS = /* @__PURE__ */ new Set(["roleId", "version"]);
+var CAPABILITY_KEYS = /* @__PURE__ */ new Set([
+  "filesystem.read",
+  "filesystem.write",
+  "shell.execute",
+  "network.access",
+  "external.message",
+  "computer.use",
+  "deploy",
+  "data.mutate"
+]);
+var CONTEXT_KEYS = /* @__PURE__ */ new Set(["requiredDocumentRuleIds", "minimumAssurance", "referencesRequired"]);
+var VERIFICATION_KEYS = /* @__PURE__ */ new Set(["suiteIds", "failureDisposition"]);
+var HANDOFF_KEYS = /* @__PURE__ */ new Set(["allowedRoleIds", "evidenceLinksRequired", "sharedContextRequired"]);
+function fail8(code, message, cause) {
+  throw new RoleContractError(code, message, cause === void 0 ? void 0 : { cause });
+}
+function record(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function exactKeys(value, allowed) {
+  return Object.keys(value).every((key2) => allowed.has(key2));
+}
+function strings(value) {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+function validProfilePatch(value) {
+  if (value.name !== void 0 && typeof value.name !== "string")
+    return false;
+  if (value.description !== void 0 && typeof value.description !== "string")
+    return false;
+  if (value.requestTypes !== void 0 && !strings(value.requestTypes))
+    return false;
+  if (value.requiredInputs !== void 0 && !Array.isArray(value.requiredInputs))
+    return false;
+  if (value.defaultSkills !== void 0 && !strings(value.defaultSkills))
+    return false;
+  if (value.defaultCapabilityPackages !== void 0 && !strings(value.defaultCapabilityPackages))
+    return false;
+  if (value.outputContract !== void 0 && !record(value.outputContract))
+    return false;
+  if (value.contextPolicy !== void 0 && (!record(value.contextPolicy) || !exactKeys(value.contextPolicy, CONTEXT_KEYS) || !strings(value.contextPolicy.requiredDocumentRuleIds) || value.contextPolicy.minimumAssurance !== "E3" || typeof value.contextPolicy.referencesRequired !== "boolean"))
+    return false;
+  if (value.capabilities !== void 0 && (!record(value.capabilities) || !exactKeys(value.capabilities, CAPABILITY_KEYS) || !Object.values(value.capabilities).every((decision) => ["allow", "deny", "require_approval"].includes(String(decision)))))
+    return false;
+  if (value.verification !== void 0 && (!record(value.verification) || !exactKeys(value.verification, VERIFICATION_KEYS) || !strings(value.verification.suiteIds) || !["fail_run", "require_review"].includes(String(value.verification.failureDisposition))))
+    return false;
+  if (value.handoff !== void 0 && (!record(value.handoff) || !exactKeys(value.handoff, HANDOFF_KEYS) || !strings(value.handoff.allowedRoleIds) || value.handoff.evidenceLinksRequired !== true || value.handoff.sharedContextRequired !== true))
+    return false;
+  return true;
+}
+function parseRepositoryRoleSource(value, expectedRoleId) {
+  if (!record(value) || !exactKeys(value, SOURCE_KEYS) || value.schemaVersion !== 1 || value.kind !== "lervo_repository_role" || typeof value.roleId !== "string" || !ROLE_ID.test(value.roleId) || value.roleId.length > 100 || typeof value.version !== "string" || !VERSION.test(value.version) || value.version.length > 100 || !Array.isArray(value.extends) || value.extends.length > 8 || !record(value.profile) || !exactKeys(value.profile, PROFILE_KEYS) || !validProfilePatch(value.profile) || !Array.isArray(value.checks) || value.checks.length > 32 || expectedRoleId !== void 0 && value.roleId !== expectedRoleId) {
+    fail8("role_profile_invalid", "The repository role source does not satisfy the bounded v1 contract.");
+  }
+  const references = value.extends;
+  if (!references.every((item) => record(item) && exactKeys(item, REFERENCE_KEYS) && typeof item.roleId === "string" && ROLE_ID.test(item.roleId) && typeof item.version === "string" && VERSION.test(item.version)) || new Set(references.map((item) => `${item.roleId}@${item.version}`)).size !== references.length || references.some((item) => item.roleId === value.roleId)) {
+    fail8("role_profile_invalid", "The repository role ancestry is invalid, duplicated, or self-referential.");
+  }
+  return structuredClone(value);
+}
 function builtInContract(roleId) {
   const definition2 = getBuiltInRoleDefinition(roleId);
   assertRoleDefinition(definition2);
@@ -66595,13 +66691,10 @@ function builtInContract(roleId) {
 }
 function customContract(source, bases, sourcePath) {
   if (bases.length > 1 && (source.profile.name === void 0 || source.profile.description === void 0 || source.profile.outputContract === void 0)) {
-    fail7("role_profile_invalid", "A composed role must explicitly define its name, description, and output contract.");
+    fail8("role_profile_invalid", "A composed role must explicitly define its name, description, and output contract.");
   }
-  const profile9 = applyPatch(source.roleId, mergedBaseProfile(source.roleId, bases), source.profile);
-  const checks = mergeChecks([
-    ...bases.map((base) => base.definition.evaluation.checks),
-    source.checks
-  ]);
+  const profile9 = composeRepositoryRoleProfile(source.roleId, bases, source.profile);
+  const checks = mergeRepositoryRoleChecks(bases, source.checks);
   const definition2 = defineRole(profile9, checks);
   assertRoleDefinition(definition2);
   const ancestry = bases.map(({ roleId, version, contractHash }) => ({
@@ -66627,31 +66720,31 @@ async function repositorySources(repositoryRoot) {
   } catch (error) {
     if (error.code === "ENOENT")
       return /* @__PURE__ */ new Map();
-    fail7("role_profile_invalid", "The repository role directory could not be inspected.", error);
+    fail8("role_profile_invalid", "The repository role directory could not be inspected.", error);
   }
   if (!directoryInfo.isDirectory() || directoryInfo.isSymbolicLink())
-    fail7("role_profile_invalid", "The repository role path must be a physical directory.");
+    fail8("role_profile_invalid", "The repository role path must be a physical directory.");
   const names = (await readdir9(directory)).filter((name2) => name2.endsWith(".json")).sort();
   if (names.length > MAXIMUM_ROLE_FILES)
-    fail7("role_profile_invalid", "The repository role file limit was exceeded.");
+    fail8("role_profile_invalid", "The repository role file limit was exceeded.");
   const result = /* @__PURE__ */ new Map();
   for (const name2 of names) {
     const expectedRoleId = basename8(name2, ".json");
     if (!ROLE_ID.test(expectedRoleId))
-      fail7("role_profile_invalid", `Repository role filename ${name2} is invalid.`);
+      fail8("role_profile_invalid", `Repository role filename ${name2} is invalid.`);
     const path = resolve26(directory, name2);
     const info = await lstat18(path);
     if (!info.isFile() || info.isSymbolicLink() || info.size > MAXIMUM_ROLE_BYTES)
-      fail7("role_profile_invalid", `Repository role source ${name2} is unsafe.`);
+      fail8("role_profile_invalid", `Repository role source ${name2} is unsafe.`);
     let parsed;
     try {
       parsed = JSON.parse(await readFile11(path, "utf8"));
     } catch (error) {
-      fail7("role_profile_invalid", `Repository role source ${name2} is not valid JSON.`, error);
+      fail8("role_profile_invalid", `Repository role source ${name2} is not valid JSON.`, error);
     }
     const source = parseRepositoryRoleSource(parsed, expectedRoleId);
     if (listBuiltInRoleDefinitions().some((definition2) => definition2.profile.roleId === source.roleId) || result.has(source.roleId))
-      fail7("role_profile_invalid", `Repository role ${source.roleId} duplicates an existing role ID.`);
+      fail8("role_profile_invalid", `Repository role ${source.roleId} duplicates an existing role ID.`);
     result.set(source.roleId, { source, path: `.lervo/roles/${name2}` });
   }
   return result;
@@ -66668,15 +66761,15 @@ async function listRoleContracts(repositoryRoot) {
       return present;
     const entry = sources.get(roleId);
     if (entry === void 0)
-      fail7("role_not_found", `Role ${roleId} does not exist in the built-in or repository registry.`);
+      fail8("role_not_found", `Role ${roleId} does not exist in the built-in or repository registry.`);
     if (depth > MAXIMUM_COMPOSITION_DEPTH || resolving.has(roleId))
-      fail7("role_profile_invalid", `Role ${roleId} has cyclic or over-deep ancestry.`);
+      fail8("role_profile_invalid", `Role ${roleId} has cyclic or over-deep ancestry.`);
     resolving.add(roleId);
     try {
       const bases = entry.source.extends.map((reference) => {
         const base = resolveCustom(reference.roleId, depth + 1);
         if (base.version !== reference.version)
-          fail7("role_contract_stale", `Role ${roleId} requires ${reference.roleId}@${reference.version}, but ${base.version} is current.`);
+          fail8("role_contract_stale", `Role ${roleId} requires ${reference.roleId}@${reference.version}, but ${base.version} is current.`);
         return base;
       });
       let contract;
@@ -66685,7 +66778,7 @@ async function listRoleContracts(repositoryRoot) {
       } catch (error) {
         if (error instanceof RoleContractError)
           throw error;
-        fail7("role_profile_invalid", `Role ${roleId} could not be resolved into a valid executable contract.`, error);
+        fail8("role_profile_invalid", `Role ${roleId} could not be resolved into a valid executable contract.`, error);
       }
       resolved.set(roleId, contract);
       return contract;
@@ -66699,16 +66792,31 @@ async function listRoleContracts(repositoryRoot) {
 }
 async function resolveRoleContract(repositoryRoot, roleId) {
   if (!ROLE_ID.test(roleId) || roleId.length > 100)
-    fail7("role_not_found", "The requested role ID is invalid.");
+    fail8("role_not_found", "The requested role ID is invalid.");
   const contract = (await listRoleContracts(repositoryRoot)).find((item) => item.roleId === roleId);
   if (contract === void 0)
-    fail7("role_not_found", `Role ${roleId} does not exist in the built-in or repository registry.`);
+    fail8("role_not_found", `Role ${roleId} does not exist in the built-in or repository registry.`);
   return contract;
 }
 function assertRoleContractBinding(contract, binding) {
   if (binding.roleId !== contract.roleId || binding.roleVersion !== contract.version || binding.roleContractHash !== contract.contractHash || binding.roleProfileHash !== roleProfileHash(contract.definition.profile)) {
-    fail7("role_contract_stale", `Role ${binding.roleId} no longer matches its versioned repository contract.`);
+    fail8("role_contract_stale", `Role ${binding.roleId} no longer matches its versioned repository contract.`);
   }
+}
+
+// packages/roles/dist/repository-role-rendering.js
+function renderRepositoryRoleSource(source) {
+  const parsed = parseRepositoryRoleSource(source, source.roleId);
+  return `${JSON.stringify({
+    schemaVersion: parsed.schemaVersion,
+    kind: parsed.kind,
+    roleId: parsed.roleId,
+    version: parsed.version,
+    extends: parsed.extends,
+    profile: parsed.profile,
+    checks: parsed.checks
+  }, null, 2)}
+`;
 }
 
 // packages/repository-knowledge/dist/portable-skill-pattern.js
@@ -67684,7 +67792,7 @@ async function inspectRepositoryDocumentRewriters(input) {
 // packages/repository-knowledge/dist/execution-event-source.js
 var EXECUTION_EVENT_SOURCE_ADAPTER = "execution-event-v1+event-chain";
 var MAX_EVENT_SEQUENCE = 1e5;
-var EXECUTION_EVENT_SOURCE_MAX_EVENTS = 8192;
+var EXECUTION_EVENT_SOURCE_MAX_EVENTS = 32768;
 var MAX_EVENT_BYTES = 256 * 1024;
 var MAX_TOTAL_EVENT_BYTES = 16 * 1024 * 1024;
 var executionEventTypes = /* @__PURE__ */ new Set([
@@ -67721,42 +67829,42 @@ var executionEventTypes = /* @__PURE__ */ new Set([
   "deliberation.completed",
   "unmanaged_change.detected"
 ]);
-function fail8() {
+function fail9() {
   throw new RepositoryKnowledgeError("knowledge_evidence_source_invalid", "The execution event evidence source cannot be verified safely and completely.");
 }
 function canonicalEvent(event) {
   if (!validateSchema("event", event).valid)
-    return fail8();
+    return fail9();
   if (computeEventHash(eventWithoutHash(event)) !== event.eventHash)
-    return fail8();
+    return fail9();
   let sanitized;
   try {
     sanitized = sanitizeEventPayload(event.type, event.payload);
   } catch {
-    return fail8();
+    return fail9();
   }
   if (sanitized.redactions.length !== 0 || canonicalJson(sanitized.payload) !== canonicalJson(event.payload))
-    return fail8();
+    return fail9();
   try {
     return `${canonicalJson(event)}
 `;
   } catch {
-    return fail8();
+    return fail9();
   }
 }
 function collectExecutionEventSources(input) {
   let latest;
   try {
     if (!input.events.verifyIntegrity().valid)
-      return fail8();
+      return fail9();
     latest = input.events.latest();
   } catch {
-    return fail8();
+    return fail9();
   }
   if (latest === null)
     return [];
   if (!Number.isSafeInteger(latest.seq) || latest.seq < 1 || latest.seq > MAX_EVENT_SEQUENCE)
-    return fail8();
+    return fail9();
   const sources = [];
   const eventIds = /* @__PURE__ */ new Set();
   let totalBytes = 0;
@@ -67768,12 +67876,12 @@ function collectExecutionEventSources(input) {
         if (!executionEventTypes.has(event.type))
           return;
         if (eventIds.has(event.eventId) || sources.length >= EXECUTION_EVENT_SOURCE_MAX_EVENTS)
-          return fail8();
+          return fail9();
         const content3 = canonicalEvent(event);
         const byteCount = Buffer.byteLength(content3);
         totalBytes += byteCount;
         if (byteCount > MAX_EVENT_BYTES || totalBytes > MAX_TOTAL_EVENT_BYTES)
-          return fail8();
+          return fail9();
         eventIds.add(event.eventId);
         sources.push({
           path: `@event/${event.eventId}`,
@@ -67789,9 +67897,9 @@ function collectExecutionEventSources(input) {
       }
     });
     if (!input.events.verifyIntegrity().valid)
-      return fail8();
+      return fail9();
   } catch {
-    return fail8();
+    return fail9();
   }
   return sources.sort((left, right) => left.path.localeCompare(right.path));
 }
@@ -69067,6 +69175,8 @@ var RepositoryKnowledgeQueryIndex = class _RepositoryKnowledgeQueryIndex {
         freshness,
         deprecated: false
       });
+      const searchText = `${content3}
+${linkedClaims.map((claim) => claim.statement).join("\n")}`;
       entries.push({
         hit: {
           conceptId: concept.conceptId,
@@ -69079,8 +69189,8 @@ var RepositoryKnowledgeQueryIndex = class _RepositoryKnowledgeQueryIndex {
         },
         titleTerms: textTerms(concept.title),
         pathTerms: textTerms(concept.path),
-        bodyTerms: textTerms(`${content3}
-${linkedClaims.map((claim) => claim.statement).join("\n")}`)
+        bodyTerms: textTerms(searchText),
+        searchText
       });
     }
     const conceptSidecarSetHash = sha2562(JSON.stringify(await Promise.all(storedConcepts.map(async (stored) => {
@@ -69091,6 +69201,14 @@ ${linkedClaims.map((claim) => claim.statement).join("\n")}`)
       const bytes = await readSafePublication(root2, stored.file, 256 * 1024);
       return [stored.file, bytes === null ? "unreadable" : sha2562(bytes)];
     }))));
+    const ranker = await input.ranker?.prepare(entries.map((entry) => ({
+      conceptId: entry.hit.conceptId,
+      title: entry.hit.title,
+      path: entry.hit.path,
+      contentHash: entry.hit.contentHash,
+      labels: [entry.hit.ownership, entry.hit.assurance, entry.hit.freshness],
+      text: entry.searchText
+    })));
     return new _RepositoryKnowledgeQueryIndex({
       sourceSnapshotId: scan.snapshotId,
       impactReportId: impact.reportId,
@@ -69098,27 +69216,53 @@ ${linkedClaims.map((claim) => claim.statement).join("\n")}`)
       relationSidecarSetHash,
       entries,
       concepts: resolvedConcepts,
-      relations: storedRelations
+      relations: storedRelations,
+      ...ranker === void 0 ? {} : { ranker }
     });
   }
   query(input) {
+    const rankedHits = [];
     const queryTerms = terms(input.query);
-    const hits = [];
-    for (const entry of this.data.entries) {
-      const matchedTerms = queryTerms.filter((term) => hasLexicalTerm(entry.titleTerms, term) || hasLexicalTerm(entry.pathTerms, term) || hasLexicalTerm(entry.bodyTerms, term));
-      if (matchedTerms.length === 0)
-        continue;
-      const score = matchedTerms.reduce((total, term) => total + (hasLexicalTerm(entry.titleTerms, term) ? 8 : 0) + (hasLexicalTerm(entry.pathTerms, term) ? 4 : 0) + (hasLexicalTerm(entry.bodyTerms, term) ? 1 : 0), 0);
-      hits.push({ ...entry.hit, score, matchedTerms });
+    const toHit = (entry, score) => ({
+      ...entry.hit,
+      score,
+      matchedTerms: queryTerms.filter((term) => hasLexicalTerm(entry.titleTerms, term) || hasLexicalTerm(entry.pathTerms, term) || hasLexicalTerm(entry.bodyTerms, term))
+    });
+    if (this.data.ranker !== void 0) {
+      const byConcept = new Map(this.data.entries.map((entry) => [entry.hit.conceptId, entry]));
+      const ranked = this.data.ranker.rank({
+        query: input.query,
+        limit: input.limit ?? 20
+      });
+      const observed = /* @__PURE__ */ new Set();
+      for (const item of ranked) {
+        const entry = byConcept.get(item.conceptId);
+        if (entry === void 0 || observed.has(item.conceptId) || !Number.isSafeInteger(item.score) || item.score <= 0) {
+          throw new TypeError("The repository knowledge ranker returned an invalid result.");
+        }
+        observed.add(item.conceptId);
+        rankedHits.push(toHit(entry, item.score));
+      }
+    } else {
+      for (const entry of this.data.entries) {
+        const matchedTerms = queryTerms.filter((term) => hasLexicalTerm(entry.titleTerms, term) || hasLexicalTerm(entry.pathTerms, term) || hasLexicalTerm(entry.bodyTerms, term));
+        if (matchedTerms.length === 0)
+          continue;
+        const score = matchedTerms.reduce((total, term) => total + (hasLexicalTerm(entry.titleTerms, term) ? 8 : 0) + (hasLexicalTerm(entry.pathTerms, term) ? 4 : 0) + (hasLexicalTerm(entry.bodyTerms, term) ? 1 : 0), 0);
+        rankedHits.push({ ...entry.hit, score, matchedTerms });
+      }
     }
-    hits.sort((left, right) => right.score - left.score || left.path.localeCompare(right.path));
-    const strongestScore = hits[0]?.score ?? 0;
-    const relativeRelevanceFloor = Math.max(1, Math.ceil(strongestScore / 10));
-    const selectedHits = hits.filter((hit) => hit.score >= relativeRelevanceFloor).slice(0, input.limit ?? 20);
+    const selectedHits = this.data.ranker === void 0 ? rankedHits.sort((left, right) => right.score - left.score || left.path.localeCompare(right.path)).filter((hit) => hit.score >= Math.max(1, Math.ceil((rankedHits[0]?.score ?? 0) / 10))).slice(0, input.limit ?? 20) : rankedHits;
     return {
       schemaVersion: 1,
       query: input.query,
       semantics: "recommended",
+      ...this.data.ranker === void 0 ? {} : {
+        ranking: {
+          engine: { ...this.data.ranker.engine },
+          adapterBuildId: this.data.ranker.adapterBuildId
+        }
+      },
       sourceSnapshotId: this.data.sourceSnapshotId,
       impactReportId: this.data.impactReportId,
       hits: selectedHits,
@@ -69138,7 +69282,8 @@ ${linkedClaims.map((claim) => claim.statement).join("\n")}`)
 async function queryRepositoryKnowledge(input) {
   const index2 = await RepositoryKnowledgeQueryIndex.prepare({
     repositoryRoot: input.repositoryRoot,
-    ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources }
+    ...input.supplementalSources === void 0 ? {} : { supplementalSources: input.supplementalSources },
+    ...input.ranker === void 0 ? {} : { ranker: input.ranker }
   });
   return index2.query({
     query: input.query,
@@ -70341,7 +70486,7 @@ var MAX_EVENT_SEQUENCE2 = 1e5;
 var MAX_RESULTS = 256;
 var MAX_RESULT_BYTES = 1024 * 1024;
 var MAX_TOTAL_RESULT_BYTES = 16 * 1024 * 1024;
-function fail9() {
+function fail10() {
   throw new RepositoryKnowledgeError("knowledge_evidence_source_invalid", "The verification evidence source cannot be verified safely and completely.");
 }
 async function collectVerificationResultSources(input) {
@@ -70349,15 +70494,15 @@ async function collectVerificationResultSources(input) {
   try {
     const integrity = input.events.verifyIntegrity();
     if (!integrity.valid)
-      return fail9();
+      return fail10();
     latest = input.events.latest();
   } catch {
-    return fail9();
+    return fail10();
   }
   if (latest === null)
     return [];
   if (!Number.isSafeInteger(latest.seq) || latest.seq < 1 || latest.seq > MAX_EVENT_SEQUENCE2)
-    return fail9();
+    return fail10();
   const completed = /* @__PURE__ */ new Map();
   try {
     visitEventSnapshot({
@@ -70368,19 +70513,19 @@ async function collectVerificationResultSources(input) {
           return;
         const verificationId = event.payload.verificationId;
         if (typeof verificationId !== "string")
-          return fail9();
+          return fail10();
         const previous2 = completed.get(verificationId);
         if (previous2 !== void 0 && JSON.stringify(previous2.payload) !== JSON.stringify(event.payload))
-          return fail9();
+          return fail10();
         completed.set(verificationId, event);
         if (completed.size > MAX_RESULTS)
-          return fail9();
+          return fail10();
       }
     });
     if (!input.events.verifyIntegrity().valid)
-      return fail9();
+      return fail10();
   } catch {
-    return fail9();
+    return fail10();
   }
   const sources = [];
   let totalBytes = 0;
@@ -70391,31 +70536,31 @@ async function collectVerificationResultSources(input) {
     const resultArtifactId = payload.resultArtifactId;
     const resultContentHash = payload.resultContentHash;
     if (typeof verificationId !== "string" || typeof suiteId !== "string" || typeof resultArtifactId !== "string" || typeof resultContentHash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(resultContentHash) || resultArtifactId !== `art_${resultContentHash.slice("sha256:".length)}`)
-      return fail9();
+      return fail10();
     const uri = `lervo-cas://sha256/${resultContentHash.slice("sha256:".length)}`;
     let bytes;
     let suite;
     try {
       [bytes, suite] = await Promise.all([input.artifacts.get(uri), input.loadSuite(suiteId)]);
     } catch {
-      return fail9();
+      return fail10();
     }
     totalBytes += bytes.byteLength;
     if (bytes.byteLength > MAX_RESULT_BYTES || totalBytes > MAX_TOTAL_RESULT_BYTES)
-      return fail9();
+      return fail10();
     if (verificationSha256(bytes) !== resultContentHash)
-      return fail9();
+      return fail10();
     let result;
     try {
       result = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
       validateVerificationResult(result, suite);
     } catch {
-      return fail9();
+      return fail10();
     }
     if (!Buffer.from(verificationResultBytes(result)).equals(Buffer.from(bytes)))
-      return fail9();
+      return fail10();
     if (result.verificationId !== verificationId || result.suiteId !== suiteId || result.suiteHash !== payload.suiteHash || result.repositoryRevision !== payload.repositoryRevision || result.status !== payload.status || result.completedAt !== event.occurredAt || JSON.stringify(result.commands.filter((command) => command.status !== "passed").map((command) => command.commandId)) !== JSON.stringify(payload.nonPassedCommandIds))
-      return fail9();
+      return fail10();
     sources.push({
       path: `@verification/${verificationId}`,
       kind: "verification_result",
@@ -70890,7 +71035,7 @@ var CONVERSATION_EVENT_ID = /^cve_[a-f0-9]{64}$/u;
 var ADAPTER_ID = /^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u;
 var MAXIMUM_STATE_BYTES = 2 * 1024 * 1024;
 var MAXIMUM_LEASE_MS = 30 * 6e4;
-function fail10(code, message, cause) {
+function fail11(code, message, cause) {
   throw new AgentWorkforceError(code, message, cause === void 0 ? void 0 : { cause });
 }
 function digest4(value) {
@@ -70955,14 +71100,14 @@ async function readBounded(path) {
   try {
     const info = await lstat30(path);
     if (!info.isFile() || info.isSymbolicLink() || info.size > MAXIMUM_STATE_BYTES || process.platform !== "win32" && (info.mode & 63) !== 0)
-      fail10("workforce_state_invalid", "A workforce state file is unsafe.");
+      fail11("workforce_state_invalid", "A workforce state file is unsafe.");
     return readFile18(path, "utf8");
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
     if (error instanceof AgentWorkforceError)
       throw error;
-    fail10("workforce_state_invalid", "A workforce state file could not be read.", error);
+    fail11("workforce_state_invalid", "A workforce state file could not be read.", error);
   }
 }
 
@@ -70971,7 +71116,7 @@ import { resolve as resolve43 } from "node:path";
 import { readdir as readdir12 } from "node:fs/promises";
 async function assignmentPath(root2, assignmentId) {
   if (!ASSIGNMENT_ID.test(assignmentId))
-    fail10("assignment_invalid", "The assignment ID is invalid.");
+    fail11("assignment_invalid", "The assignment ID is invalid.");
   const current = await state(root2);
   return {
     path: resolve43(current.base, "assignments", `${assignmentId}.json`),
@@ -70986,21 +71131,21 @@ async function readAssignmentState(root2, assignmentId) {
 async function readAssignmentAt(root2, assignmentId, target) {
   const source = await readBounded(target.path);
   if (source === null)
-    fail10("assignment_not_found", "The assignment does not exist.");
+    fail11("assignment_not_found", "The assignment does not exist.");
   const value = JSON.parse(source);
   if (!validAssignment(value, target.projectId) || value.assignmentId !== assignmentId)
-    fail10("workforce_state_invalid", "The assignment state is invalid.");
+    fail11("workforce_state_invalid", "The assignment state is invalid.");
   const contract = await resolveRoleContract(root2, value.roleId);
   if (value.roleVersion === void 0 || value.roleContractHash === void 0) {
     if (contract.sourceKind !== "built_in")
-      fail10("workforce_state_invalid", "A legacy assignment cannot bind to a repository role.");
+      fail11("workforce_state_invalid", "A legacy assignment cannot bind to a repository role.");
     return {
       source,
       value: { ...value, roleVersion: contract.version, roleContractHash: contract.contractHash }
     };
   }
   if (value.roleVersion !== contract.version || value.roleContractHash !== contract.contractHash)
-    fail10("assignment_lease_conflict", `Assignment ${assignmentId} is bound to a stale role contract.`);
+    fail11("assignment_lease_conflict", `Assignment ${assignmentId} is bound to a stale role contract.`);
   return { source, value };
 }
 async function readAssignment(root2, assignmentId) {
@@ -71010,7 +71155,7 @@ async function listAssignments(root2) {
   const current = await state(root2);
   const names = (await readdir12(resolve43(current.base, "assignments"))).filter((name2) => /^asn_[a-f0-9]{24}\.json$/u.test(name2)).sort();
   if (names.length > workforceLimits.maximumAssignments)
-    fail10("workforce_state_invalid", "The assignment limit was exceeded.");
+    fail11("workforce_state_invalid", "The assignment limit was exceeded.");
   return Promise.all(names.map(async (name2) => (await readAssignmentAt(root2, name2.slice(0, -5), {
     path: resolve43(current.base, "assignments", name2),
     projectId: current.manifest.projectId
@@ -71035,21 +71180,21 @@ var CapabilityPackageError = class extends Error {
 // packages/capabilities/dist/activation.js
 import { isIP } from "node:net";
 import { relative as relative10, resolve as resolve44, sep as sep10 } from "node:path";
-function fail11(message, cause) {
+function fail12(message, cause) {
   throw new CapabilityPackageError("capability_unsupported", message, cause === void 0 ? void 0 : { cause });
 }
 function decodeJson(bytes, label) {
   try {
     return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   } catch (error) {
-    return fail11(`${label} is not valid UTF-8 JSON.`, error);
+    return fail12(`${label} is not valid UTF-8 JSON.`, error);
   }
 }
 function safePackagePath(root2, value) {
   const path = resolve44(root2, value);
   const child = relative10(root2, path);
   if (child === "" || child === ".." || child.startsWith(`..${sep10}`)) {
-    fail11("A capability activation path escaped its immutable package root.");
+    fail12("A capability activation path escaped its immutable package root.");
   }
   return path;
 }
@@ -71058,32 +71203,32 @@ function httpUrl(value) {
   try {
     url = new URL(value);
   } catch (error) {
-    return fail11("An MCP HTTP transport URL is invalid.", error);
+    return fail12("An MCP HTTP transport URL is invalid.", error);
   }
   const host = url.hostname.toLowerCase();
   const loopback = host === "localhost" || host === "::1" || host === "[::1]" || host.startsWith("127.") || isIP(host) === 6 && host === "::1";
   if (url.username !== "" || url.password !== "" || url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) {
-    fail11("MCP HTTP transports require HTTPS, or HTTP on a loopback host, without URL credentials.");
+    fail12("MCP HTTP transports require HTTPS, or HTTP on a loopback host, without URL credentials.");
   }
   return url.toString();
 }
 function mcpActivation(value) {
   const entrypoint = value.manifest.entrypoint;
   if (entrypoint.kind !== "mcp_server")
-    fail11("The resolved MCP activation entrypoint is inconsistent.");
+    fail12("The resolved MCP activation entrypoint is inconsistent.");
   const file = value.files.find((item) => item.path === entrypoint.runtimeDescriptorPath);
   if (file === void 0)
-    fail11("An MCP capability is missing its runtime descriptor.");
+    fail12("An MCP capability is missing its runtime descriptor.");
   const decoded = decodeJson(file.bytes, entrypoint.runtimeDescriptorPath);
   if (!validateSchema("mcpRuntimeDescriptor", decoded).valid) {
-    fail11("An MCP runtime descriptor does not satisfy the provider-neutral v1 contract.");
+    fail12("An MCP runtime descriptor does not satisfy the provider-neutral v1 contract.");
   }
   const descriptor = decoded;
   if (descriptor.transport.kind === "stdio") {
     const transport = descriptor.transport;
     const entrypointPath = safePackagePath(value.directoryPath, transport.entrypointPath);
     if (!value.files.some((item) => item.path === transport.entrypointPath)) {
-      fail11("An MCP stdio entrypoint is not part of the immutable package.");
+      fail12("An MCP stdio entrypoint is not part of the immutable package.");
     }
     return {
       kind: "capability_activation_request",
@@ -71105,7 +71250,7 @@ function mcpActivation(value) {
   const credential = descriptor.transport.bearerTokenCredential;
   const declared = [...entrypoint.credentialNames];
   if (credential === null && declared.length !== 0 || credential !== null && (declared.length !== 1 || declared[0] !== credential)) {
-    fail11("An MCP HTTP bearer credential must exactly match the package credential declaration.");
+    fail12("An MCP HTTP bearer credential must exactly match the package credential declaration.");
   }
   return {
     kind: "capability_activation_request",
@@ -71126,17 +71271,17 @@ function mcpActivation(value) {
 function pluginActivation(value) {
   const entrypoint = value.manifest.entrypoint;
   if (entrypoint.kind !== "provider_plugin")
-    fail11("The resolved plugin activation entrypoint is inconsistent.");
+    fail12("The resolved plugin activation entrypoint is inconsistent.");
   const expectedPath = entrypoint.provider === "codex" ? ".codex-plugin/plugin.json" : ".claude-plugin/plugin.json";
   if (entrypoint.pluginManifestPath !== expectedPath) {
-    fail11(`A ${entrypoint.provider} plugin must use its native ${expectedPath} manifest.`);
+    fail12(`A ${entrypoint.provider} plugin must use its native ${expectedPath} manifest.`);
   }
   const file = value.files.find((item) => item.path === entrypoint.pluginManifestPath);
   if (file === void 0)
-    fail11("A provider plugin manifest is missing from the immutable package.");
+    fail12("A provider plugin manifest is missing from the immutable package.");
   const decoded = decodeJson(file.bytes, entrypoint.pluginManifestPath);
   if (typeof decoded !== "object" || decoded === null || Array.isArray(decoded) || typeof decoded.name !== "string" || decoded.name.length === 0 || decoded.version !== value.manifest.version) {
-    fail11("A provider plugin requires a native name and an exact outer-package version.");
+    fail12("A provider plugin requires a native name and an exact outer-package version.");
   }
   return {
     kind: "capability_activation_request",
@@ -71163,10 +71308,10 @@ function createCapabilityActivationRequests(packages) {
   });
   const serverNames = result.flatMap((item) => item.runtime.kind === "mcp_stdio" || item.runtime.kind === "mcp_http" ? [item.runtime.serverName] : []);
   if (new Set(serverNames).size !== serverNames.length)
-    fail11("Resolved MCP capabilities contain duplicate provider server names.");
+    fail12("Resolved MCP capabilities contain duplicate provider server names.");
   for (const item of result) {
     if (!validateSchema("adapterCapabilityActivationRequest", item).valid) {
-      fail11("A resolved provider capability activation request is invalid.");
+      fail12("A resolved provider capability activation request is invalid.");
     }
   }
   return result.sort((left, right) => left.capabilityId.localeCompare(right.capabilityId));
@@ -71191,7 +71336,7 @@ function sameFileAcrossStatSurfaces2(pathObservation, handleObservation) {
 function sameFileWithinStatSurface2(before, after) {
   return sameFileIdentityWithinStatSurface(before, after) && sameMetadata2(before, after);
 }
-function fail12(message, cause) {
+function fail13(message, cause) {
   throw new CapabilityPackageError("capability_unsafe_package", message, cause === void 0 ? void 0 : { cause });
 }
 function boundedRegularFile(info, maximumBytes2) {
@@ -71200,24 +71345,24 @@ function boundedRegularFile(info, maximumBytes2) {
 async function readBoundedRegularFile(path, maximumBytes2) {
   const beforePath = await lstat31(path);
   if (!boundedRegularFile(beforePath, maximumBytes2))
-    fail12("Capability packages may contain only bounded regular files.");
+    fail13("Capability packages may contain only bounded regular files.");
   let handle;
   try {
     handle = await open16(path, constants13.O_RDONLY | constants13.O_NOFOLLOW);
     const openedHandle = await handle.stat();
     const afterOpenPath = await lstat31(path);
     if (!boundedRegularFile(openedHandle, maximumBytes2) || !boundedRegularFile(afterOpenPath, maximumBytes2) || !sameFileWithinStatSurface2(beforePath, afterOpenPath) || !sameFileAcrossStatSurfaces2(afterOpenPath, openedHandle))
-      fail12("A capability file changed before it was read.");
+      fail13("A capability file changed before it was read.");
     const bytes = await handle.readFile();
     const afterReadHandle = await handle.stat();
     const afterReadPath = await lstat31(path);
     if (!boundedRegularFile(afterReadHandle, maximumBytes2) || !boundedRegularFile(afterReadPath, maximumBytes2) || !sameFileWithinStatSurface2(openedHandle, afterReadHandle) || !sameFileWithinStatSurface2(afterOpenPath, afterReadPath) || !sameFileAcrossStatSurfaces2(afterReadPath, afterReadHandle))
-      fail12("A capability file changed while it was read.");
+      fail13("A capability file changed while it was read.");
     return bytes;
   } catch (error) {
     if (error instanceof CapabilityPackageError)
       throw error;
-    return fail12("A capability file could not be opened safely.", error);
+    return fail13("A capability file could not be opened safely.", error);
   } finally {
     await handle?.close();
   }
@@ -71240,12 +71385,12 @@ function portable(value) {
 function compare(left, right) {
   return left === right ? 0 : left < right ? -1 : 1;
 }
-function fail13(code, message, cause) {
+function fail14(code, message, cause) {
   throw new CapabilityPackageError(code, message, cause === void 0 ? void 0 : { cause });
 }
 function within(root2, path) {
   if (!isPathInsideDirectory(root2, path))
-    fail13("capability_unsafe_package", "A capability path escaped its package root.");
+    fail14("capability_unsafe_package", "A capability path escaped its package root.");
 }
 async function collect(root2, current = root2) {
   const entries = await readdir13(current, { withFileTypes: true });
@@ -71254,15 +71399,15 @@ async function collect(root2, current = root2) {
     const path = resolve45(current, entry.name);
     within(root2, path);
     if (entry.isSymbolicLink())
-      fail13("capability_unsafe_package", "Symbolic links are not allowed in a capability package.");
+      fail14("capability_unsafe_package", "Symbolic links are not allowed in a capability package.");
     if (entry.isDirectory())
       files.push(...await collect(root2, path));
     else if (entry.isFile())
       files.push(path);
     else
-      fail13("capability_unsafe_package", "Unsupported filesystem entries are not allowed in a capability package.");
+      fail14("capability_unsafe_package", "Unsupported filesystem entries are not allowed in a capability package.");
     if (files.length > MAX_FILES + 1)
-      fail13("capability_unsafe_package", "The capability package file limit was exceeded.");
+      fail14("capability_unsafe_package", "The capability package file limit was exceeded.");
   }
   return files;
 }
@@ -71274,7 +71419,7 @@ function hashCapabilityFiles(files) {
       continue;
     total += file.bytes.byteLength;
     if (total > MAX_TOTAL_BYTES)
-      fail13("capability_unsafe_package", "The capability package size limit was exceeded.");
+      fail14("capability_unsafe_package", "The capability package size limit was exceeded.");
     hash2.update(`${Buffer.byteLength(file.path)}:${file.path}:${file.bytes.byteLength}:`);
     hash2.update(file.bytes);
   }
@@ -71283,16 +71428,16 @@ function hashCapabilityFiles(files) {
 async function readCapabilityPackage(directoryPath) {
   const info = await lstat32(directoryPath);
   if (!info.isDirectory() || info.isSymbolicLink())
-    fail13("capability_unsafe_package", "A capability package root must be a physical directory.");
+    fail14("capability_unsafe_package", "A capability package root must be a physical directory.");
   const paths = await collect(directoryPath);
   const manifestPath2 = resolve45(directoryPath, CAPABILITY_MANIFEST);
   if (!paths.includes(manifestPath2))
-    fail13("capability_invalid", `The package is missing ${CAPABILITY_MANIFEST}.`);
+    fail14("capability_invalid", `The package is missing ${CAPABILITY_MANIFEST}.`);
   const files = [];
   for (const path of paths) {
     const relativePath = portable(relative11(directoryPath, path));
     if (relativePath !== CAPABILITY_MANIFEST && !isSafeCapabilityContentPath(relativePath))
-      fail13("capability_unsafe_package", `Capability package file '${relativePath}' is not publishable or installable.`);
+      fail14("capability_unsafe_package", `Capability package file '${relativePath}' is not publishable or installable.`);
     files.push({
       path: relativePath,
       bytes: await readBoundedRegularFile(path, relativePath === CAPABILITY_MANIFEST ? MAX_MANIFEST_BYTES2 : MAX_TOTAL_BYTES)
@@ -71302,16 +71447,16 @@ async function readCapabilityPackage(directoryPath) {
   try {
     manifest = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(files.find((file) => file.path === CAPABILITY_MANIFEST).bytes));
   } catch (error) {
-    fail13("capability_invalid", `${CAPABILITY_MANIFEST} is not valid UTF-8 JSON.`, error);
+    fail14("capability_invalid", `${CAPABILITY_MANIFEST} is not valid UTF-8 JSON.`, error);
   }
   if (!validateSchema("capabilityPackageManifest", manifest).valid)
-    fail13("capability_invalid", `${CAPABILITY_MANIFEST} does not satisfy the v1 contract.`);
+    fail14("capability_invalid", `${CAPABILITY_MANIFEST} does not satisfy the v1 contract.`);
   const typed = manifest;
   if (typed.kind !== typed.entrypoint.kind)
-    fail13("capability_invalid", "The package kind and entrypoint kind differ.");
+    fail14("capability_invalid", "The package kind and entrypoint kind differ.");
   const actual = hashCapabilityFiles(files);
   if (actual !== typed.contentHash)
-    fail13("capability_content_hash_mismatch", "The capability manifest hash differs from the verified package content.");
+    fail14("capability_content_hash_mismatch", "The capability manifest hash differs from the verified package content.");
   if (typed.entrypoint.kind === "skill") {
     const entrypoint = typed.entrypoint;
     const skillFile = files.find((file) => file.path === entrypoint.manifestPath);
@@ -71322,12 +71467,12 @@ async function readCapabilityPackage(directoryPath) {
       skill = null;
     }
     if (!validateSchema("skill", skill).valid || skill.skillId !== entrypoint.skillId || skill.contentHash !== actual)
-      fail13("capability_invalid", "A skill capability must contain a matching, independently valid lervo-skill.json contract.");
+      fail14("capability_invalid", "A skill capability must contain a matching, independently valid lervo-skill.json contract.");
   }
   if (typed.entrypoint.kind === "provider_plugin") {
     const entrypoint = typed.entrypoint;
     if (!files.some((file) => file.path === entrypoint.pluginManifestPath))
-      fail13("capability_invalid", "The provider plugin manifest path is missing from the package.");
+      fail14("capability_invalid", "The provider plugin manifest path is missing from the package.");
   }
   const verified = {
     manifest: structuredClone(typed),
@@ -71386,7 +71531,7 @@ function compareCapabilityVersions(left, right) {
 function key(id2, version) {
   return `${encodeURIComponent(id2)}@${version}`;
 }
-function fail14(code, message, cause) {
+function fail15(code, message, cause) {
   throw new CapabilityPackageError(code, message, cause === void 0 ? void 0 : { cause });
 }
 function capabilityRoot(repositoryRoot, scope, userRoot) {
@@ -71397,7 +71542,7 @@ async function discoverCapabilityRoot(root2, sourceKind) {
   try {
     const info = await lstat33(root2);
     if (!info.isDirectory() || info.isSymbolicLink())
-      fail14("capability_unsafe_package", "A capability root must be a physical directory.");
+      fail15("capability_unsafe_package", "A capability root must be a physical directory.");
     entries = await readdir14(root2, { withFileTypes: true });
   } catch (error) {
     if (error.code === "ENOENT")
@@ -71410,7 +71555,7 @@ async function discoverCapabilityRoot(root2, sourceKind) {
       continue;
     const verified = await readCapabilityPackage(resolve46(root2, entry.name));
     if (entry.name !== key(verified.manifest.capabilityId, verified.manifest.version))
-      fail14("capability_invalid", `Capability directory '${entry.name}' does not match its immutable coordinate.`);
+      fail15("capability_invalid", `Capability directory '${entry.name}' does not match its immutable coordinate.`);
     result.push({ ...verified, source: { kind: sourceKind, uri: `${sourceKind}:${entry.name}` } });
   }
   return result;
@@ -71422,7 +71567,7 @@ function providerCompatible(candidate, provider) {
 async function resolveCapabilities(input) {
   const requested = [...new Set(input.capabilityIds)].sort();
   if (requested.length > 64 || requested.some((id2) => !/^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$/u.test(id2) || id2.length > 150))
-    fail14("capability_invalid", "A requested capability ID is invalid.");
+    fail15("capability_invalid", "A requested capability ID is invalid.");
   const candidates = [
     ...await discoverCapabilityRoot(capabilityRoot(input.repositoryRoot, "project"), "project"),
     ...await discoverCapabilityRoot(capabilityRoot(input.repositoryRoot, "user", input.userRoot), "user")
@@ -71434,18 +71579,18 @@ async function resolveCapabilities(input) {
     const already = selected.get(capabilityId);
     if (already !== void 0) {
       if (coordinate !== void 0 && (already.version !== coordinate.version || already.contentHash !== coordinate.contentHash))
-        fail14("capability_conflict", `Capability '${capabilityId}' has conflicting dependency coordinates.`);
+        fail15("capability_conflict", `Capability '${capabilityId}' has conflicting dependency coordinates.`);
       return;
     }
     if (resolving.has(capabilityId) || resolving.size >= 64)
-      fail14("capability_conflict", `Capability '${capabilityId}' has cyclic or over-deep dependencies.`);
+      fail15("capability_conflict", `Capability '${capabilityId}' has cyclic or over-deep dependencies.`);
     const compatible = candidates.filter((item) => item.manifest.capabilityId === capabilityId && providerCompatible(item, input.provider) && item.manifest.compatibility.platforms.includes(input.platform));
     compatible.sort((a, b) => a.source.kind === b.source.kind ? compareCapabilityVersions(b.manifest.version, a.manifest.version) : a.source.kind === "project" ? -1 : 1);
     const candidate = coordinate === void 0 ? compatible[0] : compatible.find((item) => item.manifest.version === coordinate.version && item.manifest.contentHash === coordinate.contentHash);
     if (candidate === void 0)
-      fail14("capability_not_found", `No compatible package resolved capability '${capabilityId}'${coordinate === void 0 ? "" : " at its exact dependency coordinate"}.`);
+      fail15("capability_not_found", `No compatible package resolved capability '${capabilityId}'${coordinate === void 0 ? "" : " at its exact dependency coordinate"}.`);
     if (input.allowedPermissions !== void 0 && candidate.manifest.requiredPermissions.some((permission) => !input.allowedPermissions.includes(permission)))
-      fail14("capability_unsupported", `Capability '${capabilityId}' requires permission not allowed by the role.`);
+      fail15("capability_unsupported", `Capability '${capabilityId}' requires permission not allowed by the role.`);
     resolving.add(capabilityId);
     try {
       for (const dependency of candidate.manifest.dependencies)
@@ -71494,7 +71639,7 @@ async function resolveCapabilities(input) {
     }))
   };
   if (!validateSchema("capabilityLock", lock).valid)
-    fail14("capability_invalid", "The resolved capability lock is invalid.");
+    fail15("capability_invalid", "The resolved capability lock is invalid.");
   return {
     selected: values,
     activationPackages: values.map((item) => activationPackages.get(item.capabilityId)),
@@ -71504,24 +71649,42 @@ async function resolveCapabilities(input) {
 
 // packages/agent-workforce/dist/agent-registry.js
 import { resolve as resolve47 } from "node:path";
+async function readAgentRegistryState(root2, options = {}) {
+  const current = await state(root2, options);
+  const path = resolve47(current.base, "agents.json");
+  const source = await readBounded(path);
+  const value = source === null ? { schemaVersion: 1, kind: "lervo_agent_registry", agents: [] } : JSON.parse(source);
+  if (value.schemaVersion !== 1 || value.kind !== "lervo_agent_registry" || !Array.isArray(value.agents) || value.agents.length > workforceLimits.maximumAgents || !value.agents.every((agent) => validAgent(agent, current.manifest.projectId)))
+    fail11("workforce_state_invalid", "The agent registry is invalid.");
+  const ids = value.agents.map((agent) => agent.agentId);
+  if (new Set(ids).size !== ids.length || value.agents.some((agent) => agent.parentAgentId !== null && !ids.includes(agent.parentAgentId)))
+    fail11("workforce_state_invalid", "The agent registry contains duplicate or missing parent identities.");
+  return {
+    path,
+    lockPath: resolve47(current.base, "agents.lock"),
+    source,
+    value,
+    projectId: current.manifest.projectId
+  };
+}
 async function normalizeAgentRole(root2, agent) {
   const contract = await resolveRoleContract(root2, agent.roleId);
   const currentProfileHash = roleProfileHash(contract.definition.profile);
   const legacyCapabilityHash = digest4(stableJson2(contract.definition.profile.capabilities));
   if (agent.roleVersion === void 0 || agent.roleContractHash === void 0) {
     if (contract.sourceKind !== "built_in" || agent.roleProfileHash !== currentProfileHash || agent.capabilityHash !== legacyCapabilityHash || agent.capabilityPackages !== void 0) {
-      fail10("workforce_state_invalid", `Legacy agent ${agent.agentId} cannot be bound to the current built-in role contract.`);
+      fail11("workforce_state_invalid", `Legacy agent ${agent.agentId} cannot be bound to the current built-in role contract.`);
     }
     return { ...agent, roleVersion: contract.version, roleContractHash: contract.contractHash };
   }
   try {
     assertRoleContractBinding(contract, agent);
   } catch (error) {
-    fail10("agent_state_conflict", `Agent ${agent.agentId} is bound to a stale role contract.`, error);
+    fail11("agent_state_conflict", `Agent ${agent.agentId} is bound to a stale role contract.`, error);
   }
   if (agent.capabilityPackages === void 0) {
     if (agent.capabilityHash !== legacyCapabilityHash)
-      fail10("agent_state_conflict", `Agent ${agent.agentId} capability binding is stale.`);
+      fail11("agent_state_conflict", `Agent ${agent.agentId} capability binding is stale.`);
     return agent;
   }
   const current = await resolveCapabilities({
@@ -71541,7 +71704,7 @@ async function normalizeAgentRole(root2, agent) {
     sourceKind
   }));
   if (stableJson2(packages) !== stableJson2(agent.capabilityPackages))
-    fail10("agent_state_conflict", `Agent ${agent.agentId} capability package binding is stale.`);
+    fail11("agent_state_conflict", `Agent ${agent.agentId} capability package binding is stale.`);
   const currentCapabilityHash = digest4(stableJson2({
     permissions: contract.definition.profile.capabilities,
     packages: packages.map(({ capabilityId, version, contentHash: contentHash2 }) => ({
@@ -71551,29 +71714,22 @@ async function normalizeAgentRole(root2, agent) {
     }))
   }));
   if (agent.capabilityHash !== currentCapabilityHash)
-    fail10("agent_state_conflict", `Agent ${agent.agentId} capability binding is stale.`);
+    fail11("agent_state_conflict", `Agent ${agent.agentId} capability binding is stale.`);
   return agent;
 }
 function normalizeAgent(root2, agent) {
   return normalizeAgentRole(root2, withAgentDisplayIdentity(agent));
 }
 async function registry(root2, options = {}) {
-  const current = await state(root2, options);
-  const path = resolve47(current.base, "agents.json");
-  const source = await readBounded(path);
-  const value = source === null ? { schemaVersion: 1, kind: "lervo_agent_registry", agents: [] } : JSON.parse(source);
-  if (value.schemaVersion !== 1 || value.kind !== "lervo_agent_registry" || !Array.isArray(value.agents) || value.agents.length > workforceLimits.maximumAgents || !value.agents.every((agent) => validAgent(agent, current.manifest.projectId)))
-    fail10("workforce_state_invalid", "The agent registry is invalid.");
-  const ids = value.agents.map((agent) => agent.agentId);
-  if (new Set(ids).size !== ids.length || value.agents.some((agent) => agent.parentAgentId !== null && !ids.includes(agent.parentAgentId)))
-    fail10("workforce_state_invalid", "The agent registry contains duplicate or missing parent identities.");
+  const current = await readAgentRegistryState(root2, options);
+  const value = current.value;
   const normalized2 = await Promise.all(value.agents.map((agent) => normalizeAgent(root2, agent)));
   return {
-    path,
-    lockPath: resolve47(current.base, "agents.lock"),
-    source,
+    path: current.path,
+    lockPath: current.lockPath,
+    source: current.source,
     value: { ...value, agents: normalized2 },
-    projectId: current.manifest.projectId
+    projectId: current.projectId
   };
 }
 async function listAgents(root2, options = {}) {
@@ -71583,7 +71739,7 @@ async function listAgents(root2, options = {}) {
 // packages/agent-workforce/dist/assignment-lease.js
 function exactLease(assignment, agentId, leaseId, now) {
   if (assignment.status !== "leased" || assignment.lease === null || assignment.lease.agentId !== agentId || assignment.lease.leaseId !== leaseId || Date.parse(assignment.lease.expiresAt) <= now.getTime())
-    fail10("assignment_lease_conflict", "The assignment lease is absent, stale, expired, or owned by another agent.");
+    fail11("assignment_lease_conflict", "The assignment lease is absent, stale, expired, or owned by another agent.");
 }
 async function assertAssignmentExecutionAuthority(input) {
   const now = input.now ?? /* @__PURE__ */ new Date();
@@ -71593,14 +71749,14 @@ async function assertAssignmentExecutionAuthority(input) {
   ]);
   const agent = agents.find((item) => item.agentId === input.agentId);
   if (agent === void 0 || agent.status !== "active" || agent.roleId !== assignment.roleId || agent.provider !== "any" && agent.provider !== input.provider)
-    fail10("agent_state_conflict", "The managed run agent, role, status, or provider does not match the assignment.");
+    fail11("agent_state_conflict", "The managed run agent, role, status, or provider does not match the assignment.");
   if (agent.roleVersion !== assignment.roleVersion || agent.roleContractHash !== assignment.roleContractHash)
-    fail10("agent_state_conflict", "The managed run agent and assignment role contracts differ.");
+    fail11("agent_state_conflict", "The managed run agent and assignment role contracts differ.");
   exactLease(assignment, input.agentId, input.leaseId, now);
   const expectedPaths = [...new Set(input.expectedPaths)].sort();
   const suites = [...new Set(input.verificationSuiteIds)].sort();
   if (expectedPaths.length !== input.expectedPaths.length || !expectedPaths.every(safePath3) || !expectedPaths.every((path) => assignment.expectedPaths.some((scope) => repositoryPathWithinScope(path, scope))) || JSON.stringify(suites) !== JSON.stringify([...assignment.verificationSuiteIds].sort()))
-    fail10("assignment_path_conflict", "The managed run paths or verification suites differ from the leased assignment.");
+    fail11("assignment_path_conflict", "The managed run paths or verification suites differ from the leased assignment.");
   return { assignment: structuredClone(assignment), agent: structuredClone(agent) };
 }
 
@@ -71631,7 +71787,7 @@ var transitions = {
   removed: [],
   recovery_required: ["cleanup_eligible", "removed"]
 };
-function fail15(code, message) {
+function fail16(code, message) {
   throw new AgentWorkforceError(code, message);
 }
 function validTime2(value) {
@@ -71649,7 +71805,7 @@ function isAgentWorkspace(value) {
 function requireEvidence(evidence, fields) {
   const missing = fields.filter((field2) => evidence[field2] !== true);
   if (missing.length > 0)
-    fail15("workspace_transition_conflict", `Workspace evidence is missing: ${missing.join(", ")}.`);
+    fail16("workspace_transition_conflict", `Workspace evidence is missing: ${missing.join(", ")}.`);
 }
 function validateTransitionEvidence(input) {
   const { nextState, evidence } = input;
@@ -71657,34 +71813,34 @@ function validateTransitionEvidence(input) {
     requireEvidence(evidence, ["hostInspected", "markerMatched", "checkoutClean"]);
   if (nextState === "active") {
     if (input.writerSession === void 0 || input.writerSession === null)
-      fail15("workspace_transition_conflict", "Workspace activation requires one writer session.");
+      fail16("workspace_transition_conflict", "Workspace activation requires one writer session.");
   }
   if (nextState === "paused") {
     requireEvidence(evidence, ["writerFrozen"]);
     if (input.writerSession !== null)
-      fail15("workspace_transition_conflict", "Workspace pause must release its writer session.");
+      fail16("workspace_transition_conflict", "Workspace pause must release its writer session.");
   }
   if (nextState === "sealing") {
     requireEvidence(evidence, ["writerFrozen"]);
     if (input.writerSession !== null)
-      fail15("workspace_transition_conflict", "Workspace sealing must freeze its writer.");
+      fail16("workspace_transition_conflict", "Workspace sealing must freeze its writer.");
   }
   if (nextState === "sealed") {
     requireEvidence(evidence, ["checkoutClean"]);
     if (!validSeal(input.sealedResult ?? null))
-      fail15("workspace_transition_conflict", "Workspace sealing requires an immutable result.");
+      fail16("workspace_transition_conflict", "Workspace sealing requires an immutable result.");
   }
   if (nextState === "integration_pending") {
     requireEvidence(evidence, ["queueEntryCommitted"]);
     if (!/^inq_[a-f0-9]{24}$/u.test(input.integrationQueueEntryId ?? ""))
-      fail15("workspace_transition_conflict", "Workspace queue evidence is missing.");
+      fail16("workspace_transition_conflict", "Workspace queue evidence is missing.");
   }
   if (nextState === "integrating")
     requireEvidence(evidence, ["integrationLeaseHeld"]);
   if (nextState === "integrated") {
     requireEvidence(evidence, ["integrationVerified"]);
     if (!/^int_[a-f0-9]{24}$/u.test(input.integrationEvidenceId ?? ""))
-      fail15("workspace_transition_conflict", "Integration evidence is missing.");
+      fail16("workspace_transition_conflict", "Integration evidence is missing.");
   }
   if (nextState === "integration_conflict")
     requireEvidence(evidence, ["conflictAborted"]);
@@ -71693,20 +71849,20 @@ function validateTransitionEvidence(input) {
   if (nextState === "removing") {
     requireEvidence(evidence, ["cleanupPlanBound"]);
     if (!/^wcp_[a-f0-9]{24}$/u.test(input.cleanupPlanId ?? ""))
-      fail15("workspace_transition_conflict", "Cleanup plan evidence is missing.");
+      fail16("workspace_transition_conflict", "Cleanup plan evidence is missing.");
   }
   if (nextState === "removed")
     requireEvidence(evidence, ["hostAbsent", "gitMetadataAbsent"]);
   if (nextState === "recovery_required" && !/^[a-z][a-z0-9_]{1,99}$/u.test(input.recoveryReason ?? ""))
-    fail15("workspace_transition_conflict", "Recovery requires one bounded reason code.");
+    fail16("workspace_transition_conflict", "Recovery requires one bounded reason code.");
 }
 function transitionWorkspace(input) {
   if (!isAgentWorkspace(input.current))
-    fail15("workspace_invalid", "The workspace record is invalid.");
+    fail16("workspace_invalid", "The workspace record is invalid.");
   if (input.current.revision !== input.expectedRevision || input.current.generation !== input.expectedGeneration || !validTime2(input.occurredAt) || Date.parse(input.occurredAt) < Date.parse(input.current.updatedAt))
-    fail15("workspace_transition_conflict", "The workspace transition coordinate is stale.");
+    fail16("workspace_transition_conflict", "The workspace transition coordinate is stale.");
   if (!transitions[input.current.state].includes(input.nextState))
-    fail15("workspace_transition_conflict", `Workspace state cannot move from ${input.current.state} to ${input.nextState}.`);
+    fail16("workspace_transition_conflict", `Workspace state cannot move from ${input.current.state} to ${input.nextState}.`);
   validateTransitionEvidence({ ...input, evidence: input.evidence ?? {} });
   const next = {
     ...input.current,
@@ -71722,7 +71878,7 @@ function transitionWorkspace(input) {
     ...input.hostNativeInstanceDigest === void 0 ? {} : { host: { ...input.current.host, nativeInstanceDigest: input.hostNativeInstanceDigest } }
   };
   if (!isAgentWorkspace(next))
-    fail15("workspace_invalid", "The resulting workspace record is invalid.");
+    fail16("workspace_invalid", "The resulting workspace record is invalid.");
   return next;
 }
 function pathContains(scope, path) {
@@ -71858,9 +72014,6 @@ var WorkspaceHostError = class extends Error {
 // packages/adapter-contract/dist/result-binding.js
 var MAX_ADAPTER_TURN_RESULT_BYTES = 4 * 1024 * 1024;
 
-// packages/adapter-contract/dist/runtime-inspection.js
-var MAX_VERSION_BYTES = 16 * 1024;
-
 // packages/adapter-contract/dist/provider-process-environment.js
 import { dirname as dirname13, delimiter, resolve as resolve48 } from "node:path";
 function createProviderProcessEnvironment(environment = process.env, runtimeExecutable = process.execPath) {
@@ -71874,6 +72027,9 @@ function createProviderProcessEnvironment(environment = process.env, runtimeExec
   result[pathKey] = [runtimeDirectory, ...existing].join(delimiter);
   return result;
 }
+
+// packages/adapter-contract/dist/runtime-inspection.js
+var MAX_VERSION_BYTES = 16 * 1024;
 
 // packages/context/dist/filesystem.js
 import { constants as constants14 } from "node:fs";
@@ -74511,7 +74667,7 @@ var execute2 = promisify3(execFile3);
 var COMMIT2 = /^[a-f0-9]{40,64}$/u;
 var HASH13 = /^sha256:[a-f0-9]{64}$/u;
 var MARKER_NAME = "lervo-workspace-owner.json";
-function fail16(code, message, cause) {
+function fail17(code, message, cause) {
   throw new WorkspaceHostError(code, message, cause === void 0 ? void 0 : { cause });
 }
 function stableJson4(value) {
@@ -74532,7 +74688,7 @@ async function git(root2, arguments_) {
     });
     return stdout.trim();
   } catch (error) {
-    fail16("host_git_failed", "The Git workspace operation failed.", error);
+    fail17("host_git_failed", "The Git workspace operation failed.", error);
   }
 }
 async function gitSucceeds(root2, arguments_) {
@@ -74545,7 +74701,7 @@ async function gitSucceeds(root2, arguments_) {
   } catch (error) {
     if (error.code === 1)
       return false;
-    fail16("host_git_failed", "The Git workspace predicate failed.", error);
+    fail17("host_git_failed", "The Git workspace predicate failed.", error);
   }
 }
 async function registeredWorktrees(repositoryRoot) {
@@ -74591,7 +74747,7 @@ var GitWorkspaceEvidence = class {
   }
   validateRequest(repositoryRoot, workspacePath, marker, allowSamePath = false) {
     if (!isAbsolute5(repositoryRoot) || !isAbsolute5(workspacePath) || resolve58(repositoryRoot) !== repositoryRoot || resolve58(workspacePath) !== workspacePath || !allowSamePath && repositoryRoot === workspacePath || !this.validMarker(marker))
-      fail16("host_coordinate_invalid", "The Git workspace coordinate is invalid.");
+      fail17("host_coordinate_invalid", "The Git workspace coordinate is invalid.");
   }
   async markerMatches(gitDirectory, expected) {
     try {
@@ -74606,7 +74762,7 @@ var GitWorkspaceEvidence = class {
   }
   async writeMarker(workspacePath, marker) {
     if (!this.validMarker(marker))
-      fail16("host_coordinate_invalid", "The workspace ownership marker is invalid.");
+      fail17("host_coordinate_invalid", "The workspace ownership marker is invalid.");
     const gitDirectory = await git(workspacePath, [
       "rev-parse",
       "--path-format=absolute",
@@ -74624,7 +74780,7 @@ var GitWorkspaceEvidence = class {
   async inspect(input) {
     this.validateRequest(input.repositoryRoot, input.workspacePath, input.marker, true);
     if (!COMMIT2.test(input.baseCommit))
-      fail16("host_coordinate_invalid", "The Git inspection base is invalid.");
+      fail17("host_coordinate_invalid", "The Git inspection base is invalid.");
     const worktrees = await registeredWorktrees(input.repositoryRoot);
     let registeredPath = input.workspacePath;
     try {
@@ -74682,7 +74838,7 @@ var GitWorkspaceEvidence = class {
     ])).split(/\r?\n/u);
     const [headCommit, treeHash, gitDirectory] = coordinates;
     if (coordinates.length !== 3 || !COMMIT2.test(headCommit) || !COMMIT2.test(treeHash) || !isAbsolute5(gitDirectory) || gitDirectory.includes("\0"))
-      fail16("host_coordinate_invalid", "The Git inspection coordinates are invalid.");
+      fail17("host_coordinate_invalid", "The Git inspection coordinates are invalid.");
     const [status, operation, matched] = await Promise.all([
       git(input.workspacePath, ["status", "--porcelain=v2", "--untracked-files=normal"]),
       gitOperationInProgress(gitDirectory),
@@ -74726,7 +74882,7 @@ var GitWorkspaceEvidence = class {
   }
   async inspectCleanup(request) {
     if (!/^refs\/(?:heads|tags)\/[A-Za-z0-9._/-]{1,512}$/u.test(request.integrationTargetRef) || !COMMIT2.test(request.integratedHeadCommit))
-      fail16("host_coordinate_invalid", "The Git cleanup target coordinate is invalid.");
+      fail17("host_coordinate_invalid", "The Git cleanup target coordinate is invalid.");
     const inspection = await this.inspect(request);
     if (inspection.status === "absent")
       return {
@@ -74767,16 +74923,16 @@ var GitWorkspaceEvidence = class {
   async provisionDetached(request, beforeMutation) {
     this.validateRequest(request.repositoryRoot, request.workspacePath, request.marker);
     if (!COMMIT2.test(request.baseCommit) || !/^idk_[A-Za-z0-9_-]{8,128}$/u.test(request.idempotencyKey))
-      fail16("host_coordinate_invalid", "The Git provision binding is invalid.");
+      fail17("host_coordinate_invalid", "The Git provision binding is invalid.");
     const existing = await this.inspect(request);
     if (existing.status !== "absent") {
       if (existing.markerMatched && existing.headCommit === request.baseCommit)
         return existing;
-      fail16("host_effect_uncertain", "A different workspace occupies the provision coordinate.");
+      fail17("host_effect_uncertain", "A different workspace occupies the provision coordinate.");
     }
     const parentInfo = await lstat41(dirname14(request.workspacePath));
     if (!parentInfo.isDirectory() || parentInfo.isSymbolicLink())
-      fail16("host_coordinate_invalid", "The workspace parent must be a real directory.");
+      fail17("host_coordinate_invalid", "The workspace parent must be a real directory.");
     await beforeMutation?.();
     await git(request.repositoryRoot, [
       "worktree",
@@ -74788,27 +74944,27 @@ var GitWorkspaceEvidence = class {
     try {
       await this.writeMarker(request.workspacePath, request.marker);
     } catch (error) {
-      fail16("host_effect_uncertain", "The worktree exists without its ownership marker.", error);
+      fail17("host_effect_uncertain", "The worktree exists without its ownership marker.", error);
     }
     return this.inspect(request);
   }
   async removeNonForce(request) {
     this.validateRequest(request.repositoryRoot, request.workspacePath, request.marker);
     if (!/^idk_[A-Za-z0-9_-]{8,128}$/u.test(request.idempotencyKey))
-      fail16("host_coordinate_invalid", "The Git removal binding is invalid.");
+      fail17("host_coordinate_invalid", "The Git removal binding is invalid.");
     const before = await this.inspect(request);
     if (before.status === "absent")
       return before;
     if (!before.markerMatched)
-      fail16("host_marker_mismatch", "The workspace ownership marker changed.");
+      fail17("host_marker_mismatch", "The workspace ownership marker changed.");
     if (before.gitOperationInProgress)
-      fail16("host_operation_in_progress", "A Git operation is in progress.");
+      fail17("host_operation_in_progress", "A Git operation is in progress.");
     if (!before.clean)
-      fail16("host_not_clean", "The workspace contains tracked or untracked changes.");
+      fail17("host_not_clean", "The workspace contains tracked or untracked changes.");
     await git(request.repositoryRoot, ["worktree", "remove", request.workspacePath]);
     const after = await this.inspect(request);
     if (after.status !== "absent")
-      fail16("host_effect_uncertain", "Git did not prove non-force worktree removal.");
+      fail17("host_effect_uncertain", "Git did not prove non-force worktree removal.");
     return after;
   }
 };
@@ -76275,6 +76431,31 @@ var searchCandidateRegistry = new SearchEvaluationEngineRegistry([
   { candidateId: "lexical-v2", engine: lexicalV2SearchEvaluationEngine }
 ]);
 
+// packages/repository-context/dist/repository-knowledge-ranker.js
+var productDefaultRepositoryKnowledgeRanker = {
+  prepare(entries) {
+    const index2 = new LexicalV2SearchIndex(entries.map((entry) => ({
+      kind: "verified_knowledge",
+      sourceId: entry.conceptId,
+      contentHash: entry.contentHash,
+      path: entry.path,
+      title: entry.title,
+      labels: entry.labels,
+      text: entry.text
+    })));
+    return {
+      engine: LEXICAL_V2_SEARCH_ENGINE,
+      adapterBuildId: LEXICAL_V2_ADAPTER_BUILD_ID,
+      rank(input) {
+        return index2.search(input.query, input.limit).hits.map((hit) => ({
+          conceptId: hit.source.sourceId,
+          score: hit.score
+        }));
+      }
+    };
+  }
+};
+
 // packages/repository-context/dist/query-projector-contract.js
 function searchQueryProjectionResponseSchema(maximumGeneratedQueries) {
   return {
@@ -76480,7 +76661,8 @@ async function selectTerminalContextCandidates(input) {
         repositoryRoot: input.repositoryRoot,
         query,
         limit: 50,
-        supplementalSources: input.supplementalSources
+        supplementalSources: input.supplementalSources,
+        ranker: productDefaultRepositoryKnowledgeRanker
       })
     )
   );

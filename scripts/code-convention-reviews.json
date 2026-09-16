@@ -39,9 +39,9 @@
     },
     {
       "path": "apps/cli/src/upgrade-command.ts",
-      "contentHash": "sha256:af0b1f5f04c30863a018dbbfad3ba221452c9f8b18361c92ecafafcfe1f1c2a9",
+      "contentHash": "sha256:760dd259d8d7142260270c9507b7ea98ec48a684adbf2fcd92b56a78c0ea7574",
       "responsibility": "Repository upgrade plan/apply command",
-      "rationale": "Inspection, planning, stage application, lint, and receipt formatting all describe one bounded repository-upgrade lifecycle and share a single plan identity.",
+      "rationale": "Argument parsing, inspection, exact role-approval validation, stage application, lint, and receipt formatting all describe one bounded repository-upgrade command lifecycle and share one outer plan identity; workforce policy and persistence remain in their owning package.",
       "disposition": "cohesive"
     },
     {
@@ -84,6 +84,13 @@
       "contentHash": "sha256:17c7db1a525c188f1ebc67ea08f9966265f3b4701ea9b49f263df6f7dfa147dd",
       "responsibility": "Common provider-adapter contract evaluation",
       "rationale": "The module executes one provider-neutral adapter conformance lifecycle from descriptor and session start through context, turn, telemetry, result identity, and stop; provider translation and focused binding rules remain in linked modules.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/agent-workforce/src/role-binding-migration.ts",
+      "contentHash": "sha256:fcefb9e612a7460a9cc29f273105e84e74d900f4c9e9bb0de0ab7325846769d6",
+      "responsibility": "Workforce role-binding migration lifecycle",
+      "rationale": "Read-only planning, per-role approval binding, and atomic agent or assignment transitions are phases of one workforce migration lifecycle; role resolution, capability resolution, state storage, event schemas, and CLI presentation remain behind linked package boundaries.",
       "disposition": "cohesive"
     },
     {

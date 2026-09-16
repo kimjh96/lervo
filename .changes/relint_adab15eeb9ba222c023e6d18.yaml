@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_adab15eeb9ba222c023e6d18"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Allow exact approval of repository role binding migrations during upgrade."
