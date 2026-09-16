@@ -15,6 +15,7 @@ import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import { readBoundSupervisionRequest } from "./supervision-bound-request.js";
 import {
   inspectResultDeliveryRecovery,
+  resultDeliveryTargetsCurrentSnapshot,
   type ResultReplayStatus,
 } from "./supervision-result-delivery-recovery.js";
 import { supersedeUnstartedResultDelivery } from "./supervision-result-delivery-supersession.js";
@@ -50,7 +51,13 @@ export class SupervisionResultDelivery {
     const source = await this.tasks.read(excludeDecision ? operatingDecisionId(plan) : undefined);
     const planHash = operatingContractHash(plan);
     const queued = source.supervisionEvents.filter(
-      (event) => event.type === "work.supervision.delivery.queued",
+      (event) =>
+        event.type === "work.supervision.delivery.queued" &&
+        resultDeliveryTargetsCurrentSnapshot(
+          event.payload.completionEventId,
+          source.workstreamHash,
+          this.storage.events,
+        ),
     );
     const planQueued = queued.some((event) => event.payload.planHash === planHash);
     if (

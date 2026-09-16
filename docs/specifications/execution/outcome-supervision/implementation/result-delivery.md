@@ -14,6 +14,8 @@ Before transport, the Node copies frozen, hash-checked result content from repos
 
 Pending delivery supplies a durable next-check time and causes no new owner proposal. Exhausted retries or deadline produce `result_delivery_recovery_exhausted`, leaving canonical work completed. An updated goal does not publish a prior completion's result. Authority revocation stops new sends but cannot undo an initiated transport call. The transport adapter owns its native cancellation and idempotency limits.
 
+Queue uniqueness and exhausted-delivery recovery are scoped to the exact completed workstream snapshot named by the queue's completion event. A successfully delivered older revision remains canonical history, but it neither blocks nor serves as recovery evidence for a later completed snapshot.
+
 One bounded replacement publication is permitted after four recorded failures only if the old outbound has no platform replay row, proving transport reservation never began. The owner reads that exact absence as `deliveryRecoverySafe` in the current supervision snapshot, then prepares a new publication under a fresh reviewed plan and deadline. The adapter rechecks the original replay absence before queueing and before replacement transport. A second queued publication disables further replacement. An unknown, sending, rejected or delivered replay state cannot justify a new outbound ID; ordinary exhausted delivery remains `result_delivery_recovery_exhausted`.
 
 The replacement reuses the accepted research result and independent review without rerunning its worker. A native Discord goal publishes as a reply to the source event's mapped message. The recovery fact contains no body, external message ID, target address or credential.

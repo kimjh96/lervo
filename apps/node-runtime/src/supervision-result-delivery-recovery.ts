@@ -6,6 +6,18 @@ import { readResultDeliveryReceipt } from "./supervision-result-delivery-receipt
 
 export type ResultReplayStatus = "absent" | "sending" | "unknown" | "rejected" | "delivered" | null;
 
+/** Historical delivery queues govern only the exact completed snapshot they published. */
+export function resultDeliveryTargetsCurrentSnapshot(
+  completionEventId: unknown,
+  workstreamHash: string,
+  events: Pick<EventStore, "get">,
+): boolean {
+  return (
+    typeof completionEventId === "string" &&
+    events.get(completionEventId)?.payload.snapshotContentHash === workstreamHash
+  );
+}
+
 export function hasExactRecoveryQueues(
   planHashes: readonly string[],
   replacementPlanHash?: string,
@@ -45,7 +57,13 @@ export async function inspectResultDeliveryRecovery(input: {
   if (input.replayStatus === undefined || input.source.workstream.status !== "completed")
     return false;
   const queued = input.source.supervisionEvents.filter(
-    (event) => event.type === "work.supervision.delivery.queued",
+    (event) =>
+      event.type === "work.supervision.delivery.queued" &&
+      resultDeliveryTargetsCurrentSnapshot(
+        event.payload.completionEventId,
+        input.source.workstreamHash,
+        input.events,
+      ),
   );
   if (
     !hasExactRecoveryQueues(

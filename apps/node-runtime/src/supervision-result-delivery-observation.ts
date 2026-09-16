@@ -7,6 +7,7 @@ import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 import type { SupervisionTaskSource } from "./supervision-task-source.js";
 import { readSupervisionJsonArtifact } from "./supervision-artifact-json.js";
 import { readResultDeliveryReceipt } from "./supervision-result-delivery-receipt.js";
+import { resultDeliveryTargetsCurrentSnapshot } from "./supervision-result-delivery-recovery.js";
 
 export async function observeResultDelivery(input: {
   source: Awaited<ReturnType<SupervisionTaskSource["read"]>>;
@@ -15,14 +16,15 @@ export async function observeResultDelivery(input: {
   now: string;
 }): Promise<Pick<OutcomeSupervisionSnapshotV1, "delivery" | "deliveryNextCheckAt">> {
   const queued = input.source.supervisionEvents.findLast(
-    (event) => event.type === "work.supervision.delivery.queued",
+    (event) =>
+      event.type === "work.supervision.delivery.queued" &&
+      resultDeliveryTargetsCurrentSnapshot(
+        event.payload.completionEventId,
+        input.source.workstreamHash,
+        input.events,
+      ),
   );
   if (queued === undefined) return { delivery: "not_attempted" };
-  if (
-    input.events.get(String(queued.payload.completionEventId))?.payload.snapshotContentHash !==
-    input.source.workstreamHash
-  )
-    return { delivery: "not_attempted" };
   const plan = (await readSupervisionJsonArtifact(
     input.artifacts,
     String(queued.payload.planHash),

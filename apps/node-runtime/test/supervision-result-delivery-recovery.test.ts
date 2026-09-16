@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canReplaceExhaustedDelivery,
   hasExactRecoveryQueues,
+  resultDeliveryTargetsCurrentSnapshot,
 } from "../src/supervision-result-delivery-recovery.js";
 
 describe("result delivery recovery", () => {
@@ -30,5 +31,22 @@ describe("result delivery recovery", () => {
     expect(hasExactRecoveryQueues(["old", "other"], "replacement")).toBe(false);
     expect(hasExactRecoveryQueues(["old", "replacement", "third"], "replacement")).toBe(false);
     expect(hasExactRecoveryQueues(["old", "replacement"])).toBe(false);
+  });
+
+  it("does not treat a prior completed snapshot as a competing publication", () => {
+    const events = {
+      get: (eventId: string) =>
+        ({
+          payload: {
+            snapshotContentHash: eventId === "evt_current" ? "sha256:current" : "sha256:prior",
+          },
+        }) as never,
+    };
+
+    expect(resultDeliveryTargetsCurrentSnapshot("evt_prior", "sha256:current", events)).toBe(false);
+    expect(resultDeliveryTargetsCurrentSnapshot("evt_current", "sha256:current", events)).toBe(
+      true,
+    );
+    expect(resultDeliveryTargetsCurrentSnapshot(null, "sha256:current", events)).toBe(false);
   });
 });
