@@ -411,6 +411,65 @@ it.each([
       expect(accepted.assignments[0]?.review?.verdict ?? null).toBe(
         reportUsage ? "accepted" : null,
       );
+      if (reportUsage) {
+        const migratedSource = structuredClone(await tasks.read());
+        const migratedAssignment = migratedSource.assignments[0]!;
+        const settledRevision = migratedAssignment.revision;
+        const previousRoleContractHash = migratedAssignment.roleContractHash;
+        const roleContractHash = `sha256:${"7".repeat(64)}`;
+        const occurredAt = new Date(Date.parse(migratedAssignment.updatedAt) + 1).toISOString();
+        migratedAssignment.revision += 1;
+        migratedAssignment.roleContractHash = roleContractHash;
+        migratedAssignment.updatedAt = occurredAt;
+        const previous = migratedSource.events.at(-1)!;
+        migratedSource.events.push({
+          eventId: `evt_${"7".repeat(32)}`,
+          projectId: previous.projectId,
+          seq: previous.seq + 1,
+          runId: `run_${"7".repeat(32)}`,
+          sessionId: `ses_${"7".repeat(32)}`,
+          type: "assignment.role.binding.changed",
+          occurredAt,
+          actor: { kind: "system" },
+          schemaVersion: 3,
+          policyVersion: f.binding.mandateHash,
+          payload: {
+            assignmentId: migratedAssignment.assignmentId,
+            previousRoleVersion: migratedAssignment.roleVersion,
+            previousRoleContractHash,
+            previousRequiredCapabilityHash: migratedAssignment.requiredCapabilityHash ?? null,
+            roleId: migratedAssignment.roleId,
+            roleVersion: migratedAssignment.roleVersion,
+            roleContractHash,
+            requiredCapabilityHash: migratedAssignment.requiredCapabilityHash ?? null,
+            revision: migratedAssignment.revision,
+          },
+          previousHash: previous.eventHash,
+          eventHash: `sha256:${"7".repeat(64)}`,
+        });
+        const migrated = await observeSupervisionTasks(
+          migratedSource,
+          storage.artifacts,
+          f.binding,
+          storage.events,
+        );
+        expect(migrated.unboundAssignmentIds).toEqual([]);
+        expect(migrated.assignments[0]).toMatchObject({
+          revision: settledRevision,
+          review: { verdict: "accepted" },
+        });
+        migratedSource.assignments[0]!.revision += 1;
+        expect(
+          (
+            await observeSupervisionTasks(
+              migratedSource,
+              storage.artifacts,
+              f.binding,
+              storage.events,
+            )
+          ).unboundAssignmentIds,
+        ).toEqual([migratedAssignment.assignmentId]);
+      }
       expect(accepted.delivery).toBe("not_attempted");
       expect(
         projectOutcomeSupervision({

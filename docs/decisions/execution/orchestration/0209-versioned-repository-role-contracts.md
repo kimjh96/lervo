@@ -29,6 +29,8 @@ When a shipped built-in definition changes and generated workforce state no long
 
 `agent.registered` and `assignment.created` add `roleVersion` and `roleContractHash`. Built-in agent refresh reuses `agent.identity.changed` with `changeKind=role_binding`. Assignment refresh records `assignment.role.binding.changed` with assignment ID, previous and next role version and contract hash, role ID, and revision.
 
+Refreshing a completed assignment must not retroactively erase a previously settled result and exact owner review. Outcome supervision may project that historical settled revision only when every later revision is a contiguous system-authored `assignment.role.binding.changed` chain whose first previous binding matches the settled responsibility and whose final binding matches current generated state. Any non-administrative revision, missing event, chain gap, task-contract change, or final mismatch invalidates the historical acceptance.
+
 These events retain opaque IDs, versions, and hashes only. They exclude role prose, source paths, profile bodies, task prose, prompts, outputs, credentials, and reasoning. Missing or rejected events restore the individual state file and mean its mutation did not commit. Invalid, missing, stale, cyclic, or incompatible role contracts prove no execution.
 
 ## Consequences

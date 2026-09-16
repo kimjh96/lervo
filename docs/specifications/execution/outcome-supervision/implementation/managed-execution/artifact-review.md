@@ -8,6 +8,8 @@ The version-1 CAS effect contains `schemaVersion`, `kind: work.artifact_review`,
 
 An admitted `execute_as_owner` decision must bind the exact effect, responsibility, rationale and owner. The journal verifies its stored plan and policy review and requires the result terminal event to precede the decision. Acceptance additionally requires a reconciled completed assignment, its exact current artifact set and passed references for every required verification suite. Missing verification, another reviewer, another result, changed responsibility or a later assignment revision cannot establish acceptance.
 
+The one exception is a fully observed post-settlement role-binding migration chain. Because that generated-only administration does not rerun or revise the completed task, the task projection keeps the exact settled assignment revision for its existing review while separately requiring every later role-binding event to form a contiguous system-authored chain ending at current generated state. Any semantic assignment transition still invalidates the review.
+
 The Node session uses canonical task observations, not caller-supplied task status. It checks the combined authority/task digest and graph, reobserves sources after loading artifacts, and checks the event head and deadlines inside the owner-fenced event transaction. A concurrent assignment revision can invalidate the recorded basis; later observation must still match that revision before recognizing acceptance. The operation neither mutates assignment files nor claims a transaction spanning filesystem and event storage.
 
 ## Persistence and recovery

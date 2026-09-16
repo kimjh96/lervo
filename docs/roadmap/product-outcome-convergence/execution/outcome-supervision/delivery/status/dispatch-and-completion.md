@@ -6,6 +6,8 @@ The explicit factory includes a configured managed CLI dispatch adapter. A built
 
 Canonical task snapshots load start, terminal, result, and verification evidence while artifact review remains outstanding. Exact prepared-completion reconciliation preserves the preceding responsibility across its single proved completion revision; missing or changed evidence remains unbound.
 
+Post-settlement workforce upgrades preserve that exact completion and review only through a contiguous generated role-binding migration chain. The observer keeps the settled task revision for historical acceptance while rejecting any semantic assignment revision or broken old-to-new binding sequence.
+
 The Node owner session records [exact artifact reviews](../../../../../../specifications/execution/outcome-supervision/implementation/managed-execution/artifact-review.md) against canonical task evidence. The journal recovers one decision-bound verdict without duplication. Stale or insufficient evidence cannot establish acceptance.
 
 Built-worker integration requires canonical control admission, actual normalized usage, owner-control readiness, and exact review evidence before completing the canonical goal and queuing a semantically permitted result. After transport failure and runtime restart, it retries the same outbound without another worker or evaluation call. The delivery test retains explicit verdict, evaluator, and transport fixtures.

@@ -7,7 +7,7 @@ import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 import { operatingContractHash } from "@lervo/work-controller";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import type { SupervisionTaskSource } from "./supervision-task-source.js";
-import { observedSupervisionCompletion } from "./supervision-completion-observation.js";
+import { observeSupervisionCompletion } from "./supervision-completion-observation.js";
 
 import { observeSupervisedArtifactReview } from "./supervision-review-observation.js";
 
@@ -56,11 +56,14 @@ export async function observeSupervisionTasks(
     const binding = source.responsibilities.find(
       (item) => item.assignmentId === assignment.assignmentId,
     )?.binding;
+    const completion =
+      binding === null || binding === undefined
+        ? null
+        : observeSupervisionCompletion(source, assignment, binding);
     if (
       binding === null ||
       binding === undefined ||
-      (binding.responsibility.assignmentRevision !== assignment.revision &&
-        !observedSupervisionCompletion(source, assignment, binding))
+      (binding.responsibility.assignmentRevision !== assignment.revision && completion === null)
     ) {
       unboundAssignmentIds.push(assignment.assignmentId);
       continue;
@@ -137,7 +140,7 @@ export async function observeSupervisionTasks(
     );
     const observation: SupervisedAssignmentObservationV1 = {
       assignmentId: assignment.assignmentId,
-      revision: assignment.revision,
+      revision: completion?.assignmentRevision ?? assignment.revision,
       executorAgentId: task.executorAgentId,
       acceptanceOwnerAgentId: task.reviewerAgentId,
       responsibilityArtifactHash: binding.responsibilityHash,
