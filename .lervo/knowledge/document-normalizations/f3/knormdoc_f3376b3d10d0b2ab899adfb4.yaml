@@ -1,0 +1,51 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9c668b599a2936604b5692e7
+outputLanguage: en
+outputs:
+  - byteCount: 749
+    contentHash: sha256:5c56da039540ff2771118e11d7550911fa7bef914a32cb3085958455cbab93df
+    path: docs/architecture/system/conversation-routing/routing-and-authority/identity-and-authority.md
+    userRegionHash: sha256:5c56da039540ff2771118e11d7550911fa7bef914a32cb3085958455cbab93df
+  - byteCount: 454
+    contentHash: sha256:9282c7856e8cd3355e261bd3a443bced86318ef36228cb0eca4719a89fa1990b
+    path: docs/architecture/system/conversation-routing/routing-and-authority/identity-and-authority/automation-chains.md
+    userRegionHash: sha256:9282c7856e8cd3355e261bd3a443bced86318ef36228cb0eca4719a89fa1990b
+  - byteCount: 424
+    contentHash: sha256:2843f0eadfe6d060c379d8cf1f710800c3f8460033d187827e16b4576702ecc2
+    path: docs/architecture/system/conversation-routing/routing-and-authority/identity-and-authority/continuations-and-effects.md
+    userRegionHash: sha256:2843f0eadfe6d060c379d8cf1f710800c3f8460033d187827e16b4576702ecc2
+  - byteCount: 677
+    contentHash: sha256:375e372bac422d1f6d14a131e0703d26bc8ee79073c48a20374b626fd90ee14c
+    path: docs/architecture/system/conversation-routing/routing-and-authority/identity-and-authority/conversation-ownership.md
+    userRegionHash: sha256:375e372bac422d1f6d14a131e0703d26bc8ee79073c48a20374b626fd90ee14c
+  - byteCount: 606
+    contentHash: sha256:791977415744d286cd73a0af099fe4eeda3bf36efc7de884b835e14fbb267533
+    path: docs/architecture/system/conversation-routing/routing-and-authority/identity-and-authority/discord-identity-mapping.md
+    userRegionHash: sha256:791977415744d286cd73a0af099fe4eeda3bf36efc7de884b835e14fbb267533
+  - byteCount: 297
+    contentHash: sha256:922e0392189a8de29534afb6dd114afa643db74880d71500cdca1a3225b52f05
+    path: docs/architecture/system/conversation-routing/routing-and-authority/identity-and-authority/provider-authority.md
+    userRegionHash: sha256:922e0392189a8de29534afb6dd114afa643db74880d71500cdca1a3225b52f05
+profile: architecture_document
+recordId: knormdoc_f3376b3d10d0b2ab899adfb4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:dbdd9b5272756134865281e0f7837905b9a700783d7941ffbaca4eced16a5288
+sourcePath: docs/architecture/system/conversation-routing/routing-and-authority/identity-and-authority.md
+sourceUnitVersionIds:
+  - uv_1092fc1b7dff7c9244fc95fe
+  - uv_24851dae47d27928650cf217
+  - uv_461b1af554e3c4eb8e708ff1
+  - uv_68f153eac89cfcbbebe827cb
+  - uv_8bbf9a881f27991d8d665774
+  - uv_c33580410241f976cc6e585e

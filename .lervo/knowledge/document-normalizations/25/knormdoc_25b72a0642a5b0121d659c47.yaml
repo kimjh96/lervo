@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_67ea2b0148e470f8f191d720
+outputLanguage: en
+outputs:
+  - byteCount: 3727
+    contentHash: sha256:8cd6cdddfd3e6b9c13928f94ac6306942f3bb4709522f39686c1695382ef93f8
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/v18-source-preservation-audit.md
+    userRegionHash: sha256:8cd6cdddfd3e6b9c13928f94ac6306942f3bb4709522f39686c1695382ef93f8
+profile: repository_document
+recordId: knormdoc_25b72a0642a5b0121d659c47
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6ba2503adb87e392728dd1ccf84a108ffd4a0f1c8b00638a1787a7639ef2ed11
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/v18-source-preservation-audit.md
+sourceUnitVersionIds:
+  - uv_7ce6d0299b19370cdd041716

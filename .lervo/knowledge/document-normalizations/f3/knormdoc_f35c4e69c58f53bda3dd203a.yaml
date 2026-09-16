@@ -1,0 +1,37 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_06f33d2eb78b4898d719c9ff
+outputLanguage: en
+outputs:
+  - byteCount: 344
+    contentHash: sha256:82481f68c1cfe363806133028384b7031355a24652f7a6a87b75f7863e4d7b67
+    path: docs/specifications/execution/outcome-supervision/implementation/storage/responsibilities/recovery.md
+    userRegionHash: sha256:82481f68c1cfe363806133028384b7031355a24652f7a6a87b75f7863e4d7b67
+  - byteCount: 2864
+    contentHash: sha256:55347978db1ac0ca7cd5cc0064611860f8530ff193a7746067f53753a5b8357b
+    path: docs/specifications/execution/outcome-supervision/implementation/storage/responsibilities/recovery/history-and-validation.md
+    userRegionHash: sha256:55347978db1ac0ca7cd5cc0064611860f8530ff193a7746067f53753a5b8357b
+  - byteCount: 1641
+    contentHash: sha256:bc7460cf5504e14c9b8a7210b70e87ef23b3eaba4e3c8816a49cf68f877d1799
+    path: docs/specifications/execution/outcome-supervision/implementation/storage/responsibilities/recovery/node-admission.md
+    userRegionHash: sha256:bc7460cf5504e14c9b8a7210b70e87ef23b3eaba4e3c8816a49cf68f877d1799
+profile: specification_document
+recordId: knormdoc_f35c4e69c58f53bda3dd203a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7a42cbe1038c81594e485899a9de56f75c320bd36e74e812ef166c22c0c161c1
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/storage/responsibilities/recovery.md
+sourceUnitVersionIds:
+  - uv_1ed24fa78af4aee30818cc8e
+  - uv_48daaf6c7aedf9359b34922e
+  - uv_5c369a98ad317a6ace5f9788
+  - uv_8d6ea6a4aa9620b59f7186ac

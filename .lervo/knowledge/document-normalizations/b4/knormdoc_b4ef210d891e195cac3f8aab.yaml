@@ -1,0 +1,32 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_6babec123274259fbc349dba
+outputLanguage: en
+outputs:
+  - byteCount: 5828
+    contentHash: sha256:0143c777282f65a13d7dce5e9660e108256a220da00be9110b6f16d0c718b414
+    path: docs/decisions/search/engines/0413-close-product-default-lexical-v2-surface-gaps.md
+    userRegionHash: sha256:0143c777282f65a13d7dce5e9660e108256a220da00be9110b6f16d0c718b414
+profile: decision_record
+recordId: knormdoc_b4ef210d891e195cac3f8aab
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:99ceb239bb744128f3b83165efd24ca8e1a338974fb78c63d1d7f662702ae6b5
+sourcePath: docs/decisions/search/engines/0413-close-product-default-lexical-v2-surface-gaps.md
+sourceUnitVersionIds:
+  - uv_001c0c88948cf7c1e5b5b973
+  - uv_04f4c8418e9591c5c4d39000
+  - uv_7ff407fa9d0457533329663a
+  - uv_99bf7e6dd8312bc0fe1c95de
+  - uv_a5d4c2d84f4223712148e930
+  - uv_ac6f050bfe4be30bb397a371
+  - uv_dcd8b404d6b47caf26c0cea8

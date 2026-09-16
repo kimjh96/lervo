@@ -1,0 +1,33 @@
+# Initial Discord successor preparation
+
+## Workstream and runtime baseline
+
+At 2026-09-14 05:02 UTC, designated WSL writer successor `wks_8257701276bd6125ca7644a5` was active at revision 1, started at sequence 12151 with its exact predecessor snapshot hash. Accepted local research workstream `wks_715d83744a212f47e5c6555c` remained completed at 12149 with its original local request binding and unchanged result. No successor mandate or authenticated guild `/goal` existed yet.
+
+Immutable WSL bundles: CLI `ba1b05d387bb667e57b3eb6dc4c398e9a5e514ade52bb3049c5d1250d1188cf0`, Node `e6dac005c79213323dc82e55264510dfa94d559e35cb11deeeaf961d35965eb1`, Hub `470f28912f4a4745a9c4e81f382538f618dc528d162b2d75f301a5e1167cf626` (SHA-256). Thirty focused successor/reader tests passed. A separate-storage, loopback Hub canary returned live/ready HTTP 200; a retained reversible user-systemd drop-in switched `lervo-hub.service`. At 05:02 it and six other Node services were active, ready returned 200, and the research/Discord Node remained inactive.
+
+At 05:06 a transient Node containing only repository root, Hub credential reference, and sync settings passed preflight and synchronized with the live Hub; it had no Discord, remote-command, or supervision configuration. The Hub's single head advanced from predecessor active revision 541 through completed revision 551 to successor revision 1. Final hash `sha256:ec3f32e6edd15a20a48b55d8e5669c855d549f8dc398c2358d163d1772ebf2e5`, previous hash `sha256:3a96cd2f17ca2999c23d53ed02e76ee07b77ca616f18b29963f5c89b227f52c1`, matched the local successor link. Ready remained 200. The transient process stopped with no main PID; the scoped Node stayed inactive. Replanning returned unchanged approval hash and eligible digest. This proved Hub succession only.
+
+## Authentication and negative startup probes
+
+At 05:10–05:12 authenticated read-only Discord REST calls with Elio's existing credential returned HTTP 200 for bot `1547393266193006632`, guild membership `1546479354773508176`, channel `1547263098954457109` (`#lervo`), and guild `/goal` `1548727578108633189`. Command type was 1, with required string `request` and unset default member permissions. Previously authorized Elio message `1548590944087965707` remained readable with content SHA-256 `2f364c97ee99296c5a34b96a23ba2a424bc37948d4a668b5dd593f739bf86e35`, matching its receipt. Nothing was posted.
+
+WSL passed 16 Discord command/intake/result-origin/preflight-recovery tests and 33 permission/login/worker-failure/runtime-readiness tests. The successor installed-mandate reader returned `null`. Controlled tests, registration, and old-message readback did not prove fresh human intake or live permission-repair continuation.
+
+An isolated installed `@lervo/discord-gateway` probe used Elio's credential and zero intents, received authenticated `READY`, and immediately closed. It subscribed to neither messages nor interactions, started no supervision, and sent nothing. This proved Gateway authentication/WebSocket connectivity separately from REST, not `/goal` intake.
+
+At 05:20 a transient process used approved installed v18 for the completed predecessor. Owner-only syntax preflight passed, but the staged Node twice reported `supervision_cycle_failed` after succession. Sequence remained 12151: no event or managed provider execution. The process stopped. The task reader requires the bound workstream to be current, consistent with failure; health alone did not isolate every internal cause. This neither authorized v18 on the successor nor proved positive successor startup.
+
+## Successor authority and installation
+
+Canonical successor anchor: `evt_de8e9096afdf4e5ea20858d26871e35e`, `sha256:d640c260a00a18a6741f2d2daa5a5b82af846eb12b663a8b08e62bdae6e77234`. Prior v18 cannot authorize this workstream.
+
+Fresh `supervision.discord.acceptance` version 1 excluded no prior assignments. Its WSL host, owner, team, `codex` provider, read-only `docs/product/vision.md`, action kinds, 100,000-token attempt ceiling, four attempts, and 3,000,000-token aggregate matched prior research bounds; expiry was 2026-09-14 12:00 UTC. Approval: `sha256:af9f132dccacd9f56c906c3352c9627cacac7bc44bffad751d053c29d9ecf230`; candidate mandate: `sha256:4f70b1ad880dd1505070f91ffd3bff0d480eee9261c7d7a6ae143a55def46db2`. Source was eligible, roles valid. Plan/candidate and separate successor Node configuration were owner-only WSL files. Configuration preflight did not install authority or activate the Node.
+
+At that checkpoint, exact appointing-authority approval, source-revalidated installation, human Discord intake, independent acceptance, exact-origin publication/receipt, permission recovery, and other positive installed journeys remained required; six-stage and CPU goals were open. Mac quality/docs/type/task-base release-completion checks and focused Mac/WSL successor tests passed. Full Mac testing did not pass: first-publication metadata disagreed with the pending release manifest, event-wakeup timing failed, and an earlier run was interrupted after failures.
+
+At 05:27–05:30 the user replied “하라니깐” directly to the displayed exact-plan installation question. The operator treated this as contextual approval. Fresh WSL planning returned the same approval hash, eligible digest `sha256:f5e7cb8b6d5543bc47368d1e2c90d46d5cd84606792fc7b0524b28f168f088e9`, and no predecessor. CLI installation by reviewer `user.founder` recorded `evt_335c9547cc61331be5daefbf5ec05109`, mandate `sha256:4f70b1ad880dd1505070f91ffd3bff0d480eee9261c7d7a6ae143a55def46db2`, review `sha256:a50ec55353650db6a218c73728d34cc0a851e1d994e1cb55ceb6461072209b99`. Separate inspection confirmed the same unrevoked installation, authorized only for this successor.
+
+Executable preflight passed. A removable final user-systemd drop-in selected Node `sha256:e6dac005c79213323dc82e55264510dfa94d559e35cb11deeeaf961d35965eb1` and owner-only successor configuration. The previously inactive service started as PID 1327177, active with zero restarts. At 05:30:15, sync, replication, remote control, conversation, and supervision were `ready`; reader schemas were 1–3. Hub was active. This was installed verification, not boot enablement or production completion.
+
+No new `goal.requested` or `work.supervision.bound` had yet been verified. Orca's Discord tab showed login, so it supplied no authenticated human invocation. Discord attribution, independent review, delivery, live permission repair, cross-surface equivalence, and common six-stage acceptance remained unproven. Local `--request-stdin` was deliberately avoided because it would give the one current goal a different source and invalidate the intended comparison.

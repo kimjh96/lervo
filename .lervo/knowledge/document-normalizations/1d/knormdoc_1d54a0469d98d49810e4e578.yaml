@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5bd04971dc5a046e6d7cdc33
+outputLanguage: en
+outputs:
+  - byteCount: 534
+    contentHash: sha256:6b9231b3339639b802d8e9a86a1b2b563594882d221fb282adf99cf7bbfec3ee
+    path: docs/specifications/execution/events-and-privacy/terminal-observations/commit-ordering-and-hook-failures.md
+    userRegionHash: sha256:6b9231b3339639b802d8e9a86a1b2b563594882d221fb282adf99cf7bbfec3ee
+profile: specification_document
+recordId: knormdoc_1d54a0469d98d49810e4e578
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:14911acca2c648ee2d32c58869ddb6916e3727bee6c62b0cef5c8c649bceef77
+sourcePath: docs/specifications/execution/events-and-privacy/terminal-observations/commit-ordering-and-hook-failures.md
+sourceUnitVersionIds:
+  - uv_8616cc5d1db2c491e1f3edfc

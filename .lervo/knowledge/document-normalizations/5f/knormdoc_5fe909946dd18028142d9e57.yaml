@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_50853dc361f5983247c97e5b
+outputLanguage: en
+outputs:
+  - byteCount: 2850
+    contentHash: sha256:ffe32d7a8760319c0dec2d9a305ee596a13bdad8e0809c483162556578859062
+    path: docs/specifications/coordination/node-change-driven-work/validation.md
+    userRegionHash: sha256:ffe32d7a8760319c0dec2d9a305ee596a13bdad8e0809c483162556578859062
+profile: specification_document
+recordId: knormdoc_5fe909946dd18028142d9e57
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ba690b9c95353c27798f82b70f8175f239a535893e8043d6e8e7b383612a1316
+sourcePath: docs/specifications/coordination/node-change-driven-work/validation.md
+sourceUnitVersionIds:
+  - uv_58e620930bc0c393ddad83ed
+  - uv_c49978692a539f1125e723f1
+  - uv_fd44fb84510a947aee772102

@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b31a2a5eedb8a92f36a20652
+outputLanguage: en
+outputs:
+  - byteCount: 209
+    contentHash: sha256:ec198fae7ce0915a0220349c7006bd00d0e2fece79356a8c6d397f46df376a89
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/worker/execution.md
+    userRegionHash: sha256:ec198fae7ce0915a0220349c7006bd00d0e2fece79356a8c6d397f46df376a89
+  - byteCount: 2494
+    contentHash: sha256:d867e4c38ed04afbe4062e975252243b396b6daf1ebbeb6c393eede13ea601f5
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/worker/execution/controls.md
+    userRegionHash: sha256:d867e4c38ed04afbe4062e975252243b396b6daf1ebbeb6c393eede13ea601f5
+  - byteCount: 839
+    contentHash: sha256:31f53bb3a0a92582798a7eb3ffe773685f1f319b6da48c9a61707c3bbc469bc3
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/worker/execution/invocation.md
+    userRegionHash: sha256:31f53bb3a0a92582798a7eb3ffe773685f1f319b6da48c9a61707c3bbc469bc3
+  - byteCount: 467
+    contentHash: sha256:9f5f2ba594eedecef5b93ee5eb0cbb1749e1d1289c60e3fa22876a7ba4bb6294
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/worker/execution/repositories.md
+    userRegionHash: sha256:9f5f2ba594eedecef5b93ee5eb0cbb1749e1d1289c60e3fa22876a7ba4bb6294
+profile: specification_document
+recordId: knormdoc_2346412d15c38cf16b0106b4
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:2a4404b373c1d953da41ff11c2b5204a3ed0ceeba1954fa715ad75fe7e0a3c0f
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/managed-execution/worker/execution.md
+sourceUnitVersionIds:
+  - uv_47c21f770b63bcdbecef3b89
+  - uv_74f51e8c6a74bae80a534565
+  - uv_8d99f559927410411c504b4f
+  - uv_f80ee5ac049fb4d8785b650c

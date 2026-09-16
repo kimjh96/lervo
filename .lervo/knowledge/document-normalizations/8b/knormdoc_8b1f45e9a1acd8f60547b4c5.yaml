@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c03bbd6d415dcb1741e3479c
+outputLanguage: en
+outputs:
+  - byteCount: 3642
+    contentHash: sha256:b5fc549081685ffdd8dd020b3f9097282066ebae54b1d02b22d4d6a21a36b380
+    path: docs/decisions/coordination/sync/0201-repository-scoped-workstream-replication.md
+    userRegionHash: sha256:b5fc549081685ffdd8dd020b3f9097282066ebae54b1d02b22d4d6a21a36b380
+profile: decision_record
+recordId: knormdoc_8b1f45e9a1acd8f60547b4c5
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:432294aa60a7494e0e7977ff977de05c562fffb185b599e8334452573caf5572
+sourcePath: docs/decisions/coordination/sync/0201-repository-scoped-workstream-replication.md
+sourceUnitVersionIds:
+  - uv_28c859419f7328760e92be8a
+  - uv_39ea0c8711592e8a2d6d7681
+  - uv_4b9093955d90a2b9fe6ed268
+  - uv_507f48910dc869025ec8653a
+  - uv_b2126ef0a20fa4846028d33c

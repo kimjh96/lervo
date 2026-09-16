@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_712173b98a42b52057fea057
+outputLanguage: en
+outputs:
+  - byteCount: 266
+    contentHash: sha256:e09c1035e74f7d70616e7caab9483bc3cee2c4c0ff29f953598200c2e7d43a80
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/review-and-responsibility.md
+    userRegionHash: sha256:e09c1035e74f7d70616e7caab9483bc3cee2c4c0ff29f953598200c2e7d43a80
+  - byteCount: 688
+    contentHash: sha256:53133a4490e3b837bf3f0839bdcba42ec2aea415c46426ba87c240e96c6308e2
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/review-and-responsibility/completion.md
+    userRegionHash: sha256:53133a4490e3b837bf3f0839bdcba42ec2aea415c46426ba87c240e96c6308e2
+  - byteCount: 408
+    contentHash: sha256:ac8c4169a1222a59ce3481ab68d537e3b168c709af41e85b87bfea7e77e624dd
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/review-and-responsibility/delivery.md
+    userRegionHash: sha256:ac8c4169a1222a59ce3481ab68d537e3b168c709af41e85b87bfea7e77e624dd
+  - byteCount: 776
+    contentHash: sha256:0a54aa1fa0060719d0cfa19d17d8c89e3752521737ca159c000a97cd38046e1d
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/review-and-responsibility/review.md
+    userRegionHash: sha256:0a54aa1fa0060719d0cfa19d17d8c89e3752521737ca159c000a97cd38046e1d
+profile: specification_document
+recordId: knormdoc_19b262c88b15579ec88abb71
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8a89d4e4a655a5ace94834f0b3916040edaf6f0436d2c9324812c86ed7f813c3
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/review-and-responsibility.md
+sourceUnitVersionIds:
+  - uv_8b732b4f584edd6775170b98

@@ -1,0 +1,95 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1da423ad8cf85bafb83e5601
+outputLanguage: en
+outputs:
+  - byteCount: 2605
+    contentHash: sha256:01c70252e5b4c7c10966fbd6332e0c726f504b848272f54fbbf6fc8f40ec8415
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/discord-successor-preparation.md
+    userRegionHash: sha256:01c70252e5b4c7c10966fbd6332e0c726f504b848272f54fbbf6fc8f40ec8415
+  - byteCount: 2740
+    contentHash: sha256:c3ca481b89dc803b58fe7b65d4f0915edb2f992a4afdc9e22e8246ef511a91ad
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/discord-successor-preparation/abandoned-turn-recovery.md
+    userRegionHash: sha256:c3ca481b89dc803b58fe7b65d4f0915edb2f992a4afdc9e22e8246ef511a91ad
+  - byteCount: 5336
+    contentHash: sha256:1fa0d2ebcbfb49b92c6a15d1a5344e443333fc7508a47d6743854b33d544fbdc
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/discord-successor-preparation/capacity-and-lease-wake.md
+    userRegionHash: sha256:1fa0d2ebcbfb49b92c6a15d1a5344e443333fc7508a47d6743854b33d544fbdc
+  - byteCount: 9417
+    contentHash: sha256:7ef810b2f08c1361cea682f54f36b94a7f16b6ad3ab6a4def6a174919c48ce96
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/discord-successor-preparation/first-discord-result.md
+    userRegionHash: sha256:7ef810b2f08c1361cea682f54f36b94a7f16b6ad3ab6a4def6a174919c48ce96
+  - byteCount: 8243
+    contentHash: sha256:c95abd4e1b9d32239927dae35d36921e2f0b9749ffa9dc15d8795a67b07b8c9c
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/discord-successor-preparation/intake-and-equivalence.md
+    userRegionHash: sha256:c95abd4e1b9d32239927dae35d36921e2f0b9749ffa9dc15d8795a67b07b8c9c
+  - byteCount: 5992
+    contentHash: sha256:3ea654c04a4be44192e1a7abc8663d403df80e6336590bb3d0752195aa3fddc2
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/discord-successor-preparation/operations.md
+    userRegionHash: sha256:3ea654c04a4be44192e1a7abc8663d403df80e6336590bb3d0752195aa3fddc2
+  - byteCount: 6692
+    contentHash: sha256:d26f18f2c60800bda255d84fe8cdc7c922031cc91c6e9485f0fb59f89709b465
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/discord-successor-preparation/permission-recovery.md
+    userRegionHash: sha256:d26f18f2c60800bda255d84fe8cdc7c922031cc91c6e9485f0fb59f89709b465
+  - byteCount: 6710
+    contentHash: sha256:3bd409b47518a97daf43d8ad5a01d81b90ea4e768a1f382eb1752079fd8bc7dc
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/discord-successor-preparation/preparation.md
+    userRegionHash: sha256:3bd409b47518a97daf43d8ad5a01d81b90ea4e768a1f382eb1752079fd8bc7dc
+  - byteCount: 7032
+    contentHash: sha256:d9e257700891b35ee3065ad1d3e77acfcc47873b9a6e9c42d0f8c16a35cf2a2c
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/discord-successor-preparation/recovery-successors.md
+    userRegionHash: sha256:d9e257700891b35ee3065ad1d3e77acfcc47873b9a6e9c42d0f8c16a35cf2a2c
+  - byteCount: 6843
+    contentHash: sha256:21d3db294d660ee96b61f71afa0389a9da2525e0b81a24101edd4c28f1f93b74
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/discord-successor-preparation/restart-and-amendment.md
+    userRegionHash: sha256:21d3db294d660ee96b61f71afa0389a9da2525e0b81a24101edd4c28f1f93b74
+  - byteCount: 2345
+    contentHash: sha256:39a627b722a7507f1686051560d56f7deea1e8295a99e877c050f49d91adfc03
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/discord-successor-preparation/standing-guild-result.md
+    userRegionHash: sha256:39a627b722a7507f1686051560d56f7deea1e8295a99e877c050f49d91adfc03
+  - byteCount: 4461
+    contentHash: sha256:5b09f92c003726d45d909e3caa69e75be0a448c63503922b204bbff0b5f9ce32
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/discord-successor-preparation/standing-lineage.md
+    userRegionHash: sha256:5b09f92c003726d45d909e3caa69e75be0a448c63503922b204bbff0b5f9ce32
+profile: handoff_document
+recordId: knormdoc_a286e940f3ffd4b0868043e9
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5626e98ed8a1381f6563509f050d7ec1f67aeb6276afbdfeef70dc9c945f52af
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/discord-successor-preparation.md
+sourceUnitVersionIds:
+  - uv_0174603db9f51cb83b103107
+  - uv_0b20b5b3145dd355cd4a73b6
+  - uv_142730ae26eb41197789e6ba
+  - uv_1a98d4be455e3fba951c433f
+  - uv_24949b0c714ca1e6fd86bdfe
+  - uv_25c3d4b9523760c71d2db855
+  - uv_368c93da62b6a38bb82e98d1
+  - uv_50ba663ef5567a89e599c214
+  - uv_5c6dd9a448a85b8d30c6bcc9
+  - uv_65dd01fb0a318a6a8342bfc6
+  - uv_66f91fe7f048df2966af4aeb
+  - uv_688b189174201c3484c02d1a
+  - uv_6af655830153bd10123221b6
+  - uv_76f5378dbaf84331fba2bbc0
+  - uv_7a0cf3a7a4322db00cdc7440
+  - uv_8226a3a21ee480d249b7f535
+  - uv_877372e5435fdd09b3da8668
+  - uv_909652958555a6803ef498d8
+  - uv_96ab7ae64f9d8523368641e1
+  - uv_981a0a34fcd8280eb4869f90
+  - uv_9ac3816b4440b457ab0885c2
+  - uv_ba577d1a6df73619401a4565
+  - uv_c084a35e61055e50b125221f
+  - uv_d15b4b1812af6f72ceb46b9f
+  - uv_d749f3f099542fa8a7816c41
+  - uv_e1517e743ea469c8a7a26334

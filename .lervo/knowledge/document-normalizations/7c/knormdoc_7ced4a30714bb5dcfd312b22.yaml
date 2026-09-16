@@ -1,0 +1,56 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1251025118a1e7c011f07ed7
+outputLanguage: en
+outputs:
+  - byteCount: 1631
+    contentHash: sha256:36028f7f728a30ba50f7317f2143dc2107a6c01692a0967a9d0612419c27cce8
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/acceptance-and-dispatch.md
+    userRegionHash: sha256:36028f7f728a30ba50f7317f2143dc2107a6c01692a0967a9d0612419c27cce8
+  - byteCount: 9372
+    contentHash: sha256:465d9125e42e4a3615affea428db7ba8c82ff7ce0e3291799e8e46ca131579af
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/acceptance-and-dispatch/acceptance-and-deployment.md
+    userRegionHash: sha256:465d9125e42e4a3615affea428db7ba8c82ff7ce0e3291799e8e46ca131579af
+  - byteCount: 1232
+    contentHash: sha256:3ce8dc0d97fa11bc3d46ec4c2ce775cdbfca30e02a7f7a27bfb2d883b9c6917a
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/acceptance-and-dispatch/research-authority-and-accounting.md
+    userRegionHash: sha256:3ce8dc0d97fa11bc3d46ec4c2ce775cdbfca30e02a7f7a27bfb2d883b9c6917a
+  - byteCount: 3132
+    contentHash: sha256:83f4e1b6ba2dbec6cd67f84f3808c823749b4c42a51bfd08b4c7aa30456f32bf
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/acceptance-and-dispatch/settlement-and-budget.md
+    userRegionHash: sha256:83f4e1b6ba2dbec6cd67f84f3808c823749b4c42a51bfd08b4c7aa30456f32bf
+  - byteCount: 1629
+    contentHash: sha256:f6099ea0ff274d54cda6169e892a13db8754648c832a1e764e80d023458434f7
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/acceptance-and-dispatch/verification.md
+    userRegionHash: sha256:f6099ea0ff274d54cda6169e892a13db8754648c832a1e764e80d023458434f7
+  - byteCount: 2914
+    contentHash: sha256:05b3cbc38ef8502730e1702641a587db55411bc83bbdb61de8db82d174762eb8
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/acceptance-and-dispatch/worker-result-and-recovery.md
+    userRegionHash: sha256:05b3cbc38ef8502730e1702641a587db55411bc83bbdb61de8db82d174762eb8
+  - byteCount: 2809
+    contentHash: sha256:dad76b44b14dcb0571f0eafe84262515bb6912b38bf515c4e5c9fdb1782a25d4
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/acceptance-and-dispatch/wsl-startup.md
+    userRegionHash: sha256:dad76b44b14dcb0571f0eafe84262515bb6912b38bf515c4e5c9fdb1782a25d4
+profile: repository_document
+recordId: knormdoc_7ced4a30714bb5dcfd312b22
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:9a4c6111ba386b73bb1adc25eea96a5b049e9467c8f2e4d0d254bfc7829be989
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/acceptance-and-dispatch.md
+sourceUnitVersionIds:
+  - uv_278b359ab8f80aadcc43e71d
+  - uv_603c30a9591e98ea5ad86713
+  - uv_a046b87577a0b6c5d90b8001
+  - uv_add912b60dfe8711a092e711
+  - uv_d85e17a89e4072b4791180b4
+  - uv_ec8fca9cf2ba93488c8282bb
+  - uv_f69ac118642a23f05aaa8c10

@@ -20,7 +20,13 @@ An empty adapter-required list cannot remove these checks. Task adapters must ad
 
 Node accepts readiness observations at the application task digest and binds a detached copy to its combined task/authority digest. The exact responsibility artifact, role, owner-execution identity, required capabilities, and paths must fit the reviewed plan. A different raw digest cannot be relabeled as current evidence.
 
-For dispatch, retry, and owner execution, Node obtains readiness again before its final admission observation and evaluates it after asynchronous authority reads. Future observations, observations older than five seconds, expired checks, missing evidence, and negative dispositions prevent effect invocation. `supervision_readiness_changed` identifies an invalid binding or a negative final evaluation, `supervision_readiness_stale` an observation older than five seconds at effect time, and `supervision_knowledge_snapshot_changed` a knowledge snapshot that differs between the cycle's readiness read and the final preflight. A typed final-preflight failure reports `supervision_preflight_failed` together with that bounded cause code (or `preflight_cause_unclassified`) and retains the recorded decision for independent non-start inspection before replay. Failures after effect invocation retain uncertain execution for reconciliation.
+For dispatch, retry, and owner execution, Node obtains readiness again before its final admission observation and evaluates it after asynchronous authority reads. Future observations, observations older than five seconds, expired checks, missing evidence, and negative dispositions prevent effect invocation.
+
+- `supervision_readiness_changed` identifies an invalid binding or negative final evaluation.
+- `supervision_readiness_stale` identifies an observation older than five seconds at effect time.
+- `supervision_knowledge_snapshot_changed` identifies a knowledge snapshot that differs between the cycle's readiness read and final preflight.
+
+A typed final-preflight failure reports `supervision_preflight_failed` with the bounded cause code (or `preflight_cause_unclassified`) and retains the recorded decision for independent non-start inspection before replay. Failures after effect invocation retain uncertain execution for reconciliation.
 
 On every execution preflight, Node independently:
 
@@ -32,10 +38,8 @@ On every execution preflight, Node independently:
 - Inspects [control-repository knowledge currency](knowledge-readiness.md).
 - Validates [pinned verification definitions and working directories](verification-readiness.md).
 
+The application supplies a matching task view and authentication, tool-permission, policy, budget, and process evidence. Repository probes cannot turn missing application evidence into a pass. Responsibility installation remains open. The effect adapter rechecks exact admission at its own commit boundary.
+
 ## Permission-failure evidence and recovery
 
-An operating-system permission denial (`EACCES` or `EPERM`) on the configured provider executable, a mapped verification tool, or the native login probe is an observed failure, not an unobserved probe. The affected provider, tool, or required CLI check becomes `failed` with an evidence hash binding the prior application evidence, the configured executable identities, and the normalized probe result. A missing executable, timeout, or unrecognized response still leaves the check `unobserved`.
-
-When the worker preflight of a recorded decision reports at least one `readiness_<kind>_failed` code, the runtime records `work.supervision.readiness.failed` for that decision before blocking. The decision keeps `recorded` status; no effect, lease, or provider process is claimed. Repeating the same failed checks appends nothing, and the record changes neither the task source revision digest nor the pending decision, so it never causes supersession of the unstarted dispatch. The next cycle reinspects the same decision: after the host repairs the permission, fresh readiness passes and the original admitted decision executes without a new proposal. Reassignment stays behind the existing unstarted-responsibility revision after the exact lease expires; a live lease is never edited. Neither the event nor a later ready observation proves the resumed execution; only the decision's confirmed effect does.
-
-The application supplies a matching task view and authentication, tool-permission, policy, budget, and process evidence. Repository probes cannot turn missing application evidence into a pass. Responsibility installation remains open. The effect adapter rechecks exact admission at its own commit boundary.
+See [permission-failure evidence and recovery](readiness/permission-failures.md) for executable permission denials, failure recording, and resuming the original decision.

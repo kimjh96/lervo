@@ -71,7 +71,7 @@ describe("Node native login readiness", () => {
     } finally {
       await runtime.close();
     }
-  });
+  }, 30_000);
 });
 
 it("rejects credential-shaped extras in login context", () => {

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_ff3dd1f47c38dd1baad4c6fb
+outputLanguage: en
+outputs:
+  - byteCount: 421
+    contentHash: sha256:9d959028c6bc2d6322151254e83a0485f918dda66b191a3a36dac7e4e119b01b
+    path: docs/specifications/execution/outcome-supervision/implementation/scoped-handoffs/verification.md
+    userRegionHash: sha256:9d959028c6bc2d6322151254e83a0485f918dda66b191a3a36dac7e4e119b01b
+profile: specification_document
+recordId: knormdoc_d6b8e99bd2284780249cea31
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:011fc09c7e11cbe51799779651c3aa6facaa8ff3ae4d013595a80783b21bdf3e
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/scoped-handoffs/verification.md
+sourceUnitVersionIds:
+  - uv_c2bd5e29d9a02abc3feb0c95

@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_eb21161c23ef8b4e9397ad64
+outputLanguage: en
+outputs:
+  - byteCount: 3322
+    contentHash: sha256:5a949e337d4adf975068ed2dcb69c561afcfd51b7c660179fc818d1c9a35ec3f
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/v17-research-review-and-authority-gap.md
+    userRegionHash: sha256:5a949e337d4adf975068ed2dcb69c561afcfd51b7c660179fc818d1c9a35ec3f
+profile: repository_document
+recordId: knormdoc_04033bc00233fa8995f61d24
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:93e5051c78d7c0cf77a1815b56fbddd39d59e33319b7af49b2e77a1cdd1ac34f
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/v17-research-review-and-authority-gap.md
+sourceUnitVersionIds:
+  - uv_352f0a0d8e13404b77ef947e

@@ -8,13 +8,15 @@ Version 3 also supports an [exact reviewed goal scope](work-scope.md) within a l
 
 ## Admission workflow
 
-The owner authors an exact plan for every hire, role revision, assignment addition, handoff, or reassignment. A pure evaluator checks the plan against the mandate and current snapshots. The executor rechecks it before commit. Actions within the mandate require no new human approval. Out-of-mandate proposals become bounded decisions. A model proposal grants no authority.
+The owner authors an exact plan for every hire, role revision, assignment addition, handoff, or reassignment. A pure evaluator checks the plan against the mandate and current snapshots; the executor rechecks it before commit. Actions within the mandate require no new human approval. Out-of-mandate proposals become bounded decisions. A model proposal grants no authority.
 
 Supported action kinds are `allocate_existing`, `execute_as_owner`, `hire_worker`, `revise_responsibility`, `request_team_support`, `dispatch`, `inspect_uncertain_effect`, `retry_attempt`, `request_rework`, `escalate`, and `publish_result`. Each must map to an existing effect or a versioned extension; admission rejects unsupported mappings.
 
 ## Responsibility artifacts
 
-A responsibility artifact requires a task purpose, deliverables, acceptance criteria, decision latitude, expected paths, required capabilities and verification, reviewer, handoff recipients, and finite start, progress, and completion deadlines. The mandate bounds deadline selection from above; the native owner's completion window is floored at ten minutes, or the mandate's maximum deadline when shorter, because a worker turn needs a full bounded lease plus admission latency, and a shorter owner proposal is raised to that floor. Rescheduling records a new decision; hints cannot silently postpone deadlines.
+A responsibility artifact requires a task purpose, deliverables, acceptance criteria, decision latitude, expected paths, required capabilities and verification, reviewer, handoff recipients, and finite start, progress, and completion deadlines.
+
+The mandate sets the upper bound on deadlines. The native owner's completion window has a ten-minute floor, or the mandate's maximum deadline when shorter, to allow a full bounded worker lease plus admission latency. Shorter owner proposals are raised to that floor. Rescheduling records a new decision; hints cannot silently postpone deadlines.
 
 ## Review compatibility
 

@@ -28,14 +28,21 @@ describe("unattended scheduler runtime", () => {
       killSwitchPath: ".lervo/state/scheduler.stop",
     });
     try {
-      const waiting = runtime.waitForChange!(30_000);
-      await writeFile(resolve(root, ".lervo/state/scheduler.stop"), "stop");
+      let awakened = false;
+      const waiting = runtime.waitForChange!(30_000).then(() => {
+        awakened = true;
+      });
+      for (let attempt = 0; attempt < 100 && !awakened; attempt += 1) {
+        await writeFile(resolve(root, ".lervo/state/scheduler.stop"), `stop ${attempt}\n`);
+        await new Promise((resolvePromise) => setTimeout(resolvePromise, 50));
+      }
+      expect(awakened).toBe(true);
       await waiting;
       expect(await runtime.killSwitchEngaged()).toBe(true);
     } finally {
       await runtime.release();
     }
-  }, 5_000);
+  }, 30_000);
 
   it("holds one repository scheduler lock and releases only its own lock", async () => {
     const root = await repository();

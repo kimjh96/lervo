@@ -7,7 +7,7 @@
 
 The first installed Discord composition treated every accepted mention as write-capable remote continuation. Repository questions entered the signed managed-write path and correctly failed without a verified provider file change. A later `ask`/`continue` prefix draft preserved authority boundaries but violated the requirement for ordinary conversation with or without a bot mention.
 
-Lervo separates provider-neutral contracts for read-only managed answers, signed remote continuation, conversation participation, bounded automation depth, and cross-provider deliberation. Natural-language routing composes them without making Discord syntax a task authority.
+Lervo separates provider-neutral contracts for read-only managed answers, signed remote continuation, conversation participation, bounded automation depth, and cross-provider deliberation. Natural-language routing composes these without making Discord syntax a task authority.
 
 ## Decision
 
@@ -25,9 +25,9 @@ It returns exactly one transient intent (`answer`, `continue_work`, or `clarify`
 
 - `answer` delegates to `ManagedConversationResponder`.
 - Medium- or high-confidence human `continue_work` with `repository_work` delegates to the signed exact-workstream Hub command path.
-- When the responding durable agent is the installed supervision owner, medium- or high-confidence `continue_work` with `supervision_goal_request` enters the canonical goal-admission writer. The resolver uses this effect for a durable multi-step outcome and keeps one bounded task or inspection on `repository_work`; neither effect grants authority.
-- An explicitly allowlisted Discord platform effect delegates to its scoped adapter and never enters repository continuation.
-- Agent-authored mutation requests stay with the read-only responder unless the exact configured agent participant, role, tenant, and mapped conversation separately opt in to effect requests. Admitted requests enter the same signed continuation or scoped platform-effect boundary; routing grants no command role, effect kind, repository permission, or provider capability.
+- When the responding durable agent is the installed supervision owner, medium- or high-confidence `continue_work` with `supervision_goal_request` enters the canonical goal-admission writer. The resolver uses this effect for a durable multi-step outcome; one bounded task or inspection stays on `repository_work`. Neither effect grants authority.
+- An explicitly allowlisted Discord platform effect delegates to its scoped adapter, never repository continuation.
+- Agent-authored mutation requests stay with the read-only responder unless the exact configured agent participant, role, tenant, and mapped conversation separately opt in to effect requests. Admitted requests enter the same signed continuation or scoped platform-effect boundary. Routing grants no command role, effect kind, repository permission, or provider capability.
 - `clarify`, low confidence, and unavailable effects stay with the read-only responder.
 - Resolver failure for an owned human message enters the classified response-failure contract and produces a verified visible terminal response immediately or after only a proven transient retry. It cannot become a silent `relevance_unavailable` observation.
 
@@ -41,19 +41,19 @@ Natural replies use the versioned `writing_mul-realtime-conversation` contract u
 
 ### Participants and agents
 
-Participant bindings distinguish mapped humans from mapped agents. Optional `discordConversation.agentId` binds the responding bot participant to one active hired agent. Startup verifies the agent’s exact current role version, contract hash, profile hash, lifecycle status, and fixed-or-any provider policy. Stale or incompatible bindings fail as `invalid_config`.
+Participant bindings distinguish mapped humans from mapped agents. Optional `discordConversation.agentId` binds the responding bot participant to one active hired agent. Startup verifies the agent's exact current role version, contract hash, profile hash, lifecycle status, and fixed-or-any provider policy. Stale or incompatible bindings fail as `invalid_config`.
 
 The participation role is independent of `command.roleId`: a researcher may converse while a developer command role performs an explicitly authorized continuation. Agent participation is disabled by default and requires `agent` in `policy.respondTo`. The role template never becomes an actor.
 
 Future `@agent`, `@role`, and deliberation-group routing can resolve eligible participants without changing the normalized event or natural-language intent port. Deliberation identity, turn ownership, automation depth, hourly limits, self-message suppression, and explicit effect authority must prevent uncontrolled agent loops. Write-capable remote continuation remains human by default; a reviewed coordinating agent may request it only through the separate exact effect-requester opt-in above.
 
-[ADR-0410](../../execution/orchestration/governed-work/0410-intent-routed-supervision-goal-intake.md) removes the guild `/goal` registration. Historical `goal.requested` records remain valid evidence, while new goal intake is selected from an ordinary normalized message by the same managed intent boundary.
+[ADR-0410](../../execution/orchestration/governed-work/0410-intent-routed-supervision-goal-intake.md) removes the guild `/goal` registration. Historical `goal.requested` records remain valid evidence; new goal intake is selected from an ordinary normalized message by the same managed intent boundary.
 
 A `discordConversations` deployment requires one distinct active hired agent per speaker deployment. It automatically maps peer bot or webhook authors and bot mention identities as specified by [ADR-0394](0394-webhook-backed-discord-agent-identities.md).
 
 ### Platform activity and queues
 
-Transient typing starts only after participation chooses `respond`, never for observed, duplicate, busy, or throttled input. One conversation-owned activity lease persists across a scheduled response retry and ends at terminal completion, abort, or a safety timeout. Typing refresh and failure stay outside semantic intent, provider execution, publication evidence, and durable delivery. Gateway heartbeat and resume processing stay outside the ordered provider-work queue so slow answers cannot make subsequent messages disappear.
+Transient typing starts only after participation chooses `respond`, never for observed, duplicate, busy, or throttled input. One conversation-owned activity lease persists across a scheduled response retry and ends at terminal completion, abort, or a safety timeout. Typing refresh and failure remain outside semantic intent, provider execution, publication evidence, and durable delivery. Gateway heartbeat and resume processing remain outside the ordered provider-work queue so slow answers cannot make subsequent messages disappear.
 
 ### Latency profile
 

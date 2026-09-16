@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e00ee41c65863334dc78fa13
+outputLanguage: en
+outputs:
+  - byteCount: 3774
+    contentHash: sha256:dc0979a313577dd330450537f2e344f0f3b248d8c6b706723f8c821ea167a4cb
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/v15-independent-research-review.md
+    userRegionHash: sha256:dc0979a313577dd330450537f2e344f0f3b248d8c6b706723f8c821ea167a4cb
+profile: repository_document
+recordId: knormdoc_571c05c2d9654d5ad96ca12a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:159e2e431deb3465095b4db2d2d78dc69ea36debfe7d535726f7d2cea87420b7
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/v15-independent-research-review.md
+sourceUnitVersionIds:
+  - uv_0c7f9dbbd8594c3c22125774

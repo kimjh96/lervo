@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_d7dbe50ed91cbec8e431a4cb
+outputLanguage: en
+outputs:
+  - byteCount: 736
+    contentHash: sha256:e57bf73f881a122596e0e5ddcbe38ac9bdc4a3157f016a96e2ce045efded0dcc
+    path: docs/specifications/execution/outcome-supervision/implementation/storage/installation/evidence-and-recovery/revocation.md
+    userRegionHash: sha256:e57bf73f881a122596e0e5ddcbe38ac9bdc4a3157f016a96e2ce045efded0dcc
+profile: specification_document
+recordId: knormdoc_eccf1557a44b58bb9a4d3d15
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c55fc30cb1d320d6761db2daac31090365b729c27e828a319f3b230166a86d0f
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/storage/installation/evidence-and-recovery/revocation.md
+sourceUnitVersionIds:
+  - uv_71179ab93ec46b88373dbb1a

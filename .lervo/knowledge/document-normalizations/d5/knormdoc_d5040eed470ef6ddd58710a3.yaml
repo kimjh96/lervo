@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_415712c282e26cfb8023e23f
+outputLanguage: en
+outputs:
+  - byteCount: 2587
+    contentHash: sha256:9c161e4b0741e1d601656cac0ad2e964c2d0e7e1269e43cdf2684603f161d342
+    path: docs/specifications/execution/outcome-supervision/implementation/research-execution/independent-acceptance.md
+    userRegionHash: sha256:9c161e4b0741e1d601656cac0ad2e964c2d0e7e1269e43cdf2684603f161d342
+profile: specification_document
+recordId: knormdoc_d5040eed470ef6ddd58710a3
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8b7f29ab9d865cc14c23b6d00753dff7c5811e89276205a5ce8a9c91b87c965e
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/research-execution/independent-acceptance.md
+sourceUnitVersionIds:
+  - uv_5c27c404c5185ca509ba3755
+  - uv_9285a77fe0fc32b23eb61dce
+  - uv_c826fa9832b5b1eaacbade74
+  - uv_f0db55b49dafd7b1cacadca2

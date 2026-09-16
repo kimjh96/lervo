@@ -1,0 +1,29 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_76c55a8da5848c1ef41ea697
+outputLanguage: en
+outputs:
+  - byteCount: 6322
+    contentHash: sha256:ac228d4691959ce684e3fee2fceca6f73a94d66823c4c32256b31762f71c09df
+    path: docs/specifications/execution/outcome-supervision/implementation/responsibility-claims.md
+    userRegionHash: sha256:ac228d4691959ce684e3fee2fceca6f73a94d66823c4c32256b31762f71c09df
+profile: specification_document
+recordId: knormdoc_e1108215199fdca8de34e925
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a84e8a61470393d9dd92e57b8b5c5009ec756914b1fb07ec74f21ec857023c06
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/responsibility-claims.md
+sourceUnitVersionIds:
+  - uv_01453e10f11050590fb31d6f
+  - uv_466339c0643c36b0a707899b
+  - uv_59bfcb674f01ead5991a58aa
+  - uv_60d9bab6b42ea5ce34d5521e

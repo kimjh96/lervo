@@ -5,17 +5,22 @@
 
 ## Context
 
-The conversation contract supported proactive participation and a durable deliberation queue, but installed Node deployments configured neither signal producers nor a deliberation executor. Discord could answer repository-grounded messages but could neither initiate useful contributions after repository events nor execute explicit deliberation commands.
+The conversation contract supported proactive participation and a durable deliberation queue, but installed Node deployments configured neither signal producers nor a deliberation executor. Discord could answer repository-grounded messages but could not initiate contributions after repository events or execute explicit deliberation commands.
 
-Implementing either behavior in Discord would give the adapter ownership of repository policy. Importing CLI application internals into Node would reverse package dependencies. Replaying event payloads into chat would violate the event privacy contract.
+Implementing these behaviors in Discord would give the adapter repository-policy ownership. Importing CLI application internals into Node would reverse package dependencies. Replaying event payloads into chat would violate event privacy.
 
 ## Decision
 
 ### Repository signals
 
-An optional Node repository-signal source reads the canonical local project event chain through the event-store port. First enablement checkpoints the current head without replaying history. Each configured exact event-type mapping creates the existing `signal.raised` conversation event for its bounded conversation set. Required fields are the common conversation fields and configured `signalCode`; the actor is `system`, mentions are empty, and automation depth is zero. Content contains only the source event type and signal code, excluding event payloads, prompts, credentials, provider output, and platform identifiers. Before replying, the selected agent must retrieve current state through the ordinary managed repository context path.
+An optional Node repository-signal source reads the canonical local project event chain through the event-store port. First enablement checkpoints the current head without replaying history. Each configured exact event-type mapping creates an existing `signal.raised` conversation event for its bounded conversation set:
 
-The rebuildable `repository-signal-cursor.json` projection contains the schema version, project ID, integration ID, last fully dispatched source sequence, and update time. It is an owner-only atomic current file, not an event or knowledge source. A missing cursor starts at the current event head. Invalid coordinates, a cursor beyond the current head, read failure, CAS failure, or dispatch failure produces `repository_signal_failed`; Node fails closed rather than skipping an unknown interval. A crash before cursor advancement may replay a signal, but interaction idempotency uses the deterministic source-event hash to prevent duplicate publication.
+- Required fields are the common conversation fields and configured `signalCode`.
+- The actor is `system`, mentions are empty, and automation depth is zero.
+- Content contains only the source event type and signal code; it excludes event payloads, prompts, credentials, provider output, and platform identifiers.
+- Before replying, the selected agent must retrieve current state through the ordinary managed repository context path.
+
+The rebuildable `repository-signal-cursor.json` projection contains schema version, project ID, integration ID, last fully dispatched source sequence, and update time. It is an owner-only atomic current file, not an event or knowledge source. A missing cursor starts at the current event head. Invalid coordinates, a cursor beyond the current head, read failure, CAS failure, or dispatch failure produces `repository_signal_failed`; Node fails closed rather than skipping an unknown interval. A crash before cursor advancement may replay a signal, but interaction idempotency uses the deterministic source-event hash to prevent duplicate publication.
 
 Proactive production requires a participation policy that explicitly uses `proactive`, permits the `system` actor, and subscribes to every mapped signal code. Existing cooldown, hourly response limit, automation-depth limit, deterministic multi-agent turn ownership, relevance policy, typing lifecycle, provider budget, and terminal failure behavior remain in force. Unconfigured deployments produce no signals.
 

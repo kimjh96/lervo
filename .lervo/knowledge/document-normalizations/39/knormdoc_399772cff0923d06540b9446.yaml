@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5e1fd6cfe54fc566f477e7ab
+outputLanguage: en
+outputs:
+  - byteCount: 4461
+    contentHash: sha256:1d6384de5cab86b6545834971a25422ae6d4f52af2e7e8e6f67dc6e3ca8936c1
+    path: docs/specifications/execution/outcome-supervision/implementation/runtime-readiness.md
+    userRegionHash: sha256:1d6384de5cab86b6545834971a25422ae6d4f52af2e7e8e6f67dc6e3ca8936c1
+profile: specification_document
+recordId: knormdoc_399772cff0923d06540b9446
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:e2db782113979fbe60bd186995dcf06c57035f5aae6d031a072710c8f564f69c
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/runtime-readiness.md
+sourceUnitVersionIds:
+  - uv_245581291fa1b8c340d710f8
+  - uv_3898055b23e156e1887dc846
+  - uv_71e465900e99f274a75ae870
+  - uv_c63fcbdfd2c81a4908f602a4
+  - uv_ed16c9fd43e83c0f42ef1ea9

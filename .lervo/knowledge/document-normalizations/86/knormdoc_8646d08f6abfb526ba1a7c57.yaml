@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_bba7a01e4e982ce8faa0a7a3
+outputLanguage: en
+outputs:
+  - byteCount: 768
+    contentHash: sha256:f8cba175de182df014ddf459e341992be5e0f4e0e1c04b85fa8cacb4e0da4dd0
+    path: docs/evidence/foundation/wsl-host-recovery.md
+    userRegionHash: sha256:f8cba175de182df014ddf459e341992be5e0f4e0e1c04b85fa8cacb4e0da4dd0
+  - byteCount: 2391
+    contentHash: sha256:764c25b60792bd9de9952998b97bcd9b758e2cb3c161c68d848b3252978fe882
+    path: docs/evidence/foundation/wsl-host-recovery/2026-09-13-access-restoration.md
+    userRegionHash: sha256:764c25b60792bd9de9952998b97bcd9b758e2cb3c161c68d848b3252978fe882
+  - byteCount: 3079
+    contentHash: sha256:86d74f89d540cf8d989ea3d0d6ce03ae1398683924bfa77e283605bdcf44c4cd
+    path: docs/evidence/foundation/wsl-host-recovery/initial-recovery.md
+    userRegionHash: sha256:86d74f89d540cf8d989ea3d0d6ce03ae1398683924bfa77e283605bdcf44c4cd
+profile: repository_document
+recordId: knormdoc_8646d08f6abfb526ba1a7c57
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7e973d8cf5e1491be104d6c1f365e1d60b37a4e34019490e6a418199ec722b67
+sourcePath: docs/evidence/foundation/wsl-host-recovery.md
+sourceUnitVersionIds:
+  - uv_01b1def88341114d82ed9285
+  - uv_4c4e8ea672b02603a657b818
+  - uv_8e1688ca5a82039d6f2cda5d
+  - uv_a786f0de113a057b4fd3560e
+  - uv_c98a1fbc71767cd0e3530872

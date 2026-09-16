@@ -4,7 +4,7 @@ Part of [Role-backed multi-party conversation](../multi-party-conversation.md).
 
 ## Deployments and context
 
-The installed Node accepts a bounded collection of distinct Discord agent deployments. Bot speakers use one application each. Webhook speakers may share the exact Gateway application and bot credential while retaining distinct webhook IDs, owner-only webhook tokens, hired-agent bindings, current role hashes, provider and model routing, storage, response ownership, and delivery adapters.
+The installed Node accepts a bounded collection of distinct Discord agent deployments. Each bot speaker uses its own application. Webhook speakers may share the exact Gateway application and bot credential while retaining distinct webhook IDs, owner-only webhook tokens, hired-agent bindings, current role hashes, provider and model routing, storage, response ownership, and delivery adapters.
 
 Every owned agent turn loads that agent's reviewed context through the managed context coordinator used for repository search and evidence.
 
@@ -14,11 +14,11 @@ Shared-guild peer author and mention aliases normalize to the peer's single work
 
 - Assigns exact participant mentions to their addressees.
 - Selects one participant per mentioned role.
-- Selects a stable participant for unaddressed turns. The uniquely configured CEO is the general-channel default; a project channel with one PO remains with that PO.
+- Selects a stable participant for unaddressed turns: the uniquely configured CEO defaults in the general channel; a project channel with one PO remains with that PO.
 
 Non-owners record `turn_not_owned` without typing or provider work. Typing starts when an owner begins semantic resolution and continues through an active native work turn. Bounded recent context retains the speaker's participant, agent, and role identity. Aggregate readiness and failure remain fail-closed.
 
-Within a multi-bot Node, an exact reviewed manual participant binding overrides the automatic co-resident peer binding for the same tenant and speaker identity. This lets a coordinating agent start a bounded automation chain without conflicting identity rows or extending the override to every peer.
+Within a multi-bot Node, an exact reviewed manual participant binding overrides automatic co-resident peer binding for the same tenant and speaker identity. This lets a coordinating agent start a bounded automation chain without conflicting identity rows or extending the override to every peer.
 
 ## Proactive signals, deliberation, and effects
 

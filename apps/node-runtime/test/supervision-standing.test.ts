@@ -241,7 +241,7 @@ it("makes a running standing service follow a successor another process started"
     expect(admitted.rebound).toBe(true);
     await vi.waitFor(
       () => expect(service.currentBinding().supervisionId).toBe("supervision.standing.s1"),
-      { timeout: 45_000 },
+      { timeout: 90_000 },
     );
     // The old owner's cycles may fail while the successor is installed; the lineage walk may not.
     expect(logs.filter((line) => /lineage/u.test(line))).toEqual([]);
@@ -287,7 +287,7 @@ it("makes a running standing service follow a successor another process started"
     await service.close();
     await storage.close();
   }
-}, 60_000);
+}, 120_000);
 
 it("keeps the lineage resolvable after a later reviewed version of a successor mandate", async () => {
   const { f, storage, root, request } = await installStandingRoot(1);

@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fcc58c73c2db065d6839e298
+outputLanguage: en
+outputs:
+  - byteCount: 5166
+    contentHash: sha256:6adbab805e025e32eefc0da2b8e987e56c04d825f55e4ecd289948a0fefad0df
+    path: docs/decisions/coordination/conversations/agent-organization/0411-governed-agent-memory-and-autonomous-participation.md
+    userRegionHash: sha256:6adbab805e025e32eefc0da2b8e987e56c04d825f55e4ecd289948a0fefad0df
+profile: decision_record
+recordId: knormdoc_013d0a08c4d3fdc57b909d94
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:097f3566c3917ace3b6187a2cc716fd0382238272ef0b767461b7a64c891f3c2
+sourcePath: docs/decisions/coordination/conversations/agent-organization/0411-governed-agent-memory-and-autonomous-participation.md
+sourceUnitVersionIds:
+  - uv_0f14b5bf074e719b7debbe6b
+  - uv_199227c39aae3606e3f1381c
+  - uv_7746db18841feedca8aef56a
+  - uv_8d0bec23880064f9d62c3675
+  - uv_9aca7a9769b6f8898c4ebd24
+  - uv_a9e97f2eac4b62134ab0af30
+  - uv_d47eb813e646151d2249a13f
+  - uv_e3b6a7924358c4b58ae339ff

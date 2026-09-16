@@ -1,0 +1,47 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1544b7a436033b441ab9e662
+outputLanguage: en
+outputs:
+  - byteCount: 2356
+    contentHash: sha256:37c77834ba5417d5ccf9d98d14cbd01806c8e2e37ef7bb56c7f278f4df522de3
+    path: docs/architecture/search-and-context.md
+    userRegionHash: sha256:37c77834ba5417d5ccf9d98d14cbd01806c8e2e37ef7bb56c7f278f4df522de3
+  - byteCount: 3865
+    contentHash: sha256:42a62c0ff02f7223a6f5934a2c8990d8a4adfb9e802acd42f407ee1357809bf8
+    path: docs/architecture/search-and-context/composition.md
+    userRegionHash: sha256:42a62c0ff02f7223a6f5934a2c8990d8a4adfb9e802acd42f407ee1357809bf8
+  - byteCount: 2512
+    contentHash: sha256:c8ec4fe844ce7ad03b8eed56f5ea34d538327fea43837bd5f8ab3b4fb60d8392
+    path: docs/architecture/search-and-context/engines.md
+    userRegionHash: sha256:c8ec4fe844ce7ad03b8eed56f5ea34d538327fea43837bd5f8ab3b4fb60d8392
+  - byteCount: 423
+    contentHash: sha256:9354766ab454cc8764ad2be0b5f986b229d06524802d3d8ef225d0765ee13dca
+    path: docs/architecture/search-and-context/evidence.md
+    userRegionHash: sha256:9354766ab454cc8764ad2be0b5f986b229d06524802d3d8ef225d0765ee13dca
+  - byteCount: 407
+    contentHash: sha256:ced4d9588f8f0fc3c0c1e53406bf56b60fc16e04060f68bfaa158c88071670ee
+    path: docs/architecture/search-and-context/linked-context.md
+    userRegionHash: sha256:ced4d9588f8f0fc3c0c1e53406bf56b60fc16e04060f68bfaa158c88071670ee
+profile: architecture_document
+recordId: knormdoc_272b717679b3bb6d726d2b69
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8bc47b29a9abc48951360c2ae67c6a4788123c75eab93543faea4824015287ac
+sourcePath: docs/architecture/search-and-context.md
+sourceUnitVersionIds:
+  - uv_218f3dab2578970ab1dcf29b
+  - uv_3c425419097e5fdaf7d4f87c
+  - uv_7bb5deed78802d99354be86f
+  - uv_7ef75025f8345aba9799a290
+  - uv_84cf2b1426bd7119360dc1ff
+  - uv_99fea192b9260a5b1ffd7a53

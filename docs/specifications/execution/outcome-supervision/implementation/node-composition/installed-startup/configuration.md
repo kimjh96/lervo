@@ -1,8 +1,10 @@
 # Installed supervision configuration
 
-Node configuration may include one `outcomeSupervision` object with required fields `runtimeReadiness`, `ownerReasoning` and `managedExecution`, exactly one of `binding` or `standing`, and optional `resultOrigin`.
+Node configuration may include one `outcomeSupervision` object with required `runtimeReadiness`, `ownerReasoning` and `managedExecution` fields, exactly one of `binding` or `standing`, and optional `resultOrigin`. Both or neither of `binding` and `standing` reject startup.
 
-The binding names an already installed supervision ID, workstream, owner and mandate hash. Configuration selects that exact authority; it cannot install a mandate, approve a plan or widen scope. `standing` has the same shape but names the root of a standing lineage: the runtime verifies each recorded successor derivation from that root and opens the latest successor goal, and intake may start the next one under the root mandate's reviewed `successorAuthority` ([ADR-0405](../../../../../../decisions/execution/orchestration/governed-work/0405-standing-supervision-lineage.md)). A configuration with both or neither key rejects startup.
+`binding` names an already installed supervision ID, workstream, owner and mandate hash. Configuration selects that exact authority; it cannot install a mandate, approve a plan or widen scope.
+
+`standing` has the same shape but names a standing lineage root. The runtime verifies every recorded successor derivation from that root and opens the latest successor goal. Intake may start the next goal under the root mandate's reviewed `successorAuthority` ([ADR-0405](../../../../../../decisions/execution/orchestration/governed-work/0405-standing-supervision-lineage.md)).
 
 Trusted readiness configuration supplies:
 

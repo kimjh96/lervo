@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_eba818f7c76a25341b6210c9
+outputLanguage: en
+outputs:
+  - byteCount: 693
+    contentHash: sha256:ce7d4c2b26c9cf56a23cf2d9223f55841948bfef6350a01c9efab96436ba95a0
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/retrieval-and-capabilities/capability-discovery.md
+    userRegionHash: sha256:ce7d4c2b26c9cf56a23cf2d9223f55841948bfef6350a01c9efab96436ba95a0
+profile: roadmap_document
+recordId: knormdoc_cf9a72b20de9fcb78f95cbe1
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:efb568d7907c37cec13f74ef597c653b63d2b3e05740fb9bb37e17a562bf54f0
+sourcePath: docs/roadmap/product-outcome-convergence/repository-knowledge/retrieval-and-capabilities/capability-discovery.md
+sourceUnitVersionIds:
+  - uv_cd5f92f0b61c97280e1bd042

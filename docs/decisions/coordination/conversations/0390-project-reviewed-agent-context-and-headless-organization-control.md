@@ -5,11 +5,11 @@
 
 ## Context
 
-Durable hired-agent identity alone did not preserve reviewed expertise across turns or provider replacement. Discord conversations already used Lervo's product-default repository search, knowledge recommendations, relation projection, context coordinator, managed provider execution, evidence, and budgets, but lacked a separately governed agent-context source. A future Lervo product also needed an installed application boundary for organization views and CEO decisions without copying repository truth into a Discord-specific or product-owned database.
+Durable hired-agent identity did not preserve reviewed expertise across turns or provider replacement. Discord conversations already used Lervo's product-default repository search, knowledge recommendations, relation projection, context coordinator, managed provider execution, evidence, and budgets, but lacked a separately governed agent-context source. A future Lervo product also needed an installed application boundary for organization views and CEO decisions without copying repository truth into a Discord-specific or product-owned database.
 
 ## Decision
 
-Lervo adds an agent-ID-keyed, provider-neutral context projection, assembled beside repository search for every managed conversation turn. It uses the same context selection, loading, injection, and evidence path. Discord neither owns nor bypasses it; other conversation surfaces can reuse the managed responder.
+Lervo adds an agent-ID-keyed, provider-neutral context projection beside repository search for every managed conversation turn. It shares the context selection, loading, injection, and evidence path. Discord neither owns nor bypasses it; other conversation surfaces can reuse the managed responder.
 
 Only reviewed material enters durable context. `agent.context.promoted` requires:
 
@@ -17,25 +17,25 @@ Only reviewed material enters durable context. `agent.context.promoted` requires
 - One `work`, `relationship`, or `expertise` layer.
 - An exact event or CAS artifact source and hash.
 - A CAS summary of at most 32 KiB.
-- An exact qualifying review event and hash. A `verification.completed` review qualifies only if it passed.
+- An exact qualifying review event and hash; a `verification.completed` review qualifies only if it passed.
 - Promotion time.
 
-[ADR-0411](agent-organization/0411-governed-agent-memory-and-autonomous-participation.md) strengthens this contract: the review must attest the exact summary hash, promotions carry subject, kind, audience, sensitivity, confidence, opaque retrieval, observation, and expiry coordinates, and Node injects only bounded relevant internal entries. Verified managed repository-work results may enter automatically as expiring medium-confidence work history; shared repository facts still use repository knowledge.
+[ADR-0411](agent-organization/0411-governed-agent-memory-and-autonomous-participation.md) further requires review attestation of the exact summary hash and promotion coordinates for subject, kind, audience, sensitivity, confidence, opaque retrieval, observation, and expiry. Node injects only bounded relevant internal entries. Verified managed repository-work results may enter automatically as expiring medium-confidence work history; shared repository facts still use repository knowledge.
 
-An optional supersession coordinate must identify the same agent and layer. Raw prompts, hidden reasoning, credentials, and provider-native session state are not promoted.
+Optional supersession must identify the same agent and layer. Raw prompts, hidden reasoning, credentials, and provider-native session state are not promoted.
 
 `agent.context.handoff.recorded` requires distinct source and active successor agents, one to 32 exact source-owned entry IDs, a content-addressed manifest, and record time. Retirement makes the namespace read-only. Nothing is inherited implicitly from a role, parent, team, provider, or prior bot; a successor sees only an explicit handoff.
 
 Both events retain identifiers, hashes, byte counts, layer, and time. Summary and manifest bytes remain in local CAS. Redaction rejects extra fields and invalid content-addressed coordinates. Missing source, mismatched hash or artifact, failed review, stale supersession, invalid successor, or damaged projection causes the mutation or managed response to fail closed rather than silently drop context.
 
-Lervo also adds a surface-neutral organization operating report and bounded CEO policy decision:
+Lervo adds a surface-neutral organization operating report and bounded CEO policy decision:
 
 - Each repository independently projects its immutable organization/team binding, roster, deployments, channel and deliberation counts, active agent-context count, event head, and current workstream.
-- A portfolio reader composes these snapshots without merging repository authority and explicitly marks organization, team, or project conflicts.
+- A portfolio reader composes snapshots without merging repository authority and explicitly marks organization, team, or project conflicts.
 - A CEO decision checks exact appointment, organization, allowlisted action and team, automation depth, observed budget policy/status, operating-report integrity, and approval. It returns `allowed`, `approval_required`, or `denied` without performing the effect.
 - The built-in CEO role remains conservative: organization effects require existing approval and adapter boundaries, shell access is denied, and credentials remain outside model context.
 
-Product-host protocol v7 exposes the organization report, context inspection/promotion/handoff, and CEO evaluation as installed local CLI routes. These form the application boundary for Discord today and a direct Lervo product later. Local operation requires no Hub.
+Product-host protocol v7 exposes the organization report, context inspection/promotion/handoff, and CEO evaluation as installed local CLI routes. These provide the application boundary for Discord today and a direct Lervo product later. Local operation requires no Hub.
 
 ## Consequences
 

@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_22245136efc6f070f4bc7504
+outputLanguage: en
+outputs:
+  - byteCount: 4802
+    contentHash: sha256:88e8eb2683a069fc81bac9f44a218e3de3b42c5682ce193d088e3f145187120b
+    path: docs/decisions/coordination/sync/0414-remove-change-driven-batch-barriers.md
+    userRegionHash: sha256:88e8eb2683a069fc81bac9f44a218e3de3b42c5682ce193d088e3f145187120b
+profile: decision_record
+recordId: knormdoc_7e0d61409612dbd824f852d7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:a2d368b9ea7e78bb1a174e265a34bd9bf920338724a87647997fd1215bf92f4b
+sourcePath: docs/decisions/coordination/sync/0414-remove-change-driven-batch-barriers.md
+sourceUnitVersionIds:
+  - uv_1d27dc356c0a041b7b3060ac
+  - uv_447556b8af22405c0c3dbc34
+  - uv_4ea13525614889ecc6194e08
+  - uv_9e0625b892deaa5a4db335ad
+  - uv_9ee19e43b488b700d6cc27c4
+  - uv_c9a8a81b405ccae543cf8a5b

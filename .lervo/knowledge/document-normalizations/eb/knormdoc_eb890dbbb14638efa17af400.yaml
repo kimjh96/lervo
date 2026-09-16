@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_41500d32651954caec65eaab
+outputLanguage: en
+outputs:
+  - byteCount: 391
+    contentHash: sha256:5ec5ac1ad845b4d26f2e19579e98059ab3af0adddd21a373ccdd3c9a71233896
+    path: docs/specifications/execution/events-and-privacy/terminal-observations.md
+    userRegionHash: sha256:5ec5ac1ad845b4d26f2e19579e98059ab3af0adddd21a373ccdd3c9a71233896
+profile: specification_document
+recordId: knormdoc_eb890dbbb14638efa17af400
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5ec5ac1ad845b4d26f2e19579e98059ab3af0adddd21a373ccdd3c9a71233896
+sourcePath: docs/specifications/execution/events-and-privacy/terminal-observations.md
+sourceUnitVersionIds:
+  - uv_519ebc929624f0ef020cbc3c

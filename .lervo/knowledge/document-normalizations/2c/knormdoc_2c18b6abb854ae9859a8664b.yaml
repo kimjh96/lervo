@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_f6828ef8b3279f27b4c448ac
+outputLanguage: en
+outputs:
+  - byteCount: 1824
+    contentHash: sha256:74f1bd0231496d07ca8064f8b4e65b35bd0c32635a3968009e2a6bf5fe3f6522
+    path: docs/specifications/coordination/node-change-driven-work/conversation-scheduling.md
+    userRegionHash: sha256:74f1bd0231496d07ca8064f8b4e65b35bd0c32635a3968009e2a6bf5fe3f6522
+profile: specification_document
+recordId: knormdoc_2c18b6abb854ae9859a8664b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1edc9b931faafd054a96b1e7cd2d010bd04d36d4cc6d49108907c315f8c0bf3a
+sourcePath: docs/specifications/coordination/node-change-driven-work/conversation-scheduling.md
+sourceUnitVersionIds:
+  - uv_b615a293460a2829d99758df
+  - uv_d21836c8ead2c0e001c9c5a6
+  - uv_fb2b20c2a77e43badc2dab2b

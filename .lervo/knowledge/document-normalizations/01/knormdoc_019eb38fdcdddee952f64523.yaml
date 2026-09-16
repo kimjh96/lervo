@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1b96a0fb6c1bc7c8f59edf29
+outputLanguage: en
+outputs:
+  - byteCount: 1750
+    contentHash: sha256:1b484c6a2dcb9eedfad8e03d0c1d9759d451bb8280b84ab3b2bc88450ca09463
+    path: docs/specifications/execution/events-and-privacy/terminal-observations/context-reference-and-turn-evidence.md
+    userRegionHash: sha256:1b484c6a2dcb9eedfad8e03d0c1d9759d451bb8280b84ab3b2bc88450ca09463
+profile: specification_document
+recordId: knormdoc_019eb38fdcdddee952f64523
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:1b484c6a2dcb9eedfad8e03d0c1d9759d451bb8280b84ab3b2bc88450ca09463
+sourcePath: docs/specifications/execution/events-and-privacy/terminal-observations/context-reference-and-turn-evidence.md
+sourceUnitVersionIds:
+  - uv_6afa0a45ad179c11e5899b23

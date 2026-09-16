@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_726c9e12eb0bb35fa5fc3342
+outputLanguage: en
+outputs:
+  - byteCount: 2565
+    contentHash: sha256:453d8aa53b6690b3b5c962791c95cacae201c0ba0598482454ddb2f2cdd00874
+    path: docs/specifications/execution/outcome-supervision/contracts/admission.md
+    userRegionHash: sha256:453d8aa53b6690b3b5c962791c95cacae201c0ba0598482454ddb2f2cdd00874
+profile: specification_document
+recordId: knormdoc_0e3be54702830a4a85e92785
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8d68811f74ab74b90952a723fc7b203dc51b4a81e9351fbe2c7e3e1fe4795654
+sourcePath: docs/specifications/execution/outcome-supervision/contracts/admission.md
+sourceUnitVersionIds:
+  - uv_4853ddaf89397b6e65ffe3ea
+  - uv_5b6ed6dd27b5e1091e792f1e
+  - uv_ae4ecbae3d829eb2cc8e2258
+  - uv_c6b9f70fd97b331962427b20
+  - uv_cb95f146d10a465e554c9f58

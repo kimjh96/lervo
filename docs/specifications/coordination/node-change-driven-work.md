@@ -5,7 +5,7 @@ As of: 2026-09-16
 
 ## Notification and authority
 
-Notifications mean only that durable state should be checked. Repository parity, event-chain integrity, command authorization, current conversation policy, and worker leases retain their existing verification boundaries. Local execution requires neither a Hub nor a peer connection.
+Notifications only signal that durable state should be checked. Repository parity, event-chain integrity, command authorization, current conversation policy, and worker leases retain their existing verification boundaries. Local execution requires neither a Hub nor a peer connection.
 
 ## Contracts and validation
 
@@ -13,4 +13,4 @@ Notifications mean only that durable state should be checked. Repository parity,
 - [Conversation queues and bounded scheduler](node-change-driven-work/conversation-scheduling.md)
 - [Remaining timers and acceptance](node-change-driven-work/validation.md)
 
-ADR-0414 removes the remaining repository batch barrier, replaces short owner-admission polling with lease notifications, and narrows supervision consistency to owned source coordinates. Recovery, integrity, protocol, lease, and deadline timers remain explicit safety controls rather than ordinary work discovery.
+ADR-0414 removes the remaining repository batch barrier, replaces short owner-admission polling with lease notifications, and narrows supervision consistency to owned source coordinates. Recovery, integrity, protocol, lease, and deadline timers remain explicit safety controls, not ordinary work discovery.

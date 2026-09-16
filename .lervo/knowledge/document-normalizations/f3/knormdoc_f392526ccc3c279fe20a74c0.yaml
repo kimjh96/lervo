@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_71bb2f8ba4f0719e7e4e62e2
+outputLanguage: en
+outputs:
+  - byteCount: 2912
+    contentHash: sha256:1e3f0fb65d3791d736e7b730f98115bd9e7c5d70dc360ac63ca0189825ce6661
+    path: docs/decisions/execution/orchestration/governed-work/0401-bind-installed-supervision-requests-across-surfaces.md
+    userRegionHash: sha256:1e3f0fb65d3791d736e7b730f98115bd9e7c5d70dc360ac63ca0189825ce6661
+profile: decision_record
+recordId: knormdoc_f392526ccc3c279fe20a74c0
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f98193f5150bfe90502cb97f51ccc88afae48f2b0803bd7b741304e34d8fdb77
+sourcePath: docs/decisions/execution/orchestration/governed-work/0401-bind-installed-supervision-requests-across-surfaces.md
+sourceUnitVersionIds:
+  - uv_061bcff7bd59a6ba953da8da
+  - uv_290748af0d7d41f1e1a64869
+  - uv_3c421f992df89838f0ccc901
+  - uv_6acb478031a9657543a6d42f
+  - uv_ebb40f639cdb2d20a0b37cbe

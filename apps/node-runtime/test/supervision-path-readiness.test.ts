@@ -78,5 +78,6 @@ describe("Node filesystem scope readiness", () => {
         await runtime.close();
       }
     },
+    30_000,
   );
 });

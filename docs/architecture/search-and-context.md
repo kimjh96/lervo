@@ -3,59 +3,12 @@
 Status: `active`
 As of: 2026-09-16
 
-## Evidence boundary
+Search separates recommendation, engine execution, plan composition, and context delivery:
 
-Search recommends but does not prove use. Selection records why an item was chosen; loading validates current bytes; delivery creates an adapter receipt before `injected` evidence exists. Later reference or use requires separate provider telemetry.
-
-`selected`, `loaded`, `injected`, and `used` are distinct states. Engine results cannot prove delivery, reference, correctness, or provider use.
-
-## Engine boundary
-
-Operational retrieval uses `SearchEnginePort` and `SearchIndexPort`. Product-qualified `lexical-v2` is the no-transition default; `lexical-v1` is the local rollback baseline. Engine adapters own only indexing and ranking. Corpus acquisition, query grounding, context selection, provider delivery, credentials, and network authority remain outside these ports.
-
-The registered `lexical-v2` build `sebuild_e9f2ac9398b0f58d03143e7a` passed the v20 local and cross-provider engineering gates. A provider-neutral projection and independent-query fusion plan also passed all four exact human-reviewed real-use cases for both providers. ADR-0328 established the initial product default; ADR-0353 replaced its admitted projector pair with the reviewed direct pair. Current qualification `spqual_18bb11bf0b6a01f9a33190bc` content-binds the engine evidence, direct-projector evidence, exact shipped builds, and verified superseded product-plan lineage. Every current repository uses that engine and complete plan by default without repeating project-specific evaluation. ADR-0321 remains the immutable selection boundary for a different repository-specific complete plan.
-
-Any other local engine or external adapter must:
-
-1. Implement the provider-neutral port with distinct engine identity and content-bound adapter build identity.
-2. Register in the bounded registry; registration has no runtime effect.
-3. Be compared with `lexical-v1` on the same corpus and cases.
-4. Have quality, latency, privacy, and cost evidence reviewed.
-5. Be activated through an immutable policy-bound transition.
-6. Revalidate its adapter build, corpus, comparison, review, index, and response during every operational resolution.
-7. Roll back explicitly to `lexical-v1` when required by the reviewed transition.
-
-Selected-adapter failure is fail-closed: runtime must not silently mix engines or fall back. Explicit rollback restores the local baseline without a Hub, external credential, or network service.
-
-External engines belong in adapter packages. Core search, context, and provider orchestration must not import vendor SDKs or depend on Codex or Claude behavior. Credentials and network capability require separate authorization; secret bytes remain runtime-only.
-
-Reranking, query expansion, remote corpora, and context expansion require separate measurable, observable boundaries. They must not be hidden inside an engine adapter to bypass comparison or review.
-
-### V2 composition layer
-
-ADR-0306 permits this bounded v2 composition layer above the compatibility ports:
-
-```text
-0..1 query-projection stage -> 1..3 retrieve stages -> 0..1 fusion stage -> 0..1 rerank stage
-```
-
-It supports distinct complete-plan candidates for external-only replacement, local-plus-external augmentation, and external reranking. The ports and evaluation executor exist, but the layer is neither a general DAG nor an operationally selectable plan.
-
-V2 separates index preparation from query execution, binds an immutable preparation receipt, and records a privacy-bounded receipt for every stage. Query projection is outside engine adapters and cannot establish truth, effects, authority, or plan selection. A reranker may only reorder or drop its bounded registered input; it cannot introduce a source. Required-stage failure fails the complete plan closed. A reduced plan must be reviewed separately, not used as a runtime fallback.
-
-For unmanaged direct terminal preparation, query projection is limited to registered knowledge in the current repository. An empty or failed projection has no evidentiary meaning for another repository or an external or shared service. Source expansion requires a separately available tool and authority; it is never derived from keyword, synonym, translation, or phrase routing.
-
-Production terminal projection opens one capability-free provider runner and performs one query-producing model turn. It does not perform the historical synthetic admission turn. The provider-neutral projection port, digest and query bounds, isolated Codex thread, serialized Claude process, usage receipt, and owner-close contract remain unchanged; provider lifecycle details remain outside search core.
-
-The operational plan resolver first checks an explicit local selection. Without one, it resolves the shipped product qualification, rebuilds the current repository-knowledge Markdown corpus, verifies the registered engine and projector builds, executes independent queries through `SearchEnginePort`, fuses validated coordinates, and maps selected paths to current concepts. A different local candidate still reads a content-bound bundle from `.lervo/search-retrieval-plan-bundles`, verifies immutable transitions, and requires its exact reviewed corpus. A legacy activation of the exact product-default plan no longer pins the current corpus to that historical review. Both v2 and the v1 rollback baseline remain local and require neither a Hub nor a provider credential.
-
-Repository-knowledge ranking uses a separate provider-neutral prepare-once/query-many port because the knowledge compiler cannot depend on a concrete search adapter. Product CLI, managed local execution, supervision planning, direct-terminal fallback, and long-running conversation composition install the qualified Lexical v2 adapter. The managed secondary knowledge ranking follows the same explicit or product-default engine selection as its operational search. Long-running hosts cache the prepared projection only for the exact repository source revision and share concurrent preparation; source-revision change invalidates it. The result exposes engine and adapter-build coordinates, while compatibility callers that deliberately omit the port retain the legacy exact-term ranker. See ADR-0413.
-
-Built-in adapters may remain in process. Third-party adapters require a future versioned out-of-process protocol and exact installation lock. Search must never dynamically resolve arbitrary modules, paths, packages, or URLs. External data export, environment targets, network, credentials, retention, and cost require separate authorization. Exact deterministic replay is the initial activation class.
-
-## Linked-context disposition
-
-Ordinary managed Codex and Claude runs do not project, select, load, or inject deterministic linked-only context after search. The exact linked canary remains default-off historical experiment infrastructure with no public activation input. A dependency-injected evaluation executor may reproduce the paired experiment, but default application composition does not supply it.
+- [Evidence boundary](search-and-context/evidence.md)
+- [Engine boundary and qualification](search-and-context/engines.md)
+- [V2 composition and operational resolution](search-and-context/composition.md)
+- [Linked-context disposition](search-and-context/linked-context.md)
 
 ## Decisions
 

@@ -1,0 +1,11 @@
+fromPath: docs/decisions/coordination/conversations/0396-conflict-safe-repository-replica-continuation.md
+identityPath: docs/decisions/coordination/conversations/0396-conflict-safe-repository-replica-continuation.md
+kind: document_move
+lineageId: klineage_ae17de980fc66d183a566cf7
+operationId: kdocop_f57a006f30a707269c2c630f
+schemaVersion: 1
+sourceContentHash: sha256:da18e409afc0151e0238e60de10defdbe4c5dabab369d47a2965aacdf010c54c
+sourceId: src_6a9352eacd49a53e2e77f9ad
+sourceUnitBindingDigest: sha256:5ddf1102197420fff9153e5023a773245b5fbd95b61fd75a6ddf8493e2f9738d
+sourceUnitCount: 9
+toPath: docs/decisions/coordination/sync/0396-conflict-safe-repository-replica-continuation.md

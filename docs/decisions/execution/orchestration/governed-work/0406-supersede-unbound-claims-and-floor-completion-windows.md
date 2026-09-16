@@ -5,22 +5,24 @@
 
 ## Context
 
-The first successor goal of the standing lineage stalled at 01:30 UTC on 2026-09-15. The owner requested rework and proposed the successor responsibility with a 154-second completion window; the automatic recovery claim computed a 150-second lease with the five-second admission margin, and by the time the fenced acquisition re-checked the deadline five seconds later the lease no longer fit. The claim failed before writing anything, its effect was recorded uncertain, and every later cycle either failed on the same stale claim or, once the plan deadline had passed, reported `pending_decision_requires_reconciliation`, because responsibility claims had no supersession path. The goal could not continue and, since it was not settled, the standing lineage could not start the next one.
+The standing lineage's first successor goal stalled at 01:30 UTC on 2026-09-15. The owner requested rework and proposed a successor responsibility with a 154-second completion window. Automatic recovery computed a 150-second claim lease with a five-second admission margin; when fenced acquisition rechecked the deadline five seconds later, the lease no longer fit.
+
+The claim failed before writing anything, and its effect was recorded uncertain. Subsequent cycles failed on the stale claim or, after the plan deadline, reported `pending_decision_requires_reconciliation`: responsibility claims had no supersession path. The goal could not continue, and its unsettled state prevented the standing lineage from starting the next goal.
 
 ## Decision
 
-- A never-bound responsibility claim is superseded like an unstarted owner reasoning or workspace preparation: when its source changed or its plan deadline passed, the Node records a version-7 `work.effect_absence` inspection and the existing `work.supervision.decision.superseded` event under the owner fence, after proving under the same fence that the binding event is absent and the assignment record is unchanged. The decision journal validates that inspection before treating the decision as superseded.
-- Claims reserve a thirty-second admission margin before the completion deadline instead of five seconds.
-- The native owner's completion window is floored at ten minutes, or the mandate's maximum deadline when shorter; a shorter proposal is raised, not rejected, and the owner instructions state the floor.
-- A recovery claim whose successor responsibility can no longer hold the margin plus a minimal lease is not materialized; the owner decides again with attention rather than a failing cycle.
+- Supersede never-bound responsibility claims like unstarted owner reasoning or workspace preparation when their source changes or their plan deadline passes. Under the owner fence, the Node proves that the binding event is absent and the assignment record unchanged, then records a version-7 `work.effect_absence` inspection and the existing `work.supervision.decision.superseded` event. The decision journal validates the inspection before treating the decision as superseded.
+- Reserve a thirty-second claim admission margin before the completion deadline instead of five seconds.
+- Floor the native owner's completion window at ten minutes, or the mandate's maximum deadline when shorter. Raise shorter proposals rather than rejecting them, and state the floor in owner instructions.
+- Do not materialize a recovery claim if its successor responsibility can no longer accommodate the margin plus a minimal lease. Instead of a failing cycle, have the owner decide again with attention.
 
 ## Consequences
 
-An interrupted claim no longer pins a goal in reconciliation. A rework attempt gets at least the window a worker turn needs, so the race between proposal and acquisition disappears in practice. A successor responsibility whose window has already elapsed still needs a new owner decision; recording that state as a bounded assignment failure remains a follow-up.
+An interrupted claim no longer pins a goal in reconciliation. Rework receives at least the window a worker turn needs, eliminating the proposal/acquisition race in practice. An elapsed successor responsibility window still requires a new owner decision; recording it as a bounded assignment failure remains follow-up work.
 
 ## Verification
 
-- `supervision-claim-supersession` runtime test: a claim that fails before binding stays uncertain, is superseded after its deadline with one inspection-backed event, and a fresh claim over the same assignment is admitted afterwards.
+- `supervision-claim-supersession` runtime test: a claim failing before binding remains uncertain, is superseded after its deadline with one inspection-backed event, and permits a fresh claim over the same assignment afterwards.
 - Existing claim, topology, reasoning supersession, native owner, workforce, and work-controller suites pass unchanged.
 
 ## References

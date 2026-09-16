@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_5e358e9810d86ae99193d3e6
+outputLanguage: en
+outputs:
+  - byteCount: 663
+    contentHash: sha256:3efc0265f69f7efed464be88fc36440722ff0650507e9350442765ba7e3f54bc
+    path: docs/specifications/execution/outcome-supervision/implementation/research-execution/verification-and-limits.md
+    userRegionHash: sha256:3efc0265f69f7efed464be88fc36440722ff0650507e9350442765ba7e3f54bc
+profile: specification_document
+recordId: knormdoc_752c34dc7f4e25f9cea0984a
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6d593d784a12d481f782de1c003e3f89abf05ea9404883751d9b852c4dca1339
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/research-execution/verification-and-limits.md
+sourceUnitVersionIds:
+  - uv_ec9ac789f9dec7b85f528f71

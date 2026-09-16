@@ -366,7 +366,7 @@ export async function verifyPackedProductHostCapabilities(runCli) {
         resultContract: "organization_executive_execution_result",
         command: ["organization", "executive-execute", "--write", "--json"],
         output: "json",
-        effect: "external_delivery",
+        effect: "installed_effect",
         authority: "bounded_organization_executive_effect",
         availability: "available",
       },

@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_422667d6a060676cb1e2d921
+outputLanguage: en
+outputs:
+  - byteCount: 3780
+    contentHash: sha256:15909b94a7a69bcd26bed42061552fdd406d6505983e55146b560ecf0b08814b
+    path: docs/specifications/execution/outcome-supervision/implementation/assignment-amendments.md
+    userRegionHash: sha256:15909b94a7a69bcd26bed42061552fdd406d6505983e55146b560ecf0b08814b
+profile: specification_document
+recordId: knormdoc_64ffafc80a8f3fece91bf100
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:30d6458c42acf6d70121c29b12e80c7fb53b5135e46841e467c0ceca5e98defd
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/assignment-amendments.md
+sourceUnitVersionIds:
+  - uv_3bd229d0705b9d6ba2d65996
+  - uv_5c8f255e9e37c923399c46b2
+  - uv_bf3163e17bb88652d4aeae07

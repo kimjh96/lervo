@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_56b6bd521faef94ea6ac9c16
+outputLanguage: en
+outputs:
+  - byteCount: 2146
+    contentHash: sha256:f9d4bafe5fa78bd9a301977142182a06cc1aca309171dc1f54fa6da125446ec2
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades.md
+    userRegionHash: sha256:f9d4bafe5fa78bd9a301977142182a06cc1aca309171dc1f54fa6da125446ec2
+profile: repository_document
+recordId: knormdoc_7c63d03e68d340bc2de96048
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4a59f2892013f340ae69b5b89b3b801ecaa478af69aff7ffde12cf7981ba2de9
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades.md
+sourceUnitVersionIds:
+  - uv_066ff51554022c1e648d8a5c
+  - uv_236f0bfd201e59cd4127bf44
+  - uv_dc8d2a5b8f1ec13f11009f31

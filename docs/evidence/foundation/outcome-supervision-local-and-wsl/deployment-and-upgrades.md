@@ -7,7 +7,7 @@ Status: runtime and repository upgrades complete within the recorded history hol
 
 CLI `7362e6cf`, Node `84a51db2`, and Hub `50ca5d2a` are installed. Hub and all seven WSL Nodes are ready on the exact expected binaries with unchanged configurations. All seven WSL public repositories are current.
 
-All nine Mac repositories passed knowledge lint with zero issues. Five public upgrades are current; four Node service stages remain held to preserve event-history forks. Their installed service definitions use the current runtime. Global CLI and Node launchers and the replica coordinator are upgraded.
+All nine Mac repositories passed knowledge lint with zero issues. Five public upgrades are current; four Node service stages remain held to preserve event-history forks, with installed service definitions using the current runtime. Global CLI and Node launchers and the replica coordinator are upgraded.
 
 The explicitly approved thirteen-scenario Discord exchange completed, including corrected reruns and a real #lervo publication with durable duplicate suppression. Tests passed within their stated fixture boundaries. Production supervision activation and complete positive installed acceptance remain unproved. No new research worker execution occurred.
 

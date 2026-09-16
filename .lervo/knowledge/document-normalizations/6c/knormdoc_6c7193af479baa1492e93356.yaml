@@ -1,0 +1,41 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_534ef7b9e38a6f9f300a9ed5
+outputLanguage: en
+outputs:
+  - byteCount: 905
+    contentHash: sha256:c703ca00fb59c9fd1c7b041bd13cd1786872562f391ca4b2f3b5080f08ed6baf
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/worker/supersession.md
+    userRegionHash: sha256:c703ca00fb59c9fd1c7b041bd13cd1786872562f391ca4b2f3b5080f08ed6baf
+  - byteCount: 1615
+    contentHash: sha256:5a52b4a9a9d33a35545ccee87c20eb71fc43c6969a5ffd19bf6301f15e27f7c8
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/worker/supersession/empty-run.md
+    userRegionHash: sha256:5a52b4a9a9d33a35545ccee87c20eb71fc43c6969a5ffd19bf6301f15e27f7c8
+  - byteCount: 2347
+    contentHash: sha256:7c933f837ec67b54332cb54b35a080246ccaf6e8599f41db5cdab3e0a5302163
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/worker/supersession/prepared-workspace.md
+    userRegionHash: sha256:7c933f837ec67b54332cb54b35a080246ccaf6e8599f41db5cdab3e0a5302163
+  - byteCount: 1627
+    contentHash: sha256:c64190b103a1d00faa5d904d123c9ce9cef4f821af16c178be6be190eaf33782
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/worker/supersession/reservation-only.md
+    userRegionHash: sha256:c64190b103a1d00faa5d904d123c9ce9cef4f821af16c178be6be190eaf33782
+profile: specification_document
+recordId: knormdoc_6c7193af479baa1492e93356
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:f2bdef99ffe29d69511acaf942d05b95a5240d5898e4c12dc6a5f03d968c9244
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/managed-execution/worker/supersession.md
+sourceUnitVersionIds:
+  - uv_0c775a0c73e305d017b4f98d
+  - uv_1194d34f423ea4dc86abe141
+  - uv_5d3375d97d3391e7ded4f510
+  - uv_bced4092aafdbd8b633c0aa1

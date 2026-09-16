@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c9c2ae163a34ad83dd251f93
+outputLanguage: en
+outputs:
+  - byteCount: 252
+    contentHash: sha256:b7cedbe3338c68cf8429f555aff46eb7bf5898d5349b57c9e9d6f745de2b656f
+    path: docs/roadmap/product-outcome-convergence/repository-knowledge/retrieval-and-capabilities/evidence-states.md
+    userRegionHash: sha256:b7cedbe3338c68cf8429f555aff46eb7bf5898d5349b57c9e9d6f745de2b656f
+profile: roadmap_document
+recordId: knormdoc_44cc65a231f434e02bfa6054
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7d03b6a5b6116983fd3ecd18f083c130583c6a2a29041af95f5b7eb3a87c52ec
+sourcePath: docs/roadmap/product-outcome-convergence/repository-knowledge/retrieval-and-capabilities/evidence-states.md
+sourceUnitVersionIds:
+  - uv_3b8fc8c6845741acae61050c

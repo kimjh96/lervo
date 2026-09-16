@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_07a28177468782e83b507445
+outputLanguage: en
+outputs:
+  - byteCount: 2680
+    contentHash: sha256:508059f72ac55b1a6c4a28911d3d914e9011ee08aadb4f67f9d260de0ca019c3
+    path: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/v14-research-retry.md
+    userRegionHash: sha256:508059f72ac55b1a6c4a28911d3d914e9011ee08aadb4f67f9d260de0ca019c3
+profile: repository_document
+recordId: knormdoc_761f41c7e9c8a30c9c84fd92
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5a57753d1e66cf2e7de42baf860f710fa3bd8fe73928f03bb81e275239f848bb
+sourcePath: docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/v14-research-retry.md
+sourceUnitVersionIds:
+  - uv_3895511ebe44d01f0114eae5

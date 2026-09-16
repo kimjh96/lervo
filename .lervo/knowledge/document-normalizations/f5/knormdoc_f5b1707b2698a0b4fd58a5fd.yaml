@@ -1,0 +1,47 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fd85bb5dcd64e3337c1130fb
+outputLanguage: en
+outputs:
+  - byteCount: 2224
+    contentHash: sha256:b264ccb30bb2451a44cd59f3045f41b54a5a0d1798618f3c22e6add6b0db3d54
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/assignment-recovery.md
+    userRegionHash: sha256:b264ccb30bb2451a44cd59f3045f41b54a5a0d1798618f3c22e6add6b0db3d54
+  - byteCount: 1477
+    contentHash: sha256:d73a583a710fb261cf618c523dfba4f213b3bd96dcaaa82812d5fb60add75137
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/assignment-recovery/abandoned-turns.md
+    userRegionHash: sha256:d73a583a710fb261cf618c523dfba4f213b3bd96dcaaa82812d5fb60add75137
+  - byteCount: 3295
+    contentHash: sha256:5f7def0babd02dd6824b117dfd767ed971f243330f2a7b0e78e3744901f419da
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/assignment-recovery/durable-transition.md
+    userRegionHash: sha256:5f7def0babd02dd6824b117dfd767ed971f243330f2a7b0e78e3744901f419da
+  - byteCount: 1818
+    contentHash: sha256:3c6a3497472eb99019480d67793763053bd17692a9459a2af880d8cb23858a87
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/assignment-recovery/events-and-validation.md
+    userRegionHash: sha256:3c6a3497472eb99019480d67793763053bd17692a9459a2af880d8cb23858a87
+  - byteCount: 2228
+    contentHash: sha256:e0013354fc54a57a176a9045006113b61159d3a1d065d078a44ed2c03e5e22e1
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/assignment-recovery/workspace-and-attempt-lineage.md
+    userRegionHash: sha256:e0013354fc54a57a176a9045006113b61159d3a1d065d078a44ed2c03e5e22e1
+profile: specification_document
+recordId: knormdoc_f5b1707b2698a0b4fd58a5fd
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d64cd512c79f0075ad4ad9153ff906d3e1a51339cf581b47e2d7d4a59d314f44
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/managed-execution/assignment-recovery.md
+sourceUnitVersionIds:
+  - uv_1eea61b6cdf31fb28e3a9d66
+  - uv_34be2df88c2d5c8f7f76a47b
+  - uv_5f525d18a51a26926a4eab89
+  - uv_aa8a3a3cb89e24cbcb22aa06
+  - uv_b59ee08201b84235282609e6
+  - uv_b5ff782e2ec66f044fddc44f

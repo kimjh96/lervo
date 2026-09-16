@@ -1,0 +1,31 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_9fa7bf3682dc89db0f7825d5
+outputLanguage: en
+outputs:
+  - byteCount: 2813
+    contentHash: sha256:f18478f5ee1154daa75e028785355599aa953d09b1f4c7bebbe39f22a73118f0
+    path: docs/decisions/execution/orchestration/governed-work/0406-supersede-unbound-claims-and-floor-completion-windows.md
+    userRegionHash: sha256:f18478f5ee1154daa75e028785355599aa953d09b1f4c7bebbe39f22a73118f0
+profile: decision_record
+recordId: knormdoc_b52a5257c04ab02cba00c6c7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:ab67ff3e0c8cbc0bd09e7006782e5e63d9df2509eb6f38337b451aa8b889100b
+sourcePath: docs/decisions/execution/orchestration/governed-work/0406-supersede-unbound-claims-and-floor-completion-windows.md
+sourceUnitVersionIds:
+  - uv_85e1b6b131c833f5e308a068
+  - uv_a2d748e9647128f9f9121c92
+  - uv_a3cc3c23df400d587b552187
+  - uv_a5f2887bcf45e412d87a2b96
+  - uv_b577d5e6d63ca412484b6148
+  - uv_c30be99cfc567208923abb29

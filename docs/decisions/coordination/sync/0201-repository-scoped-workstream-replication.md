@@ -11,10 +11,10 @@ Local workstream checkpoints let new agent sessions resume without a named hando
 
 - The Hub stores append-only workstream snapshot revisions under `projectId + repositoryIdentityHash`, independently of publishing destinations. Registration authorizes access but does not define shared repository identity.
 - Each Node event producer uses a distinct destination coordinate because `destination + project` retains one canonical event chain. Multiple destinations for one repository identity may read and publish the same workstream.
-- After registration, Node first reads the bounded Hub head set. If a disclosed head matches local ancestry, it publishes only the missing local suffix in ancestry order. Without a proven match, it safely republishes every locally available revision. Content hashes bind canonical snapshot JSON; retries are idempotent.
+- After registration, Node reads the bounded Hub head set. If a disclosed head matches local ancestry, Node publishes only the missing local suffix in ancestry order. Without a proven match, it safely republishes every locally available revision. Content hashes bind canonical snapshot JSON; retries are idempotent.
 - A new child advances one head. Concurrent children preserve multiple heads, capped at 16. Hub and Node never automatically select or merge divergent heads.
-- A distinct workstream can advance a single completed head when its revision is 1 and its `successor` origin names that exact predecessor workstream ID and snapshot hash. The Hub requires that predecessor to be the current head; its publication replaces that head instead of making an unrelated branch. Later revisions retain the successor origin. A Node imports a unique successor only when its completed local head matches that origin. The source snapshot and prior event history remain canonical locally; the transport carries only the bounded successor coordinates.
-- After publishing local state, Node imports a newer unique Hub head through a durable repository operation: it stores exact snapshot bytes in local CAS, updates the lazy projection, and records a system `workstream.snapshot.recorded` event with change kind `hub_replication_import`.
+- A distinct workstream can advance a single completed head when its revision is 1 and its `successor` origin names the exact predecessor workstream ID and snapshot hash. The Hub requires that predecessor to be the current head; publication replaces it instead of creating an unrelated branch. Later revisions retain the successor origin. Node imports a unique successor only when its completed local head matches that origin. The source snapshot and prior event history remain canonical locally; transport carries only bounded successor coordinates.
+- After publishing local state, Node imports a newer unique Hub head through a durable repository operation: store exact snapshot bytes in local CAS, update the lazy projection, and record a system `workstream.snapshot.recorded` event with change kind `hub_replication_import`.
 - Replication transfers only the bounded workstream snapshot. It excludes legacy source bytes, prompts, transcripts, credentials, approval grants, signatures, and provider reasoning. `pendingApprovals` remain unresolved descriptions and confer no authority.
 - Hub credentials require project scope and separate `workstream.read` and `workstream.write` permissions. Node health reports replication as ready, unavailable, or `divergent_heads`, independently of event sync and remote control.
 
@@ -22,7 +22,7 @@ Local workstream checkpoints let new agent sessions resume without a named hando
 
 - Invalid hashes, identities, origins, revision gaps, unknown parents, or missing registrations fail closed.
 - An active or non-head predecessor, falsified successor coordinate, or unique remote successor unrelated to the completed local head fails closed. A separate root without the successor link remains a divergent head.
-- A lost response may be retried because exact content-addressed publication returns `duplicate`.
+- A lost response may be retried: exact content-addressed publication returns `duplicate`.
 - Divergence remains visible and blocks import. It is not a transport failure and requires a later explicit reconciliation design or user-authorized choice.
 - Hub integrity audit revalidates snapshot schemas and hashes, ancestry, origins, registrations, derived heads, and append-only triggers.
 

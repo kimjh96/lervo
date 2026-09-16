@@ -2,9 +2,9 @@
 
 Recovery preserves assignment identity and the original acceptance, verification and path ceiling. The native owner proposes bounded rework; canonical admission checks actual current review and completion evidence before reopening.
 
-`SupervisedAssignmentRecoveryV1` contains `schemaVersion`, `kind`, `responsibility`, `recovery`, `provider` and `rationaleArtifactHash`. Its nested recovery coordinate binds the predecessor assignment artifact, prior responsibility hash, terminal run and event, rejected review event, next attempt ordinal and prior lease generation. Its successor responsibility addresses the rejection and binds the revision after a separate claim.
+`SupervisedAssignmentRecoveryV1` contains `schemaVersion`, `kind`, `responsibility`, `recovery`, `provider` and `rationaleArtifactHash`. The recovery coordinate binds the predecessor assignment artifact, prior responsibility hash, terminal run and event, rejected review event, next attempt ordinal and prior lease generation. The successor responsibility addresses the rejection and binds the revision after a separate claim.
 
-A returned result rejected by independent writing judgement can still have a leased assignment. Rejected writing must not be recorded as successful completion. `SupervisedAssignmentRecoveryV2` adds the exact `settledLeaseId` to the six V1 fields and supports rework or a separately proven safe retry. Admission requires:
+A returned result rejected by independent writing judgement may still have a leased assignment. Rejected writing must not be recorded as successful completion. `SupervisedAssignmentRecoveryV2` adds the exact `settledLeaseId` to the six V1 fields and supports rework or a separately proven safe retry. Admission requires:
 
 - The matching current leased revision and generation.
 - A reconciled completed run with the exact recorded rejection, or the safe-failure proof.
@@ -12,48 +12,11 @@ A returned result rejected by independent writing judgement can still have a lea
 
 Reopening clears that settled lease. Expiry, a stopped process or a bare rejection event is insufficient evidence.
 
-## Durable transition
+A worker permission failure before any provider start needs no recovery transition. The recorded decision retains its lease and reservation-free state; [`work.supervision.readiness.failed`](../readiness.md#permission-failure-evidence-and-recovery) records the safe non-start, and the same decision resumes after repair. Only an expired lease enters the unstarted-responsibility revision path.
 
-`reopenAssignment` changes an exact completed assignment to queued for rework, or an exact failed assignment to queued for a separately evidenced retry. It preserves previous result references, assignee and failure evidence, increments the assignment revision and retains one current recovery coordinate. Earlier records remain in canonical events and CAS rather than accumulating in the assignment record.
+The detailed contracts are:
 
-`lastLeaseGeneration` preserves the greatest acquired generation after completion clears the live lease. A successor claim increments it and receives a distinct lease and session. Old records without an observed generation remain readable but cannot be reopened by guessing their former lease. Reopening does not claim a lease, start a provider, accept an artifact or complete a goal.
-
-The scheduler lock protects the exact predecessor compare-and-swap and dependent-work check. If dependent work consumed the completed result, reopening is blocked until that work is reconciled. Failed event recording restores predecessor bytes. Before recording success, the Node rechecks workstream, roster, assignment, workspace, event head, mandate, deadline and owner fence.
-
-Built-in Node recovery admits rejected, reconciled completion and narrowly evidenced no-tool provider failures. Failed runs require their original canonical diagnostic ledger, one actual read-only session attesting unsupported tool calls, commands and file changes, one consistent stop before one failed terminal, and no effect events. Only turn, stream, result-collection or result-storage failures qualify. Cancellation, stop, contract, snapshot and telemetry failures remain uncertain. This proof does not cover an ordinary native tool-capable session. Missing usage still blocks token admission.
-
-An explicitly invoked Node repair can also settle an interrupted managed run whose canonical run history is exactly `managed.execution.reserved`, `work.causality.recorded`, `run.requested`, `run.resolved`, and `role.input.bound`, with no adapter start or later run event. The repair verifies the original admitted decision, exact execution key, current owner lease and eligible mandate. A local Linux journal boot inventory must place every prefix event in one completed boot, show its successor, and match the current kernel boot ID. The writer stores an exact, hash-pinned diagnostic in CAS and appends one owner-fenced `run.failed` with `failureCode: interrupted_before_turn`, `retryable: true`, and the diagnostic digest. Its event head, run prefix and boot ID are rechecked at commit. A missing or malformed diagnostic, unexpected event, overlapping boot, stale authority or late worker remains uncertain.
-
-The terminal means the old process cannot start a turn after the reboot; it does not claim provider-reported usage. Admission excludes this **proven pre-turn run only** from the population requiring provider usage, while retaining its reservation, events and assignment history. Other started or partial runs still require their exact usage receipts. A separate `SupervisedAssignmentRecoveryV2` decision must reopen the expired leased assignment; this repair alone neither starts a retry nor accepts a result.
-
-A worker permission failure observed before any provider start needs none of these transitions. The recorded decision retains its lease and reservation-free state, [`work.supervision.readiness.failed`](../readiness.md#permission-failure-evidence-and-recovery) records the safe non-start, and the same decision resumes after repair. Only an expired lease enters the unstarted-responsibility revision path.
-
-## Workspace and attempt lineage
-
-After confirmed recovery, the native owner acquires the exact successor responsibility under its existing mandate. Earlier ready or paused workspace generations with no registered writer are retained. The next lease prepares a distinct checkout under the trusted parent, base and integration target. An active, partially provisioned or recovery-marked predecessor blocks automatic continuation. Retaining a checkout neither proves global process quiescence nor authorizes removal, discard or integration.
-
-`SupervisedManagedExecutionV2` carries the exact recovery coordinate and existing work ID. The managed CLI receives ordinary retry causality: the prior run is both parent and retry source, and the attempt ordinal increments. V1 remains the initial-attempt contract. Worker admission rejects omitted or substituted recovery coordinates.
-
-An expired, unstarted successor lease may be revised without creating another retry. V2 then retains the original failure coordinate and work ID while the current responsibility has an intervening binding. Host and worker admission require the current canonical binding chain to contain the recovery coordinate's responsibility hash as an ancestor, alongside the exact assignment recovery coordinate and current lease. A matching hash in an unrelated assignment or an unverified chain cannot authorize dispatch.
-
-Previous result text and the canonical review rationale provide evidence for the revised task but grant no authority. Both owner and successor worker receive the exact recorded rejection. Worker instructions include the versioned result writing contract and explain that pinned verification runs in the control repository after result collection. Missing configuration in the isolated checkout does not prove verification is unavailable.
-
-Task observation considers only requested runs after the current responsibility binding. A preceding terminal event cannot complete a newly claimed responsibility. Owner review, writing checks, assignment completion and goal acceptance are repeated against the new attempt's actual evidence. A successor attempt must pass fresh verification, writing judgement and owner acceptance before goal completion.
-
-## Event and privacy contract
-
-`assignment.reopened` uses event envelope version 3 and requires payload fields `assignmentId`, `assignmentRevision`, `assignmentHash`, `kind`, `predecessorAssignmentHash`, `responsibilityHash`, `sourceRunId`, `terminalEventId`, `reviewEventId`, `attemptNumber` and `predecessorLeaseGeneration`. `kind` is `rework` or `retry`: rework requires a review event; retry uses a null review coordinate. Prose, paths, source bodies, model output and credentials are excluded. The effect plan and rationale stay in CAS.
-
-An absent receipt with unchanged predecessor bytes is not started. A conflicting revision or partial receipt remains uncertain. A matching event proves only that the exact assignment was reopened. A fresh lease, workspace, provider start and accepted successor result each require their own evidence.
-
-## Regression coverage and acceptance boundaries
-
-The workforce regression suite covers state restoration, duplicate or stale recovery rejection, prior-artifact preservation and generation continuity through the next claim.
-
-The native-adapter fixture completes rejected work through reopening, a successor claim, a second workspace, retry execution, independent writing judgement, accepted review and goal completion. It observes eight calls and four hundred reported tokens, including recovery after reopening-event failure and runtime restart without duplicate invocation. Model replies are controlled fixture outputs; external-model quality and installed acceptance remain separate requirements.
-
-The returned-lease regression rejects absent or substituted lease coordinates and restores the exact leased revision after receipt failure. Independent writing rejection records rework without preparing successful completion.
-
-## Abandoned turns
-
-A managed run whose owning Node instance dies after the provider session opened has no terminal event and no usage receipt, so the resource projection would hold its concurrency slot and refuse every later decision forever. `lervo-node recover-abandoned-turn --config <config> --run-id <run> --unit <unit>` settles exactly that case under the owner lease ([ADR-0407](../../../../../decisions/execution/orchestration/governed-work/0407-settle-invocation-fenced-abandoned-turns.md)). The fence is a unit invocation transition: one invocation uniquely bracketing the run's events, a completed successor invocation and a distinct current invocation, all read locally. Invocations of one unit are sequential, so each owns the interval after its last log line until the next begins, and a window adjoining its successor is valid while one overlapping it is not. The proof admits only a read-only adapter start with no observation proving work progress and no usage, stop, terminal or effect event, and writes `run.failed` with `failureCode: interrupted_after_turn_start` and `retryable: false` behind a `work.managed_abandoned_turn_failure` diagnostic that pins every original run event. Readers then treat the run as settled for concurrency and leave it out of the usage observation population while keeping its reservation charged, so the goal continues without understating spend. The assignment itself returns through the ordinary reviewed rework path; this recovery never marks the turn safe to repeat.
+- [Durable transitions and failure proofs](assignment-recovery/durable-transition.md).
+- [Workspace and attempt lineage](assignment-recovery/workspace-and-attempt-lineage.md).
+- [Events, privacy and regression acceptance](assignment-recovery/events-and-validation.md).
+- [Abandoned turns](assignment-recovery/abandoned-turns.md), governed by [ADR-0407](../../../../../decisions/execution/orchestration/governed-work/0407-settle-invocation-fenced-abandoned-turns.md).

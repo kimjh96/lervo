@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c492b2216e40c2d87b712903
+outputLanguage: en
+outputs:
+  - byteCount: 1129
+    contentHash: sha256:b85d42a91508ad8a2e3301c732fa4fb613309aefc91047501f10dd53b36ba8ef
+    path: docs/specifications/execution/events-and-privacy/terminal-observations/deliberation-publication-failure.md
+    userRegionHash: sha256:b85d42a91508ad8a2e3301c732fa4fb613309aefc91047501f10dd53b36ba8ef
+profile: specification_document
+recordId: knormdoc_59fb7aa7d86930dcf1d183ff
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:4d9b708a41d49bbf485397accae5af76431fbd797ba188ccb12b2f5cf58194b8
+sourcePath: docs/specifications/execution/events-and-privacy/terminal-observations/deliberation-publication-failure.md
+sourceUnitVersionIds:
+  - uv_e9a1e0b39da024687bf69195

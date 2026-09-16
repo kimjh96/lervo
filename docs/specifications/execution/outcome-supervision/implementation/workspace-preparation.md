@@ -4,7 +4,7 @@ When a dispatched responsibility lacks a workspace, the native owner derives a s
 
 ## Configuration and authority
 
-Trusted Node readiness configuration provides an existing canonical parent directory outside the repository, an exact Git base commit, and an integration-target digest. The child path derives from the assignment and lease. Preparation rejects:
+Trusted Node readiness configuration supplies an existing canonical parent directory outside the repository, an exact Git base commit, and an integration-target digest. The child path derives from the assignment and lease. Preparation rejects:
 
 - A symlink parent.
 - Another workspace for the assignment.
@@ -18,23 +18,23 @@ The existing workspace planner binds the assignment revision, lease generation, 
 
 ## State and recovery
 
-The canonical workspace transitions from absent to provisioning to ready. An interrupted host mutation or failed final receipt retains the workspace and `recovery_required` evidence; it never triggers force removal. An already-started Git operation may finish after authority changes. Revalidation prevents successful preparation from being claimed after authority is lost, and the remaining checkout requires reconciliation.
+The canonical workspace transitions from absent to provisioning to ready. An interrupted host mutation or failed final receipt retains the workspace and `recovery_required` evidence; it never triggers force removal. An already-started Git operation may finish after authority changes. Revalidation prevents claiming successful preparation after authority is lost; the remaining checkout requires reconciliation.
 
-After a crash between ready-state persistence and its supervision receipt, the owner may recover only the exact ready workspace under still-current preparation authority. It inspects the live host and canonical coordination events, then records the missing receipt without another Git mutation. An absent workspace under an unexpired recorded decision remains uncertain; it does not authorize another host preparation. Other partial states remain uncertain.
+After a crash between ready-state persistence and its supervision receipt, the owner may recover only the exact ready workspace under still-current preparation authority. It inspects the live host and canonical coordination events, then records the missing receipt without another Git mutation. An absent workspace under an unexpired recorded decision remains uncertain and does not authorize another host preparation. Other partial states remain uncertain.
 
 An expired or source-invalidated preparation decision may be superseded only when its exact workspace record, coordination events, Git registration, and filesystem path are all absent. Under the current owner fence, the adapter repeats these observations and binds the event head before recording `work.supervision.decision.superseded`. It never removes a path, releases or rewrites the assignment lease, or changes the responsibility. Existing host material or partial canonical work remains uncertain. Before another preparation, the ordinary owner workflow must separately revise an expired responsibility and resolve its lease.
 
-Governed CAS inspection uses `work.effect_absence` schema version 3 with these required fields: `schemaVersion`, `kind`, `effectContract`, `decisionId`, `planHash`, `effectHash`, `sourceRevisionDigest`, `workspaceId`, `provisionPlanHash`, `workspaceRecordAbsent`, `coordinationEventsAbsent`, `hostRegistrationAbsent`, `workspacePathAbsent`, `eventHeadHash`, `observedAt`, and `invalidatedBy`.
+Governed CAS inspection uses `work.effect_absence` schema version 3 with required fields: `schemaVersion`, `kind`, `effectContract`, `decisionId`, `planHash`, `effectHash`, `sourceRevisionDigest`, `workspaceId`, `provisionPlanHash`, `workspaceRecordAbsent`, `coordinationEventsAbsent`, `hostRegistrationAbsent`, `workspacePathAbsent`, `eventHeadHash`, `observedAt`, and `invalidatedBy`.
 
 All four absence observations must be true. `invalidatedBy` is `source_changed` or `deadline_expired`; `deadline_expired` requires an observed time at or after the exact plan deadline. Recovery rechecks the provision artifact and workspace identity. The supersession event retains the existing version-1 payload containing opaque supervision coordinates, decision and plan hashes, the inspection artifact hash, and the current source digest. No path, prompt, credential, or unbounded error enters the event. Invalid or incomplete evidence grants no recovery authority.
 
-New native responsibilities allow preparation for no more than five minutes or one third of their bounded completion duration, whichever is shorter. Progress falls within ten minutes or two thirds of that duration. These deadlines include allocation, claim, and host preflight; they do not extend an existing responsibility or its mandate.
+New native responsibilities allow preparation for at most five minutes or one third of their bounded completion duration, whichever is shorter. Progress falls within ten minutes or two thirds of that duration. These deadlines include allocation, claim, and host preflight; they do not extend an existing responsibility or its mandate.
 
 ## Preparation receipt
 
 `work.supervision.workspace.prepared` uses envelope version 3, payload version 1, and the common supervision coordinates. It also requires `decisionId`, `planHash`, `assignmentId`, `workspaceId`, `provisionPlanHash`, `workspaceArtifactHash`, and `coordinationEvidenceHash`.
 
-Paths and host observations remain in governed CAS artifacts; the event contains only IDs and hashes. A deterministic receipt binds the preceding admitted decision to the exact ready state and coordination events. It proves historical preparation, but does not prove a live lease, provider start, artifact acceptance, or goal completion.
+Paths and host observations remain in governed CAS artifacts; the event contains only IDs and hashes. A deterministic receipt binds the preceding admitted decision to the exact ready state and coordination events. It proves historical preparation, but not a live lease, provider start, artifact acceptance, or goal completion.
 
 ## Dispatch and validation
 

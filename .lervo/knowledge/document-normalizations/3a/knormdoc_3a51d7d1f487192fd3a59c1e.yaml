@@ -1,0 +1,36 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_38ffd8605db9223c09f01ea7
+outputLanguage: en
+outputs:
+  - byteCount: 1041
+    contentHash: sha256:c0879e6c5be0480ad105909da81ca2dd9c5809e16ad9af324de1b6479900af83
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/admission-and-readiness/admission.md
+    userRegionHash: sha256:c0879e6c5be0480ad105909da81ca2dd9c5809e16ad9af324de1b6479900af83
+  - byteCount: 1593
+    contentHash: sha256:4205bb51921425633264772714f59b6507d33a0b628920592c6832d9251ec93b
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/admission-and-readiness/admission/decisions-and-reservations.md
+    userRegionHash: sha256:4205bb51921425633264772714f59b6507d33a0b628920592c6832d9251ec93b
+  - byteCount: 1068
+    contentHash: sha256:601102ff164c2d4e4d8a4183b8cb7cf2464ae8362f524b47528728c18a578d56
+    path: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/admission-and-readiness/admission/goal-resource-observation.md
+    userRegionHash: sha256:601102ff164c2d4e4d8a4183b8cb7cf2464ae8362f524b47528728c18a578d56
+profile: specification_document
+recordId: knormdoc_3a51d7d1f487192fd3a59c1e
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:fe63709fa680ad8ff99951f12ae58ee995ae52a8d9cfc6b5c607f529c1deb7c5
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/managed-execution/task-observation/admission-and-readiness/admission.md
+sourceUnitVersionIds:
+  - uv_1bea726afee14a42ec67dc51
+  - uv_4f7e85e617f619e1dc9b1b05
+  - uv_5bf750ab2863d360780e2d43

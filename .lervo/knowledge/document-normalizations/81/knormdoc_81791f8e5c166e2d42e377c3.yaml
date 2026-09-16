@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_64fdcd7c145a1db78f73007b
+outputLanguage: en
+outputs:
+  - byteCount: 646
+    contentHash: sha256:71f7f0e1463b2cfcd21fcb0b6a6024550c8aefab3e6bb3313812058b76e156b4
+    path: docs/specifications/execution/events-and-privacy/terminal-observations/additive-evolution.md
+    userRegionHash: sha256:71f7f0e1463b2cfcd21fcb0b6a6024550c8aefab3e6bb3313812058b76e156b4
+profile: specification_document
+recordId: knormdoc_81791f8e5c166e2d42e377c3
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6205ff02ffa9f690f144b4513f8ca75563ec8163e46722c4156e8c2d106e3bfb
+sourcePath: docs/specifications/execution/events-and-privacy/terminal-observations/additive-evolution.md
+sourceUnitVersionIds:
+  - uv_c0c3ca0928a3b14ba81c7b29

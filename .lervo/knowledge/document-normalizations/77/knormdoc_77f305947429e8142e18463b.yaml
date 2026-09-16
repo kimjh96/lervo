@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_c61d5c7dadd1c8cea84527d0
+outputLanguage: en
+outputs:
+  - byteCount: 3588
+    contentHash: sha256:7e2fc22e0f23ea542272f89dd75a9743e13dcfdfa06d203baf4027929fbfb90a
+    path: docs/decisions/coordination/conversations/0415-natural-deliberation-and-consistent-failure-evidence.md
+    userRegionHash: sha256:7e2fc22e0f23ea542272f89dd75a9743e13dcfdfa06d203baf4027929fbfb90a
+profile: decision_record
+recordId: knormdoc_77f305947429e8142e18463b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:68fdb41cec0e6e0740cb151251d362e9c3041bd6060e0bc31b6f58f1cbffee31
+sourcePath: docs/decisions/coordination/conversations/0415-natural-deliberation-and-consistent-failure-evidence.md
+sourceUnitVersionIds:
+  - uv_068a8176cf2a4511f24304e1
+  - uv_216714c4839c3aa1b03ae46f
+  - uv_2bf162c30d46ba5c06ee5087
+  - uv_5461696e0c0cc879cb68d9c9
+  - uv_794f1b83c2efe56aa26cf1b2

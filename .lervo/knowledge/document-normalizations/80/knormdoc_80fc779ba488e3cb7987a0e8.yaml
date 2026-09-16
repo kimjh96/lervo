@@ -1,0 +1,37 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_fc29e81d5e437e01185a1936
+outputLanguage: en
+outputs:
+  - byteCount: 11356
+    contentHash: sha256:cfaf3288f0114921746d50e9046796ca7f8d1112d0b206f0d7f449e29492e006
+    path: docs/decisions/coordination/conversations/0384-explicit-discord-read-and-continuation-modes.md
+    userRegionHash: sha256:cfaf3288f0114921746d50e9046796ca7f8d1112d0b206f0d7f449e29492e006
+profile: decision_record
+recordId: knormdoc_80fc779ba488e3cb7987a0e8
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:8abf2ebdab681cb73c6fc65987106dc759d29357eb5a737dd454f3a69caf7aa5
+sourcePath: docs/decisions/coordination/conversations/0384-explicit-discord-read-and-continuation-modes.md
+sourceUnitVersionIds:
+  - uv_05be1262b9dc4d20eb17ab99
+  - uv_12b33d93850c21c1adad1b57
+  - uv_16324cbb31021baaee5002f8
+  - uv_2105fc0757dcc0b0fb9b2cd8
+  - uv_3dcea357270f29e2bfc6838e
+  - uv_59ef71f3a76547d1056e5bb1
+  - uv_7243e8c82a53c0e56b4bdacb
+  - uv_b04a516601fd0720ac773580
+  - uv_bb76682a8c73fbb36d8981f1
+  - uv_daed34a1163812bfdc928f3a
+  - uv_f01d174d027c96d0c2c7abd0
+  - uv_feb0e510922d97b94df243cf

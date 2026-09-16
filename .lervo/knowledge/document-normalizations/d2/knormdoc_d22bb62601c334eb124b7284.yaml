@@ -1,0 +1,33 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a83d562454843acef0309278
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_2e6d65db138b0ce5871f6729
+outputLanguage: en
+outputs:
+  - byteCount: 7670
+    contentHash: sha256:3052534dc5453ab26b7e68632afe68f3e74b312a47cf1e60d243b3249c43eab2
+    path: docs/decisions/coordination/sync/0396-conflict-safe-repository-replica-continuation.md
+    userRegionHash: sha256:3052534dc5453ab26b7e68632afe68f3e74b312a47cf1e60d243b3249c43eab2
+profile: decision_record
+recordId: knormdoc_d22bb62601c334eb124b7284
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:6fcc9e3f42f0277b20b8f87f06d63961367e0401c8f7be0a41bd80c1de4bc0d7
+sourcePath: docs/decisions/coordination/sync/0396-conflict-safe-repository-replica-continuation.md
+sourceUnitVersionIds:
+  - uv_0e2202cbcf283cbec71cd9e7
+  - uv_2deca8187c3bbc4fcd9461ff
+  - uv_6cc753997ccbc570b7fc732e
+  - uv_7381bf11ab45e21ec2d00d4b
+  - uv_75d499a827ede2e665277b65
+  - uv_de020e1167672af276278482
+  - uv_eb177fd48ba468c3411472b2
+  - uv_ec1d632bd55c2d5552e49c49

@@ -1,0 +1,39 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_87b2d56e7d7e90ac89c8ad33
+outputLanguage: en
+outputs:
+  - byteCount: 905
+    contentHash: sha256:176199dbd216a3e0a5d809ef0d56dd0be54536761c8e8120f7efbb5428bf9307
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/request-intake.md
+    userRegionHash: sha256:176199dbd216a3e0a5d809ef0d56dd0be54536761c8e8120f7efbb5428bf9307
+  - byteCount: 3665
+    contentHash: sha256:60eb4b370bf5a71c93cb68ab68d3e7b17d48e41d8bc5c86628289cfa2b845b5a
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/request-intake/binding.md
+    userRegionHash: sha256:60eb4b370bf5a71c93cb68ab68d3e7b17d48e41d8bc5c86628289cfa2b845b5a
+  - byteCount: 3289
+    contentHash: sha256:999fb14078113c472e7d21373a6f6be4fbabc4d066555e4863f0f09e55f5de84
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/request-intake/discord.md
+    userRegionHash: sha256:999fb14078113c472e7d21373a6f6be4fbabc4d066555e4863f0f09e55f5de84
+  - byteCount: 1658
+    contentHash: sha256:f471fbc4c4250cad8b401b913ea743eab88712f8d60a341373b294f67f5c7e24
+    path: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/request-intake/standing-lineage.md
+    userRegionHash: sha256:f471fbc4c4250cad8b401b913ea743eab88712f8d60a341373b294f67f5c7e24
+profile: specification_document
+recordId: knormdoc_5a50baff8e820546e1ae5585
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:424ba666c70bf0f2abb9855a5ca63ec9475ce9878c84249db36c9889054073dc
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/node-composition/installed-startup/request-intake.md
+sourceUnitVersionIds:
+  - uv_2fef88edd4c35fac572e6dea
+  - uv_bcf343a2e3d1541ad0b527c5

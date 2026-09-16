@@ -4,9 +4,11 @@
 
 Local unavailable-work tests verify startup and cleanup without launching a provider; they do not prove a completed positive local journey.
 
-Stock Node startup opens this service with its existing transport and conversation runtimes. Node `start` activates supervision; shutdown closes supervision before its conversation delivery adapter. Failed startup closes already opened resources. The deployment entrypoint delegates current-credential Hub transports and idle hints to a dedicated transport composition module.
+Stock Node startup opens the service with its existing transport and conversation runtimes. Node `start` activates supervision; shutdown closes supervision before its conversation delivery adapter. Failed startup closes already opened resources. The deployment entrypoint delegates current-credential Hub transports and idle hints to a dedicated transport composition module.
 
-A configured result origin uses the canonical conversation origin schema: source event, participation policy, target and actor. Startup requires:
+## Result origin and delivery
+
+A configured `resultOrigin` uses the canonical conversation origin schema: source event, participation policy, target and actor. Startup requires:
 
 - Its exact integration to exist in this Node.
 - Its configured agent to equal the accountable owner.
@@ -14,8 +16,8 @@ A configured result origin uses the canonical conversation origin schema: source
 - Its project to match the repository.
 - Its conversation to belong to that deployment.
 
-The existing conversation adapter is selected by integration ID; a runtime group rejects conflicting matches. The origin grants no additional publication authority. Actual queue admission still verifies canonical goal acceptance, semantic publication evidence, current mandate and the exact origin.
+The existing conversation adapter is selected by integration ID; a runtime group rejects conflicting matches. The origin grants no additional publication authority. Queue admission still verifies canonical goal acceptance, semantic publication evidence, current mandate and the exact origin.
 
-When `resultOrigin` is absent and the installed owner's configured Discord speaker is available, the service uses its adapter for a [request-bound origin](request-intake.md). The bound event's local CAS artifact supplies the exact source event, policy, target and speaker; publication still checks the adapter and independently accepted result. Local-only startup has no conversation adapter and no external delivery.
+When `resultOrigin` is absent and the installed owner's configured Discord speaker is available, the service uses its adapter for a [request-bound origin](request-intake.md). The bound event's local CAS artifact supplies the exact source event, policy, target and speaker. Publication still checks the adapter and independently accepted result. Local-only startup has no conversation adapter and no external delivery.
 
 The delivery speaker role comes from the active durable agent participation. The managed-command role may serve a different purpose and cannot identify the speaker. A configured static origin must match the active participant, role and conversation at startup.

@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_e4f0bec9504f8def83dd4037
+outputLanguage: en
+outputs:
+  - byteCount: 4833
+    contentHash: sha256:71ba74664a0e3cf8346b175746b02f96ac4e2c497524232f8b562bff602195f8
+    path: docs/decisions/coordination/conversations/0391-deterministic-multi-agent-turn-ownership.md
+    userRegionHash: sha256:71ba74664a0e3cf8346b175746b02f96ac4e2c497524232f8b562bff602195f8
+profile: decision_record
+recordId: knormdoc_6637f1ac088f72ac28271d21
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:040d02678cd2b0b39d07cb38052f11312e5f0a4ecc72465d43f76350d0058c31
+sourcePath: docs/decisions/coordination/conversations/0391-deterministic-multi-agent-turn-ownership.md
+sourceUnitVersionIds:
+  - uv_0fd2590a8fead06600594933
+  - uv_1ed154595ab5587231e4d8bd
+  - uv_4ff99cffbfe3afe6af14cb5f
+  - uv_c9787200bd6a36a73ab1e7d7
+  - uv_ebf2ba43281d1dd3f5bf0775

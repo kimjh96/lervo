@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b18cd0f33ca1975e42189916
+outputLanguage: en
+outputs:
+  - byteCount: 1014
+    contentHash: sha256:8cd510032efa0a9f0ad1a232e6c01c0f63fd9eebb3e67faa276f8481b8d51b7f
+    path: docs/specifications/coordination/node-change-driven-work.md
+    userRegionHash: sha256:8cd510032efa0a9f0ad1a232e6c01c0f63fd9eebb3e67faa276f8481b8d51b7f
+profile: specification_document
+recordId: knormdoc_3b3d1759a953114915568aa7
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:5474bb598b22a93ecf3f572050692ec98583042ca20945d8f19a20ea7d09e13d
+sourcePath: docs/specifications/coordination/node-change-driven-work.md
+sourceUnitVersionIds:
+  - uv_4ffce17762be630e5e76c5a6
+  - uv_bb8ddb095fc8f68d56257326
+  - uv_c5b94a215ae438f28333c682

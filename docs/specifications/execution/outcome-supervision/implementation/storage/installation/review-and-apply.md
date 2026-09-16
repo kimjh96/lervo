@@ -9,7 +9,7 @@ lervo agent mandate inspect --supervision supervision.project --json
 lervo agent mandate revoke --supervision supervision.project --workstream <workstream-id> --mandate-hash <hash> --installation-event <event-id> --reviewer user.founder --write --json
 ```
 
-The plan command returns the complete reviewable plan. Save those exact bytes as installation input. The local caller explicitly supplies the appointing reviewer and exact approval hash. This is local repository-owner review, not remote identity authentication or automated topology policy review. Planning does not install authority.
+The plan command returns the complete reviewable plan. Save its exact bytes as installation input. The local caller explicitly supplies the appointing reviewer and exact approval hash. This is local repository-owner review, not remote identity authentication or automated topology policy review. Planning does not install authority.
 
 The plan hash binds the full mandate, reviewer digest, supervision identity, source observations, and predecessor installation or revocation event.
 

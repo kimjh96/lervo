@@ -1,0 +1,35 @@
+# Recovery successors and fresh Discord result
+
+## Successor authority and completed worker
+
+The aborted next-version attempt had neither terminal nor usage, and `lervo loop reconcile` refuses governed supervised runs. Workstream `wks_1377649abe1942f1b08674c8` became settled cancellation revision 2, without blockers/pending items. Start previously required settled completion, which would force a false outcome. Revision `6ff9fe59` admits an exact-hash successor after settled cancellation; its CLI started `wks_1b61ee8ff31421ef6487ca31`.
+
+Each successor received a distinct supervision ID and version-1 mandate mirroring approved version-3 bounds: five workers, two attempts, 100,000 tokens per attempt, 1,000,000 aggregate, read-only `docs/product/vision.md`, expiry 13:00 UTC. Plans were generated only after CLI time passed issue time; the user's “다음 진행” replies were treated as approval of displayed plans.
+
+Three installed iterations used the same bound local request, denied the verification wrapper before dispatch, and repaired it after one recorded failure:
+
+- `supervision.discord.acceptance.next2`, installation `evt_889ad9a866b1c9e7ae87124267fe537f` (12857): `osd_d96a7c8f65693cb818f27755` (12899) failed readiness once at 12900, remained pending without supersession for 90 seconds, then launched the worker on the same decision after repair (12901–12934). First 60-second revalidation aborted it: the 10:10:10 lease had only one minute left at launch and expired 10:15:10; nothing renewed it. Revision `13119d4f` renews the exact live lease after successful revalidation; `acaaa6f3` also renews before launch.
+- `supervision.discord.acceptance.next3`, installation `evt_f7c8cd3f0ba668fa183c49bb2be2abfb` (12939): `osd_c06532652c4db344fd7f88c1` (12981) failed once at 12982 and stayed pending. After repair, pre-launch `assignment.lease.renewed` (12983) advanced the revision pinned by responsibility; the child rejected before reservation, producing `uncertain` 12984, supersession 12985, and `task_binding_reconciliation_required` 13017. Revision `48e2a9b9` preserves assignment revision across renewal.
+- `supervision.discord.acceptance.next4`, installation `evt_1f4f9f39f8e941279c723f5c5fbd51d6` (13021), mandate `sha256:98e765b607f5d367d70d158b2ab5c9a0551a9fe50c84c7c73a2d3b035fb6bb53`, workstream `wks_3be4d20e2d583598c04d3247`: Node `fa173fbad2691b70ab7eaaf9a472b37e830b27d21bdbf1c9ba695e73902fb2f4` and CLI `d74c056536f02c2a23192b529a4f3e2751c93b8f101737e481675fd1c26646df` admitted `osd_4b036f46082713e631cbf9db` (13063). One failure at 13064/10:32:12 stayed pending with health `readiness_tools_failed`. Wrapper repair at 10:33:31 let that same decision renew (13065), reserve/start (13066–13071), capture result (13100), pass pinned verification (13105), complete (13108), and confirm dispatch (13110). Independent review ran at 13111–13140.
+
+Hub/CLI/Node remained deployed from one revision; cancelled goals retained exact evidence. After completion preparation/reconciliation 13142–13143, independent review accepted artifact `sha256:1221c59341c136dd3dc8d1858d47d6a5b12c682aa68feb875107a437daf422e3` at 13176. The owner then escalated `recovery_acceptance_evidence_missing` (13209): goal criteria included failure, repair, and renewed-lease execution, but owner facts omitted `work.supervision.readiness.failed` and `assignment.lease.renewed`. Completing would overstate owner-visible evidence.
+
+The operator, as user actor, narrowed revision 2 at 13211 to accepted research, recording recovery as operator evidence rather than criteria. Re-reasoning completed revision 3 at 13243. This local goal had no publication origin; health became `owner_plan_unavailable`, as for earlier local research. Exposing recovery facts remained a separate improvement.
+
+## Remaining journeys at that checkpoint
+
+Revision `2b78d073` added owner `recoveryObservations`; Node `1d4f297b99a5fada7c589c1c370d44974cef1b14198d2c4a81b442725e32e9c8` deployed over the completed goal. Fifth workstream `wks_8d149a6fcdeb8a4d004c75c1`, start `evt_0cd6403aeda6482dae176f6530c3853f` (13245), was intended for requirement amendment. Plan `sha256:701e80755515d6cfe93df495f4439d24c20fef354b5042d4353a143c296ff75c` was generated but not installed: any workspace record blocked native amendment, while preparation followed claims within seconds. Without planned delay/failure between claim and preparation, external timing could not reach amendment; the gap was recorded, not forced.
+
+Orca opened the guild but Discord said “Please log in again”; central/direct intake, second recipient, fresh time-stable result, and equivalence awaited sign-in. At 19:51 KST, Windows load was 16%, `vmmemWSL` approximately 107,000 processor-seconds since boot; WSL load averaged about 2.3 over 17 hours. Arca-next Compose processes at roughly 90/71 processor-minutes were the busiest long-running processes. This was CPU/fan observation, not yet causal attribution.
+
+Starting the fifth workstream made the running completed-goal binding non-current; cycles failed `supervision_cycle_failed`, as in the v18 probe. Service stopped at 10:52 UTC and remained boot-disabled pending authority/configuration. Hub remained active.
+
+## Fresh time-stable Discord result
+
+After sign-in, the fifth workstream received `supervision.discord.acceptance.next5`: installation `evt_600fdf7667aba8e825b031cf1c994d67` (13246), mandate `sha256:ecbb0c185026adfd1d21af7f9c005e508674ec9bf29f7476871505b4dfbd4eac`. The service started on Node `1d4f297b99a5fada7c589c1c370d44974cef1b14198d2c4a81b442725e32e9c8` with prior guild conversation configuration. Before intake the owner correctly escalated `missing_bound_research_request` (13278).
+
+The operator sent `/goal` in `#lervo` at 10:58 UTC through Orca. The first `type` attempt landed in the operator terminal and was discarded. Native acknowledgement preceded binding 13280, request `sha256:7e88e1640de5a6669e18da35e9eae44cbae96f1c88e08628a7474b69f9215714`. The owner allocated `asn_1797f4184e447b6a97667999` to the qualified worker, prepared, and dispatched at 13321 with no injected failure.
+
+Codex ran; verification passed 13362; completion preparation/reconciliation were 13399–13400; independent acceptance at 13433 referenced `sha256:35d12bda161939f1107a813a6a35725b661142b918b5dc0acf2d977792231200`. Revision 2 completed 13466. Queue 13499 delivered on first attempt at 13501: outbound `cvo_b513878ca6ca4c2dca8db320a2ea98518538732d032fba3890c030d0830e5390`, result `sha256:2385701e9a38eff3ef9aad6ac9b7f20fc07f9d73d93cc04d6a20145d0e442c5a`. At 20:08 KST Elio's reply to its acknowledgement was visible.
+
+The accepted artifact and visible text agreed: three ranked vision guarantees with exact quotations and no pending publication, receipt, or later-review sentence. This proves installed time-stable final text. Discord still rendered separator commas between numbered-list items. The journey used no permission failure and consumed owner/worker runs within the 1,000,000 aggregate ceiling.

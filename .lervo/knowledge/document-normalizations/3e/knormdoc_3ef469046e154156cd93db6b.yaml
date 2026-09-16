@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_185b794aa12b9f0c79f7743e
+outputLanguage: en
+outputs:
+  - byteCount: 1784
+    contentHash: sha256:8752047f98cec2b5308626b60c816f6a46fd6142a9a4bc3cdca549bd5e2ba6f4
+    path: docs/specifications/execution/outcome-supervision/implementation/storage/installation/evidence-and-recovery/artifacts-and-journal.md
+    userRegionHash: sha256:8752047f98cec2b5308626b60c816f6a46fd6142a9a4bc3cdca549bd5e2ba6f4
+profile: specification_document
+recordId: knormdoc_3ef469046e154156cd93db6b
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:c34409e92d33eb3466bafde4b54501016bc1061ec1798f238b535bdef530fd9e
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/storage/installation/evidence-and-recovery/artifacts-and-journal.md
+sourceUnitVersionIds:
+  - uv_ff7e2773d40bbf944a3ff56d

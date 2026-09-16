@@ -1,0 +1,11 @@
+# Workspace and attempt lineage
+
+After confirmed recovery, the native owner acquires the exact successor responsibility under its existing mandate. Earlier ready or paused workspace generations with no registered writer are retained. The next lease prepares a distinct checkout under the trusted parent, base and integration target. An active, partially provisioned or recovery-marked predecessor blocks automatic continuation. Retaining a checkout neither proves global process quiescence nor authorizes removal, discard or integration.
+
+`SupervisedManagedExecutionV2` carries the exact recovery coordinate and existing work ID. The managed CLI receives ordinary retry causality: the prior run is both parent and retry source, and the attempt ordinal increments. V1 remains the initial-attempt contract. Worker admission rejects omitted or substituted recovery coordinates.
+
+An expired, unstarted successor lease may be revised without creating another retry. V2 retains the original failure coordinate and work ID while the current responsibility has an intervening binding. Host and worker admission require the current canonical binding chain to contain the recovery coordinate's responsibility hash as an ancestor, alongside the exact assignment recovery coordinate and current lease. A matching hash in an unrelated assignment or an unverified chain cannot authorize dispatch.
+
+Previous result text and the canonical review rationale provide evidence for the revised task but grant no authority. Both owner and successor worker receive the exact recorded rejection. Worker instructions include the versioned result writing contract and explain that pinned verification runs in the control repository after result collection. Missing configuration in the isolated checkout does not prove verification is unavailable.
+
+Task observation considers only requested runs after the current responsibility binding. A preceding terminal event cannot complete a newly claimed responsibility. Owner review, writing checks, assignment completion and goal acceptance are repeated against the new attempt's actual evidence. A successor attempt must pass fresh verification, writing judgement and owner acceptance before goal completion.

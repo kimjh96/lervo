@@ -1,0 +1,26 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_b76f6a5ae95353f0e61040f6
+outputLanguage: en
+outputs:
+  - byteCount: 989
+    contentHash: sha256:04a6d4d3585bfb411c19dc370025f8b76ca0d8100248de1aef2cf4d1dced3933
+    path: docs/specifications/execution/outcome-supervision/implementation/storage/installation/evidence-and-recovery/storage-and-validation.md
+    userRegionHash: sha256:04a6d4d3585bfb411c19dc370025f8b76ca0d8100248de1aef2cf4d1dced3933
+profile: specification_document
+recordId: knormdoc_31c96d93b232197100d2a756
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:19ac2bd6d56dfdf9c5414b81d23ebae786da999e5d476ff8e297880ac5a3eac5
+sourcePath: docs/specifications/execution/outcome-supervision/implementation/storage/installation/evidence-and-recovery/storage-and-validation.md
+sourceUnitVersionIds:
+  - uv_e1ef5c3d44acfb40ad523342

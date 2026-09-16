@@ -22,8 +22,8 @@ Periodic health, retry, and integrity observations must not be described as enti
 - Idle subscribed workers do not run at their former short polling interval.
 - Source changes and readiness requests wake the intended replica; ignored file contents do not allocate recursive watches.
 - Bursts coalesce, changes during work remain pending, and cancellation releases local and remote resources.
-- A freed reconciliation slot admits a newly eligible repository without waiting for unrelated active work, and owner-lease release wakes request admission without a 100 ms retry loop.
-- Concurrent unrelated event writes preserve a supervision observation; changed workstream, assignment, agent, authority, or task-digest coordinates still reject it.
+- A freed reconciliation slot admits a newly eligible repository without waiting for unrelated active work. Owner-lease release wakes request admission without a 100 ms retry loop.
+- Concurrent unrelated event writes preserve a supervision observation. Changed workstream, assignment, agent, authority, or task-digest coordinates still reject it.
 - Old peers, lost notifications, watcher failure, reconnect, and restart recover through authoritative verification.
 - Git snapshot, bundle, rollback, staged/unstaged content, deletion, and divergence tests retain their existing results.
 - Queue eligibility, future work, lease expiry, current-policy filtering, and shutdown preserve authority and timing.

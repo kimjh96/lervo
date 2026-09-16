@@ -484,7 +484,9 @@ export function createManagedRunExecutor(
         repositoryRoot: storage.paths.repositoryRoot,
         projectId: storage.manifest.projectId,
         observedAt: dependencies.now?.() ?? new Date(),
-        productDefault: productDefaultSearchEngine,
+        ...(dependencies.resolveExperimentalLinkedEvidenceSelection === undefined
+          ? { productDefault: productDefaultSearchEngine }
+          : {}),
         query: instructions,
         fallbackQuery: expectedPaths[0]!,
         expectedPaths,

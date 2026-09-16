@@ -1,0 +1,11 @@
+fromPath: docs/decisions/coordination/conversations/0404-merge-divergent-repository-replicas.md
+identityPath: docs/decisions/coordination/conversations/0404-merge-divergent-repository-replicas.md
+kind: document_move
+lineageId: klineage_4e8c7727427f896ed511aa6e
+operationId: kdocop_5e6d9ed9dd00e61046200d04
+schemaVersion: 1
+sourceContentHash: sha256:a3b63360daba538105add3c8eb3510037158afac493e5c347dc422821083d626
+sourceId: src_f6f34f142bd3fda95b9e0d25
+sourceUnitBindingDigest: sha256:02d1a69a9bae8db8ad35a3973ea9b3a605e43ef85a0be13ac01a8981066e156b
+sourceUnitCount: 7
+toPath: docs/decisions/coordination/sync/0404-merge-divergent-repository-replicas.md

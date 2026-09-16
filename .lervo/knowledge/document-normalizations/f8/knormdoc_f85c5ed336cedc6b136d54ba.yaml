@@ -1,0 +1,28 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_678ceb912b06adb0455dc602
+outputLanguage: en
+outputs:
+  - byteCount: 3575
+    contentHash: sha256:9c50165da6b5518046710afab28a4f2ead804a200380a4b0a3b8b70cad4d8a6c
+    path: docs/decisions/coordination/sync/0399-change-driven-repository-and-conversation-work.md
+    userRegionHash: sha256:9c50165da6b5518046710afab28a4f2ead804a200380a4b0a3b8b70cad4d8a6c
+profile: decision_record
+recordId: knormdoc_f85c5ed336cedc6b136d54ba
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:d4dffb6e710ccc7fd25761b7524e7ba0cff933e0bb22048d5e07e4a59301a652
+sourcePath: docs/decisions/coordination/sync/0399-change-driven-repository-and-conversation-work.md
+sourceUnitVersionIds:
+  - uv_8b3a0509e2a7fb3faf4ff5af
+  - uv_8c61794349d7f9e60fbe42d4
+  - uv_fd09f8d594fc1bbef86390e4

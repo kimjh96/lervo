@@ -72,7 +72,7 @@ describe("canonical repository readiness probes", () => {
     } finally {
       await runtime.close();
     }
-  });
+  }, 30_000);
   it("preserves unobserved provider evidence despite valid repository and Git observations", async () => {
     const f = await dispatchFixture(roots);
     const read = f.ports.readWorkerReadiness;

@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_0b684ddcd2af60e04fc90c92
+outputLanguage: en
+outputs:
+  - byteCount: 3152
+    contentHash: sha256:424171354bcc8b3568ba5f40a5716dc5a23f035856193afe7eba3d4cd9a08c31
+    path: docs/decisions/execution/orchestration/governed-work/0402-settle-boot-fenced-pre-turn-managed-interruptions.md
+    userRegionHash: sha256:424171354bcc8b3568ba5f40a5716dc5a23f035856193afe7eba3d4cd9a08c31
+profile: decision_record
+recordId: knormdoc_d3409592b9f4c2a69169bbef
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:19ccc01757f406ac5d95deb2f388c6145576f46669b99dbeb1b798babaea6e2b
+sourcePath: docs/decisions/execution/orchestration/governed-work/0402-settle-boot-fenced-pre-turn-managed-interruptions.md
+sourceUnitVersionIds:
+  - uv_3f55bad889e31d98f14bf0e9
+  - uv_49788cb4a0c5f2f713ca4d96
+  - uv_5875f910cb85ad03ece1985d
+  - uv_e7b9efb8ef4ea7579e0d14d5
+  - uv_ff410f27441a7bf95fbd3b84

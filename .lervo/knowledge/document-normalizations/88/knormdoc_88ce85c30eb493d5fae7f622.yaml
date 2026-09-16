@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1b494c5892641676c9849f7c
+outputLanguage: en
+outputs:
+  - byteCount: 4751
+    contentHash: sha256:0f24e5d671db1b0826950f33310d511e62328df86a328940af818f7147784ede
+    path: docs/decisions/execution/orchestration/governed-work/0407-settle-invocation-fenced-abandoned-turns.md
+    userRegionHash: sha256:0f24e5d671db1b0826950f33310d511e62328df86a328940af818f7147784ede
+profile: decision_record
+recordId: knormdoc_88ce85c30eb493d5fae7f622
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:7ba83858658273faa221a4c129c45e8981331d11d1fec919315bc8cf6a861324
+sourcePath: docs/decisions/execution/orchestration/governed-work/0407-settle-invocation-fenced-abandoned-turns.md
+sourceUnitVersionIds:
+  - uv_0bf3171cd5951c9b831faaf7
+  - uv_3e5e2c4c8114235fc1b521bd
+  - uv_4820b7223c69827cc31af4d3
+  - uv_f343d60950d0e4f4c744aeb0
+  - uv_f8e0979d95bc692e3ddbfae3

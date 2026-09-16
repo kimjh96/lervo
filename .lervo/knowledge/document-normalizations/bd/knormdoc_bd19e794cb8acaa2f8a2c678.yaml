@@ -1,0 +1,30 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_69ec921854f3f681a2ae3c98
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_1dd30b3472a4282d53c04df5
+outputLanguage: en
+outputs:
+  - byteCount: 3583
+    contentHash: sha256:8b7253ff26209e6ec936736a4dbd2da67927318322c3ff3ad18c0a5be2a77768
+    path: docs/decisions/coordination/conversations/agent-organization/0412-expand-the-owner-proxy-ceo-through-installed-capabilities.md
+    userRegionHash: sha256:8b7253ff26209e6ec936736a4dbd2da67927318322c3ff3ad18c0a5be2a77768
+profile: decision_record
+recordId: knormdoc_bd19e794cb8acaa2f8a2c678
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:93cdc52b7b2d9fc947b31fef7e41e427906d24bb2803225b0997ae8d062e5a0c
+sourcePath: docs/decisions/coordination/conversations/agent-organization/0412-expand-the-owner-proxy-ceo-through-installed-capabilities.md
+sourceUnitVersionIds:
+  - uv_25448086a73ed9a9dc33a4dc
+  - uv_3fbbf2155da27c07faafdcd9
+  - uv_54a3f3a7d852761ea2fe463c
+  - uv_6e19fd1919934892b03fca47
+  - uv_fe4d6cfbdd6657aa7658f9b1
