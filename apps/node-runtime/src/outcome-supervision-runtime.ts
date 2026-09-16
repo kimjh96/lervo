@@ -24,6 +24,7 @@ import { NodeSupervisionError } from "./supervision-authority.js";
 import { NodeSupervisionStore, type NodeSupervisionSession } from "./supervision-store.js";
 import { createSupervisionChangeLoop } from "./supervision-change-loop.js";
 import { prepareNodeSupervisionEffect } from "./supervision-execution-preflight.js";
+import { supersedeNodeSupervisionEffect } from "./supervision-supersession-routing.js";
 
 import type {
   NodeSupervisionEffectSession,
@@ -45,7 +46,7 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
   )
     throw new NodeSupervisionError("supervision_readiness_changed");
   const effects = createNodeSupervisionEffects(input, configuration);
-  const { handoffs, managed, topology, workspaces, hiring, reasoning, claims } = effects;
+  const { handoffs, managed, workspaces, hiring, reasoning } = effects;
   const binding = structuredClone(input.binding);
   const { ports } = input;
   if (!("propose" in ports) && input.ownerReasoning === undefined)
@@ -258,41 +259,16 @@ export async function openNodeOutcomeSupervisionRuntime(input: NodeOutcomeSuperv
     readOwnerControlReadiness,
     inspectEffect: (plan, receipt) =>
       inspectNodeSupervisionEffect({ effects, delivery, ports, plan, receipt, session: session() }),
-    supersedeNotStarted: async (plan, digest) => {
-      const native =
-        plan.effectContract === "assignment.topology.materialize.v1" ||
-        plan.effectContract === "work.responsibility_claim.v1" ||
-        (plan.effectContract === "work.owner_reasoning.v1" && reasoning !== null) ||
-        (plan.effectContract === "work.workspace_preparation.v1" && workspaces !== null) ||
-        (["work.managed_execution.v1", "work.managed_execution.v2"].includes(plan.effectContract) &&
-          managed !== null);
-      let supersessionDigest = digest;
-      if (native) {
-        const [task, authority] = await Promise.all([
-          session().readTaskSnapshot(),
-          session().readRecoveryAuthority(),
-        ]);
-        supersessionDigest = operatingContractHash({
-          authorityDigest: authority.source.sourceRevisionDigest,
-          taskDigest: task.sourceRevisionDigest,
-        });
-      }
-      return plan.effectContract === "assignment.topology.materialize.v1"
-        ? topology.supersede(plan, supersessionDigest, session())
-        : plan.effectContract === "work.owner_reasoning.v1" && reasoning !== null
-          ? reasoning.supersede(plan, supersessionDigest, session())
-          : plan.effectContract === "work.workspace_preparation.v1" && workspaces !== null
-            ? workspaces.supersede(plan, supersessionDigest, session())
-            : ["work.managed_execution.v1", "work.managed_execution.v2"].includes(
-                  plan.effectContract,
-                ) && managed !== null
-              ? managed.supersede(plan, supersessionDigest, session(), input.binding)
-              : plan.effectContract === "work.responsibility_claim.v1"
-                ? claims.supersede(plan, supersessionDigest, session())
-                : "supersedeNotStarted" in ports
-                  ? (ports.supersedeNotStarted?.(plan, digest, session()) ?? false)
-                  : false;
-    },
+    supersedeNotStarted: (plan, digest) =>
+      supersedeNodeSupervisionEffect({
+        plan,
+        sourceRevisionDigest: digest,
+        session: session(),
+        binding,
+        effects,
+        delivery,
+        ports,
+      }),
     findPendingPlan: async () => session().findPendingPlan(),
     recordDecision: async (plan, review) => {
       if (sourceBinding === null)

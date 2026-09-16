@@ -17,6 +17,8 @@ import {
   inspectResultDeliveryRecovery,
   type ResultReplayStatus,
 } from "./supervision-result-delivery-recovery.js";
+import { supersedeUnstartedResultDelivery } from "./supervision-result-delivery-supersession.js";
+import type { NodeSupervisionEffectSession } from "./supervision-runtime-ports.js";
 
 export interface NodeSupervisionResultDeliveryConfiguration {
   adapter: ConversationAdapter;
@@ -120,6 +122,20 @@ export class SupervisionResultDelivery {
     return receipt.status === "not_started"
       ? { status: "not_started" as const }
       : { status: "confirmed" as const, eventIds: [receipt.eventId] };
+  }
+  supersede(
+    plan: OperatingActionPlanV1,
+    sourceRevisionDigest: string,
+    session: Pick<NodeSupervisionEffectSession, "commit">,
+  ) {
+    return supersedeUnstartedResultDelivery({
+      storage: this.storage,
+      binding: this.binding,
+      plan,
+      sourceRevisionDigest,
+      session,
+      now: this.now,
+    });
   }
   async enqueue(
     plan: OperatingActionPlanV1,

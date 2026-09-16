@@ -65,3 +65,9 @@ ADR-0405 replaces the one-mandate-per-goal transition with a reviewed standing g
 The installed standing lineage started its first successor goal from a local request without an operator step. That goal exposed a stalled rework claim. ADR-0406 introduced claim supersession, a thirty-second admission margin, and a ten-minute completion floor; the corrected bundle's first cycle reconciled the claim in production.
 
 Remaining follow-ups are bounded assignment failure for a successor responsibility whose window elapsed before its claim, and Discord `/goal` proof of consecutive successor goals. The latter needs the operator's Discord session.
+
+## Unqueued publication recovery
+
+The standing Lervo goal completed at revision 4, then a deployment stopped after admitting `publish_result` and before queueing its outbound. A repository-knowledge migration advanced the task source and exposed `pending_decision_requires_reconciliation`; restart alone could not settle the decision.
+
+ADR-0416 adds queue-absence supersession for this exact pre-transport boundary. Installed acceptance requires the upgraded Node to record one version-8 absence-backed supersession, make a fresh publication decision without rerunning accepted worker work, and return supervision health to ready. Any existing queue event, transport observation, stale inspection, or lost owner fence must fail closed.

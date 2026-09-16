@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_9e6f94fa6f75d2237600b973"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Recover admitted result delivery that remained unqueued after its supervision source changed."

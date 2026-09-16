@@ -66,6 +66,7 @@ export {
 export { managedExecutionIdentity } from "./managed-execution-identity.js";
 export { isOwnerReasoningAbsence } from "./owner-reasoning-absence.js";
 export { isResponsibilityClaimAbsence } from "./responsibility-claim-absence.js";
+export { isResultDeliveryAbsence } from "./result-delivery-absence.js";
 export { isWorkspacePreparationAbsence } from "./workspace-preparation-absence.js";
 export {
   supervisedResultDeliveryFields,

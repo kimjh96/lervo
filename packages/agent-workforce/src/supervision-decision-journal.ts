@@ -19,6 +19,7 @@ import {
   operatingContractHash,
   operatingDecisionId,
   isOwnerReasoningAbsence,
+  isResultDeliveryAbsence,
   isResponsibilityClaimAbsence,
   isWorkspacePreparationAbsence,
   supervisedWorkspacePreparationFields,
@@ -197,23 +198,29 @@ export class SupervisionDecisionJournal {
                     plan,
                     String(supersession.payload.sourceRevisionDigest),
                   )
-                : inspection.schemaVersion === 3
-                  ? await this.validWorkspaceAbsence(
+                : inspection.schemaVersion === 8
+                  ? isResultDeliveryAbsence(
                       inspection,
                       plan,
                       String(supersession.payload.sourceRevisionDigest),
-                    )
-                  : isOwnerReasoningAbsence(
-                      inspection,
-                      plan,
-                      String(supersession.payload.sourceRevisionDigest),
-                    ) &&
-                    collectRunEventsBounded({
-                      events: this.events,
-                      runId: managedExecutionIdentity(plan.projectId, operatingContractHash(plan))
-                        .runId,
-                      maximumEvents: 4096,
-                    }).length === 0)
+                    ) && this.events.get(String(inspection.queueEventId)) === null
+                  : inspection.schemaVersion === 3
+                    ? await this.validWorkspaceAbsence(
+                        inspection,
+                        plan,
+                        String(supersession.payload.sourceRevisionDigest),
+                      )
+                    : isOwnerReasoningAbsence(
+                        inspection,
+                        plan,
+                        String(supersession.payload.sourceRevisionDigest),
+                      ) &&
+                      collectRunEventsBounded({
+                        events: this.events,
+                        runId: managedExecutionIdentity(plan.projectId, operatingContractHash(plan))
+                          .runId,
+                        maximumEvents: 4096,
+                      }).length === 0)
         )
           throw new Error("The superseded decision inspection is inconsistent.");
         continue;
