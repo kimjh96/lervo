@@ -5,6 +5,10 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 import { applyCapabilityMigration, createCapabilityMigrationPlan } from "@lervo/capabilities";
+import {
+  applyWorkforceRoleBindingMigration,
+  createWorkforceRoleBindingMigrationPlan,
+} from "@lervo/agent-workforce";
 import { loadProjectManifest } from "@lervo/project";
 import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
 import type { CliIo } from "./types.js";
@@ -14,6 +18,7 @@ import {
   type NodeUpgradeStage,
 } from "./upgrade-node.js";
 import { readCliPackageVersion } from "./version-command.js";
+import { mutateWorkforceState } from "./workforce-mutation.js";
 
 export const upgradeUsage =
   "  lervo upgrade [--root <path>] [--apply --approval <plan-id>] [--json]";
@@ -24,6 +29,15 @@ interface KnowledgeStage {
   disposition: StageDisposition;
   planKind: string;
   planId: string | null;
+  status: string;
+  reason: string;
+}
+
+interface WorkforceStage {
+  disposition: StageDisposition;
+  planId: string | null;
+  staleAgentCount: number;
+  staleAssignmentCount: number;
   status: string;
   reason: string;
 }
@@ -50,6 +64,7 @@ export interface RepositoryUpgradePlan {
       createCount: number;
       observedProviderSurfaceCount: number;
     };
+    workforce: WorkforceStage;
     knowledge: KnowledgeStage;
     node: NodeUpgradeStage;
   };
@@ -167,6 +182,19 @@ async function inspectKnowledge(root: string): Promise<KnowledgeStage> {
   };
 }
 
+async function inspectWorkforce(root: string): Promise<WorkforceStage> {
+  const plan = await createWorkforceRoleBindingMigrationPlan(root);
+  return {
+    disposition:
+      plan.status === "ready" ? "safe_apply" : plan.status === "blocked" ? "blocked" : "current",
+    planId: plan.planId,
+    staleAgentCount: plan.staleAgentCount,
+    staleAssignmentCount: plan.staleAssignmentCount,
+    status: plan.status,
+    reason: plan.reason,
+  };
+}
+
 async function createInternalUpgradePlan(root: string): Promise<InternalUpgradePlan> {
   const repositoryRoot = await realpath(resolve(root));
   const project = await loadProjectManifest(repositoryRoot);
@@ -174,8 +202,18 @@ async function createInternalUpgradePlan(root: string): Promise<InternalUpgradeP
   const capabilities = await createCapabilityMigrationPlan(repositoryRoot);
   const capabilityDisposition: StageDisposition =
     capabilities.status === "ready" ? "safe_apply" : "current";
-  const [buildHash, knowledge, node] = await Promise.all([
+  const [buildHash, workforce, knowledge, node] = await Promise.all([
     cliBuildHash(),
+    capabilityDisposition === "safe_apply"
+      ? Promise.resolve({
+          disposition: "deferred" as const,
+          planId: null,
+          staleAgentCount: 0,
+          staleAssignmentCount: 0,
+          status: "deferred",
+          reason: "capability_migration_must_apply_first",
+        })
+      : inspectWorkforce(repositoryRoot),
     capabilityDisposition === "safe_apply"
       ? Promise.resolve({
           disposition: "deferred" as const,
@@ -187,7 +225,12 @@ async function createInternalUpgradePlan(root: string): Promise<InternalUpgradeP
       : inspectKnowledge(repositoryRoot),
     inspectRegisteredNodeUpgrade(repositoryRoot, project.projectId, version),
   ]);
-  const dispositions = [capabilityDisposition, knowledge.disposition, node.stage.disposition];
+  const dispositions = [
+    capabilityDisposition,
+    workforce.disposition,
+    knowledge.disposition,
+    node.stage.disposition,
+  ];
   const status: RepositoryUpgradePlan["status"] = dispositions.includes("blocked")
     ? "blocked"
     : dispositions.includes("safe_apply")
@@ -216,6 +259,7 @@ async function createInternalUpgradePlan(root: string): Promise<InternalUpgradeP
         createCount: capabilities.items.filter((item) => item.action === "create").length,
         observedProviderSurfaceCount: capabilities.observedProviderSurfaces.length,
       },
+      workforce,
       knowledge,
       node: node.stage,
     },
@@ -315,6 +359,20 @@ export async function runUpgradeCommand(args: string[], io: CliIo): Promise<numb
       appliedStages.push("capabilities");
     }
 
+    const workforce = await inspectWorkforce(initial.publicPlan.repositoryRoot);
+    if (workforce.disposition === "blocked")
+      throw new Error(`Workforce role-binding migration is blocked (${workforce.reason}).`);
+    if (workforce.disposition === "safe_apply") {
+      await mutateWorkforceState(initial.publicPlan.repositoryRoot, (recordEvent) =>
+        applyWorkforceRoleBindingMigration({
+          repositoryRoot: initial.publicPlan.repositoryRoot,
+          approval: workforce.planId!,
+          recordEvent,
+        }),
+      );
+      appliedStages.push("workforce_role_bindings");
+    }
+
     for (let index = 0; index < initial.publicPlan.policy.maximumKnowledgeStages; index += 1) {
       const stage = await inspectKnowledge(initial.publicPlan.repositoryRoot);
       if (stage.disposition !== "safe_apply") break;
@@ -351,6 +409,7 @@ export async function runUpgradeCommand(args: string[], io: CliIo): Promise<numb
       nextPlanId: final.publicPlan.status === "current" ? null : final.publicPlan.planId,
       pending: [
         final.publicPlan.stages.capabilities,
+        final.publicPlan.stages.workforce,
         final.publicPlan.stages.knowledge,
         final.publicPlan.stages.node,
       ]
@@ -388,6 +447,7 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
     `plan: ${plan.planId}`,
     `CLI: ${plan.cli.version} · ${plan.cli.buildHash}`,
     `capabilities: ${plan.stages.capabilities.disposition}`,
+    `workforce role bindings: ${plan.stages.workforce.disposition} (${plan.stages.workforce.reason})`,
     `knowledge: ${plan.stages.knowledge.disposition} (${plan.stages.knowledge.reason})`,
     `repository Node: ${plan.stages.node.disposition} (${plan.stages.node.reason})`,
   ];

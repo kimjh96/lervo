@@ -75,6 +75,7 @@ export const eventTypesV1 = [
   "assignment.completion.prepared",
   "assignment.completion.reconciled",
   "assignment.completed",
+  "assignment.role.binding.changed",
   "assignment.amended",
   "assignment.reopened",
   "public_readme.improvement.applied",

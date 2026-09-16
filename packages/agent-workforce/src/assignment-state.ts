@@ -55,6 +55,50 @@ async function readAssignmentAt(
   return { source, value };
 }
 
+export interface RawAssignmentState {
+  path: string;
+  lockPath: string;
+  source: string;
+  value: WorkforceAssignment;
+  projectId: string;
+}
+
+export async function listRawAssignmentStates(root: string): Promise<RawAssignmentState[]> {
+  const current = await state(root, { readOnly: true });
+  const directory = resolve(current.base, "assignments");
+  let names: string[];
+  try {
+    names = (await readdir(directory))
+      .filter((name) => /^asn_[a-f0-9]{24}\.json$/u.test(name))
+      .sort();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+  if (names.length > workforceLimits.maximumAssignments)
+    fail("workforce_state_invalid", "The assignment limit was exceeded.");
+  return Promise.all(
+    names.map(async (name) => {
+      const path = resolve(directory, name);
+      const source = await readBounded(path);
+      const value = JSON.parse(source ?? "null") as WorkforceAssignment;
+      const assignmentId = name.slice(0, -5);
+      if (
+        !validAssignment(value, current.manifest.projectId) ||
+        value.assignmentId !== assignmentId
+      )
+        fail("workforce_state_invalid", "The assignment state is invalid.");
+      return {
+        path,
+        lockPath: resolve(current.base, "scheduler.lock"),
+        source: source!,
+        value,
+        projectId: current.manifest.projectId,
+      };
+    }),
+  );
+}
+
 export async function readAssignment(
   root: string,
   assignmentId: string,

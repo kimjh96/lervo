@@ -39,7 +39,7 @@
     },
     {
       "path": "apps/cli/src/upgrade-command.ts",
-      "contentHash": "sha256:f375c73b704aebf211f3d7d631b8c9b527733c59538970d609b4dd574bf8db6b",
+      "contentHash": "sha256:af0b1f5f04c30863a018dbbfad3ba221452c9f8b18361c92ecafafcfe1f1c2a9",
       "responsibility": "Repository upgrade plan/apply command",
       "rationale": "Inspection, planning, stage application, lint, and receipt formatting all describe one bounded repository-upgrade lifecycle and share a single plan identity.",
       "disposition": "cohesive"
@@ -102,9 +102,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:31763909e07a3820ab5c68c75132f91720c6e1bddfce9818bf4e3e263559d532",
+      "contentHash": "sha256:15bea72420febffda8ba3a3f91e1510eb371b763f3f2e536eb3d85b29f9b91d4",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns one event payload privacy boundary with a declarative allowlist catalog and exact coordinate validation. Agent-memory additions are bounded classifications, times, identifiers, and opaque retrieval hashes; semantic review binding remains in agent-organization. Source text, prompts, filesystem roots and provider output are excluded.",
+      "rationale": "The module owns one event payload privacy boundary with a declarative allowlist catalog and exact coordinate validation. Workforce role-binding migration adds only opaque assignment, version, revision, capability, and contract coordinates. Source text, prompts, filesystem roots, role bodies, task prose, credentials, and provider output remain excluded.",
       "disposition": "cohesive"
     },
     {

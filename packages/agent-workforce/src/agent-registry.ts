@@ -13,6 +13,49 @@ export interface AgentRegistry {
   agents: WorkforceAgent[];
 }
 
+export async function readAgentRegistryState(
+  root: string,
+  options: { readOnly?: boolean } = {},
+): Promise<{
+  path: string;
+  lockPath: string;
+  source: string | null;
+  value: AgentRegistry;
+  projectId: string;
+}> {
+  const current = await state(root, options);
+  const path = resolve(current.base, "agents.json");
+  const source = await readBounded(path);
+  const value =
+    source === null
+      ? { schemaVersion: 1 as const, kind: "lervo_agent_registry" as const, agents: [] }
+      : (JSON.parse(source) as AgentRegistry);
+  if (
+    value.schemaVersion !== 1 ||
+    value.kind !== "lervo_agent_registry" ||
+    !Array.isArray(value.agents) ||
+    value.agents.length > workforceLimits.maximumAgents ||
+    !value.agents.every((agent) => validAgent(agent, current.manifest.projectId))
+  )
+    fail("workforce_state_invalid", "The agent registry is invalid.");
+  const ids = value.agents.map((agent) => agent.agentId);
+  if (
+    new Set(ids).size !== ids.length ||
+    value.agents.some((agent) => agent.parentAgentId !== null && !ids.includes(agent.parentAgentId))
+  )
+    fail(
+      "workforce_state_invalid",
+      "The agent registry contains duplicate or missing parent identities.",
+    );
+  return {
+    path,
+    lockPath: resolve(current.base, "agents.lock"),
+    source,
+    value,
+    projectId: current.manifest.projectId,
+  };
+}
+
 export async function normalizeAgentRole(
   root: string,
   agent: WorkforceAgent,
@@ -99,37 +142,15 @@ export async function registry(
   value: AgentRegistry;
   projectId: string;
 }> {
-  const current = await state(root, options);
-  const path = resolve(current.base, "agents.json");
-  const source = await readBounded(path);
-  const value =
-    source === null
-      ? { schemaVersion: 1 as const, kind: "lervo_agent_registry" as const, agents: [] }
-      : (JSON.parse(source) as AgentRegistry);
-  if (
-    value.schemaVersion !== 1 ||
-    value.kind !== "lervo_agent_registry" ||
-    !Array.isArray(value.agents) ||
-    value.agents.length > workforceLimits.maximumAgents ||
-    !value.agents.every((agent) => validAgent(agent, current.manifest.projectId))
-  )
-    fail("workforce_state_invalid", "The agent registry is invalid.");
-  const ids = value.agents.map((agent) => agent.agentId);
-  if (
-    new Set(ids).size !== ids.length ||
-    value.agents.some((agent) => agent.parentAgentId !== null && !ids.includes(agent.parentAgentId))
-  )
-    fail(
-      "workforce_state_invalid",
-      "The agent registry contains duplicate or missing parent identities.",
-    );
+  const current = await readAgentRegistryState(root, options);
+  const value = current.value;
   const normalized = await Promise.all(value.agents.map((agent) => normalizeAgent(root, agent)));
   return {
-    path,
-    lockPath: resolve(current.base, "agents.lock"),
-    source,
+    path: current.path,
+    lockPath: current.lockPath,
+    source: current.source,
     value: { ...value, agents: normalized },
-    projectId: current.manifest.projectId,
+    projectId: current.projectId,
   };
 }
 

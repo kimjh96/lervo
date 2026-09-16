@@ -10,6 +10,8 @@ import {
   stableId,
 } from "@lervo/repository-knowledge";
 import { loadProjectManifest } from "@lervo/project";
+import { listAgents, registerAgent } from "@lervo/agent-workforce";
+import { resolveRepositoryCoordinationHome } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
@@ -206,6 +208,46 @@ describe("lervo upgrade", () => {
     expect(errors.join(" ")).toContain("exact current repository upgrade plan");
     await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();
   });
+
+  it("refreshes stale built-in workforce role bindings before Node reconciliation", async () => {
+    const root = await repository();
+    const agent = await registerAgent({ repositoryRoot: root, roleId: "developer" });
+    const home = await resolveRepositoryCoordinationHome(root);
+    const registryPath = resolve(home.workforce, "agents.json");
+    const registry = JSON.parse(await readFile(registryPath, "utf8")) as {
+      agents: Array<Record<string, unknown>>;
+    };
+    registry.agents[0]!.roleContractHash = `sha256:${"0".repeat(64)}`;
+    registry.agents[0]!.roleProfileHash = `sha256:${"1".repeat(64)}`;
+    registry.agents[0]!.capabilityHash = `sha256:${"2".repeat(64)}`;
+    await writeFile(registryPath, `${JSON.stringify(registry, null, 2)}\n`, { mode: 0o600 });
+
+    const output: string[] = [];
+    const errors: string[] = [];
+    expect(await runCli(["upgrade", "--json"], io(root, output, errors)), errors.join("\n")).toBe(
+      0,
+    );
+    const plan = JSON.parse(output.splice(0).join("")) as {
+      planId: string;
+      stages: { workforce: { disposition: string; staleAgentCount: number } };
+    };
+    expect(plan.stages.workforce).toMatchObject({
+      disposition: "safe_apply",
+      staleAgentCount: 1,
+    });
+    expect(
+      await runCli(
+        ["upgrade", "--apply", "--approval", plan.planId, "--json"],
+        io(root, output, errors),
+      ),
+      errors.join("\n"),
+    ).toBe(0);
+    const receipt = JSON.parse(output.join("")) as { appliedStages: string[] };
+    expect(receipt.appliedStages).toContain("workforce_role_bindings");
+    expect(await listAgents(root)).toEqual([
+      expect.objectContaining({ agentId: agent.agentId, revision: agent.revision + 1 }),
+    ]);
+  }, 20_000);
 
   it("applies every generated-only stage, migrates loose skills, lints, and stops at authority boundaries", async () => {
     const root = await repository();

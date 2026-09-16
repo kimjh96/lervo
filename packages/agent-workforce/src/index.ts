@@ -15,6 +15,7 @@ export * from "./integration-attempt-store.js";
 export * from "./integration-attempt-contract.js";
 export * from "./integration-attempt-types.js";
 export * from "./natural-language.js";
+export * from "./role-binding-migration.js";
 export * from "./types.js";
 export * from "./workspace-lifecycle.js";
 export * from "./workspace-liveness.js";

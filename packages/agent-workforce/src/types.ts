@@ -143,6 +143,7 @@ export interface WorkforceEvent {
     | "assignment.handoff.acknowledged"
     | "assignment.cancelled"
     | "assignment.completion.reconciled"
+    | "assignment.role.binding.changed"
     | "assignment.amended"
     | "assignment.reopened"
     | "assignment.completed";

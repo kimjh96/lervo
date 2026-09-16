@@ -305,6 +305,17 @@ export const eventPayloadAllowlists = {
     "artifactHashes",
     "failureCode",
   ],
+  "assignment.role.binding.changed": [
+    "assignmentId",
+    "previousRoleVersion",
+    "previousRoleContractHash",
+    "previousRequiredCapabilityHash",
+    "roleId",
+    "roleVersion",
+    "roleContractHash",
+    "requiredCapabilityHash",
+    "revision",
+  ],
   "assignment.amended": [
     "assignmentId",
     "assignmentRevision",

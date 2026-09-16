@@ -306,6 +306,27 @@ describe("event payload privacy boundary", () => {
     expect(JSON.stringify(result.payload)).not.toContain(".lervo/roles");
   });
 
+  it("keeps assignment role-binding migration coordinates without task or role prose", () => {
+    const payload = {
+      assignmentId: `asn_${"a".repeat(24)}`,
+      previousRoleVersion: "1.0.0",
+      previousRoleContractHash: `sha256:${"b".repeat(64)}`,
+      previousRequiredCapabilityHash: `sha256:${"d".repeat(64)}`,
+      roleId: "developer",
+      roleVersion: "1.0.0",
+      roleContractHash: `sha256:${"c".repeat(64)}`,
+      requiredCapabilityHash: `sha256:${"e".repeat(64)}`,
+      revision: 4,
+    };
+    const result = sanitizeEventPayload("assignment.role.binding.changed", {
+      ...payload,
+      task: "private assignment prose",
+      profile: { description: "private role prose" },
+    });
+    expect(result.payload).toEqual(payload);
+    expect(JSON.stringify(result.payload)).not.toContain("private");
+  });
+
   it("keeps managed profile activation coordinates without role or provider bodies", () => {
     const payload = {
       activationId: `rpact_${"a".repeat(24)}`,

@@ -245,26 +245,8 @@ export async function resolveRepositoryCoordinationHome(
   const manifest = await loadProjectManifest(paths.repositoryRoot);
   const coordinate = await coordinationRoot(paths.repositoryRoot);
   if (options.readOnly === true) {
-    await inspectRealDirectory(coordinate.root, "Existing coordination directory");
-    const marker = await readMarker(
-      resolve(coordinate.root, "repository.json"),
-      manifest.projectId,
-    );
-    if (marker.storageKind !== coordinate.storageKind || (await hasEntries(paths.workforce)))
-      invalid(
-        "Read-only coordination inspection requires the owner's completed storage migration.",
-      );
-    const home = coordinationHome(coordinate.root, marker);
-    for (const path of [
-      home.workforce,
-      home.workspaces,
-      home.integrations,
-      home.integrationAttempts,
-      home.cleanupJournals,
-      home.events,
-      home.locks,
-    ])
-      await inspectRealDirectory(path, "Existing coordination collection");
+    const home = await inspectRepositoryCoordinationHome(paths.repositoryRoot);
+    if (home === null) invalid("Existing coordination directory could not be inspected.");
     return home;
   }
   if (coordinate.storageKind === "standalone_checkout")
@@ -297,6 +279,37 @@ export async function resolveRepositoryCoordinationHome(
   } finally {
     await release();
   }
+}
+
+/** Read-only absence-aware inspection for planners that must not initialize coordination bytes. */
+export async function inspectRepositoryCoordinationHome(
+  repositoryRoot: string,
+): Promise<RepositoryCoordinationHome | null> {
+  const paths = resolveProjectPaths(repositoryRoot);
+  const manifest = await loadProjectManifest(paths.repositoryRoot);
+  const coordinate = await coordinationRoot(paths.repositoryRoot);
+  try {
+    await lstat(coordinate.root);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    invalid("Existing coordination directory could not be inspected.", error);
+  }
+  await inspectRealDirectory(coordinate.root, "Existing coordination directory");
+  const marker = await readMarker(resolve(coordinate.root, "repository.json"), manifest.projectId);
+  if (marker.storageKind !== coordinate.storageKind || (await hasEntries(paths.workforce)))
+    invalid("Read-only coordination inspection requires the owner's completed storage migration.");
+  const home = coordinationHome(coordinate.root, marker);
+  for (const path of [
+    home.workforce,
+    home.workspaces,
+    home.integrations,
+    home.integrationAttempts,
+    home.cleanupJournals,
+    home.events,
+    home.locks,
+  ])
+    await inspectRealDirectory(path, "Existing coordination collection");
+  return home;
 }
 
 function coordinationHome(root: string, marker: CoordinationMarker): RepositoryCoordinationHome {

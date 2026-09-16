@@ -57,6 +57,7 @@ const eventLabels = {
   "agent.liveness.observed": "Agent liveness observed",
   "provider.process.observed": "Provider process observed",
   "assignment.created": "Assignment created",
+  "assignment.role.binding.changed": "Assignment role binding changed",
   "assignment.amended": "Assignment duties amended",
   "assignment.reopened": "Assignment reopened",
   "assignment.claimed": "Assignment claimed",

@@ -10,14 +10,15 @@ After installing the intended CLI release, an agent can inspect and apply an exi
 ## Completion criteria
 
 - Planning is read-only and binds the physical repository, project, CLI build, and exact current inner plans.
-- Apply rejects stale approval, permits only generated or Lervo-owned automatic changes, and stops at user-owned or provider-owned authority.
+- Apply rejects stale approval, permits only generated or Lervo-owned automatic changes, refreshes content-bound stale built-in workforce role bindings before Node reconciliation, and stops at user-owned or provider-owned authority.
+- Built-in agent and assignment refreshes advance revisions and record canonical events. Repository-defined role drift remains blocked pending an explicit lifecycle decision.
 - Loose skills migrate before knowledge. Generated AGENTS routes include portable skills on first materialization.
 - Registered Node services compare content-addressed payload identity, not semantic version alone, and reuse existing owner-only configuration without exposing it.
-- Same-version rebuilt Node payloads upgrade transactionally. Before the fleet registry commits, complete readiness or three fresh Hub-unavailable-only `offline_ready` observations are required.
+- Same-version rebuilt Node payloads upgrade transactionally. Fleet registry commit requires complete readiness or three fresh Hub-unavailable-only `offline_ready` observations.
 - Knowledge lint succeeds after every applied repository upgrade.
-- The local-only path works without a Hub. Absent Node registration is current rather than an onboarding side effect.
+- The local-only path works without a Hub. Absent Node registration is current, not an onboarding side effect.
 - A stale registered Node under a current sync-disabled project policy remains pending authority without blocking local generated-only migration.
-- CLI acquisition remains an explicit installation-environment responsibility and is never misreported as repository-upgrade evidence.
+- CLI acquisition remains an explicit installation-environment responsibility and is never reported as repository-upgrade evidence.
 
 ## Evidence
 
