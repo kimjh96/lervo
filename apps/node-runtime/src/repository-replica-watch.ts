@@ -10,19 +10,18 @@ type WatchedRepository = {
   conflictPolicy?: "hold" | "prefer_local" | "prefer_peer";
 };
 
-const MAX_CONCURRENT_RECONCILIATIONS = 4;
-
 export async function watchReplicaReconciliation(input: {
   repositories: WatchedRepository[];
   peer: SshRepositoryReplicaPeer;
   fallbackIntervalMs: number;
+  maximumConcurrency?: number;
   watch: boolean;
   signal?: AbortSignal;
   reconcile(repository: WatchedRepository): Promise<void>;
 }): Promise<void> {
   const wakeup = new ChangeWakeup();
   const pool = new RepositoryReconciliationPool(input.repositories, {
-    concurrency: MAX_CONCURRENT_RECONCILIATIONS,
+    concurrency: input.maximumConcurrency ?? 4,
     coalesceMs: 250,
     reconcile: input.reconcile,
     notify: () => wakeup.notify(),

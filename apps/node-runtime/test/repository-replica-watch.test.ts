@@ -147,6 +147,51 @@ it("does not let one slow repository block reconciliation for the others", async
   }
 });
 
+it("honors a reduced reconciliation concurrency for constrained peer transports", async () => {
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  vi.spyOn(peer, "subscribe").mockImplementation((_root, notify) => {
+    notify();
+    return () => {};
+  });
+  const abort = new AbortController();
+  let releaseFirst = () => {};
+  const firstBlocked = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  const reconcile = vi.fn(async (repository: { replicaId: string }) => {
+    if (repository.replicaId === "first") await firstBlocked;
+  });
+  const running = watchReplicaReconciliation({
+    repositories: [
+      { replicaId: "first", localRoot: "/first", peerRoot: "/peer/first" },
+      { replicaId: "second", localRoot: "/second", peerRoot: "/peer/second" },
+    ],
+    peer,
+    fallbackIntervalMs: 1_000,
+    maximumConcurrency: 1,
+    watch: true,
+    signal: abort.signal,
+    reconcile,
+  });
+  try {
+    await vi.waitFor(() => expect(reconcile).toHaveBeenCalledTimes(1));
+    expect(reconcile).toHaveBeenLastCalledWith(expect.objectContaining({ replicaId: "first" }));
+    releaseFirst();
+    await vi.waitFor(() => expect(reconcile).toHaveBeenCalledTimes(2));
+    expect(reconcile).toHaveBeenLastCalledWith(expect.objectContaining({ replicaId: "second" }));
+  } finally {
+    releaseFirst();
+    abort.abort();
+    await running;
+  }
+});
+
 it("starts a new hint when capacity is free without waiting for the active batch", async () => {
   const peer = new SshRepositoryReplicaPeer({
     executable: "ssh",

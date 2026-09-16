@@ -34,6 +34,7 @@ interface CoordinatorConfig {
   schemaVersion: 1;
   stateFile: string;
   pollIntervalMs: number;
+  maximumConcurrency?: number;
   peer: {
     executable: string;
     arguments: string[];
@@ -41,6 +42,7 @@ interface CoordinatorConfig {
     remoteNodeExecutable: string;
     remoteRuntimeExecutable: string;
     remoteCommandPrefix?: string[];
+    commandTimeoutMs?: number;
   };
   repositories: Array<{
     replicaId: string;
@@ -91,6 +93,10 @@ async function readCoordinatorConfig(path: string): Promise<CoordinatorConfig> {
     !Number.isSafeInteger(value.pollIntervalMs) ||
     value.pollIntervalMs < 1_000 ||
     value.pollIntervalMs > 60_000 ||
+    (value.maximumConcurrency !== undefined &&
+      (!Number.isSafeInteger(value.maximumConcurrency) ||
+        value.maximumConcurrency < 1 ||
+        value.maximumConcurrency > 4)) ||
     typeof value.peer !== "object" ||
     value.peer === null ||
     typeof value.peer.executable !== "string" ||
@@ -99,6 +105,10 @@ async function readCoordinatorConfig(path: string): Promise<CoordinatorConfig> {
     typeof value.peer.destination !== "string" ||
     typeof value.peer.remoteNodeExecutable !== "string" ||
     typeof value.peer.remoteRuntimeExecutable !== "string" ||
+    (value.peer.commandTimeoutMs !== undefined &&
+      (!Number.isSafeInteger(value.peer.commandTimeoutMs) ||
+        value.peer.commandTimeoutMs < 1_000 ||
+        value.peer.commandTimeoutMs > 300_000)) ||
     (value.peer.remoteCommandPrefix !== undefined &&
       (!Array.isArray(value.peer.remoteCommandPrefix) ||
         value.peer.remoteCommandPrefix.some((item) => typeof item !== "string"))) ||
@@ -138,6 +148,7 @@ async function runCoordinator(
     })),
     peer,
     fallbackIntervalMs: config.pollIntervalMs,
+    maximumConcurrency: config.maximumConcurrency ?? 4,
     watch,
     ...(ports.signal === undefined ? {} : { signal: ports.signal }),
     reconcile: async (repository) => {

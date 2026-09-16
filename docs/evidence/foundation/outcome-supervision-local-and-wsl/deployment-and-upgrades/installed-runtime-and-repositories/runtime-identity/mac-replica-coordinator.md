@@ -1,6 +1,8 @@
 # Mac replica coordinator
 
-The current reviewed coordinator and WSL helper use Node `84a51db2`, preserving repository mappings and conflict handling. Apply receipt: `sha256:dfe7eaae58ecf261d9ddbbf520581a999a5cd7e7e74ae94c510f946cf2ad73bc`.
+On 2026-09-16, the coordinator was upgraded to the verified standalone Node artifact `sha256:87c76664be183ce48a97f6f5763559e8be6949ac320a0cf0d5efe99a15b44784`. The installed launch agent runs `87c76664be183ce4/dist/bin.js` with one concurrent repository operation and a 60-second peer-command deadline. It was observed running at PID 52588 with no exit, while the Axli receipt remained `current` at `2026-09-16T09:16:16.744Z`; the Axli WSL Node service was also observed as both `active` and `enabled`.
+
+The previous reviewed coordinator and WSL helper used Node `84a51db2`, preserving repository mappings and conflict handling. Apply receipt: `sha256:dfe7eaae58ecf261d9ddbbf520581a999a5cd7e7e74ae94c510f946cf2ad73bc`.
 
 The later exact-snapshot reconciliation resolved Lervo's source divergence while preserving both original bundles; Arca-next remains divergent. Lervo source-reconciliation receipt: `sha256:b8947f8b9b2af018a9d98f5b1d4c9996578ad535e6c421d0c65b5eb76de2b3c5`.
 

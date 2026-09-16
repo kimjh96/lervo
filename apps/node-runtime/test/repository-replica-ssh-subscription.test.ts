@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it, vi } from "vitest";
@@ -36,3 +36,28 @@ it.each([true, false])(
     }
   },
 );
+
+it("terminates a repository replica SSH command that exceeds its deadline", async () => {
+  const root = await mkdtemp(join(tmpdir(), "lervo-peer-timeout-"));
+  try {
+    const script = join(root, "peer.mjs");
+    const pidFile = join(root, "pid");
+    await writeFile(
+      script,
+      'import { writeFileSync } from "node:fs"; writeFileSync(process.argv[2], String(process.pid)); setInterval(() => {}, 10000);',
+    );
+    const peer = new SshRepositoryReplicaPeer({
+      executable: process.execPath,
+      arguments: [script, pidFile],
+      destination: "fixture",
+      remoteNodeExecutable: "node",
+      remoteRuntimeExecutable: "runtime",
+      commandTimeoutMs: 25,
+    });
+    await expect(peer.snapshot("/fixture")).rejects.toThrow(/execution deadline/u);
+    const pid = Number(await readFile(pidFile, "utf8"));
+    await vi.waitFor(() => expect(() => process.kill(pid, 0)).toThrow());
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

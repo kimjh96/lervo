@@ -8,6 +8,7 @@ import type {
 } from "./repository-replica-coordinator.js";
 
 const MAXIMUM_SSH_OUTPUT_BYTES = 512 * 1024 * 1024;
+const DEFAULT_COMMAND_TIMEOUT_MS = 60_000;
 
 export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
   constructor(
@@ -18,6 +19,7 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
       remoteNodeExecutable: string;
       remoteRuntimeExecutable: string;
       remoteCommandPrefix?: readonly string[];
+      commandTimeoutMs?: number;
     },
   ) {}
 
@@ -43,11 +45,25 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
       const stdout: Buffer[] = [];
       const stderr: Buffer[] = [];
       let bytes = 0;
+      let settled = false;
+      const timeout = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        child.kill("SIGKILL");
+        reject(new Error("Repository replica SSH command exceeded its execution deadline."));
+      }, this.options.commandTimeoutMs ?? DEFAULT_COMMAND_TIMEOUT_MS);
+      timeout.unref();
+      const fail = (error: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        reject(error);
+      };
       const collect = (target: Buffer[]) => (chunk: Buffer) => {
         bytes += chunk.byteLength;
         if (bytes > MAXIMUM_SSH_OUTPUT_BYTES) {
           child.kill("SIGKILL");
-          reject(new Error("Repository replica SSH output exceeded its bound."));
+          fail(new Error("Repository replica SSH output exceeded its bound."));
           return;
         }
         target.push(chunk);
@@ -55,10 +71,13 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
       child.stdout!.on("data", collect(stdout));
       child.stderr!.on("data", collect(stderr));
       child.stdin?.on("error", (error: NodeJS.ErrnoException) => {
-        if (error.code !== "EPIPE") reject(error);
+        if (error.code !== "EPIPE") fail(error);
       });
-      child.once("error", reject);
+      child.once("error", fail);
       child.once("close", (code) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
         if (code !== 0) {
           reject(
             new Error(

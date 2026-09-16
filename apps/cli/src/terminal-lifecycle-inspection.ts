@@ -16,6 +16,7 @@ import type {
   TerminalLifecycleInspection,
 } from "./terminal-hook-contract.js";
 import { inspectTerminalRepositoryKnowledgeLifecycle } from "./terminal-knowledge-lifecycle-inspection.js";
+import { inspectTerminalRepositoryReplicaService } from "./terminal-repository-replica-service-inspection.js";
 import {
   latestTerminalTurnDeclaration,
   terminalDeliberationDeclarationMatches,
@@ -75,6 +76,7 @@ export async function inspectTerminalLifecycle(
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
+  issues.push(...(await inspectTerminalRepositoryReplicaService()));
   const workstreamStorage = await openProjectStorage(root);
   try {
     const current = await verifiedCurrentWorkstream(workstreamStorage);

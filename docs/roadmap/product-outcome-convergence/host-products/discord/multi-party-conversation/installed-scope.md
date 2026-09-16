@@ -38,7 +38,7 @@ The installed executive boundary executes hash-bound, allowlisted Discord text-c
 - Atomic child organization, external-deployment, and channel-membership binding before supervised activation.
 - Exact leading `@DisplayName` addressing for webhook-backed participants that Discord cannot natively mention.
 - Resumable native Codex and Claude repository work with durable per-agent sessions, duplicate suppression, bounded result artifacts, and Git change observation.
-- Conflict-safe Mac and WSL repository replicas preserving exact uncommitted worktree and index bytes bidirectionally, with fresh parity required before and after changed native work.
+- Conflict-safe Mac and WSL repository replicas preserving exact uncommitted worktree and index bytes bidirectionally, with fresh parity required before and after changed native work, bounded peer-command execution, configurable bridge concurrency, and terminal completion detection for an unloaded installed coordinator.
 - Post-turn enforcement of current workstream, canonicalization declaration, and repository knowledge lifecycle, plus bounded CAS-backed prior work results per durable worker.
 - Stable CEO ownership for unaddressed general-channel turns and early owner-only typing activity.
 
