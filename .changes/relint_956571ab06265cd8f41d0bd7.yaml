@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_956571ab06265cd8f41d0bd7"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Scope result delivery recovery to the exact completed workstream snapshot."
