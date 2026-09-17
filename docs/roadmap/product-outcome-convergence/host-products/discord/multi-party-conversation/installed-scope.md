@@ -54,7 +54,7 @@ Natural deliberation preserves the original human reply coordinate across synthe
 
 ## Limits and remaining work
 
-Webhook replies remain canonical rather than native. Remaining work includes invoking agent-deployment preparation and runtime binding from natural CEO conversation, broader natural addressed groups, the required real two-agent discussion, and binding formal-deliberation stakeholder seats to the same durable named agents visible on Discord.
+Webhook replies remain canonical rather than native. Natural product-owner hiring already invokes agent-deployment preparation, organization binding, runtime configuration, and post-acknowledgement restart for the durable child speaker. Remaining work includes extending that governed path to a natural central-CEO request across repository teams, broader natural addressed groups, the required real two-agent discussion, and binding formal-deliberation stakeholder seats to the same durable named agents visible on Discord.
 
 Each agent needing native Discord member presence, its own typing indicator, or native mentionability requires a separate installed bot application. Exact Lervo `@DisplayName` addressing remains available to webhook identities.
 
@@ -64,4 +64,4 @@ The target organization has one shared general channel for the human owner, cent
 
 Before creating a child workforce identity, the installed natural hiring effect binds the exact product-owner parent, organization deployment, current repository, selected installed role, provider policy, delegation depth, responsibility paths, and capability ancestry. It also binds the child as the active worker for the conversation's next native work turn, with a separate resumable provider session.
 
-This effect does not create an external speaker or allow cross-team hiring. Formal assignment topology and integration remain separate bounded effect paths.
+For an authorized product-owner hire, this effect prepares a webhook-backed external speaker and atomically binds it before post-acknowledgement activation. It does not allow cross-team hiring. A central-CEO request spanning repository teams, formal assignment topology, and formal-deliberation seat integration remain separate bounded effect paths.
