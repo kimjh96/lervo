@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4db88384e05ead3c035075e7"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Route managed Discord task delegation to the selected hired agent instead of dropping the action."

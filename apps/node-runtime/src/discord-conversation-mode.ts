@@ -217,7 +217,8 @@ export class NaturalLanguageDiscordConversationResponder
             ? { kind: managed.effect.kind, name: managed.effect.argument! }
             : managed.effect.kind === "workforce_agent_hire"
               ? { kind: managed.effect.kind, specification: managed.effect.argument! }
-              : managed.effect.kind === "deliberation_start"
+              : managed.effect.kind === "workforce_task_delegate" ||
+                  managed.effect.kind === "deliberation_start"
                 ? { kind: managed.effect.kind, specification: managed.effect.argument! }
                 : managed.effect.kind === "repository_work"
                   ? { kind: "repository_work" }

@@ -132,6 +132,43 @@ describe("conversation intent provider contract", () => {
     });
   });
 
+  it("routes a bounded task to the active hired agent", async () => {
+    const task = "대화 포커스 회귀 테스트를 실행하고 결과를 보고하세요.";
+    let request: unknown;
+    const resolver = createConversationIntentResolver({
+      providerId: "codex",
+      model: null,
+      resolve: async (value) => {
+        request = value;
+        return {
+          intent: "continue_work",
+          confidence: "high",
+          participation: "relevant",
+          effect: {
+            kind: "workforce_task_delegate",
+            nickname: null,
+            name: null,
+            specification: JSON.stringify({ roleId: "researcher", task }),
+          },
+          executionProfile: null,
+        };
+      },
+    });
+
+    await expect(
+      resolver.resolve({
+        ...turn,
+        availableEffects: ["none", "repository_work", "workforce_task_delegate"],
+      }),
+    ).resolves.toMatchObject({
+      effect: {
+        kind: "workforce_task_delegate",
+        specification: JSON.stringify({ roleId: "researcher", task }),
+      },
+    });
+    expect(JSON.stringify(request)).toContain("a compact JSON object with exactly roleId and task");
+  });
+
   it("routes an explicit natural-language debate through the governed deliberation effect", async () => {
     const topic = "저장소 지식 충돌 전략을 독립적으로 검토하고 결론을 내려 주세요.";
     const resolver = createConversationIntentResolver({

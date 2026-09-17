@@ -399,6 +399,57 @@ describe("natural-language Discord conversation mode", () => {
       { effectRequesterAuthorized: true },
     );
 
+    const delegationAction = {
+      availableEffects: ["workforce_task_delegate" as const],
+      respond: vi.fn(async () => candidate("Task delegated.")),
+    };
+    const naturalDelegation = new NaturalLanguageDiscordConversationResponder({
+      applicationId,
+      respondingAgent: { agentId: `agt_${"a".repeat(24)}`, roleId: "product-owner" },
+      repositoryRoot: process.cwd(),
+      artifactStore,
+      history: { recent: async () => [] },
+      resolutionStore: { read: async () => null, record: async () => undefined },
+      managedTurnResolver: {
+        resolve: async () => ({
+          ...(await agentWorkResolver.resolve()),
+          effect: {
+            kind: "workforce_task_delegate",
+            argument: JSON.stringify({
+              roleId: "researcher",
+              task: "Review the conversation routing evidence.",
+            }),
+          },
+          executionProfile: null,
+        }),
+      },
+      surfaceEffects: [
+        {
+          effectId: "workforce_task_delegate",
+          description: "Delegate a task to a hired agent.",
+          argumentDescription: "JSON containing roleId and task.",
+          maximumArgumentCharacters: 1_024,
+        },
+      ],
+      participationPolicy,
+      readOnly: readOnly as ConversationResponder,
+      continuation: continuation as ConversationResponder,
+      platformAction: delegationAction,
+    });
+    const humanDelegation = await input("cevt_test0011");
+    await naturalDelegation.respond(humanDelegation);
+    expect(delegationAction.respond).toHaveBeenCalledWith(
+      expect.any(Object),
+      {
+        kind: "workforce_task_delegate",
+        specification: JSON.stringify({
+          roleId: "researcher",
+          task: "Review the conversation routing evidence.",
+        }),
+      },
+      { effectRequesterAuthorized: true },
+    );
+
     const deliberationAction = {
       availableEffects: ["deliberation_start" as const],
       respond: vi.fn(async () => candidate("Deliberation started.")),
