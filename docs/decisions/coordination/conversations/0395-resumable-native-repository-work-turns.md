@@ -20,7 +20,17 @@ In locally configured Discord deployments using natural routing, `repository_wor
 
 The Node supplies the repository root, model, reasoning effort, bounded timeout, abort signal, and an environment exposing the running Node executable to CLI launchers. Provider adapters own provider-specific arguments and result parsing. The conversation application depends only on the provider-neutral repository-work port. The default native-work timeout is thirty minutes. Instructions bind an earlier exact finalization-start time, require the first bounded checkpoint immediately after the first material edit, and reserve the remaining time for exact-state checkpoint refresh, required checks, and a truthful bounded result.
 
-Requests instruct the provider to inspect and act immediately, not promise or queue work. Ordinary requesters may not request commits, repository-remote creation, or pushes. A mapped human or an agent already admitted by the configured effect-request authority may explicitly request one of those exact effects. The provider must observe before execution, execute once, and independently verify afterward; it must not blindly retry an uncertain result.
+### Task-aware quality and provider allocation
+
+The single managed conversation turn classifies admitted repository work semantically as `routine`, `reasoning`, or `review`; it must not use keyword matching. Routine covers bounded mechanical work, ordinary implementation, and standard checks. Reasoning covers architecture, design, planning, ambiguous diagnosis, and consequential judgment. Review covers verification, audit, critique, acceptance, and independent assessment. Risk and quality win over cost.
+
+Optional `remoteCommands.providerHost.executionProfiles` maps every class to one preferred provider plus provider-specific model and reasoning-effort routes. `reasoning` and `review` routes require at least `high` effort; `routine` routes require `low` or `medium`. When both providers are installed, the reasoning and review profiles must prefer different providers so review is not silently concentrated in the same provider family. This policy distributes new work by semantic responsibility, not by adding raw token counts from unlike provider accounting systems.
+
+An already-open provider session remains pinned to its provider. A named agent's explicit provider binding also precedes the preferred provider. In either case, the selected profile must contain a quality-preserving route for that provider; otherwise execution fails closed instead of silently downgrading. A new unbound or `any` worker uses the profile preference. Static `models` and `reasoningEfforts` remain the backward-compatible route when no semantic profile exists.
+
+Completion evidence records the semantic profile, allocation reason (`session_continuity`, `bound_agent_provider`, `profile_preference`, or `configured_default`), requested model, and requested effort. These are routing evidence, not proof of the provider-observed model or of answer quality. A null profile denotes legacy or static routing. Provider-native usage remains separately attributable; no cross-provider normalized token total is invented.
+
+Requests instruct the provider to inspect and act immediately instead of promising or queuing work. Ordinary requesters may not request commits, repository-remote creation, or pushes. A mapped human, or an agent already admitted by the configured effect-request authority, may explicitly request one of those exact effects. The provider must observe before execution, execute once, and independently verify afterward rather than blindly retrying an uncertain result.
 
 An admitted turn enables provider-native external-effect mode: Codex retains workspace-write boundaries with network access enabled; Claude uses its non-interactive permission mode. Application instructions and scoped requester authority still prohibit deployment, broad deletion, unrelated publication, and secret disclosure.
 
@@ -60,7 +70,7 @@ Natural routing defaults to automation depth eight, allowing explicitly mentione
 
 ### Conversation ownership
 
-Exact participant and role mentions take priority. A unique explicit address establishes bounded in-memory conversation-and-thread stickiness: later unaddressed human turns remain with that interlocutor until another exact address changes ownership. Discord replies to a configured bot or webhook count as exact addresses.
+Exact participant and role mentions take priority. A unique human-authored explicit address establishes bounded durable conversation-and-thread focus: later unaddressed human turns remain with that interlocutor until another exact human address changes ownership. Hiring, assignment, provider output, and agent-authored messages cannot steal that focus. Discord replies to a configured bot or webhook count as exact addresses. Restart and co-resident hiring reconfiguration retain it; missing or idle participants fall back to one deterministic current owner.
 
 Without stickiness, unaddressed turns use a stable conversation winner rather than selection from the source-message hash. A uniquely configured CEO has higher unaddressed priority, making Tarin the stable general-channel default. A project channel with one PO remains owned by that PO.
 

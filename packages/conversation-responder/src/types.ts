@@ -92,6 +92,7 @@ export interface ManagedConversationTurnResolution {
   confidence: "high" | "medium" | "low";
   participation: "relevant" | "not_relevant";
   effect: { kind: "none" | "repository_work" | string; argument: string | null };
+  executionProfile: "routine" | "reasoning" | "review" | null;
   provider: {
     providerId: string;
     requestedModel: string | null;

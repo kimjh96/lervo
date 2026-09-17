@@ -420,11 +420,12 @@ describe("managed conversation responder", () => {
       },
     ];
     const managedTurnBody = JSON.stringify({
-      schemaVersion: 2,
+      schemaVersion: 3,
       intent: "answer",
       confidence: "high",
       participation: "relevant",
       effect: { kind: "none", argument: null },
+      executionProfile: null,
       deliveryRelation: "reply",
       reply: "I am the reviewer agent, and this turn is running through Codex.",
     });
@@ -533,6 +534,7 @@ describe("managed conversation responder", () => {
       intent: "answer",
       participation: "relevant",
       effect: { kind: "none", argument: null },
+      executionProfile: null,
       provider: {
         providerId: "codex",
         requestedModel: "gpt-review",

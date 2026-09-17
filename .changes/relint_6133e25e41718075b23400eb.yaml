@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6133e25e41718075b23400eb"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add durable multi-agent conversation focus, clean publication metadata, and task-aware provider quality profiles for Discord repository work."

@@ -570,6 +570,29 @@ describe("Node runtime configuration", () => {
       executables: { codex: "/opt/lervo/bin/codex" },
       models: { claude: "claude-sonnet-4-6" },
       reasoningEfforts: { claude: "high" },
+      executionProfiles: {
+        routine: {
+          preferredProvider: "claude",
+          providers: {
+            codex: { model: "gpt-5.6-terra", reasoningEffort: "medium" },
+            claude: { model: "claude-sonnet-4-6", reasoningEffort: "medium" },
+          },
+        },
+        reasoning: {
+          preferredProvider: "codex",
+          providers: {
+            codex: { model: "gpt-6-astra", reasoningEffort: "high" },
+            claude: { model: "claude-opus-4-6", reasoningEffort: "high" },
+          },
+        },
+        review: {
+          preferredProvider: "claude",
+          providers: {
+            codex: { model: "gpt-6-astra", reasoningEffort: "high" },
+            claude: { model: "claude-opus-4-6", reasoningEffort: "high" },
+          },
+        },
+      },
     };
     expect(parseNodeRuntimeConfig(hosted, root)).toMatchObject({
       remoteCommands: {
@@ -580,9 +603,32 @@ describe("Node runtime configuration", () => {
           executables: { codex: "/opt/lervo/bin/codex" },
           models: { claude: "claude-sonnet-4-6" },
           reasoningEfforts: { claude: "high" },
+          executionProfiles: {
+            routine: { preferredProvider: "claude" },
+            reasoning: { preferredProvider: "codex" },
+            review: { preferredProvider: "claude" },
+          },
         },
       },
     });
+    const downgradedReasoning = structuredClone(hosted);
+    (
+      (downgradedReasoning.remoteCommands as Record<string, unknown>).providerHost as Record<
+        string,
+        unknown
+      >
+    ).executionProfiles = {
+      ...((
+        (hosted.remoteCommands as Record<string, unknown>).providerHost as Record<string, unknown>
+      ).executionProfiles as Record<string, unknown>),
+      reasoning: {
+        preferredProvider: "codex",
+        providers: { codex: { model: "gpt-5.6-terra", reasoningEffort: "medium" } },
+      },
+    };
+    expect(() => parseNodeRuntimeConfig(downgradedReasoning, root)).toThrow(
+      expect.objectContaining({ code: "invalid_config" }),
+    );
     const unregistered = structuredClone(hosted);
     (unregistered.remoteCommands as Record<string, unknown>).providerHost = {
       providers: ["codex"],

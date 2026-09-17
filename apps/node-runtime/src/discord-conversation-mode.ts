@@ -157,6 +157,7 @@ export class NaturalLanguageDiscordConversationResponder
         confidence: "high",
         participation: "relevant",
         effect: { kind: "supervision_goal_request" },
+        executionProfile: null,
         provider: { providerId: "lervo_goal", model: null, adapterVersion: "1" },
         resultDigest: event.content.contentHash,
       };
@@ -186,6 +187,7 @@ export class NaturalLanguageDiscordConversationResponder
             confidence: "high",
             participation: "relevant",
             effect: { kind: "none" },
+            executionProfile: null,
             provider: { providerId: "lervo_control", model: null, adapterVersion: "2" },
             resultDigest: event.content.contentHash,
           },
@@ -227,6 +229,7 @@ export class NaturalLanguageDiscordConversationResponder
         confidence: managed.confidence,
         participation: managed.participation,
         effect,
+        executionProfile: managed.executionProfile,
         provider: managed.provider,
         resultDigest: managed.resultDigest,
       };
@@ -287,7 +290,16 @@ export class NaturalLanguageDiscordConversationResponder
 
   async respond(input: Parameters<ConversationResponder["respond"]>[0]) {
     const resolution = await this.resolution(input.event);
-    const request = { ...input, context: { priorTurns: resolution.priorTurns } };
+    const request = {
+      ...input,
+      context: {
+        priorTurns: resolution.priorTurns,
+        ...(resolution.resolution.executionProfile === null ||
+        resolution.resolution.executionProfile === undefined
+          ? {}
+          : { executionProfile: resolution.resolution.executionProfile }),
+      },
+    };
     if (resolution.mode === "control") return this.options.explicitControl!.respond(request);
     if (
       resolution.mode === "platform_action" &&

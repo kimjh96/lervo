@@ -8,6 +8,7 @@ import {
   optionalConfigInteger,
 } from "./config-values.js";
 import { NodeRuntimeError } from "./errors.js";
+import { providerExecutionProfiles } from "./repository-work-execution-profile-config.js";
 
 const NODE_PATTERN = /^node_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 const KEY_PATTERN = /^key_[A-Za-z0-9][A-Za-z0-9._-]{7,63}$/u;
@@ -261,7 +262,15 @@ export function parseRemoteCommandConfig(
     const host = configRecord(source.providerHost, "remoteCommands.providerHost");
     exactConfigKeys(
       host,
-      ["providers", "roles", "developerSkills", "executables", "models", "reasoningEfforts"],
+      [
+        "providers",
+        "roles",
+        "developerSkills",
+        "executables",
+        "models",
+        "reasoningEfforts",
+        "executionProfiles",
+      ],
       "remoteCommands.providerHost",
     );
     if (
@@ -308,6 +317,7 @@ export function parseRemoteCommandConfig(
     const executables = providerExecutables(host.executables, providers);
     const models = providerModels(host.models, providers);
     const reasoningEfforts = providerReasoningEfforts(host.reasoningEfforts, providers);
+    const executionProfiles = providerExecutionProfiles(host.executionProfiles, providers);
     providerHost = {
       providers,
       roles: [...host.roles] as string[],
@@ -315,6 +325,7 @@ export function parseRemoteCommandConfig(
       ...(executables === undefined ? {} : { executables }),
       ...(models === undefined ? {} : { models }),
       ...(reasoningEfforts === undefined ? {} : { reasoningEfforts }),
+      ...(executionProfiles === undefined ? {} : { executionProfiles }),
     };
   }
   return {

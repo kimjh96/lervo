@@ -91,6 +91,7 @@ export class ManagedConversationTurnResolver implements ManagedConversationTurnR
       confidence: body.confidence,
       participation: body.participation,
       effect: body.effect,
+      executionProfile: body.executionProfile,
       provider: {
         providerId: generated.modelIdentity.provider,
         requestedModel: generated.modelIdentity.requestedModel,

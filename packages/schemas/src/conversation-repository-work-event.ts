@@ -29,6 +29,18 @@ export const conversationRepositoryWorkCompletedEventPayloadSchema = {
     providerSessionDigest: sha256Schema,
     requestedModel: { anyOf: [requestedModelSchema, { type: "null" }] },
     requestedReasoningEffort: { anyOf: [reasoningEffortSchema, { type: "null" }] },
+    executionProfile: {
+      anyOf: [{ type: "string", enum: ["routine", "reasoning", "review"] }, { type: "null" }],
+    },
+    allocationReason: {
+      type: "string",
+      enum: [
+        "session_continuity",
+        "bound_agent_provider",
+        "profile_preference",
+        "configured_default",
+      ],
+    },
     requestContentHash: sha256Schema,
     resultContentHash: sha256Schema,
     resultByteCount: { type: "integer", minimum: 1, maximum: 16_777_216 },

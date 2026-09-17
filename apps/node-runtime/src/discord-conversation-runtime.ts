@@ -96,6 +96,7 @@ export async function openNodeDiscordConversationRuntime(
     roleId: agentParticipation.roleId,
     conversationIds: config.conversations.map((binding) => binding.conversationId),
     peers: peerAgents,
+    ...(options.turnFocusStore === undefined ? {} : { focusStore: options.turnFocusStore }),
   });
   const policy = createDiscordConversationParticipationPolicy({
     config,

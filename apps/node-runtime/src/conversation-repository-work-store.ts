@@ -237,6 +237,21 @@ export class SQLiteConversationRepositoryWorkStore {
         };
   }
 
+  sessionProvider(
+    conversationId: string,
+    threadId: string | null,
+    workerId: string,
+  ): RepositoryWorkProvider | null {
+    const row = this.database
+      .prepare(
+        `SELECT provider FROM conversation_repository_work_sessions
+         WHERE conversation_id = ? AND thread_id = ? AND worker_id = ?`,
+      )
+      .get(conversationId, threadId ?? "", workerId) as
+      { provider: RepositoryWorkProvider } | undefined;
+    return row?.provider ?? null;
+  }
+
   close(): void {
     this.database.close();
   }

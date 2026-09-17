@@ -14,15 +14,21 @@ Shared-guild peer author and mention aliases normalize to the peer's single work
 
 - Assigns exact participant mentions to their addressees.
 - Selects one participant per mentioned role.
-- Selects a stable participant for unaddressed turns: the uniquely configured CEO defaults in the general channel; a project channel with one PO remains with that PO.
+- Selects a stable participant for unaddressed turns. The uniquely configured CEO is the general-channel default; a project channel with one PO remains with that PO.
+- Retains a human's explicit interlocutor across hiring-driven runtime restart without turning the newly hired work assignee into the human's conversation target.
+- Releases missing or idle interlocutors and deterministically selects exactly one current owner.
 
 Non-owners record `turn_not_owned` without typing or provider work. Typing starts when an owner begins semantic resolution and continues through an active native work turn. Bounded recent context retains the speaker's participant, agent, and role identity. Aggregate readiness and failure remain fail-closed.
 
-Within a multi-bot Node, an exact reviewed manual participant binding overrides automatic co-resident peer binding for the same tenant and speaker identity. This lets a coordinating agent start a bounded automation chain without conflicting identity rows or extending the override to every peer.
+A successful hire publishes its bounded acknowledgement before requesting runtime reconfiguration. Hiring or assigning work does not itself change the human interlocutor. The owner of a subsequent work instruction starts visible typing and must end in one verified result, duplicate-suppression notice, or bounded terminal failure; silence is not a successful lifecycle state.
+
+Within a multi-bot Node, an exact reviewed manual participant binding overrides the automatic co-resident peer binding for the same tenant and speaker identity. This lets a coordinating agent start a bounded automation chain without conflicting identity rows or extending the override to every peer.
 
 ## Proactive signals, deliberation, and effects
 
 Installed Node deployments can map bounded canonical repository event types to proactive signals and run explicit cross-provider deliberation through the durable queue. Both preserve deterministic turn ownership, managed retrieval, provider budgets, repository verification, CAS, and event evidence. Discord is only the current transport.
+
+Named conversation speakers and formal-deliberation participants are separate identity planes. An ordinary Discord speaker is backed by a durable hired-agent binding (`agentId`, role version and hashes, participant, and bot or webhook deployment). The currently installed formal-deliberation participant list is policy-defined stakeholder roles; it does not by itself prove that a named hired agent occupied each role or make that agent visible in Discord. Binding those deliberation seats to durable agent identities and showing the same identities on Discord remains a separate installed acceptance requirement. User-facing copy must not present a policy role as if it were an observed named agent.
 
 The installed executive boundary executes hash-bound, allowlisted Discord text-channel and public-thread effects with durable replay and fail-closed uncertainty. The installed deliberation worker reconciles uncertain outcomes from canonical CLI evidence and publishes a bounded visible result through the managed conversation path.
 
@@ -43,10 +49,12 @@ Natural deliberation preserves the original human reply coordinate across synthe
 - A WSL single-writer execution default that keeps native conversation work available while conflict-safe Mac recovery replicas preserve exact uncommitted worktree and index bytes for explicit reconciliation. Strict fresh parity remains opt-in for controlled topologies, with bounded peer-command execution, configurable bridge concurrency, and terminal completion detection for an unloaded installed coordinator.
 - Post-turn enforcement of current workstream, canonicalization declaration, and repository knowledge lifecycle, plus bounded CAS-backed prior work results per durable worker.
 - Stable CEO ownership for unaddressed general-channel turns and early owner-only typing activity.
+- Bounded durable human-interlocutor focus shared by co-resident deployments and recovered after restart.
+- Semantic repository-work profiles that route routine work to balanced settings and design, judgment, and review to high-effort settings, while preserving provider-bound session identity and recording the allocation reason.
 
 ## Limits and remaining work
 
-Webhook replies remain canonical rather than native. Remaining work includes invoking agent-deployment preparation and runtime binding from natural CEO conversation, broader natural addressed groups, and the required real two-agent discussion.
+Webhook replies remain canonical rather than native. Remaining work includes invoking agent-deployment preparation and runtime binding from natural CEO conversation, broader natural addressed groups, the required real two-agent discussion, and binding formal-deliberation stakeholder seats to the same durable named agents visible on Discord.
 
 Each agent needing native Discord member presence, its own typing indicator, or native mentionability requires a separate installed bot application. Exact Lervo `@DisplayName` addressing remains available to webhook identities.
 

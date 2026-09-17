@@ -7,8 +7,12 @@ import type { ArtifactStore } from "@lervo/storage-contract";
 
 import { ConversationRepositoryWorkResponder } from "./conversation-repository-work-responder.js";
 import { SQLiteConversationRepositoryWorkStore } from "./conversation-repository-work-store.js";
-import type { NodeDiscordConversationConfig } from "./config-types.js";
-import type { NodeRuntimeConfig } from "./config-types.js";
+import type {
+  NodeDiscordConversationConfig,
+  NodeRepositoryWorkExecutionProfile,
+  NodeRepositoryWorkExecutionProfilePolicy,
+  NodeRuntimeConfig,
+} from "./config-types.js";
 import { discordWorkforceExecution } from "./discord-workforce-execution.js";
 
 export function openDiscordConversationRepositoryWork(input: {
@@ -25,6 +29,10 @@ export function openDiscordConversationRepositoryWork(input: {
   providerModels?: Partial<Record<"codex" | "claude", string>>;
   providerReasoningEfforts?: Partial<
     Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">
+  >;
+  providerExecutionProfiles?: Record<
+    NodeRepositoryWorkExecutionProfile,
+    NodeRepositoryWorkExecutionProfilePolicy
   >;
   authorizedEffectRequesters?: readonly {
     participantId: string;
@@ -65,6 +73,9 @@ export function openDiscordConversationRepositoryWork(input: {
       ...(input.providerReasoningEfforts === undefined
         ? {}
         : { reasoningEfforts: input.providerReasoningEfforts }),
+      ...(input.providerExecutionProfiles === undefined
+        ? {}
+        : { executionProfiles: input.providerExecutionProfiles }),
       ...(input.authorizedEffectRequesters === undefined
         ? {}
         : { authorizedEffectRequesters: input.authorizedEffectRequesters }),

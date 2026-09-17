@@ -240,6 +240,7 @@ describe("natural-language Discord conversation mode", () => {
       confidence: "high" as const,
       participation: "relevant" as const,
       effect: { kind: "none" as const, argument: null },
+      executionProfile: null,
       provider: {
         providerId: "codex",
         requestedModel: "gpt-requested",
@@ -283,6 +284,7 @@ describe("natural-language Discord conversation mode", () => {
         confidence: "high" as const,
         participation: "relevant" as const,
         effect: { kind: "repository_work" as const, argument: null },
+        executionProfile: "reasoning" as const,
         provider: {
           providerId: "codex",
           requestedModel: "gpt-requested",
@@ -342,6 +344,11 @@ describe("natural-language Discord conversation mode", () => {
     await expect(authorizedAgentMode.mode(agentWork.event)).resolves.toBe("work");
     await authorizedAgentMode.respond(agentWork);
     expect(continuation.respond).toHaveBeenCalledTimes(2);
+    expect(continuation.respond).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        context: expect.objectContaining({ executionProfile: "reasoning" }),
+      }),
+    );
 
     const threadAction = {
       availableEffects: [
@@ -369,6 +376,7 @@ describe("natural-language Discord conversation mode", () => {
         resolve: async () => ({
           ...(await agentWorkResolver.resolve()),
           effect: { kind: "discord_public_thread_create", argument: "Release review" },
+          executionProfile: null,
         }),
       },
       surfaceEffects: [

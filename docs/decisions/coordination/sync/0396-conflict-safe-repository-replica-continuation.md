@@ -40,6 +40,8 @@ Required parity is a strict deployment option, not the installed conversation de
 
 A changed native conversation turn must advance the same current workstream and leave repository knowledge migration, normalization, instruction bridges, and lint current. When strict replica readiness is explicitly configured, it must also reach replica parity. The Node verifies the applicable conditions after provider exit rather than delegating completion to a provider prompt or unmanaged terminal hook.
 
+Replica freshness and the managed completion event are host-owned post-exit gates. Provider instructions therefore require provider-observable checkpoint, knowledge, and verification work but prohibit telling the user that final completion is pending merely because the in-process provider cannot yet observe those later gates. The host publishes the result only after the gates pass; otherwise the ordinary terminal-failure path reports failure. This removes repeated “replica confirmation unavailable, final completion withheld” caveats that gave the user no actionable choice despite a later successful host reconciliation.
+
 After verification, the Node appends a version 2 `conversation.repository_work.completed` event for every accepted native work turn, binding:
 
 - Source conversation event and durable worker.

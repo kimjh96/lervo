@@ -16,7 +16,7 @@ State: `delivery required`.
 - Replay-safe webhook preparation with owner-only token storage.
 - Product-owner hire composition that provisions a distinct child webhook, atomically binds its runtime, and restarts only after acknowledgment of the hire reply.
 - Exact duplicate active-work coalescing and short-window completed-result reuse.
-- Reply-addressed and explicit-address sticky interlocutor continuity.
+- Reply-addressed and explicit-address durable interlocutor continuity across runtime restart and hiring-driven reconfiguration.
 - Native Discord thread and reply projection with authenticated parent-channel validation.
 - Changed native repository turns fail closed on workstream, knowledge, canonical managed completion-event evidence, and replica parity only when that strict deployment option is enabled; unmanaged terminal declarations are not fabricated.
 - Runtime knowledge queries retain syntactically incomplete source as exact file-level units, keeping local partial edits actionable after handoff.

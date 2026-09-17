@@ -11,9 +11,15 @@ import type { ManagedConversationRepositoryResources } from "./conversation-read
 import type { ConversationIntentResolver } from "./conversation-intent-resolver.js";
 import type { DiscordAgentParticipation } from "./discord-agent-participation.js";
 import type { DiscordPeerAgentBinding } from "./discord-conversation-composition.js";
-import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
+import type {
+  NodeDiscordConversationConfig,
+  NodeRepositoryWorkExecutionProfile,
+  NodeRepositoryWorkExecutionProfilePolicy,
+  NodeRuntimeConfig,
+} from "./config-types.js";
 import type { NodeSupervisionBinding } from "./supervision-authority.js";
 import type { NodeSupervisionStartupConfiguration } from "./supervision-startup-config.js";
+import type { ConversationTurnFocusStore } from "./conversation-turn-focus-store.js";
 
 export interface NodeDiscordConversationRuntime {
   readonly failed: Promise<void>;
@@ -56,10 +62,15 @@ export interface NodeDiscordConversationRuntimeOptions {
   providerReasoningEfforts?: Partial<
     Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">
   >;
+  providerExecutionProfiles?: Record<
+    NodeRepositoryWorkExecutionProfile,
+    NodeRepositoryWorkExecutionProfilePolicy
+  >;
   repositoryWorkExecutor?: RepositoryWorkTurnExecutor;
   managedRepositoryResources?: ManagedConversationRepositoryResources;
   agentParticipation?: DiscordAgentParticipation;
   peerAgents?: DiscordPeerAgentBinding[];
+  turnFocusStore?: ConversationTurnFocusStore;
   gatewayTransport?: DiscordGatewayTransport;
   repositoryArtifactStore?: ArtifactStore;
   repositoryEvents?: Pick<EventStore, "latest" | "list"> & { readonly path?: string };

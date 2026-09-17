@@ -217,6 +217,9 @@ describe("ConversationRepositoryWorkResponder", () => {
               ? expect.arrayContaining(["README.md"])
               : expect.not.arrayContaining(["README.md"]),
           }),
+          executionProfile: null,
+          allocationReason:
+            scenario === "legacy_delegate" ? "session_continuity" : "configured_default",
         }),
       );
       expect(first.content.contentHash).toBe(second.content.contentHash);

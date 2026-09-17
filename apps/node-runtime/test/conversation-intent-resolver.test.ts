@@ -42,6 +42,7 @@ describe("conversation intent provider contract", () => {
               name: null,
               specification: null,
             },
+            executionProfile: "reasoning",
           };
         },
       });
@@ -50,6 +51,7 @@ describe("conversation intent provider contract", () => {
         confidence: "high",
         participation: "relevant",
         effect: { kind: "repository_work" },
+        executionProfile: "reasoning",
         provider: {
           providerId: provider,
           model: `${provider}-model`,
@@ -73,6 +75,7 @@ describe("conversation intent provider contract", () => {
         confidence: "high",
         participation: "relevant",
         effect: { kind: "none", nickname: null, name: null, specification: null },
+        executionProfile: null,
       }),
     });
     await expect(resolver.resolve(turn)).rejects.toThrow("intent result is invalid");
@@ -91,6 +94,7 @@ describe("conversation intent provider contract", () => {
           confidence: "high",
           participation: "relevant",
           effect: { kind, nickname: null, name, specification: null },
+          executionProfile: null,
         }),
       });
       await expect(
@@ -113,6 +117,7 @@ describe("conversation intent provider contract", () => {
           name: null,
           specification: null,
         },
+        executionProfile: null,
       }),
     });
     await expect(
@@ -142,6 +147,7 @@ describe("conversation intent provider contract", () => {
           name: null,
           specification: topic,
         },
+        executionProfile: null,
       }),
     });
     await expect(

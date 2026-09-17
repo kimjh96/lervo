@@ -11,6 +11,11 @@ import type { ConversationResponder } from "@lervo/interaction";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import { SQLiteConversationRepositoryWorkStore } from "./conversation-repository-work-store.js";
+import { selectConversationRepositoryWorkRoute } from "./conversation-repository-work-routing.js";
+import type {
+  NodeRepositoryWorkExecutionProfile,
+  NodeRepositoryWorkExecutionProfilePolicy,
+} from "./config-types.js";
 import { compareRepositoryWork, observeRepositoryWork } from "./repository-work-observation.js";
 import { awaitRepositoryReplicaReadiness } from "./repository-replica-readiness.js";
 import {
@@ -90,6 +95,10 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       reasoningEfforts?: Partial<
         Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">
       >;
+      executionProfiles?: Record<
+        NodeRepositoryWorkExecutionProfile,
+        NodeRepositoryWorkExecutionProfilePolicy
+      >;
       defaultProvider: "codex" | "claude";
       timeoutMs: number;
       repositoryReplica?: {
@@ -140,10 +149,25 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
             input.event.target.threadId,
           )
         : null;
-    const provider =
-      delegate === null || delegate.provider === "any"
-        ? this.options.defaultProvider
-        : delegate.provider;
+    const workerId = delegate?.agentId ?? this.options.parentAgentId;
+    const route = selectConversationRepositoryWorkRoute({
+      sessionProvider: this.options.store.sessionProvider(
+        input.event.target.conversationId,
+        input.event.target.threadId,
+        workerId,
+      ),
+      boundProvider: delegate?.provider ?? null,
+      defaultProvider: this.options.defaultProvider,
+      executionProfile: input.context?.executionProfile ?? null,
+      ...(this.options.executionProfiles === undefined
+        ? {}
+        : { executionProfiles: this.options.executionProfiles }),
+      ...(this.options.models === undefined ? {} : { models: this.options.models }),
+      ...(this.options.reasoningEfforts === undefined
+        ? {}
+        : { reasoningEfforts: this.options.reasoningEfforts }),
+    });
+    const provider = route.provider;
     const executor = this.options.executors[provider];
     if (executor === undefined) {
       throw new Error(`The ${provider} repository work executor is not configured.`);
@@ -152,7 +176,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       eventId: input.event.eventId,
       conversationId: input.event.target.conversationId,
       threadId: input.event.target.threadId,
-      workerId: delegate?.agentId ?? this.options.parentAgentId,
+      workerId,
       provider,
       requestContentHash: input.event.content.contentHash,
       startedAt,
@@ -203,7 +227,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
               .recentCompletedResults({
                 conversationId: input.event.target.conversationId,
                 threadId: input.event.target.threadId,
-                workerId: delegate?.agentId ?? this.options.parentAgentId,
+                workerId,
                 limit: 8,
               })
               .map((reference) => readStoredResult(this.options.artifactStore, reference)),
@@ -213,12 +237,8 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
           finalizationStartsAt: finalizationStartsAt(this.options.timeoutMs),
         }),
         providerSessionId: turn.providerSessionId,
-        ...(this.options.models?.[provider] === undefined
-          ? {}
-          : { model: this.options.models[provider] }),
-        ...(this.options.reasoningEfforts?.[provider] === undefined
-          ? {}
-          : { reasoningEffort: this.options.reasoningEfforts[provider] }),
+        ...(route.model === null ? {} : { model: route.model }),
+        ...(route.reasoningEffort === null ? {} : { reasoningEffort: route.reasoningEffort }),
         ...(externalEffectsAuthorized ? { externalEffectsAuthorized: true } : {}),
         timeoutMs: this.options.timeoutMs,
         signal: this.abortController.signal,
@@ -263,10 +283,12 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
         baseline: completionBaseline,
         repositoryChange,
         sourceConversationEventId: input.event.eventId,
-        workerAgentId: delegate?.agentId ?? this.options.parentAgentId,
+        workerAgentId: workerId,
         providerSessionId: result.providerSessionId,
-        requestedModel: this.options.models?.[provider] ?? null,
-        requestedReasoningEffort: this.options.reasoningEfforts?.[provider] ?? null,
+        requestedModel: route.model,
+        requestedReasoningEffort: route.reasoningEffort,
+        executionProfile: route.executionProfile,
+        allocationReason: route.allocationReason,
         requestContentHash: input.event.content.contentHash,
         result: { contentHash: stored.contentHash, byteCount: stored.byteCount, summary: content },
         completedAt: result.completedAt,
@@ -276,7 +298,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
         eventId: input.event.eventId,
         conversationId: input.event.target.conversationId,
         threadId: input.event.target.threadId,
-        workerId: delegate?.agentId ?? this.options.parentAgentId,
+        workerId,
         provider,
         providerSessionId: result.providerSessionId,
         result: { contentHash: stored.contentHash, byteCount: stored.byteCount },

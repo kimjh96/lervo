@@ -9,3 +9,5 @@
 Add `agent` to `policy.respondTo` only for a bounded agent conversation or deliberation deployment. Automation depth and hourly response limits remain mandatory loop controls.
 
 The managed provider host accepts optional provider-keyed `models` and `reasoningEfforts` beside `executables`. These adapter inputs do not expand provider or role allowlists.
+
+Native repository work may additionally use the semantic `executionProfiles` policy documented under [provider execution and continuity](../native-work/provider-execution.md). Conversation answering still uses `routing.response`; profile selection applies only after the managed turn admits `repository_work`.

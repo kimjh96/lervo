@@ -3,7 +3,10 @@ import { resolve } from "node:path";
 
 import { FileSystemCas } from "@lervo/cas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
-import { managedContextReferenceComment } from "@lervo/adapter-contract";
+import {
+  managedContextReferenceComment,
+  managedContextReferenceToken,
+} from "@lervo/adapter-contract";
 import type { ExecutionStagesObservedEventPayload } from "@lervo/schemas";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -473,6 +476,42 @@ describe("managed provider run lifecycle", () => {
       data.store.close();
     },
   );
+
+  it("fails closed when a known context reference is not a standalone comment", async () => {
+    const data = await createManagedFixture();
+    try {
+      await writeFile(resolve(data.root, "task-evidence.md"), "Direct task evidence.\n");
+      const adapter = new FakeManagedAdapter("codex", {
+        resultContent: (envelope) => {
+          const document = envelope.documents.find((item) => item.referenceEligible)!;
+          return `Applied guidance <!-- ${managedContextReferenceToken(document)} --> inline.`;
+        },
+      });
+      const input = providerRunInput();
+      input.context.registry.documents.doc_task_evidence1 = {
+        path: "task-evidence.md",
+        kind: "canonical",
+        responsibleParty: { kind: "team", id: "team_fixture" },
+        connectedPaths: ["src/**"],
+        verifiedRevision: "fixture-v1",
+        verifiedAt: "2026-08-18T00:00:00Z",
+        reviewIntervalDays: 30,
+        ownership: { mode: "user" },
+      };
+
+      await expect(
+        coordinator(adapter, data.root, data.store).run({
+          ...input,
+          repositoryRoot: data.root,
+        }),
+      ).rejects.toMatchObject({ code: "contract_validation_failed" });
+      expect(data.store.list({ runId }).map((event) => event.type)).not.toContain(
+        "context.referenced",
+      );
+    } finally {
+      data.store.close();
+    }
+  });
 
   it("allows a read-only run to declare no write target paths", async () => {
     const data = await createManagedFixture();

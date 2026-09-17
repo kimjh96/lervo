@@ -141,6 +141,7 @@ export interface ConversationResponder {
     decision: ConversationParticipationDecision;
     context?: {
       priorTurns: ReadonlyArray<{ role: "user" | "assistant"; text: string }>;
+      executionProfile?: "routine" | "reasoning" | "review";
     };
   }): Promise<ConversationReplyCandidate>;
 }

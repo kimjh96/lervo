@@ -74,6 +74,9 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
   providerSessionId: string;
   requestedModel: string | null;
   requestedReasoningEffort: RepositoryWorkReasoningEffort | null;
+  executionProfile: "routine" | "reasoning" | "review" | null;
+  allocationReason:
+    "session_continuity" | "bound_agent_provider" | "profile_preference" | "configured_default";
   requestContentHash: string;
   result: { contentHash: string; byteCount: number; summary: string };
   completedAt: string;
@@ -134,6 +137,8 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
       providerSessionDigest: sha256(`${input.provider}\0${input.providerSessionId}`),
       requestedModel: input.requestedModel,
       requestedReasoningEffort: input.requestedReasoningEffort,
+      executionProfile: input.executionProfile,
+      allocationReason: input.allocationReason,
       requestContentHash: input.requestContentHash,
       resultContentHash: input.result.contentHash,
       resultByteCount: input.result.byteCount,

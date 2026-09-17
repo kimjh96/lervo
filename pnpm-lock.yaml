@@ -624,6 +624,9 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
+      mdast-util-from-markdown:
+        specifier: ^2.0.3
+        version: 2.0.3
 
   packages/adapter-discord:
     dependencies:

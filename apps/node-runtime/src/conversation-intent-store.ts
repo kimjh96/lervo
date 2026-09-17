@@ -142,6 +142,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
           intent TEXT NOT NULL CHECK (intent IN ('answer', 'continue_work', 'clarify')),
           confidence TEXT NOT NULL CHECK (confidence IN ('high', 'medium', 'low')),
           participation TEXT NOT NULL CHECK (participation IN ('relevant', 'not_relevant')),
+          execution_profile TEXT CHECK (execution_profile IN ('routine', 'reasoning', 'review')),
           effect_json TEXT,
           result_digest TEXT NOT NULL,
           resolved_at TEXT NOT NULL
@@ -187,6 +188,11 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
           "ALTER TABLE conversation_intent_resolutions ADD COLUMN model_unavailable_reason TEXT;",
         );
       }
+      if (!columns.has("execution_profile")) {
+        database.exec(
+          "ALTER TABLE conversation_intent_resolutions ADD COLUMN execution_profile TEXT CHECK (execution_profile IN ('routine', 'reasoning', 'review'));",
+        );
+      }
       await chmod(absolute, 0o600);
       return new SQLiteConversationIntentResolutionStore(database);
     } catch (error) {
@@ -200,6 +206,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
     resolution: ConversationIntentResolution;
     resolvedAt: string;
   }): Promise<void> {
+    const executionProfile = input.resolution.executionProfile ?? null;
     if (
       !Number.isFinite(Date.parse(input.resolvedAt)) ||
       !/^[a-z][a-z0-9._-]{0,63}$/u.test(input.resolution.provider.providerId) ||
@@ -208,6 +215,9 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       (input.resolution.provider.adapterVersion === "4" &&
         !validCurrentProvider(input.resolution.provider)) ||
       !validEffect(input.resolution.effect) ||
+      !["routine", "reasoning", "review", null].includes(executionProfile) ||
+      (input.resolution.executionProfile !== undefined &&
+        (input.resolution.effect.kind === "repository_work") !== (executionProfile !== null)) ||
       !/^sha256:[a-f0-9]{64}$/u.test(input.resolution.resultDigest)
     ) {
       throw new Error("The conversation intent resolution evidence is invalid.");
@@ -233,6 +243,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       input.resolution.intent,
       input.resolution.confidence,
       input.resolution.participation,
+      executionProfile,
       JSON.stringify(input.resolution.effect),
       input.resolution.resultDigest,
       input.resolvedAt,
@@ -242,8 +253,8 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
         `INSERT OR IGNORE INTO conversation_intent_resolutions
           (event_id, message_hash, provider_id, model, requested_model, observed_model_ids_json,
             answer_model_evidence, model_unavailable_reason, adapter_version, intent, confidence,
-            participation, effect_json, result_digest, resolved_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            participation, execution_profile, effect_json, result_digest, resolved_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(...values);
     const current = this.database
@@ -251,7 +262,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
         `SELECT event_id, message_hash, provider_id, model, requested_model,
           observed_model_ids_json, answer_model_evidence, model_unavailable_reason,
           adapter_version, intent, confidence,
-          participation, effect_json, result_digest, resolved_at
+          participation, execution_profile, effect_json, result_digest, resolved_at
           FROM conversation_intent_resolutions WHERE event_id = ?`,
       )
       .get(input.event.eventId) as Record<string, unknown> | undefined;
@@ -269,7 +280,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
         `SELECT event_id, message_hash, provider_id, model, requested_model,
           observed_model_ids_json, answer_model_evidence, model_unavailable_reason,
           adapter_version, intent, confidence,
-          participation, effect_json, result_digest, resolved_at
+          participation, execution_profile, effect_json, result_digest, resolved_at
           FROM conversation_intent_resolutions WHERE event_id = ?`,
       )
       .get(event.eventId) as Record<string, unknown> | undefined;
@@ -295,6 +306,9 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
       !["answer", "continue_work", "clarify"].includes(current.intent as string) ||
       !["high", "medium", "low"].includes(current.confidence as string) ||
       ![null, "relevant", "not_relevant"].includes(current.participation as string | null) ||
+      ![null, "routine", "reasoning", "review"].includes(
+        current.execution_profile as string | null,
+      ) ||
       !validEffect(effect) ||
       typeof current.result_digest !== "string" ||
       !/^sha256:[a-f0-9]{64}$/u.test(current.result_digest) ||
@@ -353,6 +367,7 @@ export class SQLiteConversationIntentResolutionStore implements ConversationInte
           ? "relevant"
           : (current.participation as ConversationIntentResolution["participation"]),
       effect,
+      executionProfile: current.execution_profile as "routine" | "reasoning" | "review" | null,
       provider,
       resultDigest: current.result_digest,
     };

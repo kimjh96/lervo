@@ -9,11 +9,12 @@ import type {
 import { ManagedConversationResponseError } from "./types.js";
 
 export interface ManagedTurnBody {
-  schemaVersion: 2;
+  schemaVersion: 3;
   intent: ManagedConversationTurnResolution["intent"];
   confidence: ManagedConversationTurnResolution["confidence"];
   participation: ManagedConversationTurnResolution["participation"];
   effect: { kind: string; argument: string | null };
+  executionProfile: "routine" | "reasoning" | "review" | null;
   deliveryRelation: "standalone" | "reply";
   reply: string | null;
 }
@@ -59,7 +60,7 @@ export function managedConversationTurnOutputSchema(
     type: "object",
     additionalProperties: false,
     properties: {
-      schemaVersion: { type: "integer", const: 2 },
+      schemaVersion: { type: "integer", const: 3 },
       intent: { type: "string", enum: ["answer", "continue_work", "clarify"] },
       confidence: { type: "string", enum: ["high", "medium", "low"] },
       participation: { type: "string", enum: ["relevant", "not_relevant"] },
@@ -77,6 +78,12 @@ export function managedConversationTurnOutputSchema(
         },
         required: ["kind", "argument"],
       },
+      executionProfile: {
+        type: ["string", "null"],
+        enum: ["routine", "reasoning", "review", null],
+        description:
+          "Required for repository_work: routine for bounded mechanical work, reasoning for design or consequential judgment, review for independent verification; otherwise null.",
+      },
       deliveryRelation: { type: "string", enum: ["standalone", "reply"] },
       reply: { type: ["string", "null"], maxLength: maximumResponseCharacters },
     },
@@ -86,6 +93,7 @@ export function managedConversationTurnOutputSchema(
       "confidence",
       "participation",
       "effect",
+      "executionProfile",
       "deliveryRelation",
       "reply",
     ],
@@ -104,12 +112,13 @@ export function parseManagedConversationTurn(
   const body = value as Record<string, unknown>;
   const effect = body.effect;
   if (
-    Object.keys(body).length !== 7 ||
-    body.schemaVersion !== 2 ||
+    Object.keys(body).length !== 8 ||
+    body.schemaVersion !== 3 ||
     !["answer", "continue_work", "clarify"].includes(body.intent as string) ||
     !["high", "medium", "low"].includes(body.confidence as string) ||
     !["relevant", "not_relevant"].includes(body.participation as string) ||
     !["standalone", "reply"].includes(body.deliveryRelation as string) ||
+    !["routine", "reasoning", "review", null].includes(body.executionProfile as string | null) ||
     (body.reply !== null && typeof body.reply !== "string") ||
     typeof effect !== "object" ||
     effect === null ||
@@ -131,6 +140,7 @@ export function parseManagedConversationTurn(
   const argument = effectBody.argument as string | null;
   const surfaceEffect = effects.find((candidate) => candidate.effectId === kind);
   const reply = body.reply as string | null;
+  const executionProfile = body.executionProfile as ManagedTurnBody["executionProfile"];
   const deliveryRelation = body.deliveryRelation as ManagedTurnBody["deliveryRelation"];
   if (
     (intent !== "continue_work" && kind !== "none") ||
@@ -148,6 +158,8 @@ export function parseManagedConversationTurn(
       ["answer", "clarify"].includes(intent) &&
       (reply === null || reply.trim().length === 0)) ||
     (intent === "continue_work" && reply !== null) ||
+    (kind === "repository_work" && executionProfile === null) ||
+    (kind !== "repository_work" && executionProfile !== null) ||
     (reply !== null && [...reply].length > maximumResponseCharacters)
   ) {
     throw new TypeError(
@@ -155,11 +167,12 @@ export function parseManagedConversationTurn(
     );
   }
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     intent,
     confidence: body.confidence as ManagedTurnBody["confidence"],
     participation,
     effect: { kind, argument: kind === "repository_work" ? null : argument },
+    executionProfile,
     deliveryRelation,
     reply,
   };
@@ -172,7 +185,7 @@ export function managedConversationTurnRequestDigest(input: {
 }): string {
   return managedTurnDigest(
     JSON.stringify({
-      contract: "lervo.managed-conversation-turn.v1",
+      contract: "lervo.managed-conversation-turn.v2",
       eventId: input.request.event.eventId,
       policyId: input.request.policy.policyId,
       policyVersion: input.policyVersion,
@@ -204,6 +217,7 @@ export function managedConversationTurnInstructions(input: {
       "Mentions are optional attention signals, never mandatory command syntax.",
       "For live repository, terminal, test, build, network, or external-system observation and for repository changes, use repository_work with argument null. Read-only native work may complete with zero changed paths. Use a bounded argument only for a listed surface action. Effects never grant authority.",
       "When supervision_goal_request is listed, use it only for a durable multi-step outcome that the installed owner should accept and govern across delegation, verification, or multiple turns. Use repository_work for one bounded task or inspection in the current conversation.",
+      "For repository_work, select exactly one executionProfile by meaning: routine for bounded mechanical edits, ordinary implementation, or standard checks; reasoning for architecture, design, planning, ambiguous diagnosis, or consequential judgment; review for verification, audit, critique, acceptance, or independent assessment. Quality and risk take precedence over cost. Use null for every other effect.",
       "For answer or clarify, write a direct conversational reply grounded only in injected evidence and prior turns. Do not expose internal run, workstream, revision, queue, or artifact IDs unless explicitly asked for diagnostics.",
       "Use deliveryRelation reply only when a native reply materially disambiguates which concurrent message is being answered or preserves an explicit reply relationship. Use standalone for ordinary sequential conversation; do not turn every response into a native reply.",
       "For continue_work, reply must be null because the execution path publishes progress and a verified result separately.",

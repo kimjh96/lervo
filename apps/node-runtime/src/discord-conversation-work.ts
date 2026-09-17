@@ -54,6 +54,9 @@ export function openDiscordConversationWork(input: {
     ...(options.providerReasoningEfforts === undefined
       ? {}
       : { providerReasoningEfforts: options.providerReasoningEfforts }),
+    ...(options.providerExecutionProfiles === undefined
+      ? {}
+      : { providerExecutionProfiles: options.providerExecutionProfiles }),
     ...(options.repositoryWorkExecutor === undefined
       ? {}
       : { executor: options.repositoryWorkExecutor }),

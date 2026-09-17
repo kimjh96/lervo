@@ -23,6 +23,7 @@ describe("conversation intent resolution evidence", () => {
         confidence: "high" as const,
         participation: "not_relevant" as const,
         effect: { kind: "none" as const },
+        executionProfile: null,
         provider: {
           providerId: "claude",
           requestedModel: "claude-sonnet",
@@ -51,6 +52,7 @@ describe("conversation intent resolution evidence", () => {
         kind: "workforce_agent_hire" as const,
         specification: '{"name":"Navi","roleId":"developer","provider":"any"}',
       },
+      executionProfile: null,
       resultDigest: `sha256:${"e".repeat(64)}`,
     };
     await store.record({ ...input, event: hireEvent, resolution: hireResolution });

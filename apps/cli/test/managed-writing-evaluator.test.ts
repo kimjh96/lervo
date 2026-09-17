@@ -2,7 +2,6 @@ import { access } from "node:fs/promises";
 
 import {
   createAdapterTurnResult,
-  managedContextReferenceComment,
   type AdapterTurnAccepted,
   type ProviderAdapter,
   type ProviderManagedWriteBridge,
@@ -186,7 +185,7 @@ class EvaluatorAdapter implements ProviderAdapter {
       turn: this.turn,
       content: JSON.stringify({
         checks: [{ checkId: "natural_en_prose", status: "passed", violationCount: 0 }],
-      }).concat("\n", managedContextReferenceComment(this.envelope.documents[0]!)),
+      }),
       producedAt: timestamp,
     });
   }

@@ -25,6 +25,7 @@ async function closeEveryRuntimeAsync(runtimes: NodeDiscordConversationRuntime[]
 
 export function groupDiscordConversationRuntimes(
   runtimes: NodeDiscordConversationRuntime[],
+  closeGroup?: () => void | Promise<void>,
 ): NodeDiscordConversationRuntime {
   if (runtimes.length === 0) throw new Error("A Discord runtime group cannot be empty.");
   return {
@@ -63,7 +64,14 @@ export function groupDiscordConversationRuntimes(
       closeEveryRuntime(runtimes, (runtime) => runtime.stopIngress());
     },
     async close() {
-      await closeEveryRuntimeAsync(runtimes);
+      const results = await Promise.allSettled([
+        closeEveryRuntimeAsync(runtimes),
+        Promise.resolve().then(() => closeGroup?.()),
+      ]);
+      const errors = results.flatMap((result) =>
+        result.status === "rejected" ? [result.reason] : [],
+      );
+      if (errors.length > 0) throw new AggregateError(errors);
     },
   };
 }

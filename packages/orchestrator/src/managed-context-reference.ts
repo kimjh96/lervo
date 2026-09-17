@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 
 import {
-  managedContextPublicationContent,
+  ManagedContextReferenceError,
   managedContextReferenceToken,
-  referencedManagedContextDocuments,
+  projectManagedContextReferences,
 } from "@lervo/adapter-contract";
 import type { InjectedContext } from "@lervo/context-delivery";
 import {
@@ -32,10 +32,23 @@ export function managedResultReferenceSpecs(input: {
   injected: InjectedContext;
   createEvidenceReceiptId?: () => string;
 }): { specs: ManagedEventSpec[]; evidence: ContextEvidence[]; publicationContent: string } {
-  const referenced = referencedManagedContextDocuments(
-    input.result.content,
-    input.injected.envelope.documents,
-  );
+  let projection;
+  try {
+    projection = projectManagedContextReferences(
+      input.result.content,
+      input.injected.envelope.documents,
+    );
+  } catch (error) {
+    if (error instanceof ManagedContextReferenceError) {
+      throw new ManagedProviderRunError(
+        "contract_validation_failed",
+        "The managed output citation metadata is not publishable.",
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+  const referenced = projection.referencedDocuments;
   const createReceiptId = input.createEvidenceReceiptId ?? defaultReceiptId;
   const evidence: ReferencedEvidence[] = referenced.map((document) => {
     const injectedEvidence = input.injected.e3Evidence.find(
@@ -134,9 +147,6 @@ export function managedResultReferenceSpecs(input: {
       })),
     ],
     evidence,
-    publicationContent: managedContextPublicationContent(
-      input.result.content,
-      input.injected.envelope.documents,
-    ),
+    publicationContent: projection.publicationContent,
   };
 }

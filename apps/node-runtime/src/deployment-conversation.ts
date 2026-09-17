@@ -16,6 +16,7 @@ import { NodeRuntimeError } from "./errors.js";
 import type { NodeDiscordConversationOpenPorts, NodeRuntimeOpenPorts } from "./open-ports.js";
 import { createManagedConversationRepositoryResources } from "./conversation-read-responder.js";
 import { createCoResidentDiscordPeerAgents } from "./discord-conversation-co-resident-peers.js";
+import { SQLiteConversationTurnFocusStore } from "./conversation-turn-focus-store.js";
 
 function boundedErrorCoordinates(error: unknown): string {
   const coordinates: Array<{ name: string; code: string | null }> = [];
@@ -106,7 +107,11 @@ export async function openDeploymentConversation(input: {
   const providerExecutables = input.config.remoteCommands?.providerHost?.executables;
   const providerModels = input.config.remoteCommands?.providerHost?.models;
   const providerReasoningEfforts = input.config.remoteCommands?.providerHost?.reasoningEfforts;
+  const providerExecutionProfiles = input.config.remoteCommands?.providerHost?.executionProfiles;
   const managedRepositoryResources = createManagedConversationRepositoryResources();
+  const turnFocusStore = await SQLiteConversationTurnFocusStore.open(
+    resolve(input.dataDirectory, "conversation", "turn-focus.sqlite"),
+  );
   const ready = new Set<string>();
   let readyPublished = false;
   let failureObserved = false;
@@ -149,8 +154,10 @@ export async function openDeploymentConversation(input: {
           ...(providerExecutables === undefined ? {} : { providerExecutables }),
           ...(providerModels === undefined ? {} : { providerModels }),
           ...(providerReasoningEfforts === undefined ? {} : { providerReasoningEfforts }),
+          ...(providerExecutionProfiles === undefined ? {} : { providerExecutionProfiles }),
           agentParticipation: participations[index]!,
           peerAgents,
+          turnFocusStore,
           ...integrationPorts,
           onReady: async () => {
             ready.add(conversation.integrationId);
@@ -175,7 +182,7 @@ export async function openDeploymentConversation(input: {
         }),
       );
     }
-    return groupDiscordConversationRuntimes(runtimes);
+    return groupDiscordConversationRuntimes(runtimes, () => turnFocusStore.close());
   } catch (error) {
     if (runtimes.length > 0) {
       try {
@@ -188,6 +195,7 @@ export async function openDeploymentConversation(input: {
         );
       }
     }
+    turnFocusStore.close();
     throw error;
   }
 }

@@ -19,7 +19,7 @@ describe("managed conversation turn output contract", () => {
     expect(schema).toMatchObject({
       type: "object",
       properties: {
-        schemaVersion: { type: "integer", const: 2 },
+        schemaVersion: { type: "integer", const: 3 },
       },
     });
     expect(findUntypedProperties(schema)).toEqual([]);
@@ -29,18 +29,22 @@ describe("managed conversation turn output contract", () => {
     expect(
       parseManagedConversationTurn(
         {
-          schemaVersion: 2,
+          schemaVersion: 3,
           intent: "continue_work",
           confidence: "high",
           participation: "relevant",
           effect: { kind: "repository_work", argument: "redundant copy of the request" },
+          executionProfile: "routine",
           deliveryRelation: "standalone",
           reply: null,
         },
         [],
         2_000,
       ),
-    ).toMatchObject({ effect: { kind: "repository_work", argument: null } });
+    ).toMatchObject({
+      effect: { kind: "repository_work", argument: null },
+      executionProfile: "routine",
+    });
   });
 
   it("routes live read-only inspection through native repository work", () => {
@@ -76,11 +80,12 @@ describe("managed conversation turn output contract", () => {
     expect(
       parseManagedConversationTurn(
         {
-          schemaVersion: 2,
+          schemaVersion: 3,
           intent: "continue_work",
           confidence: "high",
           participation: "relevant",
           effect: { kind: "supervision_goal_request", argument: null },
+          executionProfile: null,
           deliveryRelation: "standalone",
           reply: null,
         },

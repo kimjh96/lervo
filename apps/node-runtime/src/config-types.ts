@@ -1,4 +1,15 @@
 import type { NodeSupervisionStartupConfiguration } from "./supervision-startup-config.js";
+
+export type NodeRepositoryWorkExecutionProfile = "routine" | "reasoning" | "review";
+export type NodeRepositoryWorkReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max";
+export interface NodeRepositoryWorkExecutionRoute {
+  model?: string;
+  reasoningEffort: NodeRepositoryWorkReasoningEffort;
+}
+export interface NodeRepositoryWorkExecutionProfilePolicy {
+  preferredProvider: "codex" | "claude";
+  providers: Partial<Record<"codex" | "claude", NodeRepositoryWorkExecutionRoute>>;
+}
 export interface NodeRuntimeConfig {
   schemaVersion: 1;
   repositoryRoot: string;
@@ -52,8 +63,10 @@ export interface NodeRuntimeConfig {
       developerSkills: string[];
       executables?: Partial<Record<"codex" | "claude", string>>;
       models?: Partial<Record<"codex" | "claude", string>>;
-      reasoningEfforts?: Partial<
-        Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">
+      reasoningEfforts?: Partial<Record<"codex" | "claude", NodeRepositoryWorkReasoningEffort>>;
+      executionProfiles?: Record<
+        NodeRepositoryWorkExecutionProfile,
+        NodeRepositoryWorkExecutionProfilePolicy
       >;
     };
     idlePollIntervalMs?: number;

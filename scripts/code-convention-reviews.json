@@ -60,7 +60,7 @@
     },
     {
       "path": "apps/node-runtime/src/discord-conversation-runtime.ts",
-      "contentHash": "sha256:aa21a20a20ae00a85d16430074dd586a85d081673b6d88a90a4ae2ac7849186f",
+      "contentHash": "sha256:c3fdc430ca020e2310d056334459cc05b276961a512048e88a3b9a03ce264793",
       "responsibility": "One Discord conversation runtime composition and lifecycle",
       "rationale": "The entrypoint wires one configured Discord identity and its conversation, publication, result, and background ports. Delivery policy, publication-contract selection, deliberation event projection, storage mechanics, native transport, semantic selection, pending-goal retention, request binding, and supervision decisions live in linked modules; result and replay accessors plus the deferred application handle are composition hand-offs whose behavior remains in dedicated modules.",
       "disposition": "cohesive"
@@ -123,7 +123,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:b5af0f4ea84652880c333e72a43d4b23b7840503a27b1de9d9f3729c85d4801e",
+      "contentHash": "sha256:333f89106a6fc54da554f50ebe8b5c304dace961b3e18027031ba63b7b7b885c",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The module owns one event payload privacy boundary with a declarative allowlist catalog and exact coordinate validation. Deliberation events permit the validated provider-neutral policy, bounded role presentation name, and numeric execution-budget token coordinates; topics, prompts, filesystem roots, credentials, reasoning, provider output, and native platform identifiers remain excluded.",
       "disposition": "cohesive"

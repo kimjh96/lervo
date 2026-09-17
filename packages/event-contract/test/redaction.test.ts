@@ -10,6 +10,8 @@ describe("event payload privacy boundary", () => {
       providerSessionDigest: `sha256:${"c".repeat(64)}`,
       requestedModel: "gpt-6-astra",
       requestedReasoningEffort: "medium",
+      executionProfile: "routine",
+      allocationReason: "profile_preference",
       requestContentHash: `sha256:${"d".repeat(64)}`,
       resultContentHash: `sha256:${"e".repeat(64)}`,
       resultByteCount: 42,

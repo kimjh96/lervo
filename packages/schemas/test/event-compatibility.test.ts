@@ -107,6 +107,8 @@ describe("reader-first event envelope compatibility", () => {
       providerSessionDigest: hash,
       requestedModel: "gpt-6-astra",
       requestedReasoningEffort: "medium",
+      executionProfile: "routine",
+      allocationReason: "profile_preference",
       requestContentHash: hash,
       resultContentHash: hash,
       resultByteCount: 42,
@@ -128,6 +130,8 @@ describe("reader-first event envelope compatibility", () => {
     const legacyPayload = { ...payload } as Partial<typeof payload>;
     delete legacyPayload.requestedModel;
     delete legacyPayload.requestedReasoningEffort;
+    delete legacyPayload.executionProfile;
+    delete legacyPayload.allocationReason;
     expect(
       validateSchema("conversationRepositoryWorkCompletedEventPayload", legacyPayload).valid,
     ).toBe(true);

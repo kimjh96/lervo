@@ -244,7 +244,7 @@ export async function openManagedConversationReadResponder(input: {
         writingPolicy: writingContract,
         responseProvider: input.config.routing.response,
         surfaceEffects: input.surfaceEffects,
-        conversationTurnContract: 2,
+        conversationTurnContract: 3,
         agentContextContract: 2,
       }),
     );

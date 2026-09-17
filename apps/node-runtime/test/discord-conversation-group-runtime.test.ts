@@ -45,4 +45,16 @@ describe("Discord conversation runtime group", () => {
     expect(first).toHaveBeenCalledOnce();
     expect(second).toHaveBeenCalledOnce();
   });
+
+  it("closes shared group state after every runtime even when one runtime fails", async () => {
+    const first = vi.fn(() => {
+      throw new Error("runtime close failed");
+    });
+    const shared = vi.fn(() => undefined);
+    const group = groupDiscordConversationRuntimes([runtime("ignored", first)], shared);
+
+    await expect(group.close()).rejects.toThrow(AggregateError);
+    expect(first).toHaveBeenCalledOnce();
+    expect(shared).toHaveBeenCalledOnce();
+  });
 });

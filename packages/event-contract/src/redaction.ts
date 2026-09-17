@@ -39,6 +39,8 @@ export const eventPayloadAllowlists = {
     "providerSessionDigest",
     "requestedModel",
     "requestedReasoningEffort",
+    "executionProfile",
+    "allocationReason",
     "requestContentHash",
     "resultContentHash",
     "resultByteCount",
