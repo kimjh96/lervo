@@ -56,6 +56,7 @@ export async function runAssignedDeliberationWorkerCommand(
       topic?: unknown;
       responseLanguage?: unknown;
       executionMaximumElapsedMs?: unknown;
+      origin?: unknown;
     };
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
     recoveryCoordinates = { repositoryRoot, deliberationId, expectedProjectId };
@@ -88,6 +89,24 @@ export async function runAssignedDeliberationWorkerCommand(
       (Number.isSafeInteger(payload.executionMaximumElapsedMs) &&
         Number(payload.executionMaximumElapsedMs) >= 1_000 &&
         Number(payload.executionMaximumElapsedMs) <= 3_600_000);
+    const origin = payload.origin as
+      | {
+          sourceEventId?: unknown;
+          conversationId?: unknown;
+          threadId?: unknown;
+          requesterParticipantId?: unknown;
+          originBindingDigest?: unknown;
+        }
+      | undefined;
+    const originIsValid =
+      origin === undefined ||
+      (origin !== null &&
+        typeof origin === "object" &&
+        typeof origin.sourceEventId === "string" &&
+        typeof origin.conversationId === "string" &&
+        (origin.threadId === null || typeof origin.threadId === "string") &&
+        typeof origin.requesterParticipantId === "string" &&
+        typeof origin.originBindingDigest === "string");
     const request =
       payload.operation === "resume" && executionDeadlineIsValid
         ? ({
@@ -106,6 +125,7 @@ export async function runAssignedDeliberationWorkerCommand(
             typeof payload.policyId === "string" &&
             typeof payload.topic === "string" &&
             executionDeadlineIsValid &&
+            originIsValid &&
             (payload.responseLanguage === undefined ||
               ["en", "ko"].includes(String(payload.responseLanguage)))
           ? ({
@@ -132,6 +152,17 @@ export async function runAssignedDeliberationWorkerCommand(
       deliberationId,
       expectedProjectId,
       request,
+      ...(payload.operation === "start" && origin !== undefined
+        ? {
+            origin: {
+              sourceEventId: origin.sourceEventId as string,
+              conversationId: origin.conversationId as string,
+              threadId: origin.threadId as string | null,
+              requesterParticipantId: origin.requesterParticipantId as string,
+              originBindingDigest: origin.originBindingDigest as string,
+            },
+          }
+        : {}),
     });
     io.stdout(
       `${JSON.stringify({

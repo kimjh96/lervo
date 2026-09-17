@@ -31,6 +31,30 @@ import {
 afterEach(cleanupManagedDeliberationFixtures);
 
 describe("managed CLI deliberation convergence", () => {
+  it("rejects an assigned origin whose immutable binding digest does not match", async () => {
+    const executor = createAssignedManagedDeliberationExecutor();
+    await expect(
+      executor({
+        deliberationId: "dlb_queue0001",
+        expectedProjectId: "prj_cli_deliberation",
+        origin: {
+          sourceEventId: `cve_${"a".repeat(64)}`,
+          conversationId: "cnv_cli_deliberation",
+          threadId: null,
+          requesterParticipantId: "ptc_cli_requester",
+          originBindingDigest: `sha256:${"d".repeat(64)}`,
+        },
+        request: {
+          repositoryRoot: "/not-opened",
+          proposerProvider: "codex",
+          reviewerProvider: "claude",
+          verificationSuiteIds: ["project.default"],
+          topic: "Reject an origin with a mismatched digest.",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "deliberation_request_invalid" });
+  });
+
   it("accepts only an exact, complete semantic writing evaluation", () => {
     const request = {
       writingPolicyId: defaultEnglishWritingContract.writingPolicyId,

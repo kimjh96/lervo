@@ -22,6 +22,15 @@ export function workforceProviderPolicyHash(provider: "codex" | "claude" | "any"
   return organizationIdentityHash({ schemaVersion: 1, provider });
 }
 
+export function workforceProviderForPolicyHash(
+  providerPolicyHash: string,
+): "codex" | "claude" | "any" | null {
+  for (const provider of ["codex", "claude", "any"] as const) {
+    if (workforceProviderPolicyHash(provider) === providerPolicyHash) return provider;
+  }
+  return null;
+}
+
 export function externalAgentPrincipalHash(platform: string, externalPrincipalId: string): string {
   return organizationIdentityHash({ schemaVersion: 1, platform, externalPrincipalId });
 }

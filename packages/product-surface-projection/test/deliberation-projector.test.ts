@@ -184,6 +184,32 @@ describe("deliberation product projector", () => {
     });
   });
 
+  it("accepts the workforce provider policy hash for a compatible hired agent", () => {
+    const providerPolicyHash = digest({ schemaVersion: 1, provider: "codex" });
+    const report = projectDeliberationView({
+      ...input(),
+      participantBindings: [
+        {
+          roleId: "architect",
+          provider: "codex",
+          providerPolicyHash,
+          participantId: "ptc_bound_architect",
+          agentId: `agt_${"1".repeat(24)}`,
+          roleVersion: "2.0.0",
+        },
+      ],
+    });
+
+    expect(report.projectionStatus).toBe("complete");
+    expect(report.participants).toContainEqual(
+      expect.objectContaining({
+        roleId: "architect",
+        disposition: "hired_agent",
+        providerPolicyHash,
+      }),
+    );
+  });
+
   it("returns an invalid projection for a contradictory artifact history", () => {
     const invalidArtifact = {
       deliberationArtifactId: `dla_${"1".repeat(16)}`,

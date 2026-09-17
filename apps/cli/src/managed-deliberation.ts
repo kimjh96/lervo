@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { isAbsolute } from "node:path";
 
 import { koreanConversationWritingContract, writingContractForLanguage } from "@lervo/core";
+import { calculateConversationDeliberationOriginBindingDigest } from "@lervo/conversation-control";
 import { rootWorkId } from "@lervo/execution-contract";
 import { deliberationPolicyHash } from "@lervo/deliberation";
 import {
@@ -24,6 +25,10 @@ import {
 } from "./deliberation-checkpoint.js";
 import { createFailedOutcome } from "./deliberation-contract.js";
 import { executeDeliberationRounds } from "./deliberation-rounds.js";
+import {
+  bindAssignedDeliberationParticipants,
+  releaseAssignedDeliberationParticipants,
+} from "./deliberation-participant-binding.js";
 import { loadDeliberationWorkflowSource } from "./deliberation-policy-loader.js";
 import { acquireDeliberationLease, releaseDeliberationLease } from "./deliberation-lease.js";
 import { resumeManagedDeliberationWithStorage } from "./managed-deliberation-resume.js";
@@ -123,6 +128,13 @@ export interface AssignedManagedDeliberationRequest {
   deliberationId: string;
   expectedProjectId: string;
   request: ManagedDeliberationRequest;
+  origin?: {
+    sourceEventId: string;
+    conversationId: string;
+    threadId: string | null;
+    requesterParticipantId: string;
+    originBindingDigest: string;
+  };
 }
 
 export type ExecuteAssignedManagedDeliberation = (
@@ -318,6 +330,28 @@ export function createAssignedManagedDeliberationExecutor(
         "The assigned deliberation ID differs from the deliberation ID to resume.",
       );
     }
+    if (
+      assignment.origin !== undefined &&
+      ("resumeDeliberationId" in assignment.request ||
+        !/^cve_[a-f0-9]{64}$/u.test(assignment.origin.sourceEventId) ||
+        !/^cnv_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(assignment.origin.conversationId) ||
+        (assignment.origin.threadId !== null &&
+          !/^thd_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(assignment.origin.threadId)) ||
+        !/^ptc_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(assignment.origin.requesterParticipantId) ||
+        !/^sha256:[a-f0-9]{64}$/u.test(assignment.origin.originBindingDigest) ||
+        calculateConversationDeliberationOriginBindingDigest({
+          projectId: assignment.expectedProjectId,
+          sourceEventId: assignment.origin.sourceEventId,
+          conversationId: assignment.origin.conversationId,
+          threadId: assignment.origin.threadId,
+          requesterParticipantId: assignment.origin.requesterParticipantId,
+        }) !== assignment.origin.originBindingDigest)
+    ) {
+      throw new ManagedDeliberationError(
+        "deliberation_request_invalid",
+        "The assigned deliberation origin is invalid.",
+      );
+    }
     return executeManagedDeliberationLifecycle({
       request: assignment.request,
       dependencies,
@@ -325,7 +359,14 @@ export function createAssignedManagedDeliberationExecutor(
         ? {}
         : { assignedDeliberationId: assignment.deliberationId }),
       expectedProjectId: assignment.expectedProjectId,
-      executeWithStorage,
+      executeWithStorage: (request, storage, activeDependencies, assignedDeliberationId) =>
+        executeWithStorage(
+          request,
+          storage,
+          activeDependencies,
+          assignedDeliberationId,
+          assignment.origin?.conversationId,
+        ),
     });
   };
 }
@@ -335,6 +376,7 @@ async function executeWithStorage(
   storage: ProjectStorage,
   dependencies: ManagedDeliberationDependencies,
   assignedDeliberationId?: string,
+  originConversationId?: string,
 ): Promise<ManagedDeliberationOutcome> {
   if ("resumeDeliberationId" in request) {
     if (assignedDeliberationId !== undefined) {
@@ -351,10 +393,10 @@ async function executeWithStorage(
     dependencies.writingContract,
     request.responseLanguage,
   );
-  const plan = await resolveExecutionPlan(request, storage, writingContract);
-  const policy = plan.policy;
-  const recipientRoleIds = plan.participants.map((participant) => participant.role.roleId);
+  const policyPlan = await resolveExecutionPlan(request, storage, writingContract);
   const deliberationId = assignedDeliberationId ?? dependencies.createId("dlb");
+  const policy = policyPlan.policy;
+  const recipientRoleIds = policyPlan.participants.map((participant) => participant.role.roleId);
   const registry = await loadDocumentRegistry(storage.paths.repositoryRoot);
   const workspace = await DeliberationWorkspace.create({
     repositoryRoot: storage.paths.repositoryRoot,
@@ -364,6 +406,13 @@ async function executeWithStorage(
     createdAt: dependencies.now().toISOString(),
     participantRoleIds: recipientRoleIds,
     writingContract,
+  });
+  const plan = bindAssignedDeliberationParticipants({
+    storage,
+    deliberationId,
+    plan: policyPlan,
+    ...(originConversationId === undefined ? {} : { conversationId: originConversationId }),
+    boundAt: executionStartedAt,
   });
   const runtimeCoordinates: DeliberationRuntimeCoordinates = {
     projectId: storage.manifest.projectId,
@@ -434,6 +483,11 @@ async function executeWithStorage(
     });
     if (rounds.status === "no_consensus") {
       completed = true;
+      releaseAssignedDeliberationParticipants({
+        storage,
+        outcome: rounds.result.outcome,
+        releasedAt: dependencies.now().toISOString(),
+      });
       return rounds.result;
     }
     leaseOwnerId = dependencies.createId("dlw");
@@ -481,6 +535,11 @@ async function executeWithStorage(
       now: dependencies.now,
     });
     completed = true;
+    releaseAssignedDeliberationParticipants({
+      storage,
+      outcome: result.outcome,
+      releasedAt: dependencies.now().toISOString(),
+    });
     await releaseDeliberationLease({
       stateRoot: storage.paths.state,
       deliberationId,
@@ -491,16 +550,20 @@ async function executeWithStorage(
   } catch (error) {
     if (!completed && !(error instanceof DeliberationProcessInterruptedError)) {
       try {
-        runtime.complete(
-          createFailedOutcome({
-            deliberationId,
-            policy,
-            history: runtime.history(),
-            completedAt: dependencies.now().toISOString(),
-            unresolvedBlockingObjectionIds: openBlockingObjections,
-            code: errorCode(error),
-          }),
-        );
+        const failedOutcome = createFailedOutcome({
+          deliberationId,
+          policy,
+          history: runtime.history(),
+          completedAt: dependencies.now().toISOString(),
+          unresolvedBlockingObjectionIds: openBlockingObjections,
+          code: errorCode(error),
+        });
+        runtime.complete(failedOutcome);
+        releaseAssignedDeliberationParticipants({
+          storage,
+          outcome: failedOutcome,
+          releasedAt: dependencies.now().toISOString(),
+        });
       } catch {
         // Preserve the original failure instead of presenting incomplete history as completed.
       }

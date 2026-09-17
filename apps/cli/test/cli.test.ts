@@ -1907,6 +1907,13 @@ describe("lervo deliberate CLI", () => {
             operation: "start",
             policyId: "deliberation_product-review",
             topic: "Review the deployment boundary.",
+            origin: {
+              sourceEventId: `cve_${"a".repeat(64)}`,
+              conversationId: "cnv_control01",
+              threadId: null,
+              requesterParticipantId: "ptc_control01",
+              originBindingDigest: `sha256:${"d".repeat(64)}`,
+            },
           }),
       },
       {
@@ -1924,6 +1931,13 @@ describe("lervo deliberate CLI", () => {
     expect(assignment).toEqual({
       deliberationId: "dlb_queue0001",
       expectedProjectId: "prj_control01",
+      origin: {
+        sourceEventId: `cve_${"a".repeat(64)}`,
+        conversationId: "cnv_control01",
+        threadId: null,
+        requesterParticipantId: "ptc_control01",
+        originBindingDigest: `sha256:${"d".repeat(64)}`,
+      },
       request: {
         repositoryRoot: "/work/repository",
         policyId: "deliberation_product-review",

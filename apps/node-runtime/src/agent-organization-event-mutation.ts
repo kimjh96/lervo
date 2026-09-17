@@ -39,11 +39,13 @@ export function appendOrganizationEvent(
     occurredAt:
       typeof payload.boundAt === "string"
         ? payload.boundAt
-        : typeof payload.changedAt === "string"
-          ? payload.changedAt
-          : typeof payload.retiredAt === "string"
-            ? payload.retiredAt
-            : new Date().toISOString(),
+        : typeof payload.releasedAt === "string"
+          ? payload.releasedAt
+          : typeof payload.changedAt === "string"
+            ? payload.changedAt
+            : typeof payload.retiredAt === "string"
+              ? payload.retiredAt
+              : new Date().toISOString(),
     actor: { kind: "system" },
     policyVersion: organizationPolicyHash,
     payload,

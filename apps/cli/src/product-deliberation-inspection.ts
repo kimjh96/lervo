@@ -1,6 +1,9 @@
 import { resolve } from "node:path";
 
-import { projectAgentOrganization } from "@lervo/agent-organization";
+import {
+  projectAgentOrganization,
+  workforceProviderForPolicyHash,
+} from "@lervo/agent-organization";
 import type { ConversationDeliberationQueueInspection } from "@lervo/conversation-deliberation-sqlite";
 import { inspectConversationDeliberationQueues } from "@lervo/conversation-deliberation-sqlite";
 import { rootWorkId } from "@lervo/execution-contract";
@@ -175,21 +178,13 @@ function participantBindings(input: {
         "A deliberation participant binding names a role outside the policy.",
       );
     }
-    const selectedProvider =
-      participant.providerSelection.mode === "fixed"
-        ? participant.providerSelection.provider
-        : "any";
-    if (
-      selectedProvider !== "codex" &&
-      selectedProvider !== "claude" &&
-      selectedProvider !== "any"
-    ) {
+    const provider = workforceProviderForPolicyHash(binding.providerPolicyHash);
+    if (provider === null) {
       throw new ProductDeliberationSourceError(
         "deliberation_source_invalid",
         "The deliberation participant provider is unsupported by the product projection.",
       );
     }
-    const provider: ProductDeliberationParticipantBindingV1["provider"] = selectedProvider;
     return {
       roleId: binding.roleId,
       provider,

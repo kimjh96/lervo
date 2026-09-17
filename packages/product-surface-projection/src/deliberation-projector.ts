@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { workforceProviderForPolicyHash } from "@lervo/agent-organization";
 import {
   analyzeDeliberationHistory,
   deliberationPolicyHash,
@@ -166,11 +167,13 @@ export function projectDeliberationView(
   const policyRoleIds = new Set(input.policy.participants.map((participant) => participant.roleId));
   const participantBindingInvalid = [...bindings].some(([roleId, binding]) => {
     const participant = input.policy.participants.find((item) => item.roleId === roleId);
+    const workforceProvider = workforceProviderForPolicyHash(binding.providerPolicyHash);
     return (
       !policyRoleIds.has(roleId) ||
       participant === undefined ||
-      providerPolicyHash(participant) !== binding.providerPolicyHash ||
-      !providerAllowed(participant.providerSelection, binding.provider)
+      workforceProvider === null ||
+      workforceProvider !== binding.provider ||
+      !providerAllowed(participant.providerSelection, workforceProvider)
     );
   });
   const participants = input.policy.participants.flatMap((participant) =>

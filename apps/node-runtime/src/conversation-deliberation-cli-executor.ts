@@ -148,6 +148,9 @@ function execute(
           operation,
           policyId: job.policyId,
           topic: job.topic,
+          ...(job.origin === null
+            ? {}
+            : { origin: { sourceEventId: job.sourceEventId, ...job.origin } }),
           responseLanguage: /\p{Script=Hangul}/u.test(job.topic) ? "ko" : "en",
           executionMaximumElapsedMs,
         })

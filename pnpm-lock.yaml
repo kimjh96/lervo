@@ -1566,6 +1566,9 @@ importers:
 
   packages/product-surface-projection:
     dependencies:
+      '@lervo/agent-organization':
+        specifier: workspace:*
+        version: link:../agent-organization
       '@lervo/deliberation':
         specifier: workspace:*
         version: link:../deliberation
