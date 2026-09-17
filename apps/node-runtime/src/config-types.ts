@@ -148,6 +148,11 @@ export interface NodeDiscordConversationConfig {
       model?: string;
       reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
     };
+    resultEvaluation?: {
+      provider: "codex" | "claude";
+      model?: string;
+      reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
+    };
   };
   command: {
     roleId: string;

@@ -52,6 +52,7 @@ export class DeliberationRuntime {
   >();
   private readonly publishedHandoffIds = new Set<string>();
   private readonly publishedHandoffEvents = new Map<string, string>();
+  private readonly participantNames: ReadonlyMap<string, string>;
   private startedEventId: string | null = null;
   private turnRunning = false;
   private started = false;
@@ -66,6 +67,29 @@ export class DeliberationRuntime {
         "The deliberation runtime and policy project IDs differ.",
       );
     }
+    const participantNames = options.participantNames ?? [];
+    if (
+      participantNames.length > 0 &&
+      (participantNames.length !== options.policy.participants.length ||
+        new Set(participantNames.map((participant) => participant.roleId)).size !==
+          participantNames.length ||
+        participantNames.some(
+          (participant) =>
+            !options.policy.participants.some((item) => item.roleId === participant.roleId) ||
+            participant.name.length === 0 ||
+            participant.name.length > 160 ||
+            /[\u0000-\u001F\u007F]/u.test(participant.name),
+        ))
+    ) {
+      throw new DeliberationRuntimeError(
+        "runtime_state_invalid",
+        "managed_run_coordinate_mismatch",
+        "The deliberation participant presentation names differ from the policy roles.",
+      );
+    }
+    this.participantNames = new Map(
+      participantNames.map((participant) => [participant.roleId, participant.name]),
+    );
     this.recorder = new DeliberationEventRecorder(
       options.events,
       options.policyVersion,
@@ -103,6 +127,7 @@ export class DeliberationRuntime {
           policyHash: deliberationPolicyHash(this.options.policy),
           participantRoleIds: this.options.policy.participants.map((item) => item.roleId),
           maxRounds: this.options.policy.maxRounds,
+          policy: structuredClone(this.options.policy),
         },
       },
     ]);
@@ -231,9 +256,15 @@ export class DeliberationRuntime {
         kind: published.artifact.kind,
         round: published.artifact.round,
         producerRoleId: published.artifact.producer.roleId,
+        ...(this.participantNames.get(published.artifact.producer.roleId) === undefined
+          ? {}
+          : {
+              producerRoleName: this.participantNames.get(published.artifact.producer.roleId)!,
+            }),
         artifactId: published.artifact.content.artifactId,
         contentHash: published.artifact.content.contentHash,
         writingPermitId: published.artifact.writingPublicationPermit.permitId,
+        artifact: published.artifact,
       },
     });
     this.artifacts.push(clone(published.artifact));

@@ -1,14 +1,19 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import { ConversationDeliberationSQLiteError } from "./errors.js";
+import { createConversationDeliberationNotificationSchema } from "./notification-database.js";
 
-export const conversationDeliberationResumeSQLiteSchemaVersion = 1;
+export const conversationDeliberationResumeSQLiteSchemaVersion = 2;
 
 export function migrateConversationDeliberationResumeDatabase(database: DatabaseSync): void {
   database.exec("BEGIN IMMEDIATE;");
   try {
     const version = database.prepare("PRAGMA user_version;").get()?.user_version;
-    if (version !== 0 && version !== conversationDeliberationResumeSQLiteSchemaVersion) {
+    if (
+      version !== 0 &&
+      version !== 1 &&
+      version !== conversationDeliberationResumeSQLiteSchemaVersion
+    ) {
       throw new ConversationDeliberationSQLiteError(
         "integrity_failed",
         "The conversation deliberation resume queue schema is unsupported.",
@@ -104,8 +109,14 @@ export function migrateConversationDeliberationResumeDatabase(database: Database
         CREATE TRIGGER conversation_deliberation_resume_job_no_delete
           BEFORE DELETE ON conversation_deliberation_resume_jobs
           BEGIN SELECT RAISE(ABORT, 'conversation deliberation resume cannot be deleted'); END;
-        PRAGMA user_version = 1;
       `);
+    }
+    if (version === 0 || version === 1) {
+      createConversationDeliberationNotificationSchema(
+        database,
+        "conversation_deliberation_resume_jobs",
+      );
+      database.exec("PRAGMA user_version = 2;");
     }
     database.exec("COMMIT;");
   } catch (error) {

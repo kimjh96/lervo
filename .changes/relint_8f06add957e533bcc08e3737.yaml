@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8f06add957e533bcc08e3737"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Pass installed provider executables, models, reasoning settings, and evaluator schemas into managed deliberations, and require explicit agent effect authority."

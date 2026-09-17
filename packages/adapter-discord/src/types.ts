@@ -55,6 +55,7 @@ export interface DiscordDeliveryRequest {
   replyToMessageId: string | null;
   content: string;
   automationDepth: number;
+  audienceParticipation: "eligible" | "observe_only";
   allowedMentions: "none";
   enforceIdempotency: true;
 }

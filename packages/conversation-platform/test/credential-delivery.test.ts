@@ -131,6 +131,7 @@ describe("credential-backed platform delivery", () => {
       });
       expect(typeof body.nonce).toBe("string");
       expect((body.nonce as string).length).toBeLessThanOrEqual(25);
+      expect(body.nonce).toMatch(/^lv1e_[A-Za-z0-9_-]{20}$/u);
       return new Response(
         JSON.stringify({
           id: "423456789012345678",
@@ -154,6 +155,7 @@ describe("credential-backed platform delivery", () => {
       replyToMessageId: "323456789012345678",
       content: "Do not mention <@123> directly.",
       automationDepth: 1,
+      audienceParticipation: "eligible" as const,
       allowedMentions: "none" as const,
       enforceIdempotency: true as const,
     };
@@ -207,6 +209,7 @@ describe("credential-backed platform delivery", () => {
       replyToMessageId: "323456789012345678",
       content: "Review complete.",
       automationDepth: 1,
+      audienceParticipation: "eligible" as const,
       allowedMentions: "none" as const,
       enforceIdempotency: true as const,
     };
@@ -216,6 +219,35 @@ describe("credential-backed platform delivery", () => {
     });
     await delivery.send(input);
     expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed when a webhook cannot preserve observation-only publication lineage", async () => {
+    const request = vi.fn();
+    const delivery = new DiscordRestWebhookDelivery({
+      integrationId: "itg_discord02",
+      webhookId: "523456789012345678",
+      webhookToken: "w".repeat(40),
+      parentChannelId: "223456789012345678",
+      username: "Arac Reviewer",
+      replay: new MemoryReplay(),
+      fetch: request as typeof fetch,
+      now: () => new Date(at),
+    });
+    await expect(
+      delivery.send({
+        outboundId,
+        guildId: "123456789012345678",
+        channelId: "223456789012345678",
+        threadId: null,
+        replyToMessageId: null,
+        content: "Review complete.",
+        automationDepth: 1,
+        audienceParticipation: "observe_only",
+        allowedMentions: "none",
+        enforceIdempotency: true,
+      }),
+    ).rejects.toMatchObject({ code: "platform_delivery_failed" });
+    expect(request).not.toHaveBeenCalled();
   });
 
   it("redacts a Discord webhook token from an ambiguous transport failure", async () => {
@@ -241,6 +273,7 @@ describe("credential-backed platform delivery", () => {
       replyToMessageId: null,
       content: "Draft ready.",
       automationDepth: 1,
+      audienceParticipation: "eligible" as const,
       allowedMentions: "none" as const,
       enforceIdempotency: true as const,
     };

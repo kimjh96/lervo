@@ -166,11 +166,21 @@ describe("Node runtime configuration", () => {
           timeoutMs: 60_000,
         },
         evaluation: { provider: "claude", model: "claude-haiku-4-5", reasoningEffort: "low" },
+        resultEvaluation: {
+          provider: "claude",
+          model: "claude-opus-5",
+          reasoningEffort: "high",
+        },
       },
       policy: {
         mode: "proactive",
         respondTo: ["human", "agent", "system"],
-        signalCodes: ["work.completed", "deliberation.completed", "deliberation.attention"],
+        signalCodes: [
+          "work.completed",
+          "deliberation.completed",
+          "deliberation.attention",
+          "deliberation.artifact.recorded",
+        ],
         maxResponseAttempts: 2,
       },
       repositorySignals: {
@@ -230,6 +240,11 @@ describe("Node runtime configuration", () => {
             model: "claude-haiku-4-5",
             reasoningEffort: "low",
           },
+          resultEvaluation: {
+            provider: "claude",
+            model: "claude-opus-5",
+            reasoningEffort: "high",
+          },
         },
         participants: [{ actorKind: "human", roleId: null }],
         administration: { allowedActions: ["current_member.nickname.set"] },
@@ -237,7 +252,12 @@ describe("Node runtime configuration", () => {
           mode: "proactive",
           respondTo: ["agent", "human", "system"],
           unaddressedHumanMessages: "evaluate",
-          signalCodes: ["deliberation.attention", "deliberation.completed", "work.completed"],
+          signalCodes: [
+            "deliberation.artifact.recorded",
+            "deliberation.attention",
+            "deliberation.completed",
+            "work.completed",
+          ],
           maxResponseAttempts: 2,
         },
         repositorySignals: {

@@ -18,9 +18,9 @@
     },
     {
       "path": "apps/cli/src/managed-deliberation.ts",
-      "contentHash": "sha256:3f14ea5d08186a32e68c0b9348a05139a39dff7d3e8a43881d1135b6549bcfde",
+      "contentHash": "sha256:9fcd05cd9aabdb241153d55eeea8347f215baa4106579977c6c6c518e2bdda79",
       "responsibility": "Managed deliberation execution orchestration",
-      "rationale": "All functions validate or execute one managed deliberation lifecycle and share the same provider plan, writing contract, checkpoint, and interruption semantics.",
+      "rationale": "All functions validate or execute one managed deliberation lifecycle and share the same provider plan, writing contract, checkpoint, and interruption semantics. Topic evidence retrieval and exact-hash validation, provider-run execution, budget accounting, resume, round progression, and publication are isolated in dedicated modules; this module only orders those boundaries and records the terminal lifecycle.",
       "disposition": "cohesive"
     },
     {
@@ -35,6 +35,13 @@
       "contentHash": "sha256:83f2eed484fd08ded3be2a0c101a74cd4e74b1d135fd1528c06e2a0f01cd24d8",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The CLI composes one managed run from admission through writing publication and finalization. Research source capture and checker environment validation are delegated to dedicated CLI adapters; the entrypoint adds only ordered preparation and port coordinates. Capability, skill, provider and storage policies remain behind their existing boundaries.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "apps/cli/src/product-host-capabilities.ts",
+      "contentHash": "sha256:544b06b45ea239203a2b2247019ed4f9f02487db5a5da6f8f54a10c83e3a9022",
+      "responsibility": "Versioned product-host capability catalog composition",
+      "rationale": "The module owns the immutable v1 base route catalog and composes additive protocol upgrades. Version-specific v4 through v11 additions remain in dedicated modules; command parsing, product inspection, projection policy, and rendering are separate. Its length is declarative catalog data rather than mixed execution responsibility.",
       "disposition": "cohesive"
     },
     {
@@ -53,9 +60,9 @@
     },
     {
       "path": "apps/node-runtime/src/discord-conversation-runtime.ts",
-      "contentHash": "sha256:72be488a5579a01fd163d862f2315eb010683c0e8eb972d21debd54aff56c328",
+      "contentHash": "sha256:aa21a20a20ae00a85d16430074dd586a85d081673b6d88a90a4ae2ac7849186f",
       "responsibility": "One Discord conversation runtime composition and lifecycle",
-      "rationale": "The entrypoint wires one configured Discord identity and its conversation, publication, result, and background ports. Delivery policy, storage mechanics, native transport, semantic goal or deliberation selection, pending-goal retention, request binding, and supervision decisions live in linked modules; the result artifact and replay accessors plus deferred application handle are composition hand-offs whose behavior remains in dedicated modules.",
+      "rationale": "The entrypoint wires one configured Discord identity and its conversation, publication, result, and background ports. Delivery policy, publication-contract selection, deliberation event projection, storage mechanics, native transport, semantic selection, pending-goal retention, request binding, and supervision decisions live in linked modules; result and replay accessors plus the deferred application handle are composition hand-offs whose behavior remains in dedicated modules.",
       "disposition": "cohesive"
     },
     {
@@ -94,24 +101,31 @@
       "disposition": "cohesive"
     },
     {
+      "path": "packages/application-contract/src/product-host.ts",
+      "contentHash": "sha256:7f942f65fbe75a7dc80504b6db7df826bf2d0e8c10d66b141270aede31d9df6c",
+      "responsibility": "Additive product-host protocol type catalog",
+      "rationale": "The module declaratively owns backward-compatible capability-report, route, and result-contract types from v1 through v11. Runtime composition, command parsing, product projection, persistence, and rendering remain in separate modules; its length follows the explicit versioned compatibility history rather than mixed implementation concerns.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "packages/conversation-platform-sqlite/src/binding-repository.ts",
-      "contentHash": "sha256:6c10d9f5be85d9c534a6b196672315d5ea0f74b0d1deb6d6f5377381bb921355",
+      "contentHash": "sha256:8b4466914c3de542061642c837ab5dd9126bb66b5ebfcf38357dd9a2db202f62",
       "responsibility": "Conversation-platform binding persistence",
       "rationale": "The repository class owns one SQLite persistence boundary for platform bindings, including validation, reads, writes, and transaction-safe state changes.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/deliberation-runtime/src/runtime.ts",
-      "contentHash": "sha256:514d96efe08d1e7122165fdfe1c8af9f9133f4baac5e9049b6fde546f3b6a9cf",
+      "contentHash": "sha256:d8140bad329845eb5965cd477aa8bdd1f55132440383ce5831b68e3e183bd84c",
       "responsibility": "Stateful deliberation lifecycle coordinator",
-      "rationale": "The module owns one in-memory deliberation state machine; artifact publication failure recording and handoff materialization remain in linked modules, while methods enforce shared history and event invariants.",
+      "rationale": "The module owns one in-memory deliberation state machine; artifact publication failure recording, handoff materialization, snapshot restoration, and event recording remain in linked modules, while methods enforce shared history and event invariants. The optional policy-role name is validated once and recorded as provider-neutral event metadata without adding surface rendering or transport behavior.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:15bea72420febffda8ba3a3f91e1510eb371b763f3f2e536eb3d85b29f9b91d4",
+      "contentHash": "sha256:b5af0f4ea84652880c333e72a43d4b23b7840503a27b1de9d9f3729c85d4801e",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns one event payload privacy boundary with a declarative allowlist catalog and exact coordinate validation. Workforce role-binding migration adds only opaque assignment, version, revision, capability, and contract coordinates. Source text, prompts, filesystem roots, role bodies, task prose, credentials, and provider output remain excluded.",
+      "rationale": "The module owns one event payload privacy boundary with a declarative allowlist catalog and exact coordinate validation. Deliberation events permit the validated provider-neutral policy, bounded role presentation name, and numeric execution-budget token coordinates; topics, prompts, filesystem roots, credentials, reasoning, provider output, and native platform identifiers remain excluded.",
       "disposition": "cohesive"
     },
     {
@@ -137,9 +151,9 @@
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:95d09a4cdda7612cfe65382755ae027ac0d4b1fb3f98103b44dba323b025e78f",
+      "contentHash": "sha256:949e62a68f021667a70c2a31ea58b6ea4049e58dd3034c38d9236de1a636033a",
       "responsibility": "Managed provider-run coordinator",
-      "rationale": "The coordinator owns one provider-neutral run lifecycle and failure ledger. Role input validation and binding use a dedicated preparation module before provider creation; exact produced artifact coordinates flow through the existing verifier port after shutdown and CAS validation. No research, filesystem source policy, checker process, or provider-specific behavior is introduced here.",
+      "rationale": "The coordinator owns one provider-neutral run lifecycle and failure ledger. Role input binding, provider-interaction limits, snapshots, result collection, and verification remain delegated to dedicated modules and ports; the coordinator only orders them and records their evidence. No research, filesystem source policy, checker process, or provider-specific behavior is introduced here.",
       "disposition": "cohesive"
     },
     {
@@ -319,9 +333,9 @@
     },
     {
       "path": "packages/schemas/src/validate.ts",
-      "contentHash": "sha256:7bac967e961a16d2571f9e954a83e1e6cecc7f4ebfd48e7eb59a5f39fd19ae16",
+      "contentHash": "sha256:fa92438f61571cdc51a90887c0431951a680bd12ff9c21aa54e8c6f2fbb75f94",
       "responsibility": "Repository schema validator registry",
-      "rationale": "This module registers compiled validators for the schema catalog. The amendment event and conversation origin add linked declarative validators; domain decisions, configuration handling and persistence remain in their owning modules. No runtime workflow policy is added.",
+      "rationale": "This module registers compiled validators for the schema catalog. Product-surface projections, steering, and subscription hints add only linked declarative validators; schema definitions, domain decisions, configuration handling, and persistence remain in their owning modules. No runtime workflow policy is added.",
       "disposition": "cohesive"
     },
     {
@@ -333,9 +347,16 @@
     },
     {
       "path": "scripts/distribution/lib/node-runtime-distribution.mjs",
-      "contentHash": "sha256:8d0f8337a755eb6611b74ab8675fa50165044121c0e05dcef22ed61990f9c030",
+      "contentHash": "sha256:2c2d66c83853913e7a21350b80e28b378a4f9f1a5582c1f4bc7c468f9c1ac580",
       "responsibility": "Node runtime distribution builder",
-      "rationale": "Dependency inventory, manifest, SBOM, archive, platform validation, and verification are phases of one Node distribution artifact contract.",
+      "rationale": "Dependency inventory, manifest, SBOM, archive, platform validation, and verification are phases of one Node distribution artifact contract. Generic mode-preserving tar extraction is delegated to the shared archive boundary.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "scripts/distribution/lib/product-host-capability-consumer.mjs",
+      "contentHash": "sha256:98cc230df916d5103d67cb535bc077d703c3790f4af58a0422d34be5cee1faef",
+      "responsibility": "Packed CLI product-host capability conformance",
+      "rationale": "The module verifies one ordered, additive external-consumer protocol catalog from v1 through v11. It contains bounded expected descriptors only; repository journeys, product projection behavior, packaging, and release orchestration remain in separate scripts and focused tests.",
       "disposition": "cohesive"
     },
     {

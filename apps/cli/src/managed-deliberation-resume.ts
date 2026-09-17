@@ -32,6 +32,7 @@ import type {
   StoredManagedDeliberationRequest,
 } from "./managed-deliberation.js";
 import { ManagedDeliberationRunner } from "./managed-deliberation-runner.js";
+import { prepareManagedDeliberationEvidence } from "./managed-deliberation-evidence.js";
 
 function failureCode(error: unknown): string {
   const value = (error as { code?: unknown } | null)?.code;
@@ -173,6 +174,16 @@ export async function resumeManagedDeliberationWithStorage(
         snapshot: checkpoint.workspace,
         writingContract,
       });
+      if (workspace.taskEvidenceDocumentIds().length === 0) {
+        const evidence = await (dependencies.prepareEvidence ?? prepareManagedDeliberationEvidence)(
+          {
+            repositoryRoot: storage.paths.repositoryRoot,
+            topic: originalRequest.topic,
+            documentRegistry: registry,
+          },
+        );
+        await workspace.installTaskEvidence(evidence);
+      }
       const runtime = new DeliberationRuntime({
         deliberationId: checkpoint.deliberationId,
         policy,
@@ -180,6 +191,10 @@ export async function resumeManagedDeliberationWithStorage(
         coordinates: checkpoint.runtimeCoordinates,
         events: storage.events,
         artifactStore: storage.artifacts,
+        participantNames: plan.participants.map((participant) => ({
+          roleId: participant.role.roleId,
+          name: participant.role.name,
+        })),
         now: dependencies.now,
         createEventId: () => dependencies.createId("evt"),
         resumeSnapshot: checkpoint.runtime,
@@ -189,6 +204,14 @@ export async function resumeManagedDeliberationWithStorage(
         workspace,
         checkpoint.policyHash,
         policy.requiredVerificationSuiteIds[0]!,
+        {
+          ...policy.executionBudget,
+          maximumElapsedMs: Math.min(
+            policy.executionBudget.maximumElapsedMs,
+            originalRequest.executionMaximumElapsedMs ?? policy.executionBudget.maximumElapsedMs,
+            request.executionMaximumElapsedMs ?? policy.executionBudget.maximumElapsedMs,
+          ),
+        },
         dependencies.runner,
         {
           workId: rootWorkId(
@@ -197,6 +220,10 @@ export async function resumeManagedDeliberationWithStorage(
           ),
           runId: checkpoint.runtimeCoordinates.runId,
         },
+        request.providerExecutables,
+        request.providerModels,
+        request.providerReasoningEfforts,
+        checkpoint.budgetUsage,
       );
       const latestClaimArtifact = await restoreTurnResult({
         snapshot: checkpoint.runtime,

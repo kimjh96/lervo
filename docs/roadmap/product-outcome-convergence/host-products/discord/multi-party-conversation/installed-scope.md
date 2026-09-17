@@ -26,6 +26,8 @@ Installed Node deployments can map bounded canonical repository event types to p
 
 The installed executive boundary executes hash-bound, allowlisted Discord text-channel and public-thread effects with durable replay and fail-closed uncertainty. The installed deliberation worker reconciles uncertain outcomes from canonical CLI evidence and publishes a bounded visible result through the managed conversation path.
 
+Natural deliberation preserves the original human reply coordinate across synthetic status signals, retains bounded prior human anchors for references such as "this design," and selects a versioned Korean or English conversation writing contract from the source request. Failed writing checks are supplied to the one bounded repair attempt instead of repeating an undirected rewrite.
+
 ## Implemented capabilities
 
 - Webhook-backed delivery.
@@ -38,7 +40,7 @@ The installed executive boundary executes hash-bound, allowlisted Discord text-c
 - Atomic child organization, external-deployment, and channel-membership binding before supervised activation.
 - Exact leading `@DisplayName` addressing for webhook-backed participants that Discord cannot natively mention.
 - Resumable native Codex and Claude repository work with durable per-agent sessions, duplicate suppression, bounded result artifacts, and Git change observation.
-- Conflict-safe Mac and WSL repository replicas preserving exact uncommitted worktree and index bytes bidirectionally, with fresh parity required before and after changed native work, bounded peer-command execution, configurable bridge concurrency, and terminal completion detection for an unloaded installed coordinator.
+- A WSL single-writer execution default that keeps native conversation work available while conflict-safe Mac recovery replicas preserve exact uncommitted worktree and index bytes for explicit reconciliation. Strict fresh parity remains opt-in for controlled topologies, with bounded peer-command execution, configurable bridge concurrency, and terminal completion detection for an unloaded installed coordinator.
 - Post-turn enforcement of current workstream, canonicalization declaration, and repository knowledge lifecycle, plus bounded CAS-backed prior work results per durable worker.
 - Stable CEO ownership for unaddressed general-channel turns and early owner-only typing activity.
 

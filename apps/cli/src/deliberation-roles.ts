@@ -7,6 +7,7 @@ import type {
 } from "@lervo/schemas";
 import { writingPolicyHash } from "@lervo/writing-contract";
 
+import { assertDeliberationCallBudgetFeasible } from "./deliberation-budget-feasibility.js";
 import type { RunProvider } from "./managed-run.js";
 import { deliberationLanguageFor } from "./deliberation-language.js";
 
@@ -23,13 +24,22 @@ export interface DeliberationParticipant {
 }
 
 export interface DeliberationExecutionPlan {
-  policy: DeliberationPolicy;
+  policy: DeliberationPolicy & { executionBudget: DeliberationExecutionBudget };
   writingContract: WritingContract;
   participants: readonly DeliberationParticipant[];
   proposer: DeliberationParticipant;
   reviewers: readonly DeliberationParticipant[];
   verifier: DeliberationParticipant;
 }
+
+type DeliberationExecutionBudget = NonNullable<DeliberationPolicy["executionBudget"]>;
+
+const defaultExecutionBudget: DeliberationExecutionBudget = {
+  maximumProviderCalls: 12,
+  maximumObservedTokens: 200_000,
+  maximumElapsedMs: 300_000,
+  unobservedTokenDisposition: "block",
+};
 
 function participantRole(input: {
   roleId: string;
@@ -89,11 +99,12 @@ function policy(input: {
   projectId: string;
   policyId: string;
   maxRounds: number;
+  executionBudget: DeliberationExecutionBudget;
   verificationSuiteIds: readonly string[];
   participants: readonly DeliberationParticipant[];
   decisionOwnerRoleId: string;
   writingContract: WritingContract;
-}): DeliberationPolicy {
+}): DeliberationPolicy & { executionBudget: DeliberationExecutionBudget } {
   return {
     schemaVersion: 1,
     policyId: input.policyId,
@@ -105,6 +116,7 @@ function policy(input: {
     })),
     decisionOwnerRoleId: input.decisionOwnerRoleId,
     maxRounds: input.maxRounds,
+    executionBudget: structuredClone(input.executionBudget),
     requiredVerificationSuiteIds: [...input.verificationSuiteIds],
     convergence: {
       requireIndependentReviewer: true,
@@ -127,6 +139,7 @@ function executionPlan(input: {
   projectId: string;
   policyId: string;
   maxRounds: number;
+  executionBudget: DeliberationExecutionBudget;
   verificationSuiteIds: readonly string[];
   writingContract: WritingContract;
   definitions: readonly {
@@ -162,16 +175,23 @@ function executionPlan(input: {
   if (proposer === undefined || reviewers.length === 0 || verifier === undefined) {
     throw new Error("The deliberation execution roles could not be resolved from the policy.");
   }
+  const resolvedPolicy = policy({
+    projectId: input.projectId,
+    policyId: input.policyId,
+    maxRounds: input.maxRounds,
+    executionBudget: input.executionBudget,
+    verificationSuiteIds: input.verificationSuiteIds,
+    participants,
+    decisionOwnerRoleId: proposer.role.roleId,
+    writingContract: input.writingContract,
+  });
+  assertDeliberationCallBudgetFeasible({
+    policy: resolvedPolicy,
+    reviewerCount: reviewers.length,
+    writingContract: input.writingContract,
+  });
   return {
-    policy: policy({
-      projectId: input.projectId,
-      policyId: input.policyId,
-      maxRounds: input.maxRounds,
-      verificationSuiteIds: input.verificationSuiteIds,
-      participants,
-      decisionOwnerRoleId: proposer.role.roleId,
-      writingContract: input.writingContract,
-    }),
+    policy: resolvedPolicy,
     writingContract: structuredClone(input.writingContract),
     participants,
     proposer,
@@ -200,6 +220,7 @@ export function createInlineDeliberationExecutionPlan(input: {
     projectId: input.projectId,
     policyId: "deliberation_cli.two-provider-v1",
     maxRounds: 2,
+    executionBudget: defaultExecutionBudget,
     verificationSuiteIds: input.verificationSuiteIds,
     writingContract: input.writingContract,
     definitions: [
@@ -230,11 +251,14 @@ export function createStoredDeliberationExecutionPlan(input: {
     projectId: input.projectId,
     policyId: input.source.policyId,
     maxRounds: input.source.maxRounds,
+    executionBudget: input.source.executionBudget ?? defaultExecutionBudget,
     verificationSuiteIds: input.source.requiredVerificationSuiteIds,
     writingContract: input.writingContract,
     definitions: input.source.participants.map((participant) => ({
       roleId: participant.roleId,
-      name: participant.name,
+      name:
+        participant.localizedNames?.[input.writingContract.locale === "ko" ? "ko" : "en"] ??
+        participant.name,
       description: participant.description,
       provider: participant.provider as RunProvider,
       responsibilities: participant.responsibilities,

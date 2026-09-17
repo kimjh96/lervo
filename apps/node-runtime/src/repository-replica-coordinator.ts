@@ -23,7 +23,7 @@ const HASH = /^sha256:[a-f0-9]{64}$/u;
 
 export interface RepositoryReplicaPeerPort {
   snapshot(repositoryRoot: string): Promise<RepositoryReplicaSnapshot>;
-  bundle(repositoryRoot: string): Promise<Uint8Array>;
+  bundle(repositoryRoot: string, expectedSnapshotHash: string): Promise<Uint8Array>;
   apply(input: {
     repositoryRoot: string;
     bundle: Uint8Array;
@@ -61,6 +61,13 @@ export type RepositoryReplicaCycleResult =
       replicaId: string;
       status: "current" | "pushed" | "pulled" | "merged";
       snapshotHash: string;
+    }
+  | {
+      replicaId: string;
+      status: "pending";
+      commonHash: string;
+      localHash: string;
+      peerHash: string;
     }
   | {
       replicaId: string;
@@ -147,8 +154,8 @@ export class LocalRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     return captureRepositoryReplicaSnapshot(repositoryRoot);
   }
 
-  bundle(repositoryRoot: string) {
-    return createRepositoryReplicaBundle(repositoryRoot);
+  bundle(repositoryRoot: string, expectedSnapshotHash: string) {
+    return createRepositoryReplicaBundle(repositoryRoot, expectedSnapshotHash);
   }
 
   apply(input: {
@@ -229,7 +236,7 @@ export class RepositoryReplicaCoordinator {
         return { replicaId: input.replicaId, ...decision };
       const merged = await this.options.local.merge({
         repositoryRoot: input.localRoot,
-        bundle: await this.options.peer.bundle(input.peerRoot),
+        bundle: await this.options.peer.bundle(input.peerRoot, peer.snapshotHash),
         expectedCurrentSnapshotHash: local.snapshotHash,
         ...(input.conflictPolicy === undefined ? {} : { conflictPolicy: input.conflictPolicy }),
       });
@@ -252,36 +259,66 @@ export class RepositoryReplicaCoordinator {
         );
       status = "merged";
     }
+    let transferredSnapshotHash: string | null = null;
     if (decision.status === "push") {
-      const bundle = await this.options.local.bundle(input.localRoot);
-      await this.options.peer.apply({
+      const bundle = await this.options.local.bundle(input.localRoot, decision.source.snapshotHash);
+      const applied = await this.options.peer.apply({
         repositoryRoot: input.peerRoot,
         bundle,
         expectedCurrentSnapshotHash: decision.expectedPeerHash,
         allowHistoryReplacement: true,
       });
+      if (applied.snapshotHash !== decision.source.snapshotHash)
+        throw new RepositoryReplicaCoordinatorError(
+          "repository_replica_verification_failed",
+          "The peer applied a different repository replica snapshot than requested.",
+        );
+      transferredSnapshotHash = applied.snapshotHash;
       if (status !== "merged") status = "pushed";
     } else if (decision.status === "pull") {
-      const bundle = await this.options.peer.bundle(input.peerRoot);
-      await this.options.local.apply({
+      const bundle = await this.options.peer.bundle(input.peerRoot, decision.source.snapshotHash);
+      const applied = await this.options.local.apply({
         repositoryRoot: input.localRoot,
         bundle,
         expectedCurrentSnapshotHash: decision.expectedLocalHash,
         allowHistoryReplacement: true,
       });
+      if (applied.snapshotHash !== decision.source.snapshotHash)
+        throw new RepositoryReplicaCoordinatorError(
+          "repository_replica_verification_failed",
+          "The local side applied a different repository replica snapshot than requested.",
+        );
+      transferredSnapshotHash = applied.snapshotHash;
       status = "pulled";
+    }
+    const reconciledAt = (this.options.now ?? (() => new Date()))().toISOString();
+    if (transferredSnapshotHash !== null) {
+      // Persist the exact transferred base before recapturing the active source. If that source
+      // advances concurrently, the next cycle remains a one-sided continuation instead of a
+      // false dual divergence from the older common snapshot.
+      await this.recordReconciliation(input.replicaId, {
+        commonSnapshotHash: transferredSnapshotHash,
+        reconciledAt,
+      });
     }
     const [verifiedLocal, verifiedPeer] = await Promise.all([
       this.options.local.snapshot(input.localRoot),
       this.options.peer.snapshot(input.peerRoot),
     ]);
     if (verifiedLocal.snapshotHash !== verifiedPeer.snapshotHash) {
+      if (transferredSnapshotHash !== null)
+        return {
+          replicaId: input.replicaId,
+          status: "pending",
+          commonHash: transferredSnapshotHash,
+          localHash: verifiedLocal.snapshotHash,
+          peerHash: verifiedPeer.snapshotHash,
+        };
       throw new RepositoryReplicaCoordinatorError(
         "repository_replica_verification_failed",
-        "Repository replicas differ after reconciliation.",
+        "Repository replicas changed while current parity was being verified.",
       );
     }
-    const reconciledAt = (this.options.now ?? (() => new Date()))().toISOString();
     await this.recordReconciliation(input.replicaId, {
       commonSnapshotHash: verifiedLocal.snapshotHash,
       reconciledAt,

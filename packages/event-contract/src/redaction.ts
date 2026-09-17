@@ -438,6 +438,7 @@ export const eventPayloadAllowlists = {
     "policyHash",
     "participantRoleIds",
     "maxRounds",
+    "policy",
   ],
   "deliberation.artifact.recorded": [
     "deliberationId",
@@ -445,9 +446,11 @@ export const eventPayloadAllowlists = {
     "kind",
     "round",
     "producerRoleId",
+    "producerRoleName",
     "artifactId",
     "contentHash",
     "writingPermitId",
+    "artifact",
   ],
   "deliberation.artifact.publication_failed": [
     "deliberationId",
@@ -1026,6 +1029,8 @@ const safeSensitiveCoordinatePaths = new Set([
   "$.usage.outputTokens",
   "$.usage.reasoningOutputTokens",
   "$.usage.totalTokens",
+  "$.policy.executionBudget.maximumObservedTokens",
+  "$.policy.executionBudget.unobservedTokenDisposition",
 ]);
 
 export type RedactionErrorCode =
@@ -1330,7 +1335,19 @@ function conversationRepositoryWorkCoordinateMatches(
 function deliberationArtifactCoordinateMatches(
   payload: DeliberationArtifactRecordedEventPayload,
 ): boolean {
-  return payload.artifactId === `art_${payload.contentHash.slice("sha256:".length)}`;
+  if (payload.artifactId !== `art_${payload.contentHash.slice("sha256:".length)}`) return false;
+  const artifact = payload.artifact;
+  return (
+    artifact === undefined ||
+    (artifact.deliberationId === payload.deliberationId &&
+      artifact.deliberationArtifactId === payload.deliberationArtifactId &&
+      artifact.kind === payload.kind &&
+      artifact.round === payload.round &&
+      artifact.producer.roleId === payload.producerRoleId &&
+      artifact.content.artifactId === payload.artifactId &&
+      artifact.content.contentHash === payload.contentHash &&
+      artifact.writingPublicationPermit.permitId === payload.writingPermitId)
+  );
 }
 
 function agentContextPromotionCoordinateMatches(

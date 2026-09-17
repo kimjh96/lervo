@@ -18,10 +18,10 @@ State: `delivery required`.
 - Exact duplicate active-work coalescing and short-window completed-result reuse.
 - Reply-addressed and explicit-address sticky interlocutor continuity.
 - Native Discord thread and reply projection with authenticated parent-channel validation.
-- Changed native repository turns fail closed on workstream, knowledge, replica, and canonical managed completion-event evidence; unmanaged terminal declarations are not fabricated.
+- Changed native repository turns fail closed on workstream, knowledge, canonical managed completion-event evidence, and replica parity only when that strict deployment option is enabled; unmanaged terminal declarations are not fabricated.
 - Runtime knowledge queries retain syntactically incomplete source as exact file-level units, keeping local partial edits actionable after handoff.
 - Exact bidirectional Mac/WSL source continuation for tracked and non-ignored untracked worktree bytes, including incomplete files and staging state.
-- Fresh replica parity and workstream, canonicalization, and knowledge completion gates around changed native work.
+- WSL single-writer native work by default, with fresh replica parity available as an explicit strict-deployment gate instead of an organization-wide availability dependency.
 
 ## Open outcomes
 

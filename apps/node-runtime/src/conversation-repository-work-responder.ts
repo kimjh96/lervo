@@ -11,15 +11,23 @@ import type { ConversationResponder } from "@lervo/interaction";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import { SQLiteConversationRepositoryWorkStore } from "./conversation-repository-work-store.js";
-import {
-  changedRepositoryWorkPaths,
-  observeRepositoryWork,
-} from "./repository-work-observation.js";
+import { compareRepositoryWork, observeRepositoryWork } from "./repository-work-observation.js";
 import { awaitRepositoryReplicaReadiness } from "./repository-replica-readiness.js";
 import {
   captureConversationRepositoryWorkCompletionBaseline,
   verifyConversationRepositoryWorkCompletion,
 } from "./conversation-repository-work-completion.js";
+
+const MAXIMUM_FINALIZATION_RESERVE_MS = 5 * 60_000;
+const MINIMUM_FINALIZATION_RESERVE_MS = 2_000;
+
+function finalizationStartsAt(timeoutMs: number, now = Date.now()): string {
+  const reserve = Math.min(
+    MAXIMUM_FINALIZATION_RESERVE_MS,
+    Math.max(MINIMUM_FINALIZATION_RESERVE_MS, Math.floor(timeoutMs / 5)),
+  );
+  return new Date(now + Math.max(0, timeoutMs - reserve)).toISOString();
+}
 
 class ConversationRepositoryWorkStageError extends Error {
   constructor(
@@ -182,8 +190,8 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
         capture: captureConversationRepositoryWorkCompletionBaseline,
         verify: verifyConversationRepositoryWorkCompletion,
       };
-      const completionBaseline = await completionLifecycle.capture(this.options.repositoryRoot);
       const before = await observe(this.options.repositoryRoot);
+      const completionBaseline = await completionLifecycle.capture(this.options.repositoryRoot);
       const externalEffectsAuthorized = this.externalEffectsAuthorized(input.event);
       const result = await executor.execute({
         repositoryRoot: this.options.repositoryRoot,
@@ -202,6 +210,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
           ),
           worker: delegate,
           externalEffectsAuthorized,
+          finalizationStartsAt: finalizationStartsAt(this.options.timeoutMs),
         }),
         providerSessionId: turn.providerSessionId,
         ...(this.options.models?.[provider] === undefined
@@ -214,8 +223,8 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
         timeoutMs: this.options.timeoutMs,
         signal: this.abortController.signal,
       });
-      const after = await observe(this.options.repositoryRoot);
-      const changedPaths = await changedRepositoryWorkPaths({
+      let after = await observe(this.options.repositoryRoot);
+      let repositoryChange = await compareRepositoryWork({
         repositoryRoot: this.options.repositoryRoot,
         before,
         after,
@@ -231,19 +240,28 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
           { cause: error },
         );
       }
-      if (changedPaths.length > 0 && this.options.repositoryReplica !== undefined) {
+      if (
+        repositoryChange.changedPaths.length > 0 &&
+        this.options.repositoryReplica !== undefined
+      ) {
         await awaitRepositoryReplicaReadiness({
           repositoryRoot: this.options.repositoryRoot,
           maximumStalenessMs: this.options.repositoryReplica.maximumStalenessMs,
           waitTimeoutMs: this.options.repositoryReplica.waitTimeoutMs,
           pollIntervalMs: this.options.repositoryReplica.pollIntervalMs,
         });
+        after = await observe(this.options.repositoryRoot);
+        repositoryChange = await compareRepositoryWork({
+          repositoryRoot: this.options.repositoryRoot,
+          before,
+          after,
+        });
       }
       await completionLifecycle.verify({
         repositoryRoot: this.options.repositoryRoot,
         provider,
         baseline: completionBaseline,
-        changedPaths,
+        repositoryChange,
         sourceConversationEventId: input.event.eventId,
         workerAgentId: delegate?.agentId ?? this.options.parentAgentId,
         providerSessionId: result.providerSessionId,

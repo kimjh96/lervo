@@ -52,7 +52,12 @@ Replace every identifier and path with reviewed deployment coordinates. Store th
     "policy": {
       "mode": "proactive",
       "respondTo": ["human", "agent", "system"],
-      "signalCodes": ["work.completed"],
+      "signalCodes": [
+        "work.completed",
+        "deliberation.artifact.recorded",
+        "deliberation.completed",
+        "deliberation.attention"
+      ],
       "maxResponseAttempts": 3
     },
     "repositorySignals": {
@@ -73,11 +78,7 @@ Replace every identifier and path with reviewed deployment coordinates. Store th
         {
           "participantId": "ptc_operator01",
           "principalId": "owner:operator",
-          "permissions": [
-            "deliberation.start",
-            "deliberation.resume",
-            "deliberation.read"
-          ]
+          "permissions": ["deliberation.start", "deliberation.resume", "deliberation.read"]
         }
       ],
       "pollIntervalMs": 2000,

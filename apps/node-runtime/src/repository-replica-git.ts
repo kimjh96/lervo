@@ -166,11 +166,20 @@ export async function captureRepositoryReplicaSnapshot(
   }
 }
 
-export async function createRepositoryReplicaBundle(repositoryRoot: string): Promise<Uint8Array> {
+export async function createRepositoryReplicaBundle(
+  repositoryRoot: string,
+  expectedSnapshotHash?: string,
+): Promise<Uint8Array> {
   const temporaryDirectory = await mkdtemp(join(tmpdir(), "lervo-repository-bundle-"));
   const bundlePath = join(temporaryDirectory, "replica.bundle");
   try {
     const snapshot = await captureRepositoryReplicaSnapshot(repositoryRoot);
+    if (expectedSnapshotHash !== undefined && snapshot.snapshotHash !== expectedSnapshotHash) {
+      throw new RepositoryReplicaGitError(
+        "repository_replica_conflict",
+        `The repository changed before its replica bundle was created (${snapshot.snapshotHash} != ${expectedSnapshotHash}).`,
+      );
+    }
     await createExportCommit(repositoryRoot, snapshot);
     await git(repositoryRoot, ["bundle", "create", bundlePath, EXPORT_REF]);
     return new Uint8Array(await readFile(bundlePath));

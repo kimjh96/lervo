@@ -4,6 +4,7 @@ export * from "./managed-context-reference.js";
 export * from "./managed-context-run.js";
 export * from "./managed-provider-run.js";
 export * from "./provider-process-observation.js";
+export * from "./provider-interaction-limits.js";
 export * from "./managed-write-plan.js";
 export * from "./provider-run-deadline.js";
 export * from "./provider-run-evidence.js";

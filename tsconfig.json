@@ -89,6 +89,7 @@
       "@lervo/policy-contract": ["packages/policy-contract/src/index.ts"],
       "@lervo/policy-sqlite": ["packages/policy-sqlite/src/index.ts"],
       "@lervo/project": ["packages/project/src/index.ts"],
+      "@lervo/product-surface-projection": ["packages/product-surface-projection/src/index.ts"],
       "@lervo/project-storage": ["packages/project-storage/src/index.ts"],
       "@lervo/remote-command": ["packages/remote-command/src/index.ts"],
       "@lervo/remote-command-contract": ["packages/remote-command-contract/src/index.ts"],

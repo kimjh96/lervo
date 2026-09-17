@@ -47,4 +47,31 @@ describe("deliberation writing publication repair", () => {
     ).rejects.toBe(failure);
     expect(execute).toHaveBeenCalledTimes(1);
   });
+
+  it("does not ask the writer to repair an evaluator infrastructure failure", async () => {
+    const execute = vi.fn(async (instructions: string) => ({ instructions }));
+    const failure = new DeliberationRuntimeError(
+      "artifact_publication_failed",
+      "writing_publication_blocked",
+      "semantic evaluator failed",
+      {
+        diagnostics: {
+          failedChecks: [],
+          missingChecks: ["semantic_evaluator"],
+          semanticEvaluationStatus: "failed",
+        },
+      },
+    );
+
+    await expect(
+      executeWithPublicationRepair({
+        instructions: "Review the proposal.",
+        execute,
+        record: async () => {
+          throw failure;
+        },
+      }),
+    ).rejects.toBe(failure);
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
 });

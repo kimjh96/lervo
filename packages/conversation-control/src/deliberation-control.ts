@@ -13,6 +13,9 @@ export interface ConversationDeliberationBackend {
     projectId: string;
     principalId: string;
     sourceEventId: string;
+    conversationId: string;
+    threadId: string | null;
+    requesterParticipantId: string;
     policyId: string;
     topic: string;
     requestedAt: string;
@@ -81,6 +84,9 @@ export class ConfiguredConversationDeliberationControl implements ConversationDe
       projectId: binding.projectId,
       principalId: binding.principalId,
       sourceEventId: input.event.eventId,
+      conversationId: input.event.target.conversationId,
+      threadId: input.event.target.threadId,
+      requesterParticipantId: input.event.actor.participantId,
       policyId: input.policyId,
       topic: input.topic,
       requestedAt: input.requestedAt,

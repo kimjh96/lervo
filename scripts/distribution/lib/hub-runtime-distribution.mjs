@@ -14,6 +14,7 @@ import {
 } from "./node-runtime-distribution.mjs";
 import { smokeHubDistribution } from "./hub-runtime-distribution-smoke.mjs";
 import { canonicalDigest, sha256 } from "../../shared/release-artifact-manifest.mjs";
+import { extractTarGzipArchive } from "../../shared/tar-archive.mjs";
 
 const execFileAsync = promisify(execFile);
 const digestPattern = /^sha256:[a-f0-9]{64}$/u;
@@ -339,10 +340,7 @@ export async function verifyHubDistributionArchive(input) {
   const payloadRoot = resolve(temporaryRoot, "payload");
   try {
     await mkdir(payloadRoot);
-    await execFileAsync("tar", ["-xzf", archive, "-C", payloadRoot], {
-      timeout: 60_000,
-      maxBuffer: 1024 * 1024,
-    });
+    await extractTarGzipArchive(archive, payloadRoot);
     const manifestSource = await parseJsonFile(
       resolve(payloadRoot, hubManifestName),
       4 * 1024 * 1024,

@@ -35,6 +35,7 @@ export class RepositoryWorkExecutionError extends Error {
       | "provider_process_failed"
       | "provider_protocol_failed"
       | "provider_result_failed"
+      | "provider_turn_timeout"
       | "provider_turn_failed",
     message: string,
     options?: ErrorOptions,

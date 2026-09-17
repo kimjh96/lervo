@@ -6,6 +6,7 @@ export function executionInstructions(input: {
   durableResults: readonly string[];
   worker: { displayName: string; roleId: string } | null;
   externalEffectsAuthorized: boolean;
+  finalizationStartsAt: string;
 }): string {
   const history = input.priorTurns
     .slice(-4)
@@ -23,7 +24,9 @@ export function executionInstructions(input: {
       : `Act as the hired agent ${input.worker.displayName} with repository role ${input.worker.roleId}.`,
     "Use repository tools now. Inspect the repository, perform the requested work, and verify it in proportion to risk.",
     "Do not merely promise work, create a queue, or ask the user to repeat information already present below.",
-    "If repository bytes change, finish the repository's native AGENTS.md completion lifecycle before replying: advance the current workstream and run the knowledge and verification checks required for the touched scope.",
+    "If repository bytes change, create or advance a bounded active workstream checkpoint immediately after the first material edit; do not postpone the first checkpoint until all implementation and verification are finished.",
+    `At ${input.finalizationStartsAt}, stop new implementation and optional checks. Use the remaining execution reserve to inspect the exact current state, advance the workstream again when later edits changed it, run the bounded required completion checks, and answer. If the full scope is not complete, preserve an accurate active checkpoint and report the bounded remainder instead of working until the provider is killed.`,
+    "Before replying, finish the repository's native AGENTS.md completion lifecycle for the exact current state, including the knowledge and verification checks required for the touched scope.",
     "Do not create or require an unmanaged terminal declaration: the Node records managed conversation-work completion against the exact final revision after provider exit.",
     "A changed worktree without its checkpoint, valid current-scope knowledge, required verification, and replica parity is a failed turn and must not be reported as complete. Pre-existing unrelated normalization debt is not a blocker when knowledge lint remains valid; do not misreport it as caused by this turn.",
     input.externalEffectsAuthorized

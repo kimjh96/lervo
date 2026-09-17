@@ -13,6 +13,13 @@ import {
   settleConversationDeliberationJob,
   type LeaseStoreConfiguration,
 } from "./lease-store.js";
+import { conversationDeliberationNotificationSchemaNames } from "./notification-database.js";
+import {
+  acceptConversationDeliberationNotification,
+  checkConversationDeliberationNotificationIntegrity,
+  claimConversationDeliberationNotification,
+  nextConversationDeliberationNotificationWakeupAt,
+} from "./notification-store.js";
 import { reconcileConversationDeliberationRecord } from "./reconciliation.js";
 import { migrateConversationDeliberationResumeDatabase } from "./resume-database.js";
 import { decodeConversationDeliberationResumeJob } from "./resume-row-codec.js";
@@ -52,12 +59,16 @@ export class SQLiteConversationDeliberationResumeJobStore implements Conversatio
 
   nextWakeupAt(): number | null {
     this.assertOpen();
-    const value = this.database
+    const work = this.database
       .prepare(
         "SELECT MIN(CASE WHEN state = 'queued' THEN requested_at_ms ELSE lease_expires_at_ms END) AS next_at FROM conversation_deliberation_resume_jobs WHERE state IN ('queued', 'leased')",
       )
       .get()?.next_at;
-    return typeof value === "number" ? value : null;
+    const notification = nextConversationDeliberationNotificationWakeupAt(this.database);
+    const values = [work, notification].filter(
+      (value): value is number => typeof value === "number",
+    );
+    return values.length === 0 ? null : Math.min(...values);
   }
 
   static async open(options: {
@@ -201,6 +212,39 @@ export class SQLiteConversationDeliberationResumeJobStore implements Conversatio
     return row === undefined ? null : decodeConversationDeliberationResumeJob(row);
   }
 
+  async listUncertain(
+    input: Parameters<ConversationDeliberationResumeJobStore["listUncertain"]>[0],
+  ) {
+    this.assertOpen();
+    if (
+      !/^prj_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(input.projectId) ||
+      !Number.isSafeInteger(input.limit) ||
+      input.limit < 1 ||
+      input.limit > 100
+    ) {
+      throw new ConversationDeliberationSQLiteError(
+        "integrity_failed",
+        "The uncertain deliberation resume query is invalid.",
+      );
+    }
+    return this.database
+      .prepare(
+        "SELECT * FROM conversation_deliberation_resume_jobs WHERE project_id = ? AND state = 'uncertain' ORDER BY terminal_at, deliberation_id LIMIT ?",
+      )
+      .all(input.projectId, input.limit)
+      .map((row) => {
+        const job = decodeConversationDeliberationResumeJob(row);
+        const uncertainAt = row.terminal_at;
+        if (typeof uncertainAt !== "string") {
+          throw new ConversationDeliberationSQLiteError(
+            "integrity_failed",
+            "The uncertain deliberation resume has no terminal time.",
+          );
+        }
+        return { deliberationId: job.deliberationId, uncertainAt };
+      });
+  }
+
   async claim(input: Parameters<ConversationDeliberationResumeJobStore["claim"]>[0]) {
     this.assertOpen();
     return claimConversationDeliberationJob({
@@ -239,6 +283,24 @@ export class SQLiteConversationDeliberationResumeJobStore implements Conversatio
     });
   }
 
+  async claimNotification(
+    input: Parameters<ConversationDeliberationResumeJobStore["claimNotification"]>[0],
+  ) {
+    this.assertOpen();
+    return claimConversationDeliberationNotification({
+      database: this.database,
+      operation: "resume",
+      ...input,
+    });
+  }
+
+  async acceptNotification(
+    input: Parameters<ConversationDeliberationResumeJobStore["acceptNotification"]>[0],
+  ) {
+    this.assertOpen();
+    acceptConversationDeliberationNotification({ database: this.database, ...input });
+  }
+
   async reconcile(input: Parameters<ConversationDeliberationResumeJobStore["reconcile"]>[0]) {
     this.assertOpen();
     if (input.summary.status === "interrupted" || input.summary.status === "unknown") {
@@ -263,10 +325,16 @@ export class SQLiteConversationDeliberationResumeJobStore implements Conversatio
         "conversation_deliberation_resume_job_lifecycle",
         "conversation_deliberation_resume_job_no_delete",
         "conversation_deliberation_resume_jobs_active_lease",
+        ...conversationDeliberationNotificationSchemaNames,
       ],
       maximumRecords: this.maxRecords,
       label: leaseConfiguration.label,
       decode: decodeConversationDeliberationResumeJob,
+    });
+    checkConversationDeliberationNotificationIntegrity({
+      database: this.database,
+      operation: "resume",
+      maximumRecords: this.maxRecords,
     });
   }
 

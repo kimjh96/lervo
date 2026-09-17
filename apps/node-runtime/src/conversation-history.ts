@@ -71,7 +71,7 @@ export class SQLiteConversationHistory implements ConversationHistoryPort {
                 available_at_ms AS occurred_at_ms
               FROM conversation_outbox
               WHERE project_id = ? AND conversation_id = ?
-            ) ORDER BY occurred_at_ms DESC LIMIT 32
+            ) ORDER BY occurred_at_ms DESC LIMIT 64
           `,
         )
         .all(
@@ -80,11 +80,15 @@ export class SQLiteConversationHistory implements ConversationHistoryPort {
           event.target.projectId,
           event.target.conversationId,
         ) as Array<{ record_json: string; role: "user" | "assistant" }>;
-      const turns = rows
+      const matchingTurns = rows
         .map((row) => decodeTurn(row.record_json, row.role))
         .filter((turn) => turn.target.threadId === event.target.threadId)
-        .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt))
-        .slice(-4);
+        .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt));
+      const selected = new Set([
+        ...matchingTurns.slice(-8),
+        ...matchingTurns.filter((turn) => turn.speaker.kind === "human").slice(-4),
+      ]);
+      const turns = matchingTurns.filter((turn) => selected.has(turn));
       return await Promise.all(
         turns.map(async (turn) => ({
           role: turn.role,

@@ -2,7 +2,7 @@
 
 Status: `active`
 
-As of: 2026-09-07
+As of: 2026-09-16
 
 ## Outcome
 
@@ -32,6 +32,7 @@ Acceptance records and boundaries:
 - [Repository knowledge and Hermes-derived outcomes](product-outcome-convergence/repository-knowledge.md)
 - [Prime-Agent-derived execution outcomes](product-outcome-convergence/execution.md)
 - [Paperclip-, Buzz-, loop-, graph-, and host-product outcomes](product-outcome-convergence/host-products.md)
+- [Discord-first reference product](product-outcome-convergence/host-products/discord-first-reference-product.md)
 - [Open foundation outcomes](product-outcome-convergence/foundation.md)
 - [Corrected claim boundaries](product-outcome-convergence/claim-boundaries.md)
 - [Delivery status and remaining boundaries](product-outcome-convergence/delivery-status.md)

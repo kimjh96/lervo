@@ -1,6 +1,6 @@
 # ADR-0388: Realtime conversation effects and lifecycle
 
-- Status: accepted
+- Status: accepted (amended 2026-09-16)
 - Decision date: 2026-09-08
 
 [ADR-0389](0389-single-managed-conversation-turn.md) replaced separate intent-then-response sequencing with a single managed turn. Effect authority, retry ownership, terminal failure, writing profiles, and privacy boundaries remain in force.
@@ -23,13 +23,13 @@ A queued execution origin retains only the coarse response language `en` or `ko`
 
 Intent resolution returns `answer`, `continue_work`, or `clarify` and binds one structured effect:
 
-| Effect | Required fields | Authority and meaning |
-| --- | --- | --- |
-| `none` | kind | No mutation may occur |
-| `repository_work` | kind | Use the signed exact-workstream Hub continuation path |
-| `discord_current_member_nickname_set` | kind, nickname | Change only this authenticated bot member's nickname in the mapped guild |
-| `discord_guild_text_channel_create` | kind, name | Create one bounded text channel in the mapped guild |
-| `discord_public_thread_create` | kind, name | Create one bounded public thread under the mapped current channel |
+| Effect                                | Required fields | Authority and meaning                                                    |
+| ------------------------------------- | --------------- | ------------------------------------------------------------------------ |
+| `none`                                | kind            | No mutation may occur                                                    |
+| `repository_work`                     | kind            | Use the signed exact-workstream Hub continuation path                    |
+| `discord_current_member_nickname_set` | kind, nickname  | Change only this authenticated bot member's nickname in the mapped guild |
+| `discord_guild_text_channel_create`   | kind, name      | Create one bounded text channel in the mapped guild                      |
+| `discord_public_thread_create`        | kind, name      | Create one bounded public thread under the mapped current channel        |
 
 The resolver receives available effect kinds. An unavailable effect becomes clarification and never falls through to repository work. The immutable intent record binds effect JSON alongside event, message hash, provider, model, confidence, digest, and time. The nickname is a bounded 1 to 32 character platform argument and may repeat that small source value; the full message remains only in CAS.
 
@@ -49,7 +49,9 @@ The remote-command policy loop is an independent control plane. A typed policy v
 
 ### Realtime and reviewed writing profiles
 
-Managed read responses retain the provider-neutral run coordinator, selected and injected repository context, CAS artifacts, run events, provider session binding, deterministic writing checks, and provider token and cache telemetry. Without `routing.evaluation`, `writing_mul-realtime-conversation` removes the second synchronous model call and makes no semantic-review claim. With `routing.evaluation`, `writing_mul-conversation` retains the independent fail-closed semantic pass.
+Managed read responses retain the provider-neutral run coordinator, selected and injected repository context, CAS artifacts, run events, provider session binding, deterministic writing checks, and provider token and cache telemetry. Without `routing.evaluation`, `writing_mul-realtime-conversation` removes the second synchronous model call and makes no semantic-review claim. With `routing.evaluation`, `writing_mul-conversation` retains the independent fail-closed semantic pass for managed read and clarification replies only.
+
+The read-response evaluator is not an organization-wide review default. Repository-work and goal replies use their responder-owned realtime contract, while fixed continuation, control, and platform-action replies use the fixed-status contract. `routing.resultEvaluation` separately selects the evaluator for publishing a completed execution result and its privacy checks, with backward-compatible fallback to `routing.evaluation` and then the command provider. Consequential execution, design decisions, external publication, and explicit challenge use this result boundary or their workflow-specific verification, deliberation, or review boundaries instead of adding a synchronous model call to every conversation reply. Publication verification must select the same mode-owned contract that created the candidate and its permit.
 
 Repository mutation retains the configured command provider and managed remote host. Changed continuations must advance the exact workstream and leave knowledge migration, normalization, and lint current. Discord platform actions invoke neither repository hooks nor workstream finalization because they do not mutate repository state.
 

@@ -17,6 +17,10 @@ import {
   materializeDeliberationDocument,
   repositoryRelativePath,
 } from "./deliberation-document-materializer.js";
+import {
+  assertManagedDeliberationEvidenceBundle,
+  type ManagedDeliberationEvidenceBundle,
+} from "./managed-deliberation-evidence.js";
 
 export interface PublishedContext {
   publication: SharedContextPublication;
@@ -32,6 +36,8 @@ export interface DeliberationWorkspaceSnapshot {
   writingPolicyContentHash: string;
   generatedDocuments: Record<string, DocumentRecord>;
   contexts: PublishedContext[];
+  taskEvidenceDocumentIds?: string[];
+  taskEvidenceBundleHash?: string | null;
 }
 
 function shortHash(value: string): string {
@@ -43,6 +49,8 @@ export class DeliberationWorkspace {
   private readonly contexts: PublishedContext[] = [];
   private readonly publicationsById = new Map<string, SharedContextPublication>();
   private readonly generatedDocumentIds = new Set<string>();
+  private taskEvidenceIds: string[] = [];
+  private taskEvidenceHash: string | null = null;
 
   private constructor(
     private readonly repositoryRoot: string,
@@ -156,6 +164,15 @@ export class DeliberationWorkspace {
         "The writing contract in the deliberation workspace differs from the snapshot.",
       );
     for (const context of input.snapshot.contexts) workspace.rememberContext(context);
+    const taskEvidenceIds = input.snapshot.taskEvidenceDocumentIds ?? [];
+    if (
+      new Set(taskEvidenceIds).size !== taskEvidenceIds.length ||
+      taskEvidenceIds.some((documentId) => !workspace.generatedDocumentIds.has(documentId))
+    ) {
+      throw new Error("Task evidence in the deliberation workspace snapshot is invalid.");
+    }
+    workspace.taskEvidenceIds = [...taskEvidenceIds];
+    workspace.taskEvidenceHash = input.snapshot.taskEvidenceBundleHash ?? null;
     return workspace;
   }
 
@@ -173,6 +190,8 @@ export class DeliberationWorkspace {
         ]),
       ),
       contexts: structuredClone(this.contexts),
+      taskEvidenceDocumentIds: [...this.taskEvidenceIds],
+      taskEvidenceBundleHash: this.taskEvidenceHash,
     };
   }
 
@@ -191,6 +210,66 @@ export class DeliberationWorkspace {
         bundle: structuredClone(item.handoff),
         producerRole: structuredClone(item.producerRole),
       }));
+  }
+
+  taskEvidenceDocumentIds(): string[] {
+    return [...this.taskEvidenceIds];
+  }
+
+  taskEvidenceBundleHash(): string | null {
+    return this.taskEvidenceHash;
+  }
+
+  async installTaskEvidence(bundle: ManagedDeliberationEvidenceBundle): Promise<void> {
+    assertManagedDeliberationEvidenceBundle(bundle);
+    if (this.taskEvidenceIds.length > 0 || this.taskEvidenceHash !== null) {
+      throw new Error("Task evidence is already installed in the deliberation workspace.");
+    }
+    const token = bundle.bundleHash.slice("sha256:".length, "sha256:".length + 16);
+    const manifestId = `doc_evidence_${token}_manifest`;
+    const manifest = `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        query: bundle.query,
+        sourceSnapshotId: bundle.sourceSnapshotId,
+        impactReportId: bundle.impactReportId,
+        bundleHash: bundle.bundleHash,
+        documents: bundle.documents.map(
+          ({ conceptId, title, sourcePath, sourceContentHash, assurance, freshness }) => ({
+            conceptId,
+            title,
+            sourcePath,
+            sourceContentHash,
+            assurance,
+            freshness,
+          }),
+        ),
+      },
+      null,
+      2,
+    )}\n`;
+    this.documents[manifestId] = await this.materializeDocument({
+      documentId: manifestId,
+      directoryName: `evidence-${token}-manifest`,
+      filename: "content.json",
+      content: manifest,
+      sourceId: `deliberation-evidence:${bundle.bundleHash}`,
+    });
+    const documentIds = await Promise.all(
+      bundle.documents.map(async (document, index) => {
+        const documentId = `doc_evidence_${token}_${String(index + 1).padStart(2, "0")}`;
+        this.documents[documentId] = await this.materializeDocument({
+          documentId,
+          directoryName: `evidence-${token}-${String(index + 1).padStart(2, "0")}`,
+          filename: "content.md",
+          content: document.content,
+          sourceId: `${document.conceptId}:${document.sourcePath}:${document.sourceContentHash}`,
+        });
+        return documentId;
+      }),
+    );
+    this.taskEvidenceIds = [manifestId, ...documentIds];
+    this.taskEvidenceHash = bundle.bundleHash;
   }
 
   rememberContext(input: {

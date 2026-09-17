@@ -16,6 +16,7 @@ function event(
     signalCode?: string | null;
     actorKind?: "human" | "agent" | "system";
     automationDepth?: number;
+    audienceParticipation?: "eligible" | "observe_only";
   } = {},
 ) {
   const actorKind = input.actorKind ?? "human";
@@ -45,6 +46,9 @@ function event(
     },
     replyToEventId: null,
     signalCode: input.signalCode ?? null,
+    ...(input.audienceParticipation === undefined
+      ? {}
+      : { audienceParticipation: input.audienceParticipation }),
     automationDepth: input.automationDepth ?? 0,
     occurredAt: "2026-08-20T00:00:01.000Z",
   });
@@ -191,6 +195,46 @@ describe("conversation participation", () => {
         ownsTurn: true,
       }),
     ).toBe(true);
+  });
+
+  it("observes a Lervo-owned publication even when an agent policy would otherwise respond", () => {
+    const publication = event({
+      actorKind: "agent",
+      mentionedParticipant: true,
+      audienceParticipation: "observe_only",
+    });
+    const conversational = createConversationParticipationPolicy({
+      projectId: "prj_project01",
+      roleId: "role_reviewer",
+      conversationIds: ["cnv_general01"],
+      mode: "proactive",
+      respondTo: ["agent", "human"],
+      signalCodes: [],
+      cooldownSeconds: 0,
+      maxResponsesPerHour: 5,
+      maxAutomationDepth: 8,
+      createdAt: "2026-08-20T00:00:00.000Z",
+    });
+    expect(
+      requiresConversationRelevance({
+        event: publication,
+        policy: conversational,
+        agentParticipantId: "ptc_agent001",
+        ownsTurn: true,
+      }),
+    ).toBe(false);
+    expect(
+      decide({
+        event: publication,
+        policy: conversational,
+        agentParticipantId: "ptc_agent001",
+        relevance: "relevant",
+      }),
+    ).toMatchObject({
+      action: "observe",
+      reason: "publication_observation_only",
+      relevance: "not_checked",
+    });
   });
 
   it("observes a turn owned by another agent without making a relevance claim", () => {

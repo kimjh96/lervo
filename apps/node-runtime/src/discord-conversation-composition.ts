@@ -21,32 +21,18 @@ export type DiscordPeerAgentBinding = NonNullable<
   NodeDiscordConversationConfig["peerAgents"]
 >[number] & { agentBinding: ConversationAgentBinding; displayName?: string };
 
-export function createAuthorizedAgentEffectRequesters(
-  config: NodeDiscordConversationConfig,
-  peerAgents: readonly DiscordPeerAgentBinding[],
-) {
-  return [
-    ...config.participants.flatMap((participant) =>
-      participant.mayRequestEffects === true && participant.roleId !== null
-        ? config.conversations
-            .filter((conversation) => conversation.tenantKey === participant.tenantKey)
-            .map((conversation) => ({
-              participantId: participant.participantId,
-              roleId: participant.roleId!,
-              conversationId: conversation.conversationId,
-            }))
-        : [],
-    ),
-    ...peerAgents.flatMap((peer) =>
-      peer.roleId === "ceo"
-        ? peer.conversationIds.map((conversationId) => ({
-            participantId: peer.participantId,
-            roleId: peer.roleId,
-            conversationId,
+export function createAuthorizedAgentEffectRequesters(config: NodeDiscordConversationConfig) {
+  return config.participants.flatMap((participant) =>
+    participant.mayRequestEffects === true && participant.roleId !== null
+      ? config.conversations
+          .filter((conversation) => conversation.tenantKey === participant.tenantKey)
+          .map((conversation) => ({
+            participantId: participant.participantId,
+            roleId: participant.roleId!,
+            conversationId: conversation.conversationId,
           }))
-        : [],
-    ),
-  ];
+      : [],
+  );
 }
 
 export function createDiscordHubContinuation(
@@ -183,7 +169,6 @@ export function createDiscordPlatformBindings(input: {
                     roleId: peer.roleId,
                     agentBinding: peer.agentBinding,
                   },
-                  startsAutomationChain: true,
                 }))
             : [],
         ),

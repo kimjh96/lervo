@@ -16,6 +16,7 @@ export * from "./work-responsibility.js";
 export * from "./organization.js";
 export * from "./policy.js";
 export * from "./product-host.js";
+export * from "./product-surface-projections.js";
 export * from "./types.js";
 export * from "./unattended-scheduler.js";
 export * from "./outcome-supervision.js";

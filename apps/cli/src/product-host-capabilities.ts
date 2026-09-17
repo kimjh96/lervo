@@ -4,12 +4,20 @@ import type {
   ProductHostCapabilityReportV2,
   ProductHostCapabilityReportV3,
   ProductHostCapabilityReportV4,
+  ProductHostCapabilityReportV7,
+  ProductHostCapabilityReportV8,
+  ProductHostCapabilityReportV9,
+  ProductHostCapabilityReportV10,
 } from "@lervo/application-contract";
 
 import { upgradeProductHostCapabilityReportV4 } from "./product-host-capabilities-v4.js";
 import { upgradeProductHostCapabilityReportV5 } from "./product-host-capabilities-v5.js";
 import { upgradeProductHostCapabilityReportV6 } from "./product-host-capabilities-v6.js";
 import { upgradeProductHostCapabilityReportV7 } from "./product-host-capabilities-v7.js";
+import { upgradeProductHostCapabilityReportV8 } from "./product-host-capabilities-v8.js";
+import { upgradeProductHostCapabilityReportV9 } from "./product-host-capabilities-v9.js";
+import { upgradeProductHostCapabilityReportV10 } from "./product-host-capabilities-v10.js";
+import { upgradeProductHostCapabilityReportV11 } from "./product-host-capabilities-v11.js";
 
 function createProductHostCapabilityReportV1(): ProductHostCapabilityReportV1 {
   return {
@@ -380,7 +388,7 @@ function createProductHostCapabilityReportV3(): ProductHostCapabilityReportV3 {
 }
 
 export function createProductHostCapabilityReport(
-  protocolVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 = 1,
+  protocolVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 = 1,
 ): ProductHostCapabilityReport {
   if (protocolVersion === 1) return createProductHostCapabilityReportV1();
   if (protocolVersion === 2) return createProductHostCapabilityReportV2();
@@ -392,5 +400,17 @@ export function createProductHostCapabilityReport(
   const versionFive = upgradeProductHostCapabilityReportV5(versionFour);
   if (protocolVersion === 5) return versionFive;
   const versionSix = upgradeProductHostCapabilityReportV6(versionFive);
-  return protocolVersion === 6 ? versionSix : upgradeProductHostCapabilityReportV7(versionSix);
+  if (protocolVersion === 6) return versionSix;
+  const versionSeven: ProductHostCapabilityReportV7 =
+    upgradeProductHostCapabilityReportV7(versionSix);
+  if (protocolVersion === 7) return versionSeven;
+  const versionEight: ProductHostCapabilityReportV8 =
+    upgradeProductHostCapabilityReportV8(versionSeven);
+  if (protocolVersion === 8) return versionEight;
+  const versionNine: ProductHostCapabilityReportV9 =
+    upgradeProductHostCapabilityReportV9(versionEight);
+  if (protocolVersion === 9) return versionNine;
+  const versionTen: ProductHostCapabilityReportV10 =
+    upgradeProductHostCapabilityReportV10(versionNine);
+  return protocolVersion === 10 ? versionTen : upgradeProductHostCapabilityReportV11(versionTen);
 }

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   adaptiveConversationWritingContract,
+  koreanConversationWritingContract,
   defaultEnglishWritingContract,
   defaultWritingContract,
   evaluateWritingGate,
@@ -107,6 +108,19 @@ describe("provider-neutral writing verification", () => {
     expect(() => writingContractForLanguage("ko-KR")).toThrow(
       "Unsupported writing publication language: ko-KR",
     );
+  });
+
+  it("defines a Korean conversation publication contract without changing documentation defaults", () => {
+    expect(validateSchema("writingContract", koreanConversationWritingContract)).toEqual({
+      valid: true,
+      errors: [],
+    });
+    expect(koreanConversationWritingContract).toMatchObject({
+      writingPolicyId: "writing_ko-conversation",
+      locale: "ko",
+      surfaces: ["chat"],
+    });
+    expect(defaultWritingContract).toBe(defaultEnglishWritingContract);
   });
 
   it("catches only deterministic expression violations in the lint pass", () => {

@@ -4,21 +4,30 @@ import {
   hashConversationSourceEventKey,
 } from "@lervo/conversation-contract";
 import type {
+  ConversationDeliberationOriginReference,
   ConversationDeliberationResumeWorkerCycleResult,
   ConversationDeliberationSummary,
   ConversationDeliberationWorkerCycleResult,
 } from "@lervo/conversation-control";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
+import type { ConversationDeliberationResultSource } from "./conversation-deliberation-result-source.js";
+
 type WorkerResult =
   ConversationDeliberationWorkerCycleResult | ConversationDeliberationResumeWorkerCycleResult;
 
 interface PendingReconciliation {
   attempts: number;
+  uncertainAt: string;
 }
+
+type ClaimedNotification = NonNullable<
+  Awaited<ReturnType<ConversationApplication["claimDeliberationNotification"]>>
+>;
 
 export class ConversationDeliberationOutcomeCoordinator {
   private readonly pending = new Map<string, PendingReconciliation>();
+  private readonly exhausted = new Set<string>();
 
   constructor(
     private readonly options: {
@@ -26,6 +35,7 @@ export class ConversationDeliberationOutcomeCoordinator {
       integrationId: string;
       conversationIds: readonly string[];
       artifactStore: ArtifactStore;
+      resultSource: ConversationDeliberationResultSource;
       maximumReconciliationAttempts: number;
       now?(): Date;
     },
@@ -38,13 +48,25 @@ export class ConversationDeliberationOutcomeCoordinator {
   async observe(application: ConversationApplication, result: WorkerResult): Promise<void> {
     if (result.status === "idle") return;
     if (result.status === "uncertain") {
-      this.pending.set(result.deliberationId, { attempts: 0 });
+      this.pending.set(result.deliberationId, {
+        attempts: 0,
+        uncertainAt: result.uncertainAt,
+      });
       return;
     }
-    await this.notify(application, result.summary);
+    await this.drain(application);
   }
 
   async reconcilePending(application: ConversationApplication): Promise<void> {
+    const uncertain = await application.listUncertainDeliberations({
+      projectId: this.options.projectId,
+      limit: 100,
+    });
+    for (const item of uncertain) {
+      if (!this.pending.has(item.deliberationId) && !this.exhausted.has(item.deliberationId)) {
+        this.pending.set(item.deliberationId, { attempts: 0, uncertainAt: item.uncertainAt });
+      }
+    }
     for (const [deliberationId, pending] of this.pending) {
       const result = await application.reconcileDeliberation?.({
         projectId: this.options.projectId,
@@ -52,94 +74,210 @@ export class ConversationDeliberationOutcomeCoordinator {
       });
       if (result?.status === "reconciled" || result?.status === "not_uncertain") {
         this.pending.delete(deliberationId);
-        await this.notify(application, result.summary);
         continue;
       }
       pending.attempts += 1;
       if (pending.attempts >= this.options.maximumReconciliationAttempts) {
-        this.pending.delete(deliberationId);
-        await this.dispatch(
+        await this.dispatchAttention(
           application,
           deliberationId,
           "deliberation.attention",
-          "I could not verify the managed deliberation's terminal state, so I did not retry the execution. The canonical event history and checkpoint need review before it can continue.",
+          pending.uncertainAt,
         );
+        this.pending.delete(deliberationId);
+        this.exhausted.add(deliberationId);
       }
+    }
+    await this.drain(application);
+  }
+
+  async drain(application: ConversationApplication): Promise<void> {
+    for (let index = 0; index < 16; index += 1) {
+      const claimed = await application.claimDeliberationNotification();
+      if (claimed === null) return;
+      await this.dispatchNotification(application, claimed);
     }
   }
 
-  private async notify(
-    application: ConversationApplication,
+  private async notificationContent(
     summary: ConversationDeliberationSummary,
-  ): Promise<void> {
-    const { deliberationId, status } = summary;
+    responseLanguage: "en" | "ko",
+  ): Promise<string> {
+    const { status } = summary;
     if (!["interrupted", "converged", "no_consensus", "failed"].includes(status)) {
       throw new Error("The deliberation notification outcome is not terminal or resumable.");
     }
-    const description = {
-      interrupted:
-        "The managed deliberation stopped at a verified resumable checkpoint. It can continue without repeating completed work.",
-      converged:
-        "The managed deliberation reached a verified decision. Review the current canonical repository state before acting on it.",
-      no_consensus:
-        "The managed deliberation ended without consensus. No disputed conclusion was promoted as a decision.",
-      failed:
-        "The managed deliberation ended with a verified failure. Review its recorded evidence before deciding the next action.",
-    }[status as "interrupted" | "converged" | "no_consensus" | "failed"];
-    const evidence = ` Published artifact count: ${summary.artifactCount}.`;
-    const recovery =
-      status === "failed"
-        ? " Quarantined/recoverable artifacts, if any, remain separate and are visible through deliberation status, doctor, and trace inspection."
-        : "";
+    if (status === "interrupted") {
+      return responseLanguage === "ko"
+        ? "검토가 안전한 체크포인트에서 일시 중단됐습니다. 완료된 작업을 반복하지 않고 이어갈 수 있습니다."
+        : "The review paused at a safe checkpoint. It can continue without repeating completed work.";
+    }
+    if (status === "failed") {
+      return responseLanguage === "ko"
+        ? "검토를 안전하게 완료하지 못했습니다. 부분 결과는 최종 결정으로 채택하지 않았습니다."
+        : "The review could not complete safely. No partial result was accepted as a decision.";
+    }
+    const result = await this.options.resultSource.read({
+      projectId: this.options.projectId,
+      deliberationId: summary.deliberationId,
+    });
+    if (result.status !== status || result.content === null) {
+      throw new Error("The published deliberation result does not match the terminal outcome.");
+    }
+    if (status === "converged") {
+      return responseLanguage === "ko"
+        ? `이해관계자별 독립 검토가 검증된 결론에 도달했습니다.\n\n${result.content}`
+        : `The independent review reached a verified decision.\n\n${result.content}`;
+    }
+    return responseLanguage === "ko"
+      ? `이해관계자별 독립 검토가 합의에 도달하지 못했습니다. 이견이 있는 결론은 채택하지 않았습니다.\n\n${result.content}`
+      : `The independent review ended without consensus, so no disputed conclusion was accepted.\n\n${result.content}`;
+  }
+
+  private async dispatchNotification(
+    application: ConversationApplication,
+    claimed: ClaimedNotification,
+  ): Promise<void> {
+    const eventIds = await this.dispatch(
+      application,
+      claimed.notification.deliberationId,
+      `completed:${claimed.notification.summary.status}`,
+      "deliberation.completed",
+      await this.notificationContent(
+        claimed.notification.summary,
+        claimed.origin?.responseLanguage ?? "en",
+      ),
+      claimed.notification.occurredAt,
+      claimed.origin,
+    );
+    await application.acceptDeliberationNotification({
+      operation: claimed.notification.operation,
+      deliberationId: claimed.notification.deliberationId,
+      leaseId: claimed.leaseId,
+      conversationEventId: eventIds[0]!,
+    });
+    await application.runDeliveryCycle?.(this.options.integrationId);
+  }
+
+  private async dispatchAttention(
+    application: ConversationApplication,
+    deliberationId: string,
+    signalCode: string,
+    occurredAt: string,
+  ): Promise<void> {
+    const origin = await application.inspectDeliberationOrigin({
+      projectId: this.options.projectId,
+      deliberationId,
+    });
     await this.dispatch(
       application,
       deliberationId,
-      "deliberation.completed",
-      `${description}${evidence}${recovery}`,
+      "attention",
+      signalCode,
+      origin?.responseLanguage === "ko"
+        ? "검토의 최종 상태를 안전하게 확인할 수 없어 재실행하지 않고 중단했습니다. 부분 결과는 최종 결정으로 채택하지 않았습니다."
+        : "I couldn't complete this review safely. I stopped without retrying and did not treat any partial result as a decision.",
+      occurredAt,
+      origin,
+      true,
     );
+    await application.runDeliveryCycle?.(this.options.integrationId);
   }
 
   private async dispatch(
     application: ConversationApplication,
     deliberationId: string,
+    notificationKey: string,
     signalCode: string,
     content: string,
-  ): Promise<void> {
-    if (this.options.conversationIds.length === 0) return;
-    const artifact = await this.options.artifactStore.put(content);
-    for (const conversationId of this.options.conversationIds) {
-      await application.handleInboundEvent?.(
-        createConversationInboundEvent({
-          sourceEventKeyHash: hashConversationSourceEventKey(
-            `deliberation-outcome:${deliberationId}:${signalCode}:${conversationId}`,
-          ),
-          target: {
-            integrationId: this.options.integrationId,
-            projectId: this.options.projectId,
+    occurredAt: string,
+    origin: ConversationDeliberationOriginReference | null,
+    suppressExistingSourceKey = false,
+  ): Promise<string[]> {
+    const targets =
+      origin === null
+        ? this.options.conversationIds.map((conversationId) => ({
             conversationId,
             threadId: null,
-          },
-          kind: "signal.raised",
-          actor: {
-            kind: "system",
-            participantId: "ptc_lervo_system",
-            roleId: null,
-            agentBinding: null,
-          },
-          content: {
-            artifactId: `art_${artifact.contentHash.slice("sha256:".length, 60)}`,
-            contentHash: artifact.contentHash,
-            byteCount: artifact.byteCount,
-            mediaType: "text/plain; charset=utf-8",
-          },
-          mentions: { roleIds: [], participantIds: [] },
-          replyToEventId: null,
-          signalCode,
-          automationDepth: 0,
-          occurredAt: (this.options.now?.() ?? new Date()).toISOString(),
-        }),
-      );
-      await application.runDeliveryCycle?.(this.options.integrationId);
+            replyToEventId: null,
+            requesterParticipantId: null,
+          }))
+        : [
+            {
+              conversationId: origin.conversationId,
+              threadId: origin.threadId,
+              replyToEventId: origin.sourceEventId,
+              requesterParticipantId: origin.requesterParticipantId,
+            },
+          ];
+    if (targets.length === 0) {
+      throw new Error("The deliberation notification has no origin or configured fallback.");
     }
+    if (application.handleInboundEvent === null) {
+      throw new Error("The deliberation notification interaction runtime is unavailable.");
+    }
+    const artifact = await this.options.artifactStore.put(content);
+    const eventIds: string[] = [];
+    for (const target of targets) {
+      const sourceEventKeyHash = hashConversationSourceEventKey(
+        JSON.stringify([
+          "deliberation-outcome",
+          1,
+          deliberationId,
+          notificationKey,
+          target.conversationId,
+          target.threadId,
+          target.replyToEventId,
+        ]),
+      );
+      if (
+        suppressExistingSourceKey &&
+        application.hasConversationSourceEventKeyHash(sourceEventKeyHash)
+      ) {
+        continue;
+      }
+      const event = createConversationInboundEvent({
+        sourceEventKeyHash,
+        target: {
+          integrationId: this.options.integrationId,
+          projectId: this.options.projectId,
+          conversationId: target.conversationId,
+          threadId: target.threadId,
+        },
+        kind: "signal.raised",
+        actor: {
+          kind: "system",
+          participantId: "ptc_lervo_system",
+          roleId: null,
+          agentBinding: null,
+        },
+        content: {
+          artifactId: `art_${artifact.contentHash.slice("sha256:".length, 60)}`,
+          contentHash: artifact.contentHash,
+          byteCount: artifact.byteCount,
+          mediaType: "text/plain; charset=utf-8",
+        },
+        mentions: {
+          roleIds: [],
+          participantIds:
+            target.requesterParticipantId === null ? [] : [target.requesterParticipantId],
+        },
+        replyToEventId: target.replyToEventId,
+        signalCode,
+        automationDepth: 0,
+        occurredAt,
+      });
+      const results = await application.handleInboundEvent(event);
+      const responding = results.filter(
+        (result) => "outbound" in result.result && result.result.outbound !== null,
+      );
+      if (responding.length !== 1) {
+        throw new Error(
+          "Exactly one conversation policy must create the deliberation notification outbound.",
+        );
+      }
+      eventIds.push(event.eventId);
+    }
+    return eventIds;
   }
 }

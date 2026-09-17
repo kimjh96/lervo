@@ -48,6 +48,23 @@ const providerSelectionSchema = {
   ],
 } as const;
 
+export const deliberationExecutionBudgetSchema = {
+  type: "object",
+  properties: {
+    maximumProviderCalls: { type: "integer", minimum: 1, maximum: 64 },
+    maximumObservedTokens: { type: "integer", minimum: 1, maximum: 10_000_000 },
+    maximumElapsedMs: { type: "integer", minimum: 1_000, maximum: 3_600_000 },
+    unobservedTokenDisposition: { const: "block" },
+  },
+  required: [
+    "maximumProviderCalls",
+    "maximumObservedTokens",
+    "maximumElapsedMs",
+    "unobservedTokenDisposition",
+  ],
+  additionalProperties: false,
+} as const;
+
 export const deliberationPolicySchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://schemas.lervo.dev/v0/deliberation-policy.schema.json",
@@ -79,6 +96,7 @@ export const deliberationPolicySchema = {
     },
     decisionOwnerRoleId: roleIdSchema,
     maxRounds: { type: "integer", minimum: 1, maximum: 20 },
+    executionBudget: deliberationExecutionBudgetSchema,
     requiredVerificationSuiteIds: {
       type: "array",
       items: verificationSuiteIdSchema,

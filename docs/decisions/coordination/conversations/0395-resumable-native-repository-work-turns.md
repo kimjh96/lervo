@@ -1,6 +1,6 @@
 # ADR-0395: Resumable native repository work turns
 
-- Status: accepted
+- Status: accepted (amended 2026-09-16)
 - Decision date: 2026-09-10
 
 ## Context
@@ -18,7 +18,7 @@ In locally configured Discord deployments using natural routing, `repository_wor
 - Codex uses `codex exec` with its workspace-write automatic-review sandbox, adds the exact Git common directory as a repository-owned writable root for Lervo checkpoints, and resumes by exact thread ID under the same boundary.
 - Claude uses print-mode Claude Code with automatic permission classification and resumes by exact session ID.
 
-The Node supplies the repository root, model, reasoning effort, bounded timeout, abort signal, and an environment exposing the running Node executable to CLI launchers. Provider adapters own provider-specific arguments and result parsing. The conversation application depends only on the provider-neutral repository-work port.
+The Node supplies the repository root, model, reasoning effort, bounded timeout, abort signal, and an environment exposing the running Node executable to CLI launchers. Provider adapters own provider-specific arguments and result parsing. The conversation application depends only on the provider-neutral repository-work port. The default native-work timeout is thirty minutes. Instructions bind an earlier exact finalization-start time, require the first bounded checkpoint immediately after the first material edit, and reserve the remaining time for exact-state checkpoint refresh, required checks, and a truthful bounded result.
 
 Requests instruct the provider to inspect and act immediately, not promise or queue work. Ordinary requesters may not request commits, repository-remote creation, or pushes. A mapped human or an agent already admitted by the configured effect-request authority may explicitly request one of those exact effects. The provider must observe before execution, execute once, and independently verify afterward; it must not blindly retry an uncertain result.
 
@@ -49,10 +49,10 @@ Each integration retains at most 4,096 completed or failed turn rows and 1,024 s
 The Node snapshots Git HEAD and dirty-path content digests before and after every provider turn. Responses report only paths proven changed by that comparison and explicitly identify zero observed changes. Provider prose remains provider output, not independently verified managed evidence.
 
 - `running` means the native provider process may be active.
-- `completed` requires a final provider result, durable CAS result, session update, turn update, and canonical `conversation.repository_work.completed` event. Successful diagnostics or external effects that do not alter repository bytes record equal before and after revisions and zero changed paths. Changed bytes also require checkpoint, knowledge, and replica guarantees described below.
+- `completed` requires a final provider result, durable CAS result, session update, turn update, and canonical `conversation.repository_work.completed` event. Successful diagnostics or external effects that do not alter repository bytes record equal before and after revisions and zero changed paths. Changed bytes also require checkpoint and knowledge guarantees plus replica parity when the deployment explicitly enables that strict option.
 - `failed` means no successful result was accepted. Repository bytes or external state may still require inspection because a provider process can fail after an effect. Startup or retry never converts a failed or interrupted native effect into managed success.
 
-Provider process, protocol, empty-result, turn, repository-observation, and result-storage failures retain distinct bounded failure codes without provider stderr or request text. The terminal conversation response reports failure rather than acknowledging a queue. Node shutdown aborts an active provider process. Discord typing starts when the turn owner begins relevance or intent resolution and continues through the provider turn.
+Provider process, protocol, empty-result, turn, deadline, repository-observation, and result-storage failures retain distinct bounded failure codes without provider stderr or request text. A deadline termination is always `provider_turn_timeout`, even when the terminated CLI exits zero or emitted intermediate agent messages; those messages cannot be mistaken for the final result and cannot be followed by checkpoint verification. The terminal conversation response reports failure rather than acknowledging a queue. Node shutdown aborts an active provider process. Discord typing starts when the turn owner begins relevance or intent resolution and continues through the provider turn.
 
 A message-scoped dispatch or provider failure does not terminate the shared Node conversation supervisor. Durable interaction retry and the terminal-failure response own that event while other bot identities and active work continue. Authentication rejection and invalid runtime configuration remain terminal supervisor failures.
 

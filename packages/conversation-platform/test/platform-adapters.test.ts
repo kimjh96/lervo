@@ -98,9 +98,11 @@ function permit(
 async function outbound(input: {
   event: ConversationInboundEvent;
   artifactStore: Awaited<ReturnType<typeof artifacts>>;
+  audienceParticipation?: "eligible" | "observe_only";
+  content?: string;
 }): Promise<ConversationOutboundMessage> {
   const content = await storeConversationText({
-    content: "Confirmed. Proceeding to the next verification step.",
+    content: input.content ?? "Confirmed. Proceeding to the next verification step.",
     artifactStore: input.artifactStore,
   });
   const policy = createConversationParticipationPolicy({
@@ -121,6 +123,9 @@ async function outbound(input: {
     participantId: "ptc_lervo_agent",
     content,
     publicationPermit: permit(content),
+    ...(input.audienceParticipation === undefined
+      ? {}
+      : { audienceParticipation: input.audienceParticipation }),
     createdAt: "2026-08-20T00:00:02.000Z",
   });
 }
@@ -240,6 +245,14 @@ describe("authenticated platform conversation adapters", () => {
       integrationId: "itg_slack001",
     });
     expect(retryReceipt.deliveryKeyHash).toBe(receipt.deliveryKeyHash);
+    const observationOnly = await outbound({
+      event: accepted.event,
+      artifactStore,
+      audienceParticipation: "observe_only",
+    });
+    await expect(adapter.deliver(observationOnly)).rejects.toMatchObject({
+      code: "platform_delivery_failed",
+    });
     expect(send.mock.calls.map(([request]) => request.outboundId)).toEqual([
       message.outboundId,
       message.outboundId,
@@ -416,6 +429,33 @@ describe("authenticated platform conversation adapters", () => {
       }),
     );
     expect(JSON.stringify(accepted.event)).not.toContain("523456789012345678");
+    const statusIngress = await adapter.receiveGatewayDispatch({
+      sessionHandle: "authenticated-session",
+      body: Buffer.from(
+        JSON.stringify({
+          op: 0,
+          s: 43,
+          t: "MESSAGE_CREATE",
+          d: {
+            id: "323456789012345680",
+            channel_id: "223456789012345678",
+            guild_id: "123456789012345678",
+            author: { id: "523456789012345678", bot: true },
+            content: "검증된 상태 게시물입니다.",
+            nonce: `lv1o_${"a".repeat(20)}`,
+            mentions: [],
+            timestamp: "2026-08-20T00:00:02.000Z",
+          },
+        }),
+      ),
+    });
+    expect(statusIngress).toMatchObject({
+      status: "accepted",
+      event: {
+        actor: { kind: "agent" },
+        audienceParticipation: "observe_only",
+      },
+    });
     expect(identity.inbound).toHaveBeenCalledWith(
       expect.objectContaining({
         mentionedParticipantKeys: ["user:623456789012345678", "webhook:723456789012345678"],
@@ -442,6 +482,7 @@ describe("authenticated platform conversation adapters", () => {
       expect.objectContaining({
         content: "Confirmed. Proceeding to the next verification step.",
         replyToMessageId: null,
+        audienceParticipation: "eligible",
         allowedMentions: "none",
         enforceIdempotency: true,
       }),
@@ -461,6 +502,69 @@ describe("authenticated platform conversation adapters", () => {
       message.outboundId,
       message.outboundId,
     ]);
+  });
+
+  it("projects oversized observation-only contributions within Discord's message limit", async () => {
+    const artifactStore = await artifacts();
+    const identity = identityPort();
+    const send = vi.fn(async (_request: DiscordDeliveryRequest) => ({
+      messageId: "423456789012345678",
+      deliveredAt: "2026-08-20T00:00:03.000Z",
+    }));
+    const adapter = new DiscordConversationAdapter({
+      integrationId: "itg_discord01",
+      applicationId: "999999999999999999",
+      allowedGuildIds: ["123456789012345678"],
+      allowDirectMessages: false,
+      gatewayAuthentication: { verifyDispatch: async () => ({ authenticated: true }) },
+      identity: identity.port,
+      artifactStore,
+      delivery: { send },
+      now: () => now,
+    });
+    const ingress = await adapter.receiveGatewayDispatch({
+      sessionHandle: "authenticated-session",
+      body: Buffer.from(
+        JSON.stringify({
+          op: 0,
+          s: 45,
+          t: "MESSAGE_CREATE",
+          d: {
+            id: "323456789012345681",
+            channel_id: "223456789012345678",
+            guild_id: "123456789012345678",
+            author: { id: "523456789012345678", bot: false },
+            content: "검토 결과를 알려주세요.",
+            mentions: [],
+            timestamp: "2026-08-20T00:00:00.000Z",
+          },
+        }),
+      ),
+    });
+    if (ingress.status !== "accepted") throw new Error("Expected accepted Discord ingress.");
+    const message = await outbound({
+      event: ingress.event,
+      artifactStore,
+      audienceParticipation: "observe_only",
+      content: `**운영·보안·관측성 검토자**\n\n${"가".repeat(5_000)}`,
+    });
+
+    await expect(adapter.deliver(message)).resolves.toMatchObject({
+      outboundId: message.outboundId,
+    });
+    const projected = send.mock.calls[0]![0].content;
+    expect([...projected]).toHaveLength(2_000);
+    expect(projected).toContain("전체 내용은 Lervo의 기록과 통합 검색에서 확인할 수 있습니다.");
+
+    const humanDirected = await outbound({
+      event: ingress.event,
+      artifactStore,
+      content: "A".repeat(2_001),
+    });
+    await expect(adapter.deliver(humanDirected)).rejects.toMatchObject({
+      code: "platform_delivery_failed",
+    });
+    expect(send).toHaveBeenCalledOnce();
   });
 
   it("binds an authenticated /goal to the visible response and preserves human attribution", async () => {

@@ -36,12 +36,17 @@ export function createConversationOutboundMessage(input: {
   agentBinding?: ConversationOutboundMessage["actor"]["agentBinding"];
   content: ConversationOutboundMessage["content"];
   publicationPermit: ConversationOutboundMessage["publicationPermit"];
+  audienceParticipation?: "eligible" | "observe_only";
   deliveryRelation?: "standalone" | "reply";
   createdAt: string;
 }): ConversationOutboundMessage {
   const content: OutboundContent = {
     schemaVersion: 1,
     sourceEventId: input.event.eventId,
+    replyToEventId:
+      input.deliveryRelation === "reply"
+        ? (input.event.replyToEventId ?? input.event.eventId)
+        : null,
     policyId: input.policy.policyId,
     target: clone(input.event.target),
     actor: {
@@ -52,6 +57,9 @@ export function createConversationOutboundMessage(input: {
     },
     content: clone(input.content),
     publicationPermit: clone(input.publicationPermit),
+    ...(input.audienceParticipation === undefined
+      ? {}
+      : { audienceParticipation: input.audienceParticipation }),
     deliveryRelation: input.deliveryRelation ?? "standalone",
     automationDepth: input.event.automationDepth + 1,
     createdAt: input.createdAt,
@@ -95,6 +103,11 @@ export function assertConversationOutboundMessage(input: {
         outbound.target.projectId !== input.event.target.projectId ||
         outbound.target.conversationId !== input.event.target.conversationId ||
         outbound.target.threadId !== input.event.target.threadId ||
+        (outbound.replyToEventId !== undefined &&
+          outbound.replyToEventId !==
+            (outbound.deliveryRelation === "reply"
+              ? (input.event.replyToEventId ?? input.event.eventId)
+              : null)) ||
         outbound.automationDepth !== input.event.automationDepth + 1 ||
         Date.parse(outbound.createdAt) < Date.parse(input.event.occurredAt))) ||
     (input.policy !== undefined &&

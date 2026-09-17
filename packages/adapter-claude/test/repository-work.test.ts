@@ -32,6 +32,27 @@ process.stdout.write(JSON.stringify({is_error:false,session_id:session,result:pe
   return path;
 }
 
+async function timedOutExecutable(): Promise<string> {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-claude-timeout-"));
+  roots.push(root);
+  const path = resolve(root, "fake-claude-timeout.mjs");
+  await writeFile(
+    path,
+    `#!/usr/bin/env node
+const args = process.argv.slice(2);
+const resumed = args.indexOf("--resume");
+const created = args.indexOf("--session-id");
+const session = args[resumed >= 0 ? resumed + 1 : created + 1];
+process.stdout.write(JSON.stringify({is_error:false,session_id:session,result:"still working"}));
+process.on("SIGTERM",()=>process.exit(0));
+setInterval(()=>{},1000);
+`,
+    { mode: 0o700 },
+  );
+  await chmod(path, 0o700);
+  return path;
+}
+
 describe("ClaudeRepositoryWorkTurnExecutor", () => {
   it("starts and resumes a native repository work session", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-claude-root-"));
@@ -69,5 +90,20 @@ describe("ClaudeRepositoryWorkTurnExecutor", () => {
       if (previousPath === undefined) delete process.env.PATH;
       else process.env.PATH = previousPath;
     }
+  });
+
+  it("rejects a deadline termination even when Claude emitted a result and exits zero", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-claude-timeout-root-"));
+    roots.push(root);
+    const executor = new ClaudeRepositoryWorkTurnExecutor(await timedOutExecutable());
+
+    await expect(
+      executor.execute({
+        repositoryRoot: root,
+        instructions: "work",
+        providerSessionId: null,
+        timeoutMs: 20,
+      }),
+    ).rejects.toMatchObject({ code: "provider_turn_timeout" });
   });
 });

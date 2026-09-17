@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ae1da74c1ed262a2a455c675"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Bind conversation deliberations to durable Lervo origins and preserve structured decision evidence for product surfaces."

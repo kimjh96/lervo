@@ -174,6 +174,17 @@ import {
 } from "./knowledge-lifecycle.js";
 import { projectManifestSchema } from "./project.js";
 import { projectIdentityMigratedEventPayloadSchema } from "./project-identity-migration.js";
+import { productActivityPageSchema } from "./product-activity-page.js";
+import {
+  productActivitySubscriptionHintSchema,
+  productActivitySubscriptionRequestSchema,
+} from "./product-activity-subscription.js";
+import { productDeliberationViewSchema } from "./product-deliberation-view.js";
+import {
+  productSteeringCommandSchema,
+  productSteeringResultSchema,
+} from "./product-steering-command.js";
+import { productUnifiedSearchResultSchema } from "./product-unified-search-result.js";
 import {
   policyApprovalRevocationSchema,
   policyApprovalSchema,
@@ -198,6 +209,7 @@ import { highRiskRoleWorkflowSchema } from "./high-risk-role-workflow.js";
 import { runCompletedEventPayloadSchema } from "./run-event.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
 import { statePrunedEventPayloadSchema } from "./state-pruned-event.js";
+import { surfaceObservabilityReportSchema } from "./surface-observability-report.js";
 import { skillManifestSchema } from "./skill.js";
 import { skillLockSchema } from "./skill-lock.js";
 import { traceReportSchema } from "./trace-report.js";
@@ -339,6 +351,14 @@ const validators = {
     conversationRepositoryWorkCompletedEventPayloadSchema,
   ),
   conversationDeliveryReceipt: ajv.compile(conversationDeliveryReceiptSchema),
+  productActivityPage: ajv.compile(productActivityPageSchema),
+  productActivitySubscriptionRequest: ajv.compile(productActivitySubscriptionRequestSchema),
+  productActivitySubscriptionHint: ajv.compile(productActivitySubscriptionHintSchema),
+  productSteeringCommand: ajv.compile(productSteeringCommandSchema),
+  productSteeringResult: ajv.compile(productSteeringResultSchema),
+  productUnifiedSearchResult: ajv.compile(productUnifiedSearchResultSchema),
+  surfaceObservabilityReport: ajv.compile(surfaceObservabilityReportSchema),
+  productDeliberationView: ajv.compile(productDeliberationViewSchema),
   deliberationPolicy: ajv.getSchema(deliberationPolicySchema.$id)!,
   deliberationWorkflowSource: ajv.compile(deliberationWorkflowSourceSchema),
   deliberationArtifact: ajv.compile(deliberationArtifactSchema),

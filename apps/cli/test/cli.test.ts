@@ -1882,6 +1882,18 @@ describe("lervo deliberate CLI", () => {
         "prj_control01",
         "--root",
         "/work/repository",
+        "--codex-executable",
+        "/opt/providers/codex",
+        "--claude-executable",
+        "/opt/providers/claude",
+        "--codex-model",
+        "gpt-test",
+        "--claude-model",
+        "claude-test",
+        "--codex-reasoning-effort",
+        "high",
+        "--claude-reasoning-effort",
+        "medium",
         "--stdin",
       ],
       {
@@ -1916,6 +1928,13 @@ describe("lervo deliberate CLI", () => {
         repositoryRoot: "/work/repository",
         policyId: "deliberation_product-review",
         topic: "Review the deployment boundary.",
+        responseLanguage: "en",
+        providerExecutables: {
+          codex: "/opt/providers/codex",
+          claude: "/opt/providers/claude",
+        },
+        providerModels: { codex: "gpt-test", claude: "claude-test" },
+        providerReasoningEfforts: { codex: "high", claude: "medium" },
       },
     });
     expect(JSON.parse(output)).toEqual({

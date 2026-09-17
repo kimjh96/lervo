@@ -24,6 +24,7 @@ import {
   interactionSQLiteSchemaVersion,
   migrateInteractionDatabase,
 } from "./database.js";
+import { inbound } from "./codec.js";
 import { ConversationDecisionSQLiteRepository } from "./decision-repository.js";
 import { InteractionSQLiteError } from "./errors.js";
 import { ConversationInboxSQLiteRepository } from "./inbox-repository.js";
@@ -112,6 +113,23 @@ export class SQLiteConversationInteractionStore implements ConversationInteracti
     );
     const deadlines = values.filter((value): value is number => typeof value === "number");
     return deadlines.length === 0 ? null : Math.min(...deadlines);
+  }
+
+  hasInboundSourceEventKeyHash(sourceEventKeyHash: string): boolean {
+    this.assertOpen();
+    if (!/^sha256:[a-f0-9]{64}$/u.test(sourceEventKeyHash)) {
+      throw new InteractionSQLiteError(
+        "integrity_failed",
+        "The conversation source event key hash is invalid.",
+      );
+    }
+    const pattern = `%"sourceEventKeyHash":"${sourceEventKeyHash}"%`;
+    for (const row of this.database
+      .prepare("SELECT * FROM conversation_inbox WHERE event_json LIKE ?")
+      .iterate(pattern)) {
+      if (inbound(row).sourceEventKeyHash === sourceEventKeyHash) return true;
+    }
+    return false;
   }
 
   async claimInbound(input: {

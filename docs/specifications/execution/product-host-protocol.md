@@ -1,9 +1,9 @@
 # Product-host protocol
 
 Status: `active`
-As of: 2026-09-09
+As of: 2026-09-17
 
-Separately installed operating or collaboration products discover and compose Lervo locally through installed `@lervo/cli`, without a Hub, workspace-private imports, or storage-internal access.
+Separately installed operating and collaboration products compose Lervo locally through installed `@lervo/cli`, without a Hub, workspace-private imports, or storage-internal access.
 
 ## Discovery
 
@@ -13,14 +13,19 @@ Default discovery returns the 21-route `ProductHostCapabilityReportV1`:
 lervo application capabilities --json
 ```
 
-Explicit versions add capabilities without changing earlier versions' discovery:
+Explicit protocol versions add capabilities without changing earlier versions:
 
 - v2: read-only operating-attention and operating-goal routes and projections.
 - v3: read-only operating-liveness route and projection.
 - v4: reviewed direct-message triggering, explicit handoff acknowledgment, and its projection.
-- v5: bounded unattended assignment execution, removed from only v5's unsupported list.
-- v6: graph-v2 inspection and reviewed bounded topology changes, removed from only v6's unsupported list.
+- v5: bounded unattended assignment execution, removed only from v5's unsupported list.
+- v6: graph-v2 inspection and reviewed bounded topology changes, removed only from v6's unsupported list.
 - v7: agent context, multi-team operating projection, team reclassification, bounded CEO decision, and exact organization-executive effect routes.
+- v8: source-bound, privacy-bounded product activity projection from the verified canonical event chain.
+- v9: revision-stable repository-knowledge product search through the qualified Lexical v2 adapter.
+- v10: source-bound managed-work observability over canonical execution evidence.
+- v11: source-bound installed deliberation projection over queue, event, artifact, verification,
+  organization, resource, publication, and delivery evidence.
 
 ```bash
 lervo application capabilities --protocol 2 --json
@@ -29,9 +34,15 @@ lervo application capabilities --protocol 4 --json
 lervo application capabilities --protocol 5 --json
 lervo application capabilities --protocol 6 --json
 lervo application capabilities --protocol 7 --json
+lervo application capabilities --protocol 8 --json
+lervo application capabilities --protocol 9 --json
+lervo application capabilities --protocol 10 --json
+lervo application capabilities --protocol 11 --json
 ```
 
-Versions are compatibility and discovery contracts, not authority grants, repository snapshots, or assertions that route prerequisites are satisfied.
+Versions are compatibility and discovery contracts. They do not grant authority, identify repository snapshots, or assert that route prerequisites are satisfied.
+
+Future versions add Lervo-owned reference-product capabilities defined by the [product-surface specification](product-surfaces.md). Additions remain explicit and capability-negotiated; existing versions retain their route and evidence meanings. Discord and the future first-party surface must pass the same host-neutral conformance cases even when their rendering differs.
 
 ## Specification
 
@@ -59,3 +70,6 @@ Versions are compatibility and discovery contracts, not authority grants, reposi
 - [Reviewed direct-message triggers and handoff acknowledgment](assignment-message-triggers.md)
 - [Assignment routines](assignment-routines.md)
 - [Assignment connectors](assignment-connectors.md)
+- [Product surfaces](product-surfaces.md)
+- [ADR-0417](../../decisions/execution/applications/0417-own-discord-visible-reference-product.md)
+- [ADR-0418](../../decisions/execution/applications/0418-retain-deliberation-as-bounded-decision-workflow.md)

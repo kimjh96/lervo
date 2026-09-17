@@ -32,6 +32,8 @@ const priority: Record<ManagedProviderRunFailureCode, number> = {
   provider_stream_failed: 40,
   provider_turn_failed: 40,
   provider_model_unavailable: 40,
+  provider_tool_limit_exceeded: 45,
+  provider_command_limit_exceeded: 45,
   provider_result_failed: 40,
   provider_start_failed: 40,
   cancelled: 30,

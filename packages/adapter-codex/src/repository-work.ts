@@ -110,15 +110,23 @@ function runCodexProcess(input: {
     const stdout: Buffer[] = [];
     let bytes = 0;
     let settled = false;
+    let timedOut = false;
+    let forcedTermination: ReturnType<typeof setTimeout> | undefined;
     const finish = (operation: () => void) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      if (forcedTermination !== undefined) clearTimeout(forcedTermination);
       input.signal?.removeEventListener("abort", abort);
       operation();
     };
     const abort = () => child.kill("SIGTERM");
-    const timer = setTimeout(() => child.kill("SIGTERM"), input.timeoutMs);
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGTERM");
+      forcedTermination = setTimeout(() => child.kill("SIGKILL"), 5_000);
+      forcedTermination.unref?.();
+    }, input.timeoutMs);
     timer.unref?.();
     input.signal?.addEventListener("abort", abort, { once: true });
     const collect = (target: Buffer[] | null, chunk: Buffer) => {
@@ -141,6 +149,15 @@ function runCodexProcess(input: {
     );
     child.once("close", (code) =>
       finish(() => {
+        if (timedOut) {
+          reject(
+            new RepositoryWorkExecutionError(
+              "provider_turn_timeout",
+              "The Codex repository-work turn exceeded its execution deadline.",
+            ),
+          );
+          return;
+        }
         if (bytes > MAXIMUM_OUTPUT_BYTES || code !== 0) {
           reject(
             new RepositoryWorkExecutionError(

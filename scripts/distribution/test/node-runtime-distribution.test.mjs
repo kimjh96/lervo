@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { chmod, mkdir, mkdtemp, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
 
 import { afterEach, describe, it } from "vitest";
 
@@ -13,6 +15,9 @@ import {
   validateNodeDistributionManifest,
 } from "../lib/node-runtime-distribution.mjs";
 import { sha256 } from "../../shared/release-artifact-manifest.mjs";
+import { extractTarGzipArchive } from "../../shared/tar-archive.mjs";
+
+const execFileAsync = promisify(execFile);
 
 const roots = [];
 afterEach(async () =>
@@ -107,5 +112,27 @@ describe("standalone Node runtime distribution contract", () => {
     await assert.rejects(() => collectDistributionEntries(root), {
       code: "node_distribution_symlink_invalid",
     });
+  });
+
+  it("restores manifest file modes independently of the installer umask", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-node-mode-"));
+    roots.push(root);
+    const source = resolve(root, "source");
+    const destination = resolve(root, "destination");
+    const archive = resolve(root, "fixture.tar.gz");
+    await Promise.all([mkdir(source), mkdir(destination)]);
+    const payload = resolve(source, "payload.txt");
+    await writeFile(payload, "mode-bound\n");
+    await chmod(payload, 0o664);
+    await execFileAsync("tar", ["-czf", archive, "-C", source, "."]);
+
+    const previousUmask = process.umask(0o077);
+    try {
+      await extractTarGzipArchive(archive, destination);
+    } finally {
+      process.umask(previousUmask);
+    }
+
+    assert.equal((await stat(resolve(destination, "payload.txt"))).mode & 0o777, 0o664);
   });
 });

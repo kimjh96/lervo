@@ -94,6 +94,7 @@ export async function createVerifiedConversationControlReply(input: {
       mediaType: artifact.mediaType,
     },
     publicationPermit: publication.permit,
+    audienceParticipation: "observe_only",
     publicationEvidence: {
       artifact,
       evaluation: publication.evaluation,

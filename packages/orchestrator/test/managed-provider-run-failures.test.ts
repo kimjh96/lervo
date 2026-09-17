@@ -96,6 +96,80 @@ describe("managed provider failure boundaries", () => {
     data.store.close();
   });
 
+  it("records and stops a provider command that exceeds a zero-command boundary", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("codex");
+    const run = coordinator(
+      adapter,
+      data.root,
+      data.store,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        maximumToolCalls: 1,
+        maximumCommandExecutions: 0,
+      },
+    ).run({
+      ...providerRunInput(),
+      repositoryRoot: data.root,
+    });
+
+    await expect(run).rejects.toMatchObject({ code: "provider_command_limit_exceeded" });
+    expect(adapter.stopReason).toBe("failed");
+    expect(data.store.list({ runId }).map((event) => event.type)).toContain("command.executed");
+    expect(data.store.list({ runId }).at(-1)?.payload).toMatchObject({
+      failureCode: "provider_command_limit_exceeded",
+      retryable: false,
+    });
+    data.store.close();
+  });
+
+  it("records and stops a provider tool call that exceeds a zero-tool boundary", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("claude");
+    const run = coordinator(
+      adapter,
+      data.root,
+      data.store,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        maximumToolCalls: 0,
+        maximumCommandExecutions: 1,
+      },
+    ).run({
+      ...providerRunInput(),
+      repositoryRoot: data.root,
+    });
+
+    await expect(run).rejects.toMatchObject({ code: "provider_tool_limit_exceeded" });
+    expect(adapter.stopReason).toBe("failed");
+    expect(data.store.list({ runId }).map((event) => event.type)).toContain("tool.called");
+    expect(data.store.list({ runId }).at(-1)?.payload).toMatchObject({
+      failureCode: "provider_tool_limit_exceeded",
+      retryable: false,
+    });
+    data.store.close();
+  });
+
+  it("rejects invalid provider interaction limits before starting the adapter", async () => {
+    const data = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("claude");
+
+    expect(() =>
+      coordinator(adapter, data.root, data.store, undefined, undefined, undefined, undefined, {
+        maximumToolCalls: -1,
+        maximumCommandExecutions: 0,
+      }),
+    ).toThrow(expect.objectContaining({ code: "contract_validation_failed" }));
+    expect(adapter.calls).not.toContain("start");
+    data.store.close();
+  });
+
   it("does not ignore an invalid provider signal that follows the terminal event", async () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("claude", { postTerminalMismatch: true });

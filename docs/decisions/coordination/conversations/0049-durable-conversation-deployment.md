@@ -20,7 +20,7 @@ Adapter ports alone cannot reconnect external replies to canonical events after 
 
 - Before an API call, persist platform, integration, outbound ID, request hash, `sending`, and attempt time. Mark `delivered` only after verifying an external message ID.
 - Explicit rejection becomes `rejected`; an unknown response becomes `unknown`; leftover `sending` after restart also becomes unknown. None auto-retry, preventing duplicate delivery at the cost of operator reconciliation.
-- Slack transport uses bearer OAuth, escaped plain text, and disabled mrkdwn. Discord uses a bot token, empty allowed mentions, disabled reply mention, and an outbound-derived enforced nonce. Bound time, size, content type, and response message ID. Never expose credentials in errors.
+- Slack transport uses bearer OAuth, escaped plain text, and disabled mrkdwn. It rejects observation-only publications until the installed Slack contract can preserve that classification on re-entry. Discord uses a bot token, empty allowed mentions, disabled reply mention, and an outbound-derived enforced nonce. The versioned nonce preserves the additive eligible-versus-observation-only classification without changing visible text; Gateway and history intake restore it only on agent-authored messages. A Discord webhook also cannot preserve that classification and rejects observation-only delivery before network use. Bound time, size, content type, and response message ID. Never expose credentials in errors.
 
 ### Composition and ingress recovery
 

@@ -1,5 +1,3 @@
-import type { ConversationResponder } from "@lervo/interaction";
-
 import type { ConversationRequestedEffect } from "./conversation-intent-resolver.js";
 import type { DiscordPlatformActionResponder } from "./discord-conversation-mode.js";
 
@@ -28,7 +26,7 @@ export class ConversationPlatformActionRouter implements DiscordPlatformActionRe
   }
 
   respond(
-    input: Parameters<ConversationResponder["respond"]>[0],
+    input: Parameters<DiscordPlatformActionResponder["respond"]>[0],
     effect: ActionEffect,
     authorization: { effectRequesterAuthorized: boolean },
   ) {

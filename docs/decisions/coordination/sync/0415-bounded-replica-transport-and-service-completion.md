@@ -1,6 +1,6 @@
 # ADR-0415: Bound replica transport and preserve the installed coordinator
 
-- Status: accepted
+- Status: accepted (amended 2026-09-16)
 - Decision date: 2026-09-16
 
 ## Context
@@ -28,6 +28,21 @@ portable default. Constrained bridges such as Windows `wsl.exe` may use one so s
 bundle, and apply processes cannot saturate the bridge. Repository independence and the existing
 coalesced successor-run behavior remain unchanged within that configured bound.
 
+Such a bridge may also set `peerWatch` to `false`. The coordinator retains local filesystem watches
+but replaces one persistent SSH/WSL process per peer repository with finite snapshot recovery at
+`pollIntervalMs`. Exact reconciliation remains authoritative; this option changes notification
+transport, not source authority or readiness semantics.
+
+Timer recovery schedules a full sweep only while the keyed reconciliation pool is idle. A sweep
+that lasts longer than the configured interval therefore does not enqueue perpetual successor
+sweeps. Real source-change hints during an active run still retain exactly one coalesced successor.
+
+Every bundle is bound to the snapshot selected by reconciliation. A source that advances before
+bundle creation causes that attempt to retry instead of exporting different bytes. Once an exact
+target apply succeeds, its snapshot becomes the persisted common base before both sides are
+recaptured. Concurrent source advancement therefore produces a pending one-sided successor cycle,
+not false dual divergence from the previous common base. Receipts still require fresh equality.
+
 On macOS, direct terminal completion inspection treats an installed owner-only
 `dev.lervo.repository-replica` LaunchAgent as an operational dependency. If its definition is unsafe,
 cannot be inspected, or is not loaded, the turn reports action required. The check does not install,
@@ -43,8 +58,11 @@ no remote output beyond the existing bounded failure log.
 ## Consequences
 
 A stopped installed coordinator becomes visible before a direct terminal turn can complete, and a
-hung peer command cannot occupy reconciliation capacity forever. Exact snapshot verification,
-conflict policy, receipt freshness, and fail-closed native-work admission are unchanged.
+hung peer command or an excessive persistent-watch fan-out cannot occupy reconciliation capacity
+forever. Exact snapshot verification, conflict policy, and receipt freshness are unchanged.
+Fail-closed native-work admission applies only when the deployment explicitly enables required
+parity; the installed conversation default uses its always-on WSL repository as the execution
+source and keeps the coordinator asynchronous.
 
 An operating-system bridge can still fail and may require host recovery. The deadline proves only
 that Lervo releases its own worker; it does not claim that a remote operating system terminated every

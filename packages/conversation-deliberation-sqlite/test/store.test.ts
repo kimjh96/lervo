@@ -35,6 +35,9 @@ function request(
     projectId: "prj_deliberation01",
     principalId: "operator:reviewer",
     sourceEventId,
+    conversationId: "cnv_deliberation01",
+    threadId: "thd_deliberation01",
+    requesterParticipantId: "ptc_requester01",
     policyId: "deliberation_product-review",
     topic: "Review the deployment structure.",
     requestedAt: "2026-08-22T00:00:00.000Z",
@@ -58,6 +61,29 @@ describe("durable conversation deliberation queue", () => {
     } finally {
       store.close();
     }
+  });
+
+  it("rejects an origin binding digest that does not match its Lervo coordinates", async () => {
+    const { store } = await open();
+    await expect(
+      store.enqueue({
+        projectId: "prj_deliberation01",
+        sourceEventId,
+        deliberationId: "dlb_deliberation01",
+        requestHash: `sha256:${"1".repeat(64)}`,
+        principalHash: `sha256:${"2".repeat(64)}`,
+        origin: {
+          conversationId: "cnv_deliberation01",
+          threadId: "thd_deliberation01",
+          requesterParticipantId: "ptc_requester01",
+          originBindingDigest: `sha256:${"f".repeat(64)}`,
+        },
+        policyId: "deliberation_product-review",
+        topic: "Review the deployment structure.",
+        requestedAt: "2026-08-22T00:00:00.000Z",
+      }),
+    ).rejects.toMatchObject({ code: "integrity_failed" });
+    store.close();
   });
 
   it("returns one durable job for repeated source events and settles it after restart", async () => {
@@ -94,8 +120,43 @@ describe("durable conversation deliberation queue", () => {
     expect(execute).toHaveBeenCalledOnce();
     expect(execute.mock.calls[0]?.[0]).toMatchObject({
       principalHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      origin: {
+        conversationId: "cnv_deliberation01",
+        threadId: "thd_deliberation01",
+        requesterParticipantId: "ptc_requester01",
+        originBindingDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      },
     });
     expect(execute.mock.calls[0]?.[0]).not.toHaveProperty("principalId");
+    const notification = await current.claimNotification({
+      workerId: "notification-worker",
+      claimedAt: "2026-08-22T00:01:01.000Z",
+      leaseDurationMs: 10_000,
+    });
+    expect(notification).toMatchObject({
+      notification: {
+        operation: "start",
+        projectId: "prj_deliberation01",
+        deliberationId: first.deliberationId,
+        summary: { status: "converged", artifactCount: 7 },
+        occurredAt: "2026-08-22T00:01:00.000Z",
+        state: "leased",
+        attemptCount: 1,
+      },
+    });
+    await current.acceptNotification({
+      deliberationId: first.deliberationId,
+      leaseId: notification!.leaseId,
+      conversationEventId: `cve_${"b".repeat(64)}`,
+      acceptedAt: "2026-08-22T00:01:02.000Z",
+    });
+    await expect(
+      current.claimNotification({
+        workerId: "notification-worker",
+        claimedAt: "2026-08-22T00:01:20.000Z",
+        leaseDurationMs: 10_000,
+      }),
+    ).resolves.toBeNull();
     await expect(
       new QueuedConversationDeliberationBackend(current).inspect({
         projectId: "prj_deliberation01",
@@ -115,16 +176,29 @@ describe("durable conversation deliberation queue", () => {
     const row = database
       .prepare(
         `
-      SELECT principal_hash, topic FROM conversation_deliberation_jobs
+      SELECT principal_hash, topic, origin_conversation_id, origin_thread_id,
+        origin_requester_participant_id, origin_binding_digest
+      FROM conversation_deliberation_jobs
       WHERE deliberation_id = ?
     `,
       )
       .get(first.deliberationId);
     expect(row?.principal_hash).not.toBe("operator:reviewer");
     expect(row?.topic).toBe("Review the deployment structure.");
+    expect(row).toMatchObject({
+      origin_conversation_id: "cnv_deliberation01",
+      origin_thread_id: "thd_deliberation01",
+      origin_requester_participant_id: "ptc_requester01",
+      origin_binding_digest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+    });
     expect(() =>
       database
         .prepare("DELETE FROM conversation_deliberation_jobs WHERE deliberation_id = ?")
+        .run(first.deliberationId),
+    ).toThrow("cannot be deleted");
+    expect(() =>
+      database
+        .prepare("DELETE FROM conversation_deliberation_notifications WHERE deliberation_id = ?")
         .run(first.deliberationId),
     ).toThrow("cannot be deleted");
     database.close();
@@ -217,7 +291,16 @@ describe("durable conversation deliberation queue", () => {
       status: "uncertain",
       deliberationId: started.deliberationId,
       failureCode: "deliberation_execution_uncertain",
+      uncertainAt: "2026-08-22T00:01:00.000Z",
     });
+    await expect(
+      store.listUncertain({ projectId: "prj_deliberation01", limit: 10 }),
+    ).resolves.toEqual([
+      {
+        deliberationId: started.deliberationId,
+        uncertainAt: "2026-08-22T00:01:00.000Z",
+      },
+    ]);
     await expect(
       runConversationDeliberationWorkerCycle({
         store,
@@ -228,6 +311,65 @@ describe("durable conversation deliberation queue", () => {
     ).resolves.toEqual({ status: "idle" });
     expect(execute).toHaveBeenCalledOnce();
     store.close();
+  });
+
+  it("reclaims the same terminal notification after restart without recreating its identity", async () => {
+    const { path, store } = await open();
+    let current = store;
+    const started = await new QueuedConversationDeliberationBackend(current).start(request());
+    await runConversationDeliberationWorkerCycle({
+      store: current,
+      executor: {
+        execute: async () => ({
+          deliberationId: started.deliberationId,
+          status: "failed",
+          artifactCount: 1,
+          nextAction: "none",
+        }),
+      },
+      workerId: "conversation-worker-1",
+      now: () => new Date("2026-08-22T00:01:00.000Z"),
+    });
+    current.close();
+
+    current = await SQLiteConversationDeliberationJobStore.open({ path });
+    const first = await current.claimNotification({
+      workerId: "notification-worker-1",
+      claimedAt: "2026-08-22T00:01:01.000Z",
+      leaseDurationMs: 10_000,
+    });
+    expect(first?.notification).toMatchObject({
+      deliberationId: started.deliberationId,
+      occurredAt: "2026-08-22T00:01:00.000Z",
+      attemptCount: 1,
+    });
+    current.close();
+
+    current = await SQLiteConversationDeliberationJobStore.open({ path });
+    await expect(
+      current.claimNotification({
+        workerId: "notification-worker-2",
+        claimedAt: "2026-08-22T00:01:10.000Z",
+        leaseDurationMs: 10_000,
+      }),
+    ).resolves.toBeNull();
+    const reclaimed = await current.claimNotification({
+      workerId: "notification-worker-2",
+      claimedAt: "2026-08-22T00:01:12.000Z",
+      leaseDurationMs: 10_000,
+    });
+    expect(reclaimed?.notification).toMatchObject({
+      deliberationId: started.deliberationId,
+      occurredAt: "2026-08-22T00:01:00.000Z",
+      attemptCount: 2,
+    });
+    await current.acceptNotification({
+      deliberationId: started.deliberationId,
+      leaseId: reclaimed!.leaseId,
+      conversationEventId: `cve_${"f".repeat(64)}`,
+      acceptedAt: "2026-08-22T00:01:13.000Z",
+    });
+    current.close();
   });
 
   it.each([

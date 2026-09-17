@@ -253,6 +253,12 @@ export function policyWithProviders(
     ],
     decisionOwnerRoleId: "proposer",
     maxRounds: 1,
+    executionBudget: {
+      maximumProviderCalls: 8,
+      maximumObservedTokens: 200_000,
+      maximumElapsedMs: 300_000,
+      unobservedTokenDisposition: "block",
+    },
     requiredVerificationSuiteIds: ["fixture.required"],
     convergence: {
       requireIndependentReviewer: true,

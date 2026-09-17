@@ -56,6 +56,7 @@ export function requiresConversationRelevance(input: {
 }): boolean {
   if (
     input.ownsTurn === false ||
+    input.event.audienceParticipation === "observe_only" ||
     !input.policy.respondTo.includes(input.event.actor.kind) ||
     input.event.automationDepth + 1 > input.policy.maxAutomationDepth ||
     (input.window !== undefined &&
@@ -106,7 +107,10 @@ export function decideConversationParticipation(input: {
 
   let reason: ConversationParticipationDecision["reason"];
   let relevance = input.relevance;
-  if (input.policy.mode === "silent") {
+  if (input.event.audienceParticipation === "observe_only") {
+    reason = "publication_observation_only";
+    relevance = "not_checked";
+  } else if (input.policy.mode === "silent") {
     reason = "silent";
     relevance = "not_checked";
   } else if (!input.policy.respondTo.includes(input.event.actor.kind)) {

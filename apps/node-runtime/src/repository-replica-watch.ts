@@ -16,6 +16,7 @@ export async function watchReplicaReconciliation(input: {
   fallbackIntervalMs: number;
   maximumConcurrency?: number;
   watch: boolean;
+  peerWatch?: boolean;
   signal?: AbortSignal;
   reconcile(repository: WatchedRepository): Promise<void>;
 }): Promise<void> {
@@ -29,7 +30,8 @@ export async function watchReplicaReconciliation(input: {
   const localStops: Array<() => void> = [];
   const remote = new Map<string, { stop: () => void; ready: boolean; retryAt: number }>();
   let localAvailable = true;
-  let reconcileBy = Date.now() + 60_000;
+  const recoveryIntervalMs = input.peerWatch === false ? input.fallbackIntervalMs : 60_000;
+  let reconcileBy = Date.now() + recoveryIntervalMs;
   let fallbackBy: number | null = null;
   let startup = true;
   const changed = (id: string) => {
@@ -56,14 +58,14 @@ export async function watchReplicaReconciliation(input: {
     }
     while (!input.signal?.aborted) {
       if (Date.now() >= reconcileBy) {
-        pool.notifyAll();
-        reconcileBy = Date.now() + 60_000;
+        if (pool.idle()) pool.notifyAll();
+        reconcileBy = Date.now() + recoveryIntervalMs;
       }
       if (fallbackBy !== null && Date.now() >= fallbackBy) {
-        pool.notifyAll();
+        if (pool.idle()) pool.notifyAll();
         fallbackBy = Date.now() + input.fallbackIntervalMs;
       }
-      if (input.watch) {
+      if (input.watch && input.peerWatch !== false) {
         for (const repository of input.repositories) {
           const previous = remote.get(repository.replicaId);
           if (previous !== undefined && (previous.ready || previous.retryAt > Date.now())) continue;

@@ -465,7 +465,7 @@ describe("Discord conversation deployments configuration", () => {
     );
   });
 
-  it("authorizes an exact co-resident CEO to request repository effects", async () => {
+  it("does not turn co-resident CEO status into repository effect authority", async () => {
     const root = await temporaryRoot();
     const fixture = await nodeRuntimeFixture(root, 30_006);
     const config = deployment({
@@ -493,9 +493,9 @@ describe("Discord conversation deployments configuration", () => {
       root,
     ).discordConversation!;
 
-    expect(createAuthorizedAgentEffectRequesters(parsed, [peer])).toContainEqual({
-      participantId: "ptc_ceoagent01",
-      roleId: "ceo",
+    expect(createAuthorizedAgentEffectRequesters(parsed)).not.toContainEqual({
+      participantId: peer.participantId,
+      roleId: peer.roleId,
       conversationId: "cnv_operator01",
     });
   });

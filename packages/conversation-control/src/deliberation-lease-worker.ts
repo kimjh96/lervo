@@ -49,6 +49,7 @@ export type ConversationDeliberationLeaseCycleResult<TFailureCode extends string
       status: "uncertain";
       deliberationId: string;
       failureCode: TFailureCode;
+      uncertainAt: string;
     };
 
 export async function runConversationDeliberationLeaseCycle<
@@ -139,16 +140,18 @@ export async function runConversationDeliberationLeaseCycle<
   } catch {
     clearInterval(heartbeat);
     await renewal;
+    const uncertainAt = now().toISOString();
     await options.store.markUncertain({
       deliberationId: lease.job.deliberationId,
       leaseId: lease.leaseId,
-      failedAt: now().toISOString(),
+      failedAt: uncertainAt,
       failureCode: options.executionFailureCode,
     });
     return {
       status: "uncertain",
       deliberationId: lease.job.deliberationId,
       failureCode: options.executionFailureCode,
+      uncertainAt,
     };
   }
 }

@@ -125,6 +125,9 @@ export function parseNodeRuntimeConfig(value: unknown, baseDirectory: string): N
       ...(discordConversation.routing.evaluation === undefined
         ? []
         : [discordConversation.routing.evaluation.provider]),
+      ...(discordConversation.routing.resultEvaluation === undefined
+        ? []
+        : [discordConversation.routing.resultEvaluation.provider]),
       discordConversation.command.provider,
     ];
     if (

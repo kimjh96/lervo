@@ -34,6 +34,7 @@ describe("fixed conversation terminal failure response", () => {
     expect(content).toBe(
       "저장소 맥락을 읽는 중 문제가 생겼습니다. 1회 시도 후 종료했으며, 새 메시지는 계속 처리됩니다.",
     );
+    expect(result.audienceParticipation).toBe("observe_only");
     expect(content).not.toMatch(/(?:cve|run|wks|revision)_/u);
   });
 });

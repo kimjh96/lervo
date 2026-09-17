@@ -15,7 +15,7 @@ import type {
 import type { DeliberationExecutionPlan } from "./deliberation-roles.js";
 import type { ManagedDeliberationOutcome } from "./managed-deliberation.js";
 import type { RunProvider } from "./managed-run.js";
-import { publicationRepairPrompt } from "./deliberation-prompts.js";
+import { publicationRepairPrompt } from "./deliberation-publication-guidance.js";
 
 function opposite(provider: RunProvider): RunProvider {
   return provider === "codex" ? "claude" : "codex";
@@ -32,12 +32,24 @@ export async function executeWithPublicationRepair<T, R>(input: {
     try {
       return { run, recorded: await input.record(run, attempt) };
     } catch (error) {
+      const semanticEvaluationStatus =
+        error instanceof DeliberationRuntimeError &&
+        typeof error.diagnostics?.semanticEvaluationStatus === "string"
+          ? error.diagnostics.semanticEvaluationStatus
+          : null;
       const repairable =
         error instanceof DeliberationRuntimeError &&
         error.code === "artifact_publication_failed" &&
-        error.reason === "writing_publication_blocked";
+        error.reason === "writing_publication_blocked" &&
+        semanticEvaluationStatus !== "failed" &&
+        semanticEvaluationStatus !== "invalid";
       if (!repairable || attempt === 2) throw error;
-      instructions = publicationRepairPrompt(input.instructions);
+      const failedChecks = Array.isArray(error.diagnostics?.failedChecks)
+        ? error.diagnostics.failedChecks.filter(
+            (checkId): checkId is string => typeof checkId === "string",
+          )
+        : [];
+      instructions = publicationRepairPrompt(input.instructions, failedChecks);
     }
   }
   throw new Error("The bounded writing publication repair loop did not terminate.");

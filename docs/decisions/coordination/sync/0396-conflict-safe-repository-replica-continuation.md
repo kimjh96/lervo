@@ -1,6 +1,6 @@
 # ADR-0396: Conflict-safe repository replica continuation
 
-- Status: accepted
+- Status: accepted (amended 2026-09-16)
 - Decision date: 2026-09-10
 
 ## Context
@@ -32,11 +32,13 @@ The coordinator stores one bounded common-snapshot hash per configured repositor
 
 The installed peer adapter uses authenticated SSH to the WSL host. The contract is transport-neutral: a future Hub artifact transport or first-party Lervo surface can replace SSH without changing snapshot or conflict semantics. Owners control repository roots, peer commands, and interval bounds. Credentials are neither embedded in coordinator state nor emitted in receipts.
 
-Every successful cycle atomically writes a rebuildable `.lervo/state/repository-replica.json` receipt on both sides with replica ID, exact common/local/peer hashes, status, and time. A repository Node configured with required replica readiness waits for a fresh receipt matching its newly captured local snapshot before native work. After a changed turn, it waits for the new common snapshot before publishing success. Stale, missing, mismatched, or divergent state fails as `repository_replica_not_ready`; it never silently runs against a known stale checkout.
+Every successful cycle atomically writes a rebuildable `.lervo/state/repository-replica.json` receipt on both sides with replica ID, exact common/local/peer hashes, status, and time. A repository Node explicitly configured with required replica readiness waits for a fresh receipt matching its newly captured local snapshot before native work. After a changed turn, it waits for the new common snapshot before publishing success. Stale, missing, mismatched, or divergent state fails as `repository_replica_not_ready`; it never silently runs against a known stale checkout.
+
+Required parity is a strict deployment option, not the installed conversation default. An always-on conversation Node normally owns its WSL repository as the single execution writer and omits `repositoryReplica`; the external Mac coordinator may continue producing recovery replicas without gating message admission or result publication. The completion event then records `replicaDisposition: not_configured`. Operators enable required parity only for a topology with one effective writer, a continuously available coordinator, and an explicit divergence-resolution owner. A known divergent recovery replica remains intact for later review and never authorizes overwriting either side.
 
 ### Native work completion and context
 
-A changed native conversation turn must advance the same current workstream, leave repository knowledge migration, normalization, instruction bridges, and lint current, and reach configured replica parity. The Node verifies these conditions after provider exit rather than delegating completion to a provider prompt or unmanaged terminal hook.
+A changed native conversation turn must advance the same current workstream and leave repository knowledge migration, normalization, instruction bridges, and lint current. When strict replica readiness is explicitly configured, it must also reach replica parity. The Node verifies the applicable conditions after provider exit rather than delegating completion to a provider prompt or unmanaged terminal hook.
 
 After verification, the Node appends a version 2 `conversation.repository_work.completed` event for every accepted native work turn, binding:
 
@@ -59,7 +61,7 @@ The per-worker provider session remains the richest conversational context. Up t
 
 ## Consequences
 
-Local-to-Discord and Discord-to-local continuation share exact uncommitted source while the coordinator is healthy. Concurrent independent edits produce a bounded conflict rather than last-writer-wins data loss. Offline work can resume when the peer and coordinator return, but two offline writers require explicit reconciliation.
+Local-to-Discord and Discord-to-local continuation can share exact uncommitted source while the coordinator is healthy. Concurrent independent edits produce a bounded conflict rather than last-writer-wins data loss. Offline work can resume when the peer and coordinator return, but two offline writers require explicit reconciliation. Installed conversation availability does not depend on that reconciliation unless an operator deliberately enables the strict parity option.
 
 Replica observation writes only Git tree objects; bundle creation and explicit recovery additionally write Lervo hidden refs. Coordinator state and readiness receipts are rebuildable projections. Git commits, canonical Markdown, workstream snapshots, managed conversation-work completion events, direct-terminal declarations, verification evidence, and agent-context review events retain their existing authority.
 

@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import type { ConversationDeliberationBackend } from "./deliberation-control.js";
 import {
   assertConversationDeliberationSummary,
+  calculateConversationDeliberationOriginBindingDigest,
   conversationDeliberationPatterns,
   conversationDeliberationTimestamp,
   type ConversationDeliberationJob,
@@ -23,6 +24,9 @@ function assertStartInput(input: Parameters<ConversationDeliberationBackend["sta
   if (
     !conversationDeliberationPatterns.projectId.test(input.projectId) ||
     !conversationDeliberationPatterns.sourceEventId.test(input.sourceEventId) ||
+    !conversationDeliberationPatterns.conversationId.test(input.conversationId) ||
+    (input.threadId !== null && !conversationDeliberationPatterns.threadId.test(input.threadId)) ||
+    !conversationDeliberationPatterns.participantId.test(input.requesterParticipantId) ||
     !conversationDeliberationPatterns.policyId.test(input.policyId) ||
     !/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/u.test(input.principalId) ||
     input.topic.length < 1 ||
@@ -49,6 +53,9 @@ function requestHash(input: Parameters<ConversationDeliberationBackend["start"]>
       1,
       input.projectId,
       input.sourceEventId,
+      input.conversationId,
+      input.threadId,
+      input.requesterParticipantId,
       digest(input.principalId),
       input.policyId,
       input.topic,
@@ -107,6 +114,12 @@ export class QueuedConversationDeliberationBackend implements ConversationDelibe
       deliberationId: idFor(input.projectId, input.sourceEventId),
       requestHash: requestHash(input),
       principalHash: digest(input.principalId),
+      origin: {
+        conversationId: input.conversationId,
+        threadId: input.threadId,
+        requesterParticipantId: input.requesterParticipantId,
+        originBindingDigest: calculateConversationDeliberationOriginBindingDigest(input),
+      },
       policyId: input.policyId,
       topic: input.topic,
       requestedAt: input.requestedAt,

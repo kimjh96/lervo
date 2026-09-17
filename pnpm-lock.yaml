@@ -137,12 +137,18 @@ importers:
       '@lervo/execution-contract':
         specifier: workspace:*
         version: link:../../packages/execution-contract
+      '@lervo/execution-observability':
+        specifier: workspace:*
+        version: link:../../packages/execution-observability
       '@lervo/identity-migration':
         specifier: workspace:*
         version: link:../../packages/identity-migration
       '@lervo/improvement-observation-local':
         specifier: workspace:*
         version: link:../../packages/improvement-observation-local
+      '@lervo/interaction-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/interaction-sqlite
       '@lervo/knowledge-okf':
         specifier: workspace:*
         version: link:../../packages/knowledge-okf
@@ -167,6 +173,9 @@ importers:
       '@lervo/organization-deployment-sqlite':
         specifier: workspace:*
         version: link:../../packages/organization-deployment-sqlite
+      '@lervo/product-surface-projection':
+        specifier: workspace:*
+        version: link:../../packages/product-surface-projection
       '@lervo/project':
         specifier: workspace:*
         version: link:../../packages/project
@@ -491,6 +500,9 @@ importers:
       '@lervo/policy-sqlite':
         specifier: workspace:*
         version: link:../../packages/policy-sqlite
+      '@lervo/product-surface-projection':
+        specifier: workspace:*
+        version: link:../../packages/product-surface-projection
       '@lervo/project':
         specifier: workspace:*
         version: link:../../packages/project
@@ -716,7 +728,11 @@ importers:
         specifier: workspace:*
         version: link:../work-controller
 
-  packages/application-contract: {}
+  packages/application-contract:
+    dependencies:
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
 
   packages/assignment-connector-conformance:
     dependencies:
@@ -1541,6 +1557,18 @@ importers:
       '@lervo/policy-contract':
         specifier: workspace:*
         version: link:../policy-contract
+      '@lervo/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+
+  packages/product-surface-projection:
+    dependencies:
+      '@lervo/deliberation':
+        specifier: workspace:*
+        version: link:../deliberation
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas

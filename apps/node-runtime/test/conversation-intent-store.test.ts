@@ -55,6 +55,43 @@ describe("conversation intent resolution evidence", () => {
     };
     await store.record({ ...input, event: hireEvent, resolution: hireResolution });
     await expect(store.read(hireEvent)).resolves.toEqual(hireResolution);
+    const specificationEffects = [
+      {
+        eventId: "cve_delegate0001",
+        effect: {
+          kind: "workforce_task_delegate" as const,
+          specification: "Assign an architecture review with repository verification.",
+        },
+        resultDigest: `sha256:${"f".repeat(64)}`,
+      },
+      {
+        eventId: "cve_deliberation0001",
+        effect: {
+          kind: "deliberation_start" as const,
+          specification: "Review the Discord-first platform architecture and decide go or no-go.",
+        },
+        resultDigest: `sha256:${"1".repeat(64)}`,
+      },
+    ];
+    for (const specificationEffect of specificationEffects) {
+      const specificationEvent = {
+        eventId: specificationEffect.eventId,
+        content: { contentHash: `sha256:${"2".repeat(64)}`, byteCount: 32 },
+      } as ConversationInboundEvent;
+      const specificationResolution = {
+        ...input.resolution,
+        intent: "continue_work" as const,
+        participation: "relevant" as const,
+        effect: specificationEffect.effect,
+        resultDigest: specificationEffect.resultDigest,
+      };
+      await store.record({
+        ...input,
+        event: specificationEvent,
+        resolution: specificationResolution,
+      });
+      await expect(store.read(specificationEvent)).resolves.toEqual(specificationResolution);
+    }
     await expect(
       store.read({
         ...event,

@@ -27,6 +27,9 @@ export const conversationOutboundMessageSchema = {
     schemaVersion: schemaVersionSchema,
     outboundId: conversationOutboundIdSchema,
     sourceEventId: conversationEventIdSchema,
+    replyToEventId: {
+      anyOf: [conversationEventIdSchema, { type: "null" }],
+    },
     policyId: conversationParticipationPolicyIdSchema,
     target: conversationTargetSchema,
     actor: {
@@ -42,6 +45,10 @@ export const conversationOutboundMessageSchema = {
     },
     content: conversationContentReferenceSchema,
     publicationPermit: writingPublicationPermitValueSchema,
+    audienceParticipation: {
+      type: "string",
+      enum: ["eligible", "observe_only"],
+    },
     deliveryRelation: { type: "string", enum: ["standalone", "reply"] },
     automationDepth: { type: "integer", minimum: 1, maximum: 8 },
     createdAt: timestampSchema,

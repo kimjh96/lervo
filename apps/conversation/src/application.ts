@@ -175,6 +175,19 @@ export async function openConversationApplication(
       discordRuntime.attach({ adapters: discordAdapters, interactions, store });
     }
     discordRuntime.start();
+    const inspectDeliberationOrigin = async (input: {
+      projectId: string;
+      deliberationId: string;
+    }) => {
+      if (deliberationStore === null) return null;
+      const job = await deliberationStore.inspect(input);
+      if (job?.origin === null || job === null) return null;
+      return {
+        sourceEventId: job.sourceEventId,
+        responseLanguage: /\p{Script=Hangul}/u.test(job.topic) ? ("ko" as const) : ("en" as const),
+        ...structuredClone(job.origin),
+      };
+    };
     return {
       inspectDeliveryReplay: (input) => store.inspectDeliveryReplay(input),
       nextInteractionWakeupAt: (integrationId) => interactions?.nextWakeupAt(integrationId) ?? null,
@@ -191,6 +204,62 @@ export async function openConversationApplication(
       discordAdapters,
       discordGateways: discordRuntime.gateways,
       deliberations,
+      inspectDeliberationOrigin,
+      claimDeliberationNotification: async () => {
+        if (deliberationStore === null || deliberationOptions === undefined) return null;
+        const claimedAt = (options.now?.() ?? new Date()).toISOString();
+        const leaseDurationMs = deliberationOptions.leaseDurationMs ?? 5 * 60_000;
+        const notification =
+          (await deliberationStore.claimNotification({
+            workerId: `${deliberationOptions.workerId.slice(0, 114)}:notification`,
+            claimedAt,
+            leaseDurationMs,
+          })) ??
+          (resumeStore === null
+            ? null
+            : await resumeStore.claimNotification({
+                workerId: `${deliberationOptions.workerId.slice(0, 107)}:resume:notification`,
+                claimedAt,
+                leaseDurationMs,
+              }));
+        if (notification === null) return null;
+        return {
+          ...notification,
+          origin: await inspectDeliberationOrigin(notification.notification),
+        };
+      },
+      acceptDeliberationNotification: async (input) => {
+        const store = input.operation === "start" ? deliberationStore : resumeStore;
+        if (store === null) {
+          throw new Error("The deliberation notification store is not configured.");
+        }
+        await store.acceptNotification({
+          deliberationId: input.deliberationId,
+          leaseId: input.leaseId,
+          conversationEventId: input.conversationEventId,
+          acceptedAt: (options.now?.() ?? new Date()).toISOString(),
+        });
+      },
+      listUncertainDeliberations: async (input) => {
+        if (deliberationStore === null) return [];
+        const start = await deliberationStore.listUncertain(input);
+        if (resumeStore === null || start.length >= input.limit) return start;
+        const resume = await resumeStore.listUncertain({
+          ...input,
+          limit: input.limit - start.length,
+        });
+        return [
+          ...new Map([...start, ...resume].map((item) => [item.deliberationId, item])).values(),
+        ]
+          .toSorted((left, right) =>
+            left.uncertainAt === right.uncertainAt
+              ? left.deliberationId.localeCompare(right.deliberationId)
+              : left.uncertainAt.localeCompare(right.uncertainAt),
+          )
+          .slice(0, input.limit);
+      },
+      hasConversationSourceEventKeyHash: (sourceEventKeyHash) =>
+        interactions?.hasSourceEventKeyHash(sourceEventKeyHash) ?? false,
       handleInboundEvent: interactions === null ? null : (event) => interactions!.handle(event),
       runDeliveryCycle:
         interactions === null

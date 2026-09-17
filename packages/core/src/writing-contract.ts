@@ -111,6 +111,35 @@ export const adaptiveConversationWritingContract = {
   },
 } as const satisfies WritingContract;
 
+export const koreanConversationWritingContract = {
+  ...adaptiveConversationWritingContract,
+  writingPolicyId: "writing_ko-conversation",
+  locale: "ko",
+  verification: {
+    ...adaptiveConversationWritingContract.verification,
+    semanticChecks: [
+      {
+        checkId: "natural_ko_prose",
+        requirement:
+          "독자에게 직접 설명하는 자연스러운 한국어 완전문장으로 작성하고, 문단마다 하나의 응집된 논지를 유지한다.",
+        required: true,
+      },
+      {
+        checkId: "plain_audience_language",
+        requirement:
+          "표준 소프트웨어 용어는 사용할 수 있지만 저장소 전용 용어, 생소한 약어, 기계 식별자는 처음 등장할 때 독자가 이해할 수 있게 설명한다.",
+        required: true,
+      },
+      {
+        checkId: "direct_result_and_action",
+        requirement:
+          "결과, 영향, 다음 행동을 구체적으로 밝히고 불특정 사용자, 담당자, 사람 또는 팀에게 책임을 넘기지 않는다.",
+        required: true,
+      },
+    ],
+  },
+} as const satisfies WritingContract;
+
 export const realtimeConversationWritingContract = {
   ...adaptiveConversationWritingContract,
   writingPolicyId: "writing_mul-realtime-conversation",

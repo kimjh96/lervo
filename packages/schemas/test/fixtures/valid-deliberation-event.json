@@ -21,7 +21,61 @@
       "producerRoleId": "architect",
       "artifactId": "art_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "writingPermitId": "wpp_0123456789abcdef"
+      "writingPermitId": "wpp_0123456789abcdef",
+      "artifact": {
+        "schemaVersion": 1,
+        "deliberationArtifactId": "dla_0123456789abcdef",
+        "deliberationId": "dlb_architecture_0001",
+        "projectId": "prj_01234567",
+        "policyId": "deliberation_architecture-review",
+        "policyHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "kind": "revision",
+        "round": 2,
+        "producer": {
+          "roleId": "architect",
+          "runId": "run_01234567",
+          "sessionId": "ses_01234567",
+          "provider": "codex"
+        },
+        "content": {
+          "artifactId": "art_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uri": "lervo-cas://sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "mediaType": "text/markdown; charset=utf-8",
+          "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "byteCount": 120
+        },
+        "inputContext": {
+          "contextGeneration": 0,
+          "sharedContextIds": [],
+          "loadedReceiptIds": ["ctx_01234567"],
+          "injectedReceiptIds": ["ctx_12345678"]
+        },
+        "previousArtifactIds": ["dla_1111111111111111"],
+        "evidenceEventIds": ["evt_01234567"],
+        "writingPublicationPermit": {
+          "schemaVersion": 1,
+          "permitId": "wpp_0123456789abcdef",
+          "surface": "documentation",
+          "artifactId": "art_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "writingPolicyId": "writing_en-human",
+          "writingPolicyHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "evaluationId": "wre_01234567",
+          "evaluationHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "issuedAt": "2026-08-19T00:00:00Z"
+        },
+        "details": {
+          "revisesArtifactId": "dla_1111111111111111",
+          "claims": [
+            {
+              "claimId": "clm_01234567",
+              "claimDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            }
+          ],
+          "resolvesObjectionIds": ["obj_01234567"]
+        },
+        "createdAt": "2026-08-19T00:00:01Z"
+      }
     }
   },
   {

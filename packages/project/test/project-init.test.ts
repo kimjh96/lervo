@@ -68,6 +68,7 @@ describe("Lervo project initialization", () => {
     expect(knowledgePolicy).toContain("  - '**/.cxx/**'\n");
     expect(knowledgePolicy).toContain("  - '**/build-device/**'\n");
     expect(knowledgePolicy).toContain("  language: en\n");
+    expect(knowledgePolicy).toContain("  maxTotalBytes: 67108864\n");
     const decisionTaxonomy = await readFile(
       resolve(root, ".lervo/knowledge/document-layout.yaml"),
       "utf8",

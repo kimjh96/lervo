@@ -19,6 +19,7 @@ import {
   cleanupManagedDeliberationFixtures,
   clock,
   FixtureDeliberationAdapter,
+  fixtureDeliberationEvidence,
   repository,
   semanticPass,
   sequence,
@@ -67,6 +68,7 @@ describe("managed CLI deliberation resume", () => {
       openStorage: openProjectStorage,
       createId: nextId,
       now,
+      prepareEvidence: async ({ topic }) => fixtureDeliberationEvidence(topic),
       runner,
       afterApprovedCheckpoint: async (id) => {
         deliberationId = id;
@@ -85,6 +87,7 @@ describe("managed CLI deliberation resume", () => {
           openStorage: openProjectStorage,
           createId: nextId,
           now,
+          prepareEvidence: async ({ topic }) => fixtureDeliberationEvidence(topic),
           runner,
         });
         try {
@@ -164,6 +167,7 @@ describe("managed CLI deliberation resume", () => {
       openStorage: openProjectStorage,
       createId: nextId,
       now,
+      prepareEvidence: async ({ topic }: { topic: string }) => fixtureDeliberationEvidence(topic),
       runner,
     };
     const mismatchedResume = createManagedConversationDeliberationResumeExecutionAdapter({

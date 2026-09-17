@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_2c10b0777306259226201747"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Expose privacy-bounded canonical activity through product-host protocol v8."

@@ -6,7 +6,6 @@ import type {
 } from "@lervo/adapter-contract";
 import type { EventDraftV2 } from "@lervo/event-contract";
 import { assertManagedRepositoryKnowledgeCurrent } from "@lervo/managed-provider-host";
-import { captureRepositorySnapshot } from "@lervo/orchestrator";
 import { openProjectStorage } from "@lervo/project-storage";
 import { lintRepositoryKnowledge } from "@lervo/repository-knowledge";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
@@ -15,11 +14,11 @@ import {
   createVerifiedConversationWorkMemoryDraft,
   prepareConversationWorkMemory,
 } from "./conversation-agent-memory.js";
+import type { RepositoryWorkChange } from "./repository-work-observation.js";
 
 export interface ConversationRepositoryWorkCompletionBaseline {
   workstreamId: string | null;
   workstreamRevision: number | null;
-  repositoryRevision: string;
   knowledgeCurrent: boolean;
 }
 
@@ -37,15 +36,13 @@ export class ConversationRepositoryWorkCompletionError extends Error {
 export async function captureConversationRepositoryWorkCompletionBaseline(
   repositoryRoot: string,
 ): Promise<ConversationRepositoryWorkCompletionBaseline> {
-  const [current, repository, knowledgeCurrent] = await Promise.all([
+  const [current, knowledgeCurrent] = await Promise.all([
     readCurrentWorkstreamState(repositoryRoot),
-    captureRepositorySnapshot(repositoryRoot),
     managedKnowledgeIsCurrent(repositoryRoot),
   ]);
   return {
     workstreamId: current?.snapshot.workstreamId ?? null,
     workstreamRevision: current?.snapshot.revision ?? null,
-    repositoryRevision: repository.revision,
     knowledgeCurrent,
   };
 }
@@ -71,7 +68,7 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
   repositoryRoot: string;
   provider: RepositoryWorkProvider;
   baseline: ConversationRepositoryWorkCompletionBaseline;
-  changedPaths: readonly string[];
+  repositoryChange: RepositoryWorkChange;
   sourceConversationEventId: string;
   workerAgentId: string;
   providerSessionId: string;
@@ -82,23 +79,23 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
   completedAt: string;
   replicaConfigured: boolean;
 }): Promise<void> {
+  const changedPaths = input.repositoryChange.changedPaths;
   const current = await readCurrentWorkstreamState(input.repositoryRoot);
   if (
     current === null ||
     (input.baseline.workstreamId !== null &&
       current.snapshot.workstreamId !== input.baseline.workstreamId) ||
-    (input.changedPaths.length > 0 &&
+    (changedPaths.length > 0 &&
       input.baseline.workstreamRevision !== null &&
       current.snapshot.revision <= input.baseline.workstreamRevision)
   ) {
     throw new ConversationRepositoryWorkCompletionError(
       "repository_work_checkpoint_missing",
-      input.changedPaths.length > 0
+      changedPaths.length > 0
         ? "Repository work changed bytes without advancing the exact current workstream."
         : "Repository work completed without an exact current workstream.",
     );
   }
-  const repository = await captureRepositorySnapshot(input.repositoryRoot);
   let knowledgeDisposition: "current" | "baseline_valid";
   try {
     await assertManagedRepositoryKnowledgeCurrent(input.repositoryRoot);
@@ -123,12 +120,12 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
         (event) =>
           event.type === "conversation.repository_work.completed" &&
           event.payload.sourceConversationEventId === input.sourceConversationEventId &&
-          event.payload.repositoryRevisionAfter === repository.revision,
+          event.payload.repositoryRevisionAfter === input.repositoryChange.repositoryRevisionAfter,
       );
     const preparedMemory = await prepareConversationWorkMemory({
       artifacts: storage.artifacts,
       summary: input.result.summary,
-      changedPaths: input.changedPaths,
+      changedPaths,
     });
     const coordinate = sha256(input.sourceConversationEventId).slice("sha256:".length, 31);
     const payload = {
@@ -140,10 +137,10 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
       requestContentHash: input.requestContentHash,
       resultContentHash: input.result.contentHash,
       resultByteCount: input.result.byteCount,
-      repositoryRevisionBefore: input.baseline.repositoryRevision,
-      repositoryRevisionAfter: repository.revision,
-      changedPaths: [...input.changedPaths].sort().slice(0, 64),
-      changedPathCount: input.changedPaths.length,
+      repositoryRevisionBefore: input.repositoryChange.repositoryRevisionBefore,
+      repositoryRevisionAfter: input.repositoryChange.repositoryRevisionAfter,
+      changedPaths: [...changedPaths].sort().slice(0, 64),
+      changedPathCount: changedPaths.length,
       workstreamId: current.snapshot.workstreamId,
       workstreamRevision: current.snapshot.revision,
       workstreamSnapshotHash: current.contentHash,

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5fe5c4a401ea597233dd8346"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add revision-stable Lexical v2 repository-knowledge product search through protocol v9."

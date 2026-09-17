@@ -1,21 +1,46 @@
 schemaVersion: 1
 policyId: deliberation_architecture-review
 maxRounds: 2
+executionBudget:
+  maximumProviderCalls: 24
+  maximumObservedTokens: 500000
+  maximumElapsedMs: 1800000
+  unobservedTokenDisposition: block
 requiredVerificationSuiteIds:
-  - repository.default
+  - repository.default.v4
 participants:
-  - roleId: architecture-proposer
-    name: Architecture proposer
-    description: Proposes the smallest design that satisfies the product outcome and preserves explicit dependency boundaries.
+  - roleId: product-owner
+    name: Product decision owner
+    localizedNames:
+      ko: 제품 결정 책임자
+    description: Owns the user outcome and proposes a coherent product design that makes every accepted capability tangible in the installed Discord surface without moving Lervo authority into Discord.
     provider: codex
     responsibilities: [proposer, decision_owner]
-  - roleId: maintainability-reviewer
-    name: Maintainability reviewer
-    description: Independently reviews responsibility separation, extensibility, failure semantics, and operational cost.
+  - roleId: installed-user-reviewer
+    name: Installed user and channel reviewer
+    localizedNames:
+      ko: 설치 사용자·채널 검토자
+    description: Represents the person using Discord and challenges command leakage, unclear language, missing round trips, participant identity, live steering, and whether the result is understandable without internal Lervo vocabulary.
+    provider: claude
+    responsibilities: [reviewer]
+  - roleId: core-knowledge-reviewer
+    name: Lervo core and knowledge reviewer
+    localizedNames:
+      ko: Lervo 코어·지식 검토자
+    description: Protects provider-neutral execution, Lexical v2 retrieval, evidence distinctions, canonical knowledge promotion, rebuildable projections, and additive compatibility with future Lervo protocol versions.
+    provider: codex
+    responsibilities: [reviewer]
+  - roleId: operations-security-reviewer
+    name: Operations, security, and observability reviewer
+    localizedNames:
+      ko: 운영·보안·관측성 검토자
+    description: Challenges offline continuation, authority, privacy, retries, failure semantics, delivery evidence, token and cache telemetry, and compatibility with existing health and trace systems.
     provider: claude
     responsibilities: [reviewer]
   - roleId: repository-verifier
-    name: Repository verifier
-    description: Verifies the proposal against canonical repository state and the configured repository verification suite.
+    name: Independent repository verifier
+    localizedNames:
+      ko: 독립 저장소 검증자
+    description: Independently verifies that the decision matches canonical repository state, responsibility boundaries, current acceptance contracts, and the configured repository verification suite.
     provider: codex
     responsibilities: [verifier]

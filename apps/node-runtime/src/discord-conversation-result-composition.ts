@@ -5,6 +5,7 @@ import { createLocalProviderWritingEvaluator } from "@lervo/provider-writing-eva
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import type { NodeDiscordConversationConfig } from "./config-types.js";
+import { conversationResultEvaluationSelection } from "./conversation-result-evaluation.js";
 import { ConversationResultRuntime } from "./conversation-result-runtime.js";
 import { RepositoryConversationResultSource } from "./conversation-result-source.js";
 import type { SQLiteConversationResultStore } from "./conversation-result-store.js";
@@ -20,13 +21,14 @@ export function createDiscordConversationResultRuntime(input: {
   adapter: DiscordConversationAdapter;
 }): ConversationResultRuntime {
   const { config } = input;
+  const evaluation = conversationResultEvaluationSelection(config);
   return new ConversationResultRuntime({
     workerId: `${config.workerId}:result`,
     store: input.store,
     artifacts: input.artifacts,
     adapter: input.adapter,
     semanticEvaluator: createLocalProviderWritingEvaluator({
-      provider: config.routing?.evaluation?.provider ?? config.command.provider,
+      provider: evaluation.provider,
       projectId: input.projectId,
       createAdapter: (adapterInput) =>
         createNodeProviderAdapter({
@@ -34,12 +36,10 @@ export function createDiscordConversationResultRuntime(input: {
           ...(input.providerExecutables?.[adapterInput.provider] === undefined
             ? {}
             : { executable: input.providerExecutables[adapterInput.provider] }),
-          ...(config.routing?.evaluation?.model === undefined
+          ...(evaluation.model === undefined ? {} : { model: evaluation.model }),
+          ...(evaluation.reasoningEffort === undefined
             ? {}
-            : { model: config.routing.evaluation.model }),
-          ...(config.routing?.evaluation?.reasoningEffort === undefined
-            ? {}
-            : { reasoningEffort: config.routing.evaluation.reasoningEffort }),
+            : { reasoningEffort: evaluation.reasoningEffort }),
         }),
       createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
       now: () => new Date(),

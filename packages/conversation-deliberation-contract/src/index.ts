@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 export type ConversationDeliberationStatus =
   "running" | "unknown" | "interrupted" | "converged" | "no_consensus" | "failed";
 
@@ -13,6 +15,36 @@ export type ConversationDeliberationJobFailureCode =
   "worker_lease_expired" | "deliberation_execution_uncertain";
 export type ConversationDeliberationResumeJobFailureCode =
   "resume_worker_lease_expired" | "deliberation_resume_execution_uncertain";
+
+export type ConversationDeliberationNotificationOperation = "start" | "resume";
+export type ConversationDeliberationNotificationState = "pending" | "leased" | "accepted";
+
+export interface ConversationDeliberationNotification {
+  operation: ConversationDeliberationNotificationOperation;
+  projectId: string;
+  deliberationId: string;
+  summary: ConversationDeliberationSummary;
+  occurredAt: string;
+  state: ConversationDeliberationNotificationState;
+  attemptCount: number;
+  leaseExpiresAt: string | null;
+  conversationEventId: string | null;
+  acceptedAt: string | null;
+}
+
+export interface ConversationDeliberationNotificationStore {
+  claimNotification(input: {
+    workerId: string;
+    claimedAt: string;
+    leaseDurationMs: number;
+  }): Promise<{ leaseId: string; notification: ConversationDeliberationNotification } | null>;
+  acceptNotification(input: {
+    deliberationId: string;
+    leaseId: string;
+    conversationEventId: string;
+    acceptedAt: string;
+  }): Promise<void>;
+}
 
 export interface ConversationDeliberationReconciliationRecord<TFailureCode extends string> {
   sourceKind: string;
@@ -36,6 +68,45 @@ export interface ConversationDeliberationReconciliationTarget {
   summary: ConversationDeliberationSummary | null;
 }
 
+export interface ConversationDeliberationUncertainty {
+  deliberationId: string;
+  uncertainAt: string;
+}
+
+export interface ConversationDeliberationOriginBinding {
+  conversationId: string;
+  threadId: string | null;
+  requesterParticipantId: string;
+  originBindingDigest: string;
+}
+
+export interface ConversationDeliberationOriginReference extends ConversationDeliberationOriginBinding {
+  sourceEventId: string;
+  responseLanguage: "en" | "ko";
+}
+
+export function calculateConversationDeliberationOriginBindingDigest(input: {
+  projectId: string;
+  sourceEventId: string;
+  conversationId: string;
+  threadId: string | null;
+  requesterParticipantId: string;
+}): string {
+  return `sha256:${createHash("sha256")
+    .update(
+      JSON.stringify([
+        "conversation-deliberation-origin",
+        1,
+        input.projectId,
+        input.sourceEventId,
+        input.conversationId,
+        input.threadId,
+        input.requesterParticipantId,
+      ]),
+    )
+    .digest("hex")}`;
+}
+
 interface ConversationDeliberationJobBase {
   projectId: string;
   sourceEventId: string;
@@ -51,6 +122,7 @@ interface ConversationDeliberationJobBase {
 
 export interface ConversationDeliberationJob extends ConversationDeliberationJobBase {
   operation: "start";
+  origin: ConversationDeliberationOriginBinding | null;
   policyId: string;
   topic: string;
   failureCode: ConversationDeliberationJobFailureCode | null;
@@ -64,6 +136,10 @@ export interface ConversationDeliberationResumeJob extends ConversationDeliberat
 }
 
 export interface ConversationDeliberationReconciliationStore {
+  listUncertain(input: {
+    projectId: string;
+    limit: number;
+  }): Promise<ConversationDeliberationUncertainty[]>;
   inspect(input: {
     projectId: string;
     deliberationId: string;
@@ -79,7 +155,8 @@ export interface ConversationDeliberationReconciliationStore {
   }): Promise<void>;
 }
 
-export interface ConversationDeliberationJobStore extends ConversationDeliberationReconciliationStore {
+export interface ConversationDeliberationJobStore
+  extends ConversationDeliberationReconciliationStore, ConversationDeliberationNotificationStore {
   enqueue(
     input: Omit<
       ConversationDeliberationJob,
@@ -90,7 +167,8 @@ export interface ConversationDeliberationJobStore extends ConversationDeliberati
       | "summary"
       | "failureCode"
       | "reconciliation"
-    >,
+      | "origin"
+    > & { origin: ConversationDeliberationOriginBinding },
   ): Promise<ConversationDeliberationJob>;
   inspect(input: {
     projectId: string;
@@ -121,7 +199,8 @@ export interface ConversationDeliberationJobStore extends ConversationDeliberati
   }): Promise<void>;
 }
 
-export interface ConversationDeliberationResumeJobStore extends ConversationDeliberationReconciliationStore {
+export interface ConversationDeliberationResumeJobStore
+  extends ConversationDeliberationReconciliationStore, ConversationDeliberationNotificationStore {
   enqueue(
     input: Omit<
       ConversationDeliberationResumeJob,
@@ -178,6 +257,9 @@ export const conversationDeliberationPatterns = {
   sourceEventId: /^cve_[a-f0-9]{64}$/u,
   deliberationId: /^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u,
   policyId: /^deliberation_[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u,
+  conversationId: /^cnv_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u,
+  threadId: /^thd_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u,
+  participantId: /^ptc_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u,
   workerId: /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/u,
   reconciliationSourceKind: /^(?=.{1,64}$)[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$/u,
 } as const;

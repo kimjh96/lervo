@@ -31,6 +31,9 @@ async function uncertain(store: SQLiteConversationDeliberationJobStore) {
     projectId: "prj_deliberation01",
     principalId: "operator:reviewer",
     sourceEventId,
+    conversationId: "cnv_deliberation01",
+    threadId: null,
+    requesterParticipantId: "ptc_requester01",
     policyId: "deliberation_product-review",
     topic: "Review the deployment structure.",
     requestedAt: "2026-08-22T00:00:00.000Z",
@@ -205,6 +208,7 @@ describe("conversation deliberation reconciliation storage", () => {
       }),
     ).resolves.toMatchObject({
       state: "uncertain",
+      origin: null,
       failureCode: "worker_lease_expired",
       reconciliation: null,
     });
@@ -223,6 +227,9 @@ describe("conversation deliberation reconciliation storage", () => {
       },
     });
     await expect(
+      store.listUncertain({ projectId: "prj_deliberation01", limit: 10 }),
+    ).resolves.toEqual([]);
+    await expect(
       store.inspect({
         projectId: "prj_deliberation01",
         deliberationId: "dlb_legacyqueue0001",
@@ -234,7 +241,14 @@ describe("conversation deliberation reconciliation storage", () => {
     });
     store.close();
     const migrated = new DatabaseSync(path);
-    expect(migrated.prepare("PRAGMA user_version").get()?.user_version).toBe(2);
+    expect(migrated.prepare("PRAGMA user_version").get()?.user_version).toBe(4);
+    expect(
+      migrated
+        .prepare(
+          "SELECT state, occurred_at FROM conversation_deliberation_notifications WHERE deliberation_id = ?",
+        )
+        .get("dlb_legacyqueue0001"),
+    ).toEqual({ state: "pending", occurred_at: "2026-08-22T00:02:00.000Z" });
     expect(
       migrated
         .prepare("PRAGMA table_info(conversation_deliberation_jobs)")

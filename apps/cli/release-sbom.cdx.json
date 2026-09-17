@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:053b3fe7-3cf7-50e1-baae-ab0524d4675b",
+  "serialNumber": "urn:uuid:ead95221-afa0-53ff-9e67-420772a1acbf",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -29,7 +29,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "2d2b8cca1b1028e28c0d4de4b9105627e7635990d7e7dac24948c94c79ae2e41"
+          "content": "e13229c641c8995746644022dfc06221371185d8be2610b7a530b91e3d2e6652"
         }
       ],
       "licenses": [
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:2cdaa0da37d33208daf6d036f172a1d120c922c7228322de739a45485b83be4e"
+          "value": "sha256:4dfb2c556b917d4dc1a498f96b5da766da2ff4953e70cd8826f6c4d926f3ffce"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:b5ef6a2af1e9c077e2991574b92de50b8df0ff2ea15b66a1a4aa693611171b7d"
+          "value": "sha256:75969ee44395a9b3f3841b7fb9d96f5ab2fc6654ad6483a8d3fd826dd9dc6817"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -1090,6 +1090,21 @@
       "name": "policy",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/policy@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/product-surface-projection@0.1.0",
+      "group": "@lervo",
+      "name": "product-surface-projection",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/product-surface-projection@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -4346,6 +4361,7 @@
         "pkg:npm/%40lervo/policy-contract@0.1.0",
         "pkg:npm/%40lervo/policy-sqlite@0.1.0",
         "pkg:npm/%40lervo/policy@0.1.0",
+        "pkg:npm/%40lervo/product-surface-projection@0.1.0",
         "pkg:npm/%40lervo/project-storage@0.1.0",
         "pkg:npm/%40lervo/project@0.1.0",
         "pkg:npm/%40lervo/provider-writing-evaluator@0.1.0",

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c7e0caf8a91cb4e3764a566d"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add domain-routed product steering and cursor-bound activity subscription contracts."

@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 
 import type { ProjectManifest } from "@lervo/schemas";
-import type { EventStore } from "@lervo/storage-contract";
+import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 
 import type { NodeDiscordConversationConfig, NodeRuntimeConfig } from "./config-types.js";
 import type { NodeDiscordConversationRuntimeOptions } from "./discord-conversation-runtime-types.js";
@@ -79,6 +79,7 @@ export async function openDeploymentConversation(input: {
   dataDirectory: string;
   runtimeConfigPath?: string;
   bearerToken(): string;
+  repositoryArtifacts: ArtifactStore;
   repositoryEvents: Pick<EventStore, "latest" | "list"> & { readonly path?: string };
   legacyPorts: NodeRuntimeOpenPorts["discordConversation"];
   deploymentPorts: NodeRuntimeOpenPorts["discordConversations"];
@@ -142,6 +143,7 @@ export async function openDeploymentConversation(input: {
             ? {}
             : { runtimeConfigPath: input.runtimeConfigPath }),
           bearerToken: input.bearerToken,
+          repositoryArtifactStore: input.repositoryArtifacts,
           repositoryEvents: input.repositoryEvents,
           managedRepositoryResources,
           ...(providerExecutables === undefined ? {} : { providerExecutables }),

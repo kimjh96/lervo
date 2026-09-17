@@ -113,6 +113,16 @@ describe("Git repository replica", () => {
     expect((await captureRepositoryReplicaSnapshot(root)).snapshotHash).toBe(observed.snapshotHash);
   });
 
+  it("does not substitute newer source bytes into a snapshot-bound bundle", async () => {
+    const root = await repository();
+    const selected = await captureRepositoryReplicaSnapshot(root);
+    await writeFile(join(root, "tracked.ts"), "export const advanced = true;\n");
+
+    await expect(createRepositoryReplicaBundle(root, selected.snapshotHash)).rejects.toMatchObject({
+      code: "repository_replica_conflict",
+    });
+  });
+
   it("moves incomplete, staged, unstaged, untracked, and deleted bytes without a commit", async () => {
     const source = await repository();
     const target = await clone(source);

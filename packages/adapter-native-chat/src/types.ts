@@ -15,6 +15,7 @@ export interface NativeChatInboundEnvelope {
   mentions?: ConversationInboundEvent["mentions"];
   replyToEventId?: string | null;
   signalCode?: string | null;
+  audienceParticipation?: ConversationInboundEvent["audienceParticipation"];
   automationDepth?: number;
   occurredAt: string;
 }

@@ -5,6 +5,7 @@ import {
 import type { ConversationReplyCandidate, ConversationResponder } from "@lervo/interaction";
 import type { ConversationRelevanceEvaluator } from "@lervo/interaction";
 import type {
+  ConversationContextTurn,
   ManagedConversationSurfaceEffect,
   ManagedConversationTurnResolverPort,
 } from "@lervo/conversation-responder";
@@ -29,7 +30,9 @@ type NonPlatformEffect =
 export interface DiscordPlatformActionResponder {
   readonly availableEffects: readonly ConversationRequestedEffect["kind"][];
   respond(
-    input: Parameters<ConversationResponder["respond"]>[0],
+    input: Omit<Parameters<ConversationResponder["respond"]>[0], "context"> & {
+      context?: { priorTurns: ReadonlyArray<ConversationContextTurn> };
+    },
     effect: Exclude<ConversationRequestedEffect, NonPlatformEffect>,
     authorization: { effectRequesterAuthorized: boolean },
   ): ReturnType<ConversationResponder["respond"]>;

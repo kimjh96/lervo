@@ -205,19 +205,20 @@ export function parseDiscordConversationConfig(
     participants.filter((item) => item.actorKind === "human").map((item) => item.participantId),
   );
   if (
-    deliberation?.notificationConversationIds !== undefined &&
-    (deliberation.notificationConversationIds.some(
+    deliberation !== undefined &&
+    ((deliberation.notificationConversationIds?.some(
       (conversationId) => !conversations.some((item) => item.conversationId === conversationId),
-    ) ||
+    ) ??
+      false) ||
       behavior.policy?.mode !== "proactive" ||
       !behavior.policy.respondTo?.includes("system") ||
-      !["deliberation.completed", "deliberation.attention"].every((signalCode) =>
-        behavior.policy!.signalCodes?.includes(signalCode),
+      !["deliberation.artifact.recorded", "deliberation.completed", "deliberation.attention"].every(
+        (signalCode) => behavior.policy!.signalCodes?.includes(signalCode),
       ))
   ) {
     throw new NodeRuntimeError(
       "invalid_config",
-      "Discord deliberation notifications require configured conversations and exact proactive system signal subscriptions.",
+      "Discord deliberation publication requires configured conversations and exact proactive system signal subscriptions.",
     );
   }
   if (

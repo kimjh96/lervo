@@ -2,6 +2,7 @@ import {
   ConversationControlError,
   createConversationDeliberationResponse,
   createVerifiedConversationControlReply,
+  readConversationControlMessage,
   type ConversationDeliberationPort,
 } from "@lervo/conversation-control";
 import { fixedConversationStatusWritingContract } from "@lervo/core";
@@ -40,7 +41,25 @@ export class ConversationDeliberationActionResponder implements DiscordPlatformA
         "The conversation participant cannot start this deliberation.",
       );
     }
-    const topic = effect.specification.trim();
+    const request = await readConversationControlMessage({
+      artifactStore: this.options.artifactStore,
+      event: input.event,
+    });
+    const responseLanguage = /\p{Script=Hangul}/u.test(request) ? ("ko" as const) : ("en" as const);
+    const priorHumanContext = (input.context?.priorTurns ?? [])
+      .filter((turn) => turn.speaker.kind === "human")
+      .slice(-4)
+      .map((turn) => turn.text.slice(0, 700));
+    const unboundedTopic = [
+      `Resolved review scope:\n${effect.specification.trim()}`,
+      `Current human request:\n${request.trim()}`,
+      ...(priorHumanContext.length === 0
+        ? []
+        : [
+            `Relevant prior human context:\n${priorHumanContext.map((text) => `- ${text}`).join("\n")}`,
+          ]),
+    ].join("\n\n");
+    const topic = [...unboundedTopic].slice(0, 4_096).join("");
     if (topic.length === 0 || [...topic].length > 4_096 || topic.includes("\0")) {
       throw new ConversationControlError(
         "control_command_invalid",
@@ -56,12 +75,16 @@ export class ConversationDeliberationActionResponder implements DiscordPlatformA
         topic,
       },
       at: (this.options.now?.() ?? new Date()).toISOString(),
+      presentation: "product",
+      responseLanguage,
     });
-    return createVerifiedConversationControlReply({
+    const reply = await createVerifiedConversationControlReply({
       artifactStore: this.options.artifactStore,
       writingContract: fixedConversationStatusWritingContract,
       content,
       ...(this.options.now === undefined ? {} : { now: this.options.now }),
     });
+    reply.deliveryRelation = "reply";
+    return reply;
   }
 }

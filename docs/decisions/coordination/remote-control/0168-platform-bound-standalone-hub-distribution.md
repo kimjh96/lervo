@@ -24,7 +24,7 @@ It excludes `node_modules`, source, tests, and workspace packages.
 
 The embedded manifest binds the runtime version, Node `>=22.13`, entrypoint, platform, and every file or symlink's size, mode, and SHA-256, plus a canonical content digest. A sidecar binds the archive name, size, hash, and manifest hash. An independently trusted expected archive hash remains required.
 
-Build and install require `--write`, a safe absolute new output or target, and never overwrite. Verification and installation recheck the archive, manifest, SBOM, content, current platform, startup outside the checkout, and a real loopback listener using temporary owner-only config, keys, credentials, and state.
+Build and install require `--write`, a safe absolute new output or target, and never overwrite. Verification and installation recheck the archive, manifest, SBOM, content, current platform, startup outside the checkout, and a real loopback listener using temporary owner-only config, keys, credentials, and state. Archive extraction restores recorded permissions without restoring archive ownership, so a caller's umask cannot reinterpret the content manifest.
 
 Installation places only the payload. It creates no config, secret, database, CAS, or service.
 

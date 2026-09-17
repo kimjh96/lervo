@@ -12,7 +12,7 @@ describe("Node conversation response failure policy", () => {
   it.each([
     ["knowledge_source_unsafe", "response_context_unavailable", false],
     ["context_preparation_failed", "response_context_unavailable", false],
-    ["repository_snapshot_failed", "response_context_unavailable", false],
+    ["repository_snapshot_failed", "response_context_unavailable", true],
     ["provider_turn_failed", "response_provider_unavailable", false],
     ["provider_protocol_failed", "response_provider_unavailable", false],
     ["artifact_storage_failed", "response_storage_unavailable", true],

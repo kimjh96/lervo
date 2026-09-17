@@ -176,6 +176,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
         participantKey: `user:${input.command.userId}`,
         mentionedParticipantKeys: [`bot:${this.options.applicationId}`],
         actorKindHint: "human",
+        audienceParticipation: "eligible",
         replyToMessageId: null,
         content: input.command.request,
         occurredAt: input.occurredAt,
@@ -315,6 +316,7 @@ export class DiscordConversationAdapter implements DiscordConversationAdapterPor
       mentions: identity.mentions,
       replyToEventId: identity.replyToEventId,
       signalCode: null,
+      audienceParticipation: parsed.audienceParticipation,
       automationDepth: identity.automationDepth,
       occurredAt: parsed.occurredAt,
     });

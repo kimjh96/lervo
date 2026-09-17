@@ -18,6 +18,12 @@ function validSource(): DeliberationWorkflowSource {
     schemaVersion: 1 as const,
     policyId: "deliberation_product-review",
     maxRounds: 2,
+    executionBudget: {
+      maximumProviderCalls: 12,
+      maximumObservedTokens: 250_000,
+      maximumElapsedMs: 300_000,
+      unobservedTokenDisposition: "block",
+    },
     requiredVerificationSuiteIds: ["project.default"],
     participants: [
       {
@@ -50,6 +56,38 @@ afterEach(async () => {
 });
 
 describe("deliberation workflow source", () => {
+  it("keeps the installed architecture review policy stakeholder-specific", async () => {
+    const source = await loadDeliberationWorkflowSource(
+      process.cwd(),
+      "deliberation_architecture-review",
+    );
+
+    expect(source.requiredVerificationSuiteIds).toEqual(["repository.default.v4"]);
+    expect(source.executionBudget).toEqual({
+      maximumProviderCalls: 24,
+      maximumObservedTokens: 500_000,
+      maximumElapsedMs: 1_800_000,
+      unobservedTokenDisposition: "block",
+    });
+    expect(source.participants.map((participant) => participant.roleId)).toEqual([
+      "product-owner",
+      "installed-user-reviewer",
+      "core-knowledge-reviewer",
+      "operations-security-reviewer",
+      "repository-verifier",
+    ]);
+    expect(source.participants.every((participant) => participant.description.length > 80)).toBe(
+      true,
+    );
+    expect(source.participants.map((participant) => participant.localizedNames?.ko)).toEqual([
+      "제품 결정 책임자",
+      "설치 사용자·채널 검토자",
+      "Lervo 코어·지식 검토자",
+      "운영·보안·관측성 검토자",
+      "독립 저장소 검증자",
+    ]);
+  });
+
   it("requires a separate proposer, reviewers, verifier, and both providers", () => {
     expect(() => validateDeliberationWorkflowSource(validSource())).not.toThrow();
     const combined = structuredClone(validSource());
@@ -77,6 +115,11 @@ describe("deliberation workflow source", () => {
         "schemaVersion: 1",
         "policyId: deliberation_product-review",
         "maxRounds: 2",
+        "executionBudget:",
+        "  maximumProviderCalls: 12",
+        "  maximumObservedTokens: 250000",
+        "  maximumElapsedMs: 300000",
+        "  unobservedTokenDisposition: block",
         "requiredVerificationSuiteIds: [project.default]",
         "participants:",
         "  - roleId: product-planner",

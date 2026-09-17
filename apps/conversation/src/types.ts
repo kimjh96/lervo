@@ -21,6 +21,8 @@ import type {
 import type { ConversationParticipationPolicy } from "@lervo/schemas";
 import type {
   ConversationDeliberationExecutionPort,
+  ConversationDeliberationNotification,
+  ConversationDeliberationOriginReference,
   ConversationDeliberationPort,
   ConversationDeliberationPrincipalBinding,
   ConversationDeliberationReconciliationResult,
@@ -148,6 +150,26 @@ export interface ConversationApplication {
   discordAdapters: ReadonlyMap<string, DiscordConversationAdapter>;
   discordGateways: ReadonlyMap<string, AuthenticatedDiscordGatewayDriver>;
   deliberations: ConversationDeliberationPort | null;
+  inspectDeliberationOrigin(input: {
+    projectId: string;
+    deliberationId: string;
+  }): Promise<ConversationDeliberationOriginReference | null>;
+  claimDeliberationNotification(): Promise<{
+    leaseId: string;
+    notification: ConversationDeliberationNotification;
+    origin: ConversationDeliberationOriginReference | null;
+  } | null>;
+  acceptDeliberationNotification(input: {
+    operation: ConversationDeliberationNotification["operation"];
+    deliberationId: string;
+    leaseId: string;
+    conversationEventId: string;
+  }): Promise<void>;
+  listUncertainDeliberations(input: {
+    projectId: string;
+    limit: number;
+  }): Promise<import("@lervo/conversation-control").ConversationDeliberationUncertainty[]>;
+  hasConversationSourceEventKeyHash(sourceEventKeyHash: string): boolean;
   handleInboundEvent:
     | ((
         event: import("@lervo/schemas").ConversationInboundEvent,

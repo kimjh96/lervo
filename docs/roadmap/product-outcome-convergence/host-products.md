@@ -2,12 +2,13 @@
 
 Part of [Product outcome convergence](../product-outcome-convergence.md); its baseline, acceptance-state definitions, and claim boundaries apply.
 
-- [Unified operating view](host-products/operating-view.md): `external product`.
+- [Discord-first reference product](host-products/discord-first-reference-product.md): `delivery required`.
+- [Unified operating view](host-products/operating-view.md): `delivery required`.
 - [Multi-team agent organization](host-products/agent-organization.md): `delivery required`.
 - [Reviewed local repeatable triggers](host-products/triggers/reviewed-local.md): `implemented`.
 - [Authenticated live trigger adapters](host-products/triggers/authenticated-live.md): `implemented`.
 - [Governed Slack delivery](host-products/slack.md): `implemented`.
 - [Discord remote continuation](host-products/discord.md): authenticated exact-workstream intake is `implemented`; result return and Mac-offline source handoff are `delivery required`.
-- [Product interfaces and host compatibility](host-products/host-boundary.md): `external product` interfaces; `implemented` host boundary.
+- [Product interfaces and host compatibility](host-products/host-boundary.md): first-party reference interface is `delivery required`; separately installed host boundary is `implemented`.
 - [Dynamic execution graphs](host-products/execution-graphs.md): `implemented`.
 - [Replaceable components](host-products/replaceability.md): `implemented`.

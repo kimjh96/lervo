@@ -1,6 +1,6 @@
 # ADR-0384: Natural-language Discord conversation routing
 
-- Status: accepted
+- Status: accepted (amended 2026-09-16)
 - Decision date: 2026-09-07
 
 ## Context
@@ -13,7 +13,7 @@ Lervo separates provider-neutral contracts for read-only managed answers, signed
 
 ### Routing configuration
 
-Optional `discordConversation.routing` enables natural-language routing and binds a distinct `readOnlyRoleId`. Its `intent`, `response`, and optional independent publication `evaluation` selections name `codex` or `claude`, with optional model and bounded reasoning-effort overrides. Existing command selection independently controls write-capable continuation. The managed host also accepts provider-keyed model and reasoning-effort settings for command execution. Every selected provider must be allowlisted by the managed provider host, which owns executable selection.
+Optional `discordConversation.routing` enables natural-language routing and binds a distinct `readOnlyRoleId`. Its `intent`, `response`, optional read-publication `evaluation`, and optional completed-execution `resultEvaluation` selections name `codex` or `claude`, with optional model and bounded reasoning-effort overrides. Existing command selection independently controls write-capable continuation. The managed host also accepts provider-keyed model and reasoning-effort settings for command execution. Every selected provider must be allowlisted by the managed provider host, which owns executable selection.
 
 Under `mode: relevant`, every message from a mapped participant in a mapped conversation is eligible. Mentions are optional attention signals, not intent selectors. `policy.unaddressedHumanMessages` separates dedicated human dialogue from semantic multi-agent participation: `respond` routes eligible human messages directly to their deterministic owner; `evaluate` retains semantic filtering. Natural-language routing defaults to `respond`. Deployments without routing retain legacy mention-only continuation and semantic filtering.
 
@@ -37,7 +37,7 @@ An immutable local intent-resolution record binds the source event and message h
 
 The read-only execution role permits repository reads and denies filesystem writes, shell execution, network access, external messages, deployment, and data mutation. Every response receives the exact current workstream as required governance context, avoiding provider-tool rediscovery for routine status answers. Participation identity remains distinct from execution role.
 
-Natural replies use the versioned `writing_mul-realtime-conversation` contract unless an independent evaluation provider selects `writing_mul-conversation`. Both require the message language unless another language is requested; the realtime contract claims deterministic verification only. Repository documentation defaults to English.
+Managed read and clarification replies use the versioned `writing_mul-realtime-conversation` contract unless an independent evaluation provider selects `writing_mul-conversation` for those modes. Both require the message language unless another language is requested; the realtime contract claims deterministic verification only. Repository-work, goal, fixed control, and platform-action responders retain their own publication contracts and cannot inherit a read-response evaluator merely because it is configured. Repository documentation defaults to English.
 
 ### Participants and agents
 

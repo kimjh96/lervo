@@ -75,6 +75,7 @@ export interface DeliberationRuntimeOptions {
   coordinates: DeliberationRuntimeCoordinates;
   events: EventStore;
   artifactStore: ArtifactStore;
+  participantNames?: readonly { roleId: string; name: string }[];
   now?: () => Date;
   createEventId?: () => string;
   resumeSnapshot?: DeliberationRuntimeSnapshot;

@@ -334,6 +334,115 @@ export interface ProductHostCapabilityReportV7 {
   unsupported: ProductHostCapabilityReportV6["unsupported"];
 }
 
+export type ProductHostRouteIdV8 = ProductHostRouteIdV7 | "product_activity.inspect";
+
+export type ProductHostResultContractV8 = ProductHostResultContractV7 | "product_activity_page_v1";
+
+export interface ProductHostRouteV8 extends Omit<
+  ProductHostRouteV7,
+  "routeId" | "resultContract" | "area"
+> {
+  routeId: ProductHostRouteIdV8;
+  area: ProductHostRouteV7["area"] | "product";
+  resultContract: ProductHostResultContractV8;
+}
+
+export interface ProductHostCapabilityReportV8 {
+  schemaVersion: 8;
+  kind: "product_host.capabilities";
+  protocol: {
+    transport: "local_cli";
+    version: 8;
+    discoveryCommand: ["application", "capabilities", "--protocol", "8", "--json"];
+    requiresHub: false;
+  };
+  canonicalAuthorities: ProductHostCapabilityReportV1["canonicalAuthorities"];
+  projections: [...ProductHostCapabilityReportV7["projections"], "product_activity_v1"];
+  routes: ProductHostRouteV8[];
+  unsupported: ProductHostCapabilityReportV7["unsupported"];
+}
+
+export type ProductHostRouteIdV9 = ProductHostRouteIdV8 | "product_search.inspect";
+
+export type ProductHostResultContractV9 =
+  ProductHostResultContractV8 | "product_unified_search_result_v1";
+
+export interface ProductHostRouteV9 extends Omit<ProductHostRouteV8, "routeId" | "resultContract"> {
+  routeId: ProductHostRouteIdV9;
+  resultContract: ProductHostResultContractV9;
+}
+
+export interface ProductHostCapabilityReportV9 {
+  schemaVersion: 9;
+  kind: "product_host.capabilities";
+  protocol: {
+    transport: "local_cli";
+    version: 9;
+    discoveryCommand: ["application", "capabilities", "--protocol", "9", "--json"];
+    requiresHub: false;
+  };
+  canonicalAuthorities: ProductHostCapabilityReportV1["canonicalAuthorities"];
+  projections: [...ProductHostCapabilityReportV8["projections"], "product_unified_search_v1"];
+  routes: ProductHostRouteV9[];
+  unsupported: ProductHostCapabilityReportV8["unsupported"];
+}
+
+export type ProductHostRouteIdV10 = ProductHostRouteIdV9 | "product_observability.inspect";
+
+export type ProductHostResultContractV10 =
+  ProductHostResultContractV9 | "surface_observability_report_v1";
+
+export interface ProductHostRouteV10 extends Omit<
+  ProductHostRouteV9,
+  "routeId" | "resultContract"
+> {
+  routeId: ProductHostRouteIdV10;
+  resultContract: ProductHostResultContractV10;
+}
+
+export interface ProductHostCapabilityReportV10 {
+  schemaVersion: 10;
+  kind: "product_host.capabilities";
+  protocol: {
+    transport: "local_cli";
+    version: 10;
+    discoveryCommand: ["application", "capabilities", "--protocol", "10", "--json"];
+    requiresHub: false;
+  };
+  canonicalAuthorities: ProductHostCapabilityReportV1["canonicalAuthorities"];
+  projections: [...ProductHostCapabilityReportV9["projections"], "surface_observability_v1"];
+  routes: ProductHostRouteV10[];
+  unsupported: ProductHostCapabilityReportV9["unsupported"];
+}
+
+export type ProductHostRouteIdV11 = ProductHostRouteIdV10 | "product_deliberation.inspect";
+
+export type ProductHostResultContractV11 =
+  ProductHostResultContractV10 | "product_deliberation_view_v1";
+
+export interface ProductHostRouteV11 extends Omit<
+  ProductHostRouteV10,
+  "routeId" | "resultContract"
+> {
+  routeId: ProductHostRouteIdV11;
+  resultContract: ProductHostResultContractV11;
+}
+
+export interface ProductHostCapabilityReportV11 {
+  schemaVersion: 11;
+  kind: "product_host.capabilities";
+  protocol: {
+    transport: "local_cli";
+    version: 11;
+    discoveryCommand: ["application", "capabilities", "--protocol", "11", "--json"];
+    requiresHub: false;
+  };
+  canonicalAuthorities: ProductHostCapabilityReportV1["canonicalAuthorities"];
+  projections: [...ProductHostCapabilityReportV10["projections"], "product_deliberation_v1"];
+  routes: ProductHostRouteV11[];
+  unsupported: ProductHostCapabilityReportV10["unsupported"];
+}
+
 export type ProductHostCapabilityReport =
   | ProductHostCapabilityReportV1
   | ProductHostCapabilityReportV2
@@ -341,4 +450,8 @@ export type ProductHostCapabilityReport =
   | ProductHostCapabilityReportV4
   | ProductHostCapabilityReportV5
   | ProductHostCapabilityReportV6
-  | ProductHostCapabilityReportV7;
+  | ProductHostCapabilityReportV7
+  | ProductHostCapabilityReportV8
+  | ProductHostCapabilityReportV9
+  | ProductHostCapabilityReportV10
+  | ProductHostCapabilityReportV11;

@@ -69,7 +69,7 @@ export function openDiscordConversationRepositoryWork(input: {
         ? {}
         : { authorizedEffectRequesters: input.authorizedEffectRequesters }),
       defaultProvider: input.config.command.provider,
-      timeoutMs: input.config.routing.workTimeoutMs ?? 900_000,
+      timeoutMs: input.config.routing.workTimeoutMs ?? 1_800_000,
     }),
   };
 }

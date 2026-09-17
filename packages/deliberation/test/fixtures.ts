@@ -52,6 +52,12 @@ export const policy: DeliberationPolicy = {
   ],
   decisionOwnerRoleId: "lead",
   maxRounds: 3,
+  executionBudget: {
+    maximumProviderCalls: 12,
+    maximumObservedTokens: 250_000,
+    maximumElapsedMs: 300_000,
+    unobservedTokenDisposition: "block",
+  },
   requiredVerificationSuiteIds: ["architecture.contract"],
   convergence: {
     requireIndependentReviewer: true,

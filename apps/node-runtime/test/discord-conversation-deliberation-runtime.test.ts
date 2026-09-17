@@ -53,7 +53,9 @@ describe("Discord conversation deliberation runtime", () => {
       integrationId: "itg_discord01",
       projectId: "prj_control01",
       repositoryRoot: process.cwd(),
+      dataDirectory: process.cwd(),
       artifactStore,
+      repositoryArtifactStore: artifactStore,
       onFailure: vi.fn(),
     });
     const deliberations: ConversationDeliberationPort = {
@@ -67,7 +69,9 @@ describe("Discord conversation deliberation runtime", () => {
       runDeliberationResumeWorkerCycle: async () => ({ status: "idle" as const }),
     } as unknown as ConversationApplication;
     runtime.attach(application, 1_000);
-    const topic = "Review the repository knowledge conflict strategy.";
+    const topic = "저장소 지식 충돌 전략을 이해관계자별로 검토한다.";
+    const request = "이 설계를 이해관계자별로 다시 검토하고 최종 결론을 내려줘.";
+    const source = await artifactStore.put(request);
     const event = createConversationInboundEvent({
       sourceEventKeyHash: hashConversationSourceEventKey("natural-deliberation"),
       target: {
@@ -81,8 +85,8 @@ describe("Discord conversation deliberation runtime", () => {
       mentions: { participantIds: [], roleIds: [] },
       content: {
         artifactId: "art_natural0001",
-        contentHash: `sha256:${"a".repeat(64)}`,
-        byteCount: 1,
+        contentHash: source.contentHash,
+        byteCount: source.byteCount,
         mediaType: "text/plain; charset=utf-8",
       },
       replyToEventId: null,
@@ -91,19 +95,50 @@ describe("Discord conversation deliberation runtime", () => {
       occurredAt: "2026-09-16T00:00:00.000Z",
     });
 
-    await runtime.actionResponder.respond(
-      { event } as never,
+    const response = await runtime.actionResponder.respond(
+      {
+        event,
+        context: {
+          priorTurns: [
+            {
+              role: "user",
+              text: "Paperclip, Buzz, Prime Agent, Hermes의 장점을 Lervo 코어 위에 통합한다.",
+              speaker: {
+                kind: "human",
+                participantId: "ptc_operator01",
+                agentId: null,
+                roleId: null,
+              },
+            },
+          ],
+        },
+      } as never,
       { kind: "deliberation_start", specification: topic },
       { effectRequesterAuthorized: true },
     );
 
     expect(runtime.naturalLanguageEffect?.effectId).toBe("deliberation_start");
-    expect(start).toHaveBeenCalledWith({
-      event,
-      policyId: "deliberation_architecture-review",
-      topic,
-      requestedAt: expect.any(String),
-    });
+    expect(start).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event,
+        policyId: "deliberation_architecture-review",
+        topic: expect.stringContaining(`Current human request:\n${request}`),
+        requestedAt: expect.any(String),
+      }),
+    );
+    expect(start.mock.calls[0]![0].topic).toContain(topic);
+    expect(start.mock.calls[0]![0].topic).toContain("Paperclip, Buzz, Prime Agent, Hermes");
+    const content = new TextDecoder().decode(
+      await artifactStore.get(
+        `lervo-cas://sha256/${response.content.contentHash.slice("sha256:".length)}`,
+      ),
+    );
+    expect(content).toContain("이해관계자별 독립 검토를 시작했습니다");
+    expect(content).not.toContain("dlb_natural0001");
+    expect(content).not.toContain("0 artifacts");
+    expect(content).not.toContain("Wait for");
+    expect(response.deliveryRelation).toBe("reply");
+    expect(response.audienceParticipation).toBe("observe_only");
     await runtime.stop();
   });
 });

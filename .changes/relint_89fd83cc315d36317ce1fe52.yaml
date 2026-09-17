@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_89fd83cc315d36317ce1fe52"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Improve deliberation reliability, targeted writing repair, and Discord status-publication routing."

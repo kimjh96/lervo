@@ -97,6 +97,24 @@ function renderDeliberation(
   return lines.join("\n\n");
 }
 
+function renderDeliberationProductAcknowledgement(
+  summary: ConversationDeliberationSummary,
+  request: "start" | "resume" | null,
+  responseLanguage: "en" | "ko",
+): string {
+  if (request === "start" && summary.status === "running") {
+    return responseLanguage === "ko"
+      ? "이해관계자별 독립 검토를 시작했습니다. 검증된 결론이나 해결되지 않은 쟁점을 준비되는 대로 이 대화에 답글로 전달하겠습니다."
+      : "I started an independent stakeholder review. I’ll return the verified decision or unresolved points to this conversation when it is ready.";
+  }
+  if (request === "resume") {
+    return responseLanguage === "ko"
+      ? "검증된 체크포인트부터 검토를 재개했습니다. 결과가 준비되면 이 대화에 답글로 전달하겠습니다."
+      : "I resumed the review from its verified checkpoint. I’ll return the result to this conversation when it is ready.";
+  }
+  return renderDeliberation(summary, request);
+}
+
 function assertDeliberationSummary(
   summary: ConversationDeliberationSummary,
   expectedId?: string,
@@ -149,6 +167,8 @@ export async function createConversationDeliberationResponse(input: {
   event: ConversationInboundEvent;
   command: Exclude<ParsedConversationControlCommand, { deliveryId: string }>;
   at: string;
+  presentation?: "diagnostic" | "product";
+  responseLanguage?: "en" | "ko";
 }): Promise<string> {
   if (input.deliberations === undefined) {
     throw new ConversationControlError(
@@ -183,14 +203,15 @@ export async function createConversationDeliberationResponse(input: {
         ? input.command.deliberationId
         : undefined,
     );
-    return renderDeliberation(
-      summary,
+    const request =
       input.command.operation === "deliberation_start"
         ? "start"
         : input.command.operation === "deliberation_resume"
           ? "resume"
-          : null,
-    );
+          : null;
+    return input.presentation === "product"
+      ? renderDeliberationProductAcknowledgement(summary, request, input.responseLanguage ?? "en")
+      : renderDeliberation(summary, request);
   } catch (error) {
     if (error instanceof ConversationControlError) throw error;
     throw new ConversationControlError(

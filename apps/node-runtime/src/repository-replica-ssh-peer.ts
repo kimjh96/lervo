@@ -149,8 +149,8 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     return snapshot;
   }
 
-  bundle(repositoryRoot: string): Promise<Uint8Array> {
-    return this.execute(["bundle", "--root", repositoryRoot]);
+  bundle(repositoryRoot: string, expectedSnapshotHash: string): Promise<Uint8Array> {
+    return this.execute(["bundle", "--root", repositoryRoot, "--expected", expectedSnapshotHash]);
   }
 
   async apply(input: {

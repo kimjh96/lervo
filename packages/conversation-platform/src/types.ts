@@ -116,6 +116,7 @@ export interface ConversationPlatformIdentityPort {
     target: ConversationTarget;
     actor: ConversationOutboundMessage["actor"];
     sourceEventId: string;
+    replyToEventId?: string | null;
   }): Promise<PlatformOutboundAddress>;
   recordInbound(input: {
     platform: ConversationPlatformKind;

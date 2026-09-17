@@ -1,5 +1,6 @@
 import { constants } from "node:fs";
 import { access, lstat } from "node:fs/promises";
+import { resolve } from "node:path";
 
 import type {
   ConversationApplication,
@@ -12,13 +13,17 @@ import {
 import type { ManagedConversationSurfaceEffect } from "@lervo/conversation-responder";
 import { fixedConversationStatusWritingContract } from "@lervo/core";
 import type { ConversationResponder } from "@lervo/interaction";
-import type { ArtifactStore } from "@lervo/storage-contract";
+import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 
+import { ConversationDeliberationArtifactSource } from "./conversation-deliberation-artifact-source.js";
 import { createConversationDeliberationCliExecutionPorts } from "./conversation-deliberation-cli-executor.js";
+import { createConversationDeliberationResultSource } from "./conversation-deliberation-result-source.js";
 import { ConversationDeliberationLoop } from "./conversation-deliberation-loop.js";
 import { ConversationDeliberationOutcomeCoordinator } from "./conversation-deliberation-outcomes.js";
+import { FileConversationEventCursor } from "./conversation-event-cursor.js";
 import type { NodeDiscordConversationConfig } from "./config-types.js";
 import { ConversationDeliberationActionResponder } from "./conversation-deliberation-action-responder.js";
+import { runConversationDeliberationCycle } from "./conversation-deliberation-cycle.js";
 import type { DiscordPlatformActionResponder } from "./discord-conversation-mode.js";
 
 export class DiscordConversationDeliberationRuntime {
@@ -35,12 +40,20 @@ export class DiscordConversationDeliberationRuntime {
     integrationId: string,
     projectId: string,
     repositoryRoot: string,
+    providerExecutables: Partial<Record<"codex" | "claude", string>> | undefined,
+    providerModels: Partial<Record<"codex" | "claude", string>> | undefined,
+    providerReasoningEfforts:
+      Partial<Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">> | undefined,
     artifactStore: ArtifactStore,
-    private readonly onFailure: () => void,
+    private readonly artifactSource: ConversationDeliberationArtifactSource | null,
+    private readonly onFailure: (error: unknown) => void,
   ) {
     const execution = createConversationDeliberationCliExecutionPorts({
       executable: config.cliExecutable,
       repositoryRoot,
+      ...(providerExecutables === undefined ? {} : { providerExecutables }),
+      ...(providerModels === undefined ? {} : { providerModels }),
+      ...(providerReasoningEfforts === undefined ? {} : { providerReasoningEfforts }),
       ...(config.processTimeoutMs === undefined
         ? {}
         : { processTimeoutMs: config.processTimeoutMs }),
@@ -80,6 +93,13 @@ export class DiscordConversationDeliberationRuntime {
       integrationId,
       conversationIds: config.notificationConversationIds ?? [],
       artifactStore,
+      resultSource: createConversationDeliberationResultSource({
+        executable: config.cliExecutable,
+        repositoryRoot,
+        ...(config.processTimeoutMs === undefined
+          ? {}
+          : { processTimeoutMs: config.processTimeoutMs }),
+      }),
       maximumReconciliationAttempts: config.maximumReconciliationAttempts ?? 3,
     });
     this.responder = {
@@ -101,18 +121,49 @@ export class DiscordConversationDeliberationRuntime {
     integrationId: string;
     projectId: string;
     repositoryRoot: string;
+    providerExecutables?: Partial<Record<"codex" | "claude", string>>;
+    providerModels?: Partial<Record<"codex" | "claude", string>>;
+    providerReasoningEfforts?: Partial<
+      Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">
+    >;
+    dataDirectory: string;
     artifactStore: ArtifactStore;
-    onFailure(): void;
+    repositoryArtifactStore: ArtifactStore;
+    repositoryEvents?: Pick<EventStore, "latest" | "list">;
+    onFailure(error: unknown): void;
   }): Promise<DiscordConversationDeliberationRuntime> {
     const metadata = await lstat(input.config.cliExecutable);
     if (!metadata.isFile()) throw new Error("The deliberation CLI executable is not a file.");
     await access(input.config.cliExecutable, constants.X_OK);
+    const artifactSource =
+      input.repositoryEvents === undefined
+        ? null
+        : new ConversationDeliberationArtifactSource({
+            projectId: input.projectId,
+            integrationId: input.integrationId,
+            events: input.repositoryEvents,
+            repositoryArtifacts: input.repositoryArtifactStore,
+            conversationArtifacts: input.artifactStore,
+            cursor: new FileConversationEventCursor(
+              resolve(input.dataDirectory, "deliberation-artifact-cursor.json"),
+              {
+                cursorKind: "deliberation.artifact",
+                projectId: input.projectId,
+                integrationId: input.integrationId,
+              },
+            ),
+          });
+    await artifactSource?.initialize();
     return new DiscordConversationDeliberationRuntime(
       input.config,
       input.integrationId,
       input.projectId,
       input.repositoryRoot,
+      input.providerExecutables,
+      input.providerModels,
+      input.providerReasoningEfforts,
       input.artifactStore,
+      artifactSource,
       input.onFailure,
     );
   }
@@ -122,6 +173,7 @@ export class DiscordConversationDeliberationRuntime {
       throw new Error("The conversation deliberation application cannot be attached.");
     }
     this.deliberations = application.deliberations;
+    this.artifactSource?.attach(application);
     this.loop = new ConversationDeliberationLoop({
       ...(application.subscribeChanges === undefined
         ? {}
@@ -131,16 +183,19 @@ export class DiscordConversationDeliberationRuntime {
           }),
       nextWakeupAt: () => {
         const at = application.nextDeliberationWakeupAt?.() ?? null;
+        if (this.artifactSource?.hasMore === true) return Date.now();
         return this.outcomes.hasPending ? Math.min(at ?? Infinity, Date.now() + intervalMs) : at;
       },
       runCycle: async () => {
-        const start = await application.runDeliberationWorkerCycle();
-        await this.outcomes.observe(application, start);
-        const resume = await application.runDeliberationResumeWorkerCycle();
-        await this.outcomes.observe(application, resume);
-        await this.outcomes.reconcilePending(application);
+        await runConversationDeliberationCycle({
+          application,
+          artifacts: this.artifactSource,
+          outcomes: this.outcomes,
+          projectionIntervalMs: intervalMs,
+        });
       },
       onFailure: this.onFailure,
+      continueOnFailure: true,
       intervalMs,
     });
     this.loop.start();

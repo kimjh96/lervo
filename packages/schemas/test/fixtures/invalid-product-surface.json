@@ -1,0 +1,322 @@
+[
+  {
+    "name": "product activity page rejects raw event summaries outside the bounded contract",
+    "schema": "productActivityPage",
+    "value": {
+      "schemaVersion": 1,
+      "kind": "product_surface.activity",
+      "sourceEventHeadHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repositoryRevision": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "requestCursor": null,
+      "returnedCursor": "pac_111111111111111111111111",
+      "nextCursor": null,
+      "limit": 25,
+      "status": "complete",
+      "failureCode": null,
+      "items": [],
+      "rawEventBody": "must not cross the projection boundary"
+    }
+  },
+  {
+    "name": "unified search hit rejects an unversioned and unhashed source",
+    "schema": "productUnifiedSearchResult",
+    "value": {
+      "schemaVersion": 1,
+      "kind": "product_surface.search",
+      "queryDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "authorizationDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "requestedCorpusClasses": ["repository_knowledge"],
+      "limit": 20,
+      "repositoryRevision": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "searchPlan": {
+        "coordinate": "search-plan:default",
+        "contentHash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "engineId": "lexical-v2",
+        "engineVersion": 2
+      },
+      "stageReceipts": [
+        {
+          "stageId": "lexical",
+          "required": true,
+          "status": "completed",
+          "reasonCode": null,
+          "adapterId": "lervo/lexical",
+          "adapterBuildId": "lexical-v2:build-17",
+          "receiptHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      ],
+      "groups": [
+        {
+          "corpusClass": "repository_knowledge",
+          "status": "complete",
+          "reasonCode": null,
+          "sourceCoordinates": ["knowledge:product-surfaces-current"],
+          "hits": [
+            {
+              "corpusClass": "repository_knowledge",
+              "sourceCoordinate": "document:product-surfaces-current",
+              "sourceRevision": null,
+              "contentHash": null,
+              "privacyClass": "ordinary",
+              "label": "Unbound result",
+              "rank": 1,
+              "adapterId": "lervo/lexical",
+              "adapterBuildId": "lexical-v2:build-17",
+              "matchEvidenceKind": "lexical"
+            }
+          ]
+        }
+      ],
+      "status": "complete",
+      "reasonCode": null,
+      "resultDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  },
+  {
+    "name": "surface observability rejects zero substituted for an unavailable cache counter",
+    "schema": "surfaceObservabilityReport",
+    "value": {
+      "schemaVersion": 1,
+      "kind": "product_surface.observability",
+      "surface": { "kind": "discord", "adapterBuild": "discord-adapter:build-9" },
+      "sourceEventHeadHash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "repositoryRevision": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "workCoordinate": null,
+      "originCoordinate": null,
+      "grounding": {
+        "status": "unavailable",
+        "reasonCode": "not_observed",
+        "sourceCoordinates": [],
+        "reportCoordinate": null,
+        "documentCounts": {
+          "recommended": 0,
+          "selected": 0,
+          "loaded": 0,
+          "injected": 0,
+          "referenced": 0
+        },
+        "coverage": {
+          "delivery": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null,
+            "reasonCode": "not_observed"
+          },
+          "explicitReference": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null,
+            "reasonCode": "not_observed"
+          },
+          "relevance": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null,
+            "reasonCode": "not_observed"
+          },
+          "candidateSelection": {
+            "numerator": 0,
+            "denominator": 0,
+            "value": null,
+            "reasonCode": "not_observed"
+          }
+        }
+      },
+      "search": {
+        "status": "unavailable",
+        "reasonCode": "not_observed",
+        "sourceCoordinates": [],
+        "resultCoordinate": null,
+        "engine": null,
+        "queryDurationMs": null,
+        "orderedHitCoordinates": []
+      },
+      "resources": {
+        "status": "unavailable",
+        "reasonCode": "not_observed",
+        "sourceCoordinates": [],
+        "groups": []
+      },
+      "stages": {
+        "status": "unavailable",
+        "reasonCode": "not_observed",
+        "sourceCoordinates": [],
+        "stageCatalogVersion": null,
+        "environmentProfileDigest": null,
+        "repositoryProfile": null,
+        "observations": []
+      },
+      "caches": {
+        "status": "partial",
+        "reasonCode": "cache_counter_unavailable",
+        "sourceCoordinates": ["cache:lexical-v2"],
+        "entries": [
+          {
+            "cacheKind": "lexical-index",
+            "owner": "lexical-v2",
+            "unit": "documents",
+            "status": "unavailable",
+            "observedValue": 0,
+            "reasonCode": "cache_counter_unavailable",
+            "sourceRevision": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+            "buildCoordinate": "lexical-v2:build-17",
+            "disposition": "unknown"
+          }
+        ]
+      },
+      "result": {
+        "status": "unavailable",
+        "reasonCode": "not_observed",
+        "sourceCoordinates": [],
+        "terminalStatus": null,
+        "verificationStatus": "unavailable",
+        "acceptanceStatus": "unavailable",
+        "artifactStatus": "unavailable",
+        "publicationStatus": "not_requested",
+        "deliveryStatus": "not_requested",
+        "resultDigest": null,
+        "artifactCoordinates": [],
+        "verificationCoordinate": null,
+        "acceptanceCoordinate": null,
+        "publicationCoordinate": null,
+        "deliveryCoordinate": null
+      },
+      "completeness": {
+        "requiredSections": ["caches"],
+        "missingReasons": ["cache_counter_unavailable"]
+      },
+      "status": "partial",
+      "reportDigest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+    }
+  },
+  {
+    "name": "deliberation view rejects a policy-only participant presented as a hired agent",
+    "schema": "productDeliberationView",
+    "value": {
+      "schemaVersion": 1,
+      "kind": "product_surface.deliberation",
+      "deliberationId": "dlb_surface_review",
+      "projectId": "prj_lervo001",
+      "policyId": "deliberation_product_surface",
+      "policyHash": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+      "sourceEventId": "cve_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "conversationId": "cnv_discord01",
+      "threadId": "thd_surface01",
+      "requesterParticipantId": "ptc_requester1",
+      "originBindingDigest": "sha256:abababababababababababababababababababababababababababababababab",
+      "sourceEventHeadHash": "sha256:bcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc",
+      "repositoryRevision": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+      "status": "running",
+      "round": 1,
+      "maximumRounds": 3,
+      "nextAction": "wait",
+      "terminalReason": null,
+      "participants": [
+        {
+          "roleId": "architect",
+          "responsibility": "proposer",
+          "providerPolicyHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "disposition": "hired_agent",
+          "participantId": "ptc_architect1",
+          "agentId": "agt_111111111111111111111111",
+          "roleVersion": "2.0.0"
+        },
+        {
+          "roleId": "decision_owner",
+          "responsibility": "decision_owner",
+          "providerPolicyHash": "sha256:efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+          "disposition": "policy_only",
+          "participantId": "ptc_fakeagent1",
+          "agentId": "agt_222222222222222222222222",
+          "roleVersion": null
+        }
+      ],
+      "artifacts": [],
+      "verifications": [],
+      "unresolvedObjections": [],
+      "resourceReportCoordinate": null,
+      "publicationCoordinate": null,
+      "originDeliveryCoordinate": null,
+      "projectionStatus": "complete",
+      "projectionReasonCode": null,
+      "projectionDigest": "sha256:f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0"
+    }
+  },
+  {
+    "name": "steering command rejects handoff routed through assignment authority",
+    "schema": "productSteeringCommand",
+    "value": {
+      "schemaVersion": 1,
+      "kind": "product_surface.steering_command",
+      "commandId": "psc_111111111111111111111111",
+      "action": "handoff",
+      "target": {
+        "ownerDomain": "assignment",
+        "domainCommandId": "surface:mutate",
+        "targetCoordinate": "source:repository-worktree-7",
+        "expectedTargetRevision": "revision:14"
+      },
+      "principalCoordinate": "participant:owner-1",
+      "originBindingDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "commandInputHash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "idempotencyDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "authority": {
+        "authorityCoordinate": "authority:assignment-owner-1",
+        "planCoordinate": null,
+        "approvalCoordinate": null,
+        "leaseCoordinate": null
+      },
+      "requestedAt": "2026-09-17T01:15:40+09:00",
+      "commandDigest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+    }
+  },
+  {
+    "name": "steering result rejects uncertain effect presented with an authoritative receipt",
+    "schema": "productSteeringResult",
+    "value": {
+      "schemaVersion": 1,
+      "kind": "product_surface.steering_result",
+      "commandId": "psc_111111111111111111111111",
+      "commandDigest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "sourceEventHeadHash": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "repositoryRevision": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "status": "uncertain",
+      "reasonCode": "external_effect_uncertain",
+      "domainReceiptCoordinate": "receipt:claimed-success",
+      "resultDigest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+    }
+  },
+  {
+    "name": "activity subscription request rejects an unbounded page size",
+    "schema": "productActivitySubscriptionRequest",
+    "value": {
+      "schemaVersion": 1,
+      "kind": "product_surface.activity_subscription_request",
+      "subscriptionId": "pas_111111111111111111111111",
+      "originCoordinate": "discord:channel-42/thread-7",
+      "authorizationDigest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "resumeCursor": null,
+      "maximumPageSize": 1000,
+      "requestDigest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+    }
+  },
+  {
+    "name": "activity subscription hint rejects embedded canonical event bodies",
+    "schema": "productActivitySubscriptionHint",
+    "value": {
+      "schemaVersion": 1,
+      "kind": "product_surface.activity_subscription_hint",
+      "subscriptionId": "pas_111111111111111111111111",
+      "sequence": 2,
+      "observedAt": "2026-09-17T01:16:00+09:00",
+      "previousCursor": "pac_111111111111111111111111",
+      "currentCursor": "pac_222222222222222222222222",
+      "sourceEventHeadHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "repositoryRevision": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "status": "changed",
+      "reasonCode": null,
+      "hintDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "events": [{ "raw": "must be queried from the canonical source" }]
+    }
+  }
+]

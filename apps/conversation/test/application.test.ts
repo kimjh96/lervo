@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { NativeChatConversationAdapter } from "@lervo/adapter-native-chat";
+import { calculateConversationDeliberationOriginBindingDigest } from "@lervo/conversation-control";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { openConversationApplication } from "../src/index.js";
@@ -306,6 +307,25 @@ describe("conversation deployment composition", () => {
     application = await openConversationApplication(configured);
     if (application.deliberations === null)
       throw new Error("Deliberation control was not restored.");
+    await expect(
+      application.inspectDeliberationOrigin({
+        projectId: "prj_platform01",
+        deliberationId: first.deliberationId,
+      }),
+    ).resolves.toEqual({
+      sourceEventId: received.event.eventId,
+      conversationId: "cnv_platform01",
+      threadId: null,
+      requesterParticipantId: "ptc_platform01",
+      responseLanguage: "en",
+      originBindingDigest: calculateConversationDeliberationOriginBindingDigest({
+        projectId: "prj_platform01",
+        sourceEventId: received.event.eventId,
+        conversationId: "cnv_platform01",
+        threadId: null,
+        requesterParticipantId: "ptc_platform01",
+      }),
+    });
     const duplicate = await application.deliberations.start({
       event: received.event,
       policyId: "deliberation_product-review",
@@ -318,6 +338,29 @@ describe("conversation deployment composition", () => {
       deliberationId: first.deliberationId,
     });
     expect(execute).toHaveBeenCalledOnce();
+    const notification = await application.claimDeliberationNotification();
+    expect(notification).toMatchObject({
+      notification: {
+        operation: "start",
+        deliberationId: first.deliberationId,
+        summary: { status: "no_consensus", artifactCount: 4 },
+        occurredAt: "2026-08-20T02:00:00.000Z",
+        state: "leased",
+      },
+      origin: {
+        sourceEventId: received.event.eventId,
+        conversationId: "cnv_platform01",
+        requesterParticipantId: "ptc_platform01",
+      },
+    });
+    if (notification === null) throw new Error("The terminal notification was not claimed.");
+    await application.acceptDeliberationNotification({
+      operation: notification.notification.operation,
+      deliberationId: notification.notification.deliberationId,
+      leaseId: notification.leaseId,
+      conversationEventId: `cve_${"b".repeat(64)}`,
+    });
+    await expect(application.claimDeliberationNotification()).resolves.toBeNull();
     await expect(
       application.deliberations.inspect({
         event: received.event,

@@ -14,6 +14,7 @@ import type {
   DiscordDeliveryRequest,
   DiscordDeliveryResult,
 } from "./types.js";
+import { createDiscordMessageNonce } from "./message-nonce.js";
 
 export interface DiscordRestDeliveryOptions {
   integrationId: string;
@@ -69,7 +70,7 @@ export class DiscordRestDelivery implements DiscordDeliveryPort {
       );
     }
     const targetChannelId = input.threadId ?? input.channelId;
-    const nonce = createHash("sha256").update(input.outboundId).digest("base64url").slice(0, 25);
+    const nonce = createDiscordMessageNonce(input.outboundId, input.audienceParticipation);
     const body = {
       content: input.content,
       nonce,

@@ -52,7 +52,9 @@ it("terminates a repository replica SSH command that exceeds its deadline", asyn
       destination: "fixture",
       remoteNodeExecutable: "node",
       remoteRuntimeExecutable: "runtime",
-      commandTimeoutMs: 25,
+      // Leave enough time for the child to publish its PID even when the full
+      // repository test suite is saturating the process scheduler.
+      commandTimeoutMs: 1_000,
     });
     await expect(peer.snapshot("/fixture")).rejects.toThrow(/execution deadline/u);
     const pid = Number(await readFile(pidFile, "utf8"));

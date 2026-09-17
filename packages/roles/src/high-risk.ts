@@ -28,6 +28,7 @@ export function createHighRiskRoleWorkflow(input: {
   verifier: HighRiskRoleParticipant;
   publication: DeliberationPolicy["publication"];
   maxRounds?: number;
+  executionBudget?: DeliberationPolicy["executionBudget"];
 }): HighRiskRoleWorkflow {
   const roles = [input.primary, input.reviewer, input.verifier];
   for (const role of roles) assertRoleDefinition(role.definition);
@@ -44,6 +45,14 @@ export function createHighRiskRoleWorkflow(input: {
     })),
     decisionOwnerRoleId: primaryRoleId,
     maxRounds: input.maxRounds ?? 3,
+    executionBudget: structuredClone(
+      input.executionBudget ?? {
+        maximumProviderCalls: 12,
+        maximumObservedTokens: 250_000,
+        maximumElapsedMs: 300_000,
+        unobservedTokenDisposition: "block",
+      },
+    ),
     requiredVerificationSuiteIds: requiredSuites(roles.map((role) => role.definition)),
     convergence: {
       requireIndependentReviewer: true,

@@ -4,6 +4,10 @@ import {
   requiredString,
 } from "@lervo/conversation-platform";
 import { parseDiscordGoalInteraction, type DiscordGoalInteraction } from "./goal-interaction.js";
+import {
+  readDiscordAudienceParticipation,
+  type DiscordAudienceParticipation,
+} from "./message-nonce.js";
 
 export interface ParsedDiscordMessage {
   kind: "message";
@@ -13,6 +17,7 @@ export interface ParsedDiscordMessage {
   participantKey: string;
   mentionedParticipantKeys: string[];
   actorKindHint: "human" | "agent";
+  audienceParticipation: DiscordAudienceParticipation;
   replyToMessageId: string | null;
   content: string;
   occurredAt: string;
@@ -124,6 +129,10 @@ export function parseDiscordMessagePayload(value: unknown): ParsedDiscordMessage
       ...(referencedAgent === null ? [] : [referencedAgent]),
     ].filter((value, index, values) => values.indexOf(value) === index),
     actorKindHint: bot || webhookId !== null ? "agent" : "human",
+    audienceParticipation: readDiscordAudienceParticipation({
+      nonce: message.nonce,
+      agentAuthored: bot && webhookId === null,
+    }),
     replyToMessageId:
       reference === null
         ? null

@@ -1,7 +1,7 @@
 # Lervo System Architecture
 
 Status: `active`
-As of: 2026-08-26
+As of: 2026-09-16
 
 ## System shape
 
@@ -28,6 +28,7 @@ Direct provider terminals use a narrower native-hook path with separate evidence
 - [Agent organization and project teams](system/agent-organization.md)
 - [Repository knowledge, document ownership, and search](system/knowledge-and-context.md)
 - [Hub and node runtimes](system/hub-and-nodes.md)
+- [Product surfaces](../specifications/execution/product-surfaces.md): Discord reference acceptance and future first-party host parity over the same application boundary.
 
 ## Data ownership and failure
 
@@ -38,6 +39,8 @@ Direct provider terminals use a narrower native-hook path with separate evidence
 Contracts and schemas do not depend on provider adapters or applications. Domain packages depend on contracts; storage and provider packages implement ports; applications compose them. `scripts/quality/check-package-boundaries.mjs` enforces this graph.
 
 The application contract is a contract package, not an application implementation. The work controller may depend on provider-neutral contracts and workforce snapshots; it cannot import CLI, storage adapters, or provider adapters. Product applications depend inward on that boundary.
+
+Discord and future first-party presentation remain adapters outside domain authority. Activity, operating, observability, and search views are rebuildable projections. Surface actions enter typed application commands; no surface owns a parallel task, chat, workflow, memory, or truth store.
 
 ## References
 

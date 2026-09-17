@@ -66,6 +66,24 @@ function validEffect(value: unknown): value is ConversationIntentResolution["eff
       !effect.specification.includes("\0")
     );
   }
+  if (effect.kind === "workforce_task_delegate") {
+    return (
+      Object.keys(effect).length === 2 &&
+      typeof effect.specification === "string" &&
+      [...effect.specification].length >= 1 &&
+      [...effect.specification].length <= 1_024 &&
+      !effect.specification.includes("\0")
+    );
+  }
+  if (effect.kind === "deliberation_start") {
+    return (
+      Object.keys(effect).length === 2 &&
+      typeof effect.specification === "string" &&
+      [...effect.specification].length >= 1 &&
+      [...effect.specification].length <= 4_096 &&
+      !effect.specification.includes("\0")
+    );
+  }
   return (
     effect.kind === "discord_public_thread_create" &&
     Object.keys(effect).length === 2 &&

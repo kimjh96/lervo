@@ -14,7 +14,8 @@ One real channel with one person and at least two hired agents in distinct roles
 - Inspect requested code and complete authorized real work.
 - Use threads, replies, and mentions as needed.
 - Complete a bounded discussion and stop at its declared terminal condition.
-- Route a task to the hired agent whose role owns it, without the person naming that agent, and let that agent answer from its own context.
+- Complete ordinary multi-agent discussion without implicitly starting formal deliberation, then pass a separate, explicit formal-decision journey in one bound thread.
+- Route a task to the hired agent whose role owns it, without the person naming that agent, and let the agent answer from its own context.
 - Let one non-source agent autonomously join a materially relevant human or agent turn without a mention, while irrelevant peers observe and bounded chains terminate.
 - Preserve every participant, role, provider-model, and agent-context coordinate across restart.
 - Produce no unauthorized repository or external effect.

@@ -12,6 +12,7 @@ import type {
   InlineManagedDeliberationRequest,
   StoredManagedDeliberationRequest,
 } from "./managed-deliberation.js";
+import type { ManagedDeliberationBudgetUsage } from "./managed-deliberation-budget.js";
 
 const maximumCheckpointBytes = 1024 * 1024;
 const deliberationIdPattern = /^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
@@ -29,6 +30,7 @@ export interface ApprovedDeliberationCheckpoint {
   latestClaimArtifactId: string;
   approvedReviewArtifactIds: string[];
   currentClaim: { claimId: string; claimDigest: string };
+  budgetUsage?: ManagedDeliberationBudgetUsage;
   createdAt: string;
 }
 
@@ -62,7 +64,11 @@ function validCheckpointRequest(value: unknown): boolean {
   if (
     typeof request.topic !== "string" ||
     request.topic.trim().length === 0 ||
-    request.topic.length > 20_000
+    request.topic.length > 20_000 ||
+    (request.executionMaximumElapsedMs !== undefined &&
+      (!Number.isSafeInteger(request.executionMaximumElapsedMs) ||
+        Number(request.executionMaximumElapsedMs) < 1_000 ||
+        Number(request.executionMaximumElapsedMs) > 3_600_000))
   )
     return false;
   if (typeof request.policyId === "string") {
@@ -119,6 +125,13 @@ function validateCheckpoint(
     !checkpoint.approvedReviewArtifactIds.every((id) => typeof id === "string") ||
     typeof checkpoint.currentClaim?.claimId !== "string" ||
     typeof checkpoint.currentClaim.claimDigest !== "string" ||
+    (checkpoint.budgetUsage !== undefined &&
+      (!Number.isSafeInteger(checkpoint.budgetUsage.providerCalls) ||
+        checkpoint.budgetUsage.providerCalls < 0 ||
+        !Number.isSafeInteger(checkpoint.budgetUsage.observedTokens) ||
+        checkpoint.budgetUsage.observedTokens < 0 ||
+        typeof checkpoint.budgetUsage.startedAt !== "string" ||
+        !Number.isFinite(Date.parse(checkpoint.budgetUsage.startedAt)))) ||
     typeof checkpoint.createdAt !== "string" ||
     !validCheckpointRequest(checkpoint.request)
   ) {

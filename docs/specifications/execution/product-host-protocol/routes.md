@@ -6,5 +6,6 @@ Each route remains owned by its existing domain or adapter; the capability comma
 - [Operating](routes/operating.md): governed work, budgets, attention, liveness, scheduling, and topology.
 - [Organization](routes/organization.md): teams, context, CEO evaluation, and executive execution.
 - [Collaboration](routes/collaboration.md): threads, inboxes, mentions, connectors, triggers, and acknowledgments.
+- [Product](routes/product.md): host-neutral activity projections for Discord and later first-party surfaces.
 
 Related specifications: [bounded unattended assignment scheduling](../unattended-scheduling.md) and [bounded dynamic assignment topology](../dynamic-assignment-topology.md).

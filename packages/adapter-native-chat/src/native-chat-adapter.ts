@@ -74,6 +74,9 @@ export class NativeChatConversationAdapter {
         mentions: structuredClone(envelope.mentions ?? { roleIds: [], participantIds: [] }),
         replyToEventId: envelope.replyToEventId ?? null,
         signalCode: envelope.signalCode ?? null,
+        ...(envelope.audienceParticipation === undefined
+          ? {}
+          : { audienceParticipation: envelope.audienceParticipation }),
         automationDepth: envelope.automationDepth ?? 0,
         occurredAt: envelope.occurredAt,
       });

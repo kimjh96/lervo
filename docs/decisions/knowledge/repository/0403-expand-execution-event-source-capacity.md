@@ -1,6 +1,6 @@
 # ADR-0403: Expand the execution-event source capacity to 32,768 events
 
-Status: `accepted`
+Status: `accepted` (amended 2026-09-17)
 Date: 2026-09-15
 
 ## Context
@@ -13,15 +13,20 @@ Raise the complete execution-event source count cap from 8,192 to 32,768. Preser
 
 Treat the count cap as a secondary guard under the byte cap. At the observed average of about 380 bytes per relevant event, 32,768 events occupy about 12 MB, within the 16 MiB bound. A repository approaching either bound needs a reviewed compaction or snapshot design before further admission; that design requires a separate decision.
 
+The repository knowledge policy's total-source default is 64 MiB. That aggregate bound is deliberately large enough to admit the independently bounded 16 MiB execution-event corpus, the independently bounded 16 MiB verification-result corpus, and an ordinary repository corpus that remains below the former 32 MiB default. The scanner still applies one fail-closed aggregate bound after revalidating every supplemental source; this is capacity alignment, not an exclusion, truncation, or relaxation of the evidence adapters' own limits. Existing repositories retain their tracked policy until a reviewed policy update. This repository adopts the 64 MiB bound because an observed 22,240,018-byte ordinary corpus plus an observed 11,567,409-byte supplemental corpus exceeded 32 MiB and prevented the installed Node from opening managed conversation search.
+
 ## Consequences
 
 Installed supervision on a long-lived repository continues past 8,192 execution events without dropping evidence. Every reader built before this revision—CLI worker bundle, Node bundle, and Hub—rejects the repository once it crosses 8,192 events. All bundles that open the knowledge source must therefore be deployed from one revision at or after this one. The bound still fails closed, keeping growth observable.
+
+The 64 MiB aggregate default prevents a valid event or verification corpus from consuming capacity that the scanner separately promises to those adapters. It does not solve eventual execution-history growth: the unchanged 16 MiB event limit remains the explicit signal for the separately reviewed compaction or snapshot design.
 
 The managed linked-evidence canary v18 checkpoint pins the exact bytes of `packages/repository-knowledge/src/execution-event-source.ts` as a reviewed execution-boundary source. Raising the cap invalidated its digest. The checkpoint was re-reviewed without weakening its certified closed complete-source verification or its run, failure, privacy, recall, and precision acceptance limits. This decision deliberately raises the capacity considered safe while preserving closed verification. The pinned source digest and the checkpoint's own reviewed digest were refreshed to the current bytes, and the checkpoint contract test passes against them. No acceptance limit, retention bound, or provider arm changed.
 
 ## Verification
 
 - The execution-event source test asserts the 32,768-event cap while byte, sequence, and per-event bounds remain unchanged.
+- Project initialization writes the 64 MiB aggregate source bound, and this repository's tracked policy uses the same reviewed value.
 - The WSL scoped Node built from this revision opens the 8,220-event repository, resumes owner cycles, and completes the interrupted goal.
 
 ## References

@@ -10,6 +10,8 @@ Each excluded assignment must have completed or failed before the anchor, retain
 
 `lervo agent mandate scope` applies these rules to every canonical snapshot from newest to oldest and returns the newest scope the exact validator admits, automatically pinning eligible terminal assignments. An unresolved assignment, causal run, supervision decision, or dependency boundary makes a later snapshot ineligible; selection may return a snapshot before that work was created. If no safe snapshot exists, it fails instead of guessing, settling work, or widening authority. The generated scope remains review input and grants nothing until included in an approved mandate installation.
 
+`lervo agent mandate scope` applies these same rules to every canonical snapshot from newest to oldest and returns the newest scope the exact validator admits. It automatically pins eligible terminal assignments. An unresolved assignment, causal run, supervision decision, or dependency boundary makes a later snapshot ineligible; selection can therefore return a snapshot before that work was created. If no safe snapshot exists, it fails instead of guessing, settling work, or widening authority. The generated scope is still review input and grants nothing until it is included in an approved mandate installation.
+
 This review identifies prior tasks outside the new goal. It does not:
 
 - turn failure into acceptance;

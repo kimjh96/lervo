@@ -7,14 +7,11 @@ import {
   FixedConversationTerminalFailureResponder,
   VerifiedConversationPublication,
 } from "@lervo/conversation-responder";
-import {
-  adaptiveConversationWritingContract,
-  fixedConversationStatusWritingContract,
-  realtimeConversationWritingContract,
-} from "@lervo/core";
+import { fixedConversationStatusWritingContract } from "@lervo/core";
 import type { ConversationResponder } from "@lervo/interaction";
 
 import { createProviderConversationIntentResolver } from "./conversation-intent-resolver.js";
+import { conversationPublicationWritingContract } from "./conversation-publication-writing-contract.js";
 import { SQLiteConversationHistory } from "./conversation-history.js";
 import { SQLiteConversationIntentResolutionStore } from "./conversation-intent-store.js";
 import {
@@ -34,6 +31,10 @@ import { createDiscordConversationEffects } from "./discord-conversation-effects
 import { createDiscordConversationTurnOwnership } from "./discord-conversation-turn-ownership.js";
 import { createDiscordConversationParticipationPolicy } from "./discord-conversation-participation-policy.js";
 import { ConversationRepositorySignalLoop } from "./conversation-repository-signal-loop.js";
+import {
+  ConversationDeliberationSignalResponder,
+  isDeliberationPublicationSignal,
+} from "./conversation-deliberation-signal-responder.js";
 import { DiscordConversationDeliberationRuntime } from "./discord-conversation-deliberation-runtime.js";
 import { startDiscordConversationBackground } from "./discord-conversation-background.js";
 import { createDiscordConversationResultRuntime } from "./discord-conversation-result-composition.js";
@@ -57,7 +58,7 @@ export async function openNodeDiscordConversationRuntime(
     ...(config.peerAgents ?? []),
     ...(options.peerAgents ?? []),
   ];
-  const authorizedAgentEffectRequesters = createAuthorizedAgentEffectRequesters(config, peerAgents);
+  const authorizedAgentEffectRequesters = createAuthorizedAgentEffectRequesters(config);
   const agentParticipation =
     options.agentParticipation ??
     (await resolveDiscordAgentParticipation({
@@ -127,11 +128,30 @@ export async function openNodeDiscordConversationRuntime(
       ? null
       : await DiscordConversationDeliberationRuntime.open({
           config: config.deliberation,
+          ...(options.providerExecutables === undefined
+            ? {}
+            : { providerExecutables: options.providerExecutables }),
+          ...(options.providerModels === undefined
+            ? {}
+            : { providerModels: options.providerModels }),
+          ...(options.providerReasoningEfforts === undefined
+            ? {}
+            : { providerReasoningEfforts: options.providerReasoningEfforts }),
           integrationId: config.integrationId,
           projectId: options.project.projectId,
           repositoryRoot: options.repositoryRoot,
+          dataDirectory: options.dataDirectory,
           artifactStore: artifacts,
-          onFailure: () => fail("deliberation_worker_failed"),
+          repositoryArtifactStore: options.repositoryArtifactStore ?? artifacts,
+          ...(options.repositoryEvents === undefined
+            ? {}
+            : { repositoryEvents: options.repositoryEvents }),
+          onFailure: (error) =>
+            options.onError?.(
+              error instanceof Error
+                ? error
+                : new Error("The deliberation background cycle failed.", { cause: error }),
+            ),
         });
   const continuation = createDiscordConversationContinuation({
     config,
@@ -264,15 +284,21 @@ export async function openNodeDiscordConversationRuntime(
     });
     responder = modeResponder;
   }
+  if (deliberationRuntime !== null) {
+    responder = new ConversationDeliberationSignalResponder({
+      artifactStore: artifacts,
+      delegate: responder,
+    });
+  }
   const publicationVerifier = new VerifiedConversationPublication({
     artifactStore: artifacts,
-    resolveWritingContract: async ({ event }) =>
-      modeResponder !== null &&
-      ["read_only", "clarify", "work", "goal"].includes(await modeResponder.mode(event))
-        ? config.routing?.evaluation === undefined
-          ? realtimeConversationWritingContract
-          : adaptiveConversationWritingContract
-        : fixedConversationStatusWritingContract,
+    resolveWritingContract: async ({ event }) => {
+      if (isDeliberationPublicationSignal(event)) return fixedConversationStatusWritingContract;
+      return conversationPublicationWritingContract({
+        mode: modeResponder === null ? null : await modeResponder.mode(event),
+        independentReadEvaluation: config.routing?.evaluation !== undefined,
+      });
+    },
   });
   const terminalFailureResponder = new FixedConversationTerminalFailureResponder({
     artifactStore: artifacts,

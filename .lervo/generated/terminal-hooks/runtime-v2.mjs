@@ -37732,6 +37732,10 @@ var conversationInboundEventSchema = {
         { type: "null" }
       ]
     },
+    audienceParticipation: {
+      type: "string",
+      enum: ["eligible", "observe_only"]
+    },
     automationDepth: { type: "integer", minimum: 0, maximum: 8 },
     occurredAt: timestampSchema
   },
@@ -38035,6 +38039,9 @@ var conversationOutboundMessageSchema = {
     schemaVersion: schemaVersionSchema,
     outboundId: conversationOutboundIdSchema,
     sourceEventId: conversationEventIdSchema,
+    replyToEventId: {
+      anyOf: [conversationEventIdSchema, { type: "null" }]
+    },
     policyId: conversationParticipationPolicyIdSchema,
     target: conversationTargetSchema,
     actor: {
@@ -38050,6 +38057,10 @@ var conversationOutboundMessageSchema = {
     },
     content: conversationContentReferenceSchema,
     publicationPermit: writingPublicationPermitValueSchema,
+    audienceParticipation: {
+      type: "string",
+      enum: ["eligible", "observe_only"]
+    },
     deliveryRelation: { type: "string", enum: ["standalone", "reply"] },
     automationDepth: { type: "integer", minimum: 1, maximum: 8 },
     createdAt: timestampSchema
@@ -38106,6 +38117,7 @@ var conversationParticipationReasons = [
   "not_relevant",
   "relevance_unavailable",
   "signal_not_subscribed",
+  "publication_observation_only",
   "turn_not_owned",
   "cooldown",
   "rate_limited",
@@ -38564,6 +38576,142 @@ var deliberationArtifactSchema = {
   ]
 };
 
+// packages/schemas/dist/deliberation-policy.js
+var deliberationResponsibilities = [
+  "proposer",
+  "reviewer",
+  "verifier",
+  "decision_owner"
+];
+var providerSelectionSchema = {
+  oneOf: [
+    {
+      type: "object",
+      properties: {
+        mode: { const: "fixed" },
+        provider: providerSchema
+      },
+      required: ["mode", "provider"],
+      additionalProperties: false
+    },
+    {
+      type: "object",
+      properties: {
+        mode: { const: "allowlist" },
+        providers: {
+          type: "array",
+          items: providerSchema,
+          minItems: 1,
+          maxItems: 8,
+          uniqueItems: true
+        }
+      },
+      required: ["mode", "providers"],
+      additionalProperties: false
+    }
+  ]
+};
+var deliberationExecutionBudgetSchema = {
+  type: "object",
+  properties: {
+    maximumProviderCalls: { type: "integer", minimum: 1, maximum: 64 },
+    maximumObservedTokens: { type: "integer", minimum: 1, maximum: 1e7 },
+    maximumElapsedMs: { type: "integer", minimum: 1e3, maximum: 36e5 },
+    unobservedTokenDisposition: { const: "block" }
+  },
+  required: [
+    "maximumProviderCalls",
+    "maximumObservedTokens",
+    "maximumElapsedMs",
+    "unobservedTokenDisposition"
+  ],
+  additionalProperties: false
+};
+var deliberationPolicySchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/deliberation-policy.schema.json",
+  title: "Lervo provider-neutral deliberation policy",
+  type: "object",
+  properties: {
+    schemaVersion: schemaVersionSchema,
+    policyId: deliberationPolicyIdSchema,
+    projectId: projectIdSchema,
+    participants: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          roleId: roleIdSchema,
+          responsibilities: {
+            type: "array",
+            items: { type: "string", enum: deliberationResponsibilities },
+            minItems: 1,
+            uniqueItems: true
+          },
+          providerSelection: providerSelectionSchema
+        },
+        required: ["roleId", "responsibilities", "providerSelection"],
+        additionalProperties: false
+      },
+      minItems: 2,
+      maxItems: 16
+    },
+    decisionOwnerRoleId: roleIdSchema,
+    maxRounds: { type: "integer", minimum: 1, maximum: 20 },
+    executionBudget: deliberationExecutionBudgetSchema,
+    requiredVerificationSuiteIds: {
+      type: "array",
+      items: verificationSuiteIdSchema,
+      minItems: 1,
+      maxItems: 32,
+      uniqueItems: true
+    },
+    convergence: {
+      type: "object",
+      properties: {
+        requireIndependentReviewer: { const: true },
+        requireIndependentSessions: { const: true },
+        requireDecisionOwnerDecision: { const: true },
+        requirePassedVerifications: { const: true },
+        requireZeroUnresolvedBlockingObjections: { const: true },
+        unresolvedBlockingDisposition: { const: "no_consensus" }
+      },
+      required: [
+        "requireIndependentReviewer",
+        "requireIndependentSessions",
+        "requireDecisionOwnerDecision",
+        "requirePassedVerifications",
+        "requireZeroUnresolvedBlockingObjections",
+        "unresolvedBlockingDisposition"
+      ],
+      additionalProperties: false
+    },
+    publication: {
+      type: "object",
+      properties: {
+        surface: { type: "string", enum: writingSurfaces },
+        writingPolicyId: writingPolicyIdSchema,
+        writingPolicyHash: sha256Schema,
+        requiresWritingPermit: { const: true }
+      },
+      required: ["surface", "writingPolicyId", "writingPolicyHash", "requiresWritingPermit"],
+      additionalProperties: false
+    }
+  },
+  required: [
+    "schemaVersion",
+    "policyId",
+    "projectId",
+    "participants",
+    "decisionOwnerRoleId",
+    "maxRounds",
+    "requiredVerificationSuiteIds",
+    "convergence",
+    "publication"
+  ],
+  additionalProperties: false
+};
+
 // packages/schemas/dist/deliberation-event.js
 var deliberationStartedEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -38580,7 +38728,8 @@ var deliberationStartedEventPayloadSchema = {
       maxItems: 16,
       uniqueItems: true
     },
-    maxRounds: { type: "integer", minimum: 1, maximum: 20 }
+    maxRounds: { type: "integer", minimum: 1, maximum: 20 },
+    policy: deliberationPolicySchema
   },
   required: ["deliberationId", "policyId", "policyHash", "participantRoleIds", "maxRounds"],
   additionalProperties: false
@@ -38595,9 +38744,16 @@ var deliberationArtifactRecordedEventPayloadSchema = {
     kind: { type: "string", enum: deliberationArtifactKinds },
     round: { type: "integer", minimum: 1, maximum: 20 },
     producerRoleId: roleIdSchema,
+    producerRoleName: {
+      type: "string",
+      minLength: 1,
+      maxLength: 160,
+      pattern: "^[^\\u0000-\\u001F\\u007F]+$"
+    },
     artifactId: artifactIdSchema,
     contentHash: sha256Schema,
-    writingPermitId: writingPublicationPermitIdSchema
+    writingPermitId: writingPublicationPermitIdSchema,
+    artifact: deliberationArtifactSchema
   },
   required: [
     "deliberationId",
@@ -38905,125 +39061,6 @@ var deliberationOutcomeSchema = {
   oneOf: [convergedOutcomeSchema, noConsensusOutcomeSchema, failedOutcomeSchema]
 };
 
-// packages/schemas/dist/deliberation-policy.js
-var deliberationResponsibilities = [
-  "proposer",
-  "reviewer",
-  "verifier",
-  "decision_owner"
-];
-var providerSelectionSchema = {
-  oneOf: [
-    {
-      type: "object",
-      properties: {
-        mode: { const: "fixed" },
-        provider: providerSchema
-      },
-      required: ["mode", "provider"],
-      additionalProperties: false
-    },
-    {
-      type: "object",
-      properties: {
-        mode: { const: "allowlist" },
-        providers: {
-          type: "array",
-          items: providerSchema,
-          minItems: 1,
-          maxItems: 8,
-          uniqueItems: true
-        }
-      },
-      required: ["mode", "providers"],
-      additionalProperties: false
-    }
-  ]
-};
-var deliberationPolicySchema = {
-  $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://schemas.lervo.dev/v0/deliberation-policy.schema.json",
-  title: "Lervo provider-neutral deliberation policy",
-  type: "object",
-  properties: {
-    schemaVersion: schemaVersionSchema,
-    policyId: deliberationPolicyIdSchema,
-    projectId: projectIdSchema,
-    participants: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          roleId: roleIdSchema,
-          responsibilities: {
-            type: "array",
-            items: { type: "string", enum: deliberationResponsibilities },
-            minItems: 1,
-            uniqueItems: true
-          },
-          providerSelection: providerSelectionSchema
-        },
-        required: ["roleId", "responsibilities", "providerSelection"],
-        additionalProperties: false
-      },
-      minItems: 2,
-      maxItems: 16
-    },
-    decisionOwnerRoleId: roleIdSchema,
-    maxRounds: { type: "integer", minimum: 1, maximum: 20 },
-    requiredVerificationSuiteIds: {
-      type: "array",
-      items: verificationSuiteIdSchema,
-      minItems: 1,
-      maxItems: 32,
-      uniqueItems: true
-    },
-    convergence: {
-      type: "object",
-      properties: {
-        requireIndependentReviewer: { const: true },
-        requireIndependentSessions: { const: true },
-        requireDecisionOwnerDecision: { const: true },
-        requirePassedVerifications: { const: true },
-        requireZeroUnresolvedBlockingObjections: { const: true },
-        unresolvedBlockingDisposition: { const: "no_consensus" }
-      },
-      required: [
-        "requireIndependentReviewer",
-        "requireIndependentSessions",
-        "requireDecisionOwnerDecision",
-        "requirePassedVerifications",
-        "requireZeroUnresolvedBlockingObjections",
-        "unresolvedBlockingDisposition"
-      ],
-      additionalProperties: false
-    },
-    publication: {
-      type: "object",
-      properties: {
-        surface: { type: "string", enum: writingSurfaces },
-        writingPolicyId: writingPolicyIdSchema,
-        writingPolicyHash: sha256Schema,
-        requiresWritingPermit: { const: true }
-      },
-      required: ["surface", "writingPolicyId", "writingPolicyHash", "requiresWritingPermit"],
-      additionalProperties: false
-    }
-  },
-  required: [
-    "schemaVersion",
-    "policyId",
-    "projectId",
-    "participants",
-    "decisionOwnerRoleId",
-    "maxRounds",
-    "requiredVerificationSuiteIds",
-    "convergence",
-    "publication"
-  ],
-  additionalProperties: false
-};
-
 // packages/schemas/dist/deliberation-workflow.js
 var deliberationWorkflowSourceSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -39034,6 +39071,7 @@ var deliberationWorkflowSourceSchema = {
     schemaVersion: schemaVersionSchema,
     policyId: deliberationPolicyIdSchema,
     maxRounds: { type: "integer", minimum: 1, maximum: 5 },
+    executionBudget: deliberationExecutionBudgetSchema,
     requiredVerificationSuiteIds: {
       type: "array",
       items: verificationSuiteIdSchema,
@@ -39050,6 +39088,15 @@ var deliberationWorkflowSourceSchema = {
         properties: {
           roleId: roleIdSchema,
           name: { type: "string", minLength: 1, maxLength: 100 },
+          localizedNames: {
+            type: "object",
+            properties: {
+              en: { type: "string", minLength: 1, maxLength: 100 },
+              ko: { type: "string", minLength: 1, maxLength: 100 }
+            },
+            minProperties: 1,
+            additionalProperties: false
+          },
           description: { type: "string", minLength: 1, maxLength: 1e3 },
           provider: providerSchema,
           responsibilities: {
@@ -44845,6 +44892,1005 @@ var managedContextReferencedEventPayloadSchema = {
   additionalProperties: false
 };
 
+// packages/schemas/dist/product-surface-common.js
+var productSurfaceCoordinateSchema = {
+  type: "string",
+  minLength: 1,
+  maxLength: 256,
+  pattern: "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$"
+};
+var productSurfaceReasonCodeSchema = {
+  type: "string",
+  pattern: "^[a-z][a-z0-9_]{0,63}$"
+};
+var productSurfacePrivacyClassSchema = {
+  type: "string",
+  enum: ["ordinary", "sensitive", "restricted"]
+};
+var productSurfaceProjectionStatusSchema = {
+  type: "string",
+  enum: ["complete", "partial", "unavailable", "invalid"]
+};
+var productSurfaceSectionStateSchema = {
+  type: "object",
+  properties: {
+    status: productSurfaceProjectionStatusSchema,
+    reasonCode: {
+      anyOf: [productSurfaceReasonCodeSchema, { type: "null" }]
+    },
+    sourceCoordinates: {
+      type: "array",
+      items: productSurfaceCoordinateSchema,
+      maxItems: 64,
+      uniqueItems: true
+    }
+  },
+  required: ["status", "reasonCode", "sourceCoordinates"],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "complete" },
+        reasonCode: { type: "null" }
+      },
+      required: ["status", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { enum: ["partial", "unavailable", "invalid"] },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "reasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+
+// packages/schemas/dist/product-activity-page.js
+var productActivityActionClasses = [
+  "message",
+  "repository_read",
+  "repository_edit",
+  "command",
+  "verification",
+  "approval",
+  "handoff",
+  "delivery",
+  "failure",
+  "lifecycle"
+];
+var productActivityCursorSchema = {
+  type: "string",
+  pattern: "^pac_[a-f0-9]{24}$"
+};
+var activityItemSchema = {
+  type: "object",
+  properties: {
+    activityId: { type: "string", pattern: "^pact_[a-f0-9]{24}$" },
+    observedAt: timestampSchema,
+    actor: {
+      type: "object",
+      properties: {
+        kind: { type: "string", enum: ["human", "agent", "system", "provider", "adapter"] },
+        coordinate: productSurfaceCoordinateSchema
+      },
+      required: ["kind", "coordinate"],
+      additionalProperties: false
+    },
+    actionClass: { type: "string", enum: productActivityActionClasses },
+    object: {
+      type: "object",
+      properties: {
+        kind: productSurfaceCoordinateSchema,
+        coordinate: productSurfaceCoordinateSchema
+      },
+      required: ["kind", "coordinate"],
+      additionalProperties: false
+    },
+    outcome: {
+      type: "string",
+      enum: ["started", "succeeded", "failed", "blocked", "cancelled", "unknown"]
+    },
+    salience: { type: "string", enum: ["low", "normal", "high", "critical"] },
+    privacyClass: productSurfacePrivacyClassSchema,
+    sourceCoordinates: {
+      type: "array",
+      items: productSurfaceCoordinateSchema,
+      minItems: 1,
+      maxItems: 32,
+      uniqueItems: true
+    },
+    projectionStatus: productSurfaceProjectionStatusSchema
+  },
+  required: [
+    "activityId",
+    "observedAt",
+    "actor",
+    "actionClass",
+    "object",
+    "outcome",
+    "salience",
+    "privacyClass",
+    "sourceCoordinates",
+    "projectionStatus"
+  ],
+  additionalProperties: false
+};
+var productActivityPageSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-activity-page.schema.json",
+  title: "Lervo product activity page",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.activity" },
+    sourceEventHeadHash: sha256Schema,
+    repositoryRevision: sha256Schema,
+    requestCursor: { anyOf: [productActivityCursorSchema, { type: "null" }] },
+    returnedCursor: productActivityCursorSchema,
+    nextCursor: { anyOf: [productActivityCursorSchema, { type: "null" }] },
+    limit: { type: "integer", minimum: 1, maximum: 100 },
+    status: { type: "string", enum: ["complete", "empty", "failed"] },
+    failureCode: {
+      anyOf: [
+        {
+          type: "string",
+          enum: [
+            "activity_evidence_invalid",
+            "activity_cursor_stale",
+            "activity_schema_unsupported"
+          ]
+        },
+        { type: "null" }
+      ]
+    },
+    items: { type: "array", items: activityItemSchema, maxItems: 100 }
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "sourceEventHeadHash",
+    "repositoryRevision",
+    "requestCursor",
+    "returnedCursor",
+    "nextCursor",
+    "limit",
+    "status",
+    "failureCode",
+    "items"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "complete" },
+        failureCode: { type: "null" },
+        items: { type: "array", items: activityItemSchema, minItems: 1, maxItems: 100 }
+      },
+      required: ["status", "failureCode", "items"]
+    },
+    {
+      properties: {
+        status: { const: "empty" },
+        failureCode: { type: "null" },
+        items: { type: "array", maxItems: 0 }
+      },
+      required: ["status", "failureCode", "items"]
+    },
+    {
+      properties: {
+        status: { const: "failed" },
+        failureCode: {
+          type: "string",
+          enum: [
+            "activity_evidence_invalid",
+            "activity_cursor_stale",
+            "activity_schema_unsupported"
+          ]
+        },
+        items: { type: "array", maxItems: 0 }
+      },
+      required: ["status", "failureCode", "items"]
+    }
+  ],
+  additionalProperties: false
+};
+
+// packages/schemas/dist/product-activity-subscription.js
+var subscriptionIdSchema = {
+  type: "string",
+  pattern: "^pas_[a-f0-9]{24}$"
+};
+var productActivitySubscriptionRequestSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-activity-subscription-request.schema.json",
+  title: "Lervo product activity subscription request",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.activity_subscription_request" },
+    subscriptionId: subscriptionIdSchema,
+    originCoordinate: productSurfaceCoordinateSchema,
+    authorizationDigest: sha256Schema,
+    resumeCursor: { anyOf: [productActivityCursorSchema, { type: "null" }] },
+    maximumPageSize: { type: "integer", minimum: 1, maximum: 100 },
+    requestDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "subscriptionId",
+    "originCoordinate",
+    "authorizationDigest",
+    "resumeCursor",
+    "maximumPageSize",
+    "requestDigest"
+  ],
+  additionalProperties: false
+};
+var productActivitySubscriptionHintSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-activity-subscription-hint.schema.json",
+  title: "Lervo product activity subscription hint",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.activity_subscription_hint" },
+    subscriptionId: subscriptionIdSchema,
+    sequence: { type: "integer", minimum: 1 },
+    observedAt: timestampSchema,
+    previousCursor: { anyOf: [productActivityCursorSchema, { type: "null" }] },
+    currentCursor: { anyOf: [productActivityCursorSchema, { type: "null" }] },
+    sourceEventHeadHash: sha256Schema,
+    repositoryRevision: sha256Schema,
+    status: { type: "string", enum: ["changed", "heartbeat", "resync_required", "closed"] },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    hintDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "subscriptionId",
+    "sequence",
+    "observedAt",
+    "previousCursor",
+    "currentCursor",
+    "sourceEventHeadHash",
+    "repositoryRevision",
+    "status",
+    "reasonCode",
+    "hintDigest"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "changed" },
+        currentCursor: productActivityCursorSchema,
+        reasonCode: { type: "null" }
+      },
+      required: ["status", "currentCursor", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { const: "heartbeat" },
+        reasonCode: { type: "null" }
+      },
+      required: ["status", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { const: "resync_required" },
+        currentCursor: { type: "null" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "currentCursor", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { const: "closed" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "reasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+
+// packages/schemas/dist/product-deliberation-view.js
+var nullableParticipantIdSchema = {
+  anyOf: [conversationParticipantIdSchema, { type: "null" }]
+};
+var nullableConversationEventIdSchema = {
+  anyOf: [conversationEventIdSchema, { type: "null" }]
+};
+var nullableConversationIdSchema = { anyOf: [conversationIdSchema, { type: "null" }] };
+var nullableSha256Schema = { anyOf: [sha256Schema, { type: "null" }] };
+var nullableAgentIdSchema2 = { anyOf: [workforceAgentIdSchema, { type: "null" }] };
+var nullableRoleVersionSchema = { anyOf: [semverSchema, { type: "null" }] };
+var participantBindingSchema = {
+  type: "object",
+  properties: {
+    roleId: roleIdSchema,
+    responsibility: { type: "string", enum: deliberationResponsibilities },
+    providerPolicyHash: sha256Schema,
+    disposition: { type: "string", enum: ["hired_agent", "policy_only"] },
+    participantId: nullableParticipantIdSchema,
+    agentId: nullableAgentIdSchema2,
+    roleVersion: nullableRoleVersionSchema
+  },
+  required: [
+    "roleId",
+    "responsibility",
+    "providerPolicyHash",
+    "disposition",
+    "participantId",
+    "agentId",
+    "roleVersion"
+  ],
+  oneOf: [
+    {
+      properties: {
+        disposition: { const: "hired_agent" },
+        participantId: conversationParticipantIdSchema,
+        agentId: workforceAgentIdSchema,
+        roleVersion: semverSchema
+      },
+      required: ["disposition", "participantId", "agentId", "roleVersion"]
+    },
+    {
+      properties: {
+        disposition: { const: "policy_only" },
+        participantId: { type: "null" },
+        agentId: { type: "null" },
+        roleVersion: { type: "null" }
+      },
+      required: ["disposition", "participantId", "agentId", "roleVersion"]
+    }
+  ],
+  additionalProperties: false
+};
+var artifactSummarySchema = {
+  type: "object",
+  properties: {
+    artifactId: deliberationArtifactIdSchema,
+    kind: { type: "string", enum: deliberationArtifactKinds },
+    round: { type: "integer", minimum: 1, maximum: 20 },
+    producerRoleId: roleIdSchema,
+    provider: providerSchema,
+    runId: runIdSchema,
+    sessionId: sessionIdSchema,
+    contentHash: sha256Schema,
+    previousArtifactIds: {
+      type: "array",
+      items: deliberationArtifactIdSchema,
+      maxItems: 100,
+      uniqueItems: true
+    },
+    writingPermitStatus: { type: "string", enum: ["valid", "missing", "invalid"] },
+    claimIds: {
+      type: "array",
+      items: deliberationClaimIdSchema,
+      maxItems: 100,
+      uniqueItems: true
+    },
+    objectionIds: {
+      type: "array",
+      items: deliberationObjectionIdSchema,
+      maxItems: 100,
+      uniqueItems: true
+    },
+    verificationIds: {
+      type: "array",
+      items: verificationIdSchema,
+      maxItems: 32,
+      uniqueItems: true
+    },
+    decisionCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] }
+  },
+  required: [
+    "artifactId",
+    "kind",
+    "round",
+    "producerRoleId",
+    "provider",
+    "runId",
+    "sessionId",
+    "contentHash",
+    "previousArtifactIds",
+    "writingPermitStatus",
+    "claimIds",
+    "objectionIds",
+    "verificationIds",
+    "decisionCoordinate"
+  ],
+  additionalProperties: false
+};
+var verificationEntrySchema = {
+  type: "object",
+  properties: {
+    verificationId: verificationIdSchema,
+    suiteId: verificationSuiteIdSchema,
+    artifactId: deliberationArtifactIdSchema,
+    status: { type: "string", enum: ["passed", "failed", "cancelled", "unavailable"] },
+    resultHash: { anyOf: [sha256Schema, { type: "null" }] }
+  },
+  required: ["verificationId", "suiteId", "artifactId", "status", "resultHash"],
+  additionalProperties: false
+};
+var unresolvedObjectionSchema = {
+  type: "object",
+  properties: {
+    objectionId: deliberationObjectionIdSchema,
+    artifactId: deliberationArtifactIdSchema,
+    blocking: { const: true },
+    status: { const: "open" }
+  },
+  required: ["objectionId", "artifactId", "blocking", "status"],
+  additionalProperties: false
+};
+var productDeliberationViewSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-deliberation-view.schema.json",
+  title: "Lervo product deliberation view",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.deliberation" },
+    deliberationId: deliberationIdSchema,
+    projectId: projectIdSchema,
+    policyId: deliberationPolicyIdSchema,
+    policyHash: sha256Schema,
+    sourceEventId: nullableConversationEventIdSchema,
+    conversationId: nullableConversationIdSchema,
+    threadId: { anyOf: [conversationThreadIdSchema, { type: "null" }] },
+    requesterParticipantId: nullableParticipantIdSchema,
+    originBindingDigest: nullableSha256Schema,
+    sourceEventHeadHash: sha256Schema,
+    repositoryRevision: sha256Schema,
+    status: {
+      type: "string",
+      enum: ["running", "unknown", "interrupted", "converged", "no_consensus", "failed"]
+    },
+    round: { type: "integer", minimum: 0, maximum: 20 },
+    maximumRounds: { type: "integer", minimum: 1, maximum: 20 },
+    nextAction: { type: "string", enum: ["wait", "resume", "none"] },
+    terminalReason: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    participants: {
+      type: "array",
+      items: participantBindingSchema,
+      minItems: 2,
+      maxItems: 16
+    },
+    artifacts: { type: "array", items: artifactSummarySchema, maxItems: 500 },
+    verifications: { type: "array", items: verificationEntrySchema, maxItems: 32 },
+    unresolvedObjections: {
+      type: "array",
+      items: unresolvedObjectionSchema,
+      maxItems: 100
+    },
+    resourceReportCoordinate: {
+      anyOf: [productSurfaceCoordinateSchema, { type: "null" }]
+    },
+    publicationCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    originDeliveryCoordinate: {
+      anyOf: [productSurfaceCoordinateSchema, { type: "null" }]
+    },
+    projectionStatus: productSurfaceProjectionStatusSchema,
+    projectionReasonCode: {
+      anyOf: [productSurfaceReasonCodeSchema, { type: "null" }]
+    },
+    projectionDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "deliberationId",
+    "projectId",
+    "policyId",
+    "policyHash",
+    "sourceEventId",
+    "conversationId",
+    "threadId",
+    "requesterParticipantId",
+    "originBindingDigest",
+    "sourceEventHeadHash",
+    "repositoryRevision",
+    "status",
+    "round",
+    "maximumRounds",
+    "nextAction",
+    "terminalReason",
+    "participants",
+    "artifacts",
+    "verifications",
+    "unresolvedObjections",
+    "resourceReportCoordinate",
+    "publicationCoordinate",
+    "originDeliveryCoordinate",
+    "projectionStatus",
+    "projectionReasonCode",
+    "projectionDigest"
+  ],
+  oneOf: [
+    {
+      properties: {
+        projectionStatus: { const: "complete" },
+        projectionReasonCode: { type: "null" }
+      },
+      required: ["projectionStatus", "projectionReasonCode"]
+    },
+    {
+      properties: {
+        projectionStatus: { enum: ["partial", "unavailable", "invalid"] },
+        projectionReasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["projectionStatus", "projectionReasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+
+// packages/schemas/dist/product-steering-command.js
+var productSteeringActions = [
+  "amend",
+  "pause",
+  "resume",
+  "cancel",
+  "approve",
+  "retry",
+  "reassign",
+  "handoff"
+];
+var steeringCommandIdSchema = {
+  type: "string",
+  pattern: "^psc_[a-f0-9]{24}$"
+};
+var steeringTargetSchema = {
+  type: "object",
+  properties: {
+    ownerDomain: {
+      type: "string",
+      enum: ["objective", "assignment", "execution", "policy", "attempt", "source_lifecycle"]
+    },
+    domainCommandId: productSurfaceCoordinateSchema,
+    targetCoordinate: productSurfaceCoordinateSchema,
+    expectedTargetRevision: {
+      anyOf: [productSurfaceCoordinateSchema, { type: "null" }]
+    }
+  },
+  required: ["ownerDomain", "domainCommandId", "targetCoordinate", "expectedTargetRevision"],
+  additionalProperties: false
+};
+var productSteeringCommandSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-steering-command.schema.json",
+  title: "Lervo product surface steering command",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.steering_command" },
+    commandId: steeringCommandIdSchema,
+    action: { type: "string", enum: productSteeringActions },
+    target: steeringTargetSchema,
+    principalCoordinate: productSurfaceCoordinateSchema,
+    originBindingDigest: sha256Schema,
+    commandInputHash: sha256Schema,
+    idempotencyDigest: sha256Schema,
+    authority: {
+      type: "object",
+      properties: {
+        authorityCoordinate: productSurfaceCoordinateSchema,
+        planCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+        approvalCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+        leaseCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] }
+      },
+      required: ["authorityCoordinate", "planCoordinate", "approvalCoordinate", "leaseCoordinate"],
+      additionalProperties: false
+    },
+    requestedAt: timestampSchema,
+    commandDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "commandId",
+    "action",
+    "target",
+    "principalCoordinate",
+    "originBindingDigest",
+    "commandInputHash",
+    "idempotencyDigest",
+    "authority",
+    "requestedAt",
+    "commandDigest"
+  ],
+  allOf: [
+    {
+      if: { properties: { action: { const: "amend" } }, required: ["action"] },
+      then: {
+        properties: {
+          target: {
+            type: "object",
+            properties: { ownerDomain: { enum: ["objective", "assignment"] } },
+            required: ["ownerDomain"]
+          }
+        }
+      }
+    },
+    {
+      if: {
+        properties: { action: { enum: ["pause", "resume", "cancel"] } },
+        required: ["action"]
+      },
+      then: {
+        properties: {
+          target: {
+            type: "object",
+            properties: { ownerDomain: { const: "execution" } },
+            required: ["ownerDomain"]
+          }
+        }
+      }
+    },
+    {
+      if: { properties: { action: { const: "approve" } }, required: ["action"] },
+      then: {
+        properties: {
+          target: {
+            type: "object",
+            properties: { ownerDomain: { const: "policy" } },
+            required: ["ownerDomain"]
+          },
+          authority: {
+            type: "object",
+            properties: { approvalCoordinate: productSurfaceCoordinateSchema },
+            required: ["approvalCoordinate"]
+          }
+        }
+      }
+    },
+    {
+      if: { properties: { action: { const: "retry" } }, required: ["action"] },
+      then: {
+        properties: {
+          target: {
+            type: "object",
+            properties: { ownerDomain: { const: "attempt" } },
+            required: ["ownerDomain"]
+          }
+        }
+      }
+    },
+    {
+      if: { properties: { action: { const: "reassign" } }, required: ["action"] },
+      then: {
+        properties: {
+          target: {
+            type: "object",
+            properties: { ownerDomain: { const: "assignment" } },
+            required: ["ownerDomain"]
+          }
+        }
+      }
+    },
+    {
+      if: { properties: { action: { const: "handoff" } }, required: ["action"] },
+      then: {
+        properties: {
+          target: {
+            type: "object",
+            properties: { ownerDomain: { const: "source_lifecycle" } },
+            required: ["ownerDomain"]
+          },
+          authority: {
+            type: "object",
+            properties: { planCoordinate: productSurfaceCoordinateSchema },
+            required: ["planCoordinate"]
+          }
+        }
+      }
+    }
+  ],
+  additionalProperties: false
+};
+var productSteeringResultSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-steering-result.schema.json",
+  title: "Lervo product surface steering result",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.steering_result" },
+    commandId: steeringCommandIdSchema,
+    commandDigest: sha256Schema,
+    sourceEventHeadHash: sha256Schema,
+    repositoryRevision: sha256Schema,
+    status: {
+      type: "string",
+      enum: ["applied", "no_effect", "blocked", "rejected", "uncertain"]
+    },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    domainReceiptCoordinate: {
+      anyOf: [productSurfaceCoordinateSchema, { type: "null" }]
+    },
+    resultDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "commandId",
+    "commandDigest",
+    "sourceEventHeadHash",
+    "repositoryRevision",
+    "status",
+    "reasonCode",
+    "domainReceiptCoordinate",
+    "resultDigest"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "applied" },
+        reasonCode: { type: "null" },
+        domainReceiptCoordinate: productSurfaceCoordinateSchema
+      },
+      required: ["status", "reasonCode", "domainReceiptCoordinate"]
+    },
+    {
+      properties: {
+        status: { const: "no_effect" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { enum: ["blocked", "rejected", "uncertain"] },
+        reasonCode: productSurfaceReasonCodeSchema,
+        domainReceiptCoordinate: { type: "null" }
+      },
+      required: ["status", "reasonCode", "domainReceiptCoordinate"]
+    }
+  ],
+  additionalProperties: false
+};
+
+// packages/schemas/dist/product-unified-search-result.js
+var productSearchCorpusClasses = [
+  "repository_knowledge",
+  "repository_code",
+  "conversation",
+  "artifact",
+  "canvas",
+  "deliberation",
+  "approval",
+  "verification",
+  "work_event"
+];
+var corpusClassSchema = { type: "string", enum: productSearchCorpusClasses };
+var searchHitSchema = {
+  type: "object",
+  properties: {
+    corpusClass: corpusClassSchema,
+    sourceCoordinate: productSurfaceCoordinateSchema,
+    sourceRevision: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    contentHash: { anyOf: [sha256Schema, { type: "null" }] },
+    privacyClass: productSurfacePrivacyClassSchema,
+    label: { type: "string", minLength: 1, maxLength: 200 },
+    rank: { type: "integer", minimum: 1, maximum: 100 },
+    adapterId: adapterIdSchema,
+    adapterBuildId: productSurfaceCoordinateSchema,
+    matchEvidenceKind: {
+      type: "string",
+      enum: ["exact", "lexical", "semantic", "relation", "metadata"]
+    }
+  },
+  required: [
+    "corpusClass",
+    "sourceCoordinate",
+    "sourceRevision",
+    "contentHash",
+    "privacyClass",
+    "label",
+    "rank",
+    "adapterId",
+    "adapterBuildId",
+    "matchEvidenceKind"
+  ],
+  anyOf: [
+    {
+      properties: { sourceRevision: productSurfaceCoordinateSchema },
+      required: ["sourceRevision"]
+    },
+    { properties: { contentHash: sha256Schema }, required: ["contentHash"] }
+  ],
+  additionalProperties: false
+};
+var searchGroupSchema = {
+  type: "object",
+  properties: {
+    corpusClass: corpusClassSchema,
+    ...productSurfaceSectionStateSchema.properties,
+    hits: { type: "array", items: searchHitSchema, maxItems: 100 }
+  },
+  required: ["corpusClass", ...productSurfaceSectionStateSchema.required, "hits"],
+  oneOf: productSurfaceSectionStateSchema.oneOf,
+  additionalProperties: false
+};
+var searchStageReceiptSchema = {
+  type: "object",
+  properties: {
+    stageId: productSurfaceCoordinateSchema,
+    required: { type: "boolean" },
+    status: { type: "string", enum: ["completed", "omitted", "failed"] },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    adapterId: adapterIdSchema,
+    adapterBuildId: productSurfaceCoordinateSchema,
+    receiptHash: sha256Schema
+  },
+  required: [
+    "stageId",
+    "required",
+    "status",
+    "reasonCode",
+    "adapterId",
+    "adapterBuildId",
+    "receiptHash"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "completed" },
+        reasonCode: { type: "null" }
+      },
+      required: ["status", "reasonCode"]
+    },
+    {
+      properties: {
+        required: { const: false },
+        status: { const: "omitted" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["required", "status", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { const: "failed" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "reasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+var productUnifiedSearchResultSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/product-unified-search-result.schema.json",
+  title: "Lervo product unified search result",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.search" },
+    queryDigest: sha256Schema,
+    authorizationDigest: sha256Schema,
+    requestedCorpusClasses: {
+      type: "array",
+      items: corpusClassSchema,
+      minItems: 1,
+      maxItems: productSearchCorpusClasses.length,
+      uniqueItems: true
+    },
+    limit: { type: "integer", minimum: 1, maximum: 100 },
+    repositoryRevision: sha256Schema,
+    searchPlan: {
+      type: "object",
+      properties: {
+        coordinate: productSurfaceCoordinateSchema,
+        contentHash: sha256Schema,
+        engineId: productSurfaceCoordinateSchema,
+        engineVersion: { type: "integer", minimum: 1 }
+      },
+      required: ["coordinate", "contentHash", "engineId", "engineVersion"],
+      additionalProperties: false
+    },
+    stageReceipts: {
+      type: "array",
+      items: searchStageReceiptSchema,
+      minItems: 1,
+      maxItems: 32
+    },
+    groups: {
+      type: "array",
+      items: searchGroupSchema,
+      maxItems: productSearchCorpusClasses.length
+    },
+    status: { type: "string", enum: ["complete", "partial", "empty", "failed"] },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    resultDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "queryDigest",
+    "authorizationDigest",
+    "requestedCorpusClasses",
+    "limit",
+    "repositoryRevision",
+    "searchPlan",
+    "stageReceipts",
+    "groups",
+    "status",
+    "reasonCode",
+    "resultDigest"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { enum: ["complete", "empty"] },
+        reasonCode: { type: "null" },
+        stageReceipts: {
+          type: "array",
+          items: {
+            allOf: [
+              searchStageReceiptSchema,
+              {
+                type: "object",
+                properties: { status: { const: "completed" } },
+                required: ["status"]
+              }
+            ]
+          }
+        }
+      },
+      required: ["status", "reasonCode", "stageReceipts"]
+    },
+    {
+      properties: {
+        status: { const: "partial" },
+        reasonCode: productSurfaceReasonCodeSchema,
+        stageReceipts: {
+          type: "array",
+          items: {
+            allOf: [
+              searchStageReceiptSchema,
+              {
+                not: {
+                  type: "object",
+                  properties: { status: { const: "failed" } },
+                  required: ["status"]
+                }
+              }
+            ]
+          },
+          contains: {
+            type: "object",
+            properties: { required: { const: false }, status: { const: "omitted" } },
+            required: ["required", "status"]
+          },
+          minContains: 1
+        }
+      },
+      required: ["status", "reasonCode", "stageReceipts"]
+    },
+    {
+      properties: {
+        status: { const: "failed" },
+        reasonCode: productSurfaceReasonCodeSchema,
+        stageReceipts: {
+          type: "array",
+          items: searchStageReceiptSchema,
+          contains: {
+            type: "object",
+            properties: { required: { const: true }, status: { const: "failed" } },
+            required: ["required", "status"]
+          },
+          minContains: 1
+        }
+      },
+      required: ["status", "reasonCode", "stageReceipts"]
+    }
+  ],
+  additionalProperties: false
+};
+
 // packages/schemas/dist/project-identity-migration.js
 var projectIdentityMigratedEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -45579,6 +46625,432 @@ var statePrunedEventPayloadSchema = {
   additionalProperties: false
 };
 
+// packages/schemas/dist/surface-observability-context-sections.js
+var sectionProperties = productSurfaceSectionStateSchema.properties;
+var sectionRequired = productSurfaceSectionStateSchema.required;
+var sectionAlternatives = productSurfaceSectionStateSchema.oneOf;
+var coverageRatioSchema = {
+  type: "object",
+  properties: {
+    numerator: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+    denominator: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+    value: { anyOf: [{ type: "number", minimum: 0, maximum: 1 }, { type: "null" }] },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] }
+  },
+  required: ["numerator", "denominator", "value", "reasonCode"],
+  oneOf: [
+    {
+      properties: {
+        numerator: { type: "integer", minimum: 0 },
+        denominator: { type: "integer", minimum: 0 },
+        value: { type: "number", minimum: 0, maximum: 1 },
+        reasonCode: { type: "null" }
+      },
+      required: ["numerator", "denominator", "value", "reasonCode"]
+    },
+    {
+      properties: {
+        numerator: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+        denominator: { type: "null" },
+        value: { type: "null" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["numerator", "denominator", "value", "reasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+var surfaceGroundingSectionSchema = {
+  type: "object",
+  properties: {
+    ...sectionProperties,
+    reportCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    documentCounts: {
+      type: "object",
+      properties: {
+        recommended: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+        selected: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+        loaded: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+        injected: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] },
+        referenced: { anyOf: [{ type: "integer", minimum: 0 }, { type: "null" }] }
+      },
+      required: ["recommended", "selected", "loaded", "injected", "referenced"],
+      additionalProperties: false
+    },
+    coverage: {
+      type: "object",
+      properties: {
+        delivery: coverageRatioSchema,
+        explicitReference: coverageRatioSchema,
+        relevance: coverageRatioSchema,
+        candidateSelection: coverageRatioSchema
+      },
+      required: ["delivery", "explicitReference", "relevance", "candidateSelection"],
+      additionalProperties: false
+    }
+  },
+  required: [...sectionRequired, "reportCoordinate", "documentCounts", "coverage"],
+  oneOf: sectionAlternatives,
+  additionalProperties: false
+};
+var searchEngineObservationSchema = {
+  type: "object",
+  properties: {
+    engineId: productSurfaceCoordinateSchema,
+    engineVersion: { type: "integer", minimum: 1 },
+    adapterId: adapterIdSchema,
+    adapterBuildId: productSurfaceCoordinateSchema,
+    qualificationOrTransitionCoordinate: productSurfaceCoordinateSchema,
+    sourceRevision: sha256Schema,
+    preparationState: { type: "string", enum: ["cold", "warm", "reused"] }
+  },
+  required: [
+    "engineId",
+    "engineVersion",
+    "adapterId",
+    "adapterBuildId",
+    "qualificationOrTransitionCoordinate",
+    "sourceRevision",
+    "preparationState"
+  ],
+  additionalProperties: false
+};
+var surfaceSearchSectionSchema = {
+  type: "object",
+  properties: {
+    ...sectionProperties,
+    resultCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    engine: { anyOf: [searchEngineObservationSchema, { type: "null" }] },
+    queryDurationMs: { anyOf: [{ type: "number", minimum: 0 }, { type: "null" }] },
+    orderedHitCoordinates: {
+      type: "array",
+      items: productSurfaceCoordinateSchema,
+      maxItems: 100,
+      uniqueItems: true
+    }
+  },
+  required: [
+    ...sectionRequired,
+    "resultCoordinate",
+    "engine",
+    "queryDurationMs",
+    "orderedHitCoordinates"
+  ],
+  oneOf: sectionAlternatives,
+  additionalProperties: false
+};
+
+// packages/schemas/dist/surface-observability-execution-sections.js
+var sectionProperties2 = productSurfaceSectionStateSchema.properties;
+var sectionRequired2 = productSurfaceSectionStateSchema.required;
+var sectionAlternatives2 = productSurfaceSectionStateSchema.oneOf;
+var surfaceResourceScopeSchema = {
+  type: "string",
+  enum: [
+    "primary_provider",
+    "subagent_provider",
+    "query_projection",
+    "publication_evaluation",
+    "deliberation",
+    "improvement_evaluation"
+  ]
+};
+var resourceObservationSchema = {
+  type: "object",
+  properties: {
+    provider: { type: "string", minLength: 1, maxLength: 64 },
+    scope: surfaceResourceScopeSchema,
+    accountingMode: resourceAccountingModeSchema,
+    accountingDescriptorHash: sha256Schema,
+    status: { type: "string", enum: ["observed", "partial", "unavailable", "invalid"] },
+    usage: { anyOf: [resourceUsageSchema, { type: "null" }] },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    sourceCoordinates: {
+      type: "array",
+      items: productSurfaceCoordinateSchema,
+      minItems: 1,
+      maxItems: 32,
+      uniqueItems: true
+    }
+  },
+  required: [
+    "provider",
+    "scope",
+    "accountingMode",
+    "accountingDescriptorHash",
+    "status",
+    "usage",
+    "reasonCode",
+    "sourceCoordinates"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "observed" },
+        usage: resourceUsageSchema,
+        reasonCode: { type: "null" }
+      },
+      required: ["status", "usage", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { const: "partial" },
+        usage: resourceUsageSchema,
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "usage", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { enum: ["unavailable", "invalid"] },
+        usage: { type: "null" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "usage", "reasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+var surfaceResourcesSectionSchema = {
+  type: "object",
+  properties: {
+    ...sectionProperties2,
+    groups: { type: "array", items: resourceObservationSchema, maxItems: 256 }
+  },
+  required: [...sectionRequired2, "groups"],
+  oneOf: sectionAlternatives2,
+  additionalProperties: false
+};
+var surfaceStagesSectionSchema = {
+  type: "object",
+  properties: {
+    ...sectionProperties2,
+    stageCatalogVersion: { anyOf: [{ type: "integer", minimum: 1 }, { type: "null" }] },
+    environmentProfileDigest: { anyOf: [sha256Schema, { type: "null" }] },
+    repositoryProfile: {
+      anyOf: [{ type: "string", enum: ["small", "medium", "large", "custom"] }, { type: "null" }]
+    },
+    observations: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          runCoordinate: productSurfaceCoordinateSchema,
+          occurrenceCount: { type: "integer", minimum: 1 },
+          observation: executionStageObservationSchema
+        },
+        required: ["runCoordinate", "occurrenceCount", "observation"],
+        additionalProperties: false
+      },
+      maxItems: 512
+    }
+  },
+  required: [
+    ...sectionRequired2,
+    "stageCatalogVersion",
+    "environmentProfileDigest",
+    "repositoryProfile",
+    "observations"
+  ],
+  oneOf: sectionAlternatives2,
+  additionalProperties: false
+};
+var cacheObservationSchema = {
+  type: "object",
+  properties: {
+    cacheKind: productSurfaceCoordinateSchema,
+    owner: productSurfaceCoordinateSchema,
+    unit: { type: "string", enum: ["tokens", "bytes", "entries", "documents", "calls"] },
+    status: { type: "string", enum: ["observed", "unavailable", "invalid"] },
+    observedValue: { anyOf: [{ type: "number", minimum: 0 }, { type: "null" }] },
+    reasonCode: { anyOf: [productSurfaceReasonCodeSchema, { type: "null" }] },
+    sourceRevision: sha256Schema,
+    buildCoordinate: productSurfaceCoordinateSchema,
+    disposition: { type: "string", enum: ["cold", "warm", "not_applicable", "unknown"] }
+  },
+  required: [
+    "cacheKind",
+    "owner",
+    "unit",
+    "status",
+    "observedValue",
+    "reasonCode",
+    "sourceRevision",
+    "buildCoordinate",
+    "disposition"
+  ],
+  oneOf: [
+    {
+      properties: {
+        status: { const: "observed" },
+        observedValue: { type: "number", minimum: 0 },
+        reasonCode: { type: "null" }
+      },
+      required: ["status", "observedValue", "reasonCode"]
+    },
+    {
+      properties: {
+        status: { enum: ["unavailable", "invalid"] },
+        observedValue: { type: "null" },
+        reasonCode: productSurfaceReasonCodeSchema
+      },
+      required: ["status", "observedValue", "reasonCode"]
+    }
+  ],
+  additionalProperties: false
+};
+var surfaceCachesSectionSchema = {
+  type: "object",
+  properties: {
+    ...sectionProperties2,
+    entries: { type: "array", items: cacheObservationSchema, maxItems: 256 }
+  },
+  required: [...sectionRequired2, "entries"],
+  oneOf: sectionAlternatives2,
+  additionalProperties: false
+};
+
+// packages/schemas/dist/surface-observability-outcome-sections.js
+var sectionProperties3 = productSurfaceSectionStateSchema.properties;
+var sectionRequired3 = productSurfaceSectionStateSchema.required;
+var sectionAlternatives3 = productSurfaceSectionStateSchema.oneOf;
+var surfaceResultSectionSchema = {
+  type: "object",
+  properties: {
+    ...sectionProperties3,
+    terminalStatus: {
+      anyOf: [
+        { type: "string", enum: ["completed", "failed", "blocked", "cancelled", "unknown"] },
+        { type: "null" }
+      ]
+    },
+    verificationStatus: {
+      type: "string",
+      enum: ["passed", "failed", "not_run", "unavailable", "invalid"]
+    },
+    acceptanceStatus: {
+      type: "string",
+      enum: ["accepted", "rework", "pending", "unavailable", "invalid"]
+    },
+    artifactStatus: {
+      type: "string",
+      enum: ["available", "missing", "unavailable", "invalid"]
+    },
+    publicationStatus: {
+      type: "string",
+      enum: ["not_requested", "pending", "published", "blocked", "failed", "uncertain"]
+    },
+    deliveryStatus: {
+      type: "string",
+      enum: ["not_requested", "pending", "delivered", "failed", "uncertain"]
+    },
+    resultDigest: { anyOf: [sha256Schema, { type: "null" }] },
+    artifactCoordinates: {
+      type: "array",
+      items: productSurfaceCoordinateSchema,
+      maxItems: 100,
+      uniqueItems: true
+    },
+    verificationCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    acceptanceCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    publicationCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    deliveryCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] }
+  },
+  required: [
+    ...sectionRequired3,
+    "terminalStatus",
+    "verificationStatus",
+    "acceptanceStatus",
+    "artifactStatus",
+    "publicationStatus",
+    "deliveryStatus",
+    "resultDigest",
+    "artifactCoordinates",
+    "verificationCoordinate",
+    "acceptanceCoordinate",
+    "publicationCoordinate",
+    "deliveryCoordinate"
+  ],
+  oneOf: sectionAlternatives3,
+  additionalProperties: false
+};
+var surfaceCompletenessSchema = {
+  type: "object",
+  properties: {
+    requiredSections: {
+      type: "array",
+      items: {
+        type: "string",
+        enum: ["grounding", "search", "resources", "stages", "caches", "result"]
+      },
+      minItems: 1,
+      maxItems: 6,
+      uniqueItems: true
+    },
+    missingReasons: {
+      type: "array",
+      items: productSurfaceReasonCodeSchema,
+      maxItems: 32,
+      uniqueItems: true
+    }
+  },
+  required: ["requiredSections", "missingReasons"],
+  additionalProperties: false
+};
+
+// packages/schemas/dist/surface-observability-report.js
+var surfaceObservabilityReportSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/surface-observability-report.schema.json",
+  title: "Lervo product surface observability report",
+  type: "object",
+  properties: {
+    schemaVersion: { type: "integer", const: 1 },
+    kind: { const: "product_surface.observability" },
+    surface: {
+      type: "object",
+      properties: {
+        kind: { type: "string", enum: ["discord", "first_party", "local_cli", "other"] },
+        adapterBuild: productSurfaceCoordinateSchema
+      },
+      required: ["kind", "adapterBuild"],
+      additionalProperties: false
+    },
+    sourceEventHeadHash: sha256Schema,
+    repositoryRevision: sha256Schema,
+    workCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    originCoordinate: { anyOf: [productSurfaceCoordinateSchema, { type: "null" }] },
+    grounding: surfaceGroundingSectionSchema,
+    search: surfaceSearchSectionSchema,
+    resources: surfaceResourcesSectionSchema,
+    stages: surfaceStagesSectionSchema,
+    caches: surfaceCachesSectionSchema,
+    result: surfaceResultSectionSchema,
+    completeness: surfaceCompletenessSchema,
+    status: productSurfaceProjectionStatusSchema,
+    reportDigest: sha256Schema
+  },
+  required: [
+    "schemaVersion",
+    "kind",
+    "surface",
+    "sourceEventHeadHash",
+    "repositoryRevision",
+    "workCoordinate",
+    "originCoordinate",
+    "grounding",
+    "search",
+    "resources",
+    "stages",
+    "caches",
+    "result",
+    "completeness",
+    "status",
+    "reportDigest"
+  ],
+  additionalProperties: false
+};
+
 // packages/schemas/dist/skill.js
 var providerCompatibilitySchema2 = {
   oneOf: [
@@ -46079,7 +47551,7 @@ var traceCapabilitiesReportSchema = {
 };
 
 // packages/schemas/dist/terminal-coverage-report.js
-var resourceObservationSchema = {
+var resourceObservationSchema2 = {
   type: "object",
   properties: {
     status: { type: "string", enum: ["partial", "unavailable"] },
@@ -46237,8 +47709,8 @@ var terminalTurnCoverageSchema = {
     resources: {
       type: "object",
       properties: {
-        wholeTask: resourceObservationSchema,
-        queryProjection: resourceObservationSchema
+        wholeTask: resourceObservationSchema2,
+        queryProjection: resourceObservationSchema2
       },
       required: ["wholeTask", "queryProjection"],
       additionalProperties: false
@@ -47773,6 +49245,14 @@ var validators = {
   conversationOutboundMessage: ajv.compile(conversationOutboundMessageSchema),
   conversationRepositoryWorkCompletedEventPayload: ajv.compile(conversationRepositoryWorkCompletedEventPayloadSchema),
   conversationDeliveryReceipt: ajv.compile(conversationDeliveryReceiptSchema),
+  productActivityPage: ajv.compile(productActivityPageSchema),
+  productActivitySubscriptionRequest: ajv.compile(productActivitySubscriptionRequestSchema),
+  productActivitySubscriptionHint: ajv.compile(productActivitySubscriptionHintSchema),
+  productSteeringCommand: ajv.compile(productSteeringCommandSchema),
+  productSteeringResult: ajv.compile(productSteeringResultSchema),
+  productUnifiedSearchResult: ajv.compile(productUnifiedSearchResultSchema),
+  surfaceObservabilityReport: ajv.compile(surfaceObservabilityReportSchema),
+  productDeliberationView: ajv.compile(productDeliberationViewSchema),
   deliberationPolicy: ajv.getSchema(deliberationPolicySchema.$id),
   deliberationWorkflowSource: ajv.compile(deliberationWorkflowSourceSchema),
   deliberationArtifact: ajv.compile(deliberationArtifactSchema),
@@ -48691,7 +50171,8 @@ var eventPayloadAllowlists = {
     "policyId",
     "policyHash",
     "participantRoleIds",
-    "maxRounds"
+    "maxRounds",
+    "policy"
   ],
   "deliberation.artifact.recorded": [
     "deliberationId",
@@ -48699,9 +50180,11 @@ var eventPayloadAllowlists = {
     "kind",
     "round",
     "producerRoleId",
+    "producerRoleName",
     "artifactId",
     "contentHash",
-    "writingPermitId"
+    "writingPermitId",
+    "artifact"
   ],
   "deliberation.artifact.publication_failed": [
     "deliberationId",
@@ -49277,7 +50760,9 @@ var safeSensitiveCoordinatePaths = /* @__PURE__ */ new Set([
   "$.usage.cachedInputTokens",
   "$.usage.outputTokens",
   "$.usage.reasoningOutputTokens",
-  "$.usage.totalTokens"
+  "$.usage.totalTokens",
+  "$.policy.executionBudget.maximumObservedTokens",
+  "$.policy.executionBudget.unobservedTokenDisposition"
 ]);
 var RedactionError = class extends Error {
   code;
@@ -49446,7 +50931,10 @@ function conversationRepositoryWorkCoordinateMatches(payload) {
   return payload.changedPathCount === 0 ? payload.changedPaths.length === 0 && payload.repositoryRevisionBefore === payload.repositoryRevisionAfter : payload.repositoryRevisionBefore !== payload.repositoryRevisionAfter;
 }
 function deliberationArtifactCoordinateMatches(payload) {
-  return payload.artifactId === `art_${payload.contentHash.slice("sha256:".length)}`;
+  if (payload.artifactId !== `art_${payload.contentHash.slice("sha256:".length)}`)
+    return false;
+  const artifact2 = payload.artifact;
+  return artifact2 === void 0 || artifact2.deliberationId === payload.deliberationId && artifact2.deliberationArtifactId === payload.deliberationArtifactId && artifact2.kind === payload.kind && artifact2.round === payload.round && artifact2.producer.roleId === payload.producerRoleId && artifact2.content.artifactId === payload.artifactId && artifact2.content.contentHash === payload.contentHash && artifact2.writingPublicationPermit.permitId === payload.writingPermitId;
 }
 function agentContextPromotionCoordinateMatches(payload) {
   return payload.summaryArtifactId === `art_${payload.summaryContentHash.slice("sha256:".length)}` && (payload.source.kind !== "artifact" || payload.source.sourceId === `art_${payload.source.contentHash.slice("sha256:".length)}`);
@@ -53250,7 +54738,7 @@ var defaultRepositoryKnowledgePolicy = {
   limits: {
     maxFiles: 2e4,
     maxFileBytes: 1048576,
-    maxTotalBytes: 33554432
+    maxTotalBytes: 67108864
   }
 };
 function isStringArray(value) {
@@ -72264,6 +73752,31 @@ var adaptiveConversationWritingContract = {
       {
         checkId: "natural_conversation_prose",
         requirement: "Write natural, direct conversational prose in the selected response language, preserving machine identifiers and clearly separating observed facts from proposed actions.",
+        required: true
+      }
+    ]
+  }
+};
+var koreanConversationWritingContract = {
+  ...adaptiveConversationWritingContract,
+  writingPolicyId: "writing_ko-conversation",
+  locale: "ko",
+  verification: {
+    ...adaptiveConversationWritingContract.verification,
+    semanticChecks: [
+      {
+        checkId: "natural_ko_prose",
+        requirement: "\uB3C5\uC790\uC5D0\uAC8C \uC9C1\uC811 \uC124\uBA85\uD558\uB294 \uC790\uC5F0\uC2A4\uB7EC\uC6B4 \uD55C\uAD6D\uC5B4 \uC644\uC804\uBB38\uC7A5\uC73C\uB85C \uC791\uC131\uD558\uACE0, \uBB38\uB2E8\uB9C8\uB2E4 \uD558\uB098\uC758 \uC751\uC9D1\uB41C \uB17C\uC9C0\uB97C \uC720\uC9C0\uD55C\uB2E4.",
+        required: true
+      },
+      {
+        checkId: "plain_audience_language",
+        requirement: "\uD45C\uC900 \uC18C\uD504\uD2B8\uC6E8\uC5B4 \uC6A9\uC5B4\uB294 \uC0AC\uC6A9\uD560 \uC218 \uC788\uC9C0\uB9CC \uC800\uC7A5\uC18C \uC804\uC6A9 \uC6A9\uC5B4, \uC0DD\uC18C\uD55C \uC57D\uC5B4, \uAE30\uACC4 \uC2DD\uBCC4\uC790\uB294 \uCC98\uC74C \uB4F1\uC7A5\uD560 \uB54C \uB3C5\uC790\uAC00 \uC774\uD574\uD560 \uC218 \uC788\uAC8C \uC124\uBA85\uD55C\uB2E4.",
+        required: true
+      },
+      {
+        checkId: "direct_result_and_action",
+        requirement: "\uACB0\uACFC, \uC601\uD5A5, \uB2E4\uC74C \uD589\uB3D9\uC744 \uAD6C\uCCB4\uC801\uC73C\uB85C \uBC1D\uD788\uACE0 \uBD88\uD2B9\uC815 \uC0AC\uC6A9\uC790, \uB2F4\uB2F9\uC790, \uC0AC\uB78C \uB610\uB294 \uD300\uC5D0\uAC8C \uCC45\uC784\uC744 \uB118\uAE30\uC9C0 \uC54A\uB294\uB2E4.",
         required: true
       }
     ]

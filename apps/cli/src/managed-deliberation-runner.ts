@@ -1,12 +1,16 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import type { ProviderAdapter } from "@lervo/adapter-contract";
-import { ClaudeAdapter } from "@lervo/adapter-claude";
-import { CodexAdapter } from "@lervo/adapter-codex";
-import { ManagedProviderRunCoordinator } from "@lervo/orchestrator";
+import {
+  createCachedRepositorySnapshotCapture,
+  ManagedProviderRunError,
+  ManagedProviderRunCoordinator,
+  type CaptureRepositorySnapshot,
+} from "@lervo/orchestrator";
 import type { ProjectStorage } from "@lervo/project-storage";
-import type { RoleProfile, VerificationSuite } from "@lervo/schemas";
+import type { DeliberationPolicy, RoleProfile, VerificationSuite } from "@lervo/schemas";
 import type { ManagedProviderRunResult } from "@lervo/orchestrator";
+import { providerSemanticEvaluationSchema } from "@lervo/provider-writing-evaluator";
 import type { SemanticWritingEvaluationRequest, WritingSemanticEvaluator } from "@lervo/writing";
 
 import { createDeliberationEvaluatorRole } from "./deliberation-roles.js";
@@ -14,6 +18,11 @@ import type { DeliberationWorkspace } from "./deliberation-workspace.js";
 import type { RunProvider } from "./managed-run.js";
 import { parseSemanticEvaluation } from "./semantic-evaluation-response.js";
 import { prepareRunVerification, type PreparedRunVerification } from "./run-verification.js";
+import {
+  ManagedDeliberationBudgetController,
+  type ManagedDeliberationBudgetUsage,
+} from "./managed-deliberation-budget.js";
+import { createManagedDeliberationAdapter } from "./managed-deliberation-adapter.js";
 
 export { parseSemanticEvaluation } from "./semantic-evaluation-response.js";
 
@@ -28,8 +37,12 @@ function defaultId(prefix: string): string {
 export interface ManagedDeliberationRunnerDependencies {
   createAdapter(input: {
     provider: RunProvider;
+    executable?: string;
+    model?: string;
+    reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
     repositoryRoot: string;
     resolveArtifact: (uri: string) => Promise<Uint8Array>;
+    structuredOutputSchema?: Record<string, unknown>;
   }): ProviderAdapter;
   createId(prefix: string): string;
   now(): Date;
@@ -39,16 +52,33 @@ export interface ManagedDeliberationRunnerDependencies {
     artifactStore: ProjectStorage["artifacts"];
     now?: () => Date;
   }): Promise<PreparedRunVerification>;
+  createSnapshotCapture?(): CaptureRepositorySnapshot;
+  finalizationReserveMs?: number;
 }
 
 const defaultDependencies: ManagedDeliberationRunnerDependencies = {
-  createAdapter: ({ provider, repositoryRoot, resolveArtifact }) =>
-    provider === "codex"
-      ? new CodexAdapter({ repositoryRoot, resolveArtifact })
-      : new ClaudeAdapter({ repositoryRoot, resolveArtifact }),
+  createAdapter: ({
+    provider,
+    executable,
+    model,
+    reasoningEffort,
+    repositoryRoot,
+    resolveArtifact,
+    structuredOutputSchema,
+  }) =>
+    createManagedDeliberationAdapter({
+      provider,
+      repositoryRoot,
+      resolveArtifact,
+      ...(executable === undefined ? {} : { executable }),
+      ...(model === undefined ? {} : { model }),
+      ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
+      ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
+    }),
   createId: defaultId,
   now: () => new Date(),
   prepareVerification: prepareRunVerification,
+  createSnapshotCapture: createCachedRepositorySnapshotCapture,
 };
 
 export interface ManagedDeliberationRunResult {
@@ -57,15 +87,68 @@ export interface ManagedDeliberationRunResult {
   verificationSuite?: VerificationSuite;
 }
 
+const maximumSemanticEvaluationAttempts = 2;
+const retryableSemanticEvaluationFailures = new Set([
+  "provider_start_failed",
+  "provider_stream_failed",
+  "provider_turn_failed",
+  "provider_model_unavailable",
+  "provider_result_failed",
+  "repository_snapshot_failed",
+]);
+
+function mayRetrySemanticEvaluation(error: unknown): boolean {
+  return (
+    error instanceof ManagedProviderRunError && retryableSemanticEvaluationFailures.has(error.code)
+  );
+}
+
+function evidenceBoundRole(role: RoleProfile, includeTaskEvidence: boolean): RoleProfile {
+  if (!includeTaskEvidence) return role;
+  const requiredDocumentRuleIds = [
+    ...new Set([...role.contextPolicy.requiredDocumentRuleIds, "deliberation.task-evidence"]),
+  ];
+  return {
+    ...role,
+    contextPolicy: { ...role.contextPolicy, requiredDocumentRuleIds },
+  };
+}
+
 export class ManagedDeliberationRunner {
+  private readonly captureSnapshot: CaptureRepositorySnapshot;
+  private readonly budget: ManagedDeliberationBudgetController;
+  private readonly finalizationReserveMs: number;
+
   constructor(
     private readonly storage: ProjectStorage,
     private readonly workspace: DeliberationWorkspace,
     private readonly policyVersion: string,
     private readonly defaultVerificationSuiteId: string,
+    private readonly executionBudget: NonNullable<DeliberationPolicy["executionBudget"]>,
     private readonly dependencies: ManagedDeliberationRunnerDependencies = defaultDependencies,
     private readonly causalParent?: { workId: string; runId: string },
-  ) {}
+    private readonly providerExecutables: Partial<Record<RunProvider, string>> = {},
+    private readonly providerModels: Partial<Record<RunProvider, string>> = {},
+    private readonly providerReasoningEfforts: Partial<
+      Record<RunProvider, "low" | "medium" | "high" | "xhigh" | "max">
+    > = {},
+    initialBudgetUsage?: ManagedDeliberationBudgetUsage,
+  ) {
+    this.captureSnapshot = (
+      this.dependencies.createSnapshotCapture ?? createCachedRepositorySnapshotCapture
+    )();
+    this.budget = new ManagedDeliberationBudgetController(
+      this.storage.events,
+      this.executionBudget,
+      this.dependencies.now,
+      initialBudgetUsage,
+    );
+    this.finalizationReserveMs = this.dependencies.finalizationReserveMs ?? 50_000;
+  }
+
+  budgetUsage(): ManagedDeliberationBudgetUsage {
+    return this.budget.usage();
+  }
 
   async execute(input: {
     provider: RunProvider;
@@ -74,7 +157,11 @@ export class ManagedDeliberationRunner {
     documentRules: Record<string, string[]>;
     verificationSuiteId?: string;
     workRelationship?: "deliberation" | "publication_evaluation";
+    workAttemptOrdinal?: number;
+    structuredOutputSchema?: Record<string, unknown>;
   }): Promise<ManagedDeliberationRunResult> {
+    const activeRunDeadlineMs = this.budget.admit(this.finalizationReserveMs);
+    const role = evidenceBoundRole(input.role, input.workRelationship !== "publication_evaluation");
     const repositoryRoot = this.storage.paths.repositoryRoot;
     const verification =
       input.verificationSuiteId === undefined
@@ -89,8 +176,20 @@ export class ManagedDeliberationRunner {
     const sessionId = this.dependencies.createId("ses");
     const adapter = this.dependencies.createAdapter({
       provider: input.provider,
+      ...(this.providerExecutables[input.provider] === undefined
+        ? {}
+        : { executable: this.providerExecutables[input.provider] }),
+      ...(this.providerModels[input.provider] === undefined
+        ? {}
+        : { model: this.providerModels[input.provider] }),
+      ...(this.providerReasoningEfforts[input.provider] === undefined
+        ? {}
+        : { reasoningEffort: this.providerReasoningEfforts[input.provider] }),
       repositoryRoot,
       resolveArtifact: (uri) => this.storage.artifacts.get(uri),
+      ...(input.structuredOutputSchema === undefined
+        ? {}
+        : { structuredOutputSchema: input.structuredOutputSchema }),
     });
     const coordinator = new ManagedProviderRunCoordinator({
       adapter,
@@ -103,47 +202,77 @@ export class ManagedDeliberationRunner {
         roleId: input.role.roleId,
       },
       policyVersion: this.policyVersion,
+      captureSnapshot: this.captureSnapshot,
       createEventId: () => this.dependencies.createId("evt"),
       ...(verification === undefined ? {} : { projectVerifier: verification.verifier }),
       now: this.dependencies.now,
-    });
-    const humanPresentation = input.role.outputContract.presentation.audience !== "machine";
-    const run = await coordinator.run({
-      repositoryRoot,
-      requestDigest: digest(input.instructions),
-      risk: "medium",
-      instructions: input.instructions,
-      targetTurnId: this.dependencies.createId("turn"),
-      context: {
-        registry: this.workspace.registry(),
-        role: input.role,
-        expectedPaths: [],
-        documentRules: input.documentRules,
-        publications: this.workspace.publications(),
-        handoffs: this.workspace.handoffsFor(input.role.roleId),
-        createReceiptId: () => this.dependencies.createId("ctx"),
+      providerInteractionLimits: {
+        maximumToolCalls: 0,
+        maximumCommandExecutions: 0,
       },
-      writingPolicy: humanPresentation
-        ? {
-            writingPolicyId: this.workspace.writingContract.writingPolicyId,
-            documentId: this.workspace.writingPolicyDocumentId,
-            contentHash: this.workspace.writingPolicyContentHash,
-          }
-        : null,
-      resolvedSkills: [],
-      ...(this.causalParent === undefined
-        ? {}
-        : {
-            workCausality: {
-              relationship: input.workRelationship ?? ("deliberation" as const),
-              workId: this.causalParent.workId,
-              parentRunId: this.causalParent.runId,
-            },
-          }),
-      ...(verification === undefined ? {} : { verificationSuites: verification.suites }),
-      createEnvelopeId: () => this.dependencies.createId("envelope"),
-      createEvidenceReceiptId: () => this.dependencies.createId("ctx"),
     });
+    const humanPresentation = role.outputContract.presentation.audience !== "machine";
+    const controller = new AbortController();
+    let elapsedBudgetReached = false;
+    const timer = setTimeout(() => {
+      elapsedBudgetReached = true;
+      controller.abort();
+    }, activeRunDeadlineMs);
+    timer.unref();
+    let run: ManagedProviderRunResult;
+    try {
+      run = await coordinator.run({
+        repositoryRoot,
+        requestDigest: digest(input.instructions),
+        risk: "medium",
+        instructions: input.instructions,
+        targetTurnId: this.dependencies.createId("turn"),
+        context: {
+          registry: this.workspace.registry(),
+          role,
+          expectedPaths: [],
+          documentRules: {
+            ...input.documentRules,
+            "deliberation.task-evidence": this.workspace.taskEvidenceDocumentIds(),
+          },
+          publications: this.workspace.publications(),
+          handoffs: this.workspace.handoffsFor(input.role.roleId),
+          createReceiptId: () => this.dependencies.createId("ctx"),
+        },
+        writingPolicy: humanPresentation
+          ? {
+              writingPolicyId: this.workspace.writingContract.writingPolicyId,
+              documentId: this.workspace.writingPolicyDocumentId,
+              contentHash: this.workspace.writingPolicyContentHash,
+            }
+          : null,
+        resolvedSkills: [],
+        signal: controller.signal,
+        ...(this.causalParent === undefined
+          ? {}
+          : {
+              workCausality: {
+                relationship: input.workRelationship ?? ("deliberation" as const),
+                workId: this.causalParent.workId,
+                parentRunId: this.causalParent.runId,
+                ...(input.workAttemptOrdinal === undefined
+                  ? {}
+                  : { attemptOrdinal: input.workAttemptOrdinal }),
+              },
+            }),
+        ...(verification === undefined ? {} : { verificationSuites: verification.suites }),
+        createEnvelopeId: () => this.dependencies.createId("envelope"),
+        createEvidenceReceiptId: () => this.dependencies.createId("ctx"),
+      });
+    } catch (error) {
+      if (elapsedBudgetReached) {
+        throw this.budget.elapsedError(error);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+    this.budget.observeCompletedRun(runId);
     const bytes = await this.storage.artifacts.get(run.resultArtifact.uri);
     const content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
     if (
@@ -163,13 +292,28 @@ export class ManagedDeliberationRunner {
 
   semanticEvaluator(provider: RunProvider): WritingSemanticEvaluator {
     return {
-      evaluate: async (request) => this.evaluateSemantics(provider, request),
+      evaluate: async (request) => {
+        for (let attempt = 1; attempt <= maximumSemanticEvaluationAttempts; attempt += 1) {
+          try {
+            return await this.evaluateSemantics(provider, request, attempt);
+          } catch (error) {
+            if (
+              attempt === maximumSemanticEvaluationAttempts ||
+              !mayRetrySemanticEvaluation(error)
+            ) {
+              throw error;
+            }
+          }
+        }
+        throw new Error("The bounded semantic evaluation retry loop did not terminate.");
+      },
     };
   }
 
   private async evaluateSemantics(
     provider: RunProvider,
     request: SemanticWritingEvaluationRequest,
+    attemptOrdinal: number,
   ) {
     const requestDocument = `${JSON.stringify(
       {
@@ -203,6 +347,8 @@ export class ManagedDeliberationRunner {
       ].join("\n"),
       documentRules: { "writing.evaluation.request": [documentId] },
       workRelationship: "publication_evaluation",
+      workAttemptOrdinal: attemptOrdinal,
+      structuredOutputSchema: providerSemanticEvaluationSchema(request),
     });
     return parseSemanticEvaluation(result.content, request, provider);
   }

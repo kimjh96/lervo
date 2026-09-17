@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { parseDiscordMessagePayload } from "../src/payload.js";
+import { createDiscordMessageNonce } from "../src/message-nonce.js";
 
 function payload(content: string, mentions: { id: string }[] = []) {
   return {
@@ -80,4 +81,26 @@ it("preserves human reply addressing and explicitly addressed agent replies", ()
       ...reference,
     }).mentionedParticipantKeys,
   ).toEqual(["user:523456789012345678"]);
+});
+
+it("restores observation-only Lervo publication lineage without inspecting message text", () => {
+  const parsed = parseDiscordMessagePayload({
+    ...payload("사용자에게 보이는 정상 상태 문장입니다."),
+    nonce: createDiscordMessageNonce("cvo_status0001", "observe_only"),
+  });
+  expect(parsed.audienceParticipation).toBe("observe_only");
+});
+
+it("does not let human or unclassified messages suppress agent participation", () => {
+  const marker = createDiscordMessageNonce("cvo_status0002", "observe_only");
+  expect(
+    parseDiscordMessagePayload({
+      ...payload("same visible text"),
+      author: { id: "423456789012345678", bot: false },
+      nonce: marker,
+    }).audienceParticipation,
+  ).toBe("eligible");
+  expect(
+    parseDiscordMessagePayload({ ...payload("same visible text"), nonce: "foreign" }),
+  ).toMatchObject({ audienceParticipation: "eligible" });
 });

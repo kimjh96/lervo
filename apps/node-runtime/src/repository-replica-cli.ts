@@ -35,6 +35,7 @@ interface CoordinatorConfig {
   stateFile: string;
   pollIntervalMs: number;
   maximumConcurrency?: number;
+  peerWatch?: boolean;
   peer: {
     executable: string;
     arguments: string[];
@@ -97,6 +98,7 @@ async function readCoordinatorConfig(path: string): Promise<CoordinatorConfig> {
       (!Number.isSafeInteger(value.maximumConcurrency) ||
         value.maximumConcurrency < 1 ||
         value.maximumConcurrency > 4)) ||
+    (value.peerWatch !== undefined && typeof value.peerWatch !== "boolean") ||
     typeof value.peer !== "object" ||
     value.peer === null ||
     typeof value.peer.executable !== "string" ||
@@ -150,6 +152,7 @@ async function runCoordinator(
     fallbackIntervalMs: config.pollIntervalMs,
     maximumConcurrency: config.maximumConcurrency ?? 4,
     watch,
+    peerWatch: config.peerWatch ?? true,
     ...(ports.signal === undefined ? {} : { signal: ports.signal }),
     reconcile: async (repository) => {
       try {
@@ -172,6 +175,9 @@ async function runCoordinator(
           ports.stderr(
             `Repository replica ${result.replicaId} is divergent (${result.localHash} != ${result.peerHash}; common ${result.commonHash ?? "none"}; ${conflict}).\n`,
           );
+        } else if (result.status === "pending") {
+          // A source advanced after an exact transfer. Its watcher or the bounded recovery sweep
+          // will continue from the newly persisted common base without manufacturing divergence.
         } else if (result.status !== "current") {
           ports.stdout(
             `Repository replica ${result.replicaId} ${result.status} at ${result.snapshotHash}.\n`,
@@ -209,7 +215,9 @@ export async function runRepositoryReplicaCli(
       return 0;
     }
     if (action === "bundle") {
-      ports.stdoutBytes(await createRepositoryReplicaBundle(root));
+      const expectedIndex = args.indexOf("--expected");
+      const expected = expectedIndex < 0 ? undefined : oneOption(args, "--expected");
+      ports.stdoutBytes(await createRepositoryReplicaBundle(root, expected));
       return 0;
     }
     if (action === "apply" || action === "adopt") {

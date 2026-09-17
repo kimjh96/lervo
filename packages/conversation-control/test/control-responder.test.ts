@@ -197,6 +197,7 @@ describe("conversation command control", () => {
       requestedAt: "2026-08-20T00:05:00.000Z",
     });
     expect(inspect).not.toHaveBeenCalled();
+    expect(candidate.audienceParticipation).toBe("observe_only");
     expect(body).toContain("Processed deliberation dlb_chat0001.");
     expect(body).toContain("Wait for the current work to finish.");
   });
@@ -350,6 +351,9 @@ describe("conversation command control", () => {
       projectId: "prj_control01",
       principalId: "operator:reviewer",
       sourceEventId: event.eventId,
+      conversationId: event.target.conversationId,
+      threadId: event.target.threadId,
+      requesterParticipantId: event.actor.participantId,
       policyId: "deliberation_product-review",
       topic: "Review the deployment structure.",
       requestedAt: "2026-08-20T00:05:00.000Z",

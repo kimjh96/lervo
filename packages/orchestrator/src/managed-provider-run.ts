@@ -72,6 +72,7 @@ import { ManagedTelemetryRecorder, TelemetryWriteError } from "./telemetry.js";
 import { admitManagedWorkCausality } from "./work-causality-admission.js";
 import { ManagedResourceObservation } from "./resource-observation.js";
 import { ManagedStageObservation } from "./stage-observation.js";
+import { ManagedProviderInteractionLimiter } from "./provider-interaction-limits.js";
 
 function copy<T>(value: T): T {
   return structuredClone(value);
@@ -175,6 +176,7 @@ export class ManagedProviderRunCoordinator {
   private readonly snapshotPolicy: RepositorySnapshotPolicy;
   private readonly deadlines: ManagedProviderRunDeadlines;
   private readonly maximumProviderSignals: number;
+  private readonly interactionLimiter: ManagedProviderInteractionLimiter | undefined;
   private running = false;
 
   constructor(private readonly options: ManagedProviderRunOptions) {
@@ -190,6 +192,10 @@ export class ManagedProviderRunCoordinator {
     this.snapshotPolicy = resolveRepositorySnapshotPolicy(options.snapshotPolicy);
     this.deadlines = resolveManagedProviderRunDeadlines(options.deadlines);
     this.maximumProviderSignals = resolveMaximumProviderSignals(options.maximumProviderSignals);
+    this.interactionLimiter =
+      options.providerInteractionLimits === undefined
+        ? undefined
+        : new ManagedProviderInteractionLimiter(options.providerInteractionLimits);
     assertAdapterMessage(options.adapter.descriptor, "Adapter descriptor");
   }
 
@@ -336,6 +342,7 @@ export class ManagedProviderRunCoordinator {
             recordedAt: this.time(),
           });
           if (capabilitySpecs.length > 0) this.append(capabilitySpecs);
+          this.interactionLimiter?.observe(event);
         },
       });
 

@@ -45,6 +45,7 @@
     "@lervo/policy-sqlite": "workspace:*",
     "@lervo/project": "workspace:*",
     "@lervo/project-storage": "workspace:*",
+    "@lervo/product-surface-projection": "workspace:*",
     "@lervo/provider-writing-evaluator": "workspace:*",
     "@lervo/repository-knowledge": "workspace:*",
     "@lervo/repository-knowledge-compiler": "workspace:*",

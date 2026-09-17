@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { isAbsolute } from "node:path";
 
-import { writingContractForLanguage } from "@lervo/core";
+import { koreanConversationWritingContract, writingContractForLanguage } from "@lervo/core";
 import { rootWorkId } from "@lervo/execution-contract";
 import { deliberationPolicyHash } from "@lervo/deliberation";
 import {
@@ -38,6 +39,10 @@ import {
 } from "./managed-deliberation-runner.js";
 import { ManagedDeliberationError } from "./managed-deliberation-errors.js";
 import { executeManagedDeliberationLifecycle } from "./managed-deliberation-lifecycle.js";
+import {
+  prepareManagedDeliberationEvidence,
+  type ManagedDeliberationEvidenceBundle,
+} from "./managed-deliberation-evidence.js";
 import type { RunProvider } from "./managed-run.js";
 
 export { ManagedDeliberationError } from "./managed-deliberation-errors.js";
@@ -45,6 +50,13 @@ export { ManagedDeliberationError } from "./managed-deliberation-errors.js";
 interface ManagedDeliberationRequestBase {
   repositoryRoot: string;
   topic: string;
+  responseLanguage?: "en" | "ko";
+  providerExecutables?: Partial<Record<RunProvider, string>>;
+  providerModels?: Partial<Record<RunProvider, string>>;
+  providerReasoningEfforts?: Partial<
+    Record<RunProvider, "low" | "medium" | "high" | "xhigh" | "max">
+  >;
+  executionMaximumElapsedMs?: number;
 }
 
 export interface InlineManagedDeliberationRequest extends ManagedDeliberationRequestBase {
@@ -64,6 +76,12 @@ export interface StoredManagedDeliberationRequest extends ManagedDeliberationReq
 export interface ResumeManagedDeliberationRequest {
   repositoryRoot: string;
   resumeDeliberationId: string;
+  providerExecutables?: Partial<Record<RunProvider, string>>;
+  providerModels?: Partial<Record<RunProvider, string>>;
+  providerReasoningEfforts?: Partial<
+    Record<RunProvider, "low" | "medium" | "high" | "xhigh" | "max">
+  >;
+  executionMaximumElapsedMs?: number;
   topic?: never;
   policyId?: never;
   proposerProvider?: never;
@@ -117,6 +135,11 @@ export interface ManagedDeliberationDependencies {
   now(): Date;
   writingContract?: WritingContract;
   runner?: ManagedDeliberationRunnerDependencies;
+  prepareEvidence?(input: {
+    repositoryRoot: string;
+    topic: string;
+    documentRegistry: Awaited<ReturnType<typeof loadDocumentRegistry>>;
+  }): Promise<ManagedDeliberationEvidenceBundle>;
   afterApprovedCheckpoint?(deliberationId: string): Promise<void> | void;
 }
 
@@ -124,6 +147,7 @@ const defaultDependencies: ManagedDeliberationDependencies = {
   openStorage: openProjectStorage,
   createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
   now: () => new Date(),
+  prepareEvidence: prepareManagedDeliberationEvidence,
 };
 
 export class DeliberationProcessInterruptedError extends Error {
@@ -145,6 +169,55 @@ function validSuites(suites: readonly string[]): boolean {
 }
 
 function assertRequest(request: ManagedDeliberationRequest): void {
+  const providerExecutables = request.providerExecutables ?? {};
+  const providerModels = request.providerModels ?? {};
+  const providerReasoningEfforts = request.providerReasoningEfforts ?? {};
+  if (
+    request.executionMaximumElapsedMs !== undefined &&
+    (!Number.isSafeInteger(request.executionMaximumElapsedMs) ||
+      request.executionMaximumElapsedMs < 1_000 ||
+      request.executionMaximumElapsedMs > 3_600_000)
+  ) {
+    throw new ManagedDeliberationError(
+      "deliberation_request_invalid",
+      "The managed deliberation execution deadline is invalid.",
+    );
+  }
+  if (
+    Object.entries(providerExecutables).some(
+      ([provider, executable]) =>
+        !["codex", "claude"].includes(provider) ||
+        typeof executable !== "string" ||
+        !isAbsolute(executable) ||
+        /[\0\r\n]/u.test(executable) ||
+        executable.length > 4096,
+    )
+  ) {
+    throw new ManagedDeliberationError(
+      "deliberation_request_invalid",
+      "Managed deliberation provider executables must be safe absolute paths.",
+    );
+  }
+  if (
+    Object.entries(providerModels).some(
+      ([provider, model]) =>
+        !["codex", "claude"].includes(provider) ||
+        typeof model !== "string" ||
+        model.length === 0 ||
+        model.length > 128 ||
+        /[\0\r\n]/u.test(model),
+    ) ||
+    Object.entries(providerReasoningEfforts).some(
+      ([provider, effort]) =>
+        !["codex", "claude"].includes(provider) ||
+        !["low", "medium", "high", "xhigh", "max"].includes(String(effort)),
+    )
+  ) {
+    throw new ManagedDeliberationError(
+      "deliberation_request_invalid",
+      "Managed deliberation provider models and reasoning efforts are invalid.",
+    );
+  }
   if ("resumeDeliberationId" in request) {
     if (!/^dlb_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u.test(request.resumeDeliberationId)) {
       throw new ManagedDeliberationError(
@@ -201,8 +274,10 @@ async function resolveExecutionPlan(
 async function resolveWritingContract(
   repositoryRoot: string,
   override: WritingContract | undefined,
+  responseLanguage: "en" | "ko" | undefined,
 ): Promise<WritingContract> {
   if (override !== undefined) return structuredClone(override);
+  if (responseLanguage === "ko") return structuredClone(koreanConversationWritingContract);
   const knowledgePolicy = await loadRepositoryKnowledgePolicy(repositoryRoot);
   return writingContractForLanguage(knowledgePolicy.publication.language);
 }
@@ -270,9 +345,11 @@ async function executeWithStorage(
     }
     return resumeManagedDeliberationWithStorage(request, storage, dependencies);
   }
+  const executionStartedAt = dependencies.now().toISOString();
   const writingContract = await resolveWritingContract(
     storage.paths.repositoryRoot,
     dependencies.writingContract,
+    request.responseLanguage,
   );
   const plan = await resolveExecutionPlan(request, storage, writingContract);
   const policy = plan.policy;
@@ -300,25 +377,47 @@ async function executeWithStorage(
     coordinates: runtimeCoordinates,
     events: storage.events,
     artifactStore: storage.artifacts,
+    participantNames: plan.participants.map((participant) => ({
+      roleId: participant.role.roleId,
+      name: participant.role.name,
+    })),
     now: dependencies.now,
     createEventId: () => dependencies.createId("evt"),
   });
-  const runner = new ManagedDeliberationRunner(
-    storage,
-    workspace,
-    deliberationPolicyHash(policy),
-    policy.requiredVerificationSuiteIds[0]!,
-    dependencies.runner,
-    {
-      workId: rootWorkId(runtimeCoordinates.projectId, runtimeCoordinates.runId),
-      runId: runtimeCoordinates.runId,
-    },
-  );
   let completed = false;
   let leaseOwnerId: string | null = null;
   let openBlockingObjections: string[] = [];
   runtime.start();
   try {
+    const evidence = await (dependencies.prepareEvidence ?? prepareManagedDeliberationEvidence)({
+      repositoryRoot: storage.paths.repositoryRoot,
+      topic: request.topic,
+      documentRegistry: registry,
+    });
+    await workspace.installTaskEvidence(evidence);
+    const executionBudget = {
+      ...policy.executionBudget,
+      maximumElapsedMs: Math.min(
+        policy.executionBudget.maximumElapsedMs,
+        request.executionMaximumElapsedMs ?? policy.executionBudget.maximumElapsedMs,
+      ),
+    };
+    const runner = new ManagedDeliberationRunner(
+      storage,
+      workspace,
+      deliberationPolicyHash(policy),
+      policy.requiredVerificationSuiteIds[0]!,
+      executionBudget,
+      dependencies.runner,
+      {
+        workId: rootWorkId(runtimeCoordinates.projectId, runtimeCoordinates.runId),
+        runId: runtimeCoordinates.runId,
+      },
+      request.providerExecutables,
+      request.providerModels,
+      request.providerReasoningEfforts,
+      { providerCalls: 0, observedTokens: 0, startedAt: executionStartedAt },
+    );
     const rounds = await executeDeliberationRounds({
       request,
       plan,
@@ -360,6 +459,7 @@ async function executeWithStorage(
           (review) => review.artifact.deliberationArtifactId,
         ),
         currentClaim: rounds.currentClaim,
+        budgetUsage: runner.budgetUsage(),
         createdAt: dependencies.now().toISOString(),
       },
     });
@@ -424,13 +524,22 @@ function checkpointRequest(
   request: StartManagedDeliberationRequest,
 ): ApprovedDeliberationCheckpoint["request"] {
   if (typeof request.policyId === "string") {
-    return { policyId: request.policyId, topic: request.topic };
+    return {
+      policyId: request.policyId,
+      topic: request.topic,
+      ...(request.executionMaximumElapsedMs === undefined
+        ? {}
+        : { executionMaximumElapsedMs: request.executionMaximumElapsedMs }),
+    };
   }
   return {
     proposerProvider: request.proposerProvider,
     reviewerProvider: request.reviewerProvider,
     verificationSuiteIds: [...request.verificationSuiteIds],
     topic: request.topic,
+    ...(request.executionMaximumElapsedMs === undefined
+      ? {}
+      : { executionMaximumElapsedMs: request.executionMaximumElapsedMs }),
   };
 }
 

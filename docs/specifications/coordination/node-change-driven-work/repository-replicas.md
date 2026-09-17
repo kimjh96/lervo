@@ -2,11 +2,11 @@
 
 ## Subscriptions and recovery
 
-The coordinator subscribes to local source directories and persistent authenticated SSH peer streams. Watches cover tracked and non-ignored source parents, Git HEAD/index/branch coordinates, and the replica readiness request. They avoid recursive subscriptions inside ignored caches and Git object storage. Each repository permits at most 4,096 watched directories and a 4 MiB Git path-list response. Unsupported watches and capacity failures trigger recovery; they never bypass authoritative snapshot verification.
+The coordinator subscribes to local source directories and, by default, persistent authenticated SSH peer streams. A constrained bridge may set `peerWatch` to `false`; local watches remain active while peer changes use finite snapshot commands at the configured recovery interval. Watches cover tracked and non-ignored source parents, Git HEAD/index/branch coordinates, and the replica readiness request. They avoid recursive subscriptions inside ignored caches and Git object storage. Each repository permits at most 4,096 watched directories and a 4 MiB Git path-list response. Unsupported watches and capacity failures trigger recovery; they never bypass authoritative snapshot verification.
 
 Each repository has one coalesced pending hint. A 250 ms eligibility window groups consecutive changes. Hints arriving during reconciliation schedule exactly one successor run for that repository. A dynamic keyed pool reconciles at most four independent repositories concurrently. A completed run immediately frees capacity for an eligible hint without waiting for unrelated active runs. Completion records use serialized fresh read-modify-write state updates so parallel repository cycles cannot discard each other's common snapshot.
 
-Idle healthy subscriptions perform full recovery every 60 seconds. Unsupported or disconnected peers retain the configured legacy recovery interval and retry subscription after 60 seconds. SSH streams have a 75-second silence watchdog. Shutdown closes subscriptions and waits only for already-started work.
+Idle healthy subscriptions perform full recovery every 60 seconds. A deliberately disabled, unsupported, or disconnected peer watch uses the configured recovery interval; unsupported or disconnected subscriptions retry after 60 seconds. Timer recovery never queues another full sweep while reconciliation is active or pending, so a constrained bridge cannot be driven continuously merely because one sweep takes longer than its interval. Source-change hints arriving during work still retain one coalesced successor run. SSH streams have a 75-second silence watchdog. Shutdown closes subscriptions and waits only for already-started work.
 
 Each finite SSH snapshot, bundle, apply, and receipt command has a 60-second execution deadline by
 default. Owner-only configuration may select 1–300 seconds. Deadline expiry terminates the local
@@ -21,7 +21,11 @@ boundary.
 
 Snapshot capture creates Git tree objects through a temporary index. Index-tree observation uses an isolated copy of the user's index, including split-index staging, so Git cache updates cannot notify the coordinator of its own observation. Ordinary observation creates no export commit or ref. Bundle creation and explicit history-replacement recovery create the commits they need. No unchanged-head cache can authorize apply or native work without a fresh snapshot.
 
+A bundle request binds the exact snapshot hash selected by reconciliation. If the source advances before bundle creation, no newer bytes are substituted into the older decision. After an exact target apply, the coordinator persists that transferred snapshot as the new common base before recapturing the active source. If the source advanced concurrently, the cycle remains pending and the successor cycle continues as a one-sided change instead of manufacturing dual divergence from the older base. A readiness receipt is written only after both freshly captured sides are equal.
+
 ## Readiness
+
+Replica readiness is opt-in for native conversation work. The installed always-on Node normally treats its own repository as the execution source and leaves replication asynchronous; a divergent Mac recovery copy is retained for explicit reconciliation but does not make ordinary work unavailable. When `repositoryReplica.required` is configured, every rule below is fail-closed and the deployment must provide a single-writer topology, a continuously available coordinator, and an owner for divergence resolution.
 
 The replaceable `repository-replica-request.json` hint contains exactly `schemaVersion: 1` and a random `nonce`. It is owner-only generated runtime state, not source content or a canonical event. Atomic replacement retains at most one request; temporary files are removed after success or failure. Its bytes grant no authority and need not be interpreted by the watcher.
 

@@ -258,9 +258,14 @@ describe("same-provider independent role deliberation runtime", () => {
     expect(reviewReceipts.some((receiptId) => proposalReceipts.has(receiptId))).toBe(false);
 
     const events = fixture.events.list();
-    expect(events.filter((event) => event.type === "deliberation.artifact.recorded")).toHaveLength(
-      2,
+    const artifactEvents = events.filter(
+      (event) => event.type === "deliberation.artifact.recorded",
     );
+    expect(artifactEvents).toHaveLength(2);
+    expect(artifactEvents.map((event) => event.payload.artifact)).toEqual([
+      proposal.artifact,
+      review.artifact,
+    ]);
     expect(events.map((event) => event.type)).toEqual(
       expect.arrayContaining([
         "deliberation.started",

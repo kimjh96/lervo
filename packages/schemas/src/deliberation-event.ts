@@ -11,7 +11,8 @@ import {
   sha256Schema,
   writingPublicationPermitIdSchema,
 } from "./common.js";
-import { deliberationArtifactKinds } from "./deliberation-artifact.js";
+import { deliberationArtifactKinds, deliberationArtifactSchema } from "./deliberation-artifact.js";
+import { deliberationPolicySchema } from "./deliberation-policy.js";
 
 export const deliberationStartedEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -29,6 +30,7 @@ export const deliberationStartedEventPayloadSchema = {
       uniqueItems: true,
     },
     maxRounds: { type: "integer", minimum: 1, maximum: 20 },
+    policy: deliberationPolicySchema,
   },
   required: ["deliberationId", "policyId", "policyHash", "participantRoleIds", "maxRounds"],
   additionalProperties: false,
@@ -44,9 +46,16 @@ export const deliberationArtifactRecordedEventPayloadSchema = {
     kind: { type: "string", enum: deliberationArtifactKinds },
     round: { type: "integer", minimum: 1, maximum: 20 },
     producerRoleId: roleIdSchema,
+    producerRoleName: {
+      type: "string",
+      minLength: 1,
+      maxLength: 160,
+      pattern: "^[^\\u0000-\\u001F\\u007F]+$",
+    },
     artifactId: artifactIdSchema,
     contentHash: sha256Schema,
     writingPermitId: writingPublicationPermitIdSchema,
+    artifact: deliberationArtifactSchema,
   },
   required: [
     "deliberationId",

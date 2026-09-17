@@ -44,7 +44,7 @@ export function parseDiscordConversationBehavior(input: {
   if (routing !== undefined) {
     exactConfigKeys(
       routing,
-      ["readOnlyRoleId", "workTimeoutMs", "intent", "response", "evaluation"],
+      ["readOnlyRoleId", "workTimeoutMs", "intent", "response", "evaluation", "resultEvaluation"],
       "discordConversation.routing",
     );
   }
@@ -71,6 +71,10 @@ export function parseDiscordConversationBehavior(input: {
     routing?.evaluation === undefined
       ? undefined
       : configRecord(routing.evaluation, "routing.evaluation");
+  const resultEvaluation =
+    routing?.resultEvaluation === undefined
+      ? undefined
+      : configRecord(routing.resultEvaluation, "routing.resultEvaluation");
   if (intent !== undefined)
     exactConfigKeys(intent, ["provider", "model", "timeoutMs"], "routing.intent");
   if (response !== undefined)
@@ -81,6 +85,12 @@ export function parseDiscordConversationBehavior(input: {
     );
   if (evaluation !== undefined)
     exactConfigKeys(evaluation, ["provider", "model", "reasoningEffort"], "routing.evaluation");
+  if (resultEvaluation !== undefined)
+    exactConfigKeys(
+      resultEvaluation,
+      ["provider", "model", "reasoningEffort"],
+      "routing.resultEvaluation",
+    );
   const intentModel =
     intent?.model === undefined ? undefined : configText(intent.model, "routing.intent.model");
   const responseModel =
@@ -91,6 +101,10 @@ export function parseDiscordConversationBehavior(input: {
     evaluation?.model === undefined
       ? undefined
       : configText(evaluation.model, "routing.evaluation.model");
+  const resultEvaluationModel =
+    resultEvaluation?.model === undefined
+      ? undefined
+      : configText(resultEvaluation.model, "routing.resultEvaluation.model");
   const parseReasoningEffort = (value: unknown, label: string) => {
     if (value === undefined) return undefined;
     if (!["low", "medium", "high", "xhigh", "max"].includes(value as string)) {
@@ -110,6 +124,10 @@ export function parseDiscordConversationBehavior(input: {
     evaluation?.reasoningEffort,
     "routing.evaluation.reasoningEffort",
   );
+  const resultEvaluationReasoningEffort = parseReasoningEffort(
+    resultEvaluation?.reasoningEffort,
+    "routing.resultEvaluation.reasoningEffort",
+  );
   if (
     !IDENTIFIER.test(roleId) ||
     !["codex", "claude"].includes(command.provider as string) ||
@@ -128,9 +146,12 @@ export function parseDiscordConversationBehavior(input: {
       !["codex", "claude"].includes(response?.provider as string) ||
       (intent !== undefined && !["codex", "claude"].includes(intent.provider as string)) ||
       (evaluation !== undefined && !["codex", "claude"].includes(evaluation.provider as string)) ||
+      (resultEvaluation !== undefined &&
+        !["codex", "claude"].includes(resultEvaluation.provider as string)) ||
       (intentModel !== undefined && !IDENTIFIER.test(intentModel)) ||
       (responseModel !== undefined && !IDENTIFIER.test(responseModel)) ||
-      (evaluationModel !== undefined && !IDENTIFIER.test(evaluationModel)))
+      (evaluationModel !== undefined && !IDENTIFIER.test(evaluationModel)) ||
+      (resultEvaluationModel !== undefined && !IDENTIFIER.test(resultEvaluationModel)))
   ) {
     throw new NodeRuntimeError(
       "invalid_config",
@@ -261,6 +282,19 @@ export function parseDiscordConversationBehavior(input: {
                     ...(evaluationReasoningEffort === undefined
                       ? {}
                       : { reasoningEffort: evaluationReasoningEffort }),
+                  },
+                }),
+            ...(resultEvaluation === undefined
+              ? {}
+              : {
+                  resultEvaluation: {
+                    provider: resultEvaluation.provider as "codex" | "claude",
+                    ...(resultEvaluationModel === undefined
+                      ? {}
+                      : { model: resultEvaluationModel }),
+                    ...(resultEvaluationReasoningEffort === undefined
+                      ? {}
+                      : { reasoningEffort: resultEvaluationReasoningEffort }),
                   },
                 }),
           },

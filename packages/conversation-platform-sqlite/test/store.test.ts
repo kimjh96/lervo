@@ -378,7 +378,8 @@ describe("SQLite conversation platform state", () => {
           threadId: first.threadId,
         },
         actor: { kind: "agent", participantId: "ptc_platform02", roleId: "reviewer" },
-        sourceEventId: eventId,
+        sourceEventId: replyEventId,
+        replyToEventId: eventId,
       }),
     ).resolves.toMatchObject({
       tenantKey: "T123",

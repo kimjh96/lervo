@@ -182,6 +182,7 @@ export async function openNodeRuntime(
         ? {}
         : { runtimeConfigPath: ports.runtimeConfigPath }),
       bearerToken: () => bearerToken.current(),
+      repositoryArtifacts: artifacts,
       repositoryEvents: store,
       legacyPorts: ports.discordConversation,
       deploymentPorts: ports.discordConversations,

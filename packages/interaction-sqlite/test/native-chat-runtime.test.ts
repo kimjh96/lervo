@@ -110,6 +110,35 @@ function participationPolicy(
 }
 
 describe("durable native chat interaction", () => {
+  it("preserves host-native observation-only publication lineage", () => {
+    const adapter = new NativeChatConversationAdapter({
+      integrationId: "itg_native001",
+      instanceIdentity: "native-instance",
+      delivery: {
+        send: async () => ({ deliveryKey: "unused", deliveredAt: "2026-08-20T00:00:03.000Z" }),
+      },
+    });
+    const event = adapter.normalizeInbound({
+      sourceEventKey: "native-observation-only-publication",
+      target: {
+        projectId: "prj_project01",
+        conversationId: "cnv_general01",
+        threadId: null,
+      },
+      kind: "message.created",
+      actor: { kind: "agent", participantId: "ptc_agent002", roleId: "role_writer" },
+      content: {
+        artifactId: "art_status001",
+        contentHash: `sha256:${"a".repeat(64)}`,
+        byteCount: 10,
+        mediaType: "text/plain; charset=utf-8",
+      },
+      audienceParticipation: "observe_only",
+      occurredAt: "2026-08-20T00:00:01.000Z",
+    });
+    expect(event.audienceParticipation).toBe("observe_only");
+  });
+
   it("records a non-owned turn without typing, relevance, or provider work", async () => {
     const store = await SQLiteConversationInteractionStore.open({ path: await databasePath() });
     const adapter = new NativeChatConversationAdapter({
@@ -140,6 +169,8 @@ describe("durable native chat interaction", () => {
     const relevance = vi.fn(async () => "relevant" as const);
     const respond = vi.fn(async () => responseCandidate());
 
+    expect(store.hasInboundSourceEventKeyHash(event.sourceEventKeyHash)).toBe(false);
+
     await expect(
       handleConversationEvent({
         event,
@@ -162,6 +193,10 @@ describe("durable native chat interaction", () => {
     expect(startActivity).not.toHaveBeenCalled();
     expect(relevance).not.toHaveBeenCalled();
     expect(respond).not.toHaveBeenCalled();
+    expect(store.hasInboundSourceEventKeyHash(event.sourceEventKeyHash)).toBe(true);
+    expect(() => store.hasInboundSourceEventKeyHash("invalid")).toThrow(
+      /source event key hash is invalid/,
+    );
     await store.close();
   });
 

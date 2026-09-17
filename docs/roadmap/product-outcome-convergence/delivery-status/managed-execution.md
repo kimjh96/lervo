@@ -8,4 +8,4 @@ Product-host protocol v5 installs bounded unattended scheduling. One foreground 
 
 Graph v2 and product-host protocol v6 implement bounded dynamic graph branches, joins, reviewed topology changes, migration, recovery, historical replay, and installed dependency-ordered execution.
 
-Provider-native session memory and direct unmanaged whole-task token accounting remain `external dependency`; neither blocks implemented portable checkpoint-resume and managed-resource outcomes. Unified interactive interfaces remain `external product`. Future product-host routes require packed external-consumer proof.
+Provider-native session memory and direct unmanaged whole-task token accounting remain `external dependency`; neither blocks implemented portable checkpoint-resume and managed-resource outcomes. The Discord-visible reference product and future first-party interactive surface are `delivery required` under [ADR-0417](../../../decisions/execution/applications/0417-own-discord-visible-reference-product.md). Future product-host routes require packed external-consumer proof and shared host conformance.

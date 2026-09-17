@@ -126,6 +126,9 @@ export function createConversationResultOutbound(input: {
     },
     content: structuredClone(input.candidate.content),
     publicationPermit: structuredClone(input.candidate.publicationPermit),
+    ...(input.candidate.audienceParticipation === undefined
+      ? {}
+      : { audienceParticipation: input.candidate.audienceParticipation }),
     automationDepth: 1,
     createdAt: input.createdAt,
   };

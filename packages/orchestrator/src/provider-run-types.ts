@@ -14,6 +14,7 @@ import type {
 import type { ManagedProviderRunDeadlines } from "./provider-run-deadline.js";
 import type { ManagedProviderRunPhase } from "./provider-run-phase.js";
 import type { ManagedStageTimingOptions } from "./stage-observation.js";
+import type { ManagedProviderInteractionLimits } from "./provider-interaction-limits.js";
 import type { ManagedContextRunOptions, ManagedPrepareContextInput } from "./types.js";
 import type { CaptureRepositorySnapshot, RepositorySnapshotPolicy } from "./repository-snapshot.js";
 
@@ -37,6 +38,8 @@ export type ManagedProviderRunFailureCode =
   | "provider_stream_failed"
   | "provider_turn_failed"
   | "provider_model_unavailable"
+  | "provider_tool_limit_exceeded"
+  | "provider_command_limit_exceeded"
   | "provider_write_failed"
   | "provider_result_failed"
   | "repository_snapshot_failed"
@@ -82,6 +85,7 @@ export interface ManagedProviderRunOptions extends ManagedContextRunOptions {
   snapshotPolicy?: RepositorySnapshotPolicy;
   deadlines?: Partial<ManagedProviderRunDeadlines>;
   maximumProviderSignals?: number;
+  providerInteractionLimits?: ManagedProviderInteractionLimits;
   now?: () => Date;
   projectVerifier?: ManagedProjectVerifier;
   stageTiming?: ManagedStageTimingOptions;

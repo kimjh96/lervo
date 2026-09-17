@@ -241,3 +241,78 @@ it("starts a new hint when capacity is free without waiting for the active batch
     await running;
   }
 });
+
+it("polls with finite commands when persistent peer watches are disabled", async () => {
+  vi.useFakeTimers();
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  const subscribe = vi.spyOn(peer, "subscribe");
+  const abort = new AbortController();
+  const reconcile = vi.fn(async (_repository: { replicaId: string }) => {});
+  const running = watchReplicaReconciliation({
+    repositories: [{ replicaId: "fixture", localRoot: "/fixture", peerRoot: "/peer" }],
+    peer,
+    fallbackIntervalMs: 1_000,
+    watch: true,
+    peerWatch: false,
+    signal: abort.signal,
+    reconcile,
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(0);
+    expect(reconcile).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1_250);
+    expect(reconcile.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(subscribe).not.toHaveBeenCalled();
+  } finally {
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(0);
+    await running;
+  }
+});
+
+it("does not queue timer sweeps faster than a constrained bridge can finish them", async () => {
+  vi.useFakeTimers();
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  const abort = new AbortController();
+  let release = () => {};
+  let blocked = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const reconcile = vi.fn(async () => blocked);
+  const running = watchReplicaReconciliation({
+    repositories: [{ replicaId: "fixture", localRoot: "/fixture", peerRoot: "/peer" }],
+    peer,
+    fallbackIntervalMs: 1_000,
+    watch: true,
+    peerWatch: false,
+    signal: abort.signal,
+    reconcile,
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(0);
+    expect(reconcile).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(reconcile).toHaveBeenCalledTimes(1);
+    release();
+    await vi.advanceTimersByTimeAsync(1_250);
+    expect(reconcile).toHaveBeenCalledTimes(2);
+    blocked = Promise.resolve();
+  } finally {
+    release();
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(0);
+    await running;
+  }
+});

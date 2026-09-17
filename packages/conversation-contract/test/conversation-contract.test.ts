@@ -6,6 +6,7 @@ import { calculateWritingPublicationPermitId } from "@lervo/writing-contract";
 import {
   assertConversationInboundEvent,
   assertConversationOutboundMessage,
+  calculateConversationOutboundId,
   createConversationInboundEvent,
   createConversationOutboundMessage,
   createConversationParticipationPolicy,
@@ -118,17 +119,44 @@ describe("conversation contract", () => {
 
     expect(outbound.publicationPermit.surface).toBe("chat");
     expect(outbound.deliveryRelation).toBe("standalone");
-    expect(
-      createConversationOutboundMessage({
+    const reply = createConversationOutboundMessage({
+      event: source,
+      policy: participation,
+      participantId: "ptc_agent001",
+      content: replyContent,
+      publicationPermit: permit(),
+      deliveryRelation: "reply",
+      createdAt: "2026-08-20T00:00:02.000Z",
+    });
+    expect(reply.deliveryRelation).toBe("reply");
+    expect(reply.replyToEventId).toBe(source.eventId);
+    const observationOnly = createConversationOutboundMessage({
+      event: source,
+      policy: participation,
+      participantId: "ptc_agent001",
+      content: replyContent,
+      publicationPermit: permit(),
+      audienceParticipation: "observe_only",
+      createdAt: "2026-08-20T00:00:02.000Z",
+    });
+    expect(observationOnly.audienceParticipation).toBe("observe_only");
+    expect(observationOnly.outboundId).not.toBe(outbound.outboundId);
+    expect(outbound.replyToEventId).toBeNull();
+    const {
+      replyToEventId: _replyToEventId,
+      outboundId: _outboundId,
+      ...predecessorContent
+    } = reply;
+    expect(() =>
+      assertConversationOutboundMessage({
+        outbound: {
+          ...predecessorContent,
+          outboundId: calculateConversationOutboundId(predecessorContent),
+        },
         event: source,
         policy: participation,
-        participantId: "ptc_agent001",
-        content: replyContent,
-        publicationPermit: permit(),
-        deliveryRelation: "reply",
-        createdAt: "2026-08-20T00:00:02.000Z",
-      }).deliveryRelation,
-    ).toBe("reply");
+      }),
+    ).not.toThrow();
     expect(() =>
       createConversationOutboundMessage({
         event: source,

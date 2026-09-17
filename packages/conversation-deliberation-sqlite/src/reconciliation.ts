@@ -8,6 +8,7 @@ import {
 } from "@lervo/conversation-deliberation-contract";
 
 import { ConversationDeliberationSQLiteError } from "./errors.js";
+import { insertConversationDeliberationNotificationSql } from "./notification-database.js";
 import {
   assertConversationDeliberationLookup,
   conversationDeliberationMilliseconds,
@@ -155,6 +156,15 @@ export function reconcileConversationDeliberationRecord(
       throw new ConversationDeliberationSQLiteError(
         "lease_mismatch",
         "Could not store the conversation deliberation queue reconciliation state.",
+      );
+    }
+    const notification = database
+      .prepare(insertConversationDeliberationNotificationSql(options.table))
+      .run(reconciledAtMs, input.deliberationId);
+    if (notification.changes !== 1) {
+      throw new ConversationDeliberationSQLiteError(
+        "write_failed",
+        "Could not create the reconciled deliberation notification obligation.",
       );
     }
     database.exec("COMMIT;");

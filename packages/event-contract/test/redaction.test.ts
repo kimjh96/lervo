@@ -1169,6 +1169,78 @@ describe("event payload privacy boundary", () => {
     expect(JSON.stringify(result.payload)).not.toContain("private");
   });
 
+  it("keeps a source-free structured deliberation artifact and rejects contradictory coordinates", () => {
+    const artifact = {
+      schemaVersion: 1,
+      deliberationArtifactId: "dla_0123456789abcdef",
+      deliberationId: "dlb_architecture_0001",
+      projectId: "prj_01234567",
+      policyId: "deliberation_architecture-review",
+      policyHash: `sha256:${"1".repeat(64)}`,
+      kind: "proposal",
+      round: 1,
+      producer: {
+        roleId: "architect",
+        runId: "run_01234567",
+        sessionId: "ses_01234567",
+        provider: "codex",
+      },
+      content: {
+        artifactId: `art_${"a".repeat(64)}`,
+        uri: `lervo-cas://sha256/${"a".repeat(64)}`,
+        mediaType: "text/markdown; charset=utf-8",
+        contentHash: `sha256:${"a".repeat(64)}`,
+        byteCount: 120,
+      },
+      inputContext: {
+        contextGeneration: 0,
+        sharedContextIds: [],
+        loadedReceiptIds: ["ctx_01234567"],
+        injectedReceiptIds: ["ctx_12345678"],
+      },
+      previousArtifactIds: [],
+      evidenceEventIds: ["evt_01234567"],
+      writingPublicationPermit: {
+        schemaVersion: 1,
+        permitId: "wpp_0123456789abcdef",
+        surface: "documentation",
+        artifactId: `art_${"a".repeat(64)}`,
+        contentHash: `sha256:${"a".repeat(64)}`,
+        writingPolicyId: "writing_en-human",
+        writingPolicyHash: `sha256:${"2".repeat(64)}`,
+        evaluationId: "wre_01234567",
+        evaluationHash: `sha256:${"3".repeat(64)}`,
+        issuedAt: "2026-08-19T00:00:00Z",
+      },
+      details: {
+        claims: [{ claimId: "clm_01234567", claimDigest: `sha256:${"4".repeat(64)}` }],
+      },
+      createdAt: "2026-08-19T00:00:01Z",
+    } as const;
+    const payload = {
+      deliberationId: artifact.deliberationId,
+      deliberationArtifactId: artifact.deliberationArtifactId,
+      kind: artifact.kind,
+      round: artifact.round,
+      producerRoleId: artifact.producer.roleId,
+      artifactId: artifact.content.artifactId,
+      contentHash: artifact.content.contentHash,
+      writingPermitId: artifact.writingPublicationPermit.permitId,
+      artifact,
+    };
+
+    expect(sanitizeEventPayload("deliberation.artifact.recorded", payload)).toEqual({
+      payload,
+      redactions: [],
+    });
+    expect(() =>
+      sanitizeEventPayload("deliberation.artifact.recorded", {
+        ...payload,
+        round: 2,
+      }),
+    ).toThrowError(expect.objectContaining<Partial<RedactionError>>({ code: "invalid_payload" }));
+  });
+
   it("rejects incomplete or status-inconsistent deliberation payloads", () => {
     expect(() =>
       sanitizeEventPayload("deliberation.started", {

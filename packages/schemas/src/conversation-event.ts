@@ -70,6 +70,10 @@ export const conversationInboundEventSchema = {
         { type: "null" },
       ],
     },
+    audienceParticipation: {
+      type: "string",
+      enum: ["eligible", "observe_only"],
+    },
     automationDepth: { type: "integer", minimum: 0, maximum: 8 },
     occurredAt: timestampSchema,
   },

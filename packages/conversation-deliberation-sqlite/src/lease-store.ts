@@ -7,6 +7,7 @@ import {
 } from "@lervo/conversation-deliberation-contract";
 
 import { ConversationDeliberationSQLiteError } from "./errors.js";
+import { insertConversationDeliberationNotificationSql } from "./notification-database.js";
 import {
   conversationDeliberationMilliseconds,
   decodeConversationDeliberationSummary,
@@ -228,6 +229,7 @@ export function settleConversationDeliberationJob(input: {
       `The ${configuration.label} result is not terminal.`,
     );
   }
+  database.exec("BEGIN IMMEDIATE;");
   try {
     const result = database
       .prepare(
@@ -246,8 +248,18 @@ export function settleConversationDeliberationJob(input: {
         "lease_mismatch",
         `The ${configuration.label} settlement lease differs.`,
       );
+    const notification = database
+      .prepare(insertConversationDeliberationNotificationSql(configuration.table))
+      .run(settledAtMs, input.deliberationId);
+    if (notification.changes !== 1) {
+      throw new ConversationDeliberationSQLiteError(
+        "write_failed",
+        `Could not create the ${configuration.label} notification obligation.`,
+      );
+    }
+    database.exec("COMMIT;");
   } catch (error) {
-    writeError(error, `Could not store the ${configuration.label} settlement result.`);
+    rollback(database, error, configuration.label);
   }
 }
 

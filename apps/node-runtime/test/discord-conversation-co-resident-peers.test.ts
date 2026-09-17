@@ -115,6 +115,7 @@ describe("co-resident Discord peer agents", () => {
       ),
     ).toEqual([
       expect.objectContaining({
+        startsAutomationChain: true,
         actor: expect.objectContaining({
           participantId: "ptc_secondagent1",
           agentBinding: binding(second.agentId!),
@@ -131,6 +132,49 @@ describe("co-resident Discord peer agents", () => {
         conversationIds: ["cnv_shared001"],
       },
     ]);
+  });
+
+  it("does not let an automatically discovered peer reset an automation chain", () => {
+    const first = deployment({
+      applicationId: "999999999999999991",
+      participantId: "ptc_firstagent01",
+      agentId: `agt_${"1".repeat(24)}`,
+    });
+    const second = deployment({
+      applicationId: "999999999999999992",
+      participantId: "ptc_secondagent1",
+      agentId: `agt_${"2".repeat(24)}`,
+    });
+    const peerAgents = createCoResidentDiscordPeerAgents({
+      configs: [first, second],
+      participations: [
+        {
+          agentId: first.agentId!,
+          displayName: "First",
+          roleId: "product-owner",
+          agentBinding: binding(first.agentId!),
+        },
+        {
+          agentId: second.agentId!,
+          displayName: "Second",
+          roleId: "ceo",
+          agentBinding: binding(second.agentId!),
+        },
+      ],
+      currentIndex: 0,
+    });
+    const bindings = createDiscordPlatformBindings({
+      config: first,
+      projectId: "prj_12345678",
+      agentRoleId: "product-owner",
+      peerAgents,
+    });
+    const automaticPeer = bindings.participants.find(
+      (participant) => participant.participantKey === "bot:999999999999999992",
+    );
+
+    expect(automaticPeer).toBeDefined();
+    expect(automaticPeer).not.toHaveProperty("startsAutomationChain");
   });
 
   it("rejects a manual override whose role differs from the hired peer", () => {

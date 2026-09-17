@@ -274,7 +274,7 @@ export async function createInitPlan(options: CreateInitPlanOptions): Promise<In
         "limits:",
         "  maxFiles: 20000",
         "  maxFileBytes: 1048576",
-        "  maxTotalBytes: 33554432",
+        "  maxTotalBytes: 67108864",
         "",
       ].join("\n"),
       validateExisting: validateKnowledgePolicyContent,

@@ -139,7 +139,6 @@ describe("ConversationRepositoryWorkResponder", () => {
           capture: async () => ({
             workstreamId: null,
             workstreamRevision: null,
-            repositoryRevision: `sha256:${"a".repeat(64)}`,
             knowledgeCurrent: true,
           }),
           verify: verifyCompletion,
@@ -204,15 +203,20 @@ describe("ConversationRepositoryWorkResponder", () => {
           model: "gpt-6-astra",
           reasoningEffort: "medium",
           externalEffectsAuthorized: true,
+          instructions: expect.stringMatching(
+            /At \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z, stop new implementation/u,
+          ),
         }),
       );
       expect(verifyCompletion).toHaveBeenCalledWith(
         expect.objectContaining({
           requestedModel: "gpt-6-astra",
           requestedReasoningEffort: "medium",
-          changedPaths: changed
-            ? expect.arrayContaining(["README.md"])
-            : expect.not.arrayContaining(["README.md"]),
+          repositoryChange: expect.objectContaining({
+            changedPaths: changed
+              ? expect.arrayContaining(["README.md"])
+              : expect.not.arrayContaining(["README.md"]),
+          }),
         }),
       );
       expect(first.content.contentHash).toBe(second.content.contentHash);

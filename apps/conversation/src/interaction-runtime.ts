@@ -73,6 +73,10 @@ export class ConversationInteractionRuntime {
     );
   }
 
+  hasSourceEventKeyHash(sourceEventKeyHash: string): boolean {
+    return this.store.hasInboundSourceEventKeyHash(sourceEventKeyHash);
+  }
+
   async handle(
     event: ConversationInboundEvent,
     responseActivity?: ConversationResponseActivity,

@@ -1,6 +1,6 @@
 # Provider execution and continuity
 
-`command.provider` selects Codex or Claude for native repository work. Matching `remoteCommands.providerHost.executables`, `models`, and `reasoningEfforts` values configure the selected CLI. Optional `routing.workTimeoutMs` limits a turn to 10 seconds–30 minutes; the default is 15 minutes.
+`command.provider` selects Codex or Claude for native repository work. Matching `remoteCommands.providerHost.executables`, `models`, and `reasoningEfforts` values configure the selected CLI. Optional `routing.workTimeoutMs` limits a turn to 10 seconds–30 minutes; the default is 30 minutes. The provider receives an exact finalization-start time with a bounded reserve and must checkpoint after its first material edit. Reaching the hard deadline is `provider_turn_timeout` even when a CLI exits zero or emitted intermediate prose; intermediate commentary is never accepted as a completed result.
 
 A completed conversation or thread resumes the same opaque provider session for that hired agent. Exact duplicate requests coalesce while active and reuse the recent result instead of running twice.
 

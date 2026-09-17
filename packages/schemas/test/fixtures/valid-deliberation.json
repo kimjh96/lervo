@@ -28,6 +28,12 @@
       ],
       "decisionOwnerRoleId": "lead",
       "maxRounds": 3,
+      "executionBudget": {
+        "maximumProviderCalls": 12,
+        "maximumObservedTokens": 250000,
+        "maximumElapsedMs": 300000,
+        "unobservedTokenDisposition": "block"
+      },
       "requiredVerificationSuiteIds": ["architecture.contract"],
       "convergence": {
         "requireIndependentReviewer": true,

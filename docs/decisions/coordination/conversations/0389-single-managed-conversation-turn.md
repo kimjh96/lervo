@@ -46,6 +46,8 @@ The projection is keyed by the exact managed repository snapshot revision and re
 
 Managed conversation snapshots walk the complete policy-included tree before and after every provider turn. A conversation-lifetime capture may reuse a regular-file or symlink hash only while path kind, device, inode, size, modification time, and change time all remain exact. Any metadata change forces a safe reread; additions and deletions remain visible. The post-run snapshot contributes to `repository_snapshot`, not `provider_stop`, separating stage evidence for enforcement and adapter shutdown.
 
+A repository snapshot failure before provider start is safe for the interaction lifecycle to retry within its existing bounded response-attempt limit. This covers a transient race with replica application or another repository writer without replaying provider work. The retry performs a fresh exact snapshot; it does not reuse partial bytes or weaken fail-closed comparison. Exhaustion still publishes the bounded context-unavailable result. Knowledge preparation, context injection, and post-start provider failures remain terminal under their existing classifications.
+
 Pre-cache cold local retrieval measured about 2.2–2.5 seconds. A current local measurement observed 2,495 ms for initial knowledge preparation, then 1.3 ms for a revision-matched query; a cold snapshot took 879 ms, followed by 72 ms metadata-validated snapshots. These development-host observations do not establish Discord latency acceptance. Retrieval remains exact and fail-closed.
 
 ### Immediate activity and publication

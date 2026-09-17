@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   LocalRepositoryReplicaPeer,
   RepositoryReplicaCoordinator,
+  type RepositoryReplicaPeerPort,
 } from "../src/repository-replica-coordinator.js";
 
 const execute = promisify(execFile);
@@ -178,6 +179,49 @@ describe("repository replica coordinator", () => {
     expect(peerReceipt.status).toBe("pushed");
     await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({ status: "current" });
   }, 20_000);
+
+  it("continues from the transferred base when the source advances during verification", async () => {
+    const fixture = await repositories();
+    const local = new LocalRepositoryReplicaPeer();
+    const peerDelegate = new LocalRepositoryReplicaPeer();
+    let advanceAfterApply = false;
+    const peer: RepositoryReplicaPeerPort = {
+      snapshot: (root) => peerDelegate.snapshot(root),
+      bundle: (root, expected) => peerDelegate.bundle(root, expected),
+      recordReceipt: (receipt) => peerDelegate.recordReceipt(receipt),
+      apply: async (input) => {
+        const applied = await peerDelegate.apply(input);
+        if (advanceAfterApply) {
+          advanceAfterApply = false;
+          await writeFile(join(fixture.local, "source.ts"), "const advanced = true;\n");
+        }
+        return applied;
+      },
+    };
+    const coordinator = new RepositoryReplicaCoordinator({
+      stateFile: fixture.stateFile,
+      local,
+      peer,
+      now: () => new Date("2026-09-16T00:00:00.000Z"),
+    });
+    const coordinates = { replicaId: "project", localRoot: fixture.local, peerRoot: fixture.peer };
+    await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({ status: "current" });
+
+    await writeFile(join(fixture.local, "source.ts"), "const transferred = true;\n");
+    advanceAfterApply = true;
+    const pending = await coordinator.reconcile(coordinates);
+    expect(pending).toMatchObject({ status: "pending" });
+    const transferred = await peerDelegate.snapshot(fixture.peer);
+    const state = JSON.parse(await readFile(fixture.stateFile, "utf8")) as {
+      replicas: Record<string, { commonSnapshotHash: string }>;
+    };
+    expect(state.replicas.project?.commonSnapshotHash).toBe(transferred.snapshotHash);
+
+    await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({ status: "pushed" });
+    expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe(
+      "const advanced = true;\n",
+    );
+  });
 
   it("resolves generated knowledge conflicts locally and honours a prefer_local policy elsewhere", async () => {
     const fixture = await repositories();

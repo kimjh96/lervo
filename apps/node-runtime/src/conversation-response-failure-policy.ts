@@ -60,7 +60,10 @@ export class NodeConversationResponseFailureClassifier implements ConversationRe
       return { failureCode: "response_evaluation_unavailable", retryable: true };
     }
     if (code !== null && (code.startsWith("knowledge_") || contextFailures.has(code))) {
-      return { failureCode: "response_context_unavailable", retryable: false };
+      return {
+        failureCode: "response_context_unavailable",
+        retryable: code === "repository_snapshot_failed",
+      };
     }
     if (code !== null && providerFailures.has(code)) {
       return { failureCode: "response_provider_unavailable", retryable: false };

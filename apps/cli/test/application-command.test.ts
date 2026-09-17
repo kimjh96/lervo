@@ -1,3 +1,4 @@
+import type { ProductDeliberationViewV1, SurfaceObservabilityReportV1 } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import { runApplicationCommand } from "../src/application-command.js";
@@ -126,6 +127,37 @@ describe("application command", () => {
       availability: "available",
     });
     expect(report.projections).toContain("operating_liveness");
+  });
+
+  it("discovers the source-bound deliberation projection through protocol version 11", async () => {
+    const output = io();
+
+    expect(
+      await runApplicationCommand(["capabilities", "--protocol", "11", "--json"], output.value),
+    ).toBe(0);
+    const report = JSON.parse(output.stdout.join(""));
+    expect(report.schemaVersion).toBe(11);
+    expect(report.projections).toContain("product_deliberation_v1");
+    expect(report.routes.at(-1)).toEqual({
+      routeId: "product_deliberation.inspect",
+      area: "product",
+      operation: "query",
+      contractVersion: 1,
+      resultContract: "product_deliberation_view_v1",
+      command: [
+        "application",
+        "deliberation",
+        "--deliberation",
+        "<deliberation-id>",
+        "--integration",
+        "<integration-id>",
+        "--json",
+      ],
+      output: "json",
+      effect: "none",
+      authority: "read_only",
+      availability: "available",
+    });
   });
 
   it("discovers reviewed message triggering and explicit acknowledgement through protocol 4", async () => {
@@ -261,6 +293,243 @@ describe("application command", () => {
     expect(report.protocol.requiresHub).toBe(false);
   });
 
+  it("discovers the source-bound product activity route through protocol 8", async () => {
+    const output = io();
+
+    expect(
+      await runApplicationCommand(["capabilities", "--protocol", "8", "--json"], output.value),
+    ).toBe(0);
+    const report = JSON.parse(output.stdout.join(""));
+    expect(report.schemaVersion).toBe(8);
+    expect(report.routes.at(-1)).toEqual({
+      routeId: "product_activity.inspect",
+      area: "product",
+      operation: "query",
+      contractVersion: 1,
+      resultContract: "product_activity_page_v1",
+      command: ["application", "activity", "--json"],
+      output: "json",
+      effect: "none",
+      authority: "read_only",
+      availability: "available",
+    });
+    expect(report.projections).toContain("product_activity_v1");
+    expect(report.protocol.requiresHub).toBe(false);
+  });
+
+  it("discovers the first unified-search corpus through protocol 9", async () => {
+    const output = io();
+
+    expect(
+      await runApplicationCommand(["capabilities", "--protocol", "9", "--json"], output.value),
+    ).toBe(0);
+    const report = JSON.parse(output.stdout.join(""));
+    expect(report.schemaVersion).toBe(9);
+    expect(report.routes.at(-1)).toEqual({
+      routeId: "product_search.inspect",
+      area: "product",
+      operation: "query",
+      contractVersion: 1,
+      resultContract: "product_unified_search_result_v1",
+      command: ["application", "search", "--corpus", "repository_knowledge", "--json", "<query>"],
+      output: "json",
+      effect: "none",
+      authority: "read_only",
+      availability: "available",
+    });
+    expect(report.projections).toContain("product_unified_search_v1");
+    expect(report.protocol.requiresHub).toBe(false);
+  });
+
+  it("discovers work observability additively through protocol 10", async () => {
+    const output = io();
+
+    expect(
+      await runApplicationCommand(["capabilities", "--protocol", "10", "--json"], output.value),
+    ).toBe(0);
+    const report = JSON.parse(output.stdout.join(""));
+    expect(report.schemaVersion).toBe(10);
+    expect(report.routes.at(-1)).toEqual({
+      routeId: "product_observability.inspect",
+      area: "product",
+      operation: "query",
+      contractVersion: 1,
+      resultContract: "surface_observability_report_v1",
+      command: ["application", "observability", "--work", "<work-id>", "--json"],
+      output: "json",
+      effect: "none",
+      authority: "read_only",
+      availability: "available",
+    });
+    expect(report.projections).toContain("surface_observability_v1");
+  });
+
+  it("renders the injected source-bound work observability report", async () => {
+    const output = io();
+    const workId = `wrk_${"1".repeat(24)}`;
+    const report = {
+      schemaVersion: 1,
+      kind: "product_surface.observability",
+      workCoordinate: `work:${workId}`,
+      status: "partial",
+      reportDigest: `sha256:${"a".repeat(64)}`,
+    } as SurfaceObservabilityReportV1;
+
+    expect(
+      await runApplicationCommand(
+        [
+          "observability",
+          "--work",
+          workId,
+          "--origin",
+          "discord:thread-42",
+          "--root",
+          "workspace",
+          "--json",
+        ],
+        output.value,
+        {
+          inspectOperatingAttention: async () => {
+            throw new Error("not called");
+          },
+          inspectOperatingLiveness: async () => {
+            throw new Error("not called");
+          },
+          inspectProductObservability: async (input) => {
+            expect(input).toEqual({
+              repositoryRoot: "/repository/workspace",
+              workId,
+              originCoordinate: "discord:thread-42",
+            });
+            return report;
+          },
+        },
+      ),
+    ).toBe(0);
+    expect(JSON.parse(output.stdout.join(""))).toEqual(report);
+    expect(output.stderr).toEqual([]);
+  });
+
+  it("renders the injected source-bound activity page", async () => {
+    const output = io();
+    const cursor = `pac_${"a".repeat(24)}`;
+    const report = {
+      schemaVersion: 1 as const,
+      kind: "product_surface.activity" as const,
+      sourceEventHeadHash: `sha256:${"a".repeat(64)}`,
+      repositoryRevision: `sha256:${"b".repeat(64)}`,
+      requestCursor: cursor,
+      returnedCursor: cursor,
+      nextCursor: null,
+      limit: 10,
+      status: "empty" as const,
+      failureCode: null,
+      items: [],
+    };
+
+    expect(
+      await runApplicationCommand(
+        ["activity", "--cursor", cursor, "--limit", "10", "--root", "workspace", "--json"],
+        output.value,
+        {
+          inspectOperatingAttention: async () => {
+            throw new Error("not called");
+          },
+          inspectOperatingLiveness: async () => {
+            throw new Error("not called");
+          },
+          inspectProductActivity: async (input) => {
+            expect(input).toEqual({
+              repositoryRoot: "/repository/workspace",
+              cursor,
+              limit: 10,
+            });
+            return report;
+          },
+        },
+      ),
+    ).toBe(0);
+    expect(JSON.parse(output.stdout.join(""))).toEqual(report);
+    expect(output.stderr).toEqual([]);
+  });
+
+  it("renders the injected repository-knowledge product search", async () => {
+    const output = io();
+    const report = {
+      schemaVersion: 1 as const,
+      kind: "product_surface.search" as const,
+      queryDigest: `sha256:${"a".repeat(64)}`,
+      authorizationDigest: `sha256:${"b".repeat(64)}`,
+      requestedCorpusClasses: ["repository_knowledge" as const],
+      limit: 5,
+      repositoryRevision: `sha256:${"c".repeat(64)}`,
+      searchPlan: {
+        coordinate: "search-plan:repository-knowledge-v1",
+        contentHash: `sha256:${"d".repeat(64)}`,
+        engineId: "lexical",
+        engineVersion: 2,
+      },
+      stageReceipts: [
+        {
+          stageId: "stage:repository-knowledge",
+          required: true,
+          status: "completed" as const,
+          reasonCode: null,
+          adapterId: "search/lexical-v2",
+          adapterBuildId: "sebuild_test",
+          receiptHash: `sha256:${"e".repeat(64)}`,
+        },
+      ],
+      groups: [
+        {
+          corpusClass: "repository_knowledge" as const,
+          status: "complete" as const,
+          reasonCode: null,
+          sourceCoordinates: ["ksnap_test"],
+          hits: [],
+        },
+      ],
+      status: "empty" as const,
+      reasonCode: null,
+      resultDigest: `sha256:${"f".repeat(64)}`,
+    };
+
+    expect(
+      await runApplicationCommand(
+        [
+          "search",
+          "--corpus",
+          "repository_knowledge",
+          "--limit",
+          "5",
+          "--json",
+          "activity",
+          "evidence",
+        ],
+        output.value,
+        {
+          inspectOperatingAttention: async () => {
+            throw new Error("not called");
+          },
+          inspectOperatingLiveness: async () => {
+            throw new Error("not called");
+          },
+          inspectProductSearch: async (input) => {
+            expect(input).toEqual({
+              repositoryRoot: "/repository",
+              query: "activity evidence",
+              corpusClass: "repository_knowledge",
+              limit: 5,
+            });
+            return report;
+          },
+        },
+      ),
+    ).toBe(0);
+    expect(JSON.parse(output.stdout.join(""))).toEqual(report);
+    expect(output.stderr).toEqual([]);
+  });
+
   it("renders the injected read-only attention report", async () => {
     const output = io();
     const report = {
@@ -294,6 +563,49 @@ describe("application command", () => {
           throw new Error("not called");
         },
       }),
+    ).toBe(0);
+    expect(JSON.parse(output.stdout.join(""))).toEqual(report);
+    expect(output.stderr).toEqual([]);
+  });
+
+  it("renders an injected source-bound deliberation view", async () => {
+    const output = io();
+    const report = {
+      schemaVersion: 1,
+      kind: "product_surface.deliberation",
+      deliberationId: "dlb_product_surface",
+      status: "converged",
+      projectionStatus: "complete",
+    } as ProductDeliberationViewV1;
+
+    expect(
+      await runApplicationCommand(
+        [
+          "deliberation",
+          "--deliberation",
+          "dlb_product_surface",
+          "--integration",
+          "itg_discord_surface",
+          "--json",
+        ],
+        output.value,
+        {
+          inspectOperatingAttention: async () => {
+            throw new Error("not called");
+          },
+          inspectOperatingLiveness: async () => {
+            throw new Error("not called");
+          },
+          inspectProductDeliberation: async (input) => {
+            expect(input).toEqual({
+              repositoryRoot: "/repository",
+              deliberationId: "dlb_product_surface",
+              integrationId: "itg_discord_surface",
+            });
+            return report;
+          },
+        },
+      ),
     ).toBe(0);
     expect(JSON.parse(output.stdout.join(""))).toEqual(report);
     expect(output.stderr).toEqual([]);

@@ -61,6 +61,7 @@ export interface NodeDiscordConversationRuntimeOptions {
   agentParticipation?: DiscordAgentParticipation;
   peerAgents?: DiscordPeerAgentBinding[];
   gatewayTransport?: DiscordGatewayTransport;
+  repositoryArtifactStore?: ArtifactStore;
   repositoryEvents?: Pick<EventStore, "latest" | "list"> & { readonly path?: string };
   fetch?: typeof globalThis.fetch;
   onError?(error: Error): void;

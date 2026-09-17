@@ -34,6 +34,7 @@ function loadFixtures(name: "invalid" | "valid"): Fixture[] {
     `${name}-verification-event.json`,
     `${name}-remote-command.json`,
     `${name}-conversation.json`,
+    `${name}-product-surface.json`,
     `${name}-role-evaluation.json`,
   ].flatMap((fileName) => {
     const fixtureUrl = new URL(`./fixtures/${fileName}`, import.meta.url);

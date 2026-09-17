@@ -1,4 +1,5 @@
 import {
+  calculateConversationDeliberationOriginBindingDigest,
   conversationDeliberationPatterns,
   type ConversationDeliberationJob,
   type ConversationDeliberationJobFailureCode,
@@ -183,6 +184,10 @@ export function decodeConversationDeliberationJob(row: Row): ConversationDeliber
   const deliberationId = text(row, "deliberation_id");
   const requestHash = text(row, "request_hash");
   const principalHash = text(row, "principal_hash");
+  const originConversationId = nullableText(row, "origin_conversation_id");
+  const originThreadId = nullableText(row, "origin_thread_id");
+  const originRequesterParticipantId = nullableText(row, "origin_requester_participant_id");
+  const originBindingDigest = nullableText(row, "origin_binding_digest");
   const policyId = text(row, "policy_id");
   const topic = text(row, "topic");
   const requestedAt = text(row, "requested_at");
@@ -202,12 +207,33 @@ export function decodeConversationDeliberationJob(row: Row): ConversationDeliber
     nullableText(row, "reconciliation_json"),
     requestedAtMs,
   );
+  const originValues = [originConversationId, originRequesterParticipantId, originBindingDigest];
+  const originMissing = originValues.every((value) => value === null) && originThreadId === null;
+  const originValid =
+    originConversationId !== null &&
+    conversationDeliberationPatterns.conversationId.test(originConversationId) &&
+    (originThreadId === null || conversationDeliberationPatterns.threadId.test(originThreadId)) &&
+    originRequesterParticipantId !== null &&
+    conversationDeliberationPatterns.participantId.test(originRequesterParticipantId) &&
+    originBindingDigest !== null &&
+    hashPattern.test(originBindingDigest);
+  const originDigestMatches =
+    originValid &&
+    originBindingDigest ===
+      calculateConversationDeliberationOriginBindingDigest({
+        projectId,
+        sourceEventId,
+        conversationId: originConversationId,
+        threadId: originThreadId,
+        requesterParticipantId: originRequesterParticipantId,
+      });
   if (
     !projectIdPattern.test(projectId) ||
     !eventIdPattern.test(sourceEventId) ||
     !deliberationIdPattern.test(deliberationId) ||
     !hashPattern.test(requestHash) ||
     !hashPattern.test(principalHash) ||
+    (!originMissing && (!originValid || !originDigestMatches)) ||
     !policyIdPattern.test(policyId) ||
     topic.length < 1 ||
     topic.length > 4_096 ||
@@ -266,6 +292,14 @@ export function decodeConversationDeliberationJob(row: Row): ConversationDeliber
     deliberationId,
     requestHash,
     principalHash,
+    origin: originMissing
+      ? null
+      : {
+          conversationId: originConversationId!,
+          threadId: originThreadId,
+          requesterParticipantId: originRequesterParticipantId!,
+          originBindingDigest: originBindingDigest!,
+        },
     policyId,
     topic,
     requestedAt,

@@ -21,6 +21,7 @@ import {
   cleanupManagedDeliberationFixtures,
   clock,
   FixtureDeliberationAdapter,
+  fixtureDeliberationEvidence,
   repository,
   semanticPass,
   sequence,
@@ -56,6 +57,7 @@ describe("managed CLI deliberation policies", () => {
       openStorage: openProjectStorage,
       createId: nextId,
       now,
+      prepareEvidence: async ({ topic }) => fixtureDeliberationEvidence(topic),
       runner: {
         createAdapter: ({ provider }) =>
           new FixtureDeliberationAdapter(
@@ -82,6 +84,9 @@ describe("managed CLI deliberation policies", () => {
       projectId: "prj_cli_deliberation",
       principalId: "operator:reviewer",
       sourceEventId: `cve_${"a".repeat(64)}`,
+      conversationId: "cnv_cli_deliberation",
+      threadId: "thd_cli_deliberation",
+      requesterParticipantId: "ptc_cli_requester",
       policyId: "deliberation_product-review",
       topic: "Decide how multiple specialist roles independently inspect the same public evidence.",
       requestedAt: "2026-08-21T00:00:00.000Z",
@@ -133,6 +138,9 @@ describe("managed CLI deliberation policies", () => {
         projectId: "prj_cli_deliberation",
         principalId: "operator:reviewer",
         sourceEventId: `cve_${"a".repeat(64)}`,
+        conversationId: "cnv_cli_deliberation",
+        threadId: "thd_cli_deliberation",
+        requesterParticipantId: "ptc_cli_requester",
         policyId: "deliberation_product-review",
         topic:
           "Decide how multiple specialist roles independently inspect the same public evidence.",
@@ -151,6 +159,9 @@ describe("managed CLI deliberation policies", () => {
       projectId: "prj_cli_deliberation",
       principalId: "operator:reviewer",
       sourceEventId: `cve_${"a".repeat(64)}`,
+      conversationId: "cnv_cli_deliberation",
+      threadId: "thd_cli_deliberation",
+      requesterParticipantId: "ptc_cli_requester",
       policyId: "deliberation_product-review",
       topic: "Decide how multiple specialist roles independently inspect the same public evidence.",
       requestedAt: "2026-08-21T00:00:00.000Z",
@@ -218,6 +229,12 @@ describe("managed CLI deliberation policies", () => {
         deliberationId: `dlb_${"e".repeat(32)}`,
         requestHash: `sha256:${"f".repeat(64)}`,
         principalHash: `sha256:${"1".repeat(64)}`,
+        origin: {
+          conversationId: "cnv_cli_deliberation",
+          threadId: null,
+          requesterParticipantId: "ptc_cli_requester",
+          originBindingDigest: `sha256:${"2".repeat(64)}`,
+        },
         policyId: "deliberation_product-review",
         topic: "Do not start a provider in a mismatched repository.",
         requestedAt: "2026-08-21T00:11:00.000Z",
@@ -254,6 +271,7 @@ describe("managed CLI deliberation policies", () => {
       openStorage: openProjectStorage,
       createId: nextId,
       now,
+      prepareEvidence: async ({ topic }) => fixtureDeliberationEvidence(topic),
       runner: {
         createAdapter: ({ provider }) =>
           new FixtureDeliberationAdapter(
@@ -307,6 +325,7 @@ describe("managed CLI deliberation policies", () => {
       openStorage: openProjectStorage,
       createId: nextId,
       now,
+      prepareEvidence: async ({ topic }) => fixtureDeliberationEvidence(topic),
       runner: {
         createAdapter: ({ provider }) =>
           new FixtureDeliberationAdapter(

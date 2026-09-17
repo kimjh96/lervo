@@ -34,6 +34,9 @@ async function fixture() {
     projectId,
     principalId: "operator:reviewer",
     sourceEventId: `cve_${"a".repeat(64)}`,
+    conversationId: "cnv_deliberation01",
+    threadId: null,
+    requesterParticipantId: "ptc_requester01",
     policyId: "deliberation_product-review",
     topic: "Resume from the approved boundary.",
     requestedAt: "2026-08-22T00:00:00.000Z",
@@ -109,6 +112,25 @@ describe("durable conversation deliberation resume queue", () => {
       }),
     ).resolves.toMatchObject({ status: "settled", deliberationId: first.deliberationId });
     expect(execute).toHaveBeenCalledOnce();
+    const notification = await resumes.claimNotification({
+      workerId: "resume-notification-worker",
+      claimedAt: "2026-08-22T00:04:01.000Z",
+      leaseDurationMs: 10_000,
+    });
+    expect(notification).toMatchObject({
+      notification: {
+        operation: "resume",
+        deliberationId: first.deliberationId,
+        summary: { status: "converged", artifactCount: 4 },
+        occurredAt: "2026-08-22T00:04:00.000Z",
+      },
+    });
+    await resumes.acceptNotification({
+      deliberationId: first.deliberationId,
+      leaseId: notification!.leaseId,
+      conversationEventId: `cve_${"d".repeat(64)}`,
+      acceptedAt: "2026-08-22T00:04:02.000Z",
+    });
     expect(resumes.nextWakeupAt()).toBeNull();
     await expect(
       backend.inspect({

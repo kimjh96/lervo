@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -8,6 +9,7 @@ import {
   type ProviderManagedWriteBridge,
 } from "@lervo/adapter-contract";
 import { defaultEnglishWritingContract } from "@lervo/core";
+import type { WritingContract } from "@lervo/schemas";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import type {
   AdapterContextEnvelope,
@@ -24,13 +26,14 @@ import type {
 } from "@lervo/schemas";
 
 import type { RunProvider } from "../src/managed-run.js";
+import type { ManagedDeliberationEvidenceBundle } from "../src/managed-deliberation-evidence.js";
 import { activateFixtureEventWriterV2 } from "../../../packages/project/test/fixture-event-writer.js";
 
 const roots: string[] = [];
 
-export function semanticPass(): string {
+export function semanticPass(contract: WritingContract = defaultEnglishWritingContract): string {
   return JSON.stringify({
-    checks: defaultEnglishWritingContract.verification.semanticChecks.map((check) => ({
+    checks: contract.verification.semanticChecks.map((check) => ({
       checkId: check.checkId,
       status: "passed",
       violationCount: 0,
@@ -52,6 +55,7 @@ export class FixtureDeliberationAdapter implements ProviderAdapter {
     private readonly providerSessionId: string,
     private readonly content: string,
     private readonly receiptId: string,
+    private readonly totalTokens = 100,
   ) {
     this.resourceAccounting = {
       kind: "resource_accounting_descriptor",
@@ -60,8 +64,8 @@ export class FixtureDeliberationAdapter implements ProviderAdapter {
       adapterId: `lervo/${provider}`,
       adapterVersion: "fixture-1",
       accountingMode: "turn_cumulative",
-      observationSupport: "unavailable",
-      unavailableReason: "fixture_usage_unavailable",
+      observationSupport: "supported",
+      unavailableReason: null,
       normalizationId: "fixture_usage_v1",
       nativeCounterSemanticsId: "fixture_counter_v1",
       requestedModel: null,
@@ -80,7 +84,7 @@ export class FixtureDeliberationAdapter implements ProviderAdapter {
         fileChanges: "unsupported",
         contextCompaction: "unsupported",
         sessionResume: "unsupported",
-        usage: "unknown",
+        usage: "supported",
       },
     };
   }
@@ -192,6 +196,26 @@ export class FixtureDeliberationAdapter implements ProviderAdapter {
     yield {
       kind: "normalized_event",
       schemaVersion: 1,
+      eventId: `evt_usage_${this.receiptId.slice(4)}`,
+      projectId: session.projectId,
+      runId: session.runId,
+      sessionId: session.sessionId,
+      providerSessionId: session.providerSessionId,
+      type: "provider.usage.updated",
+      occurredAt: this.turn.acceptedAt,
+      payload: {
+        providerTurnId: this.turn.providerTurnId,
+        inputTokens: this.totalTokens - 20,
+        cachedInputTokens: Math.min(20, this.totalTokens - 20),
+        outputTokens: 20,
+        reasoningOutputTokens: 5,
+        totalTokens: this.totalTokens,
+        contextWindow: 200_000,
+      },
+    };
+    yield {
+      kind: "normalized_event",
+      schemaVersion: 1,
       eventId: `evt_provider_${this.receiptId.slice(4)}`,
       projectId: session.projectId,
       runId: session.runId,
@@ -242,6 +266,44 @@ export function clock() {
     const current = new Date(value);
     value += 1_000;
     return current;
+  };
+}
+
+export function fixtureDeliberationEvidence(topic: string): ManagedDeliberationEvidenceBundle {
+  const content = "# Canonical design\n\nIndependent roles review exact repository evidence.\n";
+  const sourceContentHash = `sha256:${createHash("sha256").update(content).digest("hex")}`;
+  const unbound = {
+    schemaVersion: 1,
+    query: topic,
+    sourceSnapshotId: "ksnap_fixture_deliberation",
+    impactReportId: "kimpact_fixture_deliberation",
+    documents: [
+      {
+        conceptId: "concept_fixture_deliberation",
+        title: "Canonical design",
+        sourcePath: "docs/product/design.md",
+        sourceContentHash,
+        assurance: "human_reviewed",
+        freshness: "current",
+        content,
+      },
+    ],
+  } as const;
+  const binding = JSON.stringify({
+    schemaVersion: 1,
+    query: topic,
+    sourceSnapshotId: unbound.sourceSnapshotId,
+    impactReportId: unbound.impactReportId,
+    documents: unbound.documents.map(({ conceptId, sourcePath, sourceContentHash }) => ({
+      conceptId,
+      sourcePath,
+      sourceContentHash,
+    })),
+  });
+  return {
+    ...unbound,
+    bundleHash: `sha256:${createHash("sha256").update(binding).digest("hex")}`,
+    documents: unbound.documents.map((document) => ({ ...document })),
   };
 }
 
@@ -296,6 +358,11 @@ export async function writeFourRolePolicy(root: string): Promise<void> {
       "schemaVersion: 1",
       "policyId: deliberation_product-review",
       "maxRounds: 2",
+      "executionBudget:",
+      "  maximumProviderCalls: 16",
+      "  maximumObservedTokens: 250000",
+      "  maximumElapsedMs: 300000",
+      "  unobservedTokenDisposition: block",
       "requiredVerificationSuiteIds:",
       "  - project.default",
       "participants:",

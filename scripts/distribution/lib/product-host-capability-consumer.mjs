@@ -59,6 +59,14 @@ const versionSevenRouteIds = [
   "organization_executive.execute",
 ];
 
+const versionEightRouteIds = [...versionSevenRouteIds, "product_activity.inspect"];
+
+const versionNineRouteIds = [...versionEightRouteIds, "product_search.inspect"];
+
+const versionTenRouteIds = [...versionNineRouteIds, "product_observability.inspect"];
+
+const versionElevenRouteIds = [...versionTenRouteIds, "product_deliberation.inspect"];
+
 function parsed(result) {
   assert.equal(result.stderr, "");
   return JSON.parse(result.stdout);
@@ -385,5 +393,121 @@ export async function verifyPackedProductHostCapabilities(runCli) {
   );
   assert.equal(versionSeven.projections.includes("agent_context"), true);
   assert.equal(versionSeven.projections.includes("organization_operating_report"), true);
-  return versionSeven;
+  const versionEight = parsed(
+    await runCli(["application", "capabilities", "--protocol", "8", "--json"]),
+  );
+  assert.equal(versionEight.schemaVersion, 8);
+  assert.deepEqual(versionEight.protocol, {
+    transport: "local_cli",
+    version: 8,
+    discoveryCommand: ["application", "capabilities", "--protocol", "8", "--json"],
+    requiresHub: false,
+  });
+  assert.deepEqual(
+    versionEight.routes.map((route) => route.routeId),
+    versionEightRouteIds,
+  );
+  assert.deepEqual(versionEight.routes.at(-1), {
+    routeId: "product_activity.inspect",
+    area: "product",
+    operation: "query",
+    contractVersion: 1,
+    resultContract: "product_activity_page_v1",
+    command: ["application", "activity", "--json"],
+    output: "json",
+    effect: "none",
+    authority: "read_only",
+    availability: "available",
+  });
+  assert.equal(versionEight.projections.includes("product_activity_v1"), true);
+  const versionNine = parsed(
+    await runCli(["application", "capabilities", "--protocol", "9", "--json"]),
+  );
+  assert.equal(versionNine.schemaVersion, 9);
+  assert.deepEqual(versionNine.protocol, {
+    transport: "local_cli",
+    version: 9,
+    discoveryCommand: ["application", "capabilities", "--protocol", "9", "--json"],
+    requiresHub: false,
+  });
+  assert.deepEqual(
+    versionNine.routes.map((route) => route.routeId),
+    versionNineRouteIds,
+  );
+  assert.deepEqual(versionNine.routes.at(-1), {
+    routeId: "product_search.inspect",
+    area: "product",
+    operation: "query",
+    contractVersion: 1,
+    resultContract: "product_unified_search_result_v1",
+    command: ["application", "search", "--corpus", "repository_knowledge", "--json", "<query>"],
+    output: "json",
+    effect: "none",
+    authority: "read_only",
+    availability: "available",
+  });
+  assert.equal(versionNine.projections.includes("product_unified_search_v1"), true);
+  const versionTen = parsed(
+    await runCli(["application", "capabilities", "--protocol", "10", "--json"]),
+  );
+  assert.equal(versionTen.schemaVersion, 10);
+  assert.deepEqual(versionTen.protocol, {
+    transport: "local_cli",
+    version: 10,
+    discoveryCommand: ["application", "capabilities", "--protocol", "10", "--json"],
+    requiresHub: false,
+  });
+  assert.deepEqual(
+    versionTen.routes.map((route) => route.routeId),
+    versionTenRouteIds,
+  );
+  assert.deepEqual(versionTen.routes.at(-1), {
+    routeId: "product_observability.inspect",
+    area: "product",
+    operation: "query",
+    contractVersion: 1,
+    resultContract: "surface_observability_report_v1",
+    command: ["application", "observability", "--work", "<work-id>", "--json"],
+    output: "json",
+    effect: "none",
+    authority: "read_only",
+    availability: "available",
+  });
+  assert.equal(versionTen.projections.includes("surface_observability_v1"), true);
+  const versionEleven = parsed(
+    await runCli(["application", "capabilities", "--protocol", "11", "--json"]),
+  );
+  assert.equal(versionEleven.schemaVersion, 11);
+  assert.deepEqual(versionEleven.protocol, {
+    transport: "local_cli",
+    version: 11,
+    discoveryCommand: ["application", "capabilities", "--protocol", "11", "--json"],
+    requiresHub: false,
+  });
+  assert.deepEqual(
+    versionEleven.routes.map((route) => route.routeId),
+    versionElevenRouteIds,
+  );
+  assert.deepEqual(versionEleven.routes.at(-1), {
+    routeId: "product_deliberation.inspect",
+    area: "product",
+    operation: "query",
+    contractVersion: 1,
+    resultContract: "product_deliberation_view_v1",
+    command: [
+      "application",
+      "deliberation",
+      "--deliberation",
+      "<deliberation-id>",
+      "--integration",
+      "<integration-id>",
+      "--json",
+    ],
+    output: "json",
+    effect: "none",
+    authority: "read_only",
+    availability: "available",
+  });
+  assert.equal(versionEleven.projections.includes("product_deliberation_v1"), true);
+  return versionEleven;
 }

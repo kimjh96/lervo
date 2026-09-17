@@ -7,7 +7,10 @@ import {
   schemaVersionSchema,
   verificationSuiteIdSchema,
 } from "./common.js";
-import { deliberationResponsibilities } from "./deliberation-policy.js";
+import {
+  deliberationExecutionBudgetSchema,
+  deliberationResponsibilities,
+} from "./deliberation-policy.js";
 
 export const deliberationWorkflowSourceSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
@@ -18,6 +21,7 @@ export const deliberationWorkflowSourceSchema = {
     schemaVersion: schemaVersionSchema,
     policyId: deliberationPolicyIdSchema,
     maxRounds: { type: "integer", minimum: 1, maximum: 5 },
+    executionBudget: deliberationExecutionBudgetSchema,
     requiredVerificationSuiteIds: {
       type: "array",
       items: verificationSuiteIdSchema,
@@ -34,6 +38,15 @@ export const deliberationWorkflowSourceSchema = {
         properties: {
           roleId: roleIdSchema,
           name: { type: "string", minLength: 1, maxLength: 100 },
+          localizedNames: {
+            type: "object",
+            properties: {
+              en: { type: "string", minLength: 1, maxLength: 100 },
+              ko: { type: "string", minLength: 1, maxLength: 100 },
+            },
+            minProperties: 1,
+            additionalProperties: false,
+          },
           description: { type: "string", minLength: 1, maxLength: 1000 },
           provider: providerSchema,
           responsibilities: {

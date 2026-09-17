@@ -1,0 +1,35 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_5120ad79d9e722ea87ff652d
+compiler:
+  compilerBuildId: sha256:0cb9c6469602900e4c2a37e7246c9940ee42cc8d80d6a10ce39da4c1d5f07eeb
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 1+codex-cli 0.154.0
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_79906e2c265af53e16426012
+outputLanguage: en
+outputs:
+  - byteCount: 6045
+    contentHash: sha256:8f06a3df0a24793ec1fb5075b6c6bc53dd11f32c77176dcb9b6d6c76dc187583
+    path: docs/roadmap/product-outcome-convergence/host-products/discord-first-reference-product.md
+    userRegionHash: sha256:8f06a3df0a24793ec1fb5075b6c6bc53dd11f32c77176dcb9b6d6c76dc187583
+profile: roadmap_document
+recordId: knormdoc_14f5552065208ce006c403fe
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:cefbad9bb1ea1ec2415d91e82698268b61aec6dca8b4773079d9919c464fd291
+sourcePath: docs/roadmap/product-outcome-convergence/host-products/discord-first-reference-product.md
+sourceUnitVersionIds:
+  - uv_12d189cc66c5f55df7be1000
+  - uv_2fca052e14d58ad273764d87
+  - uv_3e3b48a96bea85ba58ee97cb
+  - uv_6e377becbf951eded7125a25
+  - uv_80ae63839c59bb189ccc7f05
+  - uv_88b1b9f42e8f8a55549dc200
+  - uv_8b23c724bf793c5bd5fcb337
+  - uv_bd07cf1c4a4e3a27b48c8efa
+  - uv_d26e9ba8b55d545c20f4b64b
+  - uv_fdac08490ea076843a6d9334

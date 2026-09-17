@@ -110,6 +110,16 @@ process.stdin.on("end", () => process.stdout.write(JSON.stringify({schemaVersion
         intent: { provider: "codex" },
         response: { provider: "codex" },
       },
+      policy: {
+        mode: "proactive",
+        respondTo: ["human", "system"],
+        signalCodes: [
+          "deliberation.artifact.recorded",
+          "deliberation.attention",
+          "deliberation.completed",
+        ],
+        maxResponseAttempts: 2,
+      },
       deliberation: {
         cliExecutable: deliberationCli,
         workerId: "discord-deliberation",

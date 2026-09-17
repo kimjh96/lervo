@@ -22,6 +22,9 @@ export async function deliverSlackConversationMessage(input: {
   delivery: SlackDeliveryPort;
 }): Promise<ConversationDeliveryReceipt> {
   try {
+    if (input.message.audienceParticipation === "observe_only") {
+      throw new Error("Slack delivery cannot preserve observation-only publication lineage.");
+    }
     if (input.message.target.integrationId !== input.descriptor.integrationId) {
       throw new Error("integration mismatch");
     }
@@ -33,6 +36,9 @@ export async function deliverSlackConversationMessage(input: {
         target: input.message.target,
         actor: input.message.actor,
         sourceEventId: input.message.sourceEventId,
+        ...(input.message.replyToEventId === undefined
+          ? {}
+          : { replyToEventId: input.message.replyToEventId }),
       }),
     ]);
     if (!input.allowedTeamIds.has(address.tenantKey)) throw new Error("team scope mismatch");

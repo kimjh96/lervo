@@ -2,7 +2,7 @@
 
 `pnpm smoke:packed-cli` builds the real tarball, installs it into an empty temporary consumer, and runs the protocol without workspace imports. The fixture verifies:
 
-- Default 21-route v1 and explicit 23-route v2, 24-route v3, 26-route v4, 27-route v5, 29-route v6, and 38-route v7 reports.
+- Default 21-route v1 and explicit 23-route v2, 24-route v3, 26-route v4, 27-route v5, 29-route v6, 38-route v7, 39-route v8, 40-route v9, 41-route v10, and 42-route v11 reports.
 - The exact connector limitation and unsupported capabilities.
 - Absence of workspace coordinates and private Lervo package installation.
 
@@ -20,5 +20,9 @@ Using only CLI commands, it then:
 10. Invokes the installed bounded scheduler once, observes it claim one queued assignment at the exact revision and execute it through managed execution, and verifies completion without a Hub or another manual trigger.
 11. Applies one reviewed four-node graph-v2 topology, replays one valid branch and join, invokes the installed scheduler, and verifies dependency-ordered completion of all four canonical assignments.
 12. Discovers named-agent hire and rename, exact team creation and reclassification, multi-team inspection, and replay-safe organization-executive effect routes through protocol v7.
+13. Discovers the read-only product activity route through protocol v8 and projects a privacy-bounded page from installed canonical events without a Hub.
+14. Discovers the read-only product search route through protocol v9 and projects qualified Lexical v2 repository-knowledge results without leaking query text, source bodies, paths, or native scores.
+15. Discovers the packaged read-only work-observability route through protocol v10; focused integration tests prove successful source-bound projection and fail-closed repository-revision handling from canonical managed-work evidence.
+16. Discovers the packaged read-only deliberation route through protocol v11; focused integration tests prove exact queue-origin, embedded-policy, structured-artifact, verification, resource, writing-permit, and adapter-receipt joins, plus fail-closed contradictory or changing sources.
 
 Acceptance uses no Hub, provider, network route, or live connector effect. Focused adapter and replay tests verify repository-root allowlisting, Discord request scoping, exact response validation, durable receipts, and fail-closed uncertain outcomes. Cross-platform release matrices remain responsible for broader installation evidence.

@@ -1,5 +1,5 @@
 export interface DeliberationLanguagePack {
-  locale: "en";
+  locale: "en" | "ko";
   verdict: {
     approved: string;
     revisionRequired: string;
@@ -32,9 +32,24 @@ const englishDeliberationLanguage = {
   },
 } as const satisfies DeliberationLanguagePack;
 
+const koreanDeliberationLanguage = {
+  locale: "ko",
+  verdict: {
+    approved: "판정: 승인",
+    revisionRequired: "판정: 수정 필요",
+  },
+  roles: {
+    proposerName: "제안 및 결정",
+    proposerDescription: "근거에 기반한 제안, 수정안, 최종 결정을 작성합니다.",
+    reviewerName: "독립 검토 및 검증",
+    reviewerDescription: "제안을 독립적으로 검토하고 저장소 검증 결과를 설명합니다.",
+    evaluatorName: "한국어 작성 평가자",
+    evaluatorDescription: "게시 가능한 글이 작성 계약을 충족하는지 별도로 평가합니다.",
+  },
+} as const satisfies DeliberationLanguagePack;
+
 export function deliberationLanguageFor(locale: string): DeliberationLanguagePack {
-  if (locale !== "en") {
-    throw new Error(`Unsupported deliberation publication language: ${locale}`);
-  }
-  return englishDeliberationLanguage;
+  if (locale === "en") return englishDeliberationLanguage;
+  if (locale === "ko") return koreanDeliberationLanguage;
+  throw new Error(`Unsupported deliberation publication language: ${locale}`);
 }

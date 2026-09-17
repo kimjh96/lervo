@@ -11,6 +11,13 @@ const MAXIMUM_CHANGED_PATHS = 1_024;
 export interface RepositoryWorkObservation {
   head: string;
   paths: Map<string, string>;
+  revision: string;
+}
+
+export interface RepositoryWorkChange {
+  repositoryRevisionBefore: string;
+  repositoryRevisionAfter: string;
+  changedPaths: string[];
 }
 
 async function git(repositoryRoot: string, args: string[]): Promise<string> {
@@ -72,14 +79,18 @@ export async function observeRepositoryWork(
   ]);
   const paths = new Map<string, string>();
   for (const path of statusPaths(status)) paths.set(path, await pathDigest(repositoryRoot, path));
-  return { head: head.trim(), paths };
+  const resolvedHead = head.trim();
+  const revision = `sha256:${createHash("sha256")
+    .update(JSON.stringify([resolvedHead, [...paths.entries()]]))
+    .digest("hex")}`;
+  return { head: resolvedHead, paths, revision };
 }
 
-export async function changedRepositoryWorkPaths(input: {
+export async function compareRepositoryWork(input: {
   repositoryRoot: string;
   before: RepositoryWorkObservation;
   after: RepositoryWorkObservation;
-}): Promise<string[]> {
+}): Promise<RepositoryWorkChange> {
   const candidates = new Set([...input.before.paths.keys(), ...input.after.paths.keys()]);
   if (input.before.head !== input.after.head) {
     const committed = await git(input.repositoryRoot, [
@@ -97,5 +108,9 @@ export async function changedRepositoryWorkPaths(input: {
     const after = input.after.paths.get(path) ?? `head:${input.after.head}`;
     if (before !== after) changed.push(path);
   }
-  return changed;
+  return {
+    repositoryRevisionBefore: input.before.revision,
+    repositoryRevisionAfter: input.after.revision,
+    changedPaths: changed,
+  };
 }

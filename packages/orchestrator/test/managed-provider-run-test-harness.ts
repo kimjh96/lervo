@@ -34,6 +34,9 @@ export function coordinator(
   >[0]["artifactStore"] = new MemoryArtifactStore(),
   approvalVerifier?: ManagedCapabilityApprovalVerifier,
   maximumProviderSignals?: number,
+  providerInteractionLimits?: ConstructorParameters<
+    typeof ManagedProviderRunCoordinator
+  >[0]["providerInteractionLimits"],
 ) {
   return new ManagedProviderRunCoordinator({
     adapter,
@@ -46,5 +49,6 @@ export function coordinator(
     createEventId: sequenceFactory("evt_managedrun"),
     ...(approvalVerifier === undefined ? {} : { approvalVerifier }),
     ...(maximumProviderSignals === undefined ? {} : { maximumProviderSignals }),
+    ...(providerInteractionLimits === undefined ? {} : { providerInteractionLimits }),
   });
 }

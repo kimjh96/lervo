@@ -38,12 +38,15 @@ export class FixedConversationTerminalFailureResponder implements ConversationTe
       contentHash: stored.contentHash,
       byteCount: stored.byteCount,
     };
-    return publishConversationResponse({
-      artifact,
-      artifactStore: this.options.artifactStore,
-      writingContract: fixedConversationStatusWritingContract,
-      maximumResponseCharacters: 2_000,
-      ...(this.options.now === undefined ? {} : { now: this.options.now }),
-    });
+    return {
+      ...(await publishConversationResponse({
+        artifact,
+        artifactStore: this.options.artifactStore,
+        writingContract: fixedConversationStatusWritingContract,
+        maximumResponseCharacters: 2_000,
+        ...(this.options.now === undefined ? {} : { now: this.options.now }),
+      })),
+      audienceParticipation: "observe_only",
+    };
   }
 }

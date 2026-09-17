@@ -16,6 +16,7 @@ export type ConversationDeliberationResumeWorkerCycleResult =
       status: "uncertain";
       deliberationId: string;
       failureCode: "deliberation_resume_execution_uncertain";
+      uncertainAt: string;
     };
 
 export function runConversationDeliberationResumeWorkerCycle(options: {

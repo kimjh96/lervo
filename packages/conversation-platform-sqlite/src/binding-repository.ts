@@ -344,6 +344,7 @@ export class ConversationPlatformBindingRepository {
     target: ConversationTarget;
     actor: ConversationOutboundMessage["actor"];
     sourceEventId: string;
+    replyToEventId?: string | null;
   }): PlatformOutboundAddress {
     if (
       !this.activeOutboundConversations.has(
@@ -383,7 +384,7 @@ export class ConversationPlatformBindingRepository {
         input.integrationId,
         row.tenant_key,
         row.conversation_key,
-        input.sourceEventId,
+        input.replyToEventId ?? input.sourceEventId,
       ) as { external_message_key: string } | undefined;
     if (input.target.threadId === null) {
       return {

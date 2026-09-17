@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 
 import { verifyPackedProductHostCapabilities } from "./product-host-capability-consumer.mjs";
 import { verifyPackedProductHostMessageJourney } from "./product-host-message-consumer.mjs";
+import { verifyPackedProductHostSurfaces } from "./product-host-surface-consumer.mjs";
 
 function sha256(value) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -362,6 +363,8 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   assert.match(board.stdout, /^<!doctype html>/u);
   assert.equal(board.stdout.includes("Projection, not authority"), true);
   assert.equal(board.stdout.includes(assignment.assignmentId), true);
+
+  await verifyPackedProductHostSurfaces(runCli, consumerRoot, workstream.projectId);
 
   await verifyPackedProductHostMessageJourney({
     consumerRoot,

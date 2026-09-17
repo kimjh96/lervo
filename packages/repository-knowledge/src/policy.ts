@@ -55,7 +55,7 @@ export const defaultRepositoryKnowledgePolicy: RepositoryKnowledgePolicy = {
   limits: {
     maxFiles: 20_000,
     maxFileBytes: 1_048_576,
-    maxTotalBytes: 33_554_432,
+    maxTotalBytes: 67_108_864,
   },
 };
 
