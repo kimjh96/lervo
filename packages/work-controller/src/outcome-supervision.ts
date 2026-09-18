@@ -138,7 +138,7 @@ export function projectOutcomeSupervision(input: {
         !/^asn_[a-f0-9]{24}$/u.test(id) ||
         snapshot.assignments.some((item) => item.assignmentId === id),
     ) ||
-    !operatingInteger(snapshot.escalationCount, 0, 8) ||
+    !operatingInteger(snapshot.escalationCount, 0, 32_768) ||
     !Array.isArray(snapshot.causationEventIds) ||
     snapshot.causationEventIds.length > 64 ||
     !snapshot.causationEventIds.every((id) => /^evt_[a-f0-9]{32}$/u.test(id)) ||

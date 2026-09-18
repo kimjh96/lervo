@@ -121,6 +121,21 @@ describe("causal outcome supervision without a chat surface", () => {
     state.workstreamStatus = "cancelled";
     expect(project(state).nextAction).toBe("inspect_uncertain_effect");
   });
+  it("keeps an exhausted escalation history readable without proposing another escalation", () => {
+    const state = snapshot();
+    const task = state.assignments[0]!;
+    task.status = "failed";
+    task.effectDisposition = "known_safe_failure";
+    task.recoveryDecisionCount = 3;
+    state.escalationCount = 9;
+    expect(project(state)).toMatchObject({
+      status: "waiting_decision",
+      reasonCode: "escalation_capacity_exceeded",
+      nextAction: null,
+    });
+    state.escalationCount = 32_769;
+    expect(() => project(state)).toThrow("snapshot is invalid");
+  });
   it("rejects provider exit and lint as acceptance, binds reviews to exact artifacts and separates delivery", () => {
     const state = snapshot();
     const task = state.assignments[0]!;

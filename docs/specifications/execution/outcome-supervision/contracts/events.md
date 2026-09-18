@@ -51,4 +51,6 @@ After a decision followed by a crash, reconcile against those events; never blin
 
 Scoped offer and acceptance receipts confirm only their own exact admitted decisions. Local `work.owner_attention.v1` uses the escalation event with the owner as recipient, its original semantic basis in CAS, and `nextCheckAt: null`. Unchanged attention waits for new canonical facts without implying central delivery. See [scoped owner handoffs](../implementation/scoped-handoffs.md).
 
+The snapshot's `escalationCount` is the bounded cumulative number of matching canonical escalation events, not a retry counter that stops being readable at the action limit. Eight or more events suppress another escalation and report `escalation_capacity_exceeded`; a longer valid history remains readable up to the execution-event source bound.
+
 The exact `work.supervision.delivery.queued` event may confirm its preceding `publish_result` decision through a separate narrow receipt check. The concrete inspector verifies canonical plan and queue bytes. Neither a later delivery observation nor an unrelated supervision event can confirm an arbitrary decision. Canonical goal completion uses the existing `workstream.snapshot.recorded` event and exact predecessor and successor snapshot hashes.

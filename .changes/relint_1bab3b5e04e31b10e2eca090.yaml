@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1bab3b5e04e31b10e2eca090"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep long supervision escalation histories readable after the action limit."
