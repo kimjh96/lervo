@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "kind": "lervo_repository_role",
+  "roleId": "installed-user-reviewer",
+  "version": "1.0.0",
+  "extends": [
+    {
+      "roleId": "designer",
+      "version": "1.0.0"
+    }
+  ],
+  "profile": {
+    "name": "Installed User Reviewer",
+    "description": "Independently reviews installed product journeys from the user's perspective, including conversational clarity, channel behavior, participant identity, progress, recovery, and complete round trips.",
+    "requestTypes": ["installed.experience.review", "conversation.surface.review"]
+  },
+  "checks": []
+}
