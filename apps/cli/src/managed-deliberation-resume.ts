@@ -16,10 +16,6 @@ import type { WritingContract } from "@lervo/schemas";
 import { readApprovedDeliberationCheckpoint } from "./deliberation-checkpoint.js";
 import { completeApprovedDeliberation } from "./deliberation-convergence.js";
 import { createFailedOutcome } from "./deliberation-contract.js";
-import {
-  bindAssignedDeliberationParticipants,
-  releaseAssignedDeliberationParticipants,
-} from "./deliberation-participant-binding.js";
 import { loadDeliberationWorkflowSource } from "./deliberation-policy-loader.js";
 import { withDeliberationLease } from "./deliberation-lease.js";
 import {
@@ -121,13 +117,7 @@ export async function resumeManagedDeliberationWithStorage(
       const writingContract =
         dependencies.writingContract ??
         writingContractForLanguage(knowledgePolicy.publication.language);
-      const policyPlan = await restorePlan(originalRequest, storage, writingContract);
-      const plan = bindAssignedDeliberationParticipants({
-        storage,
-        deliberationId: checkpoint.deliberationId,
-        plan: policyPlan,
-        boundAt: dependencies.now().toISOString(),
-      });
+      const plan = await restorePlan(originalRequest, storage, writingContract);
       const policy = plan.policy;
       if (deliberationPolicyHash(policy) !== checkpoint.policyHash) {
         throw new Error("The policy changed after the deliberation resume checkpoint.");
@@ -270,9 +260,8 @@ export async function resumeManagedDeliberationWithStorage(
         throw new Error(
           "The deliberation resume checkpoint does not reference every approval for the latest claim.",
         );
-      let result: ManagedDeliberationOutcome;
       try {
-        result = await completeApprovedDeliberation({
+        return await completeApprovedDeliberation({
           request: originalRequest,
           plan,
           deliberationId: checkpoint.deliberationId,
@@ -290,31 +279,21 @@ export async function resumeManagedDeliberationWithStorage(
         });
       } catch (error) {
         try {
-          const failedOutcome = createFailedOutcome({
-            deliberationId: checkpoint.deliberationId,
-            policy,
-            history: runtime.history(),
-            completedAt: dependencies.now().toISOString(),
-            unresolvedBlockingObjectionIds: [],
-            code: failureCode(error),
-          });
-          runtime.complete(failedOutcome);
-          releaseAssignedDeliberationParticipants({
-            storage,
-            outcome: failedOutcome,
-            releasedAt: dependencies.now().toISOString(),
-          });
+          runtime.complete(
+            createFailedOutcome({
+              deliberationId: checkpoint.deliberationId,
+              policy,
+              history: runtime.history(),
+              completedAt: dependencies.now().toISOString(),
+              unresolvedBlockingObjectionIds: [],
+              code: failureCode(error),
+            }),
+          );
         } catch {
           // Preserve the original failure instead of presenting incomplete history as completed.
         }
         throw error;
       }
-      releaseAssignedDeliberationParticipants({
-        storage,
-        outcome: result.outcome,
-        releasedAt: dependencies.now().toISOString(),
-      });
-      return result;
     },
   });
 }

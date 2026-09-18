@@ -18,9 +18,9 @@
     },
     {
       "path": "apps/cli/src/managed-deliberation.ts",
-      "contentHash": "sha256:32a190ad5bb89737b4036c370d609eb1057c7e954643bb3bab454bdab4b64636",
+      "contentHash": "sha256:5ff2b46ae827bdf166a5d57c28510e3b439decd3b37883bda7d903678286d937",
       "responsibility": "Managed deliberation execution orchestration",
-      "rationale": "All functions validate or execute one managed deliberation lifecycle and share the same provider plan, writing contract, checkpoint, and interruption semantics. Topic evidence retrieval, participant binding, provider-run execution, budget accounting, resume, round progression, and publication are isolated in dedicated modules; this module only orders those boundaries and records the terminal lifecycle.",
+      "rationale": "All functions validate or execute one managed deliberation lifecycle and share the same provider plan, writing contract, checkpoint, and interruption semantics. Topic evidence retrieval, provider-run execution, budget accounting, resume, round progression, and publication are isolated in dedicated modules; this module only orders those boundaries and records the terminal lifecycle.",
       "disposition": "cohesive"
     },
     {

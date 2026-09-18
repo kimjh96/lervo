@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_24143895fdb71f551af05219"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Bind formal deliberation seats to exact channel-deployed hired agents."
