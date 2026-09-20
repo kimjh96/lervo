@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8450298b502f1400e22ff633"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Recover final Claude repository-work responses and honor explicitly authorized Node deployments."

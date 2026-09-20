@@ -26,4 +26,22 @@ describe("conversation repository work writing", () => {
   it("keeps the bounded result free of a fixed telemetry appendix", () => {
     expect(fitDiscord("완료했습니다.")).toBe("완료했습니다.");
   });
+
+  it("permits an explicitly requested deployment only for an authorized requester", () => {
+    const input = {
+      request: "검증된 수정본을 배포해 주세요.",
+      priorTurns: [],
+      durableResults: [],
+      worker: null,
+      finalizationStartsAt: "2026-09-21T00:00:00.000Z",
+    };
+    const authorized = executionInstructions({ ...input, externalEffectsAuthorized: true });
+    expect(authorized).toContain("deployment explicitly requested in Current request");
+    expect(authorized).toContain("preserve a rollback");
+    expect(authorized).toContain("Do not widen risk limits, reset a kill switch");
+    expect(authorized).not.toContain("Deployment, broad deletion");
+
+    const unauthorized = executionInstructions({ ...input, externalEffectsAuthorized: false });
+    expect(unauthorized).toContain("Do not commit, push, publish, deploy");
+  });
 });
