@@ -154,11 +154,11 @@ export function parseManagedConversationTurn(
   const reply = body.reply as string | null;
   const executionProfile = body.executionProfile as ManagedTurnBody["executionProfile"];
   const deliveryRelation = body.deliveryRelation as ManagedTurnBody["deliveryRelation"];
-  // A selected, schema-listed surface action already expresses the requested effect.
-  // Normalize a redundant conversational acknowledgement instead of turning an otherwise
-  // valid, authority-checked action into a terminal contract failure.
+  const acknowledgesSupervisionGoal = kind === "supervision_goal_request";
+  // Most schema-listed actions publish their own verified result. Supervision intake instead
+  // retains a request-grounded acknowledgment and releases it only after admission succeeds.
   const normalizedIntent = surfaceEffect === undefined ? intent : "continue_work";
-  const normalizedReply = surfaceEffect === undefined ? reply : null;
+  const normalizedReply = surfaceEffect === undefined || acknowledgesSupervisionGoal ? reply : null;
   const normalizedDeliveryRelation = surfaceEffect === undefined ? deliveryRelation : "standalone";
   if (
     (normalizedIntent !== "continue_work" && kind !== "none") ||
@@ -175,7 +175,11 @@ export function parseManagedConversationTurn(
     (participation === "relevant" &&
       ["answer", "clarify"].includes(normalizedIntent) &&
       (normalizedReply === null || normalizedReply.trim().length === 0)) ||
-    (normalizedIntent === "continue_work" && normalizedReply !== null) ||
+    (acknowledgesSupervisionGoal &&
+      (normalizedReply === null || normalizedReply.trim().length === 0)) ||
+    (normalizedIntent === "continue_work" &&
+      normalizedReply !== null &&
+      !acknowledgesSupervisionGoal) ||
     (kind === "repository_work" && executionProfile === null) ||
     (kind !== "repository_work" && executionProfile !== null) ||
     (normalizedReply !== null && [...normalizedReply].length > maximumResponseCharacters)
@@ -242,18 +246,18 @@ export function managedConversationTurnInstructions(input: {
       "Mentions are optional attention signals, never mandatory command syntax.",
       "For live repository, terminal, test, build, network, or external-system observation and for repository changes, use repository_work with argument null. Read-only native work may complete with zero changed paths. Use a bounded argument only for a listed surface action. Effects never grant authority.",
       "Prefer a listed surface action when the requested outcome matches its description; do not replace that action with repository_work merely because its topic concerns a repository, deployment, verification, or another external system.",
-      "Every selected listed surface action uses intent continue_work, executionProfile null, deliveryRelation standalone, and reply null; the action path publishes its verified result separately.",
+      "Every selected listed surface action uses intent continue_work, executionProfile null, and deliveryRelation standalone. Use reply null unless the selected effect is supervision_goal_request.",
       "When deliberation_start is listed, use it when the requester asks this participant to convene multiple independently bound agents, gather their separate role- and context-grounded judgments, debate or compare them, and converge on one synthesis. Starting that governed discussion is the requested surface action, not repository_work; put the complete discussion topic in its argument.",
       "Choose among direct repository work, a listed surface action, delegation, clarification, or a direct answer from this durable agent's role, context, available capabilities, and responsibility for the requested outcome. Do not force a particular route merely because a canned scenario resembles the message.",
       "When workforce_task_delegate is listed, use it when an exact peer's durable role, context, or knowledge makes a bounded subtask useful. Write only that natural subtask; do not assign a synthetic stakeholder persona or paste a generic 'delegated agent' preamble. Delegation does not transfer ownership of the person's complete outcome: retain it in this coordinator's context and reconcile the peer's result before completing.",
       ...delegatedResultRequirements,
       "When a surface effect declares argumentChoices, select only an exact listed value. Labels explain human-facing identity but are not valid substitutes for values.",
-      "When supervision_goal_request is listed, use it only for a durable multi-step outcome that the installed owner should accept and govern across delegation, verification, or multiple turns. Use repository_work for one bounded task or inspection in the current conversation.",
+      "When supervision_goal_request is listed, use it only for a durable multi-step outcome that the installed owner should accept and govern across delegation, verification, or multiple turns. Use repository_work for one bounded task or inspection in the current conversation. For supervision_goal_request, write one brief natural-language acknowledgment grounded in the exact request and current context. State the outcome or priority you understood. Do not claim that admission succeeded, work started, work completed, or results were verified; the action path publishes this acknowledgment only after successful admission.",
       "For repository_work, select exactly one executionProfile by meaning: routine for bounded mechanical edits, ordinary implementation, or standard checks; reasoning for architecture, design, planning, ambiguous diagnosis, or consequential judgment; review for verification, audit, critique, acceptance, or independent assessment. Quality and risk take precedence over cost. Use null for every other effect.",
       "Classify the primary requested deliverable, not every incidental step in the work. Ordinary implementation remains routine even when it needs brief planning, code reading, or local debugging. Choose reasoning when an architecture, product trade-off, or genuinely ambiguous diagnosis is itself the requested deliverable or materially determines the solution; do not upgrade a task merely because it is long or consequential in size. Choose review when independent assessment is the requested deliverable, not for the standard checks that accompany implementation.",
       "For answer or clarify, write a direct conversational reply grounded only in injected evidence and prior turns. Do not expose internal run, workstream, revision, queue, or artifact IDs unless explicitly asked for diagnostics.",
       "Use deliveryRelation reply only when a native reply materially disambiguates which concurrent message is being answered or preserves an explicit reply relationship. Use standalone for ordinary sequential conversation; do not turn every response into a native reply.",
-      "For continue_work, reply must be null because the execution path publishes progress and a verified result separately.",
+      "For continue_work, reply must be null because the execution path publishes progress and a verified result separately, except for the bounded supervision_goal_request acknowledgment described above.",
       "If participation is not_relevant, use effect none and reply null.",
       "When asked about identity, distinguish durable agent and role from the turn provider. executionIdentity.requestedModel is configuration only; never present it as the provider-observed answer model.",
       "Return only the schema-valid object.",

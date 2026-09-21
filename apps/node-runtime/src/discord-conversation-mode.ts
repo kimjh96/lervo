@@ -5,7 +5,6 @@ import {
 import type { ConversationReplyCandidate, ConversationResponder } from "@lervo/interaction";
 import type { ConversationRelevanceEvaluator } from "@lervo/interaction";
 import type {
-  ConversationContextTurn,
   ManagedConversationSurfaceEffect,
   ManagedConversationTurnResolverPort,
 } from "@lervo/conversation-responder";
@@ -34,24 +33,19 @@ import {
   effectForManagedConversationResolution,
   withoutLeadingBotMention,
 } from "./discord-conversation-mode-selection.js";
+import type {
+  DiscordGoalResponder,
+  DiscordNonPlatformEffect,
+  DiscordPlatformActionResponder,
+} from "./discord-conversation-mode-contract.js";
+
+export type {
+  DiscordGoalResponder,
+  DiscordPlatformActionResponder,
+} from "./discord-conversation-mode-contract.js";
 
 export type DiscordConversationMode =
   "read_only" | "work" | "goal" | "continuation" | "platform_action" | "clarify" | "control";
-
-type NonPlatformEffect =
-  { kind: "none" } | { kind: "repository_work" } | { kind: "supervision_goal_request" };
-
-export interface DiscordPlatformActionResponder {
-  readonly availableEffects: readonly ConversationRequestedEffect["kind"][];
-  readonly managedResultEffects?: readonly ConversationRequestedEffect["kind"][];
-  respond(
-    input: Omit<Parameters<ConversationResponder["respond"]>[0], "context"> & {
-      context?: { priorTurns: ReadonlyArray<ConversationContextTurn> };
-    },
-    effect: Exclude<ConversationRequestedEffect, NonPlatformEffect>,
-    authorization: { effectRequesterAuthorized: boolean },
-  ): ReturnType<ConversationResponder["respond"]>;
-}
 
 export class NaturalLanguageDiscordConversationResponder
   implements ConversationResponder, ConversationRelevanceEvaluator
@@ -87,7 +81,7 @@ export class NaturalLanguageDiscordConversationResponder
       readOnly: ConversationResponder;
       continuation: ConversationResponder;
       work?: ConversationResponder;
-      goal?: ConversationResponder;
+      goal?: DiscordGoalResponder;
       platformAction: DiscordPlatformActionResponder;
       explicitControl?: ConversationResponder;
       discussion?: ConversationDiscussionRuntime;
@@ -354,7 +348,10 @@ export class NaturalLanguageDiscordConversationResponder
     ) {
       return this.options.platformAction.respond(
         request,
-        resolution.resolution.effect as Exclude<ConversationRequestedEffect, NonPlatformEffect>,
+        resolution.resolution.effect as Exclude<
+          ConversationRequestedEffect,
+          DiscordNonPlatformEffect
+        >,
         {
           effectRequesterAuthorized: isConversationEffectRequesterAuthorized({
             event: input.event,
@@ -372,7 +369,8 @@ export class NaturalLanguageDiscordConversationResponder
     if (resolution.mode === "work") {
       return (this.options.work ?? this.options.continuation).respond(request);
     }
-    if (resolution.mode === "goal") return this.options.goal!.respond(request);
+    if (resolution.mode === "goal")
+      return this.options.goal!.respond(request, resolution.replyCandidate);
     return (
       resolution.mode === "continuation" ? this.options.continuation : this.options.readOnly
     ).respond(request);

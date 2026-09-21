@@ -3,7 +3,7 @@ import {
   createVerifiedConversationControlReply,
 } from "@lervo/conversation-control";
 import { realtimeConversationWritingContract } from "@lervo/core";
-import type { ConversationResponder } from "@lervo/interaction";
+import type { ConversationReplyCandidate, ConversationResponder } from "@lervo/interaction";
 import type { ConversationAgentBinding } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import { operatingContractHash } from "@lervo/work-controller";
@@ -35,11 +35,9 @@ const REFUSAL_MESSAGES: Partial<
 };
 
 export function discordSupervisionIntakeStatusMessage(
-  outcome: DiscordSupervisionIntakeOutcome,
+  outcome: Exclude<DiscordSupervisionIntakeOutcome, { status: "bound" }>,
 ): string {
   switch (outcome.status) {
-    case "bound":
-      return "요청을 담당자의 현재 작업 목표에 연결했습니다. 검증된 결과는 이 대화로 전달하겠습니다.";
     case "duplicate":
       return "동일한 요청은 이미 담당자의 작업 목표에 연결되어 있습니다.";
     case "refused":
@@ -73,7 +71,10 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
     },
   ) {}
 
-  async respond(input: Parameters<ConversationResponder["respond"]>[0]) {
+  async respond(
+    input: Parameters<ConversationResponder["respond"]>[0],
+    admittedReplyCandidate: ConversationReplyCandidate | null = null,
+  ) {
     const event = input.event;
     const authorized =
       event.actor.kind === "human" ||
@@ -146,10 +147,19 @@ export class DiscordSupervisionWorkResponder implements ConversationResponder {
       if (code === null) throw error;
       outcome = { status: "refused", code };
     }
+    if (outcome.status === "bound" && admittedReplyCandidate !== null) {
+      return admittedReplyCandidate;
+    }
+    if (outcome.status === "bound" && event.kind !== "goal.requested") {
+      throw new Error("A natural-language supervision admission requires its managed reply.");
+    }
     return createVerifiedConversationControlReply({
       artifactStore: this.options.artifactStore,
       writingContract: realtimeConversationWritingContract,
-      content: discordSupervisionIntakeStatusMessage(outcome),
+      content:
+        outcome.status === "bound"
+          ? "기존 목표 요청을 현재 작업 목표에 연결했습니다."
+          : discordSupervisionIntakeStatusMessage(outcome),
     });
   }
 }

@@ -6,6 +6,8 @@ Discord goal intake uses ordinary authenticated `message.created` ingress. The m
 
 The resolver selects `supervision_goal_request` for a durable multi-step outcome and keeps one bounded task or inspection on `repository_work`. The immutable intent record binds message hash, provider/model evidence, confidence, participation, effect, digest and time without copying raw text.
 
+For `supervision_goal_request`, the same managed turn produces one concise acknowledgment grounded in the exact request and current conversation. It may state the understood outcome or priority, but it cannot claim that admission, execution, completion or verification occurred. The installed intake publishes this candidate only after a new canonical binding succeeds. It publishes verified deterministic state for a duplicate or refusal and fails closed when a natural-language binding has no managed acknowledgment.
+
 Conversation intent and effect-request authority checks precede intake; the responder rechecks human or explicitly admitted agent authority. A medium- or high-confidence installed-owner effect calls the shared intake writer. A missing route, unavailable effect, low confidence or unauthorized agent request does not.
 
 The Node registers no `/goal` command and accepts no `outcomeSupervision.goalCommand` configuration. Historical `goal.requested` events remain schema-valid with their original provenance meaning, but new goal admission does not bypass model classification based on event kind.
@@ -20,7 +22,7 @@ A missing inbox or natural-intent row supplies no human proof. A conflicting or 
 
 ## Results and failures
 
-The accepted result is published to the bound source origin through the existing independently reviewed result-delivery path. A successful installed-owner reply proves only canonical binding.
+The accepted result is published to the bound source origin through the existing independently reviewed result-delivery path. The immediate request-grounded acknowledgment proves only canonical binding; later progress and result messages require their own evidence.
 
 Typed refusals name the bounded reason and write nothing. Any unclassified failure follows the normal visible uncertain-response contract.
 

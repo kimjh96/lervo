@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a8c65a0630139d092de57e80"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Correct PO work routing, preserve provider sessions, recover provider results, ground supervision acknowledgments in requests, and honor authorized Node deployments."

@@ -13,7 +13,10 @@ import type {
   ConversationIntent,
   ConversationIntentResolver,
 } from "../src/conversation-intent-resolver.js";
-import { NaturalLanguageDiscordConversationResponder } from "../src/discord-conversation-mode.js";
+import {
+  type DiscordGoalResponder,
+  NaturalLanguageDiscordConversationResponder,
+} from "../src/discord-conversation-mode.js";
 
 const applicationId = "999999999999999999";
 
@@ -310,6 +313,64 @@ describe("natural-language Discord conversation mode", () => {
     await expect(managedMode.evaluate(fourth)).resolves.toBe("relevant");
     await expect(managedMode.respond(fourth)).resolves.toEqual(managedReply);
     expect(managedResolve).toHaveBeenCalledTimes(1);
+
+    const goalAcknowledgment = await candidate(
+      "I understand that verification and deployment are the required outcome.",
+    );
+    const managedGoal = {
+      respond: vi.fn<DiscordGoalResponder["respond"]>(
+        async (_request, admittedReplyCandidate) =>
+          admittedReplyCandidate ?? candidate("Missing acknowledgment."),
+      ),
+    };
+    const managedGoalMode = new NaturalLanguageDiscordConversationResponder({
+      applicationId,
+      respondingAgent: {
+        participantId: "ptc_lervoagent",
+        agentId: `agt_${"a".repeat(24)}`,
+        roleId: "product-owner",
+      },
+      repositoryRoot: process.cwd(),
+      artifactStore,
+      history: { recent: async () => [] },
+      resolutionStore: { read: async () => null, record: async () => undefined },
+      managedTurnResolver: {
+        resolve: async () => ({
+          intent: "continue_work",
+          confidence: "high",
+          participation: "relevant",
+          effect: { kind: "supervision_goal_request", argument: null },
+          executionProfile: null,
+          provider: {
+            providerId: "codex",
+            requestedModel: "gpt-requested",
+            model: "gpt-observed",
+            observedModelIds: ["gpt-observed"],
+            answerModelEvidence: "thread_start",
+            modelUnavailableReason: null,
+            adapterVersion: "4",
+          },
+          resultDigest: `sha256:${"b".repeat(64)}`,
+          replyCandidate: goalAcknowledgment,
+        }),
+      },
+      surfaceEffects: [
+        {
+          effectId: "supervision_goal_request",
+          description: "Ask the installed owner to govern a durable multi-step outcome.",
+          argumentDescription: null,
+        },
+      ],
+      participationPolicy,
+      readOnly: readOnly as ConversationResponder,
+      continuation: continuation as ConversationResponder,
+      goal: managedGoal,
+      platformAction,
+    });
+    message = "Own verification and deployment through completion.";
+    const managedGoalInput = await input("cevt_test_managed_goal");
+    await expect(managedGoalMode.respond(managedGoalInput)).resolves.toBe(goalAcknowledgment);
+    expect(managedGoal.respond).toHaveBeenCalledWith(expect.any(Object), goalAcknowledgment);
 
     const agentWorkResolver = {
       resolve: vi.fn(async () => ({

@@ -86,7 +86,10 @@ async function fixture(actor: {
 
 it("preserves the authenticated requester and exact reply origin at shared intake", async () => {
   const f = await fixture({ kind: "agent", participantId: "ptc_central01", roleId: "manager" });
-  await f.responder.respond({ event: f.event } as never);
+  const admittedReply = { content: { contentHash: `sha256:${"1".repeat(64)}` } } as never;
+  await expect(f.responder.respond({ event: f.event } as never, admittedReply)).resolves.toBe(
+    admittedReply,
+  );
   expect(f.admitRequest).toHaveBeenCalledOnce();
   expect(f.admitRequest.mock.calls[0]![0]).toMatchObject({
     admissionDeadlineMs: 120_000,
@@ -102,6 +105,21 @@ it("preserves the authenticated requester and exact reply origin at shared intak
       },
     },
   });
+});
+
+it("does not replace a natural-language admission with a fixed status message", async () => {
+  const f = await fixture({ kind: "human", participantId: "ptc_human0001", roleId: null });
+  const admittedReply = { content: { contentHash: `sha256:${"2".repeat(64)}` } } as never;
+  await expect(f.responder.respond({ event: f.event } as never, admittedReply)).resolves.toBe(
+    admittedReply,
+  );
+});
+
+it("rejects a natural-language admission when its managed acknowledgment is missing", async () => {
+  const f = await fixture({ kind: "human", participantId: "ptc_human0001", roleId: null });
+  await expect(f.responder.respond({ event: f.event } as never)).rejects.toThrow(
+    /requires its managed reply/iu,
+  );
 });
 
 it("rejects an unadmitted agent before reading or binding its request", async () => {

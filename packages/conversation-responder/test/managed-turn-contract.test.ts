@@ -94,12 +94,17 @@ describe("managed conversation turn output contract", () => {
           effect: { kind: "supervision_goal_request", argument: null },
           executionProfile: null,
           deliveryRelation: "standalone",
-          reply: null,
+          reply:
+            "I understand that this release must proceed through implementation, verification, and deployment.",
         },
         [effect],
         2_000,
       ),
-    ).toMatchObject({ effect: { kind: "supervision_goal_request", argument: null } });
+    ).toMatchObject({
+      effect: { kind: "supervision_goal_request", argument: null },
+      reply:
+        "I understand that this release must proceed through implementation, verification, and deployment.",
+    });
 
     const instructions = managedConversationTurnInstructions({
       request: {
@@ -117,6 +122,33 @@ describe("managed conversation turn output contract", () => {
       plan: { role: { roleId: "product-owner" }, executionIdentity: {} } as never,
     });
     expect(instructions).toContain("durable multi-step outcome");
+    expect(instructions).toContain("grounded in the exact request and current context");
+    expect(instructions).toContain("Do not claim that admission succeeded");
+  });
+
+  it("rejects a supervision goal without a request-grounded acknowledgment", () => {
+    expect(() =>
+      parseManagedConversationTurn(
+        {
+          schemaVersion: 3,
+          intent: "continue_work",
+          confidence: "high",
+          participation: "relevant",
+          effect: { kind: "supervision_goal_request", argument: null },
+          executionProfile: null,
+          deliveryRelation: "standalone",
+          reply: null,
+        },
+        [
+          {
+            effectId: "supervision_goal_request",
+            description: "Ask the installed owner to govern a durable multi-step outcome.",
+            argumentDescription: null,
+          },
+        ],
+        2_000,
+      ),
+    ).toThrow(/reply conflicts/iu);
   });
 
   it("gives a matching governed discussion action precedence over repository work", () => {

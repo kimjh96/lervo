@@ -23,6 +23,8 @@ The response states that the request was retained and no work started. Receipt d
 
 This change alone creates no workstream, mandate, assignment, provider run, or publication. For an installed owner, a successful response proves only the existing `work.supervision.bound` admission. Typed refusals write no binding event. An unclassified storage or authority failure remains uncertain and surfaces through the normal conversation failure contract.
 
+The single managed turn also writes a brief request-grounded acknowledgment for `supervision_goal_request`. It states the outcome or priority understood without claiming admission, execution, completion, or verification. The action path releases that already reviewed acknowledgment only after a new binding succeeds. Duplicate and refused outcomes instead publish their deterministic verified state. A natural-language binding without its managed acknowledgment fails closed rather than substituting a generic success promise. Historical `goal.requested` events retain a bounded compatibility response.
+
 ## Consequences
 
 Discord and future first-party conversation surfaces can share a semantic intake port without reserving platform command names. Immediate work remains fast and session-scoped; durable goals remain owner-governed. Removing command registration eliminates the cross-application collision that ADR-0409 could only mitigate through manual announcement configuration.
