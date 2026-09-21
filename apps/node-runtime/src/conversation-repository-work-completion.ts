@@ -14,6 +14,7 @@ import {
   createVerifiedConversationWorkMemoryDraft,
   prepareConversationWorkMemory,
 } from "./conversation-agent-memory.js";
+import { resolveConversationRepositoryWorkKnowledgeDisposition } from "./conversation-repository-work-knowledge.js";
 import type { RepositoryWorkChange } from "./repository-work-observation.js";
 
 export interface ConversationRepositoryWorkCompletionBaseline {
@@ -101,19 +102,18 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
   }
   let knowledgeDisposition: "current" | "baseline_valid";
   try {
-    await assertManagedRepositoryKnowledgeCurrent(input.repositoryRoot);
-    knowledgeDisposition = "current";
+    knowledgeDisposition = await resolveConversationRepositoryWorkKnowledgeDisposition({
+      changedPathCount: changedPaths.length,
+      baselineKnowledgeCurrent: input.baseline.knowledgeCurrent,
+      assertCurrent: () => assertManagedRepositoryKnowledgeCurrent(input.repositoryRoot),
+      lintIsValid: async () => (await lintRepositoryKnowledge(input.repositoryRoot)).valid,
+    });
   } catch (error) {
-    const lint = await lintRepositoryKnowledge(input.repositoryRoot);
-    if (!input.baseline.knowledgeCurrent && lint.valid) {
-      knowledgeDisposition = "baseline_valid";
-    } else {
-      throw new ConversationRepositoryWorkCompletionError(
-        "repository_work_knowledge_incomplete",
-        "Repository work left knowledge migration, normalization, or lint incomplete.",
-        { cause: error },
-      );
-    }
+    throw new ConversationRepositoryWorkCompletionError(
+      "repository_work_knowledge_incomplete",
+      "Repository work left knowledge migration, normalization, or lint incomplete.",
+      { cause: error },
+    );
   }
   const storage = await openProjectStorage(input.repositoryRoot);
   try {

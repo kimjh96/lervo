@@ -27,6 +27,10 @@ Replaying a running source event retains its original attempt and start time acr
 
 Completed source events reuse their verified stored result. Different events retain the existing duplicate scope: conversation, thread, worker, provider, and exact content. Recent completed results remain available within the five-minute window. There is no new table, persisted field, event, or cross-conversation result sharing. Failed turns preserve their existing failure and inspection contract.
 
+## Completion knowledge
+
+A turn with zero observed repository changes retains the knowledge disposition captured before provider execution and skips the post-change knowledge gate. Repository replica activation can leave rebuildable local knowledge projections behind the checked-out revision; that pre-existing state cannot invalidate a read-only answer. Any observed repository change still enters the post-change migration, normalization, and lint gate.
+
 ## Verification
 
 Verification covers:

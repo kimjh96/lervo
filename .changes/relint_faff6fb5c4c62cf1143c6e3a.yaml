@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_faff6fb5c4c62cf1143c6e3a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Correct PO repository-work model routing, preserve provider sessions across profile changes, recover Claude and read-only results, and honor explicitly authorized Node deployments."
